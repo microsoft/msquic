@@ -248,7 +248,7 @@ QuicStreamSetIndicateStreamsAvailable(
     QuicTraceLogConnVerbose(
         IndicateStreamsAvailable,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]",
+        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
     (void)QuicConnIndicateEvent(Connection, &Event);
@@ -312,7 +312,7 @@ QuicStreamSetInitializeTransportParameters(
             const QUIC_STREAM_TYPE_INFO* Info =
                 &Stream->Connection->Streams.Types[StreamType];
             if (Info->MaxTotalStreamCount >= StreamCount &&
-                !(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
+                Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) {
                 FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
                 QuicStreamIndicatePeerAccepted(Stream);
             }

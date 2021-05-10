@@ -428,8 +428,10 @@ QuicStreamIndicateStartComplete(
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
         Stream,
-        "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
-        Status);
+        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [status=0x%x id=%llu accepted=%hhu]",
+        Status,
+        Stream->ID,
+        Event.START_COMPLETE.PeerAccepted);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
 

@@ -6454,7 +6454,7 @@
     },
     "IndicateStartComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [status=0x%x id=%llu accepted=%hhu]",
       "UniqueId": "IndicateStartComplete",
       "splitArgs": [
         {
@@ -6464,6 +6464,14 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -7202,7 +7210,7 @@
     },
     "IndicateStreamsAvailable": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
       "UniqueId": "IndicateStreamsAvailable",
       "splitArgs": [
         {
@@ -12154,7 +12162,7 @@
         "TraceID": "EventSilentDiscard"
       },
       {
-        "UniquenessHash": "f6a10aa5-a444-631e-8d6f-de27fd8a5565",
+        "UniquenessHash": "c6662310-649a-c716-2236-8eee77cd6db2",
         "TraceID": "IndicateStartComplete"
       },
       {
@@ -12334,7 +12342,7 @@
         "TraceID": "MaxStreamCountUpdated"
       },
       {
-        "UniquenessHash": "4d2f7315-100a-d85f-c10c-0b5f037df46a",
+        "UniquenessHash": "26bdd068-e9fa-9f1e-2d26-60dbed5c5080",
         "TraceID": "IndicateStreamsAvailable"
       },
       {
