@@ -423,6 +423,8 @@ QuicLossDetectionOnPacketSent(
         sizeof(QUIC_SENT_FRAME_METADATA) * TempSentPacket->FrameCount);
 
     LossDetection->LargestSentPacketNumber = TempSentPacket->PacketNumber;
+    CXPLAT_DBG_ASSERT(!SentPacket->Flags.IsDPLPMTUD ||
+                      (SentPacket->Flags.IsDPLPMTUD && !SentPacket->Flags.IsAckEliciting));
 
     //
     // Add to the outstanding-packet queue.
