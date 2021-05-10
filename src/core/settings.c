@@ -768,10 +768,18 @@ QuicSettingsLoad(
             (uint8_t*)&MaximumMtu,
             &ValueLen);
     }
-    if (MaximumMtu > MinimumMtu && MaximumMtu <= CXPLAT_MAX_MTU) {
-        Settings->MaximumMtu = MaximumMtu;
+    if (MaximumMtu > CXPLAT_MAX_MTU) {
+        MaximumMtu = CXPLAT_MAX_MTU;
+    } else if (MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+        MaximumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
     }
-    if (MinimumMtu < MaximumMtu && MinimumMtu >= QUIC_MIN_INITIAL_PACKET_LENGTH) {
+    if (MinimumMtu > CXPLAT_MAX_MTU) {
+        MinimumMtu = CXPLAT_MAX_MTU;
+    } else if (MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+        MinimumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+    }
+    if (MinimumMtu <= MaximumMtu) {
+        Settings->MaximumMtu = MaximumMtu;
         Settings->MinimumMtu = MinimumMtu;
     }
 }
