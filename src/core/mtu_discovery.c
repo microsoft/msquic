@@ -59,13 +59,12 @@ QuicMtuDiscoveryMoveToSearchComplete(
     QUIC_CONNECTION* Connection =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
     MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE;
-    MtuDiscovery->SearchWaitingEnterTime = CxPlatTimeUs64();
+    MtuDiscovery->SearchCompleteEnterTime = CxPlatTimeUs64();
     QuicTraceLogConnInfo(
-        MtuProbeMoveToSearchComplete,
+        MtuSearchComplete,
         Connection,
-        "Mtu Probe Entering Search Complete at MTU %u and time %llu",
-        MtuDiscovery->CurrentMtu,
-        (long long unsigned)MtuDiscovery->SearchWaitingEnterTime);
+        "Mtu Discovery Entering Search Complete at MTU %u",
+        MtuDiscovery->CurrentMtu);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -87,7 +86,7 @@ QuicGetNextProbeSize(
         //
         // 1520 is computed by the current algorithm, but we want 1500, so force that.
         // Changing QUIC_DPLPMTUD_INCREMENT requires changing this logic, as does
-        // changing the initial MTU
+        // changing the initial MTU.
         //
         Mtu = 1500;
     }
@@ -110,9 +109,9 @@ QuicMtuDiscoveryMoveToSearching(
         return;
     }
     QuicTraceLogConnInfo(
-        MtuProbeMoveToSearching,
+        MtuSearching,
         Connection,
-        "Mtu Probe Search Packet Sending with MTU %u",
+        "Mtu Discovery Search Packet Sending with MTU %u",
         MtuDiscovery->ProbedSize);
 
     QuicMtuDiscoverySendProbePacket(MtuDiscovery);
@@ -141,16 +140,13 @@ QuicMtuDiscoveryNewPath(
                       MtuDiscovery->CurrentMtu <= MtuDiscovery->MaxMtu);
 
     QuicTraceLogConnInfo(
-        MtuProbePathInitialized,
+        MtuPathInitialized,
         Connection,
-        "Mtu Probe Path[%hhu] Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
+        "Mtu Discovery Path[%hhu] Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
         Path->ID,
         MtuDiscovery->MaxMtu,
         MtuDiscovery->MinMtu,
         MtuDiscovery->CurrentMtu);
-
-    //MtuDiscovery->MaxMtuProbeWindow = MtuDiscovery->MaxMtu;
-    //MtuDiscovery->MinMtuProbeWindow = MtuDiscovery->MinMtu;
 
     QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
 }
@@ -160,18 +156,19 @@ BOOLEAN
 QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
     _In_ uint16_t PacketMtu,
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_PATH* Path
     )
 {
+    QUIC_CONNECTION* Connection =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
     //
     // If out of order receives are received, ignore the packet
     //
     if (PacketMtu != MtuDiscovery->ProbedSize) {
-        QuicTraceLogConnInfo(
-            MtuProbeIncorrectSize,
+        QuicTraceLogConnVerbose(
+            MtuIncorrectSize,
             Connection,
-            "Mtu Probe Received Out of Order: expected=%u received=%u",
+            "Mtu Discovery Received Out of Order: expected=%u received=%u",
             MtuDiscovery->ProbedSize,
             PacketMtu);
         return FALSE;
@@ -212,19 +209,19 @@ QuicMtuDiscoveryProbePacketDiscarded(
     // If out of order receives are received, ignore the packet
     //
     if (PacketMtu != MtuDiscovery->ProbedSize) {
-        QuicTraceLogConnInfo(
-            MtuProbeIncorrectSize,
+        QuicTraceLogConnVerbose(
+            MtuIncorrectSize,
             Connection,
-            "Mtu Probe Received Out of Order: expected=%u received=%u",
+            "Mtu Discovery Received Out of Order: expected=%u received=%u",
             MtuDiscovery->ProbedSize,
             PacketMtu);
         return;
     }
 
     QuicTraceLogConnInfo(
-        MtuProbeDiscarded,
+        MtuDiscarded,
         Connection,
-        "Mtu Probe Packet Discarded: size=%u, probe_count=%u",
+        "Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
         MtuDiscovery->ProbedSize,
         MtuDiscovery->ProbeCount);
 

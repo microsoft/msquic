@@ -5292,30 +5292,10 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "MtuProbeMoveToSearchComplete": {
+    "MtuSearchComplete": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Probe Entering Search Complete at MTU %u and time %llu",
-      "UniqueId": "MtuProbeMoveToSearchComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "MtuProbeMoveToSearching": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Probe Search Packet Sending with MTU %u",
-      "UniqueId": "MtuProbeMoveToSearching",
+      "TraceString": "[conn][%p] Mtu Discovery Entering Search Complete at MTU %u",
+      "UniqueId": "MtuSearchComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -5328,10 +5308,26 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "MtuProbePathInitialized": {
+    "MtuSearching": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Probe Path[%hhu] Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
-      "UniqueId": "MtuProbePathInitialized",
+      "TraceString": "[conn][%p] Mtu Discovery Search Packet Sending with MTU %u",
+      "UniqueId": "MtuSearching",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuPathInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Mtu Discovery Path[%hhu] Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
+      "UniqueId": "MtuPathInitialized",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -5356,26 +5352,6 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "MtuProbeIncorrectSize": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Probe Received Out of Order: expected=%u received=%u",
-      "UniqueId": "MtuProbeIncorrectSize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
     "PathMtuUpdated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
@@ -5396,10 +5372,10 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "MtuProbeDiscarded": {
+    "MtuDiscarded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Probe Packet Discarded: size=%u, probe_count=%u",
-      "UniqueId": "MtuProbeDiscarded",
+      "TraceString": "[conn][%p] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+      "UniqueId": "MtuDiscarded",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -5415,6 +5391,26 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuIncorrectSize": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Mtu Discovery Received Out of Order: expected=%u received=%u",
+      "UniqueId": "MtuIncorrectSize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnExecApiOper": {
       "ModuleProperites": {},
@@ -12014,28 +12010,28 @@
         "TraceID": "ConnPacketACKed"
       },
       {
-        "UniquenessHash": "bde18c5c-d1b8-c7f2-6e28-fa0cf19927c9",
-        "TraceID": "MtuProbeMoveToSearchComplete"
+        "UniquenessHash": "b180cafd-984b-75d1-2b3b-0b622113d4eb",
+        "TraceID": "MtuSearchComplete"
       },
       {
-        "UniquenessHash": "778c0291-81ec-5c7d-7f5c-e26fb4a9cb10",
-        "TraceID": "MtuProbeMoveToSearching"
+        "UniquenessHash": "c19243e9-41f4-266e-66d8-34ea75fc0c8b",
+        "TraceID": "MtuSearching"
       },
       {
-        "UniquenessHash": "b989d472-4093-dab4-88f2-9527c419758d",
-        "TraceID": "MtuProbePathInitialized"
-      },
-      {
-        "UniquenessHash": "8fbed5d6-db7c-931d-32ac-ab90307a56ae",
-        "TraceID": "MtuProbeIncorrectSize"
+        "UniquenessHash": "fefcd324-c7e2-0d21-2d55-dd63c10f42b6",
+        "TraceID": "MtuPathInitialized"
       },
       {
         "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
         "TraceID": "PathMtuUpdated"
       },
       {
-        "UniquenessHash": "53267cee-e030-6c89-f1f0-eebeaa9f668b",
-        "TraceID": "MtuProbeDiscarded"
+        "UniquenessHash": "a55d5d7f-671c-b8a8-07dc-b5c3cad21f50",
+        "TraceID": "MtuDiscarded"
+      },
+      {
+        "UniquenessHash": "fb34ac6b-38a6-c6e6-cd2a-c34db815f9c8",
+        "TraceID": "MtuIncorrectSize"
       },
       {
         "UniquenessHash": "4ef04b3e-7dde-88ad-60eb-150c807af68f",

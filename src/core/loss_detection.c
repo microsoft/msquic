@@ -423,8 +423,6 @@ QuicLossDetectionOnPacketSent(
         sizeof(QUIC_SENT_FRAME_METADATA) * TempSentPacket->FrameCount);
 
     LossDetection->LargestSentPacketNumber = TempSentPacket->PacketNumber;
-    CXPLAT_DBG_ASSERT(!SentPacket->Flags.IsMtuProbe ||
-                      (SentPacket->Flags.IsMtuProbe && !SentPacket->Flags.IsAckEliciting));
 
     //
     // Add to the outstanding-packet queue.
@@ -608,10 +606,9 @@ QuicLossDetectionOnPacketAcknowledged(
 
         if (Packet->Flags.IsMtuProbe) {
             if (QuicMtuDiscoveryOnAckedPacket(
-                &Connection->MtuDiscovery,
-                PacketMtu,
-                Path,
-                Connection)) {
+                    &Connection->MtuDiscovery,
+                    PacketMtu,
+                    Path)) {
                 QuicDatagramOnSendStateChanged(&Connection->Datagram);
             }
         }
