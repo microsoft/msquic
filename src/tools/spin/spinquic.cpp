@@ -51,16 +51,6 @@ public:
     }
 };
 
-static struct {
-    uint64_t RunTimeMs;
-    uint64_t MaxOperationCount;
-    const char* AlpnPrefix;
-    std::vector<uint16_t> Ports;
-    const char* ServerName;
-    uint8_t LossPercent;
-    int32_t AllocFailDenominator;
-} Settings;
-
 //
 // The amount of extra time (in milliseconds) to give the watchdog before
 // actually firing.
@@ -193,6 +183,16 @@ public:
         return nullptr;
     }
 };
+
+static struct {
+    uint64_t RunTimeMs;
+    uint64_t MaxOperationCount;
+    const char* AlpnPrefix;
+    std::vector<uint16_t> Ports;
+    const char* ServerName;
+    uint8_t LossPercent;
+    int32_t AllocFailDenominator;
+} Settings;
 
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
 {
