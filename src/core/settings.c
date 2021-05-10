@@ -771,7 +771,7 @@ QuicSettingsLoad(
     if (MaximumMtu > MinimumMtu && MaximumMtu <= CXPLAT_MAX_MTU) {
         Settings->MaximumMtu = MaximumMtu;
     }
-    if (MinimumMtu >= QUIC_MIN_INITIAL_PACKET_LENGTH && MinimumMtu <= MaximumMtu) {
+    if (MinimumMtu < MaximumMtu && MinimumMtu >= QUIC_MIN_INITIAL_PACKET_LENGTH) {
         Settings->MinimumMtu = MinimumMtu;
     }
 }
