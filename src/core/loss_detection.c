@@ -636,6 +636,10 @@ QuicLossDetectionRetransmitFrames(
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
             if (!Packet->Flags.IsDPLPMTUD) {
+                //
+                // Don't consider PING "new data" so that we might still find
+                // "real" data later that should be sent instead.
+                //
                 QuicSendSetSendFlag(
                     &Connection->Send,
                     QUIC_CONN_SEND_FLAG_PING);
