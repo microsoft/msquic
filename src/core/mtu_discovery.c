@@ -57,7 +57,7 @@ QuicMtuDiscoveryMoveToSearchComplete(
 {
     QUIC_CONNECTION* Connection =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
-    MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE;
+    MtuDiscovery->IsSearching = FALSE;
     MtuDiscovery->SearchCompleteEnterTimeUs = CxPlatTimeUs64();
     QuicTraceLogConnInfo(
         MtuSearchComplete,
@@ -100,7 +100,7 @@ QuicMtuDiscoveryMoveToSearching(
 {
     QUIC_CONNECTION* Connection =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
-    MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCHING;
+    MtuDiscovery->IsSearching = TRUE;
     MtuDiscovery->ProbeCount = 0;
     MtuDiscovery->ProbedSize = QuicGetNextProbeSize(MtuDiscovery);
     if (MtuDiscovery->ProbedSize == MtuDiscovery->CurrentMtu) {
