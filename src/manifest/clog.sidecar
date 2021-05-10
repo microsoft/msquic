@@ -6480,6 +6480,30 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingMinimumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Minimum Mtu            = %hu",
+      "UniqueId": "SettingMinimumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingMaximumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Maximum Mtu            = %hu",
+      "UniqueId": "SettingMaximumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpDesiredVersionsListLength": {
       "ModuleProperites": {},
       "TraceString": "[sett] Desired Version length = %u",
@@ -6508,6 +6532,30 @@
       "ModuleProperites": {},
       "TraceString": "[sett] Version Negotiation Ext Enabled = %hhu",
       "UniqueId": "SettingDumpVersionNegoExtEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMinimumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Minimum Mtu             = %hu",
+      "UniqueId": "SettingDumpMinimumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMaximumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Maximum Mtu             = %hhu",
+      "UniqueId": "SettingDumpMaximumMtu",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -12242,6 +12290,14 @@
         "TraceID": "SettingDumpServerResumptionLevel"
       },
       {
+        "UniquenessHash": "5cfc25ac-dfa1-9a54-17d2-4ce6571269ed",
+        "TraceID": "SettingMinimumMtu"
+      },
+      {
+        "UniquenessHash": "ea3d9556-cb67-75dc-54ab-d483b4155090",
+        "TraceID": "SettingMaximumMtu"
+      },
+      {
         "UniquenessHash": "0080f5a7-d4e1-7c9d-e023-eb4dd540fffe",
         "TraceID": "SettingDumpDesiredVersionsListLength"
       },
@@ -12252,6 +12308,14 @@
       {
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled"
+      },
+      {
+        "UniquenessHash": "06df85ad-1521-606b-f16e-2846609c486b",
+        "TraceID": "SettingDumpMinimumMtu"
+      },
+      {
+        "UniquenessHash": "65dc18d0-b353-1b41-849b-cb5e4d6df5b2",
+        "TraceID": "SettingDumpMaximumMtu"
       },
       {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",

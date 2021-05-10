@@ -423,8 +423,8 @@ QuicLossDetectionOnPacketSent(
         sizeof(QUIC_SENT_FRAME_METADATA) * TempSentPacket->FrameCount);
 
     LossDetection->LargestSentPacketNumber = TempSentPacket->PacketNumber;
-    CXPLAT_DBG_ASSERT(!SentPacket->Flags.IsDPLPMTUD ||
-                      (SentPacket->Flags.IsDPLPMTUD && !SentPacket->Flags.IsAckEliciting));
+    CXPLAT_DBG_ASSERT(!SentPacket->Flags.IsMtuProbe ||
+                      (SentPacket->Flags.IsMtuProbe && !SentPacket->Flags.IsAckEliciting));
 
     //
     // Add to the outstanding-packet queue.
@@ -606,7 +606,7 @@ QuicLossDetectionOnPacketAcknowledged(
                 Path->ID);
         }
 
-        if (Packet->Flags.IsDPLPMTUD) {
+        if (Packet->Flags.IsMtuProbe) {
             if (QuicMtuDiscoveryOnAckedPacket(
                 &Connection->MtuDiscovery,
                 PacketMtu,
@@ -638,7 +638,7 @@ QuicLossDetectionRetransmitFrames(
     for (uint8_t i = 0; i < Packet->FrameCount; i++) {
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
-            if (!Packet->Flags.IsDPLPMTUD) {
+            if (!Packet->Flags.IsMtuProbe) {
                 //
                 // Don't consider PING "new data" so that we might still find
                 // "real" data later that should be sent instead.
@@ -838,7 +838,7 @@ QuicLossDetectionOnPacketDiscarded(
                 QUIC_DATAGRAM_SEND_LOST_DISCARDED);
             break;
         }
-        if (Packet->Flags.IsDPLPMTUD && DiscardedForLoss) {
+        if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
             uint8_t PathIndex;
             QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
             UNREFERENCED_PARAMETER(PathIndex);

@@ -507,6 +507,11 @@ typedef struct QUIC_CONNECTION {
     QUIC_LOSS_DETECTION LossDetection;
 
     //
+    // MTU Discovery logic.
+    //
+    QUIC_MTU_DISCOVERY MtuDiscovery;
+
+    //
     // Per-encryption level packet space information.
     //
     QUIC_PACKET_SPACE* Packets[QUIC_ENCRYPT_LEVEL_COUNT];
@@ -566,11 +571,6 @@ typedef struct QUIC_CONNECTION {
     // Previously-attempted QUIC version.
     //
     uint32_t PreviousQuicVersion;
-
-    //
-    // MTU Discovery
-    //
-    QUIC_MTU_DISCOVERY MtuDiscovery;
 
 } QUIC_CONNECTION;
 

@@ -39,7 +39,7 @@ EXT_COMMAND(
         Dml("Ack Eliciting\n"
             "\t                     ");
     }
-    if (Flags.IsDPLPMTUD) {
+    if (Flags.IsMtuProbe) {
         Dml("DPLPMTUD\n"
             "\t                     ");
     }

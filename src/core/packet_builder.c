@@ -287,7 +287,7 @@ QuicPacketBuilderPrepare(
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;
         Builder->Metadata->Flags.IsAckEliciting = FALSE;
-        Builder->Metadata->Flags.IsDPLPMTUD = IsPathMtuDiscovery;
+        Builder->Metadata->Flags.IsMtuProbe = IsPathMtuDiscovery;
         Builder->Metadata->Flags.SuspectedLost = FALSE;
 #if DEBUG
         Builder->Metadata->Flags.Freed = FALSE;

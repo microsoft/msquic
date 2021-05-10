@@ -101,6 +101,12 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.VersionNegotiationExtEnabled) {
         Settings->VersionNegotiationExtEnabled = QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED;
     }
+    if (!Settings->IsSet.MinimumMtu) {
+        Settings->MinimumMtu = QUIC_DEFAULT_PATH_MTU;
+    }
+    if (!Settings->IsSet.MaximumMtu) {
+        Settings->MaximumMtu = QUIC_DEFAULT_MAX_MTU;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -190,6 +196,12 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.VersionNegotiationExtEnabled) {
         Destination->VersionNegotiationExtEnabled = Source->VersionNegotiationExtEnabled;
+    }
+    if (!Destination->IsSet.MinimumMtu) {
+        Destination->MinimumMtu = Source->MinimumMtu;
+    }
+    if (!Destination->IsSet.MaximumMtu) {
+        Destination->MaximumMtu = Source->MaximumMtu;
     }
 }
 
@@ -391,6 +403,26 @@ QuicSettingApply(
             }
         }
     }
+
+    uint16_t MinimumMtu = Destination->MinimumMtu;
+    uint16_t MaximumMtu = Destination->MaximumMtu;
+    if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
+        if (Destination->MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH || Destination->MinimumMtu > CXPLAT_MAX_MTU) {
+            return FALSE;
+        }
+        MinimumMtu = Source->MinimumMtu;
+    }
+    if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
+        if (Destination->MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH || Destination->MaximumMtu > CXPLAT_MAX_MTU) {
+            return FALSE;
+        }
+        MaximumMtu = Source->MaximumMtu;
+    }
+    if (MinimumMtu > MaximumMtu) {
+        return FALSE;
+    }
+    Destination->MinimumMtu = MinimumMtu;
+    Destination->MaximumMtu = MaximumMtu;
     return TRUE;
 }
 
@@ -711,6 +743,31 @@ QuicSettingsLoad(
             &ValueLen);
         Settings->VersionNegotiationExtEnabled = !!Value;
     }
+
+    uint16_t MinimumMtu = Settings->MinimumMtu;
+    uint16_t MaximumMtu = Settings->MaximumMtu;
+    if (!Settings->IsSet.MinimumMtu) {
+        ValueLen = sizeof(MinimumMtu);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_MINIMUM_MTU,
+            (uint8_t*)&MinimumMtu,
+            &ValueLen);
+    }
+    if (!Settings->IsSet.MaximumMtu) {
+        ValueLen = sizeof(MaximumMtu);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_MAXIMUM_MTU,
+            (uint8_t*)&MaximumMtu,
+            &ValueLen);
+    }
+    if (MinimumMtu >= QUIC_MIN_INITIAL_PACKET_LENGTH &&
+        MinimumMtu <= MaximumMtu &&
+        MaximumMtu <= CXPLAT_MAX_MTU) {
+        Settings->MinimumMtu = MinimumMtu;
+        Settings->MaximumMtu = MaximumMtu;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -745,6 +802,8 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
     QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
     QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
+    QuicTraceLogVerbose(SettingMinimumMtu,                  "[sett] Minimum Mtu            = %hu", Settings->MinimumMtu);
+    QuicTraceLogVerbose(SettingMaximumMtu,                  "[sett] Maximum Mtu            = %hu", Settings->MaximumMtu);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -844,5 +903,11 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.VersionNegotiationExtEnabled) {
         QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
+    }
+    if (Settings->IsSet.MinimumMtu) {
+        QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] Minimum Mtu             = %hu", Settings->MinimumMtu);
+    }
+    if (Settings->IsSet.MaximumMtu) {
+        QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] Maximum Mtu             = %hhu", Settings->MaximumMtu);
     }
 }

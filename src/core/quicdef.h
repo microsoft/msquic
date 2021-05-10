@@ -244,6 +244,11 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be powe
 #define QUIC_DEFAULT_PATH_MTU                   1280    // TODO - Use 1200 instead
 
 //
+// The maximum IP MTU DPLPMTUD will use by default.
+//
+#define QUIC_DEFAULT_MAX_MTU                  1500
+
+//
 // The maximum time an app callback can take before we log a warning.
 // Apps should generally take less than a millisecond for each callback if at
 // all possible, but this limit here is to catch performance issues caused by
@@ -437,9 +442,14 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DPLPMTUD_MAX_PROBES 3
 
 //
-// The timeout time in microseconds for the DPLPMTUD PMTU_RAISE_TIMER.
+// The timeout time in microseconds for the DPLPMTUD wait time.
 //
 #define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000000
+
+//
+// The amount of bytes to increase our PLMTU each probe
+//
+#define QUIC_DPLPMTUD_INCREMENT 80
 
 
 /*************************************************************
@@ -481,3 +491,6 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_SERVER_RESUMPTION_LEVEL        "ResumptionLevel"
 
 #define QUIC_SETTING_VERSION_NEGOTIATION_EXT_ENABLE "VersionNegotiationExtEnabled"
+
+#define QUIC_SETTING_MINIMUM_MTU                    "MinimumMtu"
+#define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"

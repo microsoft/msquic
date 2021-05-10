@@ -5,6 +5,29 @@
 
 Abstract:
 
+    This module handles the MTU discovery logic.
+
+    Upon a new path being validated, MTU discovery is started
+    on that path. This is done by sending a probe packet larger
+    than the current MTU.
+
+    If the probe packet is acknowledged, that is set as the current
+    MTU and a new probe packet is sent. This is repeated until the
+    maximum allowed MTU is reached.
+
+    If a probe packet is not ACKed, the probe at the same size will
+    be retried. If this fails QUIC_DPLPMTUD_MAX_PROBES times, max MTU
+    is considered found and searching stops.
+
+    Once searching has stopped, discovery will stay idle until
+    QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT has passed. The next send will then
+    trigger a new MTU discovery period, unless maximum allowed MTU is
+    already reached.
+
+    The current algorithm is very simplistic, increasing by 80 bytes each
+    probe. A special case is added so 1500 is always a checked value, as
+    1500 is often the max allowed over the internet.
+
 --*/
 
 #include "precomp.h"
@@ -12,7 +35,7 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
-#define MTU_INCREMENT 80
+CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DEFAULT_MAX_MTU, L"Default max must not be more than max");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static
@@ -57,14 +80,14 @@ QuicGetNextProbeSize(
     // depends on that behavior.
     //
 
-    uint16_t Mtu = MtuDiscovery->CurrentMtu + MTU_INCREMENT;
+    uint16_t Mtu = MtuDiscovery->CurrentMtu + QUIC_DPLPMTUD_INCREMENT;
     if (Mtu > MtuDiscovery->MaxMtu) {
         Mtu = MtuDiscovery->MaxMtu;
     } else if (Mtu == 1520) {
         //
         // 1520 is computed by the current algorithm, but we want 1500, so force that.
-        // Changing MTU_INCREMENT requires changing this logic, as does changing the
-        // initial MTU
+        // Changing QUIC_DPLPMTUD_INCREMENT requires changing this logic, as does
+        // changing the initial MTU
         //
         Mtu = 1500;
     }

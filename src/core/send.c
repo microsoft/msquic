@@ -1086,14 +1086,23 @@ QuicSendFlush(
         //
         // We write data to packets in the following order:
         //
-        //   1. Path MTU discovery packets.
-        //   2. Connection wide control data.
+        //   1 Connection wide control data.
+        //   2. Path MTU discovery packets.
         //   3. Stream (control and application) data.
         //
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
+        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
+            CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
+            if (!QuicPacketBuilderPrepareForControlFrames(
+                    &Builder,
+                    Send->TailLossProbeNeeded,
+                    SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD)) {
+                break;
+            }
+            WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);
+        } else if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
             if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
                 break;
             }
@@ -1111,16 +1120,6 @@ QuicSendFlush(
             } else {
                 WrotePacketFrames = FALSE;
             }
-        } else if ((SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
-            CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
-            if (!QuicPacketBuilderPrepareForControlFrames(
-                    &Builder,
-                    Send->TailLossProbeNeeded,
-                    SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD)) {
-                break;
-            }
-            WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);
-
         } else if (Stream != NULL ||
             (Stream = QuicSendGetNextStream(Send, &StreamPacketCount)) != NULL) {
             if (!QuicPacketBuilderPrepareForStreamFrames(

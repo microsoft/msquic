@@ -494,7 +494,9 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerResumptionLevel          : 1;
             uint64_t DesiredVersionsList            : 1;
             uint64_t VersionNegotiationExtEnabled   : 1;
-            uint64_t RESERVED                       : 36;
+            uint64_t MinimumMtu                    : 1;
+            uint64_t MaximumMtu                     : 1;
+            uint64_t RESERVED                       : 34;
         } IsSet;
     };
 
@@ -528,6 +530,8 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 1;
     const uint32_t* DesiredVersionsList;
     uint32_t DesiredVersionsListLength;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
 
 } QUIC_SETTINGS;
 
