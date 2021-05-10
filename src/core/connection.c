@@ -3736,6 +3736,7 @@ QuicConnRecvDecryptAndAuthenticate(
                         QUIC_CID_CXPLAT_LIST_ENTRY,
                         Link);
                 if (DestCid->CID.HasResetToken &&
+                    !DestCid->CID.Retired &&
                     memcmp(
                         DestCid->ResetToken,
                         PacketResetToken,
