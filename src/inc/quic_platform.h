@@ -332,6 +332,19 @@ CxPlatSetAllocFailDenominator(
 int32_t
 CxPlatGetAllocFailDenominator(
     );
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK)(
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) void* Buffer
+    );
+
+QUIC_STATUS
+CxPlatSetAllocFailRngCallback(
+    _In_ QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK Callback
+    );
 #endif
 
 #ifdef DEBUG

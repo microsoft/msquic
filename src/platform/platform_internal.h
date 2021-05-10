@@ -98,6 +98,12 @@ typedef struct CX_PLATFORM {
     // Count of allocations.
     //
     long AllocCounter;
+
+    //
+    // Function used to generate random values to determine whether
+    // or not to fail a memory allocation.
+    //
+    QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK AllocRng;
 #endif
 
 } CX_PLATFORM;
@@ -119,6 +125,12 @@ typedef struct CX_PLATFORM {
     // Count of allocations.
     //
     long AllocCounter;
+
+    //
+    // Function used to generate random values to determine whether
+    // or not to fail a memory allocation.
+    //
+    QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK AllocRng;
 #endif
 
 } CX_PLATFORM;

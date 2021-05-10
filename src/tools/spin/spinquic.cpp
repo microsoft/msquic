@@ -87,6 +87,25 @@ public:
     }
 };
 
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+SpinQuicRandom(
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) void* Buffer
+    )
+{
+    do {
+        uint32_t Rand = rand();
+        uint32_t BytesWritten = min(BufferLen, sizeof(Rand));
+        memcpy(Buffer, &Rand, BytesWritten);
+        Buffer = ((uint8_t*)Buffer) + BytesWritten;
+        BufferLen -= BytesWritten;
+    } while (BufferLen > 0);
+    return QUIC_STATUS_SUCCESS;
+}
+
 static uint64_t StartTimeMs;
 static const QUIC_API_TABLE* MsQuic;
 static HQUIC Registration;
@@ -813,7 +832,7 @@ main(int argc, char **argv)
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
         CxPlatRandom(sizeof(RngSeed), &RngSeed);
     }
-    printf("Using seed value: %u\n", RngSeed);
+    printf("Using seed value: %d\n", RngSeed);
     srand(RngSeed);
 
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
@@ -838,6 +857,15 @@ main(int argc, char **argv)
         }
 
         if (Settings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_RNG,
+                    sizeof(void*),
+                    &SpinQuicRandom))) {
+                printf("Setting Allocation Failure RNG failed.\n");
+            }
             if (QUIC_FAILED(
                 MsQuic->SetParam(
                     nullptr,

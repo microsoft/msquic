@@ -818,6 +818,20 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_RNG: {
+        if (BufferLength != sizeof(QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK Fn = *(QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK*)Buffer;
+        if (Fn == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        Status = CxPlatSetAllocFailRngCallback(Fn);
+        break;
+    }
 #endif
 
     default:

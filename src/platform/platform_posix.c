@@ -132,6 +132,7 @@ CxPlatSystemLoad(
 #ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
     CxPlatform.AllocCounter = 0;
+    CxPlatform.AllocRng = CxPlatRandom;
 #endif
 }
 
@@ -520,6 +521,18 @@ CxPlatGetAllocFailDenominator(
     )
 {
     return CxPlatform.AllocFailDenominator;
+}
+
+QUIC_STATUS
+CxPlatSetAllocFailRngCallback(
+    _In_ QUIC_TEST_ALLOC_FAIL_RNG_CALLBACK Callback
+    )
+{
+    if (CxPlatform.AllocRng == Callback) {
+        return QUIC_STATUS_SUCCESS;
+    }
+    CxPlatform.AllocRng = Callback;
+    return QUIC_STATUS_SUCCESS;
 }
 #endif
 
