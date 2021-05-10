@@ -246,7 +246,7 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be powe
 //
 // The maximum IP MTU DPLPMTUD will use by default.
 //
-#define QUIC_DPLPMUTD_MAX_MTU                  1500
+#define QUIC_DPLPMUTD_DEFAULT_MAX_MTU                  1500
 
 //
 // The maximum time an app callback can take before we log a warning.

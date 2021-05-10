@@ -105,7 +105,7 @@ QuicSettingsSetDefault(
         Settings->MinimumMtu = QUIC_DEFAULT_MIN_MTU;
     }
     if (!Settings->IsSet.MaximumMtu) {
-        Settings->MaximumMtu = QUIC_DPLPMUTD_MAX_MTU;
+        Settings->MaximumMtu = QUIC_DPLPMUTD_DEFAULT_MAX_MTU;
     }
 }
 

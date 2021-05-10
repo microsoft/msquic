@@ -34,7 +34,7 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
-CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DPLPMUTD_MAX_MTU, L"Default max must not be more than max");
+CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DPLPMUTD_DEFAULT_MAX_MTU, L"Default max must not be more than max");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static
