@@ -588,10 +588,10 @@ function Get-LatestCommitHashes([string]$Branch) {
 function Get-LatestCpuTestResults([string]$Branch, $CommitHashes) {
     $Items = [System.Collections.Generic.List[object]]::new()
     foreach ($Result in $CommitHashes) {
-        $CommitHash = $Result.CommitHash
-        $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
-        Write-LogAndDebug "Requesting: $Uri"
         try {
+            $CommitHash = $Result.CommitHash
+            $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
+            Write-LogAndDebug "Requesting: $Uri"
             $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
             Write-LogAndDebug "Result: $LatestResult"
             $Items.Add($LatestResult)
