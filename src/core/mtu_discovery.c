@@ -82,6 +82,10 @@ QuicMtuDiscoveryMoveToSearching(
     MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCHING;
     MtuDiscovery->ProbeCount = 0;
     MtuDiscovery->ProbedSize = QuicGetNextProbeSize(MtuDiscovery);
+    if (MtuDiscovery->ProbedSize == MtuDiscovery->CurrentMtu) {
+        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
+        return;
+    }
     QuicTraceLogConnInfo(
         MtuProbeMoveToSearching,
         Connection,
@@ -110,6 +114,8 @@ QuicMtuDiscoveryNewPath(
     MtuDiscovery->MaxMtu = QuicConnGetMaxMtuForPath(Connection, Path);
     MtuDiscovery->MinMtu = Path->Mtu;
     MtuDiscovery->CurrentMtu = Path->Mtu;
+    CXPLAT_DBG_ASSERT(MtuDiscovery->MinMtu <= MtuDiscovery->CurrentMtu &&
+                      MtuDiscovery->CurrentMtu <= MtuDiscovery->MaxMtu);
 
     QuicTraceLogConnInfo(
         MtuProbePathInitialized,
