@@ -70,7 +70,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 static
 uint16_t
 QuicGetNextProbeSize(
-    _In_ const QUIC_MTU_DISCOVERY* MtuDiscovery
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
     //
@@ -81,13 +81,17 @@ QuicGetNextProbeSize(
     uint16_t Mtu = MtuDiscovery->CurrentMtu + QUIC_DPLPMTUD_INCREMENT;
     if (Mtu > MtuDiscovery->MaxMtu) {
         Mtu = MtuDiscovery->MaxMtu;
-    } else if (Mtu == 1520) {
-        //
-        // 1520 is computed by the current algorithm, but we want 1500, so force that.
-        // Changing QUIC_DPLPMTUD_INCREMENT requires changing this logic, as does
-        // changing the initial MTU.
-        //
+    }
+
+    //
+    // Our increasing algorithm might not hit 1500 by default. Ensure that
+    // happens.
+    //
+    if (Mtu > 1500 && !MtuDiscovery->HasProbed1500) {
         Mtu = 1500;
+    }
+    if (Mtu == 1500) {
+        MtuDiscovery->HasProbed1500 = TRUE;
     }
     return Mtu;
 }
@@ -135,6 +139,7 @@ QuicMtuDiscoveryNewPath(
     MtuDiscovery->MaxMtu = QuicConnGetMaxMtuForPath(Connection, Path);
     MtuDiscovery->MinMtu = Path->Mtu;
     MtuDiscovery->CurrentMtu = Path->Mtu;
+    MtuDiscovery->HasProbed1500 = MtuDiscovery->MinMtu >= 1500;
     CXPLAT_DBG_ASSERT(MtuDiscovery->MinMtu <= MtuDiscovery->CurrentMtu &&
                       MtuDiscovery->CurrentMtu <= MtuDiscovery->MaxMtu);
 

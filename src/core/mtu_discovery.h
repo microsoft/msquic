@@ -40,7 +40,12 @@ typedef struct QUIC_MTU_DISCOVERY {
     //
     // Is MTU discovery is searching or search complete.
     //
-    BOOLEAN IsSearching;
+    BOOLEAN IsSearching         : 1;
+
+    //
+    // Check for has 1500 been probed to ensure its tested.
+    //
+    BOOLEAN HasProbed1500       : 1;
 
 } QUIC_MTU_DISCOVERY;
 
