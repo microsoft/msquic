@@ -102,10 +102,10 @@ QuicSettingsSetDefault(
         Settings->VersionNegotiationExtEnabled = QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED;
     }
     if (!Settings->IsSet.MinimumMtu) {
-        Settings->MinimumMtu = QUIC_DEFAULT_PATH_MTU;
+        Settings->MinimumMtu = QUIC_DEFAULT_MIN_MTU;
     }
     if (!Settings->IsSet.MaximumMtu) {
-        Settings->MaximumMtu = QUIC_DEFAULT_MAX_MTU;
+        Settings->MaximumMtu = QUIC_DPLPMUTD_MAX_MTU;
     }
 }
 
@@ -762,11 +762,11 @@ QuicSettingsLoad(
             (uint8_t*)&MaximumMtu,
             &ValueLen);
     }
-    if (MinimumMtu >= QUIC_MIN_INITIAL_PACKET_LENGTH &&
-        MinimumMtu <= MaximumMtu &&
-        MaximumMtu <= CXPLAT_MAX_MTU) {
-        Settings->MinimumMtu = MinimumMtu;
+    if (MaximumMtu > MinimumMtu && MaximumMtu <= CXPLAT_MAX_MTU) {
         Settings->MaximumMtu = MaximumMtu;
+    }
+    if (MinimumMtu >= QUIC_MIN_INITIAL_PACKET_LENGTH && MinimumMtu <= MaximumMtu) {
+        Settings->MinimumMtu = MinimumMtu;
     }
 }
 

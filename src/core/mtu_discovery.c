@@ -7,26 +7,25 @@ Abstract:
 
     This module handles the MTU discovery logic.
 
-    Upon a new path being validated, MTU discovery is started
-    on that path. This is done by sending a probe packet larger
-    than the current MTU.
+    Upon a new path being validated, MTU discovery is started on that path.
+    This is done by sending a probe packet larger than the current MTU.
 
-    If the probe packet is acknowledged, that is set as the current
-    MTU and a new probe packet is sent. This is repeated until the
-    maximum allowed MTU is reached.
+    If the probe packet is acknowledged, that is set as the current MTU and a
+    new probe packet is sent. This is repeated until the maximum allowed MTU is
+    reached.
 
-    If a probe packet is not ACKed, the probe at the same size will
-    be retried. If this fails QUIC_DPLPMTUD_MAX_PROBES times, max MTU
-    is considered found and searching stops.
+    If a probe packet is not ACKed, the probe at the same size will be retried.
+    If this fails QUIC_DPLPMTUD_MAX_PROBES times, max MTU is considered found
+    and searching stops.
 
     Once searching has stopped, discovery will stay idle until
     QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT has passed. The next send will then
-    trigger a new MTU discovery period, unless maximum allowed MTU is
-    already reached.
+    trigger a new MTU discovery period, unless maximum allowed MTU is already
+    reached.
 
     The current algorithm is very simplistic, increasing by 80 bytes each
-    probe. A special case is added so 1500 is always a checked value, as
-    1500 is often the max allowed over the internet.
+    probe. A special case is added so 1500 is always a checked value, as 1500
+    is often the max allowed over the internet.
 
 --*/
 
@@ -35,7 +34,7 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
-CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DEFAULT_MAX_MTU, L"Default max must not be more than max");
+CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DPLPMUTD_MAX_MTU, L"Default max must not be more than max");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static
@@ -59,7 +58,7 @@ QuicMtuDiscoveryMoveToSearchComplete(
     QUIC_CONNECTION* Connection =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
     MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE;
-    MtuDiscovery->SearchCompleteEnterTime = CxPlatTimeUs64();
+    MtuDiscovery->SearchCompleteEnterTimeUs = CxPlatTimeUs64();
     QuicTraceLogConnInfo(
         MtuSearchComplete,
         Connection,

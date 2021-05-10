@@ -24,7 +24,7 @@ typedef struct QUIC_MTU_DISCOVERY {
     //
     // The timestamp that Search Complete was entered.
     //
-    uint64_t SearchCompleteEnterTime;
+    uint64_t SearchCompleteEnterTimeUs;
 
     //
     // The current discovery state.
@@ -99,8 +99,8 @@ QuicMtuDiscoveryProbePacketDiscarded(
     );
 
 //
-// Check to see if enough time has passed while in Search Complete
-// to retry MTU discovery.
+// Check to see if enough time has passed while in Search Complete to retry MTU
+// discovery.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
@@ -110,12 +110,13 @@ QuicMtuDiscoveryCheckSearchCompleteReset(
     )
 {
     //
-    // Only trigger a new send if we're in Search Complete and enough time has passed.
+    // Only trigger a new send if we're in Search Complete and enough time has
+    // passed.
     //
     if (MtuDiscovery->State != QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE) {
         return;
     }
-    if (CxPlatTimeDiff64(MtuDiscovery->SearchCompleteEnterTime, CxPlatTimeUs64()) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
+    if (CxPlatTimeDiff64(MtuDiscovery->SearchCompleteEnterTimeUs, CxPlatTimeUs64()) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
         QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
     }
 }

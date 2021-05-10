@@ -241,12 +241,12 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be powe
 // Path MTU discovery will always start with/initialize with the smallest
 // allowable MTU for QUIC (1280 bytes).
 //
-#define QUIC_DEFAULT_PATH_MTU                   1280    // TODO - Use 1200 instead
+#define QUIC_DEFAULT_MIN_MTU                   1280    // TODO - Use 1200 instead
 
 //
 // The maximum IP MTU DPLPMTUD will use by default.
 //
-#define QUIC_DEFAULT_MAX_MTU                  1500
+#define QUIC_DPLPMUTD_MAX_MTU                  1500
 
 //
 // The maximum time an app callback can take before we log a warning.
