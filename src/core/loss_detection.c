@@ -636,10 +636,9 @@ QuicLossDetectionRetransmitFrames(
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
             if (!Packet->Flags.IsDPLPMTUD) {
-                NewDataQueued |=
-                    QuicSendSetSendFlag(
-                        &Connection->Send,
-                        QUIC_CONN_SEND_FLAG_PING);
+                QuicSendSetSendFlag(
+                    &Connection->Send,
+                    QUIC_CONN_SEND_FLAG_PING);
             }
             break;
 

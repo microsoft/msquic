@@ -2067,68 +2067,44 @@ struct AbortRecvTestContext {
     QUIC_ABORT_RECEIVE_TYPE Type;
     CxPlatEvent ServerStreamRecv;
     CxPlatEvent ServerStreamShutdown;
-    HQUIC ServerStream {nullptr};
+    MsQuicStream* ServerStream {nullptr};
 };
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STREAM_CALLBACK)
 QUIC_STATUS
-QUIC_API
 AbortRecvStreamCallback(
-    _In_ HQUIC Stream,
+    _In_ MsQuicStream* Stream,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
     auto TestContext = (AbortRecvTestContext*)Context;
-    switch (Event->Type) {
-    case QUIC_STREAM_EVENT_RECEIVE:
+    if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
         TestContext->ServerStreamRecv.Set();
         if (TestContext->Type == QUIC_ABORT_RECEIVE_PAUSED) {
             Event->RECEIVE.TotalBufferLength = 0;
         } else if (TestContext->Type == QUIC_ABORT_RECEIVE_PENDING) {
             return QUIC_STATUS_PENDING;
         }
-        break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        if (Context) {
-            TestContext->ServerStreamShutdown.Set();
-            MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 1);
-            MsQuic->StreamClose(Stream);
-        }
-        break;
-    default:
-        break;
+    } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+        TestContext->ServerStreamShutdown.Set();
+        Stream->ConnectionShutdown(1);
     }
     return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CONNECTION_CALLBACK)
 QUIC_STATUS
-QUIC_API
 AbortRecvConnCallback(
-    _In_ HQUIC Connection,
+    _In_ MsQuicConnection* /* Connection */,
     _In_opt_ void* Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
     auto TestContext = (AbortRecvTestContext*)Context;
-    switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (Context) {
-            MsQuic->ConnectionClose(Connection);
-        }
-        break;
-    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        TestContext->ServerStream = Event->PEER_STREAM_STARTED.Stream;
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)AbortRecvStreamCallback, Context);
+    if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+        TestContext->ServerStream = new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, AbortRecvStreamCallback, Context);
         if (TestContext->Type == QUIC_ABORT_RECEIVE_INCOMPLETE) {
             TestContext->ServerStreamRecv.Set();
         }
-        break;
-    default:
-        break;
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -2139,13 +2115,13 @@ QuicTestAbortReceive(
     )
 {
     MsQuicRegistration Registration;
-    TEST_TRUE(Registration.IsValid());
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
-    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     AbortRecvTestContext RecvContext { Type };
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AbortRecvConnCallback, &RecvContext);
@@ -2154,11 +2130,11 @@ QuicTestAbortReceive(
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, AbortRecvConnCallback, nullptr);
+    MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
 
-    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, AbortRecvStreamCallback);
+    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
 
     uint8_t RawBuffer[100];
@@ -2170,6 +2146,6 @@ QuicTestAbortReceive(
     }
 
     TEST_TRUE(RecvContext.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
-    TEST_QUIC_SUCCEEDED(MsQuic->StreamShutdown(RecvContext.ServerStream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 1));
+    TEST_QUIC_SUCCEEDED(RecvContext.ServerStream->Shutdown(1));
     TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
 }
