@@ -424,6 +424,21 @@ MsQuicLibraryUninitialize(
     )
 {
     //
+    // The library's stateless registration may still have half-opened
+    // connections that need to be cleaned up before all the bindings and
+    // sockets can be cleaned up. Kick off a clean up of those connections.
+    //
+    if (MsQuicLib.StatelessRegistration != NULL) {
+        //
+        // Best effort to clean up existing connections.
+        //
+        MsQuicRegistrationShutdown(
+            (HQUIC)MsQuicLib.StatelessRegistration,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+            0);
+    }
+
+    //
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
@@ -431,15 +446,10 @@ MsQuicLibraryUninitialize(
     MsQuicLib.Datapath = NULL;
 
     //
-    // The library's stateless registration for processing half-opened
-    // connections needs to be cleaned up next, as it's the last thing that can
-    // be holding on to connection objects.
+    // Wait for the final clean up of everything in the stateless registration
+    // and then free it.
     //
     if (MsQuicLib.StatelessRegistration != NULL) {
-        MsQuicRegistrationShutdown(
-            (HQUIC)MsQuicLib.StatelessRegistration,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-            0);
         MsQuicRegistrationClose(
             (HQUIC)MsQuicLib.StatelessRegistration);
         MsQuicLib.StatelessRegistration = NULL;

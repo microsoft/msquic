@@ -720,7 +720,7 @@ QuicConnQueueOper(
     #if DEBUG
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
-        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
     }
 #endif
     if (QuicOperationEnqueue(&Connection->OperQ, Oper)) {
