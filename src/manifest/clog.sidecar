@@ -7168,6 +7168,18 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "IndicatePeerAccepted": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED",
+      "UniqueId": "IndicatePeerAccepted",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "MaxStreamCountUpdated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] App configured max stream count of %hu (type=%hhu).",
@@ -12312,6 +12324,10 @@
       {
         "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",
         "TraceID": "NotAccepted"
+      },
+      {
+        "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",
+        "TraceID": "IndicatePeerAccepted"
       },
       {
         "UniquenessHash": "418770bb-5594-978f-0b62-4bb47315bfa1",

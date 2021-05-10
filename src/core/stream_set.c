@@ -256,6 +256,23 @@ QuicStreamSetIndicateStreamsAvailable(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicStreamIndicatePeerAccepted(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    if (Stream->Flags.IndicatePeerAccepted) {
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_ACCEPTED;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerAccepted,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED");
+        (void)QuicStreamIndicateEvent(Stream, &Event);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicStreamSetInitializeTransportParameters(
     _Inout_ QUIC_STREAM_SET* StreamSet,
     _In_ uint64_t BidiStreamCount,
@@ -296,6 +313,8 @@ QuicStreamSetInitializeTransportParameters(
                 &Stream->Connection->Streams.Types[StreamType];
             if (Info->MaxTotalStreamCount >= StreamCount) {
                 FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
+                CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
+                QuicStreamIndicatePeerAccepted(Stream);
             }
 
             uint64_t NewMaxAllowedSendOffset =
@@ -388,6 +407,7 @@ QuicStreamSetUpdateMaxStreams(
                     FlushSend = TRUE;
                     QuicStreamRemoveOutFlowBlockedReason(
                         Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
+                    QuicStreamIndicatePeerAccepted(Stream);
                 }
             }
             CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
