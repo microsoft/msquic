@@ -311,9 +311,9 @@ QuicStreamSetInitializeTransportParameters(
             uint64_t StreamCount = (Stream->ID >> 2) + 1;
             const QUIC_STREAM_TYPE_INFO* Info =
                 &Stream->Connection->Streams.Types[StreamType];
-            if (Info->MaxTotalStreamCount >= StreamCount) {
+            if (Info->MaxTotalStreamCount >= StreamCount &&
+                !(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
                 FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
-                CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
                 QuicStreamIndicatePeerAccepted(Stream);
             }
 
@@ -403,11 +403,11 @@ QuicStreamSetUpdateMaxStreams(
 
                 if ((Stream->ID & STREAM_ID_MASK) == Mask &&
                     Count > Info->MaxTotalStreamCount &&
-                    Count <= MaxStreams) {
-                    FlushSend = TRUE;
+                    Count <= MaxStreams &&
                     QuicStreamRemoveOutFlowBlockedReason(
-                        Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
+                        Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
                     QuicStreamIndicatePeerAccepted(Stream);
+                    FlushSend = TRUE;
                 }
             }
             CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
