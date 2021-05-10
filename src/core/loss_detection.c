@@ -593,10 +593,12 @@ QuicLossDetectionOnPacketAcknowledged(
             PacketSizeFromUdpPayloadSize(
                 QuicAddrGetFamily(&Path->RemoteAddress),
                 Packet->PacketLength);
-
+        BOOLEAN ChangedMtu = FALSE;
         if (!Path->IsMinMtuValidated &&
             Packet->PacketLength >= QUIC_INITIAL_PACKET_LENGTH) {
             Path->IsMinMtuValidated = TRUE;
+            Path->Mtu = Packet->PacketLength;
+            ChangedMtu = TRUE;
             QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,
@@ -609,8 +611,11 @@ QuicLossDetectionOnPacketAcknowledged(
                     &Connection->MtuDiscovery,
                     PacketMtu,
                     Path)) {
-                QuicDatagramOnSendStateChanged(&Connection->Datagram);
+                ChangedMtu = TRUE;
             }
+        }
+        if (ChangedMtu) {
+            QuicDatagramOnSendStateChanged(&Connection->Datagram);
         }
     }
 
