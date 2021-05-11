@@ -1280,8 +1280,6 @@ MsQuicOpen(
 #endif // defined(__cplusplus) || defined(WIN32)
 #endif // QUIC_CORE_INTERNAL
 
-
-
 //
 // Cleans up the function table returned from MsQuicOpen and releases the
 // reference on the API.

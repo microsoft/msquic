@@ -73,12 +73,12 @@ One important aspect of this design is that all blocking calls invoked on a call
 
 There are only two top level functions:
 
-- [MsQuicOpen](api/MsQuicOpen.md) - Initializes the MsQuic library and returns a the API function table.
-- [MsQuicClose](api/MsQuicClose.md) - Cleans up the function table and releases the library reference from the previous [MsQuicOpen](api/MsQuicOpen.md) call.
+- [MsQuicOpenVersion](api/MsQuicOpenVersion.md) - Initializes the MsQuic library and returns a the API function table.
+- [MsQuicClose](api/MsQuicClose.md) - Cleans up the function table and releases the library reference from the previous [MsQuicOpenVersion](api/MsQuicOpenVersion.md) call.
 
-When the app is done with the MsQuic library, it **must** call [MsQuicClose](api/MsQuicClose.md) and pass in the function table it received from [MsQuicOpen](api/MsQuicOpen.md). This allows for the library state to be cleaned up.
+When the app is done with the MsQuic library, it **must** call [MsQuicClose](api/MsQuicClose.md) and pass in the function table it received from [MsQuicOpenVersion](api/MsQuicOpenVersion.md). This allows for the library state to be cleaned up.
 
-Please note, there is no explicit start/stop API for this library. Each API function table has a reference on the QUIC library: the library is initialized when the first call to [MsQuicOpen](api/MsQuicOpen.md) succeeds and uninitialized when the last call to [MsQuicClose](api/MsQuicClose.md) completes. An app should therefore beware of repeatedly calling [MsQuicOpen](api/MsQuicOpen.md) and [MsQuicClose](api/MsQuicClose.md), as library setup/cleanup can be expensive.
+Please note, there is no explicit start/stop API for this library. Each API function table has a reference on the QUIC library: the library is initialized when the first call to [MsQuicOpenVersion](api/MsQuicOpenVersion.md) succeeds and uninitialized when the last call to [MsQuicClose](api/MsQuicClose.md) completes. An app should therefore beware of repeatedly calling [MsQuicOpenVersion](api/MsQuicOpenVersion.md) and [MsQuicClose](api/MsQuicClose.md), as library setup/cleanup can be expensive.
 
 ## Registration
 
