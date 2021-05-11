@@ -131,13 +131,7 @@ QuicPathSetValid(
 
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
-
-    if (Path->IsPeerValidated && Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
-        //
-        // If the active path was just validated, then trigger MTU discovery.
-        //
-        QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, Path);
-    }
+    // TODO: If MinMtu has not been validated, start a probe for MinMtu.
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

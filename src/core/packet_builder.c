@@ -204,7 +204,7 @@ QuicPacketBuilderPrepare(
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
-                IsPathMtuDiscovery ? Builder->Connection->MtuDiscovery.ProbedSize : DatagramSize);
+                IsPathMtuDiscovery ? Builder->Path->MtuDiscovery.ProbedSize : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
             NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;

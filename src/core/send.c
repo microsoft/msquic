@@ -996,7 +996,8 @@ QuicSendFlush(
         return TRUE;
     }
 
-    QuicMtuDiscoveryCheckSearchCompleteReset(&Connection->MtuDiscovery);
+    // TODO Figure out how to pass this down
+    QuicMtuDiscoveryCheckSearchCompleteReset(Connection, CxPlatTimeUs64());
 
     CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 

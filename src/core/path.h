@@ -73,6 +73,11 @@ typedef struct QUIC_PATH {
     uint16_t Mtu;
 
     //
+    // MTU Discovery logic.
+    //
+    QUIC_MTU_DISCOVERY MtuDiscovery;
+
+    //
     // The binding used for sending/receiving UDP packets.
     //
     QUIC_BINDING* Binding;

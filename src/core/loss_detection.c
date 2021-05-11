@@ -604,13 +604,18 @@ QuicLossDetectionOnPacketAcknowledged(
                 Connection,
                 "Path[%hhu] Minimum MTU validated",
                 Path->ID);
+            if (Connection->State.Connected) {
+                // TODO Figure me out
+                //QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, Path);
+            }
         }
 
         if (Packet->Flags.IsMtuProbe) {
+            CXPLAT_DBG_ASSERT(Path->IsMinMtuValidated);
             if (QuicMtuDiscoveryOnAckedPacket(
-                    &Connection->MtuDiscovery,
+                    &Path->MtuDiscovery,
                     PacketMtu,
-                    Path)) {
+                    Connection)) {
                 ChangedMtu = TRUE;
             }
         }
@@ -849,7 +854,7 @@ QuicLossDetectionOnPacketDiscarded(
                     PacketSizeFromUdpPayloadSize(
                         QuicAddrGetFamily(&Path->RemoteAddress),
                         Packet->PacketLength);
-                QuicMtuDiscoveryProbePacketDiscarded(&Connection->MtuDiscovery, PacketMtu);
+                QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
             }
         }
     }

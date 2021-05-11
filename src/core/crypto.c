@@ -1540,9 +1540,11 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        CXPLAT_FRE_ASSERT(Connection->PathsCount == 1);
-        QUIC_PATH* Path = &Connection->Paths[0];
-        QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, Path);
+        // TODO Figure me out
+        // CXPLAT_FRE_ASSERT(Connection->PathsCount == 1);
+        // QUIC_PATH* Path = &Connection->Paths[0];
+        // CXPLAT_DBG_ASSERT(Path->IsMinMtuValidated);
+        // QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, Path);
 
         if (QuicConnIsServer(Connection) &&
             Crypto->TlsState.BufferOffset1Rtt != 0 &&

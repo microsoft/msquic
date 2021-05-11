@@ -40,11 +40,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 static
 void
 QuicMtuDiscoverySendProbePacket(
-    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_CONNECTION* Connection =
-        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
     QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DPLPMTUD);
 }
 
@@ -52,18 +50,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 static
 void
 QuicMtuDiscoveryMoveToSearchComplete(
-    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_CONNECTION* Connection =
-        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    QUIC_PATH* Path =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     MtuDiscovery->IsSearching = FALSE;
     MtuDiscovery->SearchCompleteEnterTimeUs = CxPlatTimeUs64();
     QuicTraceLogConnInfo(
         MtuSearchComplete,
         Connection,
-        "Mtu Discovery Entering Search Complete at MTU %u",
-        MtuDiscovery->CurrentMtu);
+        "Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu",
+        Path->ID,
+        Path->Mtu);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -73,12 +73,14 @@ QuicGetNextProbeSize(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
+    QUIC_PATH* Path =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     //
     // N.B. This algorithm must always be increasing. Other logic in the module
     // depends on that behavior.
     //
 
-    uint16_t Mtu = MtuDiscovery->CurrentMtu + QUIC_DPLPMTUD_INCREMENT;
+    uint16_t Mtu = Path->Mtu + QUIC_DPLPMTUD_INCREMENT;
     if (Mtu > MtuDiscovery->MaxMtu) {
         Mtu = MtuDiscovery->MaxMtu;
     }
@@ -99,25 +101,27 @@ QuicGetNextProbeSize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryMoveToSearching(
-    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_CONNECTION* Connection =
-        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    QUIC_PATH* Path =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     MtuDiscovery->IsSearching = TRUE;
     MtuDiscovery->ProbeCount = 0;
     MtuDiscovery->ProbedSize = QuicGetNextProbeSize(MtuDiscovery);
-    if (MtuDiscovery->ProbedSize == MtuDiscovery->CurrentMtu) {
-        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
+    if (MtuDiscovery->ProbedSize == Path->Mtu) {
+        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return;
     }
     QuicTraceLogConnInfo(
         MtuSearching,
         Connection,
-        "Mtu Discovery Search Packet Sending with MTU %u",
+        "Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
+        Path->ID,
         MtuDiscovery->ProbedSize);
 
-    QuicMtuDiscoverySendProbePacket(MtuDiscovery);
+    QuicMtuDiscoverySendProbePacket(Connection);
 }
 
 //
@@ -125,34 +129,33 @@ QuicMtuDiscoveryMoveToSearching(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicMtuDiscoveryNewPath(
+QuicMtuDiscoveryPeerValidated(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
-    _In_ QUIC_PATH* Path
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_CONNECTION* Connection =
-        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    QUIC_PATH* Path =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     //
     // As the only way to enter this is on a validated path, we know that the minimum
     // MTU must at least be the current path MTU.
     //
     MtuDiscovery->MaxMtu = QuicConnGetMaxMtuForPath(Connection, Path);
     MtuDiscovery->MinMtu = Path->Mtu;
-    MtuDiscovery->CurrentMtu = Path->Mtu;
     MtuDiscovery->HasProbed1500 = MtuDiscovery->MinMtu >= 1500;
-    CXPLAT_DBG_ASSERT(MtuDiscovery->MinMtu <= MtuDiscovery->CurrentMtu &&
-                      MtuDiscovery->CurrentMtu <= MtuDiscovery->MaxMtu);
+    CXPLAT_DBG_ASSERT(MtuDiscovery->MinMtu <= Path->Mtu &&
+                      Path->Mtu <= MtuDiscovery->MaxMtu);
 
     QuicTraceLogConnInfo(
         MtuPathInitialized,
         Connection,
-        "Mtu Discovery Path[%hhu] Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
+        "Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
         Path->ID,
         MtuDiscovery->MaxMtu,
         MtuDiscovery->MinMtu,
-        MtuDiscovery->CurrentMtu);
+        Path->Mtu);
 
-    QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
+    QuicMtuDiscoveryMoveToSearching(MtuDiscovery, Connection);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -160,11 +163,11 @@ BOOLEAN
 QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
     _In_ uint16_t PacketMtu,
-    _In_ QUIC_PATH* Path
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_CONNECTION* Connection =
-        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    QUIC_PATH* Path =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     //
     // If out of order receives are received, ignore the packet
     //
@@ -172,7 +175,8 @@ QuicMtuDiscoveryOnAckedPacket(
         QuicTraceLogConnVerbose(
             MtuIncorrectSize,
             Connection,
-            "Mtu Discovery Received Out of Order: expected=%u received=%u",
+            "Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
+            Path->ID,
             MtuDiscovery->ProbedSize,
             PacketMtu);
         return FALSE;
@@ -182,7 +186,6 @@ QuicMtuDiscoveryOnAckedPacket(
     // Received packet is new MTU. If we've hit max MTU, enter searching as we can't go
     // higher, otherwise attept next MTU size.
     //
-    MtuDiscovery->CurrentMtu = MtuDiscovery->ProbedSize;
     Path->Mtu = MtuDiscovery->ProbedSize;
     QuicTraceLogConnInfo(
         PathMtuUpdated,
@@ -192,11 +195,11 @@ QuicMtuDiscoveryOnAckedPacket(
         Path->Mtu);
 
     if (Path->Mtu == MtuDiscovery->MaxMtu) {
-        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
+        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return TRUE;
     }
 
-    QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
+    QuicMtuDiscoveryMoveToSearching(MtuDiscovery, Connection);
     return TRUE;
 }
 
@@ -204,11 +207,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryProbePacketDiscarded(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t PacketMtu
     )
 {
-    QUIC_CONNECTION* Connection =
-        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    QUIC_PATH* Path =
+        CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     //
     // If out of order receives are received, ignore the packet
     //
@@ -216,7 +220,8 @@ QuicMtuDiscoveryProbePacketDiscarded(
         QuicTraceLogConnVerbose(
             MtuIncorrectSize,
             Connection,
-            "Mtu Discovery Received Out of Order: expected=%u received=%u",
+            "Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
+            Path->ID,
             MtuDiscovery->ProbedSize,
             PacketMtu);
         return;
@@ -225,7 +230,8 @@ QuicMtuDiscoveryProbePacketDiscarded(
     QuicTraceLogConnInfo(
         MtuDiscarded,
         Connection,
-        "Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+        "Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+        Path->ID,
         MtuDiscovery->ProbedSize,
         MtuDiscovery->ProbeCount);
 
@@ -234,9 +240,9 @@ QuicMtuDiscoveryProbePacketDiscarded(
     // waiting phase. Otherwise send out another probe of the same size.
     //
     if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
-        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
+        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return;
     }
     MtuDiscovery->ProbeCount++;
-    QuicMtuDiscoverySendProbePacket(MtuDiscovery);
+    QuicMtuDiscoverySendProbePacket(Connection);
 }

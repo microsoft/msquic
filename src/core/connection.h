@@ -507,11 +507,6 @@ typedef struct QUIC_CONNECTION {
     QUIC_LOSS_DETECTION LossDetection;
 
     //
-    // MTU Discovery logic.
-    //
-    QUIC_MTU_DISCOVERY MtuDiscovery;
-
-    //
     // Per-encryption level packet space information.
     //
     QUIC_PACKET_SPACE* Packets[QUIC_ENCRYPT_LEVEL_COUNT];
@@ -1417,4 +1412,31 @@ QuicConnGetMaxMtuForPath(
     }
     // TODO add settings
     return min(LocalMtu, RemoteMtu);
+}
+
+//
+// Check to see if enough time has passed while in Search Complete to retry MTU
+// discovery.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicMtuDiscoveryCheckSearchCompleteReset(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint64_t CurrentTime
+    )
+{
+    for (uint8_t i = 0; i < Connection->PathsCount; i++) {
+        //
+        // Only trigger a new send if we're in Search Complete and enough time has
+        // passed.
+        //
+        QUIC_PATH* Path = &Connection->Paths[i];
+        if (!Path->IsActive || Path->MtuDiscovery.IsSearching) {
+            continue;
+        }
+        if (CxPlatTimeDiff64(Path->MtuDiscovery.SearchCompleteEnterTimeUs, CurrentTime) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
+            QuicMtuDiscoveryMoveToSearching(&Path->MtuDiscovery, Connection);
+        }
+    }
 }

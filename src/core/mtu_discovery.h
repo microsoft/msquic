@@ -23,11 +23,6 @@ typedef struct QUIC_MTU_DISCOVERY {
     uint16_t MaxMtu;
 
     //
-    // The current MTU.
-    //
-    uint16_t CurrentMtu;
-
-    //
     // The current MTU size being probed.
     //
     uint16_t ProbedSize;
@@ -55,7 +50,8 @@ typedef struct QUIC_MTU_DISCOVERY {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryMoveToSearching(
-    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -63,9 +59,9 @@ QuicMtuDiscoveryMoveToSearching(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicMtuDiscoveryNewPath(
+QuicMtuDiscoveryPeerValidated(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
-    _In_ QUIC_PATH* Path
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -76,7 +72,7 @@ BOOLEAN
 QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
     _In_ uint16_t PacketMtu,
-    _In_ QUIC_PATH* Path
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -86,28 +82,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryProbePacketDiscarded(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t PacketMtu
     );
-
-//
-// Check to see if enough time has passed while in Search Complete to retry MTU
-// discovery.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-inline
-void
-QuicMtuDiscoveryCheckSearchCompleteReset(
-    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
-    )
-{
-    //
-    // Only trigger a new send if we're in Search Complete and enough time has
-    // passed.
-    //
-    if (MtuDiscovery->IsSearching) {
-        return;
-    }
-    if (CxPlatTimeDiff64(MtuDiscovery->SearchCompleteEnterTimeUs, CxPlatTimeUs64()) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
-        QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
-    }
-}
