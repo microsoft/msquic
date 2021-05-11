@@ -1259,9 +1259,28 @@ typedef struct QUIC_API_TABLE {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicOpenVersion(
+    _In_ uint32_t Version,
+    _Out_ _Pre_defensive_ const void** QuicApi
+    );
+
+#ifndef QUIC_CORE_INTERNAL
+#if defined(__cplusplus) || defined(WIN32)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+QUIC_STATUS
 MsQuicOpen(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
-    );
+    )
+{
+    return MsQuicOpenVersion(1, (const void**)QuicApi);
+}
+#else
+#define MsQuicOpen(QuicApi) MsQuicOpenVersion((const void**)QuicApi, 1)
+#endif // defined(__cplusplus) || defined(WIN32)
+#endif // QUIC_CORE_INTERNAL
+
+
 
 //
 // Cleans up the function table returned from MsQuicOpen and releases the
@@ -1271,7 +1290,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicClose(
-    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
+    _In_ _Pre_defensive_ const void* QuicApi
     );
 
 #if defined(__cplusplus)
