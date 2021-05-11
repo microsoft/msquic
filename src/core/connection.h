@@ -1420,7 +1420,7 @@ QuicConnGetMaxMtuForPath(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
-QuicMtuDiscoveryCheckSearchCompleteReset(
+QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t CurrentTime
     )
