@@ -433,7 +433,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_ABORT_RECEIVE_TYPE),
-    sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS)
+    sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS),
+    0
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1028,6 +1029,9 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestKeyUpdateRandomLoss(
                 Params->KeyUpdateRandomLossParams.Family,
                 Params->KeyUpdateRandomLossParams.RandomLossPercentage))
+        break;
+    case IOCTL_QUIC_RUN_MTU_SETTINGS:
+        QuicTestCtlRun(QuicTestMtuSettings());
         break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;

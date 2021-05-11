@@ -327,6 +327,15 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+TEST(Api, MtuSettings) {
+    TestLogger Logger("QuicTestMtuSettings");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_SETTINGS));
+    } else {
+        QuicTestMtuSettings();
+    }
+}
+
 TEST(Alpn, ValidAlpnLengths) {
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {

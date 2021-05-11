@@ -409,21 +409,19 @@ QuicSettingApply(
         uint16_t MinimumMtu = Destination->MinimumMtu;
         uint16_t MaximumMtu = Destination->MaximumMtu;
         if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
-            if (Destination->MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+            MinimumMtu = Source->MinimumMtu;
+            if (MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
                 MinimumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
-            } else if (Destination->MinimumMtu > CXPLAT_MAX_MTU) {
+            } else if (MinimumMtu > CXPLAT_MAX_MTU) {
                 MinimumMtu = CXPLAT_MAX_MTU;
-            } else {
-                MinimumMtu = Source->MinimumMtu;
             }
         }
         if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
-            if (Destination->MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+            MaximumMtu = Source->MaximumMtu;
+            if (MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
                 MaximumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
-            } else if (Destination->MaximumMtu > CXPLAT_MAX_MTU) {
+            } else if (MaximumMtu > CXPLAT_MAX_MTU) {
                 MaximumMtu = CXPLAT_MAX_MTU;
-            } else {
-                MaximumMtu = Source->MaximumMtu;
             }
         }
         if (MinimumMtu > MaximumMtu) {

@@ -60,6 +60,11 @@ void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 
 //
+// Settings tests
+//
+void QuicTestMtuSettings();
+
+//
 // Handshake Tests
 //
 
@@ -805,4 +810,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS \
     QUIC_CTL_CODE(64, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 64
+#define IOCTL_QUIC_RUN_MTU_SETTINGS \
+    QUIC_CTL_CODE(65, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 65
