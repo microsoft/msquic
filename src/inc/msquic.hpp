@@ -292,6 +292,8 @@ public:
     MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
         DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
     MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
+    MsQuicSettings& SetMaximumMtu(uint16_t Mtu) { MaximumMtu = Mtu; IsSet.MaximumMtu = TRUE; return *this; }
+    MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
 };
 
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS

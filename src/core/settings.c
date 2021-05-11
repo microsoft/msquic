@@ -211,6 +211,7 @@ QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Destination,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
+    _In_ BOOLEAN AllowMtuChanges,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -404,31 +405,35 @@ QuicSettingApply(
         }
     }
 
-    uint16_t MinimumMtu = Destination->MinimumMtu;
-    uint16_t MaximumMtu = Destination->MaximumMtu;
-    if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
-        if (Destination->MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-            MinimumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
-        } else if (Destination->MinimumMtu > CXPLAT_MAX_MTU) {
-            MinimumMtu = CXPLAT_MAX_MTU;
-        } else {
-            MinimumMtu = Source->MinimumMtu;
+    if (AllowMtuChanges) {
+        uint16_t MinimumMtu = Destination->MinimumMtu;
+        uint16_t MaximumMtu = Destination->MaximumMtu;
+        if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
+            if (Destination->MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+                MinimumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+            } else if (Destination->MinimumMtu > CXPLAT_MAX_MTU) {
+                MinimumMtu = CXPLAT_MAX_MTU;
+            } else {
+                MinimumMtu = Source->MinimumMtu;
+            }
         }
-    }
-    if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
-        if (Destination->MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-            MaximumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
-        } else if (Destination->MaximumMtu > CXPLAT_MAX_MTU) {
-            MaximumMtu = CXPLAT_MAX_MTU;
-        } else {
-            MaximumMtu = Source->MaximumMtu;
+        if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
+            if (Destination->MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+                MaximumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+            } else if (Destination->MaximumMtu > CXPLAT_MAX_MTU) {
+                MaximumMtu = CXPLAT_MAX_MTU;
+            } else {
+                MaximumMtu = Source->MaximumMtu;
+            }
         }
-    }
-    if (MinimumMtu > MaximumMtu) {
+        if (MinimumMtu > MaximumMtu) {
+            return FALSE;
+        }
+        Destination->MinimumMtu = MinimumMtu;
+        Destination->MaximumMtu = MaximumMtu;
+    } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
         return FALSE;
     }
-    Destination->MinimumMtu = MinimumMtu;
-    Destination->MaximumMtu = MaximumMtu;
     return TRUE;
 }
 

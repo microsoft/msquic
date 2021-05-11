@@ -1410,8 +1410,7 @@ QuicConnGetMaxMtuForPath(
                 QuicAddrGetFamily(&Path->RemoteAddress),
                 (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize);
     }
-    // TODO add settings
-    return min(LocalMtu, RemoteMtu);
+    return min(min(LocalMtu, RemoteMtu), Connection->Settings.MaximumMtu);
 }
 
 //

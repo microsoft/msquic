@@ -173,6 +173,7 @@ MsQuicConfigurationOpen(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
+                TRUE,
                 SettingsSize,
                 Settings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -463,6 +464,7 @@ QuicConfigurationParamSet(
 
         if (!QuicSettingApply(
                 &Configuration->Settings,
+                TRUE,
                 TRUE,
                 TRUE,
                 BufferLength,

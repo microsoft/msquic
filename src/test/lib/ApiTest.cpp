@@ -1820,3 +1820,75 @@ QuicTestDesiredVersionSettings()
         }
     }
 }
+
+void
+QuicTestMtuSettings(
+    )
+{
+    {
+        QUIC_SETTINGS CurrentSettings;
+        CxPlatZeroMemory(&CurrentSettings, sizeof(CurrentSettings));
+        uint32_t SettingsSize = sizeof(CurrentSettings);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                &SettingsSize,
+                &CurrentSettings));
+
+        QUIC_SETTINGS NewSettings;
+        CxPlatZeroMemory(&NewSettings, sizeof(NewSettings));
+        NewSettings.MinimumMtu = 1400;
+        NewSettings.MaximumMtu = 1400;
+        NewSettings.IsSet.MinimumMtu = TRUE;
+        NewSettings.IsSet.MaximumMtu = TRUE;
+        QUIC_STATUS SetSuccess =
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(NewSettings),
+                &NewSettings);
+
+        QUIC_SETTINGS UpdatedSettings;
+        CxPlatZeroMemory(&UpdatedSettings, sizeof(UpdatedSettings));
+        SettingsSize = sizeof(UpdatedSettings);
+        QUIC_STATUS GetSuccess =
+            MsQuic->GetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                &SettingsSize,
+                &UpdatedSettings);
+
+        CurrentSettings.IsSetFlags = 0;
+        CurrentSettings.IsSet.MaximumMtu = TRUE;
+        CurrentSettings.IsSet.MinimumMtu = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(CurrentSettings),
+                &CurrentSettings));
+
+        TEST_QUIC_SUCCEEDED(SetSuccess);
+        TEST_QUIC_SUCCEEDED(GetSuccess);
+
+        TEST_EQUAL(NewSettings.MinimumMtu, UpdatedSettings.MinimumMtu);
+        TEST_EQUAL(NewSettings.MaximumMtu, UpdatedSettings.MaximumMtu);
+    }
+    {
+        MsQuicRegistration Registration(true);
+        TEST_TRUE(Registration.IsValid());
+
+        // Set MTU
+        MsQuicSettings Settings;
+        Settings.SetMaximumMtu(1360).SetMinimumMtu(1360);
+
+
+
+    }
+
+}

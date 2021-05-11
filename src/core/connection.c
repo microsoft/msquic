@@ -6366,6 +6366,7 @@ QuicConnApplyNewSettings(
             &Connection->Settings,
             OverWrite,
             CopyExternalToInternal,
+            !Connection->State.Started,
             NewSettingsSize,
             NewSettings)) {
         return FALSE;
