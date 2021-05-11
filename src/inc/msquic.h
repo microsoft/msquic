@@ -588,6 +588,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 3   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      4   // QUIC_SETTINGS
+#define QUIC_PARAM_GLOBAL_VERSION                       5   // uint32_t[4]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.

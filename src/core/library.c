@@ -947,6 +947,28 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_VERSION:
+
+        if (*BufferLength < 4 * sizeof(uint32_t)) {
+            *BufferLength = 4 * sizeof(uint32_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = 4 * sizeof(uint32_t);
+        ((uint32_t*)Buffer)[0] = VER_MAJOR;
+        ((uint32_t*)Buffer)[0] = VER_MINOR;
+        ((uint32_t*)Buffer)[0] = VER_PATCH;
+        ((uint32_t*)Buffer)[0] = VER_BUILD_ID;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
