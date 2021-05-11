@@ -351,6 +351,10 @@ QuicTestAbortReceive(
     _In_ QUIC_ABORT_RECEIVE_TYPE Type
     );
 
+void
+QuicTestSlowReceive(
+    );
+
 //
 // QuicDrill tests
 //
@@ -805,4 +809,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS \
     QUIC_CTL_CODE(64, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 64
+#define IOCTL_QUIC_RUN_SLOW_RECEIVE \
+    QUIC_CTL_CODE(65, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 65
