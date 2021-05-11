@@ -5294,7 +5294,7 @@
     },
     "MtuSearchComplete": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Discovery Entering Search Complete at MTU %u",
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu",
       "UniqueId": "MtuSearchComplete",
       "splitArgs": [
         {
@@ -5302,15 +5302,19 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
     "MtuSearching": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Discovery Search Packet Sending with MTU %u",
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
       "UniqueId": "MtuSearching",
       "splitArgs": [
         {
@@ -5318,15 +5322,19 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
     "MtuPathInitialized": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Discovery Path[%hhu] Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
       "UniqueId": "MtuPathInitialized",
       "splitArgs": [
         {
@@ -5374,7 +5382,7 @@
     },
     "MtuDiscarded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
       "UniqueId": "MtuDiscarded",
       "splitArgs": [
         {
@@ -5382,19 +5390,23 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
         },
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
     "MtuIncorrectSize": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Mtu Discovery Received Out of Order: expected=%u received=%u",
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
       "UniqueId": "MtuIncorrectSize",
       "splitArgs": [
         {
@@ -5402,12 +5414,16 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
         },
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -12010,15 +12026,15 @@
         "TraceID": "ConnPacketACKed"
       },
       {
-        "UniquenessHash": "b180cafd-984b-75d1-2b3b-0b622113d4eb",
+        "UniquenessHash": "92ab8084-33fb-0565-da7b-d2278d05c642",
         "TraceID": "MtuSearchComplete"
       },
       {
-        "UniquenessHash": "c19243e9-41f4-266e-66d8-34ea75fc0c8b",
+        "UniquenessHash": "c7a85c07-7d70-b24f-313d-2db9a20333bd",
         "TraceID": "MtuSearching"
       },
       {
-        "UniquenessHash": "fefcd324-c7e2-0d21-2d55-dd63c10f42b6",
+        "UniquenessHash": "71565f31-9a3e-98de-3548-0cb7eb639cde",
         "TraceID": "MtuPathInitialized"
       },
       {
@@ -12026,11 +12042,11 @@
         "TraceID": "PathMtuUpdated"
       },
       {
-        "UniquenessHash": "a55d5d7f-671c-b8a8-07dc-b5c3cad21f50",
+        "UniquenessHash": "1aa1d324-af31-356c-0738-863e209f6f21",
         "TraceID": "MtuDiscarded"
       },
       {
-        "UniquenessHash": "fb34ac6b-38a6-c6e6-cd2a-c34db815f9c8",
+        "UniquenessHash": "a20786c3-f6b7-176d-7e63-b6c558f7d394",
         "TraceID": "MtuIncorrectSize"
       },
       {
