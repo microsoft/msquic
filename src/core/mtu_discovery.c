@@ -109,8 +109,11 @@ QuicMtuDiscoveryMoveToSearching(
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     MtuDiscovery->IsSearching = TRUE;
     MtuDiscovery->ProbeCount = 0;
-    MtuDiscovery->ProbedSize = QuicGetNextProbeSize(MtuDiscovery);
-    if (MtuDiscovery->ProbedSize == Path->Mtu) {
+    MtuDiscovery->ProbedSize =
+        Path->IsMinMtuValidated ?
+            QuicGetNextProbeSize(MtuDiscovery) :
+            Path->Mtu;
+    if (MtuDiscovery->ProbedSize == Path->Mtu && Path->IsMinMtuValidated) {
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return;
     }
@@ -137,22 +140,19 @@ QuicMtuDiscoveryPeerValidated(
     QUIC_PATH* Path =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     //
-    // As the only way to enter this is on a validated path, we know that the minimum
-    // MTU must at least be the current path MTU.
+    // As the only way to enter this is on a validated path, we know that the
+    // minimum MTU must at least be the current path MTU.
     //
     MtuDiscovery->MaxMtu = QuicConnGetMaxMtuForPath(Connection, Path);
-    MtuDiscovery->MinMtu = Path->Mtu;
-    MtuDiscovery->HasProbed1500 = MtuDiscovery->MinMtu >= 1500;
-    CXPLAT_DBG_ASSERT(MtuDiscovery->MinMtu <= Path->Mtu &&
-                      Path->Mtu <= MtuDiscovery->MaxMtu);
+    MtuDiscovery->HasProbed1500 = Path->Mtu >= 1500;
+    CXPLAT_DBG_ASSERT(Path->Mtu <= MtuDiscovery->MaxMtu);
 
     QuicTraceLogConnInfo(
         MtuPathInitialized,
         Connection,
-        "Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
+        "Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u",
         Path->ID,
         MtuDiscovery->MaxMtu,
-        MtuDiscovery->MinMtu,
         Path->Mtu);
 
     QuicMtuDiscoveryMoveToSearching(MtuDiscovery, Connection);

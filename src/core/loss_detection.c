@@ -595,19 +595,14 @@ QuicLossDetectionOnPacketAcknowledged(
                 Packet->PacketLength);
         BOOLEAN ChangedMtu = FALSE;
         if (!Path->IsMinMtuValidated &&
-            Packet->PacketLength >= QUIC_INITIAL_PACKET_LENGTH) {
+            Packet->PacketLength >= Path->Mtu) {
             Path->IsMinMtuValidated = TRUE;
-            Path->Mtu = Packet->PacketLength;
             ChangedMtu = TRUE;
             QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,
                 "Path[%hhu] Minimum MTU validated",
                 Path->ID);
-            if (Connection->State.Connected) {
-                // TODO Figure me out
-                //QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, Path);
-            }
         }
 
         if (Packet->Flags.IsMtuProbe) {

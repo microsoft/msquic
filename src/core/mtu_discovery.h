@@ -13,11 +13,6 @@ typedef struct QUIC_MTU_DISCOVERY {
     uint64_t SearchCompleteEnterTimeUs;
 
     //
-    // The minimum MTU allowed by the current path.
-    //
-    uint16_t MinMtu;
-
-    //
     // The maximum MTU allowed by the current path.
     //
     uint16_t MaxMtu;

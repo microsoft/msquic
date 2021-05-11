@@ -5334,7 +5334,7 @@
     },
     "MtuPathInitialized": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, min_mtu=%u, cur_mtu=%u",
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u",
       "UniqueId": "MtuPathInitialized",
       "splitArgs": [
         {
@@ -5352,10 +5352,6 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -12034,7 +12030,7 @@
         "TraceID": "MtuSearching"
       },
       {
-        "UniquenessHash": "71565f31-9a3e-98de-3548-0cb7eb639cde",
+        "UniquenessHash": "3f758826-f3d7-22eb-b7df-0453cdad3bc8",
         "TraceID": "MtuPathInitialized"
       },
       {
