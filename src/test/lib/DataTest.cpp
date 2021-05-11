@@ -2156,14 +2156,7 @@ struct SlowRecvTestContext {
     MsQuicStream* ServerStream {nullptr};
     bool ServerStreamHasShutdown {false};
 
-    static
-    QUIC_STATUS
-    StreamCallback(
-        _In_ MsQuicStream* Stream,
-        _In_opt_ void* Context,
-        _Inout_ QUIC_STREAM_EVENT* Event
-        )
-    {
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (SlowRecvTestContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ServerStreamRecv.Set();
@@ -2176,14 +2169,7 @@ struct SlowRecvTestContext {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static
-    QUIC_STATUS
-    ConnCallback(
-        _In_ MsQuicConnection* /* Connection */,
-        _In_opt_ void* Context,
-        _Inout_ QUIC_CONNECTION_EVENT* Event
-        )
-    {
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         auto TestContext = (SlowRecvTestContext*)Context;
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
             TestContext->ServerStream = new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
