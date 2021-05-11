@@ -246,6 +246,7 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
+    Stream->Flags.IndicatePeerAccepted = !!(Flags & QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT);
 
     QuicTraceEvent(
         StreamCreated,
@@ -425,11 +426,15 @@ QuicStreamIndicateStartComplete(
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
+    Event.START_COMPLETE.PeerAccepted =
+        !!(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
         Stream,
-        "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
-        Status);
+        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [status=0x%x id=%llu accepted=%hhu]",
+        Status,
+        Stream->ID,
+        Event.START_COMPLETE.PeerAccepted);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
 

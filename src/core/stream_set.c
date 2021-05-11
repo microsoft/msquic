@@ -248,10 +248,27 @@ QuicStreamSetIndicateStreamsAvailable(
     QuicTraceLogConnVerbose(
         IndicateStreamsAvailable,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]",
+        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
     (void)QuicConnIndicateEvent(Connection, &Event);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamIndicatePeerAccepted(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    if (Stream->Flags.IndicatePeerAccepted) {
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_ACCEPTED;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerAccepted,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED");
+        (void)QuicStreamIndicateEvent(Stream, &Event);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -294,8 +311,10 @@ QuicStreamSetInitializeTransportParameters(
             uint64_t StreamCount = (Stream->ID >> 2) + 1;
             const QUIC_STREAM_TYPE_INFO* Info =
                 &Stream->Connection->Streams.Types[StreamType];
-            if (Info->MaxTotalStreamCount >= StreamCount) {
+            if (Info->MaxTotalStreamCount >= StreamCount &&
+                Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) {
                 FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
+                QuicStreamIndicatePeerAccepted(Stream);
             }
 
             uint64_t NewMaxAllowedSendOffset =
@@ -384,10 +403,11 @@ QuicStreamSetUpdateMaxStreams(
 
                 if ((Stream->ID & STREAM_ID_MASK) == Mask &&
                     Count > Info->MaxTotalStreamCount &&
-                    Count <= MaxStreams) {
-                    FlushSend = TRUE;
+                    Count <= MaxStreams &&
                     QuicStreamRemoveOutFlowBlockedReason(
-                        Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
+                        Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
+                    QuicStreamIndicatePeerAccepted(Stream);
+                    FlushSend = TRUE;
                 }
             }
             CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);

@@ -34,6 +34,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
+        BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
 
         BOOLEAN SendOpen                : 1;    // Send a STREAM frame immediately on start.
         BOOLEAN SendOpenAcked           : 1;    // A STREAM frame has been acknowledged.
