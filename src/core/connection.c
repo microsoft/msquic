@@ -2945,7 +2945,11 @@ QuicConnUpdateDestCid(
     CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
     CXPLAT_DBG_ASSERT(!Connection->State.Connected);
 
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+    if (CxPlatListIsEmpty(&Connection->DestCids)) {
+        CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled());
+        QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
+        return FALSE;
+    }
     QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
         CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
@@ -4252,14 +4256,14 @@ QuicConnRecvFrames(
                 }
             }
 
-            BOOLEAN ProtocolViolation;
+            BOOLEAN FatalError;
             QUIC_STREAM* Stream =
                 QuicStreamSetGetStreamForPeer(
                     &Connection->Streams,
                     StreamId,
                     Packet->EncryptedWith0Rtt,
                     PeerOriginatedStream,
-                    &ProtocolViolation);
+                    &FatalError);
 
             if (Stream) {
                 QUIC_STATUS Status =
@@ -4286,7 +4290,7 @@ QuicConnRecvFrames(
                     return FALSE;
                 }
 
-            } else if (ProtocolViolation) {
+            } else if (FatalError) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
