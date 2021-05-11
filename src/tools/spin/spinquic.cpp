@@ -863,7 +863,7 @@ main(int argc, char **argv)
                     QUIC_PARAM_LEVEL_GLOBAL,
                     QUIC_PARAM_GLOBAL_ALLOC_FAIL_RNG,
                     sizeof(void*),
-                    &SpinQuicRandom))) {
+                    (void*)&SpinQuicRandom))) {
                 printf("Setting Allocation Failure RNG failed.\n");
             }
             if (QUIC_FAILED(
