@@ -548,12 +548,12 @@ QuicStreamSetGetStreamForPeer(
     _In_ uint64_t StreamId,
     _In_ BOOLEAN FrameIn0Rtt,
     _In_ BOOLEAN CreateIfMissing,
-    _Out_ BOOLEAN* ProtocolViolation
+    _Out_ BOOLEAN* FatalError
     )
 {
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
 
-    *ProtocolViolation = FALSE;
+    *FatalError = FALSE;
 
     //
     // Connection is closed. No more streams are open.
@@ -584,7 +584,7 @@ QuicStreamSetGetStreamForPeer(
             Connection,
             "Peer used more streams than allowed");
         QuicConnTransportError(Connection, QUIC_ERROR_STREAM_LIMIT_ERROR);
-        *ProtocolViolation = TRUE;
+        *FatalError = TRUE;
         return NULL;
     }
 
@@ -623,18 +623,24 @@ QuicStreamSetGetStreamForPeer(
                     FrameIn0Rtt,                    // Opened0Rtt
                     &Stream);
             if (QUIC_FAILED(Status)) {
+                *FatalError = TRUE;
+                QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
                 goto Exit;
             }
 
             Stream->ID = NewStreamId;
             Status = QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_NONE, TRUE);
             if (QUIC_FAILED(Status)) {
+                *FatalError = TRUE;
+                QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
                 Stream = NULL;
                 break;
             }
 
             if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
+                *FatalError = TRUE;
+                QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
                 Stream = NULL;
                 break;
@@ -686,7 +692,7 @@ QuicStreamSetGetStreamForPeer(
             Connection,
             "Remote tried to open stream it wasn't allowed to open.");
         QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-        *ProtocolViolation = TRUE;
+        *FatalError = TRUE;
     }
 
 Exit:

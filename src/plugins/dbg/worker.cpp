@@ -51,8 +51,20 @@ EXT_COMMAND(
         HasAtLeastOne = true;
     }
 
+    LinkedList ProcessOperations = Work.GetOperations();
+    while (true) {
+        ULONG64 LinkAddr = ProcessOperations.Next();
+        if (LinkAddr == 0) {
+            break;
+        }
+
+        Operation Operation = Operation::FromLink(LinkAddr);
+        Dml("\t%s\n", Operation.TypeStr());
+        HasAtLeastOne = true;
+    }
+
     if (!HasAtLeastOne) {
-        Dml("\tNo Connections\n");
+        Dml("\tNo Work\n");
     }
 
     Dml("\n");

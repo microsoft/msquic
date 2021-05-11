@@ -394,7 +394,7 @@ QuicLossDetectionUpdateTimer(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 QuicLossDetectionOnPacketSent(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
@@ -413,7 +413,8 @@ QuicLossDetectionOnPacketSent(
         QuicSentPacketPoolGetPacketMetadata(
             &Connection->Worker->SentPacketPool, TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        QuicSentPacketMetadataReleaseFrames(TempSentPacket);
+        return;
     }
     CxPlatCopyMemory(
         SentPacket,
@@ -456,8 +457,6 @@ QuicLossDetectionOnPacketSent(
     }
 
     QuicLossValidate(LossDetection);
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -570,6 +569,10 @@ QuicLossDetectionOnPacketAcknowledged(
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
                     TRUE);
             if (DestCid != NULL) {
+#ifdef DEBUG
+#pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
+                CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
+#endif
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
@@ -752,6 +755,9 @@ QuicLossDetectionRetransmitFrames(
                     FALSE);
             if (DestCid != NULL) {
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+#ifdef DEBUG
+                CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
+#endif
                 DestCid->CID.NeedsToSend = TRUE;
                 NewDataQueued |=
                     QuicSendSetSendFlag(
