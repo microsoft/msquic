@@ -616,8 +616,17 @@ if ($Kernel -ne "") {
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
     sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+    if ($LastExitCode) {
+        Log ("sc.exe " + $LastExitCode)
+    }
     verifier.exe /volatile /adddriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys /flags 0x9BB
+    if ($LastExitCode) {
+        Log ("verifier.exe " + $LastExitCode)
+    }
     net.exe start msquicpriv
+    if ($LastExitCode) {
+        Log ("net.exe " + $LastExitCode)
+    }
 }
 
 try {
@@ -636,6 +645,8 @@ try {
 } catch {
     Log "Exception Thrown"
     Log $_
+    Get-Error
+    $_ | Format-List *
 } finally {
     if ($LogProfile -ne "None") {
         & $LogScript -Cancel | Out-Null

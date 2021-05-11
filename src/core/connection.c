@@ -2945,7 +2945,11 @@ QuicConnUpdateDestCid(
     CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
     CXPLAT_DBG_ASSERT(!Connection->State.Connected);
 
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+    if (CxPlatListIsEmpty(&Connection->DestCids)) {
+        CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled());
+        QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
+        return FALSE;
+    }
     QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
         CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
@@ -3644,13 +3648,11 @@ QuicConnRecvPrepareDecrypt(
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     if (Packet->IsShortHeader && EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
-        if (PacketSpace->AwaitingKeyPhaseConfirmation ||
-            Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
+        if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
             //
-            // The packet doesn't match our current key phase and we're awaiting
-            // confirmation of our current key phase or the packet number is less
-            // than the start of the current key phase, so this is likely using
-            // the old key phase.
+            // The packet doesn't match our current key phase and the packet number
+            // is less than the start of the current key phase, so this is likely
+            // using the old keys.
             //
             QuicTraceLogConnVerbose(
                 DecryptOldKey,
@@ -3661,12 +3663,10 @@ QuicConnRecvPrepareDecrypt(
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_OLD;
         } else {
             //
-            // The packet doesn't match our key phase, and we're not awaiting
-            // confirmation of a key phase change, or this is a newer packet
-            // number, so most likely using a new key phase. Update the keys
-            // and try it out.
+            // The packet doesn't match our key phase, and the packet number is higher
+            // than the start of the current key phase, so most likely using a new key phase.
+            // Update the keys and try it out. If this fails, the packet was invalid anyway.
             //
-
             QuicTraceLogConnVerbose(
                 PossiblePeerKeyUpdate,
                 Connection,
@@ -3931,10 +3931,11 @@ QuicConnRecvDecryptAndAuthenticate(
                 Packet->PacketNumber);
 
         } else if (Packet->KeyType == QUIC_PACKET_KEY_1_RTT &&
+            Packet->SH->KeyPhase == PacketSpace->CurrentKeyPhase &&
             Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
             //
-            // If this packet is the current key phase, but has an earlier packet
-            // number than this key phase's start, update the key phase start.
+            // This packet is in the current key phase and before the current phase
+            // start, so update the packet space start point.
             //
             PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
             QuicTraceLogConnVerbose(
@@ -4253,14 +4254,14 @@ QuicConnRecvFrames(
                 }
             }
 
-            BOOLEAN ProtocolViolation;
+            BOOLEAN FatalError;
             QUIC_STREAM* Stream =
                 QuicStreamSetGetStreamForPeer(
                     &Connection->Streams,
                     StreamId,
                     Packet->EncryptedWith0Rtt,
                     PeerOriginatedStream,
-                    &ProtocolViolation);
+                    &FatalError);
 
             if (Stream) {
                 QUIC_STATUS Status =
@@ -4287,7 +4288,7 @@ QuicConnRecvFrames(
                     return FALSE;
                 }
 
-            } else if (ProtocolViolation) {
+            } else if (FatalError) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
