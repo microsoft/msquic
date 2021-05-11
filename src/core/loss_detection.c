@@ -595,7 +595,7 @@ QuicLossDetectionOnPacketAcknowledged(
                 Packet->PacketLength);
         BOOLEAN ChangedMtu = FALSE;
         if (!Path->IsMinMtuValidated &&
-            Packet->PacketLength >= Path->Mtu) {
+            PacketMtu >= Path->Mtu) {
             Path->IsMinMtuValidated = TRUE;
             ChangedMtu = TRUE;
             QuicTraceLogConnInfo(

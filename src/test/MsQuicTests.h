@@ -60,9 +60,16 @@ void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 
 //
-// Settings tests
+// MTU tests
 //
 void QuicTestMtuSettings();
+void
+QuicMtuDiscoveryTest(
+    _In_ int Family,
+    _In_ BOOLEAN DropClientProbePackets,
+    _In_ BOOLEAN DropServerProbePackets,
+    _In_ BOOLEAN RaiseMinimumMtu
+    );
 
 //
 // Handshake Tests

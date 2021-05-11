@@ -327,12 +327,26 @@ TEST(Basic, CreateConnection) {
     }
 }
 
-TEST(Api, MtuSettings) {
+TEST(Mtu, Settings) {
     TestLogger Logger("QuicTestMtuSettings");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_SETTINGS));
     } else {
         QuicTestMtuSettings();
+    }
+}
+
+TEST_P(WithMtuArgs, MtuDiscovery) {
+    TestLoggerT<ParamType> Logger("QuicMtuDiscoveryTest", GetParam());
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT, GetParam().Family));
+    }
+    else {
+        QuicMtuDiscoveryTest(
+            GetParam().Family,
+            GetParam().DropMode & 1,
+            GetParam().DropMode & 2,
+            GetParam().RaiseMinimum);
     }
 }
 
@@ -1397,6 +1411,11 @@ INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Mtu,
+    WithMtuArgs,
+    ::testing::ValuesIn(MtuArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,

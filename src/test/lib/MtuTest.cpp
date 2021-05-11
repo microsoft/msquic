@@ -14,47 +14,28 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
-_Function_class_(STREAM_SHUTDOWN_CALLBACK)
-static
-void
-ServerApiTestStreamShutdown(
-    _In_ TestStream* Stream
-    )
-{
-    delete Stream;
-}
-
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ServerApiTestNewStream(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC StreamHandle,
-    _In_ QUIC_STREAM_OPEN_FLAGS Flags
-    )
-{
-    auto Stream = TestStream::FromStreamHandle(StreamHandle, ServerApiTestStreamShutdown, Flags);
-    if (Stream == nullptr || !Stream->IsValid()) {
-        delete Stream;
-        TEST_FAILURE("Failed to accept new TestStream.");
-    }
-}
-
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
-ListenerAcceptCallback(
-    _In_ TestListener*  Listener,
+ListenerAcceptConnection(
+    _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
-    )
+)
 {
-    TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
-    if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
+    ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
+    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
-        delete *NewConnection;
+        delete* AcceptContext->NewConnection;
+        *AcceptContext->NewConnection = nullptr;
         return false;
     }
+    (*AcceptContext->NewConnection)->SetDatagramReceiveEnabled(true);
+    if (AcceptContext->ExpectedTransportCloseStatus != QUIC_STATUS_SUCCESS) {
+        (*AcceptContext->NewConnection)->SetExpectedTransportCloseStatus(
+            AcceptContext->ExpectedTransportCloseStatus);
+    }
+    CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
 
@@ -155,18 +136,19 @@ QuicTestMtuSettings()
         MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
         TEST_TRUE(ServerConfiguration.IsValid());
 
-        TestListener MyListener(Registration, ListenerAcceptCallback, ServerConfiguration);
+        TestListener MyListener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(MyListener.IsValid());
 
         UniquePtr<TestConnection> Server;
-        MyListener.Context = &Server;
+        ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+        MyListener.Context = &ServerAcceptCtx;
 
         {
             TestConnection Client(Registration);
             TEST_TRUE(Client.IsValid());
-                TEST_QUIC_SUCCEEDED(MyListener.Start(Alpn, Alpn.Length()));
-                QuicAddr ServerLocalAddr;
-                TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(MyListener.Start(Alpn, Alpn.Length()));
+            QuicAddr ServerLocalAddr;
+            TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
             //
             // Set connection settings before open
@@ -206,6 +188,96 @@ QuicTestMtuSettings()
             QUIC_SETTINGS CheckSettings = Client.GetSettings();
             TEST_EQUAL(1450, CheckSettings.MaximumMtu);
             TEST_EQUAL(1280, CheckSettings.MinimumMtu);
+        }
+    }
+}
+
+void
+QuicMtuDiscoveryTest(
+    _In_ int Family,
+    _In_ BOOLEAN DropClientProbePackets,
+    _In_ BOOLEAN DropServerProbePackets,
+    _In_ BOOLEAN RaiseMinimumMtu
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1280;
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(MinimumMtu).SetMaximumMtu(1500);
+    Settings.SetIdleTimeoutMs(1000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
+    {
+        TestListener Listener(
+            Registration,
+            ListenerAcceptConnection,
+            (HQUIC)ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MtuDropHelper ServerDropper(
+            DropServerProbePackets ? MinimumMtu : 0,
+            ServerLocalAddr.GetPort(),
+            DropClientProbePackets ? MinimumMtu : 0);
+        uint16_t ServerExpectedMtu = DropServerProbePackets ? MinimumMtu : 1500;
+        uint16_t ClientExpectedMtu = DropClientProbePackets ? MinimumMtu : 1500;
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+                Client.SetDatagramReceiveEnabled(true);
+                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_IDLE);
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_IDLE);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                CxPlatSleep(4000); // Wait for the first idle period to expire.
+
+                //
+                // Assert our maximum MTUs
+                //
+                QUIC_STATISTICS ClientStats = Client.GetStatistics();
+                QUIC_STATISTICS ServerStats = Server->GetStatistics();
+                TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
+                TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
+
+            }
         }
     }
 }

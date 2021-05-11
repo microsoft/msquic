@@ -427,6 +427,12 @@ QuicSettingApply(
         if (MinimumMtu > MaximumMtu) {
             return FALSE;
         }
+        if (Destination->MinimumMtu != MinimumMtu) {
+            Destination->IsSet.MinimumMtu = TRUE;
+        }
+        if (Destination->MaximumMtu != MaximumMtu) {
+            Destination->IsSet.MaximumMtu = TRUE;
+        }
         Destination->MinimumMtu = MinimumMtu;
         Destination->MaximumMtu = MaximumMtu;
     } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {

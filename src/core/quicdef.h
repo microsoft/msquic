@@ -372,12 +372,13 @@ CXPLAT_STATIC_ASSERT(
 // The scaling factor used locally for AckDelay field in the ACK_FRAME.
 //
 #define QUIC_ACK_DELAY_EXPONENT                 8
+
 //
 // The length of the client initial packets sent. Instead of the required min of
 // 1200 we send the full 1280 to give the server more credit to overcome
 // amplification protection.
 //
-#define QUIC_INITIAL_PACKET_LENGTH              1280
+// #define QUIC_INITIAL_PACKET_LENGTH              1280
 
 //
 // The lifetime of a QUIC stateless retry token encryption key.

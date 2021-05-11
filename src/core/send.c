@@ -921,7 +921,7 @@ QuicSendPathChallenges(
             Builder.MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
                     QuicAddrGetFamily(&Builder.Path->RemoteAddress),
-                    QUIC_INITIAL_PACKET_LENGTH);
+                    Builder.Path->Mtu);
 
             if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {
                 //
