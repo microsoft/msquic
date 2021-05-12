@@ -464,10 +464,12 @@ TEST(ResumptionTicketTest, ServerEncDec)
     uint8_t* EncodedServerTicket = nullptr;
     uint32_t EncodedServerTicketLength = 0;
 
-
     QUIC_TRANSPORT_PARAMETERS DecodedTP;
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
@@ -498,7 +500,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             NegotiatedAlpn,
@@ -525,6 +527,9 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     QUIC_TRANSPORT_PARAMETERS DecodedServerTP;
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
@@ -555,7 +560,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             NegotiatedAlpn,
@@ -584,6 +589,9 @@ TEST(ResumptionTicketTest, ServerDecFail)
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
 
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+
     uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) + sizeof(AppData)] = {
         CXPLAT_TLS_RESUMPTION_TICKET_VERSION,
         0,0,0,1,                    // QUIC version
@@ -606,7 +614,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
 
     EncodedHandshakeTP =
         QuicCryptoTlsEncodeTransportParameters(
-            nullptr,
+            &Connection,
             TRUE,
             &HandshakeTP,
             nullptr,
@@ -638,7 +646,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     //
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData),
             InputTicketBuffer,
             AlpnList,
@@ -657,7 +665,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             0,
             InputTicketBuffer,
             AlpnList,
@@ -670,7 +678,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             4,
             InputTicketBuffer,
             AlpnList,
@@ -683,7 +691,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             5,
             InputTicketBuffer,
             AlpnList,
@@ -696,7 +704,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             6,
             InputTicketBuffer,
             AlpnList,
@@ -709,7 +717,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             7,
             InputTicketBuffer,
             AlpnList,
@@ -722,7 +730,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8,
             InputTicketBuffer,
             AlpnList,
@@ -733,7 +741,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)(sizeof(Alpn) / 2),
             InputTicketBuffer,
             AlpnList,
@@ -746,7 +754,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)sizeof(Alpn),
             InputTicketBuffer,
             AlpnList,
@@ -757,7 +765,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)sizeof(Alpn) + (uint16_t)((EncodedTPLength - CxPlatTlsTPHeaderSize) / 2),
             InputTicketBuffer,
             AlpnList,
@@ -768,7 +776,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) - 1,
             InputTicketBuffer,
             AlpnList,
@@ -781,7 +789,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize),
             InputTicketBuffer,
             AlpnList,
@@ -792,7 +800,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)(sizeof(AppData) - 1),
             InputTicketBuffer,
             AlpnList,
@@ -814,7 +822,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             ActualEncodedTicketLength,
             InputTicketBuffer,
             AlpnList,
@@ -832,7 +840,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             ActualEncodedTicketLength,
             InputTicketBuffer,
             AlpnList,
@@ -857,7 +865,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
@@ -872,7 +880,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             ActualEncodedTicketLength,
             InputTicketBuffer,
             AlpnList,
@@ -894,7 +902,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
@@ -917,7 +925,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
@@ -932,7 +940,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             ActualEncodedTicketLength,
             InputTicketBuffer,
             AlpnList,
@@ -953,7 +961,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
@@ -976,7 +984,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
@@ -991,7 +999,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
@@ -1012,7 +1020,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
             QuicCryptoDecodeServerTicket(
-                nullptr,
+                &Connection,
                 ActualEncodedTicketLength,
                 InputTicketBuffer,
                 AlpnList,
