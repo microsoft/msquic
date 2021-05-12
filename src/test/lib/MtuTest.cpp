@@ -56,13 +56,13 @@ QuicTestMtuSettings()
     }
 
     MsQuicRegistration Registration;
-    TEST_TRUE(Registration.IsValid());
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
     MsQuicAlpn Alpn("MsQuicTest");
     {
         {
             MsQuicCredentialConfig ClientCredConfig;
             MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
-            TEST_TRUE(ClientConfiguration.IsValid());
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
             MsQuicSettings Settings;
 
@@ -85,7 +85,7 @@ QuicTestMtuSettings()
 
         MsQuicSettings ServerSettings;
         MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-        TEST_TRUE(ServerConfiguration.IsValid());
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
 
@@ -138,7 +138,7 @@ QuicMtuDiscoveryTest(
     )
 {
     MsQuicRegistration Registration;
-    TEST_TRUE(Registration.IsValid());
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1280;
     const uint16_t MaximumMtu = 1500;
@@ -148,11 +148,11 @@ QuicMtuDiscoveryTest(
     Settings.SetMinimumMtu(MinimumMtu).SetMaximumMtu(MaximumMtu);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
-    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     MtuTestContext Context;
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
