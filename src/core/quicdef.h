@@ -238,17 +238,18 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be powe
 CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
 
 //
-// Minimum MTU allowed (Must be enough to fit an IPv6 Packet)
+// Minimum MTU allowed to be configured. Must be able to fit a
+// QUIC_MIN_INITIAL_PACKET_LENGTH in an IPv6 datagram.
 //
 #define QUIC_DPLPMUTD_MIN_MTU                   QUIC_MIN_INITIAL_PACKET_LENGTH  + \
                                                 CXPLAT_MIN_IPV6_HEADER_SIZE     + \
                                                 CXPLAT_UDP_HEADER_SIZE
 
 //
-// Path MTU discovery will always start with/initialize with the smallest
-// allowable MTU for QUIC (1280 bytes).
+// The minimum IP MTU DPLPMTUD will use by default. Slightly larger than
+// absolute minimum to allow a larger allowance.
 //
-#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           1280    // TODO - Use 1200 instead
+#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           1280    // TODO - Use QUIC_DPLPMUTD_MIN_MTU instead
 
 //
 // The maximum IP MTU DPLPMTUD will use by default.
@@ -445,19 +446,19 @@ CXPLAT_STATIC_ASSERT(
 #define CXPLAT_AEAD_INTEGRITY_LIMIT               11863283
 
 //
-// The maximum value of probe packets sent before an PMTU is detected as too big.
+// The maximum number of probe packets sent before considering an MTU too large.
 //
-#define QUIC_DPLPMTUD_MAX_PROBES 3
+#define QUIC_DPLPMTUD_MAX_PROBES                    3
 
 //
 // The timeout time in microseconds for the DPLPMTUD wait time.
 //
-#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000000
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT           600000000
 
 //
 // The amount of bytes to increase our PLMTU each probe
 //
-#define QUIC_DPLPMTUD_INCREMENT 80
+#define QUIC_DPLPMTUD_INCREMENT                     80
 
 /*************************************************************
                   PERSISTENT SETTINGS

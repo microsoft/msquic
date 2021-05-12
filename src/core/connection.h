@@ -1434,7 +1434,9 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
         if (!Path->IsActive || Path->MtuDiscovery.IsSearching) {
             continue;
         }
-        if (CxPlatTimeDiff64(Path->MtuDiscovery.SearchCompleteEnterTimeUs, CurrentTime) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
+        if (CxPlatTimeDiff64(
+                Path->MtuDiscovery.SearchCompleteEnterTimeUs,
+                CurrentTime) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
             QuicMtuDiscoveryMoveToSearching(&Path->MtuDiscovery, Connection);
         }
     }

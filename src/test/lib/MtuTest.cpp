@@ -149,11 +149,13 @@ QuicTestMtuSettings()
         ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
         Listener.Context = &ServerAcceptCtx;
 
+        const uint16_t MinimumMtu = 1248;
+
         {
             TestConnection Client(Registration);
             TEST_TRUE(Client.IsValid());
             MsQuicSettings Settings;
-            Settings.SetMaximumMtu(1450).SetMinimumMtu(1248);
+            Settings.SetMaximumMtu(1450).SetMinimumMtu(MinimumMtu);
 
             MsQuicCredentialConfig ClientCredConfig;
             MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
@@ -189,9 +191,36 @@ QuicTestMtuSettings()
 
             QUIC_SETTINGS CheckSettings = Client.GetSettings();
             TEST_EQUAL(1450, CheckSettings.MaximumMtu);
-            TEST_EQUAL(1248, CheckSettings.MinimumMtu);
+            TEST_EQUAL(MinimumMtu, CheckSettings.MinimumMtu);
         }
     }
+}
+
+struct MtuTestContext {
+    MsQuicConnection* Connection;
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT*) {
+        (static_cast<MtuTestContext*>(Context))->Connection = Conn;
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+static
+QUIC_STATISTICS
+GetConnStatistics(_In_ MsQuicConnection& Conn) {
+    QUIC_STATISTICS value = {};
+    uint32_t valueSize = sizeof(value);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            Conn.Handle,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_STATISTICS,
+            &valueSize,
+            &value);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("MsQuic->GetParam(CONN_STATISTICS) failed, 0x%x.", Status);
+    }
+    return value;
 }
 
 void
@@ -205,12 +234,12 @@ QuicMtuDiscoveryTest(
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
-    uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1280;
+    const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1280;
+    const uint16_t MaximumMtu = 1500;
 
     MsQuicAlpn Alpn("MsQuicTest");
     MsQuicSettings Settings;
-    Settings.SetMinimumMtu(MinimumMtu).SetMaximumMtu(1500);
-    Settings.SetIdleTimeoutMs(1000);
+    Settings.SetMinimumMtu(MinimumMtu).SetMaximumMtu(MaximumMtu);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -219,66 +248,37 @@ QuicMtuDiscoveryTest(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
+    MtuTestContext Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    {
-        TestListener Listener(
-            Registration,
-            ListenerAcceptConnection,
-            (HQUIC)ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+    MtuDropHelper ServerDropper(
+        DropServerProbePackets ? MinimumMtu : 0,
+        ServerLocalAddr.GetPort(),
+        DropClientProbePackets ? MinimumMtu : 0);
+    uint16_t ServerExpectedMtu = DropServerProbePackets ? MinimumMtu : MaximumMtu;
+    uint16_t ClientExpectedMtu = DropClientProbePackets ? MinimumMtu : MaximumMtu;
 
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-        MtuDropHelper ServerDropper(
-            DropServerProbePackets ? MinimumMtu : 0,
-            ServerLocalAddr.GetPort(),
-            DropClientProbePackets ? MinimumMtu : 0);
-        uint16_t ServerExpectedMtu = DropServerProbePackets ? MinimumMtu : 1500;
-        uint16_t ClientExpectedMtu = DropClientProbePackets ? MinimumMtu : 1500;
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_NOT_EQUAL(nullptr, Context.Connection);
 
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
+    CxPlatSleep(4000); // Wait for the first idle period to expire.
 
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_IDLE);
+    //
+    // Assert our maximum MTUs
+    //
+    QUIC_STATISTICS ClientStats = GetConnStatistics(Connection);
+    QUIC_STATISTICS ServerStats = GetConnStatistics(*Context.Connection);
+    Connection.Shutdown(1);
+    Context.Connection->Shutdown(1);
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
-
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_IDLE);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-
-                CxPlatSleep(4000); // Wait for the first idle period to expire.
-
-                //
-                // Assert our maximum MTUs
-                //
-                QUIC_STATISTICS ClientStats = Client.GetStatistics();
-                QUIC_STATISTICS ServerStats = Server->GetStatistics();
-                TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
-                TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
-
-            }
-        }
-    }
+    TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
+    TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
 }

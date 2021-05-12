@@ -35,6 +35,7 @@ Abstract:
 #endif
 
 CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DPLPMUTD_DEFAULT_MAX_MTU, L"Default max must not be more than max");
+CXPLAT_STATIC_ASSERT(QUIC_DPLPMUTD_MIN_MTU <= QUIC_DPLPMUTD_DEFAULT_MIN_MTU, L"Default min must not be more than min");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static
@@ -109,10 +110,18 @@ QuicMtuDiscoveryMoveToSearching(
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
     MtuDiscovery->IsSearching = TRUE;
     MtuDiscovery->ProbeCount = 0;
+    //
+    // If the path has not had min MTU validated, send probe for min MTU.
+    //
     MtuDiscovery->ProbedSize =
         Path->IsMinMtuValidated ?
             QuicGetNextProbeSize(MtuDiscovery) :
             Path->Mtu;
+
+    //
+    // If we're attempting to probe the current MTU, and min MTU is validated
+    // then we've hit max allowed MTU. Enter search complete.
+    //
     if (MtuDiscovery->ProbedSize == Path->Mtu && Path->IsMinMtuValidated) {
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return;
@@ -139,9 +148,10 @@ QuicMtuDiscoveryPeerValidated(
 {
     QUIC_PATH* Path =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
+
     //
-    // As the only way to enter this is on a validated path, we know that the
-    // minimum MTU must at least be the current path MTU.
+    // The minimum allowed MTU for the connection is what Path->Mtu is set to by
+    // default
     //
     MtuDiscovery->MaxMtu = QuicConnGetMaxMtuForPath(Connection, Path);
     MtuDiscovery->HasProbed1500 = Path->Mtu >= 1500;
