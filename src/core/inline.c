@@ -681,5 +681,5 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint64_t CurrentTime
+    _In_ uint64_t TimeNow
     );
