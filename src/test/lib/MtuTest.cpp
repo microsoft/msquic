@@ -14,29 +14,14 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
-_Function_class_(NEW_CONNECTION_CALLBACK)
-static
-bool
-ListenerAcceptConnection(
-    _In_ TestListener* Listener,
-    _In_ HQUIC ConnectionHandle
-)
-{
-    ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
-    if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
-        TEST_FAILURE("Failed to accept new TestConnection.");
-        delete* AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
-        return false;
+struct MtuTestContext {
+    MsQuicConnection* Connection {nullptr};
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT*) {
+        (static_cast<MtuTestContext*>(Context))->Connection = Conn;
+        return QUIC_STATUS_SUCCESS;
     }
-    if (AcceptContext->ExpectedTransportCloseStatus != QUIC_STATUS_SUCCESS) {
-        (*AcceptContext->NewConnection)->SetExpectedTransportCloseStatus(
-            AcceptContext->ExpectedTransportCloseStatus);
-    }
-    CxPlatEventSet(AcceptContext->NewConnectionReady);
-    return true;
-}
+};
 
 void
 QuicTestMtuSettings()
@@ -139,21 +124,16 @@ QuicTestMtuSettings()
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
 
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+        MtuTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        UniquePtr<TestConnection> Server;
-        ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-        Listener.Context = &ServerAcceptCtx;
-
         const uint16_t MinimumMtu = 1248;
 
         {
-            TestConnection Client(Registration);
-            TEST_TRUE(Client.IsValid());
             MsQuicSettings Settings;
             Settings.SetMaximumMtu(1450).SetMinimumMtu(MinimumMtu);
 
@@ -161,49 +141,41 @@ QuicTestMtuSettings()
             MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
             TEST_TRUE(ClientConfiguration.IsValid());
 
-            //
-            // Start client connection.
-            //
-            TEST_QUIC_SUCCEEDED(
-                Client.Start(
-                    ClientConfiguration,
-                    QuicAddrFamily,
-                    QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                    ServerLocalAddr.GetPort()));
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_NOT_EQUAL(nullptr, Context.Connection);
 
             //
-            // Wait for connection.
-            //
-            TEST_TRUE(Client.WaitForConnectionComplete());
-            TEST_TRUE(Client.GetIsConnected());
-
-            TEST_NOT_EQUAL(nullptr, Server);
-            TEST_TRUE(Server->WaitForConnectionComplete());
-            TEST_TRUE(Server->GetIsConnected());
-
-            //
-            // Set connection settings after open
+            // Set connection settings after open, should fail
             //
             Settings.SetMaximumMtu(1400).SetMinimumMtu(1300);
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
-                Client.SetSettings(Settings));
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
 
-            QUIC_SETTINGS CheckSettings = Client.GetSettings();
+            MsQuicSettings CheckSettings;
+            uint32_t CheckSize = sizeof(CheckSettings);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_SETTINGS,
+                    &CheckSize,
+                    &CheckSettings));
+
+            Connection.Shutdown(1);
+
             TEST_EQUAL(1450, CheckSettings.MaximumMtu);
             TEST_EQUAL(MinimumMtu, CheckSettings.MinimumMtu);
         }
     }
 }
-
-struct MtuTestContext {
-    MsQuicConnection* Connection;
-
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT*) {
-        (static_cast<MtuTestContext*>(Context))->Connection = Conn;
-        return QUIC_STATUS_SUCCESS;
-    }
-};
 
 static
 QUIC_STATISTICS
@@ -267,9 +239,9 @@ QuicMtuDiscoveryTest(
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-    TEST_NOT_EQUAL(nullptr, Context.Connection);
 
     CxPlatSleep(4000); // Wait for the first idle period to expire.
+    TEST_NOT_EQUAL(nullptr, Context.Connection);
 
     //
     // Assert our maximum MTUs
