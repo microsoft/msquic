@@ -294,6 +294,31 @@ public:
     MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
     MsQuicSettings& SetMaximumMtu(uint16_t Mtu) { MaximumMtu = Mtu; IsSet.MaximumMtu = TRUE; return *this; }
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
+
+    QUIC_STATUS
+    SetGlobal() const noexcept {
+        const QUIC_SETTINGS* Settings = this;
+        return
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(*Settings),
+                Settings);
+    }
+
+    QUIC_STATUS
+    GetGlobal() noexcept {
+        QUIC_SETTINGS* Settings = this;
+        uint32_t Size = sizeof(*Settings);
+        return
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                &Size,
+                Settings);
+    }
 };
 
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
@@ -422,6 +447,17 @@ public:
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 KeyCount * sizeof(QUIC_TICKET_KEY_CONFIG),
                 KeyConfig);
+    }
+    QUIC_STATUS
+    SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        const QUIC_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
     }
 };
 
@@ -633,6 +669,43 @@ struct MsQuicConnection {
             void* Buffer
         ) noexcept {
         return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        const QUIC_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
+    }
+
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings* Settings) const noexcept {
+        QUIC_SETTINGS* QSettings = Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SETTINGS,
+                &Size,
+                QSettings);
+    }
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_STATISTICS* Statistics) const noexcept {
+        uint32_t Size = sizeof(*Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_STATISTICS,
+                &Size,
+                Statistics);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }

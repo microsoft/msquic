@@ -31,45 +31,22 @@ QuicTestMtuSettings()
         // Test setting on library works
         //
         MsQuicSettings CurrentSettings;
-        uint32_t SettingsSize = sizeof(CurrentSettings);
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                &SettingsSize,
-                &CurrentSettings));
+        TEST_QUIC_SUCCEEDED(CurrentSettings.GetGlobal());
 
         MsQuicSettings NewSettings;
-        NewSettings.SetMinimumMtu(1400).SetMaximumMtu(1400);
         QUIC_STATUS SetSuccess =
-            MsQuic->SetParam(
-                NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(NewSettings),
-                &NewSettings);
+            NewSettings.
+            SetMinimumMtu(1400).
+            SetMaximumMtu(1400).
+            SetGlobal();
 
         MsQuicSettings UpdatedSettings;
-        SettingsSize = sizeof(UpdatedSettings);
-        QUIC_STATUS GetSuccess =
-            MsQuic->GetParam(
-                NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                &SettingsSize,
-                &UpdatedSettings);
+        QUIC_STATUS GetSuccess = UpdatedSettings.GetGlobal();
 
         CurrentSettings.IsSetFlags = 0;
         CurrentSettings.IsSet.MaximumMtu = TRUE;
         CurrentSettings.IsSet.MinimumMtu = TRUE;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(CurrentSettings),
-                &CurrentSettings));
+        TEST_QUIC_SUCCEEDED(CurrentSettings.SetGlobal());
 
         TEST_QUIC_SUCCEEDED(SetSuccess);
         TEST_QUIC_SUCCEEDED(GetSuccess);
@@ -94,14 +71,7 @@ QuicTestMtuSettings()
             //
             Settings.SetMaximumMtu(0xFFFF).SetMinimumMtu(1);
 
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_SUCCESS,
-                MsQuic->SetParam(
-                    ClientConfiguration,
-                    QUIC_PARAM_LEVEL_CONFIGURATION,
-                    QUIC_PARAM_CONFIGURATION_SETTINGS,
-                    sizeof(Settings),
-                    &Settings));
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.SetSettings(Settings));
 
             //
             // Set Inverse Order
@@ -110,12 +80,7 @@ QuicTestMtuSettings()
 
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    ClientConfiguration,
-                    QUIC_PARAM_LEVEL_CONFIGURATION,
-                    QUIC_PARAM_CONFIGURATION_SETTINGS,
-                    sizeof(Settings),
-                    &Settings));
+                ClientConfiguration.SetSettings(Settings));
         }
 
         MsQuicSettings ServerSettings;
@@ -144,7 +109,6 @@ QuicTestMtuSettings()
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_NOT_EQUAL(nullptr, Context.Connection);
 
             //
             // Set connection settings after open, should fail
@@ -152,22 +116,10 @@ QuicTestMtuSettings()
             Settings.SetMaximumMtu(1400).SetMinimumMtu(1300);
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_SETTINGS,
-                    sizeof(Settings),
-                    &Settings));
+                Connection.SetSettings(Settings));
 
             MsQuicSettings CheckSettings;
-            uint32_t CheckSize = sizeof(CheckSettings);
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_SETTINGS,
-                    &CheckSize,
-                    &CheckSettings));
+            TEST_QUIC_SUCCEEDED(Connection.GetSettings(&CheckSettings));
 
             Connection.Shutdown(1);
 
@@ -175,24 +127,6 @@ QuicTestMtuSettings()
             TEST_EQUAL(MinimumMtu, CheckSettings.MinimumMtu);
         }
     }
-}
-
-static
-QUIC_STATISTICS
-GetConnStatistics(_In_ MsQuicConnection& Conn) {
-    QUIC_STATISTICS value = {};
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            Conn.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_STATISTICS,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        TEST_FAILURE("MsQuic->GetParam(CONN_STATISTICS) failed, 0x%x.", Status);
-    }
-    return value;
 }
 
 void
@@ -246,10 +180,15 @@ QuicMtuDiscoveryTest(
     //
     // Assert our maximum MTUs
     //
-    QUIC_STATISTICS ClientStats = GetConnStatistics(Connection);
-    QUIC_STATISTICS ServerStats = GetConnStatistics(*Context.Connection);
+    QUIC_STATISTICS ClientStats;
+    QUIC_STATUS ClientSuccess = Connection.GetStatistics(&ClientStats);
+    QUIC_STATISTICS ServerStats;
+    QUIC_STATUS ServerSuccess = Context.Connection->GetStatistics(&ServerStats);
     Connection.Shutdown(1);
     Context.Connection->Shutdown(1);
+
+    TEST_QUIC_SUCCEEDED(ClientSuccess);
+    TEST_QUIC_SUCCEEDED(ServerSuccess);
 
     TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
     TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
