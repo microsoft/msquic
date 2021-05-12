@@ -201,6 +201,9 @@ QuicConnAlloc(
         if (Path->DestCid == NULL) {
             goto Error;
         }
+#ifdef DEBUG
+        Path->DestCid->AssignedPath = Path;
+#endif
         Path->DestCid->CID.UsedLocally = TRUE;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
         QuicTraceEvent(
@@ -239,6 +242,9 @@ QuicConnAlloc(
         if (Path->DestCid == NULL) {
             goto Error;
         }
+#ifdef DEBUG
+        Path->DestCid->AssignedPath = Path;
+#endif
         Path->DestCid->CID.UsedLocally = TRUE;
         Connection->DestCidCount++;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
@@ -714,7 +720,7 @@ QuicConnQueueOper(
     #if DEBUG
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
-        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
     }
 #endif
     if (QuicOperationEnqueue(&Connection->OperQ, Oper)) {
@@ -983,6 +989,9 @@ QuicConnRetireCid(
         Connection,
         DestCid->CID.SequenceNumber,
         CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+#ifdef DEBUG
+    CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
+#endif
     Connection->DestCidCount--;
     DestCid->CID.Retired = TRUE;
     DestCid->CID.NeedsToSend = TRUE;
@@ -1013,6 +1022,9 @@ QuicConnRetireCurrentDestCid(
         return FALSE;
     }
 
+#ifdef DEBUG
+    Path->DestCid->AssignedPath = NULL;
+#endif
     QuicConnRetireCid(Connection, Path->DestCid);
     Path->DestCid = NewDestCid;
     Path->DestCid->CID.UsedLocally = TRUE;
@@ -1045,6 +1057,9 @@ QuicConnOnRetirePriorToUpdated(
             ReplaceRetiredCids = TRUE;
         }
 
+#ifdef DEBUG
+    DestCid->AssignedPath = NULL;
+#endif
         QuicConnRetireCid(Connection, DestCid);
     }
 
@@ -2930,7 +2945,11 @@ QuicConnUpdateDestCid(
     CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
     CXPLAT_DBG_ASSERT(!Connection->State.Connected);
 
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+    if (CxPlatListIsEmpty(&Connection->DestCids)) {
+        CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled());
+        QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
+        return FALSE;
+    }
     QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
         CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
@@ -3736,6 +3755,7 @@ QuicConnRecvDecryptAndAuthenticate(
                         QUIC_CID_CXPLAT_LIST_ENTRY,
                         Link);
                 if (DestCid->CID.HasResetToken &&
+                    !DestCid->CID.Retired &&
                     memcmp(
                         DestCid->ResetToken,
                         PacketResetToken,
@@ -4234,14 +4254,14 @@ QuicConnRecvFrames(
                 }
             }
 
-            BOOLEAN ProtocolViolation;
+            BOOLEAN FatalError;
             QUIC_STREAM* Stream =
                 QuicStreamSetGetStreamForPeer(
                     &Connection->Streams,
                     StreamId,
                     Packet->EncryptedWith0Rtt,
                     PeerOriginatedStream,
-                    &ProtocolViolation);
+                    &FatalError);
 
             if (Stream) {
                 QUIC_STATUS Status =
@@ -4253,6 +4273,7 @@ QuicConnRecvFrames(
                         Payload,
                         &Offset,
                         &UpdatedFlowControl);
+                QuicStreamRelease(Stream, QUIC_STREAM_REF_LOOKUP);
                 if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                     return FALSE;
                 }
@@ -4267,15 +4288,12 @@ QuicConnRecvFrames(
                     return FALSE;
                 }
 
-                QuicStreamRelease(Stream, QUIC_STREAM_REF_LOOKUP);
-
-            } else if (ProtocolViolation) {
+            } else if (FatalError) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
                     "Getting stream from ID");
-                QuicConnTransportError(Connection, QUIC_ERROR_STREAM_STATE_ERROR);
                 return FALSE;
             } else {
                 //
@@ -4472,6 +4490,11 @@ QuicConnRecvFrames(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
                         sizeof(QUIC_CID_CXPLAT_LIST_ENTRY) + Frame.Length);
+                    if (ReplaceRetiredCids) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
+                    }
                     return FALSE;
                 }
 
@@ -4500,7 +4523,11 @@ QuicConnRecvFrames(
                         "[conn][%p] ERROR, %s.",
                         Connection,
                         "Peer exceeded CID limit");
-                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    if (ReplaceRetiredCids) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    }
                     return FALSE;
                 }
             }

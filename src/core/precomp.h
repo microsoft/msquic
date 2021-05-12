@@ -32,6 +32,9 @@
 #include "msquic.h"
 #include "msquicp.h"
 
+#define QUIC_VERSION_ONLY 1
+#include "msquic.ver"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

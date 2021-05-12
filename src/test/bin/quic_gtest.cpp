@@ -1223,7 +1223,7 @@ TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
 TEST_P(WithKeyUpdateArgs2, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_KEY_UPDATE_PARAMS Params = {
+        QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS Params = {
             GetParam().Family,
             GetParam().RandomLossPercentage
         };
@@ -1338,6 +1338,15 @@ TEST(Misc, AbortIncompleteReceive) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
     } else {
         QuicTestAbortReceive(QUIC_ABORT_RECEIVE_INCOMPLETE);
+    }
+}
+
+TEST(Misc, SlowReceive) {
+    TestLogger Logger("SlowReceive");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SLOW_RECEIVE));
+    } else {
+        QuicTestSlowReceive();
     }
 }
 

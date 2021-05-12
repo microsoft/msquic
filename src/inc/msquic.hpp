@@ -888,6 +888,22 @@ struct MsQuicStream {
         return MsQuic->StreamSend(Handle, Buffers, BufferCount, Flags, ClientSendContext);
     }
 
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    ReceiveComplete(
+        _In_ uint64_t BufferLength
+        ) noexcept {
+        return MsQuic->StreamReceiveComplete(Handle, BufferLength);
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    ReceiveSetEnabled(
+        _In_ bool IsEnabled = true
+        ) noexcept {
+        return MsQuic->StreamReceiveSetEnabled(Handle, IsEnabled ? TRUE : FALSE);
+    }
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicStream(MsQuicStream& other) = delete;

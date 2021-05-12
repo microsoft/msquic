@@ -105,6 +105,12 @@ function LogErr($msg) {
     }
 }
 
+function Test-Administrator
+{
+    $user = [Security.Principal.WindowsIdentity]::GetCurrent();
+    (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
 # Make sure the executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
@@ -373,7 +379,7 @@ function Wait-Executable($Exe) {
 }
 
 # Initialize WER dump registry key if necessary.
-if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
+if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 

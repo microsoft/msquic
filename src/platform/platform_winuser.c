@@ -456,8 +456,12 @@ CxPlatFree(
 {
 #ifdef DEBUG
     void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
-    uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
-    CXPLAT_DBG_ASSERT(TagToCheck == Tag);
+    if (Mem != NULL) {
+        uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
+        CXPLAT_DBG_ASSERT(TagToCheck == Tag);
+    } else {
+        ActualAlloc = NULL;
+    }
     (void)HeapFree(CxPlatform.Heap, 0, ActualAlloc);
 #else
     UNREFERENCED_PARAMETER(Tag);

@@ -164,11 +164,12 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
 
 typedef enum QUIC_STREAM_START_FLAGS {
-    QUIC_STREAM_START_FLAG_NONE             = 0x0000,
-    QUIC_STREAM_START_FLAG_FAIL_BLOCKED     = 0x0001,   // Only opens the stream if flow control allows.
-    QUIC_STREAM_START_FLAG_IMMEDIATE        = 0x0002,   // Immediately informs peer that stream is open.
-    QUIC_STREAM_START_FLAG_ASYNC            = 0x0004,   // Don't block the API call to wait for completion.
-    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL = 0x0008,   // Shutdown the stream immediately after start failure.
+    QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
+    QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0001,   // Only opens the stream if flow control allows.
+    QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0002,   // Immediately informs peer that stream is open.
+    QUIC_STREAM_START_FLAG_ASYNC                = 0x0004,   // Don't block the API call to wait for completion.
+    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0008,   // Shutdown the stream immediately after start failure.
+    QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0010,   // Indicate PEER_ACCEPTED event if not accepted at start.
 } QUIC_STREAM_START_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_START_FLAGS)
@@ -592,6 +593,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 3   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      4   // QUIC_SETTINGS
+#define QUIC_PARAM_GLOBAL_VERSION                       5   // uint32_t[4]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
@@ -1048,6 +1050,7 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE    = 6,
     QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
+    QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
 } QUIC_STREAM_EVENT_TYPE;
 
 typedef struct QUIC_STREAM_EVENT {
@@ -1056,6 +1059,8 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             QUIC_STATUS Status;
             QUIC_UINT62 ID;
+            BOOLEAN PeerAccepted : 1;
+            BOOLEAN RESERVED : 7;
         } START_COMPLETE;
         struct {
             /* in */    uint64_t AbsoluteOffset;

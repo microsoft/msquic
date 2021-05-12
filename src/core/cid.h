@@ -138,6 +138,9 @@ typedef struct QUIC_CID_CXPLAT_LIST_ENTRY {
 
     CXPLAT_LIST_ENTRY Link;
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
+#ifdef DEBUG
+    QUIC_PATH* AssignedPath;
+#endif
     QUIC_CID CID;
 
 } QUIC_CID_CXPLAT_LIST_ENTRY;
@@ -225,6 +228,9 @@ QuicCidNewRandomDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
+#ifdef DEBUG
+        Entry->AssignedPath = NULL;
+#endif
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH;
         CxPlatRandom(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, Entry->CID.Data);
@@ -253,6 +259,9 @@ QuicCidNewDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
+#ifdef DEBUG
+        Entry->AssignedPath = NULL;
+#endif
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;
         if (Length != 0) {

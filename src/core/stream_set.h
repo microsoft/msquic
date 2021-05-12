@@ -198,7 +198,7 @@ QuicStreamSetGetStreamForPeer(
     _In_ uint64_t StreamId,
     _In_ BOOLEAN FrameIn0Rtt,
     _In_ BOOLEAN CreateIfMissing,
-    _Out_ BOOLEAN* ProtocolViolation
+    _Out_ BOOLEAN* FatalError
     );
 
 //
