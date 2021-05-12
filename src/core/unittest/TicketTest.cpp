@@ -1040,6 +1040,9 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     uint32_t EncodedServerTicketLength = 0, EncodedClientTicketLength = 0, DecodedServerTicketLength = 0, DecodedAppDataLength = 0, DecodedQuicVersion = 0;
     const uint8_t* EncodedClientTicket = nullptr, *DecodedAppData = nullptr;
 
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
     ServerTP.Flags =
@@ -1110,7 +1113,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
-            nullptr,
+            &Connection,
             (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             NegotiatedAlpn,
