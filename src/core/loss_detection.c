@@ -401,21 +401,30 @@ QuicLossDetectionOnPacketSent(
     _In_ QUIC_SENT_PACKET_METADATA* TempSentPacket
     )
 {
-    QUIC_SENT_PACKET_METADATA* SentPacket;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-
     CXPLAT_DBG_ASSERT(TempSentPacket->FrameCount != 0);
 
     //
     // Allocate a copy of the packet metadata.
     //
-    SentPacket =
+    QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
             &Connection->Worker->SentPacketPool, TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
+        //
+        // We can't allocate the memory to permanently track this packet so just
+        // go ahead and immeadiate clean up and mark the data in it as lost.
+        //
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Sent packet metadata",
+            SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
+        QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
         QuicSentPacketMetadataReleaseFrames(TempSentPacket);
         return;
     }
+
     CxPlatCopyMemory(
         SentPacket,
         TempSentPacket,
