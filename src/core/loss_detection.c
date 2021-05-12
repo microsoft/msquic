@@ -413,7 +413,7 @@ QuicLossDetectionOnPacketSent(
     if (SentPacket == NULL) {
         //
         // We can't allocate the memory to permanently track this packet so just
-        // go ahead and immeadiate clean up and mark the data in it as lost.
+        // go ahead and immediately clean up and mark the data in it as lost.
         //
         QuicTraceEvent(
             AllocFailure,
