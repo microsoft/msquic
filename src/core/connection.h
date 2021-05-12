@@ -1125,7 +1125,7 @@ QuicConnGetSourceCidFromBuf(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
@@ -1135,10 +1135,10 @@ QuicConnGetDestCidFromSeq(
     for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
-        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+        QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
                 Entry,
-                QUIC_CID_CXPLAT_LIST_ENTRY,
+                QUIC_CID_LIST_ENTRY,
                 Link);
         if (DestCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {

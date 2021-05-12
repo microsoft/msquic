@@ -54,6 +54,12 @@ QuicPathRemove(
         "Path[%hhu] Removed",
         Path->ID);
 
+#if DEBUG
+    if (Path->DestCid) {
+        QUIC_CID_SET_PATH(Path->DestCid, NULL);
+    }
+#endif
+
     if (Index + 1 < Connection->PathsCount) {
         CxPlatMoveMemory(
             Connection->Paths + Index,
@@ -210,10 +216,10 @@ QuicConnGetPathForDatagram(
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
 
-    Path->DestCid = Connection->Paths[0].DestCid;
     Path->Binding = Connection->Paths[0].Binding;
     Path->LocalAddress = Datagram->Tuple->LocalAddress;
     Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
+    QuicPathValidate(Path);
 
     return Path;
 }
