@@ -22,6 +22,7 @@ struct MtuTestContext {
         MtuTestContext* Ctx = static_cast<MtuTestContext*>(Context);
         Ctx->Connection = Conn;
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            Ctx->Connection = nullptr;
             Ctx->ShutdownEvent.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -150,7 +151,7 @@ QuicTestMtuDiscovery(
 
     MsQuicAlpn Alpn("MsQuicTest");
     MsQuicSettings Settings;
-    Settings.SetMinimumMtu(MinimumMtu).SetMaximumMtu(MaximumMtu);
+    Settings.SetMinimumMtu(MinimumMtu).SetMaximumMtu(MaximumMtu).SetIdleTimeoutMs(30000).SetDisconnectTimeoutMs(30000);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -189,6 +190,7 @@ QuicTestMtuDiscovery(
     QUIC_STATUS ClientSuccess = Connection.GetStatistics(&ClientStats);
     QUIC_STATISTICS ServerStats;
     QUIC_STATUS ServerSuccess = Context.Connection->GetStatistics(&ServerStats);
+
     Connection.Shutdown(1);
     Context.Connection->Shutdown(1);
 
