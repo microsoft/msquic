@@ -15,13 +15,22 @@ Abstract:
 #endif
 
 struct MtuTestContext {
+    CxPlatEvent ShutdownEvent;
     MsQuicConnection* Connection {nullptr};
 
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT*) {
-        (static_cast<MtuTestContext*>(Context))->Connection = Conn;
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        MtuTestContext* Ctx = static_cast<MtuTestContext*>(Context);
+        Ctx->Connection = Conn;
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            Ctx->ShutdownEvent.Set();
+        }
         return QUIC_STATUS_SUCCESS;
     }
 };
+
+static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT*) {
+        return QUIC_STATUS_SUCCESS;
+    }
 
 void
 QuicTestMtuSettings()
@@ -86,8 +95,7 @@ QuicTestMtuSettings()
         MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
         TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-        MtuTestContext Context;
-        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuSettingsCallback, nullptr);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
@@ -189,4 +197,6 @@ QuicTestMtuDiscovery(
 
     TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
     TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
+
+    Context.ShutdownEvent.WaitTimeout(2000);
 }
