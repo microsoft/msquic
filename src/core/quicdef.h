@@ -238,6 +238,13 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be powe
 CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
 
 //
+// Minimum MTU allowed (Must be enough to fit an IPv6 Packet)
+//
+#define QUIC_DPLPMUTD_MIN_MTU                   QUIC_MIN_INITIAL_PACKET_LENGTH  + \
+                                                CXPLAT_MIN_IPV6_HEADER_SIZE     + \
+                                                CXPLAT_UDP_HEADER_SIZE
+
+//
 // Path MTU discovery will always start with/initialize with the smallest
 // allowable MTU for QUIC (1280 bytes).
 //

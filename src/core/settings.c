@@ -410,16 +410,16 @@ QuicSettingApply(
         uint16_t MaximumMtu = Destination->MaximumMtu;
         if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
             MinimumMtu = Source->MinimumMtu;
-            if (MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-                MinimumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+            if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+                MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
             } else if (MinimumMtu > CXPLAT_MAX_MTU) {
                 MinimumMtu = CXPLAT_MAX_MTU;
             }
         }
         if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
             MaximumMtu = Source->MaximumMtu;
-            if (MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-                MaximumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+            if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+                MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
             } else if (MaximumMtu > CXPLAT_MAX_MTU) {
                 MaximumMtu = CXPLAT_MAX_MTU;
             }
@@ -779,13 +779,13 @@ QuicSettingsLoad(
     }
     if (MaximumMtu > CXPLAT_MAX_MTU) {
         MaximumMtu = CXPLAT_MAX_MTU;
-    } else if (MaximumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-        MaximumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+    } else if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+        MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
     }
     if (MinimumMtu > CXPLAT_MAX_MTU) {
         MinimumMtu = CXPLAT_MAX_MTU;
-    } else if (MinimumMtu < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-        MinimumMtu = QUIC_MIN_INITIAL_PACKET_LENGTH;
+    } else if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+        MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
     }
     if (MinimumMtu <= MaximumMtu) {
         Settings->MaximumMtu = MaximumMtu;

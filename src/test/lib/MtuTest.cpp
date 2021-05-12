@@ -153,7 +153,7 @@ QuicTestMtuSettings()
             TestConnection Client(Registration);
             TEST_TRUE(Client.IsValid());
             MsQuicSettings Settings;
-            Settings.SetMaximumMtu(1450).SetMinimumMtu(1280);
+            Settings.SetMaximumMtu(1450).SetMinimumMtu(1248);
 
             MsQuicCredentialConfig ClientCredConfig;
             MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
@@ -189,7 +189,7 @@ QuicTestMtuSettings()
 
             QUIC_SETTINGS CheckSettings = Client.GetSettings();
             TEST_EQUAL(1450, CheckSettings.MaximumMtu);
-            TEST_EQUAL(1280, CheckSettings.MinimumMtu);
+            TEST_EQUAL(1248, CheckSettings.MinimumMtu);
         }
     }
 }
