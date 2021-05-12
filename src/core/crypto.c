@@ -2058,7 +2058,7 @@ Error:
 
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TicketLength,
     _In_reads_bytes_(TicketLength)
         const uint8_t* Ticket,
@@ -2105,7 +2105,7 @@ QuicCryptoDecodeServerTicket(
 
     uint32_t QuicVersion;
     memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
-    if (!QuicIsVersionSupported(QuicVersion)) {
+    if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, QuicVersion)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
