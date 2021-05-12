@@ -146,7 +146,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
 } QUIC_CID_LIST_ENTRY;
 
 #if DEBUG
-#define QUIC_CID_SET_PATH(Cid, Path) CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL), Cid->AssignedPath = Path
+#define QUIC_CID_SET_PATH(Cid, Path) CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL); Cid->AssignedPath = Path
 #define QUIC_CID_CLEAR_PATH(Cid) Cid->AssignedPath = NULL
 #define QUIC_CID_VALIDATE_NULL(Cid) CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL)
 #else
