@@ -127,7 +127,7 @@ QuicTestMtuSettings()
 }
 
 void
-QuicMtuDiscoveryTest(
+QuicTestMtuDiscovery(
     _In_ int Family,
     _In_ BOOLEAN DropClientProbePackets,
     _In_ BOOLEAN DropServerProbePackets,

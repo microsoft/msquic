@@ -435,7 +435,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_ABORT_RECEIVE_TYPE),
     sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS),
     0,
-    0
+    0,
+    sizeof(QUIC_RUN_MTU_DISCOVERY_PARAMS)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -463,6 +464,7 @@ typedef union {
     QUIC_RUN_CRED_VALIDATION CredValidationParams;
     QUIC_ABORT_RECEIVE_TYPE AbortReceiveType;
     QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
+    QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1038,6 +1040,16 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_MTU_SETTINGS:
         QuicTestCtlRun(QuicTestMtuSettings());
+        break;
+
+    case IOCTL_QUIC_RUN_MTU_DISCOVERY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestMtuDiscovery(
+                Params->MtuDiscoveryParams.Family,
+                Params->MtuDiscoveryParams.DropClientProbePackets,
+                Params->MtuDiscoveryParams.DropServerProbePackets,
+                Params->MtuDiscoveryParams.RaiseMinimumMtu));
         break;
 
     default:

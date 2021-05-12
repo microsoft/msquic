@@ -998,7 +998,8 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint64_t TimeNow
     );
 
 //
@@ -1422,7 +1423,7 @@ inline
 void
 QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint64_t CurrentTime
+    _In_ uint64_t TimeNow
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; i++) {
@@ -1436,7 +1437,7 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
         }
         if (CxPlatTimeDiff64(
                 Path->MtuDiscovery.SearchCompleteEnterTimeUs,
-                CurrentTime) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
+                TimeNow) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
             QuicMtuDiscoveryMoveToSearching(&Path->MtuDiscovery, Connection);
         }
     }

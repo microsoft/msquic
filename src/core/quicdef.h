@@ -241,9 +241,9 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be powe
 // Minimum MTU allowed to be configured. Must be able to fit a
 // QUIC_MIN_INITIAL_PACKET_LENGTH in an IPv6 datagram.
 //
-#define QUIC_DPLPMUTD_MIN_MTU                   QUIC_MIN_INITIAL_PACKET_LENGTH  + \
+#define QUIC_DPLPMUTD_MIN_MTU                   (QUIC_MIN_INITIAL_PACKET_LENGTH + \
                                                 CXPLAT_MIN_IPV6_HEADER_SIZE     + \
-                                                CXPLAT_UDP_HEADER_SIZE
+                                                CXPLAT_UDP_HEADER_SIZE)
 
 //
 // The minimum IP MTU DPLPMTUD will use by default. Slightly larger than
@@ -382,13 +382,6 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_ACK_DELAY_EXPONENT                 8
 
 //
-// The length of the client initial packets sent. Instead of the required min of
-// 1200 we send the full 1280 to give the server more credit to overcome
-// amplification protection.
-//
-// #define QUIC_INITIAL_PACKET_LENGTH              1280
-
-//
 // The lifetime of a QUIC stateless retry token encryption key.
 // This is also the interval that generates new keys.
 //
@@ -453,7 +446,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The timeout time in microseconds for the DPLPMTUD wait time.
 //
-#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT           600000000
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT           S_TO_US(600)
 
 //
 // The amount of bytes to increase our PLMTU each probe

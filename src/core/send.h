@@ -317,7 +317,8 @@ QuicSendQueueFlushForStream(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendFlush(
-    _In_ QUIC_SEND* Send
+    _In_ QUIC_SEND* Send,
+    _In_ uint64_t TimeNow
     );
 
 //

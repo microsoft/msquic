@@ -113,7 +113,7 @@ QuicMtuDiscoveryMoveToSearching(
     //
     // If the path has not had min MTU validated, send probe for min MTU.
     //
-    MtuDiscovery->ProbedSize =
+    MtuDiscovery->ProbeSize =
         Path->IsMinMtuValidated ?
             QuicGetNextProbeSize(MtuDiscovery) :
             Path->Mtu;
@@ -122,7 +122,7 @@ QuicMtuDiscoveryMoveToSearching(
     // If we're attempting to probe the current MTU, and min MTU is validated
     // then we've hit max allowed MTU. Enter search complete.
     //
-    if (MtuDiscovery->ProbedSize == Path->Mtu && Path->IsMinMtuValidated) {
+    if (MtuDiscovery->ProbeSize == Path->Mtu && Path->IsMinMtuValidated) {
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return;
     }
@@ -131,7 +131,7 @@ QuicMtuDiscoveryMoveToSearching(
         Connection,
         "Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
         Path->ID,
-        MtuDiscovery->ProbedSize);
+        MtuDiscovery->ProbeSize);
 
     QuicMtuDiscoverySendProbePacket(Connection);
 }
@@ -181,13 +181,13 @@ QuicMtuDiscoveryOnAckedPacket(
     //
     // If out of order receives are received, ignore the packet
     //
-    if (PacketMtu != MtuDiscovery->ProbedSize) {
+    if (PacketMtu != MtuDiscovery->ProbeSize) {
         QuicTraceLogConnVerbose(
             MtuIncorrectSize,
             Connection,
             "Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
             Path->ID,
-            MtuDiscovery->ProbedSize,
+            MtuDiscovery->ProbeSize,
             PacketMtu);
         return FALSE;
     }
@@ -196,7 +196,7 @@ QuicMtuDiscoveryOnAckedPacket(
     // Received packet is new MTU. If we've hit max MTU, enter searching as we can't go
     // higher, otherwise attept next MTU size.
     //
-    Path->Mtu = MtuDiscovery->ProbedSize;
+    Path->Mtu = MtuDiscovery->ProbeSize;
     QuicTraceLogConnInfo(
         PathMtuUpdated,
         Connection,
@@ -226,13 +226,13 @@ QuicMtuDiscoveryProbePacketDiscarded(
     //
     // If out of order receives are received, ignore the packet
     //
-    if (PacketMtu != MtuDiscovery->ProbedSize) {
+    if (PacketMtu != MtuDiscovery->ProbeSize) {
         QuicTraceLogConnVerbose(
             MtuIncorrectSize,
             Connection,
             "Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
             Path->ID,
-            MtuDiscovery->ProbedSize,
+            MtuDiscovery->ProbeSize,
             PacketMtu);
         return;
     }
@@ -242,7 +242,7 @@ QuicMtuDiscoveryProbePacketDiscarded(
         Connection,
         "Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
         Path->ID,
-        MtuDiscovery->ProbedSize,
+        MtuDiscovery->ProbeSize,
         MtuDiscovery->ProbeCount);
 
     //

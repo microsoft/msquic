@@ -1321,7 +1321,7 @@ QuicConnTimerExpired(
         // We don't want to actually call the flush immediate above as it can
         // cause a new timer to be inserted, messing up timer loop.
         //
-        (void)QuicSendFlush(&Connection->Send);
+        (void)QuicSendFlush(&Connection->Send, TimeNow);
     }
 }
 
@@ -6630,7 +6630,8 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint64_t TimeNow
     )
 {
     QUIC_OPERATION* Oper;
@@ -6703,7 +6704,7 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_FLUSH_SEND:
-            if (QuicSendFlush(&Connection->Send)) {
+            if (QuicSendFlush(&Connection->Send, TimeNow)) {
                 //
                 // We have no more data to send out so clear the pending flag.
                 //
@@ -6761,7 +6762,7 @@ QuicConnDrainOperations(
             // immediate ACK. So as to not introduce additional queuing delay do
             // one immediate flush now.
             //
-            (void)QuicSendFlush(&Connection->Send);
+            (void)QuicSendFlush(&Connection->Send, TimeNow);
         }
 
         if (Connection->State.SendShutdownCompleteNotif) {

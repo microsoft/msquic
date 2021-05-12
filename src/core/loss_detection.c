@@ -600,7 +600,7 @@ QuicLossDetectionOnPacketAcknowledged(
         if (!Path->IsMinMtuValidated &&
             PacketMtu >= Path->Mtu) {
             Path->IsMinMtuValidated = TRUE;
-            ChangedMtu = TRUE;
+            ChangedMtu = PacketMtu > Path->Mtu;
             QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,

@@ -337,12 +337,18 @@ TEST(Mtu, Settings) {
 }
 
 TEST_P(WithMtuArgs, MtuDiscovery) {
-    TestLoggerT<ParamType> Logger("QuicMtuDiscoveryTest", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestMtuDiscovery", GetParam());
     if (TestingKernelMode) {
-        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT, GetParam().Family));
+        QUIC_RUN_MTU_DISCOVERY_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)(GetParam().DropMode & 1),
+            (uint8_t)(GetParam().DropMode & 2),
+            (uint8_t)GetParam().RaiseMinimum
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_DISCOVERY, Params));
     }
     else {
-        QuicMtuDiscoveryTest(
+        QuicTestMtuDiscovery(
             GetParam().Family,
             GetParam().DropMode & 1,
             GetParam().DropMode & 2,
