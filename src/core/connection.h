@@ -1403,7 +1403,11 @@ QuicConnGetMaxMtuForPath(
     _In_ QUIC_PATH* Path
     )
 {
-    uint16_t LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+    uint16_t LocalMtu = Path->LocalMtu;
+    if (LocalMtu == 0) {
+        LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+        Path->LocalMtu = LocalMtu;
+    }
     uint16_t RemoteMtu = 0xFFFF;
     if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
         RemoteMtu =

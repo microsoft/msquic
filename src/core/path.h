@@ -73,6 +73,11 @@ typedef struct QUIC_PATH {
     uint16_t Mtu;
 
     //
+    // The local socket MTU.
+    //
+    uint16_t LocalMtu;
+
+    //
     // MTU Discovery logic.
     //
     QUIC_MTU_DISCOVERY MtuDiscovery;
