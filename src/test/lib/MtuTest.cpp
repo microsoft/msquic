@@ -36,9 +36,9 @@ QuicTestMtuSettings()
         MsQuicSettings NewSettings;
         QUIC_STATUS SetSuccess =
             NewSettings.
-            SetMinimumMtu(1400).
-            SetMaximumMtu(1400).
-            SetGlobal();
+                SetMinimumMtu(1400).
+                SetMaximumMtu(1400).
+                SetGlobal();
 
         MsQuicSettings UpdatedSettings;
         QUIC_STATUS GetSuccess = UpdatedSettings.GetGlobal();
@@ -67,32 +67,29 @@ QuicTestMtuSettings()
             MsQuicSettings Settings;
 
             //
-            // Set out of range, correct order. This should just corce our boundaries.
+            // Set out of range, correct order. This should just coerce our boundaries.
             //
             Settings.SetMaximumMtu(0xFFFF).SetMinimumMtu(1);
 
             TEST_QUIC_SUCCEEDED(ClientConfiguration.SetSettings(Settings));
 
             //
-            // Set Inverse Order
+            // Invalid: Set Max < Min
             //
-            Settings.SetMaximumMtu(1300).SetMinimumMtu(1400);
-
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
-                ClientConfiguration.SetSettings(Settings));
+                ClientConfiguration.SetSettings(
+                    MsQuicSettings().SetMaximumMtu(1300).SetMinimumMtu(1400)));
         }
 
         MsQuicSettings ServerSettings;
         MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
         TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
-
         MtuTestContext Context;
         MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
