@@ -216,6 +216,9 @@ QuicConnGetPathForDatagram(
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
 
+    if (Connection->Paths[0].DestCid->CID.Length == 0) {
+        Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
+    }
     Path->Binding = Connection->Paths[0].Binding;
     Path->LocalAddress = Datagram->Tuple->LocalAddress;
     Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
@@ -236,6 +239,7 @@ QuicPathSetActive(
         CXPLAT_DBG_ASSERT(!Path->IsActive);
         Path->IsActive = TRUE;
     } else {
+        CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
             QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
             QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);

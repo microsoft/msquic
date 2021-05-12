@@ -4889,9 +4889,18 @@ QuicConnRecvPostProcessing(
             // sent back out.
             //
 
-            if (PeerUpdatedCid) {
+            if (PeerUpdatedCid || (*Path)->DestCid == NULL) {
+                //
+                // TODO - What if the peer (client) only sends a single CID and
+                // rebinding happens? Should we support using the same CID over?
+                //
                 (*Path)->DestCid = QuicConnGetUnusedDestCid(Connection);
                 if ((*Path)->DestCid == NULL) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "No unused CID for new path");
                     (*Path)->GotValidPacket = FALSE; // Don't have a new CID to use!!!
                     return;
                 }
@@ -4899,6 +4908,7 @@ QuicConnRecvPostProcessing(
                 (*Path)->DestCid->CID.UsedLocally = TRUE;
             }
 
+            CXPLAT_DBG_ASSERT((*Path)->DestCid != NULL);
             QuicPathValidate((*Path));
             (*Path)->SendChallenge = TRUE;
             (*Path)->PathValidationStartTime = CxPlatTimeUs32();

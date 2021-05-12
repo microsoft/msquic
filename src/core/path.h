@@ -130,6 +130,7 @@ typedef struct QUIC_PATH {
 #define QuicPathValidate(Path) \
     CXPLAT_DBG_ASSERT( \
         (Path)->DestCid == NULL || \
+        (Path)->DestCid->CID.Length == 0 || \
         ((Path)->DestCid->AssignedPath == (Path) && \
          (Path)->DestCid->CID.UsedLocally))
 #else
