@@ -434,6 +434,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_ABORT_RECEIVE_TYPE),
     sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS),
+    0,
     0
 };
 
@@ -1033,6 +1034,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_SLOW_RECEIVE:
         QuicTestCtlRun(QuicTestSlowReceive());
+        break;
+
+    case IOCTL_QUIC_RUN_NTH_ALLOC_FAIL:
+        QuicTestCtlRun(QuicTestNthAllocFail());
         break;
 
     default:
