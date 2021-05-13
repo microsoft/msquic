@@ -57,7 +57,7 @@ QuicMtuDiscoveryMoveToSearchComplete(
 {
     QUIC_PATH* Path =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
-    MtuDiscovery->IsSearching = FALSE;
+    MtuDiscovery->IsSearchComplete = TRUE;
     MtuDiscovery->SearchCompleteEnterTimeUs = CxPlatTimeUs64();
     QuicTraceLogConnInfo(
         MtuSearchComplete,
@@ -108,7 +108,7 @@ QuicMtuDiscoveryMoveToSearching(
 {
     QUIC_PATH* Path =
         CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_PATH, MtuDiscovery);
-    MtuDiscovery->IsSearching = TRUE;
+    MtuDiscovery->IsSearchComplete = FALSE;
     MtuDiscovery->ProbeCount = 0;
     //
     // If the path has not had min MTU validated, send probe for min MTU.

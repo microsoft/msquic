@@ -997,9 +997,7 @@ QuicSendFlush(
         return TRUE;
     }
 
-    if (Connection->Crypto.TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) {
-        QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, TimeNow);
-    }
+    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, TimeNow);
 
     CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 

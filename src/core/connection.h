@@ -1436,7 +1436,7 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
         // passed.
         //
         QUIC_PATH* Path = &Connection->Paths[i];
-        if (!Path->IsActive || Path->MtuDiscovery.IsSearching) {
+        if (!Path->IsActive || !Path->MtuDiscovery.IsSearchComplete) {
             continue;
         }
         if (CxPlatTimeDiff64(
