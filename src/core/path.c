@@ -54,6 +54,12 @@ QuicPathRemove(
         "Path[%hhu] Removed",
         Path->ID);
 
+#if DEBUG
+    if (Path->DestCid) {
+        QUIC_CID_SET_PATH(Path->DestCid, NULL);
+    }
+#endif
+
     if (Index + 1 < Connection->PathsCount) {
         CxPlatMoveMemory(
             Connection->Paths + Index,
@@ -208,10 +214,13 @@ QuicConnGetPathForDatagram(
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
 
-    Path->DestCid = Connection->Paths[0].DestCid;
+    if (Connection->Paths[0].DestCid->CID.Length == 0) {
+        Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
+    }
     Path->Binding = Connection->Paths[0].Binding;
     Path->LocalAddress = Datagram->Tuple->LocalAddress;
     Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
+    QuicPathValidate(Path);
 
     return Path;
 }
@@ -228,6 +237,7 @@ QuicPathSetActive(
         CXPLAT_DBG_ASSERT(!Path->IsActive);
         Path->IsActive = TRUE;
     } else {
+        CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
             QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
             QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);

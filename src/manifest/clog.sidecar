@@ -6614,7 +6614,7 @@
     },
     "IndicateStartComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [status=0x%x id=%llu accepted=%hhu]",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
       "UniqueId": "IndicateStartComplete",
       "splitArgs": [
         {
@@ -6638,12 +6638,16 @@
     },
     "IndicateStreamShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
       "UniqueId": "IndicateStreamShutdownComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -12358,11 +12362,11 @@
         "TraceID": "EventSilentDiscard"
       },
       {
-        "UniquenessHash": "c6662310-649a-c716-2236-8eee77cd6db2",
+        "UniquenessHash": "66dd140b-9fd3-eddc-e34c-cb81639e1aca",
         "TraceID": "IndicateStartComplete"
       },
       {
-        "UniquenessHash": "0640b2d1-a929-3d01-b4c9-08733e3f0196",
+        "UniquenessHash": "8340b390-8b79-ab44-6593-7e449f0ec748",
         "TraceID": "IndicateStreamShutdownComplete"
       },
       {

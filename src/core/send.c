@@ -734,10 +734,10 @@ QuicSendWriteFrames(
             for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                     Entry != &Connection->DestCids;
                     Entry = Entry->Flink) {
-                QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+                QUIC_CID_LIST_ENTRY* DestCid =
                     CXPLAT_CONTAINING_RECORD(
                         Entry,
-                        QUIC_CID_CXPLAT_LIST_ENTRY,
+                        QUIC_CID_LIST_ENTRY,
                         Link);
                 if (!DestCid->CID.NeedsToSend) {
                     continue;

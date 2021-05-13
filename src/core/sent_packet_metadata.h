@@ -116,6 +116,9 @@ typedef struct QUIC_SENT_PACKET_METADATA {
 
 } QUIC_SENT_PACKET_METADATA;
 
+#define SIZEOF_QUIC_SENT_PACKET_METADATA(FrameCount) \
+    (sizeof(QUIC_SENT_PACKET_METADATA) + FrameCount * sizeof(QUIC_SENT_FRAME_METADATA))
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint8_t
