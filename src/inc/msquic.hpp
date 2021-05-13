@@ -718,6 +718,10 @@ private:
             if (Connection) {
                 Status = Connection->SetConfiguration(pThis->Configuration);
                 if (QUIC_FAILED(Status)) {
+                    //
+                    // The connection is being rejected. Let MsQuic free the handle.
+                    //
+                    Connection->Handle = nullptr;
                     delete Connection;
                 }
             }

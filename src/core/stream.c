@@ -431,7 +431,7 @@ QuicStreamIndicateStartComplete(
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
         Stream,
-        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [status=0x%x id=%llu accepted=%hhu]",
+        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
         Status,
         Stream->ID,
         Event.START_COMPLETE.PeerAccepted);
@@ -449,10 +449,14 @@ QuicStreamIndicateShutdownComplete(
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
+        Event.SHUTDOWN_COMPLETE.ConnectionShutdown =
+            Stream->Connection->State.ClosedLocally ||
+            Stream->Connection->State.ClosedRemotely;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

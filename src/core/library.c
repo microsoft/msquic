@@ -794,7 +794,8 @@ QuicLibrarySetGlobalParam(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        int32_t Value = *(int32_t*)Buffer;
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
         if (Value < 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -809,7 +810,8 @@ QuicLibrarySetGlobalParam(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        int32_t Value = *(int32_t*)Buffer;
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
         if (Value < 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -1243,6 +1245,9 @@ Error:
     return Status;
 }
 
+//
+// N.B Maintained and exported for backwards compatiblity with old V1 clients.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1331,10 +1336,24 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicOpenVersion(
+    _In_ uint32_t Version,
+    _Out_ _Pre_defensive_ const void** QuicApi
+    )
+{
+    if (Version != 1) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+    return MsQuicOpen((const QUIC_API_TABLE**)QuicApi);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicClose(
-    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
+    _In_ _Pre_defensive_ const void* QuicApi
     )
 {
     if (QuicApi != NULL) {
