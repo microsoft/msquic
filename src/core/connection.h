@@ -1429,6 +1429,7 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ uint64_t TimeNow
     )
 {
+    uint64_t TimeoutTime = Connection->Settings.MtuDiscoverySearchCompleteTimeoutUs;
     for (uint8_t i = 0; i < Connection->PathsCount; i++) {
         //
         // Only trigger a new send if we're in Search Complete and enough time has
@@ -1440,7 +1441,7 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
         }
         if (CxPlatTimeDiff64(
                 Path->MtuDiscovery.SearchCompleteEnterTimeUs,
-                TimeNow) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
+                TimeNow) >= TimeoutTime) {
             QuicMtuDiscoveryMoveToSearching(&Path->MtuDiscovery, Connection);
         }
     }

@@ -29,9 +29,16 @@ struct MtuTestContext {
     }
 };
 
-static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT*) {
-        return QUIC_STATUS_SUCCESS;
+static QUIC_STATUS MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
+    return QUIC_STATUS_SUCCESS;
+}
+
+static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+    if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+        new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, MtuStreamCallback, nullptr);
     }
+    return QUIC_STATUS_SUCCESS;
+}
 
 void
 QuicTestMtuSettings()
@@ -131,6 +138,98 @@ QuicTestMtuSettings()
 
             TEST_EQUAL(1450, CheckSettings.MaximumMtu);
             TEST_EQUAL(MinimumMtu, CheckSettings.MinimumMtu);
+        }
+    }
+
+    {
+        MsQuicSettings ServerSettings;
+        ServerSettings.
+            SetMaximumMtu(1500).
+            SetMinimumMtu(1280).
+            SetPeerUnidiStreamCount(1).
+            SetIdleTimeoutMs(30000).
+            SetDisconnectTimeoutMs(30000);
+        MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuSettingsCallback, nullptr);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            MsQuicSettings Settings;
+            Settings.
+                SetMaximumMtu(1500).
+                SetMinimumMtu(1280).
+                SetPeerUnidiStreamCount(1).
+                SetIdleTimeoutMs(30000).
+                SetDisconnectTimeoutMs(30000);
+
+            MsQuicCredentialConfig ClientCredConfig;
+            MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+            TEST_TRUE(ClientConfiguration.IsValid());
+
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+            MtuDropHelper ServerDropper(
+                0,
+                ServerLocalAddr.GetPort(),
+                1499);
+            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+            TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+
+            //
+            // Send a bunch of data
+            //
+            uint8_t RawBuffer[100];
+            QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+
+            //
+            // Ensure our MTU is in the middle somewhere
+            //
+            QUIC_STATISTICS Stats;
+            TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
+            TEST_NOT_EQUAL(1500, Stats.Send.PathMtu);
+            TEST_NOT_EQUAL(1280, Stats.Send.PathMtu);
+
+            ServerDropper.ClientDropPacketSize = 0xFFFF;
+
+            TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings().SetMtuDiscoverySearchCompleteTimeoutUs(1)));
+
+            // Send a bunch more data
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+            CxPlatSleep(50);
+
+            //
+            // Ensure our MTU is in the max
+            //
+            TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
+            TEST_EQUAL(1500, Stats.Send.PathMtu);
+
+            Stream.Shutdown(1);
+            Connection.Shutdown(1);
         }
     }
 }

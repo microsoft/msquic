@@ -1086,7 +1086,7 @@ QuicSendFlush(
         //
         // We write data to packets in the following order:
         //
-        //   1 Connection wide control data.
+        //   1. Connection wide control data.
         //   2. Path MTU discovery packets.
         //   3. Stream (control and application) data.
         //

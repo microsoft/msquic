@@ -107,6 +107,12 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.MaximumMtu) {
         Settings->MaximumMtu = QUIC_DPLPMUTD_DEFAULT_MAX_MTU;
     }
+    if (!Settings->IsSet.MtuDiscoveryMissingProbeCount) {
+        Settings->MtuDiscoveryMissingProbeCount = QUIC_DPLPMTUD_MAX_PROBES;
+    }
+    if (!Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
+        Settings->MtuDiscoverySearchCompleteTimeoutUs = QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -202,6 +208,12 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.MaximumMtu) {
         Destination->MaximumMtu = Source->MaximumMtu;
+    }
+    if (!Destination->IsSet.MtuDiscoveryMissingProbeCount) {
+        Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
+    }
+    if (!Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
+        Destination->MtuDiscoverySearchCompleteTimeoutUs = Source->MtuDiscoverySearchCompleteTimeoutUs;
     }
 }
 
@@ -437,6 +449,14 @@ QuicSettingApply(
         Destination->MaximumMtu = MaximumMtu;
     } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
         return FALSE;
+    }
+    if (Source->IsSet.MtuDiscoverySearchCompleteTimeoutUs && (!Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs || OverWrite)) {
+        Destination->MtuDiscoverySearchCompleteTimeoutUs = Source->MtuDiscoverySearchCompleteTimeoutUs;
+        Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+    }
+    if (Source->IsSet.MtuDiscoveryMissingProbeCount && (!Destination->IsSet.MtuDiscoveryMissingProbeCount || OverWrite)) {
+        Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
+        Destination->IsSet.MtuDiscoveryMissingProbeCount = TRUE;
     }
     return TRUE;
 }
@@ -791,6 +811,22 @@ QuicSettingsLoad(
         Settings->MaximumMtu = MaximumMtu;
         Settings->MinimumMtu = MinimumMtu;
     }
+    if (!Settings->IsSet.MtuDiscoveryMissingProbeCount) {
+        ValueLen = sizeof(Settings->MtuDiscoveryMissingProbeCount);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_MTU_MISSING_PROBE_COUNT,
+            (uint8_t*)&Settings->MtuDiscoveryMissingProbeCount,
+            &ValueLen);
+    }
+    if (!Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
+        ValueLen = sizeof(Settings->MtuDiscoverySearchCompleteTimeoutUs);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT,
+            (uint8_t*)&Settings->MtuDiscoverySearchCompleteTimeoutUs,
+            &ValueLen);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -827,6 +863,8 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     QuicTraceLogVerbose(SettingMinimumMtu,                  "[sett] Minimum Mtu            = %hu", Settings->MinimumMtu);
     QuicTraceLogVerbose(SettingMaximumMtu,                  "[sett] Maximum Mtu            = %hu", Settings->MaximumMtu);
+    QuicTraceLogVerbose(SettingMtuCompleteTimeout,          "[sett] Mtu complete timeout   = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
+    QuicTraceLogVerbose(SettingMtuMissingProbeCount,        "[sett] Mtu probe count        = %hhu", Settings->MtuDiscoveryMissingProbeCount);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -931,6 +969,12 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] Minimum Mtu             = %hu", Settings->MinimumMtu);
     }
     if (Settings->IsSet.MaximumMtu) {
-        QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] Maximum Mtu             = %hhu", Settings->MaximumMtu);
+        QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] Maximum Mtu             = %hu", Settings->MaximumMtu);
+    }
+    if (Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
+        QuicTraceLogVerbose(SettingDumpMtuCompleteTimeout,          "[sett] Mtu complete timeout   = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
+    }
+    if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
+        QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] Mtu probe count        = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     }
 }

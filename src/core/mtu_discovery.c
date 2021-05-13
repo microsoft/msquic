@@ -249,7 +249,8 @@ QuicMtuDiscoveryProbePacketDiscarded(
     // If we've done max probes, we've found our max, enter search complete
     // waiting phase. Otherwise send out another probe of the same size.
     //
-    if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
+    if (MtuDiscovery->ProbeCount >=
+            (int16_t)Connection->Settings.MtuDiscoveryMissingProbeCount - 1) {
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery, Connection);
         return;
     }
