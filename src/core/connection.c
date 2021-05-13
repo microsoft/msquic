@@ -5582,7 +5582,7 @@ QuicConnUpdatePeerPacketTolerance(
         Connection->PeerPacketTolerance = NewPacketTolerance;
         QuicSendSetSendFlag(
             &Connection->Send,
-            QUIC_FRAME_ACK_FREQUENCY);
+            QUIC_CONN_SEND_FLAG_ACK_FREQUENCY);
     }
 }
 
