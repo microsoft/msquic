@@ -292,6 +292,10 @@ typedef struct CXPLAT_POOL_ENTRY {
     uint32_t SpecialFlag;
 } CXPLAT_POOL_ENTRY;
 #define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+
+BOOLEAN
+CxPlatGetDisablePoolAllocator(
+    );
 #endif
 
 inline
@@ -330,9 +334,11 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if QUIC_DISABLE_MEM_POOL
-    return CxPlatAlloc(Pool->Size);
-#else
+#if DEBUG
+    if (CxPlatGetDisablePoolAllocator()) {
+        return CxPlatAlloc(Pool->Size, Pool->Tag);
+    }
+#endif
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
@@ -343,7 +349,6 @@ CxPlatPoolAlloc(
     }
 #endif
     return Entry;
-#endif
 }
 
 inline
@@ -353,12 +358,11 @@ CxPlatPoolFree(
     _In_ void* Entry
     )
 {
-#if QUIC_DISABLE_MEM_POOL
-    UNREFERENCED_PARAMETER(Pool);
-    CxPlatFree(Entry);
-    return;
-#else
 #if DEBUG
+    if (CxPlatGetDisablePoolAllocator()) {
+        CxPlatFree(Entry, Pool->Tag);
+        return;
+    }
     CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
     ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
@@ -367,7 +371,6 @@ CxPlatPoolFree(
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }
-#endif
 }
 
 #define CxPlatZeroMemory RtlZeroMemory

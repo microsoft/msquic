@@ -41,6 +41,7 @@ CxPlatSystemLoad(
 #ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
     CxPlatform.AllocCounter = 0;
+    CxPlatform.DisablePoolAlloc = FALSE;
 #endif
 
     QuicTraceLogInfo(
@@ -607,6 +608,19 @@ CxPlatGetAllocFailDenominator(
     )
 {
     return CxPlatform.AllocFailDenominator;
+}
+void
+CxPlatSetDisablePoolAllocator(
+    _In_ BOOLEAN Disable
+    )
+{
+    CxPlatform.DisablePoolAlloc = Disable;
+}
+BOOLEAN
+CxPlatGetDisablePoolAllocator(
+    )
+{
+    return CxPlatform.DisablePoolAlloc;
 }
 #endif
 
