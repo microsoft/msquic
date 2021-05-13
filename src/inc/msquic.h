@@ -1081,6 +1081,9 @@ typedef struct QUIC_STREAM_EVENT {
             BOOLEAN Graceful;
         } SEND_SHUTDOWN_COMPLETE;
         struct {
+            BOOLEAN ConnectionShutdown;
+        } SHUTDOWN_COMPLETE;
+        struct {
             uint64_t ByteCount;
         } IDEAL_SEND_BUFFER_SIZE;
     };
