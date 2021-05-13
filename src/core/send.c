@@ -976,8 +976,7 @@ typedef enum QUIC_SEND_RESULT {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendFlush(
-    _In_ QUIC_SEND* Send,
-    _In_ uint64_t TimeNow
+    _In_ QUIC_SEND* Send
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
@@ -997,7 +996,7 @@ QuicSendFlush(
         return TRUE;
     }
 
-    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, TimeNow);
+    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, CxPlatTimeUs64());
 
     CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 

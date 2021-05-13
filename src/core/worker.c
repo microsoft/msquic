@@ -429,8 +429,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerProcessConnection(
     _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint64_t TimeNow
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QuicTraceEvent(
@@ -445,7 +444,7 @@ QuicWorkerProcessConnection(
             Worker,
             CxPlatTimeDiff32(
                 Connection->Stats.Schedule.LastQueueTime,
-                (uint32_t)TimeNow));
+                CxPlatTimeUs32()));
     }
 
     //
@@ -486,7 +485,7 @@ QuicWorkerProcessConnection(
     // Process some operations.
     //
     BOOLEAN StillHasWorkToDo =
-        QuicConnDrainOperations(Connection, TimeNow) | Connection->State.UpdateWorker;
+        QuicConnDrainOperations(Connection) | Connection->State.UpdateWorker;
     Connection->WorkerThreadID = 0;
 
     //
@@ -565,8 +564,6 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 
     while (Worker->Enabled) {
 
-        uint64_t TimeNow = CxPlatTimeUs64();
-
         //
         // For every loop of the worker thread, in an attempt to balance things,
         // a single connection will be processed (if available), followed by a
@@ -576,7 +573,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 
         QUIC_CONNECTION* Connection = QuicWorkerGetNextConnection(Worker);
         if (Connection != NULL) {
-            QuicWorkerProcessConnection(Worker, Connection, TimeNow);
+            QuicWorkerProcessConnection(Worker, Connection);
         }
 
         QUIC_OPERATION* Operation = QuicWorkerGetNextOperation(Worker);
@@ -587,6 +584,8 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
             QuicOperationFree(Worker, Operation);
             QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         }
+
+        uint64_t TimeNow = CxPlatTimeUs64();
 
         //
         // Opportunistically try to snap-shot performance counters and do

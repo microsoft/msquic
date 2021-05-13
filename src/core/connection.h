@@ -998,8 +998,7 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint64_t TimeNow
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
