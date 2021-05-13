@@ -154,7 +154,8 @@ QuicPacketBuilderPrepare(
     //
 
     BOOLEAN NewQuicPacket = FALSE;
-    if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery) {
+    if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery ||
+        (Builder->Datagram != NULL && (Builder->Datagram->Length - Builder->DatagramLength) < QUIC_MIN_PACKET_SPARE_SPACE)) {
         //
         // The current data cannot go in the current QUIC packet. Finalize the
         // current QUIC packet up so we can create another.
@@ -170,9 +171,6 @@ QuicPacketBuilderPrepare(
 
     } else if (Builder->Datagram == NULL) {
         NewQuicPacket = TRUE;
-
-    } else {
-        CXPLAT_DBG_ASSERT(Builder->Datagram->Length - Builder->DatagramLength >= QUIC_MIN_PACKET_SPARE_SPACE);
     }
 
     if (Builder->Datagram == NULL) {
@@ -587,6 +585,7 @@ QuicPacketBuilderFinalize(
         //
         if (Builder->Datagram != NULL) {
             --Connection->Send.NextPacketNumber;
+            CXPLAT_DBG_ASSERT(Builder->DatagramLength > 0);
             Builder->DatagramLength -= Builder->HeaderLength;
 
             if (Builder->DatagramLength == 0) {
