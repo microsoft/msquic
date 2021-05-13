@@ -1,7 +1,7 @@
-MsQuicOpen function
+MsQuicOpenVersion function
 ======
 
-Opens a new handle to the MsQuic library.
+Opens a new handle to the MsQuic library and returns a version specific API table.
 
 # Syntax
 
