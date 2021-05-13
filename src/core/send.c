@@ -806,7 +806,8 @@ Exit:
     // The only valid reason to not have framed anything is that there was too
     // little room left in the packet to fit anything more.
     //
-    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom ||
+        CxPlatIsRandomMemoryFailureEnabled());
     UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
