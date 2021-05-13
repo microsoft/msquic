@@ -1356,6 +1356,15 @@ TEST(Misc, SlowReceive) {
     }
 }
 
+TEST(Misc, NthAllocFail) {
+    TestLogger Logger("NthAllocFail");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_ALLOC_FAIL));
+    } else {
+        QuicTestNthAllocFail();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

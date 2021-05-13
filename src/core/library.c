@@ -795,7 +795,8 @@ QuicLibrarySetGlobalParam(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        int32_t Value = *(int32_t*)Buffer;
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
         if (Value < 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -810,7 +811,8 @@ QuicLibrarySetGlobalParam(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        int32_t Value = *(int32_t*)Buffer;
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
         if (Value < 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;

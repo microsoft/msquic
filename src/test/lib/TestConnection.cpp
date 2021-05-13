@@ -772,7 +772,7 @@ TestConnection::HandleConnectionEvent(
                     TestIgnoreConnectionTimeout,
                     "[test] Ignoring timeout unexpected status because of random loss");
             } else {
-                TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+                TEST_FAILURE("Unexpected transport Close Error, 0x%x", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
             }
         }
         CxPlatEventSet(EventConnectionComplete);
@@ -873,7 +873,7 @@ TestConnection::HandleConnectionEvent(
             return QUIC_STATUS_INTERNAL_ERROR;
         }
         if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != ExpectedClientCertValidationResult) {
-            TEST_FAILURE("Unexpected Certificate Validation Status, %u", Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+            TEST_FAILURE("Unexpected Certificate Validation Status, 0x%x", Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
         }
         break;
 
