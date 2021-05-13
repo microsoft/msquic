@@ -169,7 +169,7 @@ QuicMtuDiscoveryPeerValidated(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN 
+BOOLEAN
 QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
     _In_ uint16_t PacketMtu,
