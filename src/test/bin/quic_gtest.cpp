@@ -1318,6 +1318,15 @@ TEST(Misc, AbortIncompleteReceive) {
     }
 }
 
+TEST(Misc, SlowReceive) {
+    TestLogger Logger("SlowReceive");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SLOW_RECEIVE));
+    } else {
+        QuicTestSlowReceive();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

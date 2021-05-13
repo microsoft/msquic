@@ -171,10 +171,10 @@ QuicCryptoInitialize(
 
     } else {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+        QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
-                QUIC_CID_CXPLAT_LIST_ENTRY,
+                QUIC_CID_LIST_ENTRY,
                 Link);
 
         HandshakeCid = DestCid->CID.Data;
@@ -404,10 +404,10 @@ QuicCryptoOnVersionChange(
 
     } else {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+        QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
-                QUIC_CID_CXPLAT_LIST_ENTRY,
+                QUIC_CID_LIST_ENTRY,
                 Link);
 
         HandshakeCid = DestCid->CID.Data;
@@ -2058,7 +2058,7 @@ Error:
 
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TicketLength,
     _In_reads_bytes_(TicketLength)
         const uint8_t* Ticket,
@@ -2105,7 +2105,7 @@ QuicCryptoDecodeServerTicket(
 
     uint32_t QuicVersion;
     memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
-    if (!QuicIsVersionSupported(QuicVersion)) {
+    if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, QuicVersion)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

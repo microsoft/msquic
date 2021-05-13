@@ -20,7 +20,7 @@ Abstract:
 #include "inline.c.clog.h"
 #endif
 
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicCidNewDestination(
     _In_ uint8_t Length,
     _In_reads_(Length)
@@ -51,7 +51,7 @@ QuicCidNewRandomSource(
         const void* Prefix
     );
 
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicCidNewRandomDestination(
     );
 
@@ -639,7 +639,7 @@ QuicConnGetSourceCidFromBuf(
         const uint8_t* CidBuffer
     );
 
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
