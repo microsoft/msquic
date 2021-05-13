@@ -59,11 +59,6 @@ typedef struct CX_PLATFORM {
     // Count of allocations.
     //
     long AllocCounter;
-
-    //
-    // Disable pool allocator.
-    //
-    BOOLEAN DisablePoolAlloc;
 #endif
 
 } CX_PLATFORM;
@@ -103,11 +98,6 @@ typedef struct CX_PLATFORM {
     // Count of allocations.
     //
     long AllocCounter;
-
-    //
-    // Disable pool allocator.
-    //
-    BOOLEAN DisablePoolAlloc;
 #endif
 
 } CX_PLATFORM;
@@ -129,11 +119,6 @@ typedef struct CX_PLATFORM {
     // Count of allocations.
     //
     long AllocCounter;
-
-    //
-    // Disable pool allocator.
-    //
-    BOOLEAN DisablePoolAlloc;
 #endif
 
 } CX_PLATFORM;

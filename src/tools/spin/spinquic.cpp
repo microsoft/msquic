@@ -838,16 +838,6 @@ main(int argc, char **argv)
         }
 
         if (Settings.AllocFailDenominator > 0) {
-            BOOLEAN DisablePoolAlloc = TRUE;
-            if (QUIC_FAILED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_DISABLE_POOL_ALLOC,
-                    sizeof(DisablePoolAlloc),
-                    &DisablePoolAlloc))) {
-                printf("Setting Disable Pool Alloc failed.\n");
-            }
             if (QUIC_FAILED(
                 MsQuic->SetParam(
                     nullptr,

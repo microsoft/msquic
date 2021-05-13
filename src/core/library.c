@@ -818,15 +818,6 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
-
-    case QUIC_PARAM_GLOBAL_DISABLE_POOL_ALLOC:
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        CxPlatSetDisablePoolAllocator(*(uint8_t*)Buffer != 0);
-        Status = QUIC_STATUS_SUCCESS;
-        break;
 #endif
 
     default:

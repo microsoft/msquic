@@ -293,8 +293,8 @@ typedef struct CXPLAT_POOL_ENTRY {
 } CXPLAT_POOL_ENTRY;
 #define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
 
-BOOLEAN
-CxPlatGetDisablePoolAllocator(
+int32_t
+CxPlatGetAllocFailDenominator(
     );
 #endif
 
@@ -335,7 +335,7 @@ CxPlatPoolAlloc(
     )
 {
 #if DEBUG
-    if (CxPlatGetDisablePoolAllocator()) {
+    if (CxPlatGetAllocFailDenominator()) {
         return CxPlatAlloc(Pool->Size, Pool->Tag);
     }
 #endif
@@ -359,7 +359,7 @@ CxPlatPoolFree(
     )
 {
 #if DEBUG
-    if (CxPlatGetDisablePoolAllocator()) {
+    if (CxPlatGetAllocFailDenominator()) {
         CxPlatFree(Entry, Pool->Tag);
         return;
     }

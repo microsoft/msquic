@@ -332,15 +332,6 @@ CxPlatSetAllocFailDenominator(
 int32_t
 CxPlatGetAllocFailDenominator(
     );
-
-void
-CxPlatSetDisablePoolAllocator(
-    _In_ BOOLEAN Disable
-    );
-
-BOOLEAN
-CxPlatGetDisablePoolAllocator(
-    );
 #endif
 
 #ifdef DEBUG
