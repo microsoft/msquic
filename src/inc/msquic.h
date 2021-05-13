@@ -1209,7 +1209,8 @@ QUIC_STATUS
     );
 
 //
-// API Function Table.
+// Version 1 API Function Table. Returned from MsQuicOpenVersion when Version
+// is 1. Also returned from MsQuicOpen.
 //
 typedef struct QUIC_API_TABLE {
 
@@ -1267,8 +1268,14 @@ MsQuicOpenVersion(
     _Out_ _Pre_defensive_ const void** QuicApi
     );
 
+//
+// Version specific helpers that wrap MsQuicOpenVersion.
+//
+
 #ifndef QUIC_CORE_INTERNAL
+
 #if defined(__cplusplus) || defined(WIN32)
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 QUIC_STATUS
@@ -1278,9 +1285,13 @@ MsQuicOpen(
 {
     return MsQuicOpenVersion(1, (const void**)QuicApi);
 }
+
 #else
+
 #define MsQuicOpen(QuicApi) MsQuicOpenVersion((const void**)QuicApi, 1)
+
 #endif // defined(__cplusplus) || defined(WIN32)
+
 #endif // QUIC_CORE_INTERNAL
 
 //
