@@ -4791,6 +4791,11 @@ QuicConnRecvFrames(
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
             }
+            QuicTraceLogConnInfo(
+                UpdatePacketTolerance,
+                Connection,
+                "Updating packet tolerance to %hhu",
+                Connection->PacketTolerance);
             break;
         }
 

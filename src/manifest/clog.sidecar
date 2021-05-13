@@ -934,6 +934,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "UpdatePacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating packet tolerance to %hhu",
+      "UniqueId": "UpdatePacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
@@ -10904,6 +10920,10 @@
       {
         "UniquenessHash": "1a99a1d4-e93f-590e-b9d2-766c6616680f",
         "TraceID": "HandshakeConfirmedFrame"
+      },
+      {
+        "UniquenessHash": "e232b42d-9955-4467-0464-559ea5965464",
+        "TraceID": "UpdatePacketTolerance"
       },
       {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
