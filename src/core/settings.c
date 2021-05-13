@@ -816,7 +816,7 @@ QuicSettingsLoad(
         CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MTU_MISSING_PROBE_COUNT,
-            (uint8_t*)&Settings->MtuDiscoveryMissingProbeCount,
+            &Settings->MtuDiscoveryMissingProbeCount,
             &ValueLen);
     }
     if (!Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
