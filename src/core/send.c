@@ -796,6 +796,9 @@ QuicSendWriteFrames(
                     Builder->Datagram->Buffer)) {
 
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK_FREQUENCY;
+                Builder->Metadata->Frames[
+                    Builder->Metadata->FrameCount].ACK_FREQUENCY.Sequence =
+                        Frame.SequenceNumber;
                 if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_ACK_FREQUENCY, TRUE)) {
                     return TRUE;
                 }

@@ -817,10 +817,12 @@ QuicLossDetectionRetransmitFrames(
             break;
 
         case QUIC_FRAME_ACK_FREQUENCY:
-            NewDataQueued |=
-                QuicSendSetSendFlag(
-                    &Connection->Send,
-                    QUIC_FRAME_ACK_FREQUENCY);
+            if (Packet->Frames[i].ACK_FREQUENCY.Sequence == Connection->SendAckFreqSeqNum) {
+                NewDataQueued |=
+                    QuicSendSetSendFlag(
+                        &Connection->Send,
+                        QUIC_FRAME_ACK_FREQUENCY);
+            }
             break;
         }
     }
