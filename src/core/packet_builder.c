@@ -858,6 +858,7 @@ Exit:
         if (Builder->Datagram != NULL) {
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
+            Builder->DatagramLength = 0;
             ++Builder->TotalCountDatagrams;
             Builder->TotalDatagramsLength += Builder->DatagramLength;
         }
@@ -884,6 +885,7 @@ Exit:
         if (Builder->Datagram != NULL) {
             CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
             Builder->Datagram = NULL;
+            Builder->DatagramLength = 0;
         }
         if (Builder->SendData != NULL) {
             CxPlatSendDataFree(Builder->SendData);
