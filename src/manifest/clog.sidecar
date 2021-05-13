@@ -978,6 +978,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "UpdatePeerPacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating peer packet tolerance to %hhu",
+      "UniqueId": "UpdatePeerPacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "UpdateShareBinding": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated ShareBinding = %hhu",
@@ -10900,6 +10916,10 @@
       {
         "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
         "TraceID": "Unreachable"
+      },
+      {
+        "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
+        "TraceID": "UpdatePeerPacketTolerance"
       },
       {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
