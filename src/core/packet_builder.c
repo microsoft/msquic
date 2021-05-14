@@ -642,6 +642,7 @@ QuicPacketBuilderFinalize(
         if (Builder->Datagram != NULL) {
             --Connection->Send.NextPacketNumber;
             Builder->DatagramLength -= Builder->HeaderLength;
+            Builder->HeaderLength = 0;
 
             if (Builder->DatagramLength == 0) {
                 CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
