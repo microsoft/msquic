@@ -1265,7 +1265,8 @@ QuicSendFlush(
         // size as the packet tolerance for the peer to use for acknowledging
         // packets.
         //
-        QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
+        // Temporarily disabled for now.
+        //QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
     }
 
     return Result != QUIC_SEND_INCOMPLETE;
