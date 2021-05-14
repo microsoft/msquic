@@ -625,6 +625,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 }
 #endif
 
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -787,6 +788,7 @@ TEST(CredValidation, ConnectValidClientCertificate) {
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
+#endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
@@ -1427,10 +1429,12 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs3,
     testing::ValuesIn(HandshakeArgs3::Generate()));
 
+#ifndef QUIC_DISABLE_RESUMPTION
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
