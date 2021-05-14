@@ -33,6 +33,59 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     );
 
+#if DEBUG
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPacketBuilderValidate(
+    _In_ const QUIC_PACKET_BUILDER* Builder,
+    _In_ BOOLEAN ShouldHaveData
+    )
+{
+    if (ShouldHaveData) {
+        CXPLAT_DBG_ASSERT(Builder->Key != NULL);
+        CXPLAT_DBG_ASSERT(Builder->SendData != NULL);
+        CXPLAT_DBG_ASSERT(Builder->Datagram != NULL);
+        CXPLAT_DBG_ASSERT(Builder->DatagramLength != 0);
+        CXPLAT_DBG_ASSERT(Builder->HeaderLength != 0);
+        CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
+    }
+
+    CXPLAT_DBG_ASSERT(Builder->Path != NULL);
+    CXPLAT_DBG_ASSERT(Builder->Path->DestCid != NULL);
+    CXPLAT_DBG_ASSERT(Builder->BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
+
+    if (Builder->Key != NULL) {
+        CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
+        CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
+    }
+
+    CXPLAT_DBG_ASSERT(Builder->EncryptionOverhead <= 16);
+    if (Builder->SendData == NULL) {
+        CXPLAT_DBG_ASSERT(Builder->Datagram == NULL);
+    }
+
+    if (Builder->Datagram) {
+        CXPLAT_DBG_ASSERT(Builder->Datagram->Length != 0);
+        CXPLAT_DBG_ASSERT(Builder->Datagram->Length <= UINT16_MAX);
+        CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
+        CXPLAT_DBG_ASSERT(Builder->Datagram->Length > (uint32_t)Builder->DatagramLength);
+        CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
+        CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart);
+        CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->HeaderLength);
+        CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->HeaderLength);
+        if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
+            CXPLAT_DBG_ASSERT(Builder->PayloadLengthOffset != 0);
+            CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->PayloadLengthOffset);
+        }
+    } else {
+        CXPLAT_DBG_ASSERT(Builder->DatagramLength == 0);
+        CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount == 0);
+    }
+}
+#else
+#define QuicPacketBuilderValidate(Builder, ShouldHaveData) // no-op
+#endif
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
@@ -146,7 +199,7 @@ QuicPacketBuilderPrepare(
         DatagramSize = (uint16_t)Builder->Path->Allowance;
     }
     CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
-
+    QuicPacketBuilderValidate(Builder, FALSE);
 
     //
     // Next, make sure the current QUIC packet matches the new packet type. If
@@ -364,6 +417,8 @@ QuicPacketBuilderPrepare(
 
 Error:
 
+    QuicPacketBuilderValidate(Builder, FALSE);
+
     return Result;
 }
 
@@ -577,15 +632,15 @@ QuicPacketBuilderFinalize(
     QUIC_CONNECTION* Connection = Builder->Connection;
     BOOLEAN FinalQuicPacket = FALSE;
 
-    if (Builder->Datagram == NULL ||
-        Builder->Metadata->FrameCount == 0) {
+    QuicPacketBuilderValidate(Builder, FALSE);
+
+    if (Builder->Datagram == NULL || Builder->Metadata->FrameCount == 0) {
         //
         // Nothing got framed into this packet. Undo the header of this
         // packet.
         //
         if (Builder->Datagram != NULL) {
             --Connection->Send.NextPacketNumber;
-            CXPLAT_DBG_ASSERT(Builder->DatagramLength > 0);
             Builder->DatagramLength -= Builder->HeaderLength;
 
             if (Builder->DatagramLength == 0) {
@@ -597,23 +652,11 @@ QuicPacketBuilderFinalize(
         goto Exit;
     }
 
+    QuicPacketBuilderValidate(Builder, TRUE);
+
     //
     // Calculate some of the packet buffer parameters (mostly used for encryption).
     //
-
-    _Analysis_assume_(Builder->EncryptionOverhead <= 16);
-    _Analysis_assume_(Builder->Datagram->Length < 0x10000);
-    _Analysis_assume_(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
-    _Analysis_assume_(Builder->DatagramLength >= Builder->PacketStart + Builder->HeaderLength);
-    _Analysis_assume_(Builder->DatagramLength >= Builder->PacketStart + Builder->PayloadLengthOffset);
-
-    CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
-    CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
-    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
-    CXPLAT_DBG_ASSERT(Builder->Key != NULL);
-    CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
-    CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
-
     uint8_t* Header =
         Builder->Datagram->Buffer + Builder->PacketStart;
     uint16_t PayloadLength =
@@ -891,6 +934,8 @@ Exit:
             Builder->SendData = NULL;
         }
     }
+
+    QuicPacketBuilderValidate(Builder, FALSE);
 
     CXPLAT_DBG_ASSERT(!FlushBatchedDatagrams || Builder->SendData == NULL);
 }

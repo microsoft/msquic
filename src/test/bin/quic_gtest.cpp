@@ -1327,6 +1327,7 @@ TEST(Misc, SlowReceive) {
     }
 }
 
+#if QUIC_TEST_ALLOC_FAILURES_ENABLED
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1335,6 +1336,7 @@ TEST(Misc, NthAllocFail) {
         QuicTestNthAllocFail();
     }
 }
+#endif
 
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");

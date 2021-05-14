@@ -788,7 +788,7 @@ QuicLibrarySetGlobalParam(
         break;
 #endif
 
-#ifdef DEBUG
+#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
     case QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR: {
         if (BufferLength != sizeof(int32_t)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;

@@ -56,6 +56,10 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 // testing helpers.
 //
 #define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
+//
+// Allocation failures are currently only enabled on debug builds.
+//
+#define QUIC_TEST_ALLOC_FAILURES_ENABLED 1
 #endif
 
 typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
