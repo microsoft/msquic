@@ -1442,7 +1442,6 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif
 
-
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs5,
