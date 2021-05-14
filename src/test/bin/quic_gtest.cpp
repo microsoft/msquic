@@ -1429,12 +1429,15 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs3,
     testing::ValuesIn(HandshakeArgs3::Generate()));
 
-#ifndef QUIC_DISABLE_RESUMPTION
+#if !defined(QUIC_DISABLE_RESUMPTION) || defined(QUIC_TEST_DATAPATH_HOOKS_ENABLED)
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
+
 #endif
+
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1484,10 +1487,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithKeyUpdateArgs1,
     testing::ValuesIn(KeyUpdateArgs1::Generate()));
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs2,
     testing::ValuesIn(KeyUpdateArgs2::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
