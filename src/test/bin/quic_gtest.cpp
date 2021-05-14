@@ -327,6 +327,8 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 TEST(Mtu, Settings) {
     TestLogger Logger("QuicTestMtuSettings");
     if (TestingKernelMode) {
@@ -355,6 +357,8 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
             GetParam().RaiseMinimum);
     }
 }
+
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST(Alpn, ValidAlpnLengths) {
     TestLogger Logger("QuicTestValidAlpnLengths");
@@ -1442,10 +1446,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Mtu,
     WithMtuArgs,
     ::testing::ValuesIn(MtuArgs::Generate()));
+
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,
