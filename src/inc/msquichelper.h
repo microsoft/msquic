@@ -393,7 +393,12 @@ TryGetValue(
 {
     auto value = GetValue(argc, argv, name);
     if (!value) return false;
-    *pValue = (uint32_t)atoi(value);
+    char* End;
+#ifdef _WIN32
+    *pValue = (uint32_t)_strtoui64(value, &End, 10);
+#else
+    *pValue = (uint32_t)strtoull(value, &End, 10);
+#endif
     return true;
 }
 
