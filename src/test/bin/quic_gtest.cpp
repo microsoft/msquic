@@ -1196,6 +1196,23 @@ TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithKeyUpdateArgs2, RandomLoss) {
+    TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS Params = {
+            GetParam().Family,
+            GetParam().RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS, Params));
+    } else {
+        QuicTestKeyUpdateRandomLoss(
+            GetParam().Family,
+            GetParam().RandomLossPercentage);
+    }
+}
+#endif
+
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
     if (TestingKernelMode) {
@@ -1274,20 +1291,48 @@ TEST_P(WithFamilyArgs, AckSendDelay) {
 TEST(Misc, AbortPausedReceive) {
     TestLogger Logger("AbortPausedReceive");
     if (TestingKernelMode) {
-        BOOLEAN IsPaused = TRUE;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, IsPaused));
+        QUIC_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_PAUSED;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
     } else {
-        QuicTestAbortReceive(true);
+        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PAUSED);
     }
 }
 
 TEST(Misc, AbortPendingReceive) {
     TestLogger Logger("AbortPendingReceive");
     if (TestingKernelMode) {
-        BOOLEAN IsPaused = FALSE;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, IsPaused));
+        QUIC_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_PENDING;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
     } else {
-        QuicTestAbortReceive(false);
+        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PENDING);
+    }
+}
+
+TEST(Misc, AbortIncompleteReceive) {
+    TestLogger Logger("AbortIncompleteReceive");
+    if (TestingKernelMode) {
+        QUIC_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_INCOMPLETE;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
+    } else {
+        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_INCOMPLETE);
+    }
+}
+
+TEST(Misc, SlowReceive) {
+    TestLogger Logger("SlowReceive");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SLOW_RECEIVE));
+    } else {
+        QuicTestSlowReceive();
+    }
+}
+
+TEST(Misc, NthAllocFail) {
+    TestLogger Logger("NthAllocFail");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_ALLOC_FAIL));
+    } else {
+        QuicTestNthAllocFail();
     }
 }
 
@@ -1434,6 +1479,11 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs1,
     testing::ValuesIn(KeyUpdateArgs1::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithKeyUpdateArgs2,
+    testing::ValuesIn(KeyUpdateArgs2::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

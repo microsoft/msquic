@@ -850,6 +850,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     CxPlatEventUninitialize(RecvContext.ClientCompletion);
 }
 
+#if WIN32
 TEST_F(DataPathTest, TcpListener)
 {
     CXPLAT_DATAPATH* Datapath = nullptr;
@@ -1189,5 +1190,6 @@ TEST_P(DataPathTest, TcpDataServer)
     CxPlatDataPathUninitialize(
         Datapath);
 }
+#endif // WIN32
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());

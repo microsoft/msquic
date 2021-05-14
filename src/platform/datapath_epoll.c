@@ -869,6 +869,7 @@ CxPlatSocketConfigureRss(
     _In_ uint32_t SocketCount
     )
 {
+#ifdef SO_ATTACH_REUSEPORT_CBPF
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
 
@@ -901,6 +902,11 @@ CxPlatSocketConfigureRss(
     }
 
     return Status;
+#else
+    UNREFERENCED_PARAMETER(SocketContext);
+    UNREFERENCED_PARAMETER(SocketCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#endif
 }
 
 //

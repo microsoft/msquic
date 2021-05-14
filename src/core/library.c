@@ -42,6 +42,7 @@ MsQuicLibraryLoad(
 {
     CxPlatLockInitialize(&MsQuicLib.Lock);
     CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatListInitializeHead(&MsQuicLib.Registrations);
     CxPlatListInitializeHead(&MsQuicLib.Bindings);
     QuicTraceRundownCallback = QuicTraceRundown;
@@ -61,6 +62,7 @@ MsQuicLibraryUnload(
     QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
     QUIC_LIB_VERIFY(!MsQuicLib.InUse);
     MsQuicLib.Loaded = FALSE;
+    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
     CxPlatLockUninitialize(&MsQuicLib.Lock);
 }
@@ -268,7 +270,6 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
-    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
@@ -423,6 +424,21 @@ MsQuicLibraryUninitialize(
     )
 {
     //
+    // The library's stateless registration may still have half-opened
+    // connections that need to be cleaned up before all the bindings and
+    // sockets can be cleaned up. Kick off a clean up of those connections.
+    //
+    if (MsQuicLib.StatelessRegistration != NULL) {
+        //
+        // Best effort to clean up existing connections.
+        //
+        MsQuicRegistrationShutdown(
+            (HQUIC)MsQuicLib.StatelessRegistration,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+            0);
+    }
+
+    //
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
@@ -430,15 +446,10 @@ MsQuicLibraryUninitialize(
     MsQuicLib.Datapath = NULL;
 
     //
-    // The library's stateless registration for processing half-opened
-    // connections needs to be cleaned up next, as it's the last thing that can
-    // be holding on to connection objects.
+    // Wait for the final clean up of everything in the stateless registration
+    // and then free it.
     //
     if (MsQuicLib.StatelessRegistration != NULL) {
-        MsQuicRegistrationShutdown(
-            (HQUIC)MsQuicLib.StatelessRegistration,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-            0);
         MsQuicRegistrationClose(
             (HQUIC)MsQuicLib.StatelessRegistration);
         MsQuicLib.StatelessRegistration = NULL;
@@ -496,7 +507,6 @@ MsQuicLibraryUninitialize(
         CxPlatKeyFree(MsQuicLib.StatelessRetryKeys[i]);
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
-    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
     QuicSettingsCleanup(&MsQuicLib.Settings);
 
@@ -778,6 +788,40 @@ QuicLibrarySetGlobalParam(
         break;
 #endif
 
+#ifdef DEBUG
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR: {
+        if (BufferLength != sizeof(int32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
+        if (Value < 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatSetAllocFailDenominator(Value);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE: {
+        if (BufferLength != sizeof(int32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
+        if (Value < 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatSetAllocFailDenominator(-Value);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+#endif
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -901,6 +945,28 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(QUIC_SETTINGS);
         CxPlatCopyMemory(Buffer, &MsQuicLib.Settings, sizeof(QUIC_SETTINGS));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_VERSION:
+
+        if (*BufferLength < 4 * sizeof(uint32_t)) {
+            *BufferLength = 4 * sizeof(uint32_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = 4 * sizeof(uint32_t);
+        ((uint32_t*)Buffer)[0] = VER_MAJOR;
+        ((uint32_t*)Buffer)[0] = VER_MINOR;
+        ((uint32_t*)Buffer)[0] = VER_PATCH;
+        ((uint32_t*)Buffer)[0] = VER_BUILD_ID;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1179,6 +1245,9 @@ Error:
     return Status;
 }
 
+//
+// N.B Maintained and exported for backwards compatiblity with old V1 clients.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1267,10 +1336,24 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicOpenVersion(
+    _In_ uint32_t Version,
+    _Out_ _Pre_defensive_ const void** QuicApi
+    )
+{
+    if (Version != 1) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+    return MsQuicOpen((const QUIC_API_TABLE**)QuicApi);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicClose(
-    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
+    _In_ _Pre_defensive_ const void* QuicApi
     )
 {
     if (QuicApi != NULL) {

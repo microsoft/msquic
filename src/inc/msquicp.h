@@ -94,6 +94,8 @@ typedef struct CXPLAT_TLS_SECRETS {
 //
 
 #define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x80000001  // QUIC_TEST_DATAPATH_HOOKS*
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x80000002  // uint32_t
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x80000003  // uint32_t
 
 //
 // The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.

@@ -476,6 +476,10 @@ CxPlatTlsAddHandshakeDataCallback(
     CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
+    if (TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+        CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled());
+        return -1;
+    }
     CXPLAT_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
     QuicTraceLogConnVerbose(

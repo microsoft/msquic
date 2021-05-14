@@ -323,6 +323,24 @@ CxPlatListPopEntry(
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
 
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    );
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
+#endif
+
+#ifdef DEBUG
+#define CxPlatIsRandomMemoryFailureEnabled() (CxPlatGetAllocFailDenominator() != 0)
+#else
+#define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
+#endif
+
+
 //
 // Test Interface for loading a self-signed certificate.
 //

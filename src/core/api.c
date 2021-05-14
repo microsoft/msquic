@@ -926,37 +926,46 @@ MsQuicStreamShutdown(
     Connection = Stream->Connection;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
-    if (Oper == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "STRM_SHUTDOWN operation",
-            0);
-        goto Error;
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+        //
+        // Execute this blocking API call inline if called on the worker thread.
+        //
+        QuicStreamShutdown(Stream, Flags, ErrorCode);
+        Status = QUIC_STATUS_SUCCESS;
+
+    } else {
+
+        QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+
+        Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+        if (Oper == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "STRM_SHUTDOWN operation",
+                0);
+            goto Error;
+        }
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
+        Oper->API_CALL.Context->STRM_SHUTDOWN.Stream = Stream;
+        Oper->API_CALL.Context->STRM_SHUTDOWN.Flags = Flags;
+        Oper->API_CALL.Context->STRM_SHUTDOWN.ErrorCode = ErrorCode;
+
+        //
+        // Async stream operations need to hold a ref on the stream so that the
+        // stream isn't freed before the operation can be processed. The ref is
+        // released after the operation is processed.
+        //
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+        //
+        // Queue the operation but don't wait for the completion.
+        //
+        QuicConnQueueOper(Connection, Oper);
+        Status = QUIC_STATUS_PENDING;
     }
-    Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
-    Oper->API_CALL.Context->STRM_SHUTDOWN.Stream = Stream;
-    Oper->API_CALL.Context->STRM_SHUTDOWN.Flags = Flags;
-    Oper->API_CALL.Context->STRM_SHUTDOWN.ErrorCode = ErrorCode;
-
-    //
-    // Async stream operations need to hold a ref on the stream so that the
-    // stream isn't freed before the operation can be processed. The ref is
-    // released after the operation is processed.
-    //
-    QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
-
-    //
-    // Queue the operation but don't wait for the completion.
-    //
-    QuicConnQueueOper(Connection, Oper);
-    Status = QUIC_STATUS_PENDING;
 
 Error:
 

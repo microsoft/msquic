@@ -394,27 +394,37 @@ QuicLossDetectionUpdateTimer(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 QuicLossDetectionOnPacketSent(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_SENT_PACKET_METADATA* TempSentPacket
     )
 {
-    QUIC_SENT_PACKET_METADATA* SentPacket;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-
     CXPLAT_DBG_ASSERT(TempSentPacket->FrameCount != 0);
 
     //
     // Allocate a copy of the packet metadata.
     //
-    SentPacket =
+    QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
             &Connection->Worker->SentPacketPool, TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        //
+        // We can't allocate the memory to permanently track this packet so just
+        // go ahead and immediately clean up and mark the data in it as lost.
+        //
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Sent packet metadata",
+            SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
+        QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
+        QuicSentPacketMetadataReleaseFrames(TempSentPacket);
+        return;
     }
+
     CxPlatCopyMemory(
         SentPacket,
         TempSentPacket,
@@ -456,8 +466,6 @@ QuicLossDetectionOnPacketSent(
     }
 
     QuicLossValidate(LossDetection);
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -564,12 +572,15 @@ QuicLossDetectionOnPacketAcknowledged(
         }
 
         case QUIC_FRAME_RETIRE_CONNECTION_ID: {
-            QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+            QUIC_CID_LIST_ENTRY* DestCid =
                 QuicConnGetDestCidFromSeq(
                     Connection,
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
                     TRUE);
             if (DestCid != NULL) {
+#pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
+                CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+                QUIC_CID_VALIDATE_NULL(DestCid);
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
@@ -637,10 +648,13 @@ QuicLossDetectionRetransmitFrames(
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
             if (!Packet->Flags.IsPMTUD) {
-                NewDataQueued |=
-                    QuicSendSetSendFlag(
-                        &Connection->Send,
-                        QUIC_CONN_SEND_FLAG_PING);
+                //
+                // Don't consider PING "new data" so that we might still find
+                // "real" data later that should be sent instead.
+                //
+                QuicSendSetSendFlag(
+                    &Connection->Send,
+                    QUIC_CONN_SEND_FLAG_PING);
             }
             break;
 
@@ -742,13 +756,14 @@ QuicLossDetectionRetransmitFrames(
         }
 
         case QUIC_FRAME_RETIRE_CONNECTION_ID: {
-            QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+            QUIC_CID_LIST_ENTRY* DestCid =
                 QuicConnGetDestCidFromSeq(
                     Connection,
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
                     FALSE);
             if (DestCid != NULL) {
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+                QUIC_CID_VALIDATE_NULL(DestCid);
                 DestCid->CID.NeedsToSend = TRUE;
                 NewDataQueued |=
                     QuicSendSetSendFlag(

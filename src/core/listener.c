@@ -253,7 +253,10 @@ MsQuicListenerStart(
     QuicAddrSetPort(&BindingLocalAddress,
         PortUnspecified ? 0 : QuicAddrGetPort(LocalAddress));
 
-    QuicLibraryOnListenerRegistered(Listener);
+    if (!QuicLibraryOnListenerRegistered(Listener)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =

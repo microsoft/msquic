@@ -1746,33 +1746,13 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Socket != NULL) {
-            QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Socket);
             if (Socket->ProcsOutstanding != 0) {
-                for (uint16_t i = 0; i < SocketCount; i++) {
-                    CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
-                    uint16_t Processor =
-                         Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
-
-QUIC_DISABLED_BY_FUZZER_START;
-
-                    CancelIo((HANDLE)SocketProc->Socket);
-                    closesocket(SocketProc->Socket);
-
-QUIC_DISABLED_BY_FUZZER_END;
-
-                    //
-                    // Queue a completion to clean up the socket context.
-                    //
-                    PostQueuedCompletionStatus(
-                        Socket->Datapath->Processors[Processor].IOCP,
-                        UINT32_MAX,
-                        (ULONG_PTR)SocketProc,
-                        &SocketProc->Overlapped);
-                }
+                CxPlatSocketDelete(Socket);
             } else {
+                QuicTraceEvent(
+                    DatapathDestroyed,
+                    "[data][%p] Destroyed",
+                    Socket);
                 for (uint16_t i = 0; i < SocketCount; i++) {
                     CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
 

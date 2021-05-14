@@ -734,10 +734,10 @@ QuicSendWriteFrames(
             for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                     Entry != &Connection->DestCids;
                     Entry = Entry->Flink) {
-                QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+                QUIC_CID_LIST_ENTRY* DestCid =
                     CXPLAT_CONTAINING_RECORD(
                         Entry,
-                        QUIC_CID_CXPLAT_LIST_ENTRY,
+                        QUIC_CID_LIST_ENTRY,
                         Link);
                 if (!DestCid->CID.NeedsToSend) {
                     continue;
@@ -806,7 +806,8 @@ Exit:
     // The only valid reason to not have framed anything is that there was too
     // little room left in the packet to fit anything more.
     //
-    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom ||
+        CxPlatIsRandomMemoryFailureEnabled());
     UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
@@ -1196,6 +1197,7 @@ QuicSendFlush(
         // Final send, if there is anything left over.
         //
         QuicPacketBuilderFinalize(&Builder, TRUE);
+        CXPLAT_DBG_ASSERT(Builder.SendData == NULL);
     }
 
     QuicPacketBuilderCleanup(&Builder);

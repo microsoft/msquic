@@ -34,6 +34,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
+        BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
 
         BOOLEAN SendOpen                : 1;    // Send a STREAM frame immediately on start.
         BOOLEAN SendOpenAcked           : 1;    // A STREAM frame has been acknowledged.
@@ -256,6 +257,8 @@ struct LinkedList : ListEntry {
             NextAddr = 0;
         }
     }
+
+    bool IsEmpty() { return NextAddr == 0; }
 
     ULONG64 Next() {
         if (NextAddr == 0) {
@@ -1265,10 +1268,11 @@ struct Worker : Struct {
     }
 
     PSTR StateStr() {
+        bool HasWorkQueue = !GetConnections().IsEmpty() || !GetOperations().IsEmpty();
         if (IsActive()) {
-            return "ACTIVE";
+            return HasWorkQueue ? "ACTIVE (+queue)" : "ACTIVE";
         } else {
-            return "IDLE";
+            return HasWorkQueue ? "QUEUE" : "IDLE";
         }
     }
 
@@ -1286,6 +1290,10 @@ struct Worker : Struct {
 
     LinkedList GetConnections() {
         return LinkedList(AddrOf("Connections"));
+    }
+
+    LinkedList GetOperations() {
+        return LinkedList(AddrOf("Operations"));
     }
 };
 

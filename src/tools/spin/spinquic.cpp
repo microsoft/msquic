@@ -191,6 +191,7 @@ static struct {
     std::vector<uint16_t> Ports;
     const char* ServerName;
     uint8_t LossPercent;
+    int32_t AllocFailDenominator;
 } Settings;
 
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
@@ -593,6 +594,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 {
     UNREFERENCED_PARAMETER(Context);
     LockableVector<HQUIC> Connections;
+    std::vector<HQUIC> Listeners;
 
     //
     // Setup
@@ -605,7 +607,12 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
     QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
     // TODO - Randomize more of the settings.
 
-    ASSERT_ON_FAILURE(
+    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+    if (!CredConfig) {
+        goto CredCreateFail;
+    }
+
+    if (!QUIC_SUCCEEDED(
         MsQuic->ConfigurationOpen(
             Registration,
             Alpns,
@@ -613,29 +620,35 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
             &QuicSettings,
             sizeof(QuicSettings),
             nullptr,
-            &ServerConfiguration));
+            &ServerConfiguration))) {
+        goto ConfigOpenFail;
+    }
 
     ASSERT_ON_NOT(ServerConfiguration);
 
-    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
-    ASSERT_ON_NOT(CredConfig);
-
-    ASSERT_ON_FAILURE(
+    if (!QUIC_SUCCEEDED(
         MsQuic->ConfigurationLoadCredential(
             ServerConfiguration,
-            CredConfig));
+            CredConfig))) {
+        goto CredLoadFail;
+    }
 
-    std::vector<HQUIC> Listeners;
     for (uint32_t i = 0; i < AlpnCount; ++i) {
         for (auto &pt : Settings.Ports) {
             HQUIC Listener;
-            ASSERT_ON_FAILURE(MsQuic->ListenerOpen(Registration, SpinQuicServerHandleListenerEvent, &Connections, &Listener));
+            if (!QUIC_SUCCEEDED(
+                (MsQuic->ListenerOpen(Registration, SpinQuicServerHandleListenerEvent, &Connections, &Listener)))) {
+                goto CleanupListeners;
+            }
 
             QUIC_ADDR sockAddr = { 0 };
             QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
             QuicAddrSetPort(&sockAddr, pt);
 
-            ASSERT_ON_FAILURE(MsQuic->ListenerStart(Listener, &Alpns[i], 1, &sockAddr));
+            if (!QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener, &Alpns[i], 1, &sockAddr))) {
+                MsQuic->ListenerClose(Listener);
+                goto CleanupListeners;
+            }
             Listeners.push_back(Listener);
         }
     }
@@ -649,7 +662,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
     //
     // Clean up
     //
-
+CleanupListeners:
     while (Listeners.size() > 0) {
         auto Listener = Listeners.back();
         Listeners.pop_back();
@@ -666,8 +679,11 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         delete SpinQuicConnection::Get(Connection);
     }
 
+CredLoadFail:
     MsQuic->ConfigurationClose(ServerConfiguration);
+ConfigOpenFail:
     CxPlatFreeSelfSignedCert(CredConfig);
+CredCreateFail:
 
     CXPLAT_THREAD_RETURN(0);
 }
@@ -768,11 +784,13 @@ main(int argc, char **argv)
     Settings.AlpnPrefix = "spin";
     Settings.MaxOperationCount = UINT64_MAX;
     Settings.LossPercent = 1;
+    Settings.AllocFailDenominator = 0;
 
     TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
     TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
     TryGetValue(argc, argv, "loss", &Settings.LossPercent);
     TryGetValue(argc, argv, "repeat_count", &RepeatCount);
+    TryGetValue(argc, argv, "alloc_fail", &Settings.AllocFailDenominator);
 
     if (RepeatCount == 0) {
         printf("Must specify a non 0 repeat count\n");
@@ -791,8 +809,11 @@ main(int argc, char **argv)
         TryGetValue(argc, argv, "sessions", &SessionCount);
     }
 
-    uint32_t RngSeed = 6;
-    TryGetValue(argc, argv, "seed", &RngSeed);
+    uint32_t RngSeed = 0;
+    if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
+        CxPlatRandom(sizeof(RngSeed), &RngSeed);
+    }
+    printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
 
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
@@ -807,7 +828,26 @@ main(int argc, char **argv)
             ASSERT_ON_NOT(Buffers[j].Buffer);
         }
 
-        ASSERT_ON_FAILURE(MsQuicOpen(&MsQuic));
+        QUIC_STATUS Status = MsQuicOpen(&MsQuic);
+        if (QUIC_FAILED(Status)) {
+            //
+            // This may fail on subsequent iterations, but not on the first.
+            //
+            CXPLAT_DBG_ASSERT(i > 0);
+            continue;
+        }
+
+        if (Settings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                    sizeof(Settings.AllocFailDenominator),
+                    &Settings.AllocFailDenominator))) {
+                printf("Setting Allocation Failure Denominator failed.\n");
+            }
+        }
 
         if (Settings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
@@ -822,21 +862,30 @@ main(int argc, char **argv)
             }
         }
 
+        QUIC_SETTINGS QuicSettings{0};
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+
         if (0 == GetRandom(4)) {
             uint16_t RetryMemoryPercent = 0;
-            ASSERT_ON_FAILURE(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent));
+            if (!QUIC_SUCCEEDED(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
+                goto Cleanup;
+            }
         }
 
         if (0 == GetRandom(4)) {
             uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
-            ASSERT_ON_FAILURE(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode));
+            if (!QUIC_SUCCEEDED(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
+                goto Cleanup;
+            }
         }
 
         QUIC_REGISTRATION_CONFIG RegConfig;
         RegConfig.AppName = "spinquic";
         RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)GetRandom(4);
 
-        ASSERT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
+        if (!QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
+            goto Cleanup;
+        }
 
         Alpns = (QUIC_BUFFER*)malloc(sizeof(QUIC_BUFFER) * SessionCount);
         ASSERT_ON_NOT(Alpns);
@@ -855,7 +904,6 @@ main(int argc, char **argv)
             }
         }
 
-        QUIC_SETTINGS QuicSettings{0};
         QuicSettings.PeerBidiStreamCount = GetRandom((uint16_t)10);
         QuicSettings.IsSet.PeerBidiStreamCount = TRUE;
         QuicSettings.PeerUnidiStreamCount = GetRandom((uint16_t)10);
@@ -871,13 +919,17 @@ main(int argc, char **argv)
 
         for (uint32_t j = 0; j < AlpnCount; j++) {
             HQUIC Configuration;
-            ASSERT_ON_FAILURE(MsQuic->ConfigurationOpen(Registration, &Alpns[j], 1, &QuicSettings, sizeof(QuicSettings), nullptr, &Configuration));
-            ASSERT_ON_FAILURE(MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig));
+            if (!QUIC_SUCCEEDED(MsQuic->ConfigurationOpen(Registration, &Alpns[j], 1, &QuicSettings, sizeof(QuicSettings), nullptr, &Configuration))) {
+                continue;
+            }
+            if (!QUIC_SUCCEEDED(MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
+                MsQuic->ConfigurationClose(Configuration);
+                continue;
+            }
             ClientConfigurations.push_back(Configuration);
         }
 
         CXPLAT_THREAD Threads[2];
-        CXPLAT_THREAD_CONFIG Config = { 0 };
 
         StartTimeMs = CxPlatTimeMs64();
 
@@ -915,19 +967,25 @@ main(int argc, char **argv)
         // Clean up
         //
 
+Cleanup:
         while (ClientConfigurations.size() > 0) {
             auto Configuration = ClientConfigurations.back();
             ClientConfigurations.pop_back();
             MsQuic->ConfigurationClose(Configuration);
         }
 
-        for (uint32_t j = 0; j < AlpnCount; j++) {
-            free(Alpns[j].Buffer);
+        if (Alpns) {
+            for (uint32_t j = 0; j < AlpnCount; j++) {
+                free(Alpns[j].Buffer);
+            }
+            free(Alpns);
+            Alpns = nullptr;
         }
-        free(Alpns);
 
-        MsQuic->RegistrationClose(Registration);
-        Registration = nullptr;
+        if (Registration) {
+            MsQuic->RegistrationClose(Registration);
+            Registration = nullptr;
+        }
 
         DumpMsQuicPerfCounters(MsQuic);
 
@@ -936,6 +994,7 @@ main(int argc, char **argv)
 
         for (size_t j = 0; j < BufferCount; ++j) {
             free(Buffers[j].Buffer);
+            Buffers[j].Buffer = nullptr;
         }
     }
 

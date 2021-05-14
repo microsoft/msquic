@@ -292,6 +292,24 @@ IsValue(
     return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
 }
 
+inline
+bool
+GetFlag(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name
+    )
+{
+    const size_t nameLen = strlen(name);
+    for (int i = 0; i < argc; i++) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) == nameLen + 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
 //
 // Helper function that searches the list of args for a given
 // parameter name, insensitive to case.
@@ -306,7 +324,9 @@ GetValue(
 {
     const size_t nameLen = strlen(name);
     for (int i = 0; i < argc; i++) {
-        if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) > 1 + nameLen + 1
+            && *(argv[i] + 1 + nameLen) == ':') {
             return argv[i] + 1 + nameLen + 1;
         }
     }
@@ -373,7 +393,28 @@ TryGetValue(
 {
     auto value = GetValue(argc, argv, name);
     if (!value) return false;
-    *pValue = (uint32_t)atoi(value);
+    char* End;
+#ifdef _WIN32
+    *pValue = (uint32_t)_strtoui64(value, &End, 10);
+#else
+    *pValue = (uint32_t)strtoull(value, &End, 10);
+#endif
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ int32_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (int32_t)atoi(value);
     return true;
 }
 

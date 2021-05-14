@@ -268,6 +268,12 @@ QuicTestKeyUpdate(
     _In_ bool ServerKeyUpdate
     );
 
+void
+QuicTestKeyUpdateRandomLoss(
+    _In_ int Family,
+    _In_ uint8_t RandomLossPercentage
+    );
+
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
     ShutdownBoth,
     ShutdownSend,
@@ -334,9 +340,23 @@ QuicTestAckSendDelay(
     _In_ int Family
     );
 
+typedef enum QUIC_ABORT_RECEIVE_TYPE {
+    QUIC_ABORT_RECEIVE_PAUSED,
+    QUIC_ABORT_RECEIVE_PENDING,
+    QUIC_ABORT_RECEIVE_INCOMPLETE
+} QUIC_ABORT_RECEIVE_TYPE;
+
 void
 QuicTestAbortReceive(
-    _In_ bool IsPaused
+    _In_ QUIC_ABORT_RECEIVE_TYPE Type
+    );
+
+void
+QuicTestSlowReceive(
+    );
+
+void
+QuicTestNthAllocFail(
     );
 
 //
@@ -780,4 +800,23 @@ typedef struct {
     QUIC_CTL_CODE(63, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 63
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+    int Family;
+    uint8_t RandomLossPercentage;
+} QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS;
+
+#pragma pack(pop)
+
+#define IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS \
+    QUIC_CTL_CODE(64, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_SLOW_RECEIVE \
+    QUIC_CTL_CODE(65, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_NTH_ALLOC_FAIL \
+    QUIC_CTL_CODE(66, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 66
