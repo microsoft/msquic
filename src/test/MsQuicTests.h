@@ -355,6 +355,10 @@ void
 QuicTestSlowReceive(
     );
 
+void
+QuicTestNthAllocFail(
+    );
+
 //
 // QuicDrill tests
 //
@@ -812,4 +816,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_SLOW_RECEIVE \
     QUIC_CTL_CODE(65, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 65
+#define IOCTL_QUIC_RUN_NTH_ALLOC_FAIL \
+    QUIC_CTL_CODE(66, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 66

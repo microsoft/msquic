@@ -513,6 +513,7 @@ CxPlatSetAllocFailDenominator(
     )
 {
     CxPlatform.AllocFailDenominator = Value;
+    CxPlatform.AllocCounter = 0;
 }
 
 int32_t
