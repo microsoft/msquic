@@ -532,6 +532,9 @@ QuicCryptoDiscardKeys(
     if (Crypto->NextSendOffset < BufferOffset) {
         Crypto->NextSendOffset = BufferOffset;
     }
+    if (Crypto->RecoveryNextOffset < BufferOffset) {
+        Crypto->RecoveryNextOffset = BufferOffset;
+    }
     if (Crypto->UnAckedOffset < BufferOffset) {
         uint32_t DrainLength = BufferOffset - Crypto->UnAckedOffset;
         CXPLAT_DBG_ASSERT(DrainLength <= (uint32_t)Crypto->TlsState.BufferLength);

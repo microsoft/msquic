@@ -1025,6 +1025,12 @@ QuicSendFlush(
         "Flushing send. Allowance=%u bytes",
         Builder.SendAllowance);
 
+#if DEBUG
+    uint32_t DeadlockDetection = 0;
+    uint32_t PrevSendFlags = UINT32_MAX;        // N-1
+    uint32_t PrevPrevSendFlags = UINT32_MAX;    // N-2
+#endif
+
     do {
 
         if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
@@ -1188,6 +1194,12 @@ QuicSendFlush(
             //
             QuicPacketBuilderFinalize(&Builder, FlushBatchedDatagrams);
         }
+
+#if DEBUG
+        CXPLAT_DBG_ASSERT(++DeadlockDetection < 100);
+        PrevPrevSendFlags = PrevSendFlags;
+        PrevSendFlags = SendFlags;
+#endif
 
     } while (Builder.SendData != NULL ||
         Builder.TotalCountDatagrams < QUIC_MAX_DATAGRAMS_PER_SEND);
