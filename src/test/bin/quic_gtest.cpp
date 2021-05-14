@@ -1429,7 +1429,7 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs3,
     testing::ValuesIn(HandshakeArgs3::Generate()));
 
-#if !defined(QUIC_DISABLE_RESUMPTION) || defined(QUIC_TEST_DATAPATH_HOOKS_ENABLED)
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
