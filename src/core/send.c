@@ -1103,7 +1103,8 @@ QuicSendFlush(
                 break;
             }
             WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);
-        } else if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
+        } else if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0 &&
+                Builder.Path->IsPeerValidated) {
             if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
                 break;
             }
