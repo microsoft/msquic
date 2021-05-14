@@ -1402,6 +1402,11 @@ QuicConnGetMaxMtuForPath(
     _In_ QUIC_PATH* Path
     )
 {
+    //
+    // We can't currently cache the full value because this is called before
+    // handshake complete in QuicPacketBuilderFinalize. So cache the values
+    // we can.
+    //
     uint16_t LocalMtu = Path->LocalMtu;
     if (LocalMtu == 0) {
         LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
@@ -1414,7 +1419,8 @@ QuicConnGetMaxMtuForPath(
                 QuicAddrGetFamily(&Path->RemoteAddress),
                 (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize);
     }
-    return min(min(LocalMtu, RemoteMtu), Connection->Settings.MaximumMtu);
+    uint16_t SettingsMtu = Connection->Settings.MaximumMtu;
+    return min(min(LocalMtu, RemoteMtu), SettingsMtu);
 }
 
 //
