@@ -216,7 +216,12 @@ QuicPacketBuilderPrepare(
         // current QUIC packet up so we can create another.
         //
         if (Builder->SendData != NULL) {
-            QuicPacketBuilderFinalize(Builder, IsPathMtuDiscovery);
+            BOOLEAN FlushDatagrams = IsPathMtuDiscovery;
+            if (Builder->PacketType != NewPacketType &&
+                Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
+                FlushDatagrams = TRUE;
+            }
+            QuicPacketBuilderFinalize(Builder, FlushDatagrams);
         }
         if (Builder->SendData == NULL &&
             Builder->TotalCountDatagrams >= QUIC_MAX_DATAGRAMS_PER_SEND) {
