@@ -414,6 +414,7 @@ QuicPacketBuilderPrepare(
 
     CXPLAT_DBG_ASSERT(Builder->PacketType == NewPacketType);
     CXPLAT_DBG_ASSERT(Builder->Key == Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType]);
+    CXPLAT_DBG_ASSERT(Builder->BatchCount == 0 || Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE);
 
     Result = TRUE;
 
