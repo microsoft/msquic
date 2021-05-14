@@ -75,7 +75,9 @@ QuicPacketBuilderValidate(
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->HeaderLength);
         if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
             CXPLAT_DBG_ASSERT(Builder->PayloadLengthOffset != 0);
-            CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->PayloadLengthOffset);
+            if (ShouldHaveData) {
+                CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart + Builder->PayloadLengthOffset);
+            }
         }
     } else {
         CXPLAT_DBG_ASSERT(Builder->DatagramLength == 0);
