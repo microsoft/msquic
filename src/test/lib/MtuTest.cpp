@@ -163,6 +163,7 @@ QuicTestMtuSettings()
             Settings.
                 SetMaximumMtu(1500).
                 SetMinimumMtu(1280).
+                SetMtuDiscoveryMissingProbeCount(1).
                 SetPeerUnidiStreamCount(1).
                 SetIdleTimeoutMs(30000).
                 SetDisconnectTimeoutMs(30000);
@@ -183,20 +184,16 @@ QuicTestMtuSettings()
             TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
 
             //
-            // Send a bunch of data
+            // Send a bunch of data.
             //
             uint8_t RawBuffer[100];
             QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START));
             CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
+            for (int i = 0; i < 10; i++) {
+                TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+                CxPlatSleep(50);
+            }
 
             //
             // Ensure our MTU is in the middle somewhere
@@ -211,22 +208,18 @@ QuicTestMtuSettings()
             TEST_QUIC_SUCCEEDED(Connection.SetSettings(MsQuicSettings().SetMtuDiscoverySearchCompleteTimeoutUs(1)));
 
             // Send a bunch more data
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(50);
+            for (int i = 0; i < 10; i++) {
+                TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_NONE));
+                CxPlatSleep(50);
+            }
 
             //
             // Ensure our MTU is in the max
             //
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
             TEST_EQUAL(1500, Stats.Send.PathMtu);
+
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
             Stream.Shutdown(1);
             Connection.Shutdown(1);

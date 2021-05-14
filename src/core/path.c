@@ -138,7 +138,7 @@ QuicPathSetValid(
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
 
-    if (Path->IsPeerValidated && Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
+    if (Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
         //
         // If the active path was just validated, then let's queue up DPLPMTUD.
         // This will force validate min mtu if it has not already been

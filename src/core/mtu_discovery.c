@@ -90,11 +90,9 @@ QuicGetNextProbeSize(
     // Our increasing algorithm might not hit 1500 by default. Ensure that
     // happens.
     //
-    if (Mtu > 1500 && !MtuDiscovery->HasProbed1500) {
-        Mtu = 1500;
-    }
-    if (Mtu == 1500) {
+    if (!MtuDiscovery->HasProbed1500 && Mtu >= 1500) {
         MtuDiscovery->HasProbed1500 = TRUE;
+        Mtu = 1500;
     }
     return Mtu;
 }
