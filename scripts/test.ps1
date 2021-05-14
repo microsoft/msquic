@@ -142,7 +142,10 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipUnitTests = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -306,7 +309,7 @@ if ($AZP) {
 }
 
 # Run the script.
-if (!$Kernel) {
+if (!$Kernel -and !$SkipUnitTests) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }
