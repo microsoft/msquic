@@ -625,6 +625,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 }
 #endif
 
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -787,6 +788,7 @@ TEST(CredValidation, ConnectValidClientCertificate) {
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
+#endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
@@ -1327,7 +1329,8 @@ TEST(Misc, SlowReceive) {
     }
 }
 
-#if QUIC_TEST_ALLOC_FAILURES_ENABLED
+#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1429,10 +1432,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs3,
     testing::ValuesIn(HandshakeArgs3::Generate()));
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1482,10 +1489,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithKeyUpdateArgs1,
     testing::ValuesIn(KeyUpdateArgs1::Generate()));
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs2,
     testing::ValuesIn(KeyUpdateArgs2::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

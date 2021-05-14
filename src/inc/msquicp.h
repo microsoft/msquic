@@ -56,6 +56,12 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 // testing helpers.
 //
 #define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
+
+//
+// Failing test certificates are only available for debug builds
+//
+#define QUIC_TEST_FAILING_TEST_CERTIFICATES 1
+
 //
 // Allocation failures are currently only enabled on debug builds.
 //
