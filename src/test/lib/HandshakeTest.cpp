@@ -564,8 +564,8 @@ QuicTestPathValidationTimeout(
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, QUIC_TEST_NO_ERROR);
             }
 
-            if (!Server->WaitForShutdownComplete()) {
-                return;
+            if (Server) {
+                Server->WaitForShutdownComplete();
             }
         }
     }
