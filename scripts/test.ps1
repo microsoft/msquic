@@ -137,7 +137,10 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipUnitTests = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -259,7 +262,7 @@ if ($CodeCoverage) {
 }
 
 # Run the script.
-if (!$Kernel) {
+if (!$Kernel -and !$SkipUnitTests) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }
