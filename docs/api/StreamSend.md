@@ -44,7 +44,7 @@ Value | Meaning
 **QUIC_SEND_FLAG_START**<br>2 | Indicates that the stream should asynchronously start (equivalent to calling [StreamStart](StreamStart.md) with the `QUIC_STREAM_START_FLAG_ASYNC` flag).
 **QUIC_SEND_FLAG_FIN**<br>4 | Indicates the the stream send is the last or final data to be sent on the stream and should be gracefully shutdown (equivalent to calling [StreamShutdown](StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag).
 **QUIC_SEND_FLAG_DGRAM_PRIORITY**<br>8 | **Unused and ignored** for `StreamSend`
-**QUIC_SEND_FLAG_DELAY_SEND**<br>16 | Provides a hint to MsQuic to indicate the data does not need to be sent immediately, likely because more is soon to follow. MsQuic may still end up sending the data if something else triggers a flush of the connection-wide send queue.
+**QUIC_SEND_FLAG_DELAY_SEND**<br>16 | Provides a hint to MsQuic to indicate the data does not need to be sent immediately, likely because more is soon to follow.
 
 `ClientSendContext`
 
@@ -85,7 +85,9 @@ MsQuic->StreamSend(
 
 This example opens a new unidirectional stream, and queues a send that starts the stream, sends some app data and gracefully closes the stream. **Note** for the sake of brevity, error handling and clean up has been omitted.
 
-In some scenarios, the app may know that additional data (possibly on a different stream) will soon be queued after the current call to `StreamSend`. In these cases it may be helpful for the app to pass the `QUIC_SEND_FLAG_DELAY_SEND` flag to hint that MsQuic should wait for more data before flushing the connection-wide send queue. **Note** that anything else on the connection *might* still end up triggering the send to flush. Also, be aware that if something else doesn't end up triggering the flush, then MsQuic doesn't have any special mechanism to force a flush after some period of time.
+In some scenarios, the app may know that additional data (possibly on a different stream) will soon be queued after the current call to `StreamSend`. In these cases it may be helpful for the app to pass the `QUIC_SEND_FLAG_DELAY_SEND` flag to hint that MsQuic should wait for more data before flushing the connection-wide send queue. **Note** that anything else on the connection *might* still end up triggering the send to flush. The app may call `StreamSend` (on any stream) with a null/empty buffer with `QUIC_SEND_FLAG_DELAY_SEND` **unset** to force a flush.
+
+**Important:** Data queued via `StreamSend` with the `QUIC_SEND_FLAG_DELAY_SEND` flag is not guaranteed to be sent until a subsequent `StreamSend` call on any stream is performed without the `QUIC_SEND_FLAG_DELAY_SEND` flag.
 
 For additional information on sending on streams see [here](..\Streams.md#Sending).
 
