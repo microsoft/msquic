@@ -57,6 +57,8 @@ This function is used to allocate a new stream object of desired the directional
 
 As indicated above, the parent connection object does not need to be started before the stream can be created. In fact, the MsQuic API is expressly designed to allow for the app to open stream, start them and queue data to be sent *before* starting the stream. In the 0-RTT scenario, this is practically required to ensure all the data is packed into the same UDP datagram(s).
 
+**Important** - No events are delivered on the stream until the app calls [StreamStart](StreamStart.md) (because of the race conditions that could occur) and it succeeds. This means that if the parent connection is shutdown (e.g. idle timeout or peer initiated) before calling [StreamStart](StreamStart.md) then the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` will not be delivered. So, apps that rely on that event to trigger clean up of the stream **must** handle the case where [StreamStart](StreamStart.md) is either not ever called or fails and clean up directly.
+
 # See Also
 
 [StreamClose](StreamClose.md)<br>
