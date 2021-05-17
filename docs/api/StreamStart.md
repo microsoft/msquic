@@ -44,7 +44,9 @@ This function starts the processing of the stream by the connection. Once called
 
 The first step of the start process is assigning the stream an identifier (stream ID). The stream ID space is flow controlled, meaning the peer is able to control how many streams the app can open (on-wire). Though, even if the peer won't accept any more streams currently, this API (by default) allows the app to still start the stream and assigns a local stream ID. But in this case, the stream is just queued locally until the peer will accept it.
 
-If the app does not want the queuing behavior, and wishes to fail instead, it can use the `QUIC_STREAM_START_FLAG_FAIL_BLOCKED` flag. The `QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT` flag can also be used to get the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event to know when the stream becomes unblocked by flow control.
+If the app does not want the queuing behavior, and wishes to fail instead, it can use the `QUIC_STREAM_START_FLAG_FAIL_BLOCKED` flag. If there is not enough flow control to allow the stream to be sent on the wire, then the start will fail (via a `QUIC_STREAM_EVENT_START_COMPLETE` event) with the `QUIC_STATUS_STREAM_LIMIT_REACHED` status.
+
+The `QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT` flag can be used to get the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event to know when the stream becomes unblocked by flow control. If the peer already provided enough flow control to accept the stream when it was initially started, the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event is not delivered and the `QUIC_STREAM_EVENT_START_COMPLETE`'s `PeerAccepted` field will be `TRUE`. If is not initially accepted, if/once the peer provides enough flow control to allow the stream to be sent on the wire, then the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event will be indicated to the app.
 
 For legacy reasons, `StreamStart` is a blocking call by default, but in general, most apps should use the `QUIC_STREAM_START_FLAG_ASYNC` flag to make this non-blocking, and instead use the `QUIC_STREAM_EVENT_START_COMPLETE` event for the completion results.
 
