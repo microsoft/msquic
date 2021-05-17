@@ -58,7 +58,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 This function is used to queue data on a stream to be sent. The function itself is non-blocking and simply queues the data and returns. The app may pass zero or more buffers of data that will be sent on the stream in the order they are passed. The buffers (both the `QUIC_BUFFER`s and the memory they reference) are "owned" by MsQuic (and must not be modified by the app) until MsQuic indicates the `QUIC_STREAM_EVENT_SEND_COMPLETE` event for the send.
 
-By default, data queued via `StreamSend` is not allowed to be sent in 0-RTT packets, but the app may overwrite this by passing the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag. This flag indicates that the data is acceptable to be sent in a 0-RTT packet, but does not guarantee that data will be sent in 0-RTT. There are several reasons it may not be sent in 0-RTT:
+By default, data queued via `StreamSend` is not allowed to be sent in 0-RTT packets, but the app may override this by passing the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag. This flag indicates that the data is acceptable to be sent in a 0-RTT packet, but does not guarantee that data will be sent in 0-RTT. There are several reasons it may not be sent in 0-RTT:
 
 - The 0-RTT keys were not available.
 - The server rejected 0-RTT data for some reason.
