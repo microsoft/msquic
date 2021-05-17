@@ -1186,13 +1186,14 @@ QuicSendFlush(
 
         if (!WrotePacketFrames ||
             Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||
-            Builder.Datagram->Length - Builder.DatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
+            Builder.Datagram->Length - Builder.DatagramLength < QUIC_MIN_PACKET_SPARE_SPACE ||
+            FlushBatchedDatagrams) {
 
             //
             // We now have enough data in the current packet that we should
             // finalize it.
             //
-            QuicPacketBuilderFinalize(&Builder, FlushBatchedDatagrams);
+            QuicPacketBuilderFinalize(&Builder, TRUE);
         }
 
 #if DEBUG
