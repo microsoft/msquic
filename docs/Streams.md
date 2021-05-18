@@ -26,13 +26,7 @@ If a stream is closed ([StreamClose](api/StreamClose.md)) before being successfu
 
 To start using the stream on-wire, the app calls [StreamStart](api/StreamStart.md). On success, all queued operations (i.e. sends or shutdown) will immediately trigger, and the stream can start receiving `QUIC_STREAM_EVENT_RECEIVE` events.
 
-When calling [StreamStart](api/StreamStart.md) the app passes a set of `QUIC_STREAM_START_FLAGS` flags to control the behavior:
-
-- `QUIC_STREAM_START_FLAG_FAIL_BLOCKED` - If the peer's flow control currently limits the stream from actually being opened, then the start will fail. Without this flag, the stream will be queued until the peer's flow control allows the stream to be opened.
-
-- `QUIC_STREAM_START_FLAG_IMMEDIATE` - Even if there is currently no data to send on the stream, MsQuic will inform the peer of the stream being opened. Without this flag, MsQuic will wait until data is queued on the stream.
-
-- `QUIC_STREAM_START_FLAG_ASYNC` - The StreamStart call will not block. The result of the start can be retrieved from the `QUIC_STREAM_EVENT_START_COMPLETE` event.
+When calling [StreamStart](api/StreamStart.md) the app passes a set of `QUIC_STREAM_START_FLAGS` flags to control the behavior. Starting the stream **always** results in a `QUIC_STREAM_EVENT_START_COMPLETE` event, regardless of success/fail or synchronous/asynchronous flags.
 
 For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event on the connection. A stream is officially started when this event or the `QUIC_STREAM_EVENT_START_COMPLETE` event is received.
 
