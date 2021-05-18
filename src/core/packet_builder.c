@@ -674,7 +674,8 @@ QuicPacketBuilderFinalize(
         Builder->DatagramLength + Builder->EncryptionOverhead;
 
     if (FlushBatchedDatagrams ||
-        Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
+        Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE ||
+        (uint16_t)Builder->Datagram->Length - ExpectedFinalDatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
 
         FinalQuicPacket = TRUE;
 
