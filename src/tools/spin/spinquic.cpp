@@ -611,7 +611,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 
         auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         if (!CredConfig) {
-            goto CredCreateFail;
+            continue;
         }
 
         if (!QUIC_SUCCEEDED(
@@ -686,7 +686,6 @@ CredLoadFail:
         MsQuic->ConfigurationClose(ServerConfiguration);
 ConfigOpenFail:
         CxPlatFreeSelfSignedCert(CredConfig);
-CredCreateFail:
     } while (!InitializeSuccess);
 
     CXPLAT_THREAD_RETURN(0);
