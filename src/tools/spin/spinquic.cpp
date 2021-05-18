@@ -533,7 +533,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic->StreamReceiveSetEnabled(Stream, TRUE);
+                MsQuic->StreamReceiveSetEnabled(Stream, GetRandom(2) == 0);
             }
             break;
         }
