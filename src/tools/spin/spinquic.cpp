@@ -113,6 +113,7 @@ typedef enum {
     SpinQuicAPICallGetParamConnection,
     SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
+    SpinQuicAPICallReceiveSetEnabled,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
 
@@ -199,6 +200,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
+        break;
+    case QUIC_STREAM_EVENT_RECEIVE:
+        if (GetRandom(5) == 0) {
+            return QUIC_STATUS_PENDING;
+        }
         break;
     default:
         break;
@@ -516,6 +522,18 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
                 if (Stream == nullptr) continue;
                 auto Buffer = &Buffers[GetRandom(BufferCount)];
                 MsQuic->StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), nullptr);
+            }
+            break;
+        }
+        case SpinQuicAPICallReceiveSetEnabled: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                MsQuic->StreamReceiveSetEnabled(Stream, TRUE);
             }
             break;
         }
