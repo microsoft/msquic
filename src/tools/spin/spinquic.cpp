@@ -593,97 +593,101 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
 CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 {
     UNREFERENCED_PARAMETER(Context);
-    LockableVector<HQUIC> Connections;
-    std::vector<HQUIC> Listeners;
+    bool InitializeSuccess = false;
+    do {
+        LockableVector<HQUIC> Connections;
+        std::vector<HQUIC> Listeners;
 
-    //
-    // Setup
-    //
+        //
+        // Setup
+        //
 
-    QUIC_SETTINGS QuicSettings{0};
-    QuicSettings.PeerBidiStreamCount = GetRandom((uint16_t)10);
-    QuicSettings.IsSet.PeerBidiStreamCount = TRUE;
-    QuicSettings.PeerUnidiStreamCount = GetRandom((uint16_t)10);
-    QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
-    // TODO - Randomize more of the settings.
+        QUIC_SETTINGS QuicSettings{0};
+        QuicSettings.PeerBidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.PeerBidiStreamCount = TRUE;
+        QuicSettings.PeerUnidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
+        // TODO - Randomize more of the settings.
 
-    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
-    if (!CredConfig) {
-        goto CredCreateFail;
-    }
-
-    if (!QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            Alpns,
-            AlpnCount,
-            &QuicSettings,
-            sizeof(QuicSettings),
-            nullptr,
-            &ServerConfiguration))) {
-        goto ConfigOpenFail;
-    }
-
-    ASSERT_ON_NOT(ServerConfiguration);
-
-    if (!QUIC_SUCCEEDED(
-        MsQuic->ConfigurationLoadCredential(
-            ServerConfiguration,
-            CredConfig))) {
-        goto CredLoadFail;
-    }
-
-    for (uint32_t i = 0; i < AlpnCount; ++i) {
-        for (auto &pt : Settings.Ports) {
-            HQUIC Listener;
-            if (!QUIC_SUCCEEDED(
-                (MsQuic->ListenerOpen(Registration, SpinQuicServerHandleListenerEvent, &Connections, &Listener)))) {
-                goto CleanupListeners;
-            }
-
-            QUIC_ADDR sockAddr = { 0 };
-            QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
-            QuicAddrSetPort(&sockAddr, pt);
-
-            if (!QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener, &Alpns[i], 1, &sockAddr))) {
-                MsQuic->ListenerClose(Listener);
-                goto CleanupListeners;
-            }
-            Listeners.push_back(Listener);
+        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        if (!CredConfig) {
+            goto CredCreateFail;
         }
-    }
 
-    //
-    // Run
-    //
+        if (!QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                Alpns,
+                AlpnCount,
+                &QuicSettings,
+                sizeof(QuicSettings),
+                nullptr,
+                &ServerConfiguration))) {
+            goto ConfigOpenFail;
+        }
 
-    Spin(Connections, &Listeners);
+        ASSERT_ON_NOT(ServerConfiguration);
 
-    //
-    // Clean up
-    //
+        if (!QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                ServerConfiguration,
+                CredConfig))) {
+            goto CredLoadFail;
+        }
+
+        for (uint32_t i = 0; i < AlpnCount; ++i) {
+            for (auto &pt : Settings.Ports) {
+                HQUIC Listener;
+                if (!QUIC_SUCCEEDED(
+                    (MsQuic->ListenerOpen(Registration, SpinQuicServerHandleListenerEvent, &Connections, &Listener)))) {
+                    goto CleanupListeners;
+                }
+
+                QUIC_ADDR sockAddr = { 0 };
+                QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
+                QuicAddrSetPort(&sockAddr, pt);
+
+                if (!QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener, &Alpns[i], 1, &sockAddr))) {
+                    MsQuic->ListenerClose(Listener);
+                    goto CleanupListeners;
+                }
+                Listeners.push_back(Listener);
+            }
+        }
+
+        //
+        // Run
+        //
+
+        InitializeSuccess = true;
+        Spin(Connections, &Listeners);
+
+        //
+        // Clean up
+        //
 CleanupListeners:
-    while (Listeners.size() > 0) {
-        auto Listener = Listeners.back();
-        Listeners.pop_back();
-        MsQuic->ListenerClose(Listener);
-    }
+        while (Listeners.size() > 0) {
+            auto Listener = Listeners.back();
+            Listeners.pop_back();
+            MsQuic->ListenerClose(Listener);
+        }
 
-    for (auto &Connection : Connections) {
-        MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-    }
+        for (auto &Connection : Connections) {
+            MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        }
 
-    while (Connections.size() > 0) {
-        auto Connection = Connections.back();
-        Connections.pop_back();
-        delete SpinQuicConnection::Get(Connection);
-    }
+        while (Connections.size() > 0) {
+            auto Connection = Connections.back();
+            Connections.pop_back();
+            delete SpinQuicConnection::Get(Connection);
+        }
 
 CredLoadFail:
-    MsQuic->ConfigurationClose(ServerConfiguration);
+        MsQuic->ConfigurationClose(ServerConfiguration);
 ConfigOpenFail:
-    CxPlatFreeSelfSignedCert(CredConfig);
+        CxPlatFreeSelfSignedCert(CredConfig);
 CredCreateFail:
+    } while (!InitializeSuccess);
 
     CXPLAT_THREAD_RETURN(0);
 }
