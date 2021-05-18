@@ -1192,7 +1192,7 @@ QuicSendFlush(
             // We now have enough data in the current packet that we should
             // finalize it.
             //
-            QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames | FlushBatchedDatagrams);
+            QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams);
         }
 
 #if DEBUG
