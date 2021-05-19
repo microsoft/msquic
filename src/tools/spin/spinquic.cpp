@@ -557,7 +557,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
                 auto BytesRemaining = MsQuic->GetContext(Stream);
                 if (BytesRemaining != nullptr && GetRandom(10) == 0) {
                     auto BytesConsumed = GetRandom((uint64_t)BytesRemaining);
-                    MsQuic->SetContext(Stream, (void*)((size_t)BytesRemaining - BytesConsumed));
+                    MsQuic->SetContext(Stream, (void*)((uint64_t)BytesRemaining - BytesConsumed));
                     MsQuic->StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
                     MsQuic->SetContext(Stream, nullptr);
