@@ -211,6 +211,8 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
             auto BufferRemaining = Event->RECEIVE.TotalBufferLength - BufferConsumed;
             Event->RECEIVE.TotalBufferLength = BufferConsumed;
             MsQuic->SetContext(Stream, (void*)BufferRemaining);
+        } else if (GetRandom(10) == 0) {
+            return QUIC_STATUS_CONTINUE;
         }
         break;
     }
@@ -554,8 +556,14 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 auto BytesRemaining = MsQuic->GetContext(Stream);
-                MsQuic->StreamReceiveComplete(Stream, (uint64_t)BytesRemaining);
-                MsQuic->SetContext(Stream, nullptr);
+                if (BytesRemaining != nullptr && GetRandom(10) == 0) {
+                    auto BytesConsumed = GetRandom((size_t)BytesRemaining);
+                    MsQuic->StreamReceiveComplete(Stream, BytesConsumed);
+                    MsQuic->SetContext(Stream, (void*)((size_t)BytesRemaining - BytesConsumed));
+                } else {
+                    MsQuic->StreamReceiveComplete(Stream, (uint64_t)BytesRemaining);
+                    MsQuic->SetContext(Stream, nullptr);
+                }
             }
             break;
         }
