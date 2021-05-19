@@ -465,8 +465,7 @@ QuicSendWriteFrames(
     }
 
     if (!IsCongestionControlBlocked &&
-        Send->SendFlags & QUIC_CONN_SEND_FLAG_CRYPTO &&
-        Builder->PacketType == QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(&Connection->Crypto))) {
+        Send->SendFlags & QUIC_CONN_SEND_FLAG_CRYPTO) {
         if (QuicCryptoWriteFrames(&Connection->Crypto, Builder)) {
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
                 return TRUE;

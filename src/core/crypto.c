@@ -865,29 +865,38 @@ QuicCryptoWriteFrames(
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
+        //
+        // Likely an ACK after retransmission got us into this state. Just
+        // remove the send flag and continue on.
+        //
+        Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
+        return TRUE;
+    }
+
+    if (Builder->PacketType !=
+        QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(Crypto))) {
+        //
+        // Nothing to send in this packet / encryption level, just continue on.
+        //
+        return TRUE;
+    }
+
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
 
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
 
-    if (QuicCryptoHasPendingCryptoFrame(Crypto)) {
-        QuicCryptoWriteCryptoFrames(
-            Crypto,
-            Builder,
-            &Builder->DatagramLength,
-            AvailableBufferLength,
-            Builder->Datagram->Buffer);
+    QuicCryptoWriteCryptoFrames(
+        Crypto,
+        Builder,
+        &Builder->DatagramLength,
+        AvailableBufferLength,
+        Builder->Datagram->Buffer);
 
-        if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
-            Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
-        }
-
-    } else {
-        //
-        // If it doesn't have anything to send, it shouldn't have been queued in
-        // the first place.
-        //
-        CXPLAT_DBG_ASSERT(FALSE);
+    if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
+        Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
     }
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
@@ -1098,10 +1107,8 @@ QuicCryptoOnAck(
                 Length,
                 &SacksUpdated);
         if (Sack == NULL) {
-
             QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
             return;
-
         }
 
         if (SacksUpdated) {
