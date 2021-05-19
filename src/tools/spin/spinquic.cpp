@@ -113,7 +113,8 @@ typedef enum {
     SpinQuicAPICallGetParamConnection,
     SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
-    SpinQuicAPICallReceiveSetEnabled,
+    SpinQuicAPICallStreamReceiveSetEnabled,
+    SpinQuicAPICallStreamReceiveComplete,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
 
@@ -201,11 +202,18 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
-    case QUIC_STREAM_EVENT_RECEIVE:
-        if (GetRandom(5) == 0) {
+    case QUIC_STREAM_EVENT_RECEIVE: {
+        int Random = GetRandom(5);
+        if (Random == 0) {
             return QUIC_STATUS_PENDING;
+        } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
+            auto BufferConsumed = GetRandom(Event->RECEIVE.TotalBufferLength);
+            auto BufferRemaining = Event->RECEIVE.TotalBufferLength - BufferConsumed;
+            Event->RECEIVE.TotalBufferLength = BufferConsumed;
+            MsQuic->SetContext(Stream, (void*)BufferRemaining);
         }
         break;
+    }
     default:
         break;
     }
@@ -525,7 +533,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
             }
             break;
         }
-        case SpinQuicAPICallReceiveSetEnabled: {
+        case SpinQuicAPICallStreamReceiveSetEnabled: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             auto ctx = SpinQuicConnection::Get(Connection);
@@ -534,6 +542,20 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 MsQuic->StreamReceiveSetEnabled(Stream, GetRandom(2) == 0);
+            }
+            break;
+        }
+        case SpinQuicAPICallStreamReceiveComplete: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                auto BytesRemaining = MsQuic->GetContext(Stream);
+                MsQuic->StreamReceiveComplete(Stream, (uint64_t)BytesRemaining);
+                MsQuic->SetContext(Stream, nullptr);
             }
             break;
         }
