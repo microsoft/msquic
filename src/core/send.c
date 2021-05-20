@@ -465,8 +465,7 @@ QuicSendWriteFrames(
     }
 
     if (!IsCongestionControlBlocked &&
-        Send->SendFlags & QUIC_CONN_SEND_FLAG_CRYPTO &&
-        Builder->PacketType == QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(&Connection->Crypto))) {
+        Send->SendFlags & QUIC_CONN_SEND_FLAG_CRYPTO) {
         if (QuicCryptoWriteFrames(&Connection->Crypto, Builder)) {
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
                 return TRUE;
@@ -1206,13 +1205,6 @@ QuicSendFlush(
 
         Send->TailLossProbeNeeded = FALSE;
 
-        //
-        // If the following assert is hit, then we just went through the
-        // framing logic and nothing was written to the packet. This is bad!
-        // It likely indicates an infinite loop will follow.
-        //
-        CXPLAT_DBG_ASSERT(Builder.Metadata->FrameCount != 0 || Builder.PacketStart != 0);
-
         if (!WrotePacketFrames ||
             Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||
             Builder.Datagram->Length - Builder.DatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
@@ -1221,7 +1213,7 @@ QuicSendFlush(
             // We now have enough data in the current packet that we should
             // finalize it.
             //
-            QuicPacketBuilderFinalize(&Builder, FlushBatchedDatagrams);
+            QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams);
         }
 
 #if DEBUG

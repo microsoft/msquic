@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<TextAnalysisTool.NET version="2015-05-18" showOnlyFilteredLines="True">
+  <filters>
+    <filter enabled="y" excluding="n" foreColor="008000" type="matches_text" case_sensitive="n" regex="n" text="[TX]" />
+    <filter enabled="y" excluding="n" foreColor="00008b" type="matches_text" case_sensitive="n" regex="n" text="[RX]" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="[conn]" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Marked for ACK" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="ACKed" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Forgetting" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Probe Retransmit" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Lost: " />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Thrown away" />
+  </filters>
+</TextAnalysisTool.NET>

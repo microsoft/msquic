@@ -24,7 +24,7 @@ An optional [QUIC_REGISTRATION_CONFIG](QUIC_REGISTRATION_CONFIG.md) to specify h
 
 `Registration`
 
-On success, returns a handle the the newly created registration.
+On success, returns a handle to the newly created registration.
 
 # Return Value
 
