@@ -118,32 +118,6 @@ QuicCongestionControlReset(
     QuicConnLogCubic(Connection);
 }
 
-//
-// Attempts to predict what the congestion window will be one RTT from now.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
-QuicCongestionControlPredictNextWindow(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    //
-    // TODO - Replace NewReno prediction logic.
-    //
-    uint32_t Wnd;
-    if (Cc->CongestionWindow < Cc->SlowStartThreshold) {
-        Wnd = Cc->CongestionWindow << 1;
-        if (Wnd > Cc->SlowStartThreshold) {
-            Wnd = Cc->SlowStartThreshold;
-        }
-    } else {
-        Wnd =
-            Cc->CongestionWindow +
-            QuicCongestionControlGetConnection(Cc)->Paths[0].Mtu;
-    }
-    return Wnd;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCongestionControlGetSendAllowance(
@@ -181,10 +155,20 @@ QuicCongestionControlGetSendAllowance(
         //
         // Since the window grows via ACK feedback and since we defer packets
         // when pacing, using the current window to calculate the pacing
-        // interval is not quite as aggressive as we'd like. Instead, use the
-        // predicted window of the next round trip.
+        // interval can slow the growth of the window. So instead, use the
+        // predicted window of the next round trip. In slowstart, this is double
+        // the current window. In congestion avoidance the growth function is
+        // more complicated, and we use a simple estimate of 25% growth.
         //
-        uint64_t EstimatedWnd = QuicCongestionControlPredictNextWindow(Cc);
+        uint64_t EstimatedWnd;
+        if (Cc->CongestionWindow < Cc->SlowStartThreshold) {
+            EstimatedWnd = (uint64_t)Cc->CongestionWindow << 1;
+            if (EstimatedWnd > Cc->SlowStartThreshold) {
+                EstimatedWnd = Cc->SlowStartThreshold;
+            }
+        } else {
+            EstimatedWnd = Cc->CongestionWindow + (Cc->CongestionWindow >> 2); // CongestionWindow * 1.25
+        }
 
         SendAllowance =
             (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
