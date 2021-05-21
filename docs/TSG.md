@@ -32,6 +32,8 @@ From [msquic_winuser.h](../src/inc/msquic_winuser.h):
 #define QUIC_STATUS_INTERNAL_ERROR          ERROR_QUIC_INTERNAL_ERROR                       // 0x80410003
 ```
 
+For more info, see the [Well Known Status Codes](./api/QUIC_STATUS.md#well-known-status-codes).
+
 ### Linux File Handle Limit Too Small
 
 In many Linux setups, the default per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing (error codes `0x16` or `0xbebc202`) because new sockets cannot be created. To fix this, you will need to increase the handle limit.
