@@ -1464,7 +1464,7 @@ QuicLibraryGetBinding(
             // requested configuration.
             //
             QuicTraceEvent(
-                BindingErrorStatus,
+                BindingError,
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
@@ -1564,7 +1564,7 @@ NewBinding:
             // bail.
             //
             QuicTraceEvent(
-                BindingErrorStatus,
+                BindingError,
                 "[bind][%p] ERROR, %s.",
                 *NewBinding,
                 "Binding ephemeral port reuse encountered");
@@ -1574,7 +1574,7 @@ NewBinding:
 
         } else if (Binding->Exclusive) {
             QuicTraceEvent(
-                BindingErrorStatus,
+                BindingError,
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");

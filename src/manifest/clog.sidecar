@@ -4657,6 +4657,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "BindingError": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] ERROR, %s.",
+      "UniqueId": "BindingError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryServerInit": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Shared server state initializing",
@@ -11732,6 +11748,10 @@
       {
         "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",
         "TraceID": "LibraryRelease"
+      },
+      {
+        "UniquenessHash": "36d08274-918b-3ecd-861c-ada8d4fda4d5",
+        "TraceID": "BindingError"
       },
       {
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
