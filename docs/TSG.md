@@ -17,6 +17,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 1. [I am getting an error code I don't understand.](#understanding-error-codes)
 2. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
 3. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
+4. [Why is this API failing?](#why-is-this-api-failing)
 
 ## Understanding Error Codes
 
@@ -24,16 +25,14 @@ Some error codes are MsQuic specific (`QUIC_STATUS_*`), and some are simply a pa
 
 From [msquic_winuser.h](../src/inc/msquic_winuser.h):
 ```C
-#ifndef ERROR_QUIC_HANDSHAKE_FAILURE
-#define ERROR_QUIC_HANDSHAKE_FAILURE    _HRESULT_TYPEDEF_(0x80410000L)
-#endif
-
-#ifndef ERROR_QUIC_VER_NEG_FAILURE
-#define ERROR_QUIC_VER_NEG_FAILURE      _HRESULT_TYPEDEF_(0x80410001L)
-#endif
-
-...
+#define QUIC_STATUS_ADDRESS_IN_USE          HRESULT_FROM_WIN32(WSAEADDRINUSE)               // 0x80072740
+#define QUIC_STATUS_CONNECTION_TIMEOUT      ERROR_QUIC_CONNECTION_TIMEOUT                   // 0x80410006
+#define QUIC_STATUS_CONNECTION_IDLE         ERROR_QUIC_CONNECTION_IDLE                      // 0x80410005
+#define QUIC_STATUS_UNREACHABLE             HRESULT_FROM_WIN32(ERROR_HOST_UNREACHABLE)      // 0x800704d0
+#define QUIC_STATUS_INTERNAL_ERROR          ERROR_QUIC_INTERNAL_ERROR                       // 0x80410003
 ```
+
+For more info, see the [Well Known Status Codes](./api/QUIC_STATUS.md#well-known-status-codes).
 
 ### Linux File Handle Limit Too Small
 
@@ -75,6 +74,44 @@ The error code indicated in this event is completely application defined (type o
 ## Why isn't application data flowing?
 
 > TODO
+
+## Why is this API Failing?
+
+The simplest way to determine exactly why a particular API is failing is via tracing. [Collect the traces](./Diagnostics.md#trace-collection) for the repro and convert them to text and open them in your favorite text editor (try [TextAnalysisTool](./Diagnostics.md#text-analysis-tool)!).
+
+MsQuic logs every API entry and exit. Depending on the platform and tool used to decode the traces to text, you may either have the number or an enum represented as the API type (see `QUIC_TRACE_API_TYPE` in [quic_trace.h](../src/inc/quic_trace.h)), but all events look something like this:
+
+```
+[cpu][process.thread][time][ api] Enter <API Type> (<pointer>)
+[cpu][process.thread][time][ api] Exit [optional status code]
+```
+
+### Example (ListenerStart failing with QUIC_STATUS_INVALID_STATE)
+
+In a recent example, we wanted to know why an app occasionally received `QUIC_STATUS_INVALID_STATE` when it called `ListenerStart`. We took the following steps to diagnose it.
+
+1. Collected traces for the repro.
+2. Converted to text and opened them in [TextAnalysisTool](./Diagnostics.md#text-analysis-tool).
+3. Added a filter for all API enter events for `QUIC_TRACE_API_LISTENER_START` (`10`).
+4. Looked for the following `[ api] Exit` event after each enter event on the same `[process.thread]`.
+
+This quickly resulted in the following pair of events. They show the app called `ListenerStart` for the listener pointer `7f30ac0dcff0` at `09:54:03.528362` in process `2e73` on thread `2e8b` (CPU 1). Shortly after, MsQuic returned with status `200000002` (`QUIC_STATUS_INVALID_STATE` on Posix platforms).
+
+```
+[1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
+[1][2e73.2e8b][09:54:03.528913][ api] Exit 200000002
+```
+
+From here, we simply went backwards from the exit event to find any errors; and came up with the full set of important traces:
+
+```
+[1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
+[1][2e73.2e8b][09:54:03.528902][bind][0x7f30b80394e0] Listener (0x7f30ac076d90) already registered on ALPN
+[1][2e73.2e8b][09:54:03.528903][list][0x7f30ac0dcff0] ERROR, "Register with binding".
+[1][2e73.2e8b][09:54:03.528913][ api] Exit 200000002
+```
+
+This clearly shows that listener `7f30ac0dcff0` failed to register with the binding (i.e. UDP socket abstraction) because listener `7f30ac076d90` was already registered for the same ALPN. MsQuic only allows a single listener to be registered for a given ALPN on a local IP address and port.
 
 # Trouble Shooting a Performance Issue
 
