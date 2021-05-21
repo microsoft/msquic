@@ -19,7 +19,7 @@ void
 
 `Stream`
 
-A Stream handle from a previous call to [StreamClose](StreamClose.md).
+A Stream handle from a previous call to [StreamOpen](StreamOpen.md).
 
 # Remarks
 
