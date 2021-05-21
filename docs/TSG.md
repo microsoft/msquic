@@ -95,7 +95,7 @@ In a recent example, we wanted to know why an app occasionally received `QUIC_ST
 3. Added a filter for all API enter events for `QUIC_TRACE_API_LISTENER_START` (`10`).
 4. Looked for the following `[ api] Exit` event after each enter event on the same `[process.thread]`.
 
-This quicky resulted in the following pair of events. They show the app called `ListenerStart` for the listener pointer `7f30ac0dcff0` at `09:54:03.528362` in process `2e73` on thread `2e8b` (CPU 1). Shortly after, MsQuic returned with status `200000002` (`QUIC_STATUS_INVALID_STATE` on Posix platforms).
+This quickly resulted in the following pair of events. They show the app called `ListenerStart` for the listener pointer `7f30ac0dcff0` at `09:54:03.528362` in process `2e73` on thread `2e8b` (CPU 1). Shortly after, MsQuic returned with status `200000002` (`QUIC_STATUS_INVALID_STATE` on Posix platforms).
 
 ```
 [1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
