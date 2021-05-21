@@ -1568,6 +1568,8 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 *NewBinding,
                 "Binding ephemeral port reuse encountered");
+            QuicBindingUninitialize(*NewBinding);
+            *NewBinding = NULL;
             Status = QUIC_STATUS_INTERNAL_ERROR;
 
         } else if (Binding->Exclusive) {
@@ -1576,6 +1578,8 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
+            QuicBindingUninitialize(*NewBinding);
+            *NewBinding = NULL;
             Status = QUIC_STATUS_ADDRESS_IN_USE;
 
         } else {
