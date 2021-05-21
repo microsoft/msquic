@@ -45,4 +45,4 @@ MsQuic has several features that differentiates it from other QUIC implementatio
 
 # Contributing
 
-For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md).
+For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md). Feel free to take a look at our [Good First Issues](https://github.com/microsoft/msquic/labels/good%20first%20issue) list if you're looking for somewhere to start.
