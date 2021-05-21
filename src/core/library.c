@@ -1432,16 +1432,17 @@ QuicLibraryGetBinding(
     QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
+    BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
 
     //
     // First check to see if a binding already exists that matches the
     // requested addresses.
     //
-
-    if (LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0) {
+    if (PortUnspecified) {
         //
-        // No specified local address or port, so we just always create a new
-        // binding.
+        // No specified local port, so we always create a new binding, and let
+        // the networking stack assign us a new ephemeral port. We can skip the
+        // lookup because the stack **should** always give us something new.
         //
         goto NewBinding;
     }
@@ -1462,7 +1463,12 @@ QuicLibraryGetBinding(
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
             //
-            Status = QUIC_STATUS_INVALID_STATE;
+            QuicTraceEvent(
+                BindingErrorStatus,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
         } else {
             //
             // Match found and can be shared.
@@ -1526,9 +1532,10 @@ NewBinding:
             NULL);
 #endif
     if (Binding != NULL) {
-        if (!Binding->Exclusive) {
+        if (!PortUnspecified && !Binding->Exclusive) {
             //
-            // Another thread got the binding first, but it's not exclusive.
+            // Another thread got the binding first, but it's not exclusive,
+            // and it's not what should be a new ephemeral port.
             //
             CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
             Binding->RefCount++;
@@ -1549,8 +1556,28 @@ NewBinding:
     CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 
     if (Binding != NULL) {
-        if (Binding->Exclusive) {
-            Status = QUIC_STATUS_INVALID_STATE;
+        if (PortUnspecified) {
+            //
+            // The datapath somehow returned us a "new" ephemeral socket that
+            // already matched one of our existing ones. We've seen this on
+            // Linux occassionally. This shouldn't happen, but it does. Log and
+            // bail.
+            //
+            QuicTraceEvent(
+                BindingErrorStatus,
+                "[bind][%p] ERROR, %s.",
+                *NewBinding,
+                "Binding ephemeral port reuse encountered");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+
+        } else if (Binding->Exclusive) {
+            QuicTraceEvent(
+                BindingErrorStatus,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+
         } else {
             (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
