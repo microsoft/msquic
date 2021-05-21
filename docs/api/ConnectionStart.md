@@ -53,7 +53,11 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-**TODO**
+`ConnectionStart` initiates the connection from the client application. A server application doesn't start its side of the connection until it returns `QUIC_STATUS_SUCCESS` from the `QUIC_LISTENER_EVENT_NEW_CONNECTION` event.
+
+Since 0-RTT data is opportunistically sent during the connection handshake, it must be queued for send **BEFORE** calling `ConnectionStart` otherwise it will be sent after the handshake completes.
+
+Some settings on the `Configuration`, and on the `Connection`, only take effect if set before `ConnectionStart` is called. See [ConfigurationOpen](ConfigurationOpen.md) and [SetParam](SetParam.md) for more details about settings.
 
 # See Also
 
