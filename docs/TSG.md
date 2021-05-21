@@ -81,7 +81,7 @@ MsQuic logs every API entry and exit. Depending on the platform and tool used to
 
 ```
 [cpu][process.thread][time][ api] Enter <API Type> (<pointer>)
-[cpu][process.thread][time][ api] Ext [optional status code]
+[cpu][process.thread][time][ api] Exit [optional status code]
 ```
 
 ### Example (ListenerStart failing with QUIC_STATUS_INVALID_STATE)
