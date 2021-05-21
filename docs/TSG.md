@@ -73,7 +73,7 @@ The error code indicated in this event is completely application defined (type o
 
 ## Why isn't application data flowing?
 
-Application data is exchanged via [Streams](./Streams.md) and queued by the app via [StreamSend](./api/StreamSend.md). The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. `QUIC_FLOW_BLOCK_REASON` in [quic_trace.h](../src/inc/quic_trace.h) contains the full list of reasons that data may be blocked. Below is a short explaination of each:
+Application data is exchanged via [Streams](./Streams.md) and queued by the app via [StreamSend](./api/StreamSend.md). The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The `QUIC_FLOW_BLOCK_REASON` enum in [quic_trace.h](../src/inc/quic_trace.h) contains the full list of reasons that data may be blocked. Below is a short explanation of each:
 
 Value | Meaning
 --- | ---
@@ -86,19 +86,19 @@ Value | Meaning
 **QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL**<br>64 | The limit on the amount of data that can be buffered or accepted by the peer for this stream has been reached.
 **QUIC_FLOW_BLOCKED_APP**<br>128 | All data queued by the application on this stream has been sent. No more data is available to send.
 
-Internally, MsQuic tracks all these flags at all times for every connection and stream. Whenever any of them change, MsQuic logs an event. For example:
+Internally, MsQuic tracks these flags at all times for every connection and stream. Whenever any of them change, MsQuic logs an event. For example:
 
 ```
 [0]0004.0F54::2021/05/14-10:30:22.541024000 [Microsoft-Quic][strm][0xC16BA610] Send Blocked Flags: 128
 ```
 
-This event indicates that stream `C16BA610` only has the `QUIC_FLOW_BLOCKED_APP`, so it is currently blocked because there is no more application data queued to be sent.
+This event indicates that stream `C16BA610` only has the `QUIC_FLOW_BLOCKED_APP` flag, so it is currently blocked because there is no more application data queued to be sent.
 
 ![](images/tx-blocked-state.png)
 
 The [QUIC WPA plugin](../src/plugins/wpa/README.md) also supports visualizing these blocked states via the `QUIC TX Blocked State` graph. It allows you to see what flags are blocking the connection as a whole (shown as stream 0) and what is blocking each individual stream, over the lifetime of the whole connection.
 
-For instance, in the image above, you can see the stream (1) is blocked most of the time because there is no application data. Beyond that, the connection alternated between pacing and congestion control as the blocked reasons.
+For instance, in the image above, you can see the stream (1) is blocked most of the time because there is no application data. Beyond that, the connection ("stream" 0) alternated between pacing and congestion control as the blocked reasons.
 
 ## Why is this API Failing?
 
