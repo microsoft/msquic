@@ -47,7 +47,11 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-**TODO**
+This call only allocates the resources for the connection, it does not start the connection. For that, the application must call [ConnectionStart](ConnectionStart.md).
+
+Once `ConnectionOpen` completes successfully, the application may create streams, and queue data for sending. This is when 0-RTT streams and data must be created and queued. See [StreamOpen](StreamOpen.md), and [StreamStart](StreamStart.md).
+
+Once the connection has been shutdown, it must be cleaned up with a call to [ConnectionClose](ConnectionClose.md).
 
 # See Also
 
