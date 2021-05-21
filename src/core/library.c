@@ -1560,7 +1560,7 @@ NewBinding:
             //
             // The datapath somehow returned us a "new" ephemeral socket that
             // already matched one of our existing ones. We've seen this on
-            // Linux occassionally. This shouldn't happen, but it does. Log and
+            // Linux occasionally. This shouldn't happen, but it does. Log and
             // bail.
             //
             QuicTraceEvent(
