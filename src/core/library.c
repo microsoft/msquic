@@ -1438,9 +1438,10 @@ QuicLibraryGetBinding(
     // requested addresses.
     //
 
-    if (LocalAddress == NULL) {
+    if (LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0) {
         //
-        // No specified local address, so we just always create a new binding.
+        // No specified local address or port, so we just always create a new
+        // binding.
         //
         goto NewBinding;
     }
