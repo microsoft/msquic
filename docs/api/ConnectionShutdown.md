@@ -37,9 +37,9 @@ The 62-bit error code to indicate to the peer as the reason for the shutdown.
 
 # Remarks
 
-A client or server application may call `ConnectionShutdown` on any connections that have sucuessfully called `ConnectionStart` to shut down the connection.
+A client or server application may call `ConnectionShutdown` on any connections that have successfully called `ConnectionStart` to shut down the connection.
 
-`ConnectionShutdown` implicitly shuts down any streams that have not already shutdown, but it does not send stream_close frames for them individually, and only sends a connection_close frame. Stream shutdown events are always delivered to the application for the streams which were implicitly shutdown.
+`ConnectionShutdown` implicitly shuts down any streams that have not already shutdown, but it does not send stop_sending or reset_stream frames for them individually, and only sends a connection_close frame. Stream shutdown events are always delivered to the application for the streams which were implicitly shutdown.
 
 `ConnectionShutdown` is guaranteed to work in low-memory scenarios, though it may be unable to inform the peer if it cannot allocate memory for the final packet containing the connection_close frame.
 
