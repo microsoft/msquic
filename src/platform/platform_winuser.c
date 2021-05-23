@@ -309,7 +309,7 @@ CxPlatInitialize(
         goto Error;
     }
 
-    Status = CxPlatTlsLibraryInitialize();
+    Status = CxPlatCryptInitialize();
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -339,7 +339,7 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatTlsLibraryUninitialize();
+    CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
     CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
     CxPlatNumaMasks = NULL;
