@@ -16,7 +16,7 @@ So, for a reliable run, that also includes logs for failed tests, run:
 ./scripts/test.ps1 -LogProfile Full.Light
 ```
 
-Note that in windows you will need to use Powershell 7 in administrator mode to create the builds and test.
+Note that in windows you will need to use Powershell 7 to create the build and Powershell 7 (in administrator mode) to run the tests.
 
 Also, note that schannel requires the latest Windows versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
 
