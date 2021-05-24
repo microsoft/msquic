@@ -5,7 +5,7 @@
 
 Abstract:
 
-    Implements the TLS functions by calling OpenSSL.
+    Implements the cryptographic functions by calling OpenSSL.
 
 --*/
 

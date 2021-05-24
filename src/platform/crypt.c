@@ -5,7 +5,7 @@
 
 Abstract:
 
-    Implements the generic platform crypt operations.
+    Implements the generic platform cryptographic operations.
 
 --*/
 

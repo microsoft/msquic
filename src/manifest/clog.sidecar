@@ -8425,13 +8425,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "SchannelUninitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library uninitialized",
-      "UniqueId": "SchannelUninitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] UDP send segmentation helper socket failed to open, 0x%x",
@@ -12637,10 +12630,6 @@
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
         "TraceID": "TlsLogSecret"
-      },
-      {
-        "UniquenessHash": "b21a8d0d-c484-ac00-8081-90d5e8de9d1f",
-        "TraceID": "SchannelUninitialized"
       },
       {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",

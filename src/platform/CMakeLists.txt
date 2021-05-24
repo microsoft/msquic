@@ -9,12 +9,7 @@ if (QUIC_CODE_CHECK)
     set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
 endif()
 
-set(SOURCES
-    crypt.c
-    hashtable.c
-    pcp.c
-    toeplitz.c
-    )
+set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES ${SOURCES} datapath_winuser.c platform_winuser.c storage_winuser.c)
@@ -31,7 +26,7 @@ if (QUIC_TLS STREQUAL "schannel")
     set(SOURCES ${SOURCES} cert_capi.c crypt_bcrypt.c selfsign_capi.c tls_schannel.c)
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
-    set(SOURCES ${SOURCES} tls_openssl.c cert_capi_openssl.c)
+    set(SOURCES ${SOURCES} cert_capi_openssl.c inline.c tls_openssl.c)
     if ("${CX_PLATFORM}" STREQUAL "windows")
         set(SOURCES ${SOURCES} cert_capi.c crypt_bcrypt.c selfsign_capi.c)
     else()

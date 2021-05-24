@@ -5,7 +5,7 @@
 
 Abstract:
 
-    SCHANNEL TLS Implementation for QUIC
+    BCrypt cryptographic implementation for QUIC
 
 Environment:
 
@@ -302,9 +302,6 @@ CxPlatCryptUninitialize(
         BCryptCloseAlgorithmProvider(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE, 0);
         CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
     }
-    QuicTraceLogVerbose(
-        SchannelUninitialized,
-        "[ tls] Library uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
