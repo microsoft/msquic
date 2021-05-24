@@ -115,6 +115,12 @@ To build the code, you just need to run `build.ps1` in the `scripts` folder:
 ./scripts/build.ps1
 ```
 
+Note that `schannel` TLS provider requires the latest Windows versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
+
+```
+./scripts/build.ps1 -Tls openssl
+```
+
 The script has a lot of additional configuration options, but the default should be fine for most.
 
 ### Config options
