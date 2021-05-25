@@ -23,7 +23,11 @@ The valid handle to an open connection object.
 
 # Remarks
 
-**TODO**
+`ConnectionClose` cleans up and frees all resources allocated for the connection in `ConnectionOpen`.
+
+A caller should shutdown an active connection via `ConnectionShutdown` before calling `ConnectionClose`; calling `ConnectionClose` without `ConnectionShutdown` will implicitly call `ConnectionShutdown` with the `QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT` flag.
+
+`ConnectionClose` is the **last** API call to use a connection handle. An application **MUST NOT** use a connection handle after calling `ConnectionClose`! Any calls using a connection handle after calling `ConnectionClose` is a use-after-free.
 
 # See Also
 
