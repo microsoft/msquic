@@ -146,13 +146,13 @@ CxPlatInitialize(
         goto Error;
     }
 
-    Status = CxPlatTlsLibraryInitialize();
+    Status = CxPlatCryptInitialize();
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "CxPlatTlsLibraryInitialize");
+            "CxPlatCryptInitialize");
         goto Error;
     }
 
@@ -188,7 +188,7 @@ CxPlatUninitialize(
     )
 {
     PAGED_CODE();
-    CxPlatTlsLibraryUninitialize();
+    CxPlatCryptUninitialize();
     BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
     CxPlatform.RngAlgorithm = NULL;
     QuicTraceLogInfo(
