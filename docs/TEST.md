@@ -34,6 +34,7 @@ PS F:\msquic> .\scripts\test.ps1
 ...
 [05/24/2021 08:17:55] 66 test(s) run.
 [05/24/2021 08:17:56] F:\msquic\artifacts\bin\windows\x64_Debug_schannel\msquictest.exe (1681 test case(s))
+...
 [05/24/2021 08:26:58] 1681 test(s) run.
 [05/24/2021 08:26:58] Output can be found in F:\msquic\artifacts\logs\msquictest.exe\05.24.2021.08.17.55
 Write-Error: 4 test(s) failed.
