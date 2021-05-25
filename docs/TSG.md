@@ -111,6 +111,8 @@ MsQuic logs every API entry and exit. Depending on the platform and tool used to
 [cpu][process.thread][time][ api] Exit [optional status code]
 ```
 
+A [TextAnalysisTool](./Diagnostics.md#text-analysis-tool) filter (`api.tat`) is also included in [./docs/tat](./tat) to help quickly find all failed API calls.
+
 ### Example (ListenerStart failing with QUIC_STATUS_INVALID_STATE)
 
 In a recent example, we wanted to know why an app occasionally received `QUIC_STATUS_INVALID_STATE` when it called `ListenerStart`. We took the following steps to diagnose it.
