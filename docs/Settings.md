@@ -1,6 +1,6 @@
 # MsQuic Settings
 
-MsQuic supports a number of configuration knobs (or settings). These settings can either be set dynamically (via the [`QUIC_SETTINGS`](./api/QUIC_SETTINGS.md) structure) or via persistent storage (e.g. registry on Windows).
+MsQuic supports a number of configuration knobs (or settings). These settings can either be set dynamically (via the [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) structure) or via persistent storage (e.g. registry on Windows).
 
 > **Important** - Generally MsQuic already choses the best / most correct default values for all settings. Settings should only be changed after due diligence and A/B testing is performed.
 
@@ -8,11 +8,11 @@ MsQuic settings are available on most MsQuic objects. Here we'll provide an over
 
 ## Windows Registry
 
-MsQuic supports most of the settings in the QUIC_SETTINGS struct in the registry to be loaded as defaults when the MsQuic library is loaded in a process.  These registry settings only provide the defaults; the application is free to change the settings with a call to `SetParam` or in `QUIC_SETTINGS` structs passed into `ConfigurationOpen`.
+MsQuic supports most of the settings in the QUIC_SETTINGS struct in the registry to be loaded as defaults when the MsQuic library is loaded in a process.  These registry settings only provide the defaults; the application is free to change the settings with a call to [SetParam](./api/SetParam.md) or in [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) structs passed into [ConfigurationOpen](./api/ConfigurationOpen.md).
 
 In kernel mode, the default settings are updated automatically in the process when changing the registry, assuming the application hasn't already changed the setting. which overrides the registry value.
 
-Note: MaxWorkerQueueDelay uses **milliseconds** in the registry, but uses microseconds (us) in the `QUIC_SETTINGS` struct.
+Note: MaxWorkerQueueDelay uses **milliseconds** in the registry, but uses microseconds (us) in the [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct.
 
 The following settings are unique to the registry:
 
@@ -21,21 +21,18 @@ The following settings are unique to the registry:
 | Max Worker Queue Delay             | uint32_t | MaxWorkerQueueDelayMs   |               250 | The maximum queue delay (in ms) allowed for a worker thread.                                                |
 | Max Partition Count                | uint16_t | MaxPartitionCount       |  System CPU count | The maximum processor count used for partitioning work in MsQuic. Max 512. **Restart is required.**         |
 
-## QUIC_SETTINGS
-
-For more details see [`QUIC_SETTINGS`](./api/QUIC_SETTINGS.md).
+The following settings are available via registry as well as via [QUIC_SETTINGS](./api/QUIC_SETTINGS.md):
 
 | Setting                            | Type       | Registry Name               | Default           | Description                                                                                                                   |
 |------------------------------------|------------|-----------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Max Bytes per Key                  | uint64_t   | MaxBytesPerKey              |   274,877,906,944 | Maximum number of bytes to send using a given 1-RTT encryption key before initiating key change.                              |
-| Handshake Idle Timeout             | uint64_t   | HandshakeIdleTimeoutMs      |            10,000 | How long a handshake can idle before it times out and is disacarded.                                                          |
+| Max Bytes per Key                  | uint64_t   | MaxBytesPerKey              |   274,877,906,944 | Maximum number of bytes to encrypt with a single 1-RTT encryption key before initiating key update.                           |
+| Handshake Idle Timeout             | uint64_t   | HandshakeIdleTimeoutMs      |            10,000 | How long a handshake can idle before it is discarded.                                                                         |
 | Idle Timeout                       | uint64_t   | IdleTimeoutMs               |            30,000 | How long a connection can go idle before it is gracefully shut down.                                                          |
 | Max TLS Send Buffer (Client)       | uint32_t   | TlsClientMaxSendBuffer      |             4,096 | How much client TLS data to buffer.                                                                                           |
 | Max TLS Send Buffer (Server)       | uint32_t   | TlsServerMaxSendBuffer      |             8,192 | How much server TLS data to buffer.                                                                                           |
 | Stream Receive Window              | uint32_t   | StreamRecvWindowDefault     |            32,768 | Initial stream receive window size.                                                                                           |
 | Stream Receive Buffer              | uint32_t   | StreamRecvBufferDefault     |             4,096 | Stream initial buffer size.                                                                                                   |
 | Flow Control Window                | uint32_t   | ConnFlowControlWindow       |        16,777,216 | Connection-wide flow control window.                                                                                          |
-| Max Worker Queue Delay             | uint32_t   | MaxWorkerQueueDelayUs       |           250,000 | The maximum queue delay (in us) allowed for a worker thread.                                                                  |
 | Max Stateless Operations           | uint32_t   | MaxStatelessOperations      |                16 | The maximum number of stateless operations that may be queued at any one time.                                                |
 | Initial Window                     | uint32_t   | InitialWindowPackets        |                10 | The size (in packets) of the initial congestion window for a connection.                                                      |
 | Send Idle Timeout                  | uint32_t   | SendIdleTimeoutMs           |             1,000 | Reset congestion control after being idle `SendIdleTimeoutMs` milliseconds.                                                   |
@@ -54,12 +51,22 @@ For more details see [`QUIC_SETTINGS`](./api/QUIC_SETTINGS.md).
 | Datagram Receive Support           | uint8_t    | DatagramReceiveEnabled      |         0 (FALSE) | Advertise support for QUIC datagram extension.                                                                                |
 | Server Resumption Level            | uint8_t    | ServerResumptionLevel       | 0 (No resumption) | Server only. Controls resumption tickets and/or 0-RTT server support.                                                         |
 | Version Negotiation Extension      | uint8_t    | VersionNegotiationExtEnabled|         0 (FALSE) | Controls QUIC Version Negotiation Extension support.                                                                          |
-| Desired Versions List              | uint32_t[] | N/A                         |              NULL | Only takes effect if Version Negotiation Extension is enabled.                                                                |
-| Desired Versions List Length       | uint32_t   | N/A                         |                 0 | Number of QUIC protocol versions in the DesiredVersionsList.                                                                  |
+
+The types map to registry types as follows:
+  - `uint64_t` is a `REG_QWORD`.
+  - `uint32_t`, `uint16_t`, and `uint8_t` are `REG_DWORD`.
+
+While `REG_DWORD` can hold values larger than `uint16_t`, the administrator should ensure they do not exceed the maximum value of 65,535 when configuring a `uint16_t` setting via the Windows Registry.
+
+## QUIC_SETTINGS
+
+A [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct is used to configure settings on a `Configuration` handle, `Connection` handle, or globally.
+
+For more details see [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).
 
 ## Global Parameters
 
-These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_GLOBAL` and a `NULL` object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_GLOBAL` and a `NULL` object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
@@ -72,7 +79,7 @@ These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PAR
 
 ## Registration Parameters
 
-These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_REGISTRATION`.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_REGISTRATION` and a Registration object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
@@ -80,16 +87,16 @@ These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PAR
 
 ## Configuration Parameters
 
-These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_CONFIGURATION`.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONFIGURATION` and a Configuration object handle.
 
 | Setting                                       | Type                      | Get/Set   | Description                                                                                                       |
 |-----------------------------------------------|---------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0     | QUIC_SETTINGS             | Both      | Settings to use for all connections sharing this Configuration. See [`QUIC_SETTINGS`](./api/QUIC_SETTINGS.md).    |
+| `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0     | QUIC_SETTINGS             | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
 | `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1  | QUIC_TICKET_KEY_CONFIG[]  | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
 
 ## Listener Parameters
 
-These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_LISTENER`.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_LISTENER` and a Listener object handle.
 
 | Setting                                   | Type                      | Get/Set   | Description                                               |
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
@@ -98,7 +105,7 @@ These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PAR
 
 ## Connection Parameters
 
-These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_CONNECTION`.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONNECTION` and a Connection object handle.
 
 | Setting                                           | Type                          | Get/Set   | Description                                                                               |
 |---------------------------------------------------|-------------------------------|-----------|-------------------------------------------------------------------------------------------|
@@ -106,7 +113,7 @@ These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PAR
 | `QUIC_PARAM_CONN_LOCAL_ADDRESS`<br> 1             | QUIC_ADDR                     | Both      | Set on client only. Must be set before start or after handshake confirmed.                |
 | `QUIC_PARAM_CONN_REMOTE_ADDRESS`<br> 2            | QUIC_ADDR                     | Both      | Set on client only. Must be set before start.                                             |
 | `QUIC_PARAM_CONN_IDEAL_PROCESSOR`<br> 3           | uint16_t                      | Get-only  | Ideal processor for the app to send from.                                                 |
-| `QUIC_PARAM_CONN_SETTINGS`<br> 4                  | QUIC_SETTINGS                 | Both      | Connection settings. See [`QUIC_SETTINGS`](./api/QUIC_SETTINGS.md)                        |
+| `QUIC_PARAM_CONN_SETTINGS`<br> 4                  | QUIC_SETTINGS                 | Both      | Connection settings. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md)                          |
 | `QUIC_PARAM_CONN_STATISTICS`<br> 5                | QUIC_STATISTICS               | Get-only  | Connection-level statistics.                                                              |
 | `QUIC_PARAM_CONN_STATISTICS_PLAT`<br> 6           | QUIC_STATISTICS               | Get-only  | Connection-level statistics with platform-specific time format.                           |
 | `QUIC_PARAM_CONN_SHARE_UDP_BINDING`<br> 7         | uint8_t (BOOLEAN)             | Both      | Set on client only. Must be called before start.                                          |
@@ -123,7 +130,7 @@ These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PAR
 
 ## TLS Parameters
 
-These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_TLS` and a Connection object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_TLS` and a Connection object handle.
 
 | Setting                                   | Type                      | Get/Set   | Description                                                                                                               |
 |-------------------------------------------|---------------------------|-----------|---------------------------------------------------------------------------------------------------------------------------|
@@ -132,11 +139,11 @@ These parameters are accessed by calling `GetParam` or `SetParam` with `QUIC_PAR
 
 ## Stream Parameters
 
-These parameters are access by calling `GetParam` or `SetParam` with `QUIC_PARAM_LEVEL_STREAM`.
+These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_STREAM` and a Stream object handle.
 
 | Setting                                           | Type              | Get/Set   | Description                                                                           |
 |---------------------------------------------------|-------------------|-----------|---------------------------------------------------------------------------------------|
-| `QUIC_PARAM_STREAM_ID`<br> 0                      | QUIC_UINT62       | Set-only  | Must be called on a stream before `StreamStart` is called.                            |
+| `QUIC_PARAM_STREAM_ID`<br> 0                      | QUIC_UINT62       | Set-only  | Must be called on a stream before [StreamStart](./api/StreamStart.md) is called.      |
 | `QUIC_PARAM_STREAM_0RTT_LENGTH`<br> 1             | uint64_t          | Get-only  | Length of 0-RTT data received from peer.                                              |
 | `QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE`<br> 2  | uint64_t - bytes  | Get-only  | Ideal buffer size to queue to the stream. Assumes only one stream sends steadily.     |
 
