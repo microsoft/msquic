@@ -73,7 +73,32 @@ The error code indicated in this event is completely application defined (type o
 
 ## Why isn't application data flowing?
 
-> TODO
+Application data is exchanged via [Streams](./Streams.md) and queued by the app via [StreamSend](./api/StreamSend.md). The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The `QUIC_FLOW_BLOCK_REASON` enum in [quic_trace.h](../src/inc/quic_trace.h) contains the full list of reasons that data may be blocked. Below is a short explanation of each:
+
+Value | Meaning
+--- | ---
+**QUIC_FLOW_BLOCKED_SCHEDULING**<br>1 | The cross-connection scheduling logic has determined that too much work is queued on the connection to be processed all at once. Generally, this means we are CPU-bound.
+**QUIC_FLOW_BLOCKED_PACING**<br>2 | Data burst sizes into the network are being limited and periodically sent into the network based on the congestion control's pacing logic.
+**QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT**<br>4 | The peer has not proved ownership of their IP address and therefore we are locally limiting the amount of data to send to it.
+**QUIC_FLOW_BLOCKED_CONGESTION_CONTROL**<br>8 | Congestion control has determined that the network cannot handle any more data currently.
+**QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL**<br>16 | The connection-wide limit for the amount of data that can be buffered or accepted by the peer at this time has been reached.
+**QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL**<br>32 | The limit on the number of streams the peer can accept has been reached.
+**QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL**<br>64 | The limit on the amount of data that can be buffered or accepted by the peer for this stream has been reached.
+**QUIC_FLOW_BLOCKED_APP**<br>128 | All data queued by the application on this stream has been sent. No more data is available to send.
+
+Internally, MsQuic tracks these flags at all times for every connection and stream. Whenever any of them change, MsQuic logs an event. For example:
+
+```
+[0]0004.0F54::2021/05/14-10:30:22.541024000 [Microsoft-Quic][strm][0xC16BA610] Send Blocked Flags: 128
+```
+
+This event indicates that stream `C16BA610` only has the `QUIC_FLOW_BLOCKED_APP` flag, so it is currently blocked because there is no more application data queued to be sent.
+
+![](images/tx-blocked-state.png)
+
+The [QUIC WPA plugin](../src/plugins/trace/README.md) also supports visualizing these blocked states via the `QUIC TX Blocked State` graph. It allows you to see what flags are blocking the connection as a whole (shown as stream 0) and what is blocking each individual stream, over the lifetime of the whole connection.
+
+For instance, in the image above, you can see the stream (1) is blocked most of the time because there is no application data. Beyond that, the connection ("stream" 0) alternated between pacing and congestion control as the blocked reasons.
 
 ## Why is this API Failing?
 
@@ -85,6 +110,8 @@ MsQuic logs every API entry and exit. Depending on the platform and tool used to
 [cpu][process.thread][time][ api] Enter <API Type> (<pointer>)
 [cpu][process.thread][time][ api] Exit [optional status code]
 ```
+
+A [TextAnalysisTool](./Diagnostics.md#text-analysis-tool) filter (`api.tat`) is also included in [./docs/tat](./tat) to help quickly find all failed API calls.
 
 ### Example (ListenerStart failing with QUIC_STATUS_INVALID_STATE)
 
@@ -130,7 +157,7 @@ This clearly shows that listener `7f30ac0dcff0` failed to register with the bind
 
 It's extremely common that everything may be functional, but not just as fast as expected. So the normal next step is then to grab a performance trace for the scenario and then dive into the details to analyze what exactly is happening. When you're explicitly looking for where the CPU is spending its time in the scenario, you will need to collect CPU traces. One way to do this is to [use WPR](./Diagnostics.md#using-wpr-to-collect-traces) (with `Stacks.Light` profile).
 
-Once you have the ETL, open it [in WPA](../src/plugins/wpa/README.md) (MsQuic plugin is unnecessary). Then, go to the `Graph Explorer`, expand `Computation`, expand `CPU Usage (Sampled)` and open up `Utilization by Process, Thread, Stack`. The following is an example of a CPU trace a server in a client upload scenario:
+Once you have the ETL, open it [in WPA](../src/plugins/trace/README.md) (MsQuic plugin is unnecessary). Then, go to the `Graph Explorer`, expand `Computation`, expand `CPU Usage (Sampled)` and open up `Utilization by Process, Thread, Stack`. The following is an example of a CPU trace a server in a client upload scenario:
 
 ![](images/cpu-debug-1.png)
 

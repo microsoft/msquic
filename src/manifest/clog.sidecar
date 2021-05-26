@@ -4689,6 +4689,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "BindingError": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] ERROR, %s.",
+      "UniqueId": "BindingError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryServerInit": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Shared server state initializing",
@@ -8421,6 +8437,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "TlsLogSecret": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "TlsLogSecret",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] UDP send segmentation helper socket failed to open, 0x%x",
@@ -9135,26 +9171,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "OpenSslLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "OpenSslLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "OpenSslAlert": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Send alert = %u (Level = %u)",
@@ -9527,20 +9543,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "SchannelInitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library initialized",
-      "UniqueId": "SchannelInitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelUninitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library uninitialized",
-      "UniqueId": "SchannelUninitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "SchannelAchAsync": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Calling SspiAcquireCredentialsHandleAsyncW",
@@ -9570,26 +9572,6 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "SchannelLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -11774,6 +11756,10 @@
         "TraceID": "LibraryRelease"
       },
       {
+        "UniquenessHash": "36d08274-918b-3ecd-861c-ada8d4fda4d5",
+        "TraceID": "BindingError"
+      },
+      {
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
         "TraceID": "LibraryServerInit"
       },
@@ -12682,6 +12668,10 @@
         "TraceID": "LibraryError"
       },
       {
+        "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
+        "TraceID": "TlsLogSecret"
+      },
+      {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",
         "TraceID": "DatapathOpenUdpSocketFailed"
       },
@@ -12898,10 +12888,6 @@
         "TraceID": "StorageOpenKey"
       },
       {
-        "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
-        "TraceID": "OpenSslLogSecret"
-      },
-      {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
         "TraceID": "OpenSslAlert"
       },
@@ -12998,14 +12984,6 @@
         "TraceID": "TlsErrorStatus"
       },
       {
-        "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
-        "TraceID": "SchannelInitialized"
-      },
-      {
-        "UniquenessHash": "b21a8d0d-c484-ac00-8081-90d5e8de9d1f",
-        "TraceID": "SchannelUninitialized"
-      },
-      {
         "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
         "TraceID": "SchannelAchAsync"
       },
@@ -13020,10 +12998,6 @@
       {
         "UniquenessHash": "7a6ea81a-5491-2148-a007-711c5a641acc",
         "TraceID": "SchannelAchCompleteInline"
-      },
-      {
-        "UniquenessHash": "c04de4b9-64de-c415-dda2-b07f295f9897",
-        "TraceID": "SchannelLogSecret"
       },
       {
         "UniquenessHash": "799852e0-2f39-43d4-6888-98a33178b844",

@@ -17,11 +17,17 @@ void
 
 # Parameters
 
-**TODO**
+`Stream`
+
+A Stream handle from a previous call to [StreamOpen](StreamOpen.md).
 
 # Remarks
 
-**TODO**
+The application should only close a stream after it has been completely shut down or it was never successfully started. Closing a stream before it has been completely shut down produces **undefined behavior** because clean up of the stream **must** be reflected on the wire with an application specific error code. When the app closes a stream without first shutting down, MsQuic has to guess which error code to use (currently uses `0`) when sending the state change to the peer.
+
+If the application needs to quickly discard all stream state and doesn't care about the result, it should first call [StreamShutdown](StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT` and `QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE` flags, specifying an appropriate error code. Then, only after the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` should the app call close. This event will happen immediately.
+
+`StreamClose` may be called on any callback, including one for the stream being closed.
 
 # See Also
 

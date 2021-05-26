@@ -39,10 +39,11 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For release details, see the [Release docs](./docs/Release.md).
   * For performance data, see the [Performance dashboard](https://aka.ms/msquicperformance).
   * For building the MsQuic library, see the [Build docs](./docs/BUILD.md).
+  * For testing the MsQuic library, after the build step see the [Run Tests](./docs/TEST.md).
   * For using the MsQuic API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
   * For deploying with MsQuic, see the [Deployment docs](./docs/Deployment.md).
   * For diagnosing MsQuic, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TSG.md).
 
 # Contributing
 
-For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md).
+For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md). Feel free to take a look at our [Good First Issues](https://github.com/microsoft/msquic/labels/good%20first%20issue) list if you're looking for somewhere to start.
