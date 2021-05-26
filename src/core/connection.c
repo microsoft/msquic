@@ -119,6 +119,7 @@ QuicConnAlloc(
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
+    Connection->PeerPacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     Connection->Settings = MsQuicLib.Settings;
@@ -4769,7 +4770,7 @@ QuicConnRecvFrames(
             }
 
             AckPacketImmediately = TRUE;
-            if (Frame.SequenceNumber < Connection->NextAckFrequencySequenceNumber) {
+            if (Frame.SequenceNumber < Connection->NextRecvAckFreqSeqNum) {
                 //
                 // This sequence number (or a higher one) has already been
                 // received. Ignore this one.
@@ -4777,7 +4778,7 @@ QuicConnRecvFrames(
                 break;
             }
 
-            Connection->NextAckFrequencySequenceNumber = Frame.SequenceNumber + 1;
+            Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
             Connection->State.IgnoreReordering = Frame.IgnoreOrder;
             if (Frame.UpdateMaxAckDelay < 1000) {
                 Connection->Settings.MaxAckDelayMs = 1;
@@ -4790,6 +4791,11 @@ QuicConnRecvFrames(
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
             }
+            QuicTraceLogConnInfo(
+                UpdatePacketTolerance,
+                Connection,
+                "Updating packet tolerance to %hhu",
+                Connection->PacketTolerance);
             break;
         }
 
@@ -5561,6 +5567,28 @@ QuicConnProcessKeepAliveOperation(
         Connection,
         QUIC_CONN_TIMER_KEEP_ALIVE,
         Connection->Settings.KeepAliveIntervalMs);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnUpdatePeerPacketTolerance(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint8_t NewPacketTolerance
+    )
+{
+    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
+        Connection->PeerPacketTolerance != NewPacketTolerance) {
+        QuicTraceLogConnInfo(
+            UpdatePeerPacketTolerance,
+            Connection,
+            "Updating peer packet tolerance to %hhu",
+            NewPacketTolerance);
+        Connection->SendAckFreqSeqNum++;
+        Connection->PeerPacketTolerance = NewPacketTolerance;
+        QuicSendSetSendFlag(
+            &Connection->Send,
+            QUIC_CONN_SEND_FLAG_ACK_FREQUENCY);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

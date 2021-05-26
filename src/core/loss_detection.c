@@ -815,6 +815,15 @@ QuicLossDetectionRetransmitFrames(
                     QUIC_DATAGRAM_SEND_LOST_SUSPECT);
             }
             break;
+
+        case QUIC_FRAME_ACK_FREQUENCY:
+            if (Packet->Frames[i].ACK_FREQUENCY.Sequence == Connection->SendAckFreqSeqNum) {
+                NewDataQueued |=
+                    QuicSendSetSendFlag(
+                        &Connection->Send,
+                        QUIC_CONN_SEND_FLAG_ACK_FREQUENCY);
+            }
+            break;
         }
     }
 
@@ -990,6 +999,13 @@ QuicLossDetectionDetectAndHandleLostPackets(
         QuicLossValidate(LossDetection);
 
         if (LostRetransmittableBytes > 0) {
+            if (LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD) {
+                //
+                // On persistent congestion, reset the peer's packet tolerance
+                // back to the default.
+                //
+                QuicConnUpdatePeerPacketTolerance(Connection, QUIC_MIN_ACK_SEND_NUMBER);
+            }
             QuicCongestionControlOnDataLost(
                 &Connection->CongestionControl,
                 LargestLostPacketNumber,

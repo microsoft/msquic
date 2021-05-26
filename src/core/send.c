@@ -777,6 +777,35 @@ QuicSendWriteFrames(
             }
         }
 
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK_FREQUENCY) {
+
+            QUIC_ACK_FREQUENCY_EX Frame;
+            Frame.SequenceNumber = Connection->SendAckFreqSeqNum;
+            Frame.PacketTolerance = Connection->PeerPacketTolerance;
+            Frame.UpdateMaxAckDelay =
+                MS_TO_US(
+                    (uint64_t)Connection->Settings.MaxAckDelayMs +
+                    (uint64_t)MsQuicLib.TimerResolutionMs);
+            Frame.IgnoreOrder = FALSE;
+
+            if (QuicAckFrequencyFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK_FREQUENCY;
+                Builder->Metadata->Frames[
+                    Builder->Metadata->FrameCount].ACK_FREQUENCY.Sequence =
+                        Frame.SequenceNumber;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_ACK_FREQUENCY, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
             RanOutOfRoom = QuicDatagramWriteFrame(&Connection->Datagram, Builder);
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
@@ -1224,6 +1253,25 @@ QuicSendFlush(
         // operation is queued to send the rest.
         //
         QuicSendQueueFlush(&Connection->Send, REASON_SCHEDULING);
+
+        if (Builder.TotalCountDatagrams + 1 > Connection->PeerPacketTolerance) {
+            //
+            // We're scheduling limited, so we should tell the peer to use our
+            // (max) batch size + 1 as the peer tolerance as a hint that they
+            // should expect more than a single batch before needing to send an
+            // acknowledgement back.
+            //
+            QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams + 1);
+        }
+
+    } else if (Builder.TotalCountDatagrams > Connection->PeerPacketTolerance) {
+        //
+        // If we aren't scheduling limited, we should just use the current batch
+        // size as the packet tolerance for the peer to use for acknowledging
+        // packets.
+        //
+        // Temporarily disabled for now.
+        //QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
     }
 
     return Result != QUIC_SEND_INCOMPLETE;
