@@ -10,7 +10,7 @@ MsQuic settings are available on most MsQuic objects. Here we'll provide an over
 
 MsQuic supports most of the settings in the QUIC_SETTINGS struct in the registry to be loaded as defaults when the MsQuic library is loaded in a process.  These registry settings only provide the defaults; the application is free to change the settings with a call to [SetParam](./api/SetParam.md) or in [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) structs passed into [ConfigurationOpen](./api/ConfigurationOpen.md).
 
-In kernel mode, the default settings are updated automatically in the process when changing the registry, assuming the application hasn't already changed the setting. which overrides the registry value.
+The default settings are updated automatically in the application when changing the registry, assuming the application hasn't already changed the setting, which overrides the registry value. However, this does not change the settings on Connections which are already established, or Configurations which are already created.
 
 Note: MaxWorkerQueueDelay uses **milliseconds** in the registry, but uses microseconds (us) in the [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct.
 
