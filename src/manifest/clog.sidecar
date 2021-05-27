@@ -934,6 +934,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "UpdatePacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating packet tolerance to %hhu",
+      "UniqueId": "UpdatePacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
@@ -974,6 +990,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "UpdatePeerPacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating peer packet tolerance to %hhu",
+      "UniqueId": "UpdatePeerPacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -10872,6 +10904,10 @@
         "TraceID": "HandshakeConfirmedFrame"
       },
       {
+        "UniquenessHash": "e232b42d-9955-4467-0464-559ea5965464",
+        "TraceID": "UpdatePacketTolerance"
+      },
+      {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
         "TraceID": "FirstCidUsage"
       },
@@ -10882,6 +10918,10 @@
       {
         "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
         "TraceID": "Unreachable"
+      },
+      {
+        "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
+        "TraceID": "UpdatePeerPacketTolerance"
       },
       {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
