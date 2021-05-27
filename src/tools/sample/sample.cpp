@@ -295,7 +295,11 @@ ServerConnectionCallback(
         // is the expected way for the connection to shut down with this
         // protocol, since we let idle timeout kill the connection.
         //
-        printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_IDLE) {
+            printf("[conn][%p] Successfully shut down on idle.\n");
+        } else {
+            printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         //
@@ -670,7 +674,11 @@ ClientConnectionCallback(
         // is the expected way for the connection to shut down with this
         // protocol, since we let idle timeout kill the connection.
         //
-        printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_IDLE) {
+            printf("[conn][%p] Successfully shut down on idle.\n");
+        } else {
+            printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         //
