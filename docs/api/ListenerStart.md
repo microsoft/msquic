@@ -46,7 +46,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 After returning `QUIC_STATUS_SUCCESS` from the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback, the server application owns the connection object and must eventually call [ConnectionClose](ConnectionClose.md) on it, otherwise a memory leak will occur.
 
-The server application **MUST NOT** call [ConnectionClose](ConnectionClose.md) within the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback to reject a connection. This will result in a double-free in release builds, and an assert in debug builds.
+The server application **MUST NOT** call [ConnectionClose](ConnectionClose.md) within the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback when returning failure, to reject a connection. This will result in a double-free in release builds, and an assert in debug builds.  It's acceptable to call [ConnectionClose](ConnectionClose.md) within the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback if returning `QUIC_STATUS_SUCCESS`, or `QUIC_STATUS_PENDING`, since the server application owns the connection object then.
 
 ALPNs specified in `AlpnBuffers` must be less than 255 bytes in length.
 
