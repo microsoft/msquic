@@ -26,11 +26,11 @@ A valid handle to an open listener object.
 
 `AlpnBuffers`
 
-Pointer to one (or an array of) `QUIC_BUFFER` which specify the ALPNs, in order of preference, to be negotiated by the incoming connections.
+An array of `QUIC_BUFFER` structs that each contain a pointer and length to a different [Application Layer Protocol Negotiation](https://tools.ietf.org/html/rfc7301) (ALPN) buffer, in order of preference, to be negotiated by the incoming connections.
 
 `AlpnBufferCount`
 
-Count of `QUIC_BUFFER` pointed to by `AlpnBuffers`.
+The number of `QUIC_BUFFER` structs in `AlpnBuffers`.
 
 `LocalAddress`
 

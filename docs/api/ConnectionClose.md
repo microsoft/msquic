@@ -25,7 +25,7 @@ The valid handle to an open connection object.
 
 `ConnectionClose` cleans up and frees all resources allocated for the connection in `ConnectionOpen`.
 
-A caller should shutdown an active connection via `ConnectionShutdown` before calling `ConnectionClose`; calling `ConnectionClose` without `ConnectionShutdown` will implicitly call `ConnectionShutdown` with the `QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT` flag.
+A caller should shutdown an active connection via [ConnectionShutdown](ConnectionShutdown.md) before calling `ConnectionClose`; calling `ConnectionClose` without [ConnectionShutdown](ConnectionShutdown.md) will implicitly call [ConnectionShutdown](ConnectionShutdown.md) with the `QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT` flag.
 
 A server application **MUST NOT** call [ConnectionClose](ConnectionClose.md) within the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback to reject a connection. This will result in a double-free in release builds, and an assert in debug builds.
 

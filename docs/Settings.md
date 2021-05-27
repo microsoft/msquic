@@ -4,7 +4,7 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 
 > **Important** - Generally MsQuic already choses the best / most correct default values for all settings. Settings should only be changed after due diligence and A/B testing is performed.
 
-MsQuic settings are available on most MsQuic objects. Here we'll provide an overview of them with links to further details.
+MsQuic settings are available on most MsQuic API objects. [Here](#api-object-parameters) we'll provide an overview of them with links to further details.
 
 ## Windows Registry
 
@@ -64,7 +64,11 @@ A [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct is used to configure settings o
 
 For more details see [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).
 
-## Global Parameters
+## API Object Parameters
+
+MsQuic API Objects have a number of settings, or parameters, which can be queried via [GetParam](api/GetParam.md), or can be set/modifed via [SetParam](api/SetParam.md).
+
+### Global Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_GLOBAL` and a `NULL` object handle.
 
@@ -77,7 +81,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_SETTINGS`<br> 4                | QUIC_SETTINGS | Both      | Globally change settings for all subsequent connections.                                              |
 | `QUIC_PARAM_GLOBAL_VERSION`<br> 5                 | uint32_t[4]   | Get-only  | MsQuic API version.                                                                                   |
 
-## Registration Parameters
+### Registration Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_REGISTRATION` and a Registration object handle.
 
@@ -85,7 +89,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
 | `QUIC_PARAM_REGISTRATION_CID_PREFIX`<br> 0        | uint8_t[]     | Both      | CID prefix to prepend to all CIDs. Used for load balancing.                                           |
 
-## Configuration Parameters
+### Configuration Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONFIGURATION` and a Configuration object handle.
 
@@ -94,7 +98,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0     | QUIC_SETTINGS             | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
 | `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1  | QUIC_TICKET_KEY_CONFIG[]  | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
 
-## Listener Parameters
+### Listener Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_LISTENER` and a Listener object handle.
 
@@ -103,7 +107,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
 
-## Connection Parameters
+### Connection Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONNECTION` and a Connection object handle.
 
@@ -128,7 +132,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_RESUMPTION_TICKET`<br> 16        | uint8_t[]                     | Set-only  | Must be set on client before starting connection.                                         |
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
 
-## TLS Parameters
+### TLS Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_TLS` and a Connection object handle.
 
@@ -137,7 +141,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_TLS_HANDSHAKE_INFO`<br> 0     | QUIC_HANDSHAKE_INFO       | Get-only  | Called in the `QUIC_CONNECTION_EVENT_CONNECTED` event to get the cryptographic parameters negotiated in the handshake.    |
 | `QUIC_PARAM_TLS_NEGOTIATED_ALPN`<br> 1    | uint8_t[] (max 255 bytes) | Get-only  | Called in the `QUIC_CONNECTION_EVENT_CONNECTED` event to get the negotiated ALPN.                                         |
 
-## Stream Parameters
+### Stream Parameters
 
 These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_STREAM` and a Stream object handle.
 
