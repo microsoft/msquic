@@ -5764,7 +5764,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
 
-        if (BufferLength >= 513) {
+        if (BufferLength > QUIC_MAX_CONN_CLOSE_REASON_LENGTH) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
