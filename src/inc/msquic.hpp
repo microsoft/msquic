@@ -1033,4 +1033,34 @@ struct HashTable {
 
 #endif // CXPLAT_HASH_MIN_SIZE
 
+#ifdef CXPLAT_FRE_ASSERT
+
+class CxPlatWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CxPlatEvent ShutdownEvent {true};
+    uint32_t TimeoutMs;
+    static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (CxPlatWatchdog*)Context;
+        if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "cxplat_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatThreadCreate(&Config, &WatchdogThread)));
+    }
+    ~CxPlatWatchdog() {
+        ShutdownEvent.Set();
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+    }
+};
+
+#endif // CXPLAT_FRE_ASSERT
+
 #endif // CX_PLATFORM_TYPE

@@ -439,6 +439,11 @@ CXPLAT_STATIC_ASSERT(
 #define CXPLAT_AEAD_INTEGRITY_LIMIT               11863283
 
 //
+// Maximum length, in bytes, for a connection_close reason phrase.
+//
+#define QUIC_MAX_CONN_CLOSE_REASON_LENGTH           512
+
+//
 // The maximum number of probe packets sent before considering an MTU too large.
 //
 #define QUIC_DPLPMTUD_MAX_PROBES                    3

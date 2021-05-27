@@ -213,15 +213,15 @@ CxPlatConvertFromMappedV6(
 #endif
 
 //
-// TLS Initialization
+// Crypt Initialization
 //
 
 QUIC_STATUS
-CxPlatTlsLibraryInitialize(
+CxPlatCryptInitialize(
     void
     );
 
 void
-CxPlatTlsLibraryUninitialize(
+CxPlatCryptUninitialize(
     void
     );

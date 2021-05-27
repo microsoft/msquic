@@ -2300,7 +2300,9 @@ QuicTestNthAllocFail(
                     sizeof(i),
                     &i));
 
-        MsQuicRegistration Registration;
+        CxPlatWatchdog Watchdog(2000);
+
+        MsQuicRegistration Registration(true);
         CONTINUE_ON_FAIL(Registration.GetInitStatus());
 
         MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
@@ -2327,7 +2329,7 @@ QuicTestNthAllocFail(
         QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
         CONTINUE_ON_FAIL(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
 
-        RecvContext.ServerStreamRecv.WaitTimeout(100);
-        RecvContext.ServerStreamShutdown.WaitTimeout(100);
+        RecvContext.ServerStreamRecv.WaitTimeout(10);
+        RecvContext.ServerStreamShutdown.WaitTimeout(10);
     }
 }

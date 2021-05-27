@@ -35,7 +35,94 @@ Notes:
 
 #include <new.h>
 #include <ntintsafe.h>
-#include <wil/wistd_type_traits.h>
+
+namespace wistd     // ("Windows Implementation" std)
+{
+
+//
+// WIL implementation of wistd::addressof
+//
+
+template <class _Tp>
+inline constexpr
+_Tp*
+addressof(_Tp& __x) noexcept
+{
+    return __builtin_addressof(__x);
+}
+
+//
+// WIL implementation of wistd::move
+//
+
+template <class _Tp> struct remove_reference { typedef _Tp type; };
+template <class _Tp> struct remove_reference<_Tp&&> { typedef _Tp type; };
+
+template <class _Tp>
+inline constexpr
+typename remove_reference<_Tp>::type&&
+move(_Tp&& __t) noexcept
+{
+    typedef typename remove_reference<_Tp>::type _Up;
+    return static_cast<_Up&&>(__t);
+}
+
+//
+// WIL dependencies for is_trivially_destructable and is_trivially_constructible
+//
+
+template <class _Tp, _Tp __v>
+struct integral_constant
+{
+    static constexpr const _Tp      value = __v;
+    typedef _Tp               value_type;
+    typedef integral_constant type;
+        constexpr operator value_type() const noexcept { return value; }
+        constexpr value_type operator ()() const noexcept { return value; }
+};
+
+template <class _Tp, _Tp __v>
+    constexpr const _Tp integral_constant<_Tp, __v>::value;
+
+//
+// WIL implementation for is_trivially_constructible
+//
+
+template <class _Tp, class ..._Args>
+    struct is_constructible
+        : public integral_constant<bool, __is_constructible(_Tp, _Args...)>
+    {};
+
+template <class _Tp, class... _Args>
+    struct is_trivially_constructible
+        : integral_constant<bool, __is_trivially_constructible(_Tp, _Args...)>
+    {};
+
+template <class _Tp>
+struct is_trivially_default_constructible
+    : public is_trivially_constructible<_Tp>
+{};
+
+template <class _Tp>
+    constexpr bool is_trivially_default_constructible_v
+        = is_trivially_default_constructible<_Tp>::value;
+
+//
+// WIL implementation for is_trivially_destructible
+//
+
+template <class _Tp>
+struct is_destructible
+    : public integral_constant<bool, __is_destructible(_Tp)> {};
+
+template <class _Tp> struct is_trivially_destructible
+    : public integral_constant<bool, is_destructible<_Tp>::value&& __has_trivial_destructor(_Tp)> {};
+
+template <class _Tp>
+constexpr bool is_trivially_destructible_v
+    = is_trivially_destructible<_Tp>::value;
+
+} // end namespace wistd
 
 #define CODE_SEG(segment) __declspec(code_seg(segment))
 

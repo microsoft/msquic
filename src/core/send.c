@@ -465,8 +465,7 @@ QuicSendWriteFrames(
     }
 
     if (!IsCongestionControlBlocked &&
-        Send->SendFlags & QUIC_CONN_SEND_FLAG_CRYPTO &&
-        Builder->PacketType == QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(&Connection->Crypto))) {
+        Send->SendFlags & QUIC_CONN_SEND_FLAG_CRYPTO) {
         if (QuicCryptoWriteFrames(&Connection->Crypto, Builder)) {
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
                 return TRUE;
@@ -778,6 +777,35 @@ QuicSendWriteFrames(
             }
         }
 
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK_FREQUENCY) {
+
+            QUIC_ACK_FREQUENCY_EX Frame;
+            Frame.SequenceNumber = Connection->SendAckFreqSeqNum;
+            Frame.PacketTolerance = Connection->PeerPacketTolerance;
+            Frame.UpdateMaxAckDelay =
+                MS_TO_US(
+                    (uint64_t)Connection->Settings.MaxAckDelayMs +
+                    (uint64_t)MsQuicLib.TimerResolutionMs);
+            Frame.IgnoreOrder = FALSE;
+
+            if (QuicAckFrequencyFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK_FREQUENCY;
+                Builder->Metadata->Frames[
+                    Builder->Metadata->FrameCount].ACK_FREQUENCY.Sequence =
+                        Frame.SequenceNumber;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_ACK_FREQUENCY, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
             RanOutOfRoom = QuicDatagramWriteFrame(&Connection->Datagram, Builder);
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
@@ -1027,6 +1055,12 @@ QuicSendFlush(
         "Flushing send. Allowance=%u bytes",
         Builder.SendAllowance);
 
+#if DEBUG
+    uint32_t DeadlockDetection = 0;
+    uint32_t PrevSendFlags = UINT32_MAX;        // N-1
+    uint32_t PrevPrevSendFlags = UINT32_MAX;    // N-2
+#endif
+
     do {
 
         if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
@@ -1172,13 +1206,6 @@ QuicSendFlush(
 
         Send->TailLossProbeNeeded = FALSE;
 
-        //
-        // If the following assert is hit, then we just went through the
-        // framing logic and nothing was written to the packet. This is bad!
-        // It likely indicates an infinite loop will follow.
-        //
-        CXPLAT_DBG_ASSERT(Builder.Metadata->FrameCount != 0 || Builder.PacketStart != 0);
-
         if (!WrotePacketFrames ||
             Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||
             Builder.Datagram->Length - Builder.DatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
@@ -1187,8 +1214,15 @@ QuicSendFlush(
             // We now have enough data in the current packet that we should
             // finalize it.
             //
-            QuicPacketBuilderFinalize(&Builder, FlushBatchedDatagrams);
+            QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams);
         }
+
+#if DEBUG
+        CXPLAT_DBG_ASSERT(++DeadlockDetection < 100);
+        UNREFERENCED_PARAMETER(PrevPrevSendFlags); // Used in debugging only
+        PrevPrevSendFlags = PrevSendFlags;
+        PrevSendFlags = SendFlags;
+#endif
 
     } while (Builder.SendData != NULL ||
         Builder.TotalCountDatagrams < QUIC_MAX_DATAGRAMS_PER_SEND);
@@ -1220,6 +1254,25 @@ QuicSendFlush(
         // operation is queued to send the rest.
         //
         QuicSendQueueFlush(&Connection->Send, REASON_SCHEDULING);
+
+        if (Builder.TotalCountDatagrams + 1 > Connection->PeerPacketTolerance) {
+            //
+            // We're scheduling limited, so we should tell the peer to use our
+            // (max) batch size + 1 as the peer tolerance as a hint that they
+            // should expect more than a single batch before needing to send an
+            // acknowledgement back.
+            //
+            QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams + 1);
+        }
+
+    } else if (Builder.TotalCountDatagrams > Connection->PeerPacketTolerance) {
+        //
+        // If we aren't scheduling limited, we should just use the current batch
+        // size as the packet tolerance for the peer to use for acknowledging
+        // packets.
+        //
+        // Temporarily disabled for now.
+        //QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
     }
 
     return Result != QUIC_SEND_INCOMPLETE;

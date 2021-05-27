@@ -647,11 +647,12 @@ TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_CLIENT_CERT Params = {
+        /*QUIC_RUN_CONNECT_CLIENT_CERT Params = {
             GetParam().Family,
             (uint8_t)GetParam().UseClientCertificate
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, Params));*/
+        printf("WARNING: ConnectClientCertificate not supported in Kernel Mode yet!\n");
     } else {
         QuicTestConnectClientCertificate(GetParam().Family, GetParam().UseClientCertificate);
     }
@@ -1363,7 +1364,6 @@ TEST(Misc, SlowReceive) {
 }
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
-
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1372,7 +1372,6 @@ TEST(Misc, NthAllocFail) {
         QuicTestNthAllocFail();
     }
 }
-
 #endif
 
 TEST(Drill, VarIntEncoder) {

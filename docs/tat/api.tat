@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<TextAnalysisTool.NET version="2015-05-18" showOnlyFilteredLines="True">
+  <filters>
+    <filter enabled="n" excluding="n" foreColor="006400" type="matches_text" case_sensitive="n" regex="n" text="[ api] Enter" />
+    <filter enabled="y" excluding="n" foreColor="ff0000" type="matches_text" case_sensitive="n" regex="n" text="[ api] Exit " />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="[ api] Exit 0" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="[ api] Exit 459998" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="[ api] Exit 459749" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="[ api] Exit 4294967294" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="[ api] Exit 4294967295" />
+  </filters>
+</TextAnalysisTool.NET>

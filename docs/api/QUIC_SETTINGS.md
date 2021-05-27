@@ -85,115 +85,177 @@ The set of flags that indicate which other struct members are valid.
 
 `MaxBytesPerKey`
 
-The maximum number of bytes that can be encryped with a key before it should be changed/updated.
+Maximum number of bytes to encrypt with a single 1-RTT encryption key before initiating key update.
+
+**Default value:** 274,877,906,944
+
+`HandshakeIdleTimeoutMs`
+
+How long a handshake can idle before it is discarded.
+
+**Default value:** 10,000
 
 `IdleTimeoutMs`
 
-TODO
+How long a connection can go idle before it is gracefully shut down.
+
+**Default value:** 30,000
 
 `TlsClientMaxSendBuffer`
 
-TODO
+How much client TLS data to buffer.  If the application expects large client certificates, or long client certificate chains, this value should be increased.
+
+**Default value:** 4,096
 
 `TlsServerMaxSendBuffer`
 
-TODO
+How much server TLS data to buffer.  If the application expects very large server certificates, or long server certificate chains, this value should be increased.
+
+**Default value:**  8,192
 
 `StreamRecvWindowDefault`
 
-TODO
+Initial stream receive window size.
+
+**Default value:** 32,768
 
 `StreamRecvBufferDefault`
 
-TODO
+Stream initial buffer size.
+
+**Default value:** 4,096
 
 `ConnFlowControlWindow`
 
-TODO
+Connection-wide flow control window.
+
+**Default value:** 16,777,216
 
 `MaxWorkerQueueDelayUs`
 
-TODO
+The maximum queue delay (in microseconds) allowed for a worker thread. This affects loss detection and probe timeouts.
+
+**Default value:** 250,000
 
 `MaxStatelessOperations`
 
-TODO
+The maximum number of stateless operations that may be queued at any one time.
+
+**Default value:** 16
 
 `InitialWindowPackets`
 
-TODO
+The size (in packets) of the initial congestion window for a connection.
+
+**Default value:** 10
 
 `SendIdleTimeoutMs`
 
-TODO
+Reset congestion control after being idle `SendIdleTimeoutMs` milliseconds.
+
+**Default value:** 1,000
 
 `InitialRttMs`
 
-TODO
+Initial RTT estimate.
+
+**Default value:** 333
 
 `MaxAckDelayMs`
 
-TODO
+How long to wait after receiving data before sending an ACK. This controls batch sending ACKs, to get higher throughput with less overhead. Too long causes retransmits from the peer, too short wastefully sends ACKs.
+
+**Default value:** 25
 
 `DisconnectTimeoutMs`
 
-TODO
+How long to wait for an ACK before declaring a path dead and disconnecting.
+
+**Default value:** 16,000
 
 `KeepAliveIntervalMs`
 
-TODO
+How often to send PING frames to keep a connection alive. This also helps keep NAT table entries from expiring.
+
+**Default value:** 0 (disabled)
 
 `PeerBidiStreamCount`
 
-TODO
+Number of bidirectional streams to allow the peer to open. Must be non-zero to allow the peer to open any streams at all.
+
+**Default value:** 0
 
 `PeerUnidiStreamCount`
 
-TODO
+Number of unidirectional streams to allow the peer to open. Must be non-zero to allow the peer to open any streams at all.
+
+**Default value:** 0
 
 `RetryMemoryLimit`
 
-TODO
+The percentage of available memory usable for handshake connections before stateless retry is used. Calculated as `N/65535`. Global setting, not per-connection/configuration.
+
+**Default value:** 65 (~0.1%)
 
 `LoadBalancingMode`
 
-TODO
+ Global setting, not per-connection/configuration.
+
+**Default value:** 0 (disabled)
 
 `MaxOperationsPerDrain`
 
-TODO
+The maximum number of operations to drain per connection quantum.
+
+**Default value:** 16
 
 `SendBufferingEnabled`
 
-TODO
+Buffer send data within MsQuic instead of holding application buffers until sent data is acknowledged.
+
+**Default value:** 1 (`TRUE`)
 
 `PacingEnabled`
 
-TODO
+Pace sending to avoid overfilling buffers on the path.
+
+**Default value:** 1 (`TRUE`)
 
 `MigrationEnabled`
 
-TODO
+Enable clients to migrate IP addresses and tuples. Requires the server to be behind a cooperative load-balancer, or behind no load-balancer.
+
+**Default value:** 1 (`TRUE`)
 
 `DatagramReceiveEnabled`
 
-TODO
+Advertise support for QUIC datagram extension.
+
+**Default value:** 0 (`FALSE`)
 
 `ServerResumptionLevel`
 
-TODO
+Server only. Controls resumption tickets and/or 0-RTT server support. `QUIC_SERVER_RESUME_ONLY` enables sending and receiving TLS resumption tickets. The server app must call [ConnectionSendResumptionTicket](./ConnectionSendResumptionTicket.md) to send a resumption ticket to the client. `QUIC_SERVER_RESUME_AND_ZERORTT` enables sending and receiving TLS resumption tickets and generating 0-RTT keys and receiving 0-RTT payloads. The server app may decide accept/reject each 0-RTT payload individually.
+
+**Default value:** `QUIC_SERVER_NO_RESUME` (disabled)
 
 `VersionNegotiationExtEnabled`
 
-TODO
+Controls QUIC Version Negotiation Extension support.
+
+**Default value:** 0 (`FALSE`)
 
 `DesiredVersionsList`
 
-TODO
+Only takes effect if Version Negotiation Extension is enabled. Must be set to `NULL` unless `VersionNegotiationExtEnabled` is `TRUE`.
+
+**Default value:** `NULL`
 
 `DesiredVersionsListLength`
 
-TODO
+Number of QUIC protocol versions in the DesiredVersionsList. Must be set to 0 unless `VersionNegotiationExtEnabled` is `TRUE`.
+
+**Default value:** 0
 
 # Remarks
 

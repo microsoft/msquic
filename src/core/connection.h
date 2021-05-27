@@ -389,14 +389,26 @@ typedef struct QUIC_CONNECTION {
 
     //
     // The number of packets that must be received before eliciting an immediate
-    // acknowledgement.
+    // acknowledgement. May be updated by the peer via the ACK_FREQUENCY frame.
     //
     uint8_t PacketTolerance;
 
     //
-    // The next ACK frequency frame we expect to receive.
+    // The number of packets we want the peer to wait before sending an
+    // immediate acknowledgement. Requires the ACK_FREQUENCY extension/frame to
+    // be able to send to the peer.
     //
-    uint64_t NextAckFrequencySequenceNumber;
+    uint8_t PeerPacketTolerance;
+
+    //
+    // The ACK frequency sequence number we are currently using to send.
+    //
+    uint64_t SendAckFreqSeqNum;
+
+    //
+    // The next ACK frequency sequence number we expect to receive.
+    //
+    uint64_t NextRecvAckFreqSeqNum;
 
     //
     // The sequence number to use for the next source CID.
@@ -1363,6 +1375,16 @@ void
 QuicConnQueueUnreachable(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
+    );
+
+//
+// Queues up an update to the packet tolerance we want the peer to use.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnUpdatePeerPacketTolerance(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint8_t NewPacketTolerance
     );
 
 //
