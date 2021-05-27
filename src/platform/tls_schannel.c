@@ -396,6 +396,16 @@ typedef struct CXPLAT_SEC_CONFIG {
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
 
+#ifdef _KERNEL_MODE
+    //
+    // Impersonation token from the original call to initialize.
+    //
+    PACCESS_TOKEN ImpersonationToken;
+    BOOLEAN CopyOnOpen;
+    BOOLEAN EffectiveOnly;
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+#endif // _KERNEL_MODE
+
 } CXPLAT_SEC_CONFIG;
 
 typedef struct QUIC_ACH_CONTEXT {
@@ -1254,60 +1264,20 @@ CxPlatTlsSecConfigCreate(
         "[ tls] Starting ACH worker");
 
     TLS_WORKER_CONTEXT ThreadContext = { STATUS_SUCCESS, AchContext };
-    if (IsClient) {
-        //
-        // For schannel resumption to work, we have to call the client side
-        // of this from a SYSTEM thread.
-        //
-        HANDLE ThreadHandle;
-        Status =
-            PsCreateSystemThread(
-                &ThreadHandle,
-                THREAD_ALL_ACCESS,
-                NULL,
-                NULL,
-                NULL,
-                CxPlatTlsAchWorker,
-                &ThreadContext);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "PsCreateSystemThread(CxPlatTlsAchWorker)");
-            goto Error;
-        }
-        void* Thread = NULL;
-        Status =
-            ObReferenceObjectByHandle(
-                ThreadHandle,
-                THREAD_ALL_ACCESS,
-                *PsThreadType,
-                KernelMode,
-                &Thread,
-                NULL);
-        ZwClose(ThreadHandle);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "ObReferenceObjectByHandle(CxPlatTlsAchWorker)");
-            goto Error;
-        }
-        KeWaitForSingleObject(Thread, Executive, KernelMode, FALSE, NULL);
-        ObDereferenceObject(Thread);
-
-    } else {
-        //
-        // For schannel to successfully load the certificate (even a machine
-        // one), this needs to be on the caller's thread.
-        //
-        CxPlatTlsAchHelper(&ThreadContext);
-    }
+    CxPlatTlsAchHelper(&ThreadContext);
 
     Status = ThreadContext.CompletionStatus;
     AchContext = ThreadContext.AchContext;
+
+    if (QUIC_SUCCEEDED(Status)) {
+        CXPLAT_DBG_ASSERT(AchContext->SecConfig != NULL);
+        AchContext->SecConfig->ImpersonationToken =
+            PsReferenceImpersonationToken(
+                PsGetCurrentThread(),
+                &AchContext->SecConfig->CopyOnOpen,
+                &AchContext->SecConfig->EffectiveOnly,
+                &AchContext->SecConfig->ImpersonationLevel);
+    }
 
 #else // !_KERNEL_MODE
 
@@ -1383,6 +1353,12 @@ CxPlatTlsSecConfigDelete(
     if (SecIsValidHandle(&ServerConfig->CredentialHandle)) {
         FreeCredentialsHandle(&ServerConfig->CredentialHandle);
     }
+
+#ifdef _KERNEL_MODE
+    if (ServerConfig->ImpersonationToken) {
+        PsDereferenceImpersonationToken(ServerConfig->ImpersonationToken);
+    }
+#endif
 
     CXPLAT_FREE(ServerConfig, QUIC_POOL_TLS_SECCONF);
 }
@@ -1782,6 +1758,26 @@ CxPlatTlsWriteDataToSchannel(
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
 
+#ifdef _KERNEL_MODE
+    if (TlsContext->SecConfig->ImpersonationToken) {
+        NTSTATUS Status =
+            PsImpersonateClient(
+                PsGetCurrentThread(),
+                TlsContext->SecConfig->ImpersonationToken,
+                TlsContext->SecConfig->CopyOnOpen,
+                TlsContext->SecConfig->EffectiveOnly,
+                TlsContext->SecConfig->ImpersonationLevel);
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                Status,
+                "PsImpersonateClient failed");
+        }
+    }
+#endif
+
     if (TlsContext->IsServer) {
         CXPLAT_DBG_ASSERT(!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
 
@@ -1815,6 +1811,12 @@ CxPlatTlsWriteDataToSchannel(
                 &ContextAttr,
                 NULL);
     }
+
+#ifdef _KERNEL_MODE
+    if (TlsContext->SecConfig->ImpersonationToken) {
+        PsRevertToSelf();
+    }
+#endif
 
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
 
