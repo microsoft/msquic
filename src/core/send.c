@@ -1016,16 +1016,23 @@ QuicSendFlush(
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
-    if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
-        return TRUE;
-    }
-
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->DestCid == NULL) {
         return TRUE;
     }
 
     QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, CxPlatTimeUs64());
+
+    //
+    // If path is active without being peer validated, disable MTU flag if set.
+    //
+    if (!Path->IsPeerValidated) {
+        Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_DPLPMTUD;
+    } 
+
+    if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
+        return TRUE;
+    }
 
     CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 
@@ -1137,8 +1144,7 @@ QuicSendFlush(
                 break;
             }
             WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);
-        } else if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0 &&
-                Builder.Path->IsPeerValidated) {
+        } else if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
             if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
                 break;
             }
