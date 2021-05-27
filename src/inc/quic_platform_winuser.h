@@ -38,6 +38,7 @@ Environment:
 #pragma warning(disable:28251)
 #pragma warning(disable:28252)
 #pragma warning(disable:28253)
+#pragma warning(disable:28301)
 #pragma warning(disable:5105) // The conformant preprocessor along with the newest SDK throws this warning for a macro.
 #include <windows.h>
 #include <winsock2.h>
