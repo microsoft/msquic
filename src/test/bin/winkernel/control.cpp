@@ -12,9 +12,7 @@ Abstract:
 #include <quic_platform.h>
 #include <MsQuicTests.h>
 
-extern "C" {
 #include "quic_trace.h"
-}
 #ifdef QUIC_CLOG
 #include "control.cpp.clog.h"
 #endif
@@ -1094,7 +1092,7 @@ Return Value:
 
     va_list Args;
     va_start(Args, Format);
-    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
+    (void)_vsnprintf_s(Buffer, _TRUNCATE, Format, Args);
     va_end(Args);
 
     QuicTraceLogError(
