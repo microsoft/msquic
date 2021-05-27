@@ -1092,7 +1092,7 @@ Return Value:
 
     va_list Args;
     va_start(Args, Format);
-    (void)_vsnprintf_s(Buffer, _TRUNCATE, Format, Args);
+    (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
     va_end(Args);
 
     QuicTraceLogError(
