@@ -12,7 +12,9 @@ Abstract:
 #include <quic_platform.h>
 #include <MsQuicTests.h>
 
+extern "C" {
 #include "quic_trace.h"
+}
 #ifdef QUIC_CLOG
 #include "control.cpp.clog.h"
 #endif
