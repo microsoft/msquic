@@ -17,6 +17,8 @@ Supported Environments:
 
 #pragma once
 
+#include <stddef.h>
+
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
 
 //
