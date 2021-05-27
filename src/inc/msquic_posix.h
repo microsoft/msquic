@@ -89,6 +89,10 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 // large enough for this purpose.
 //
 
+#ifndef ESTRPIPE // undefined on macOS it seems
+#define ESTRPIPE 86
+#endif // ESTRPIPE
+
 #define ERROR_BASE                          200000000                       // 0xBEBC200
 #define TLS_ERROR_BASE                      256 + ERROR_BASE                // 0xBEBC300
 #define CERT_ERROR_BASE                     512 + ERROR_BASE                // 0xBEBC400
