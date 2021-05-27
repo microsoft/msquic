@@ -296,7 +296,7 @@ ServerConnectionCallback(
         // protocol, since we let idle timeout kill the connection.
         //
         if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_IDLE) {
-            printf("[conn][%p] Successfully shut down on idle.\n");
+            printf("[conn][%p] Successfully shut down on idle.\n", Connection);
         } else {
             printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         }
@@ -675,7 +675,7 @@ ClientConnectionCallback(
         // protocol, since we let idle timeout kill the connection.
         //
         if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_IDLE) {
-            printf("[conn][%p] Successfully shut down on idle.\n");
+            printf("[conn][%p] Successfully shut down on idle.\n", Connection);
         } else {
             printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         }
