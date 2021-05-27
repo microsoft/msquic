@@ -30,6 +30,7 @@ Environment:
 #pragma warning(disable:26071)
 #pragma warning(disable:28118)
 #pragma warning(disable:28196)
+#pragma warning(disable:28251)
 #pragma warning(disable:28252)
 #pragma warning(disable:28253)
 #pragma warning(disable:28309)
