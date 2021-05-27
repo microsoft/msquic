@@ -17,11 +17,15 @@ void
 
 # Parameters
 
-**TODO**
+`Listener`
+
+A valid handle to an open listener object.
 
 # Remarks
 
-**TODO**
+`ListenerClose` frees all allocated resources associated with the listener handle. If a listener has not had [ListenerStop](ListenerStop.md) called on it at the time `ListenerClose` is called, [ListenerStop](ListenerStop.md) is invoked internally. Due to this, a server application **MUST NOT** call `ListenerClose` within any callback unless it has already called [ListenerStop](ListenerStop.md) outside of any callbacks.
+
+`ListenerClose` is equivalent to `free` and **MUST** be the final call on a listener handle. Any API calls using a listener handle after `ListenerClose` has been called is a use-after-free error!
 
 # See Also
 

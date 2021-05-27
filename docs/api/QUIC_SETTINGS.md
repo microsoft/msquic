@@ -229,7 +229,7 @@ Enable clients to migrate IP addresses and tuples. Requires the server to be beh
 
 `DatagramReceiveEnabled`
 
-Advertise support for QUIC datagram extension.
+Advertise support for QUIC datagram extension. Both sides of a connection need to set this to `TRUE` for [DatagramSend](DatagramSend.md) to be functional and supported.
 
 **Default value:** 0 (`FALSE`)
 
