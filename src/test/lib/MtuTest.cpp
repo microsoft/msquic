@@ -35,7 +35,7 @@ static QUIC_STATUS MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_
 
 static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
     if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-        new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, MtuStreamCallback, nullptr);
+        new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, MtuStreamCallback, nullptr);
     }
     return QUIC_STATUS_SUCCESS;
 }
