@@ -1028,7 +1028,7 @@ QuicSendFlush(
     //
     if (!Path->IsPeerValidated) {
         Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_DPLPMTUD;
-    } 
+    }
 
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
