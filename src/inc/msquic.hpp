@@ -21,7 +21,11 @@ Supported Platforms:
 #pragma once
 
 #include <msquic.h>
+#ifdef _KERNEL_MODE
 #include <new.h>
+#else
+#include <new>
+#endif
 
 #ifndef CXPLAT_DBG_ASSERT
 #define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
