@@ -11,6 +11,7 @@ Abstract:
 
 #include <quic_platform.h>
 #include <MsQuicTests.h>
+#include <new.h>
 
 #include "quic_trace.h"
 #ifdef QUIC_CLOG
@@ -76,7 +77,7 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    MsQuic = new MsQuicApi();
+    MsQuic = new (std::nothrow) MsQuicApi();
     if (!MsQuic) {
         goto Error;
     }
