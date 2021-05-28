@@ -69,7 +69,7 @@ public:
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
-            MsQuic = new MsQuicApi();
+            MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
