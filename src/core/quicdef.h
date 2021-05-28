@@ -501,4 +501,4 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MINIMUM_MTU                    "MinimumMtu"
 #define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"
 #define QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT    "MtuDiscoverySearchCompleteTimeoutUs"
-#define QUIC_SETTING_MTU_MISSING_PROBE_COUNT      "MtuDiscoveryMissingProbeCount"
+#define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"

@@ -828,14 +828,13 @@ QuicPacketBuilderFinalize(
         //
         QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[Builder->EncryptLevel];
         PacketSpace->CurrentKeyPhaseBytesSent += (PayloadLength - Builder->EncryptionOverhead);
-        uint16_t MaxMtu = QuicConnGetMaxMtuForPath(Connection, Builder->Path);
 
         //
         // Check if the next packet sent will exceed the limit of bytes per
         // key phase, and update the keys. Only for 1-RTT keys.
         //
         if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE &&
-            PacketSpace->CurrentKeyPhaseBytesSent + MaxMtu >=
+            PacketSpace->CurrentKeyPhaseBytesSent + CXPLAT_MAX_MTU >=
                 Connection->Settings.MaxBytesPerKey &&
             !PacketSpace->AwaitingKeyPhaseConfirmation &&
             Connection->State.HandshakeConfirmed) {
