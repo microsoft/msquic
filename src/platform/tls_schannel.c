@@ -1259,6 +1259,14 @@ CxPlatTlsSecConfigCreate(
         goto Error;
     }
 
+    CXPLAT_DBG_ASSERT(AchContext->SecConfig != NULL);
+    AchContext->SecConfig->ImpersonationToken =
+        PsReferenceImpersonationToken(
+            PsGetCurrentThread(),
+            &AchContext->SecConfig->CopyOnOpen,
+            &AchContext->SecConfig->EffectiveOnly,
+            &AchContext->SecConfig->ImpersonationLevel);
+
     QuicTraceLogVerbose(
         SchannelAchWorkerStart,
         "[ tls] Starting ACH worker");
@@ -1268,16 +1276,6 @@ CxPlatTlsSecConfigCreate(
 
     Status = ThreadContext.CompletionStatus;
     AchContext = ThreadContext.AchContext;
-
-    if (QUIC_SUCCEEDED(Status)) {
-        CXPLAT_DBG_ASSERT(AchContext->SecConfig != NULL);
-        AchContext->SecConfig->ImpersonationToken =
-            PsReferenceImpersonationToken(
-                PsGetCurrentThread(),
-                &AchContext->SecConfig->CopyOnOpen,
-                &AchContext->SecConfig->EffectiveOnly,
-                &AchContext->SecConfig->ImpersonationLevel);
-    }
 
 #else // !_KERNEL_MODE
 
