@@ -93,6 +93,10 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define ESTRPIPE 86
 #endif // ESTRPIPE
 
+#ifndef ENOKEY // undefined om macOS
+#define ENOKEY 126
+#endif // ENOKEY
+
 #define ERROR_BASE                          200000000                       // 0xBEBC200
 #define TLS_ERROR_BASE                      256 + ERROR_BASE                // 0xBEBC300
 #define CERT_ERROR_BASE                     512 + ERROR_BASE                // 0xBEBC400
