@@ -485,7 +485,7 @@ struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
     QuicBufferScope() noexcept : Buffer(nullptr) { }
     QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new(std::nothrow) uint8_t[sizeof(QUIC_BUFFER) + Size]) {
-        CXPLAT_DBG_ASSERT(Buffer);
+        QUIC_DBG_ASSERT(Buffer);
         memset(Buffer, 0, sizeof(*Buffer) + Size);
         Buffer->Length = Size;
         Buffer->Buffer = (uint8_t*)(Buffer + 1);
