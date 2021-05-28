@@ -6209,6 +6209,9 @@ QuicConnParamGet(
         Stats->Timing.Start = Connection->Stats.Timing.Start;
         Stats->Timing.InitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
         Stats->Timing.HandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
+        Stats->Handshake.ClientFlight1Bytes = Connection->Stats.Handshake.ClientFlight1Bytes;
+        Stats->Handshake.ServerFlight1Bytes = Connection->Stats.Handshake.ServerFlight1Bytes;
+        Stats->Handshake.ClientFlight2Bytes = Connection->Stats.Handshake.ClientFlight2Bytes;
         Stats->Send.PathMtu = Path->Mtu;
         Stats->Send.TotalPackets = Connection->Stats.Send.TotalPackets;
         Stats->Send.RetransmittablePackets = Connection->Stats.Send.RetransmittablePackets;
