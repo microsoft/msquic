@@ -267,7 +267,7 @@ PerfServer::SendTcpResponse(
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
 
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = (uint32_t)Context->Entry.Signature;
         SendData->Open = Context->BytesSent == 0 ? 1 : 0;
         SendData->Buffer = DataBuffer->Buffer;
@@ -345,7 +345,7 @@ PerfServer::TcpReceiveCallback(
     }
     if (Abort) {
         Stream->ResponseSize = 0; // Reset to make sure we stop sending more
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = StreamID;
         SendData->Open = Open ? TRUE : FALSE;
         SendData->Abort = TRUE;
@@ -357,7 +357,7 @@ PerfServer::TcpReceiveCallback(
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
             This->SendTcpResponse(Stream, Connection);
         } else {
-            auto SendData = new TcpSendData();
+            auto SendData = new(std::nothrow) TcpSendData();
             SendData->StreamId = StreamID;
             SendData->Open = TRUE;
             SendData->Fin = TRUE;
