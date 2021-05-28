@@ -392,7 +392,7 @@ ThroughputClient::StartTcp()
 {
     MsQuicCredentialConfig CredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
     TcpConn =
-        new TcpConnection(
+        new(std::nothrow) TcpConnection(
             &Engine,
             &CredConfig,
             RemoteFamily,
@@ -412,7 +412,7 @@ ThroughputClient::StartTcp()
     TcpStrmContext->IdealSendBuffer = 1; // TCP uses send buffering, so just set to 1.
 
     if (DownloadLength) {
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = 0;
         SendData->Open = TRUE;
         SendData->Fin = TRUE;
@@ -438,7 +438,7 @@ ThroughputClient::SendTcpData(
         uint64_t BytesLeftToSend =
             TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
 
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = 0;
         SendData->Open = Context->BytesSent == 0 ? TRUE : FALSE;
         SendData->Buffer = DataBuffer->Buffer;
@@ -616,7 +616,7 @@ ThroughputClient::TcpReceiveCallback(
         StrmContext->BytesCompleted += Length;
         if (This->TimedTransfer) {
             if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
-                auto SendData = new TcpSendData();
+                auto SendData = new(std::nothrow) TcpSendData();
                 SendData->StreamId = 0;
                 SendData->Abort = TRUE;
                 SendData->Buffer = This->DataBuffer->Buffer;
