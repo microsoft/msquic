@@ -53,7 +53,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-This function is used to allocate a new stream object of desired the directionality; either bidirectional (both sides send and receive) or unidirectional (opener sends and peer receives). This function simply allocates the object and does not assign a stream ID or inform the peer that the stream was created.
+This function is used to allocate a new stream object of the desired directionality; either bidirectional (both sides send and receive) or unidirectional (opener sends and peer receives). This function simply allocates the object and does not assign a stream ID or inform the peer that the stream was created.
 
 As indicated above, the parent connection object does not need to be started before the stream can be created. In fact, the MsQuic API is expressly designed to allow for the app to open streams, start them and queue data to be sent *before* starting the stream. In the 0-RTT scenario, this is practically required to ensure all the data is packed into the same UDP datagram(s).
 
