@@ -21,6 +21,11 @@ Supported Platforms:
 #pragma once
 
 #include <msquic.h>
+#ifdef _KERNEL_MODE
+#include <new.h>
+#else
+#include <new>
+#endif
 
 #ifndef CXPLAT_DBG_ASSERT
 #define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
@@ -513,7 +518,8 @@ struct ConfigurationScope {
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
     QuicBufferScope() noexcept : Buffer(nullptr) { }
-    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new(std::nothrow) uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+        CXPLAT_DBG_ASSERT(Buffer);
         memset(Buffer, 0, sizeof(*Buffer) + Size);
         Buffer->Length = Size;
         Buffer->Buffer = (uint8_t*)(Buffer + 1);
