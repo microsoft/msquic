@@ -1319,8 +1319,8 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -1810,8 +1810,8 @@ CxPlatSocketCreateTcpInternal(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2111,8 +2111,8 @@ CxPlatSocketCreateTcpListener(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(0, NULL));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(0, NULL));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2801,7 +2801,7 @@ CxPlatSocketHandleUnreachableError(
         "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
         SocketProc->Parent,
         ErrorCode,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
     SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
@@ -2973,7 +2973,7 @@ CxPlatDataPathUdpRecvComplete(
             DatapathTooLarge,
             "[data][%p] Received larger than expected datagram from %!ADDR!",
             SocketProc->Parent,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
         //
@@ -3063,8 +3063,8 @@ CxPlatDataPathUdpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             MessageLength,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3219,8 +3219,8 @@ CxPlatDataPathTcpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             NumberOfBytesTransferred,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3635,8 +3635,8 @@ CxPlatSocketSendInline(
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
