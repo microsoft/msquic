@@ -1893,15 +1893,7 @@ QuicTestKeyUpdateRandomLoss(
                 if (!Client.WaitForShutdownComplete()) {
                     return;
                 }
-
-                TEST_FALSE(Client.GetPeerClosed());
-                TEST_FALSE(Client.GetTransportClosed());
             }
-
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
         }
     }
 }
