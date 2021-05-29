@@ -2101,7 +2101,7 @@ AbortRecvConnCallback(
 {
     auto TestContext = (AbortRecvTestContext*)Context;
     if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-        TestContext->ServerStream = new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, AbortRecvStreamCallback, Context);
+        TestContext->ServerStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, AbortRecvStreamCallback, Context);
         if (TestContext->Type == QUIC_ABORT_RECEIVE_INCOMPLETE) {
             TestContext->ServerStreamRecv.Set();
         }
@@ -2172,7 +2172,7 @@ struct SlowRecvTestContext {
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         auto TestContext = (SlowRecvTestContext*)Context;
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            TestContext->ServerStream = new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+            TestContext->ServerStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -2261,7 +2261,7 @@ struct NthAllocFailTestContext {
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         auto TestContext = (NthAllocFailTestContext*)Context;
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            TestContext->ServerStream = new MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+            TestContext->ServerStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -2300,7 +2300,9 @@ QuicTestNthAllocFail(
                     sizeof(i),
                     &i));
 
-        MsQuicRegistration Registration;
+        CxPlatWatchdog Watchdog(2000);
+
+        MsQuicRegistration Registration(true);
         CONTINUE_ON_FAIL(Registration.GetInitStatus());
 
         MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
@@ -2327,7 +2329,7 @@ QuicTestNthAllocFail(
         QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
         CONTINUE_ON_FAIL(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
 
-        RecvContext.ServerStreamRecv.WaitTimeout(100);
-        RecvContext.ServerStreamShutdown.WaitTimeout(100);
+        RecvContext.ServerStreamRecv.WaitTimeout(10);
+        RecvContext.ServerStreamShutdown.WaitTimeout(10);
     }
 }

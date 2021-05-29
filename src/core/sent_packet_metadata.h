@@ -58,6 +58,9 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         struct {
             void* ClientContext;
         } DATAGRAM;
+        struct {
+            QUIC_VAR_INT Sequence;
+        } ACK_FREQUENCY;
     };
     //
     // The following to fields are for STREAM. However, if they were in stream

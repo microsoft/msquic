@@ -98,12 +98,6 @@ if ($InitSubmodules) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
         git submodule update
-
-        if ($Kernel) {
-            Write-Host "Initializing wil submodule"
-            git submodule init submodules/wil
-            git submodule update
-        }
     }
 
     Write-Host "Initializing CLOG submodule"

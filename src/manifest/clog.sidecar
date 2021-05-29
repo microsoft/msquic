@@ -1510,6 +1510,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "UpdatePacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating packet tolerance to %hhu",
+      "UniqueId": "UpdatePacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -1577,6 +1593,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "UpdatePeerPacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating peer packet tolerance to %hhu",
+      "UniqueId": "UpdatePeerPacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -7130,6 +7162,22 @@
       "TraceString": "[ lib] Release",
       "UniqueId": "LibraryRelease",
       "splitArgs": [],
+      "macroName": "QuicTraceEvent"
+    },
+    "BindingError": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] ERROR, %s.",
+      "UniqueId": "BindingError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
       "macroName": "QuicTraceEvent"
     },
     "LibraryServerInit": {
@@ -13182,6 +13230,41 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+<<<<<<< HEAD
+=======
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "TlsLogSecret": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "TlsLogSecret",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+>>>>>>> main
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -14382,6 +14465,7 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+<<<<<<< HEAD
     "OpenSslLogSecret": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -14411,6 +14495,8 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+=======
+>>>>>>> main
     "OpenSslAlert": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -14999,6 +15085,7 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+<<<<<<< HEAD
     "SchannelInitialized": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -15031,6 +15118,8 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+=======
+>>>>>>> main
     "SchannelAchAsync": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -15100,6 +15189,7 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+<<<<<<< HEAD
     "SchannelLogSecret": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -15129,6 +15219,8 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+=======
+>>>>>>> main
     "SchannelHandshakeComplete": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -17010,6 +17102,10 @@
         "EncodingString": "[conn][%p] Handshake confirmed (frame)"
       },
       {
+        "UniquenessHash": "e232b42d-9955-4467-0464-559ea5965464",
+        "TraceID": "UpdatePacketTolerance"
+      },
+      {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
         "TraceID": "FirstCidUsage",
         "EncodingString": "[conn][%p] First usage of SrcCid: %s"
@@ -17023,6 +17119,10 @@
         "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
         "TraceID": "Unreachable",
         "EncodingString": "[conn][%p] Received unreachable event"
+      },
+      {
+        "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
+        "TraceID": "UpdatePeerPacketTolerance"
       },
       {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
@@ -18063,6 +18163,10 @@
         "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",
         "TraceID": "LibraryRelease",
         "EncodingString": "[ lib] Release"
+      },
+      {
+        "UniquenessHash": "36d08274-918b-3ecd-861c-ada8d4fda4d5",
+        "TraceID": "BindingError"
       },
       {
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
@@ -19269,6 +19373,10 @@
         "EncodingString": "[cert] QuicCertVerify alg=0x%4.4x"
       },
       {
+        "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
+        "TraceID": "TlsLogSecret"
+      },
+      {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",
         "TraceID": "DatapathOpenUdpSocketFailed",
         "EncodingString": "[data] UDP send segmentation helper socket failed to open, 0x%x"
@@ -19539,11 +19647,14 @@
         "EncodingString": "[ reg] Opening %s"
       },
       {
+<<<<<<< HEAD
         "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
         "TraceID": "OpenSslLogSecret",
         "EncodingString": "[ tls] %s[%u]: %s"
       },
       {
+=======
+>>>>>>> main
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
         "TraceID": "OpenSslAlert",
         "EncodingString": "[conn][%p] Send alert = %u (Level = %u)"
@@ -19664,6 +19775,7 @@
         "EncodingString": "[ tls][%p] ERROR, %u, %s."
       },
       {
+<<<<<<< HEAD
         "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
         "TraceID": "SchannelInitialized",
         "EncodingString": "[ tls] Library initialized"
@@ -19674,6 +19786,8 @@
         "EncodingString": "[ tls] Library uninitialized"
       },
       {
+=======
+>>>>>>> main
         "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
         "TraceID": "SchannelAchAsync",
         "EncodingString": "[ tls] Calling SspiAcquireCredentialsHandleAsyncW"
@@ -19694,11 +19808,14 @@
         "EncodingString": "[ tls] Invoking security config completion callback inline, 0x%x"
       },
       {
+<<<<<<< HEAD
         "UniquenessHash": "c04de4b9-64de-c415-dda2-b07f295f9897",
         "TraceID": "SchannelLogSecret",
         "EncodingString": "[ tls] %s[%u]: %s"
       },
       {
+=======
+>>>>>>> main
         "UniquenessHash": "799852e0-2f39-43d4-6888-98a33178b844",
         "TraceID": "SchannelHandshakeComplete",
         "EncodingString": "[conn][%p] Handshake complete (resume=%hu)"

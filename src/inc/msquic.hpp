@@ -21,6 +21,11 @@ Supported Platforms:
 #pragma once
 
 #include <msquic.h>
+#ifdef _KERNEL_MODE
+#include <new.h>
+#else
+#include <new>
+#endif
 
 #ifndef CXPLAT_DBG_ASSERT
 #define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
@@ -714,7 +719,7 @@ private:
         auto pThis = (MsQuicAutoAcceptListener*)Context; CXPLAT_DBG_ASSERT(pThis);
         QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
-            auto Connection = new MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, pThis->ConnectionHandler, pThis->ConnectionContext);
+            auto Connection = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, pThis->ConnectionHandler, pThis->ConnectionContext);
             if (Connection) {
                 Status = Connection->SetConfiguration(pThis->Configuration);
                 if (QUIC_FAILED(Status)) {
@@ -901,7 +906,8 @@ struct ConfigurationScope {
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
     QuicBufferScope() noexcept : Buffer(nullptr) { }
-    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new(std::nothrow) uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+        CXPLAT_DBG_ASSERT(Buffer);
         memset(Buffer, 0, sizeof(*Buffer) + Size);
         Buffer->Length = Size;
         Buffer->Buffer = (uint8_t*)(Buffer + 1);
@@ -955,5 +961,35 @@ struct HashTable {
 };
 
 #endif // CXPLAT_HASH_MIN_SIZE
+
+#ifdef CXPLAT_FRE_ASSERT
+
+class CxPlatWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CxPlatEvent ShutdownEvent {true};
+    uint32_t TimeoutMs;
+    static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (CxPlatWatchdog*)Context;
+        if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "cxplat_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatThreadCreate(&Config, &WatchdogThread)));
+    }
+    ~CxPlatWatchdog() {
+        ShutdownEvent.Set();
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+    }
+};
+
+#endif // CXPLAT_FRE_ASSERT
 
 #endif // CX_PLATFORM_TYPE

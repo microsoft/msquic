@@ -1,6 +1,6 @@
 # Building MsQuic
 
-The full MsQuic build system relies on [CMake](https://cmake.org/) (3.16 or better), [.NET Core](https://dotnet.microsoft.com/download/dotnet-core) (Core 3.1 or 5.0 SDK) and [Powershell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (7.0 or better) on all platforms.
+The MsQuic build system relies on [CMake](https://cmake.org/) (3.16 or better), [.NET Core](https://dotnet.microsoft.com/download/dotnet-core) (Core 3.1 or 5.0 SDK) and [Powershell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (7.0 or better) on all platforms.
 
 > **Note** - clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.
@@ -33,7 +33,7 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 ## Install on Linux
 
-You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
+You can find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
 ```PowerShell
 # Download the Microsoft repository GPG keys
@@ -61,7 +61,7 @@ pwsh
 powershell : Depends: libicu55 but it is not installable
 ```
 
-Then you will need to run the following first (as a work around):
+Then you will need to run the following first (as a workaround):
 
 ```
 sudo apt-get remove libicu57
@@ -89,7 +89,7 @@ Then you will need to manually run "pwsh" to continue.
 
 ## Install Dependencies
 
-In order to installed the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
+In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
 
  * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
 
@@ -101,7 +101,7 @@ For the very first time you build, it's recommend to make sure you have all the 
 ./scripts/prepare-machine.ps1 -Configuration Dev
 ```
 
-Note at minimum CMake 3.16 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
+Note at minimum CMake 3.16 is required. Instructions for installing the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
 
 ### Additional Requirements on Windows
 
@@ -116,6 +116,12 @@ To build the code, you just need to run `build.ps1` in the `scripts` folder:
 
 ```PowerShell
 ./scripts/build.ps1
+```
+
+Note that `schannel` TLS provider requires the latest Windows versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
+
+```
+./scripts/build.ps1 -Tls openssl
 ```
 
 The script has a lot of additional configuration options, but the default should be fine for most.
@@ -134,7 +140,7 @@ For more info, take a look at the [build.ps1](../scripts/build.ps1) script.
 
 ## Build Output
 
-By default the build output should go to in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders, and then sub folders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
+By default the build output will go in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders with subfolders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
 
 # Building with CMake
 

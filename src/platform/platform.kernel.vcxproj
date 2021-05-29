@@ -35,6 +35,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="crypt.c" />
+    <ClCompile Include="crypt_bcrypt.c" />
     <ClCompile Include="datapath_winkernel.c" />
     <ClCompile Include="hashtable.c" />
     <ClCompile Include="pcp.c" />

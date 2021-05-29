@@ -26,41 +26,7 @@ For more details, please see the [Manageability draft](https://tools.ietf.org/ht
 
 # Configuration
 
-MsQuic supports a number of configuration knobs (or settings). These settings can either be set dynamically (via the `QUIC_SETTINGS` structure) or via persistent storage (e.g. registry on Windows).
-
-> **Important** - Generally MsQuic already choses the best / most correct default values for all settings. Settings should only be changed after due diligence and A/B testing is performed.
-
-| Setting                            | Type     | Name                    | Description                                                                                        |
-|------------------------------------|----------|-------------------------|----------------------------------------------------------------------------------------------------|
-| Max Partition Count                | uint16_t | MaxPartitionCount       | The maximum processor count used for partitioning work in MsQuic. **Restart is required.**         |
-| Max Bytes per Key                  | uint64_t | MaxBytesPerKey          |                                                                                                    |
-| Handshake Idle Timeout             | uint64_t | HandshakeIdleTimeoutMs  |                                                                                                    |
-| Idle Timeout                       | uint64_t | IdleTimeoutMs           |                                                                                                    |
-| Max TLS Send Buffer (Client)       | uint32_t | TlsClientMaxSendBuffer  |                                                                                                    |
-| Max TLS Send Buffer (Server)       | uint32_t | TlsServerMaxSendBuffer  |                                                                                                    |
-| Stream Receive Window              | uint32_t | StreamRecvWindowDefault |                                                                                                    |
-| Stream Receive Buffer              | uint32_t | StreamRecvBufferDefault |                                                                                                    |
-| Flow Control Window                | uint32_t | ConnFlowControlWindow   |                                                                                                    |
-| Max Worker Queue Delay             | uint32_t | MaxWorkerQueueDelayMs   | The maximum queue delay (in ms) allowed for a worker thread                                        |
-| Max Stateless Operations           | uint32_t | MaxStatelessOperations  | The maximum number of stateless operations that may be queued at any one time                      |
-| Initial Window                     | uint32_t | InitialWindowPackets    | The size (in packets) of the initial congestion window for a connection                            |
-| Send Idle Timeout                  | uint32_t | SendIdleTimeoutMs       |                                                                                                    |
-| Initial RTT                        | uint32_t | InitialRttMs            |                                                                                                    |
-| Max ACK Delay                      | uint32_t | MaxAckDelayMs           |                                                                                                    |
-| Disconnect Timeout                 | uint32_t | DisconnectTimeoutMs     |                                                                                                    |
-| Keep Alive Interval                | uint32_t | KeepAliveIntervalMs     |                                                                                                    |
-| Peer Stream Count (Bidirectional)  | uint16_t | PeerBidiStreamCount     |                                                                                                    |
-| Peer Stream Count (Unidirectional) | uint16_t | PeerUnidiStreamCount    |                                                                                                    |
-| Retry Memory Limit                 | uint16_t | RetryMemoryFraction     | The percentage of available memory usable for handshake connections before stateless retry is used |
-| Load Balancing Mode                | uint16_t | LoadBalancingMode       |                                                                                                    |
-| Max Operations per Drain           | uint8_t  | MaxOperationsPerDrain   | The maximum number of operations to drain per connection quantum                                   |
-| Send Buffering                     | uint8_t  | SendBufferingEnabled    |                                                                                                    |
-| Send Pacing                        | uint8_t  | PacingEnabled           |                                                                                                    |
-| Client Migration Support           | uint8_t  | MigrationEnabled        |                                                                                                    |
-| Datagram Receive Support           | uint8_t  | DatagramReceiveEnabled  |                                                                                                    |
-| Server Resumption Level            | uint8_t  | ServerResumptionLevel   |                                                                                                    |
-
-> **TODO** - Finish table above
+Please see [Settings](Settings.md) for information on MsQuic configuration.
 
 ## Windows
 

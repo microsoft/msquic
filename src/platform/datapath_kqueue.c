@@ -722,15 +722,16 @@ CxPlatDataPathResolveAddress(
     }
 
     QuicTraceEvent(
-        LibraryError,
-        "[ lib] ERROR, %s.",
+        LibraryErrorStatus,
+        "[ lib] ERROR, %u, %s.",
+        (uint32_t)Result,
         "Resolving hostname to IP");
     QuicTraceLogError(
         DatapathResolveHostNameFailed,
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-    Status = QUIC_STATUS_DNS_RESOLUTION_ERROR;
+    Status = (QUIC_STATUS)Result;
 
 Exit:
 
@@ -2268,5 +2269,5 @@ CxPlatDataPathWorkerThread(
         "[data][%p] Worker stop",
         ProcContext);
 
-    return NO_ERROR;
+    return 0;
 }
