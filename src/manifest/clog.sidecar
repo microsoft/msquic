@@ -1511,7 +1511,16 @@
       "macroName": "QuicTraceLogConnInfo"
     },
     "UpdatePacketTolerance": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "664",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume",
+          "EmitString": "1"
+        }
+      },
       "TraceString": "[conn][%p] Updating packet tolerance to %hhu",
       "UniqueId": "UpdatePacketTolerance",
       "splitArgs": [
@@ -1598,7 +1607,16 @@
       "macroName": "QuicTraceLogConnInfo"
     },
     "UpdatePeerPacketTolerance": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "665",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume",
+          "EmitString": "1"
+        }
+      },
       "TraceString": "[conn][%p] Updating peer packet tolerance to %hhu",
       "UniqueId": "UpdatePeerPacketTolerance",
       "splitArgs": [
@@ -7165,7 +7183,16 @@
       "macroName": "QuicTraceEvent"
     },
     "BindingError": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "666",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume",
+          "EmitString": "1"
+        }
+      },
       "TraceString": "[bind][%p] ERROR, %s.",
       "UniqueId": "BindingError",
       "splitArgs": [
@@ -11063,7 +11090,16 @@
       "macroName": "QuicTraceLogStreamWarning"
     },
     "IndicatePeerAccepted": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "667",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume",
+          "EmitString": "1"
+        }
+      },
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED",
       "UniqueId": "IndicatePeerAccepted",
       "splitArgs": [
@@ -13230,22 +13266,17 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-<<<<<<< HEAD
-=======
-    "LibraryError": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] ERROR, %s.",
-      "UniqueId": "LibraryError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "TlsLogSecret": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "668",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume",
+          "EmitString": "1"
+        }
+      },
       "TraceString": "[ tls] %s[%u]: %s",
       "UniqueId": "TlsLogSecret",
       "splitArgs": [
@@ -13264,7 +13295,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
->>>>>>> main
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -14465,38 +14495,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-<<<<<<< HEAD
-    "OpenSslLogSecret": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "586",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume",
-          "EmitString": "1"
-        }
-      },
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "OpenSslLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-=======
->>>>>>> main
     "OpenSslAlert": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -15085,41 +15083,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-<<<<<<< HEAD
-    "SchannelInitialized": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "611",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume",
-          "EmitString": "1"
-        }
-      },
-      "TraceString": "[ tls] Library initialized",
-      "UniqueId": "SchannelInitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelUninitialized": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "612",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume",
-          "EmitString": "1"
-        }
-      },
-      "TraceString": "[ tls] Library uninitialized",
-      "UniqueId": "SchannelUninitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-=======
->>>>>>> main
     "SchannelAchAsync": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -15189,38 +15152,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-<<<<<<< HEAD
-    "SchannelLogSecret": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "617",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume",
-          "EmitString": "1"
-        }
-      },
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "SchannelLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-=======
->>>>>>> main
     "SchannelHandshakeComplete": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -17103,7 +17034,8 @@
       },
       {
         "UniquenessHash": "e232b42d-9955-4467-0464-559ea5965464",
-        "TraceID": "UpdatePacketTolerance"
+        "TraceID": "UpdatePacketTolerance",
+        "EncodingString": "[conn][%p] Updating packet tolerance to %hhu"
       },
       {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
@@ -17122,7 +17054,8 @@
       },
       {
         "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
-        "TraceID": "UpdatePeerPacketTolerance"
+        "TraceID": "UpdatePeerPacketTolerance",
+        "EncodingString": "[conn][%p] Updating peer packet tolerance to %hhu"
       },
       {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
@@ -18166,7 +18099,8 @@
       },
       {
         "UniquenessHash": "36d08274-918b-3ecd-861c-ada8d4fda4d5",
-        "TraceID": "BindingError"
+        "TraceID": "BindingError",
+        "EncodingString": "[bind][%p] ERROR, %s."
       },
       {
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
@@ -18711,12 +18645,12 @@
       {
         "UniquenessHash": "66dd140b-9fd3-eddc-e34c-cb81639e1aca",
         "TraceID": "IndicateStartComplete",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)"
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]"
       },
       {
         "UniquenessHash": "8340b390-8b79-ab44-6593-7e449f0ec748",
         "TraceID": "IndicateStreamShutdownComplete",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE"
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]"
       },
       {
         "UniquenessHash": "cfaab7b3-b77b-3a94-a433-4c9b57907696",
@@ -18925,7 +18859,8 @@
       },
       {
         "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",
-        "TraceID": "IndicatePeerAccepted"
+        "TraceID": "IndicatePeerAccepted",
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED"
       },
       {
         "UniquenessHash": "418770bb-5594-978f-0b62-4bb47315bfa1",
@@ -18935,7 +18870,7 @@
       {
         "UniquenessHash": "26bdd068-e9fa-9f1e-2d26-60dbed5c5080",
         "TraceID": "IndicateStreamsAvailable",
-        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]"
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]"
       },
       {
         "UniquenessHash": "f717f17f-99ed-acb7-9a3c-098e69d13a4a",
@@ -19374,7 +19309,8 @@
       },
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
-        "TraceID": "TlsLogSecret"
+        "TraceID": "TlsLogSecret",
+        "EncodingString": "[ tls] %s[%u]: %s"
       },
       {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",
@@ -19647,14 +19583,6 @@
         "EncodingString": "[ reg] Opening %s"
       },
       {
-<<<<<<< HEAD
-        "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
-        "TraceID": "OpenSslLogSecret",
-        "EncodingString": "[ tls] %s[%u]: %s"
-      },
-      {
-=======
->>>>>>> main
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
         "TraceID": "OpenSslAlert",
         "EncodingString": "[conn][%p] Send alert = %u (Level = %u)"
@@ -19775,19 +19703,6 @@
         "EncodingString": "[ tls][%p] ERROR, %u, %s."
       },
       {
-<<<<<<< HEAD
-        "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
-        "TraceID": "SchannelInitialized",
-        "EncodingString": "[ tls] Library initialized"
-      },
-      {
-        "UniquenessHash": "b21a8d0d-c484-ac00-8081-90d5e8de9d1f",
-        "TraceID": "SchannelUninitialized",
-        "EncodingString": "[ tls] Library uninitialized"
-      },
-      {
-=======
->>>>>>> main
         "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
         "TraceID": "SchannelAchAsync",
         "EncodingString": "[ tls] Calling SspiAcquireCredentialsHandleAsyncW"
@@ -19808,14 +19723,6 @@
         "EncodingString": "[ tls] Invoking security config completion callback inline, 0x%x"
       },
       {
-<<<<<<< HEAD
-        "UniquenessHash": "c04de4b9-64de-c415-dda2-b07f295f9897",
-        "TraceID": "SchannelLogSecret",
-        "EncodingString": "[ tls] %s[%u]: %s"
-      },
-      {
-=======
->>>>>>> main
         "UniquenessHash": "799852e0-2f39-43d4-6888-98a33178b844",
         "TraceID": "SchannelHandshakeComplete",
         "EncodingString": "[conn][%p] Handshake complete (resume=%hu)"
