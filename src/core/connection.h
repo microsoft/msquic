@@ -1094,7 +1094,7 @@ QuicConnGetSourceCidFromSeq(
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
-                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+                    CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
