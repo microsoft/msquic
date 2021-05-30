@@ -14,7 +14,7 @@ Abstract:
 #include <new.h>
 
 #ifdef QUIC_CLOG
-#include "drivermain.cpp.clog.h"
+#include "drvmain.cpp.clog.h"
 #endif
 
 DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceNameBase, L"\\Device\\");
