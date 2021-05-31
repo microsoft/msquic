@@ -278,7 +278,7 @@ QuicSendClearSendFlag(
 {
     if (Send->SendFlags & SendFlags) {
         QuicTraceLogConnVerbose(
-            RemoveSendFlags,
+            RemoveSendFlagsMsg,
             QuicSendGetConnection(Send),
             "Removing flags %x",
             (SendFlags & Send->SendFlags));
