@@ -964,9 +964,9 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = 4 * sizeof(uint32_t);
         ((uint32_t*)Buffer)[0] = VER_MAJOR;
-        ((uint32_t*)Buffer)[0] = VER_MINOR;
-        ((uint32_t*)Buffer)[0] = VER_PATCH;
-        ((uint32_t*)Buffer)[0] = VER_BUILD_ID;
+        ((uint32_t*)Buffer)[1] = VER_MINOR;
+        ((uint32_t*)Buffer)[2] = VER_PATCH;
+        ((uint32_t*)Buffer)[3] = VER_BUILD_ID;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
