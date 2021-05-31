@@ -11,6 +11,10 @@ Abstract:
 
 #pragma once
 
+#ifdef QUIC_CLOG
+#include "PerfHelpers.h.clog.h"
+#endif
+
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1 // For self-signed cert API
 #endif
@@ -31,10 +35,6 @@ Abstract:
 #include <new> // Needed for placement new
 #else
 #include <new.h>
-#endif
-
-#ifdef QUIC_CLOG
-#include "PerfHelpers.h.clog.h"
 #endif
 
 #define QUIC_TEST_SESSION_CLOSED    1
