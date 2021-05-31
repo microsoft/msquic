@@ -16163,6 +16163,118 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "RttUpdatedMsg": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u",
+      "UniqueId": "RttUpdatedMsg",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "RemoveSendFlagsMsg": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Removing flags %x",
+      "UniqueId": "RemoveSendFlagsMsg",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "AckRangeMsg": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Received ack for %d bytes, offset=%llu, FF=0x%hx",
+      "UniqueId": "AckRangeMsg",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hx",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "TestSendIoctl": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Sending Write IOCTL %u with %u bytes.",
+      "UniqueId": "TestSendIoctl",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TestReadIoctl": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Sending Read IOCTL %u.",
+      "UniqueId": "TestReadIoctl",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathUnreachableMsg": {
+      "ModuleProperites": {},
+      "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
+      "UniqueId": "DatapathUnreachableMsg",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -19950,7 +20062,29 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop",
-        "EncodingString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s."
+      {
+        "UniquenessHash": "dc25a415-b386-47ec-0128-415c6f31795b",
+        "TraceID": "RttUpdatedMsg"
+      },
+      {
+        "UniquenessHash": "b4aa5fad-d1de-466c-0214-1bbda4b9eb95",
+        "TraceID": "RemoveSendFlagsMsg"
+      },
+      {
+        "UniquenessHash": "1f842f1b-027f-b5ec-e0ac-fc9491aeb629",
+        "TraceID": "AckRangeMsg"
+      },
+      {
+        "UniquenessHash": "28f77853-916b-5ceb-e928-405aff056b0a",
+        "TraceID": "TestSendIoctl"
+      },
+      {
+        "UniquenessHash": "3c33979e-0db8-7562-7df1-41ef66cb75fa",
+        "TraceID": "TestReadIoctl"
+      },
+      {
+        "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",
+        "TraceID": "DatapathUnreachableMsg"
       }
     ]
   }
