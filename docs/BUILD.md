@@ -71,6 +71,9 @@ wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1u
 sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 ```
 
+ > **Note** You can install dotnet as the tool, because it makes installing other tools easy (pwsh for example)
+https://devblogs.microsoft.com/powershell/introducing-powershell-as-net-global-tool/
+
 Then you will need to manually run "pwsh" to continue.
 
 ## Install on macOS

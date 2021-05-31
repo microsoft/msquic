@@ -26,7 +26,7 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
-$Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File)
+$Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -Exclude *quic_trace.h,*quicetw.h,*trace.c -File)
 $Files.Sort([SimpleStringComparer]::new())
 
 $Sidecar = Join-Path $SrcDir "manifest" "clog.sidecar"
@@ -39,10 +39,14 @@ if ($Clean) {
     Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
 }
 
+$allFiles = ""
 foreach ($File in $Files) {
-    clog -p windows --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p windows_kernel --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p stubs --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p linux --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p macos --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
+    Write-Debug "Add file: $File"
+    $allFiles = $allFiles + " " + $File
 }
+
+Invoke-Expression "clog -p windows --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p windows_kernel --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p stubs --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p linux --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p macos --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"

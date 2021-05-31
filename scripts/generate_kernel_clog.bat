@@ -20,6 +20,11 @@ echo EnvVars] --------------------------------------------------------------
 set
 echo -----------------------------------------------------------------------
 
+
+if NOT EXIST %CMAKE_SOURCE_DIR%\build\tools\clog\clog.exe (
+    dotnet publish %CMAKE_SOURCE_DIR%\submodules\clog\src\clog\clog.csproj --self-contained -o %CMAKE_SOURCE_DIR%\build\tools\clog -f net5.0 -r win-x64
+)
+
 echo %CMAKE_SOURCE_DIR%
 
 echo Clearing the LIB environment varaible to avoid conflicting with the needs of dotnet
@@ -27,12 +32,15 @@ set LIB=
 
 pushd %CMAKE_PROJECTDIR%
 echo CLOG Processing Directory %CMAKE_PROJECTDIR%
-for %%i in (*.cpp *.c operation.h stream.h connection.h TestHelpers.h) do (
+for %%i in (*.cpp *.c operation.h stream.h connection.h TestHelpers.h perfhelpers.h) do (
     echo CLOG Processing %%i
     if EXIST %%i (
+
         if NOT EXIST %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h (
-            clog --readOnly -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar -i %%i -o %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h
-            echo %%i
+            %CMAKE_SOURCE_DIR%\build\tools\clog\clog.exe --readOnly -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar --inputFiles %%i --outputDirectory %CMAKE_CLOG_OUTPUT_DIRECTORY%
+            echo PROCESSED %%i
+        ) else (
+            echo ALREADY EXISTSS...
         )
     )
 )
