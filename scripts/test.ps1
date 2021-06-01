@@ -182,7 +182,7 @@ if ($CodeCoverage) {
     }
 }
 
-$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform "" -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
 $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
