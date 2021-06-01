@@ -1799,6 +1799,7 @@ QuicTestKeyUpdateRandomLoss(
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
+        Listener.SetHasRandomLoss(true);
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
@@ -1813,6 +1814,7 @@ QuicTestKeyUpdateRandomLoss(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(true);
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
