@@ -87,7 +87,7 @@ QuicGetNextProbeSize(
     // be less then a full increment.
     //
     if (Path->Mtu < 1280) {
-        return 1280;
+        return min(1280, MtuDiscovery->MaxMtu);
     }
 
     uint16_t Mtu = Path->Mtu + QUIC_DPLPMTUD_INCREMENT;
