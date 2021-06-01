@@ -238,7 +238,7 @@ QuicTestMtuDiscovery(
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
-    const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1280;
+    const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
     const uint16_t MaximumMtu = 1500;
 
     MsQuicAlpn Alpn("MsQuicTest");
