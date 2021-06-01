@@ -179,15 +179,7 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-$BuildConfig = @{
-    Platform = $Platform
-    Tls = $Tls
-    Arch = $Arch
-    ExtraArtifactDir = $ExtraArtifactDir
-    Config = $Config
-}
-
-$BuildConfig = & (Join-Path $PSScriptRoot helpers.ps1) -BuildConfig $BuildConfig
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
 $Platform = $BuildConfig.Platform
 $Tls = $BuildConfig.Tls
