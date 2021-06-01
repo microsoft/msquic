@@ -327,6 +327,39 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+TEST(Mtu, Settings) {
+    TestLogger Logger("QuicTestMtuSettings");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_SETTINGS));
+    } else {
+        QuicTestMtuSettings();
+    }
+}
+
+TEST_P(WithMtuArgs, MtuDiscovery) {
+    TestLoggerT<ParamType> Logger("QuicTestMtuDiscovery", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_MTU_DISCOVERY_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)(GetParam().DropMode & 1),
+            (uint8_t)(GetParam().DropMode & 2),
+            (uint8_t)GetParam().RaiseMinimum
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_DISCOVERY, Params));
+    }
+    else {
+        QuicTestMtuDiscovery(
+            GetParam().Family,
+            GetParam().DropMode & 1,
+            GetParam().DropMode & 2,
+            GetParam().RaiseMinimum);
+    }
+}
+
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 TEST(Alpn, ValidAlpnLengths) {
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {
@@ -1411,6 +1444,15 @@ INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
+
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+INSTANTIATE_TEST_SUITE_P(
+    Mtu,
+    WithMtuArgs,
+    ::testing::ValuesIn(MtuArgs::Generate()));
+
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,

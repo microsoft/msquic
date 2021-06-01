@@ -42,6 +42,7 @@
     <ClCompile Include="DrillDescriptor.cpp" />
     <ClCompile Include="EventTest.cpp" />
     <ClCompile Include="HandshakeTest.cpp" />
+    <ClCompile Include="MtuTest.cpp" />
     <ClCompile Include="QuicDrill.cpp" />
     <ClCompile Include="TestConnection.cpp" />
     <ClCompile Include="TestListener.cpp" />

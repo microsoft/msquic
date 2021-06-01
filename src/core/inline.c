@@ -670,3 +670,16 @@ BOOLEAN
 QuicErrorIsProtocolError(
     _In_ QUIC_VAR_INT ErrorCode
     );
+
+uint16_t
+QuicConnGetMaxMtuForPath(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicMtuDiscoveryCheckSearchCompleteTimeout(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint64_t TimeNow
+    );

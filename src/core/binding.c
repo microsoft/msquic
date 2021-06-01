@@ -30,7 +30,7 @@ Abstract:
     (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
 )
 CXPLAT_STATIC_ASSERT(
-    QUIC_DEFAULT_PATH_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
+    QUIC_DPLPMUTD_MIN_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
     "Too many supported version numbers! Requires too big of buffer for response!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

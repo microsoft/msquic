@@ -6445,6 +6445,7 @@ QuicConnApplyNewSettings(
             &Connection->Settings,
             OverWrite,
             CopyExternalToInternal,
+            !Connection->State.Started,
             NewSettingsSize,
             NewSettings)) {
         return FALSE;
@@ -6454,6 +6455,7 @@ QuicConnApplyNewSettings(
 
         Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
         Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
+        Connection->Paths[0].Mtu = Connection->Settings.MinimumMtu;
 
         if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
             Connection->HandshakeTP == NULL) {

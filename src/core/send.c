@@ -950,7 +950,7 @@ QuicSendPathChallenges(
             Builder.MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
                     QuicAddrGetFamily(&Builder.Path->RemoteAddress),
-                    QUIC_INITIAL_PACKET_LENGTH);
+                    Builder.Path->Mtu);
 
             if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {
                 //
@@ -1016,12 +1016,21 @@ QuicSendFlush(
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
-    if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
+    QUIC_PATH* Path = &Connection->Paths[0];
+    if (Path->DestCid == NULL) {
         return TRUE;
     }
 
-    QUIC_PATH* Path = &Connection->Paths[0];
-    if (Path->DestCid == NULL) {
+    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, CxPlatTimeUs64());
+
+    //
+    // If path is active without being peer validated, disable MTU flag if set.
+    //
+    if (!Path->IsPeerValidated) {
+        Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_DPLPMTUD;
+    }
+
+    if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
     }
 
@@ -1120,22 +1129,39 @@ QuicSendFlush(
         // We write data to packets in the following order:
         //
         //   1. Connection wide control data.
-        //   2. Stream (control and application) data.
-        //   3. Path MTU discovery packets.
+        //   2. Path MTU discovery packets.
+        //   3. Stream (control and application) data.
         //
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
             CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
-                    SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD)) {
+                    SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD)) {
                 break;
             }
             WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);
-
+        } else if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
+            if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
+                break;
+            }
+            FlushBatchedDatagrams = TRUE;
+            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_DPLPMTUD;
+            if (Builder.Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
+                Builder.DatagramLength < Builder.Datagram->Length - Builder.EncryptionOverhead) {
+                //
+                // We are doing DPLPMTUD, so make sure there is a PING frame in there, if
+                // we have room, just to make sure we get an ACK.
+                //
+                Builder.Datagram->Buffer[Builder.DatagramLength++] = QUIC_FRAME_PING;
+                Builder.Metadata->Frames[Builder.Metadata->FrameCount++].Type = QUIC_FRAME_PING;
+                WrotePacketFrames = TRUE;
+            } else {
+                WrotePacketFrames = FALSE;
+            }
         } else if (Stream != NULL ||
             (Stream = QuicSendGetNextStream(Send, &StreamPacketCount)) != NULL) {
             if (!QuicPacketBuilderPrepareForStreamFrames(
@@ -1174,25 +1200,6 @@ QuicSendFlush(
                 // Try a new stream next loop iteration.
                 //
                 Stream = NULL;
-            }
-
-        } else if (SendFlags == QUIC_CONN_SEND_FLAG_PMTUD) {
-            if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
-                break;
-            }
-            FlushBatchedDatagrams = TRUE;
-            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PMTUD;
-            if (Builder.Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
-                Builder.DatagramLength < Builder.Datagram->Length - Builder.EncryptionOverhead) {
-                //
-                // We are doing PMTUD, so make sure there is a PING frame in there, if
-                // we have room, just to make sure we get an ACK.
-                //
-                Builder.Datagram->Buffer[Builder.DatagramLength++] = QUIC_FRAME_PING;
-                Builder.Metadata->Frames[Builder.Metadata->FrameCount++].Type = QUIC_FRAME_PING;
-                WrotePacketFrames = TRUE;
-            } else {
-                WrotePacketFrames = FALSE;
             }
 
         } else {

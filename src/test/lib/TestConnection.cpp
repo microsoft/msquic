@@ -843,6 +843,10 @@ TestConnection::HandleConnectionEvent(
         }
         break;
 
+    case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
+        // Use This
+        break;
+
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         ResumptionTicket =
             (QUIC_BUFFER*)

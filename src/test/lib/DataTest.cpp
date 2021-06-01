@@ -1956,6 +1956,7 @@ QuicTestAckSendDelay(
     MsQuicAlpn Alpn("MsQuicTest");
 
     MsQuicSettings Settings{};
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
     Settings.SetIdleTimeoutMs(TimeoutMs);
     Settings.SetMaxAckDelayMs(AckDelayMs);
     Settings.SetPeerBidiStreamCount(1);

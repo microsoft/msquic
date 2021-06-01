@@ -263,7 +263,7 @@ QuicPacketBuilderPrepare(
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
-                IsPathMtuDiscovery ? CXPLAT_MAX_MTU : DatagramSize);
+                IsPathMtuDiscovery ? Builder->Path->MtuDiscovery.ProbeSize : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
             NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
@@ -314,7 +314,7 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
                     QuicAddrGetFamily(&Builder->Path->RemoteAddress),
-                    QUIC_INITIAL_PACKET_LENGTH);
+                    Builder->Path->Mtu);
 
             if ((uint32_t)Builder->MinimumDatagramLength > Builder->Datagram->Length) {
                 //
@@ -350,7 +350,7 @@ QuicPacketBuilderPrepare(
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;
         Builder->Metadata->Flags.IsAckEliciting = FALSE;
-        Builder->Metadata->Flags.IsPMTUD = IsPathMtuDiscovery;
+        Builder->Metadata->Flags.IsMtuProbe = IsPathMtuDiscovery;
         Builder->Metadata->Flags.SuspectedLost = FALSE;
 #if DEBUG
         Builder->Metadata->Flags.Freed = FALSE;
@@ -532,7 +532,7 @@ QuicPacketBuilderPrepareForControlFrames(
     _In_ uint32_t SendFlags
     )
 {
-    CXPLAT_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
+    CXPLAT_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD));
     QUIC_PACKET_KEY_TYPE PacketKeyType;
     return
         QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(

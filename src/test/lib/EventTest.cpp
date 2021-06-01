@@ -299,10 +299,12 @@ QuicTestValidateConnectionEvents1(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     ConnValidator Client(
@@ -353,10 +355,12 @@ QuicTestValidateConnectionEvents2(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     ConnValidator Client(
@@ -409,7 +413,7 @@ QuicTestValidateConnectionEvents3(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -508,11 +512,11 @@ QuicTestValidateStreamEvents1(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -610,11 +614,11 @@ QuicTestValidateStreamEvents2(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -697,11 +701,11 @@ QuicTestValidateStreamEvents3(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -818,11 +822,11 @@ QuicTestValidateStreamEvents4(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -938,11 +942,11 @@ QuicTestValidateStreamEvents5(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope

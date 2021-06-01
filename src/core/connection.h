@@ -1412,3 +1412,65 @@ QuicConnParamGet(
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     );
+
+//
+// Get the max MTU for a specific path.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint16_t
+QuicConnGetMaxMtuForPath(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    )
+{
+    //
+    // We can't currently cache the full value because this is called before
+    // handshake complete in QuicPacketBuilderFinalize. So cache the values
+    // we can.
+    //
+    uint16_t LocalMtu = Path->LocalMtu;
+    if (LocalMtu == 0) {
+        LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+        Path->LocalMtu = LocalMtu;
+    }
+    uint16_t RemoteMtu = 0xFFFF;
+    if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
+        RemoteMtu =
+            PacketSizeFromUdpPayloadSize(
+                QuicAddrGetFamily(&Path->RemoteAddress),
+                (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize);
+    }
+    uint16_t SettingsMtu = Connection->Settings.MaximumMtu;
+    return min(min(LocalMtu, RemoteMtu), SettingsMtu);
+}
+
+//
+// Check to see if enough time has passed while in Search Complete to retry MTU
+// discovery.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicMtuDiscoveryCheckSearchCompleteTimeout(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint64_t TimeNow
+    )
+{
+    uint64_t TimeoutTime = Connection->Settings.MtuDiscoverySearchCompleteTimeoutUs;
+    for (uint8_t i = 0; i < Connection->PathsCount; i++) {
+        //
+        // Only trigger a new send if we're in Search Complete and enough time has
+        // passed.
+        //
+        QUIC_PATH* Path = &Connection->Paths[i];
+        if (!Path->IsActive || !Path->MtuDiscovery.IsSearchComplete) {
+            continue;
+        }
+        if (CxPlatTimeDiff64(
+                Path->MtuDiscovery.SearchCompleteEnterTimeUs,
+                TimeNow) >= TimeoutTime) {
+            QuicMtuDiscoveryMoveToSearching(&Path->MtuDiscovery, Connection);
+        }
+    }
+}

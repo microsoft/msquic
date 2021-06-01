@@ -1561,7 +1561,13 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
+        //
+        // A handshake complete means the peer has been validated. Trigger MTU
+        // discovery on path.
+        //
+        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
+        QUIC_PATH* Path = &Connection->Paths[0];
+        QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
 
         if (QuicConnIsServer(Connection) &&
             Crypto->TlsState.BufferOffset1Rtt != 0 &&

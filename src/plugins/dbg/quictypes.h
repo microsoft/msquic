@@ -723,7 +723,7 @@ struct Stream : Struct {
 #define QUIC_CONN_SEND_FLAG_PING                    0x00001000
 #define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000
 #define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000
-#define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000
+#define QUIC_CONN_SEND_FLAG_DPLPMTUD                0x80000000
 
 struct Send : Struct {
 
@@ -868,7 +868,7 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
     UINT8 KeyType                   : 2;
     BOOLEAN IsAckEliciting          : 1;
-    BOOLEAN IsPMTUD                 : 1;
+    BOOLEAN IsMtuProbe              : 1;
     BOOLEAN SuspectedLost           : 1;
 
     PCSTR KeyTypeStr() {
