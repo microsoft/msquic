@@ -30,7 +30,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos", "")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
