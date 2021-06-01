@@ -81,6 +81,15 @@ QuicGetNextProbeSize(
     // depends on that behavior.
     //
 
+    //
+    // Jump automatically to 1280 to return algorithm to ideal case. 1280 should
+    // be supported in most scenarios. With minimum being 1248, this will always
+    // be less then a full increment.
+    //
+    if (Path->Mtu < 1280) {
+        return min(1280, MtuDiscovery->MaxMtu);
+    }
+
     uint16_t Mtu = Path->Mtu + QUIC_DPLPMTUD_INCREMENT;
     if (Mtu > MtuDiscovery->MaxMtu) {
         Mtu = MtuDiscovery->MaxMtu;

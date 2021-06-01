@@ -246,10 +246,9 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be powe
                                                 CXPLAT_UDP_HEADER_SIZE)
 
 //
-// The minimum IP MTU DPLPMTUD will use by default. Slightly larger than
-// absolute minimum to allow a larger allowance.
+// The minimum IP MTU DPLPMTUD will use by default.
 //
-#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           1280    // TODO - Use QUIC_DPLPMUTD_MIN_MTU instead
+#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           QUIC_DPLPMUTD_MIN_MTU
 
 //
 // The maximum IP MTU DPLPMTUD will use by default.
