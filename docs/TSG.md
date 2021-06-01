@@ -145,8 +145,8 @@ This clearly shows that listener `7f30ac0dcff0` failed to register with the bind
 
 First, a bit of background. The MsQuic API has two types of APIs:
 
-- **Blocking / Synchronous** - These APIs run to completion and only return once finished. When running in the Windows kernel, these **MUST NOT** be called at `DISPATCH_LEVEL`. They are generally denoted by the `_IRQL_requires_max_(PASSIVE_LEVEL)` annotation. For example, [ConnectionClose](./api/ConnectionClose.md).
-- **Nonblocking / Asynchronous** - These APIs mearly queue work and return immediately. When running in the Windows kernel, these may be called at `DISPATCH_LEVEL`. They are generally denoted by the `_IRQL_requires_max_(DISPATCH_LEVEL)` annotation. For example, [StreamSend][./api/StreamSend.md].
+- **Blocking / Synchronous** - These APIs run to completion and only return once finished. When running in the Windows kernel, these **MUST NOT** be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(PASSIVE_LEVEL)` annotation. For example, [ConnectionClose](./api/ConnectionClose.md).
+- **Nonblocking / Asynchronous** - These APIs mearly queue work and return immediately. When running in the Windows kernel, these may be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(DISPATCH_LEVEL)` annotation. For example, [StreamSend][./api/StreamSend.md].
 
 Additional documentation on the MsQuic execution model is available [here](./API.md#execution-mode).
 

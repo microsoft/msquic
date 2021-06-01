@@ -128,7 +128,7 @@ MsQuicConnectionShutdown(
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
@@ -179,7 +179,8 @@ MsQuicStreamClose(
         HQUIC Handle
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 QUIC_API
 MsQuicStreamStart(
