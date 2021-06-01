@@ -40,10 +40,10 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | [Type](Release.md#release-support-policies) | Branch | Windows | Fork Date | Release Date | End of Support |
 | -- | -- | -- | -- | -- | -- |
 | LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Server 2022 | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
-| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | TBD | Feb 10 2020 | TBD | TBD |
-| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2020 | N/A |N/A |
-| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2020 | N/A |N/A |
-| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2020 | N/A |N/A |
+| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | TBD | Feb 10 2021 | TBD | TBD |
+| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A |N/A |
+| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A |N/A |
+| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A |N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
