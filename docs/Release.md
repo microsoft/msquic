@@ -146,5 +146,6 @@ The QUIC specifications are being actively looked at by the RFC editor. Both the
 - Enabled ACK frequency in CPU limited scenarios (#1588).
 - Support for DPLPMTUD (#1563).
 - Reduced min MTU to 1248 (#1673).
+- Refactored POSIX error codes (breaking change for POSIX, #1645).
 
 The QUIC specifications now offically RFC. Both the v1 and draft-29 versions are still supported by this release.
