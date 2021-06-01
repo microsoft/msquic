@@ -60,6 +60,10 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 >  * Server Preferred Address
 >  * Path MTU Discovery
 
+### Known Issues
+
+- `GetParam` for `QUIC_PARAM_CONN_STATISTICS` does not populate `Handshake.*` fields.
+
 ## MsQuic v1.1 (TBD)
 
 [MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (official name TBD) release. These changes include:
@@ -74,6 +78,10 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
  - Diagnostics documentation improvements.
 
 The QUIC specifications have been approved by the IESG and are in RFC editor queue. Both the v1 and draft-29 versions are supported by this release.
+
+### Known Issues
+
+- `GetParam` for `QUIC_PARAM_CONN_STATISTICS` does not populate `Handshake.*` fields.
 
 ## MsQuic v1.2 (Prerelease)
 
