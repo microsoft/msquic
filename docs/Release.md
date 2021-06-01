@@ -124,3 +124,26 @@ The QUIC specifications are still in RFC editor queue. Both the v1 and draft-29 
 - Refactored/improved WPA plugin and cmd line tool, QuicTrace (#1482, #1484, #1485, #1490, #1493, #1499).
 
 The QUIC specifications are being actively looked at by the RFC editor. Both the v1 and draft-29 versions are still supported by this release.
+
+## MsQuic v1.4 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.4](https://github.com/microsoft/msquic/releases/tag/v1.4.0) has numerous improvements from v1.3. As this is a prerelease, there is no expected shipping vehicle for this release. Some noted changes in this release include:
+
+- Updated User Mode PGO.
+- Perf improvement from sent packet metadata stream ref counting (#1529).
+- Support address sanitizer on Windows.
+- Random allocation test support for SpinQuic and BVT (#1537, #1541).
+- Fix key phase and key update detection logic (#1548).
+- Fixed bug with stateless reset and retired CIDs (#1568).
+- Add support for Peer Accept Stream event (#1560).
+- Various bug fixes found from random allocation failure tests.
+- Various additional test cases added.
+- Added multiple API version support.
+- Lots of improved documentation.
+- Enabled ACK frequency in CPU limited scenarios (#1588).
+- Support for DPLPMTUD (#1563).
+- Reduced min MTU to 1248 (#1673).
+
+The QUIC specifications now offically RFC. Both the v1 and draft-29 versions are still supported by this release.
