@@ -35,9 +35,9 @@ The address family to use for resolving the IP address of the *ServerName* param
 
 Value | Meaning
 --- | ---
-**AF_UNSPEC**<br>0 | Unspecified address family.
-**AF_INET**<br>2 | Version 4 IP address family.
-**AF_INET6**<br>23 | Version 6 IP address family.
+**QUIC_ADDRESS_FAMILY_UNSPEC**<br>0 | Unspecified address family.
+**QUIC_ADDRESS_FAMILY_INET**<br>2 | Version 4 IP address family.
+**QUIC_ADDRESS_FAMILY_INET6**<br>23 | Version 6 IP address family.
 
 `ServerName`
 
