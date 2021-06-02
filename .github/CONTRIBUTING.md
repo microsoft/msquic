@@ -55,3 +55,7 @@ We have tests to prevent regressions and validate functionality. For all new Pul
 - Tests only need to be present for issues that need to be verified by QA (for example, not tasks)
 - If there is a scenario that is far too hard to test there does not need to be a test for it.
   - "Too hard" is determined by the team as a whole, and should be considered extremely rare.
+
+## Governance
+
+This project is actively maintained and managed by Microsoft, with a primary goal of supporting the Windows OS. Therefore, Microsoft reserves the right to the final say in all decisions to ensure the success of this goal.
