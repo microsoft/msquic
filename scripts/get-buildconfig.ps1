@@ -26,7 +26,7 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "")]
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
@@ -34,7 +34,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
