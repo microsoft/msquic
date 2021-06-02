@@ -2138,8 +2138,7 @@ CxPlatSendDataCanAllocSend(
 static
 void
 CxPlatSendDataFinalizeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN IsSendingImmediately
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     if (SendData->ClientBuffer.Length == 0) {
@@ -2172,8 +2171,6 @@ CxPlatSendDataFinalizeSendBuffer(
         //
         // The next segment allocation must create a new backing buffer.
         //
-        CXPLAT_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
-        UNREFERENCED_PARAMETER(IsSendingImmediately);
         SendData->ClientBuffer.Buffer = NULL;
         SendData->ClientBuffer.Length = 0;
     }
@@ -2267,7 +2264,7 @@ CxPlatSendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    CxPlatSendDataFinalizeSendBuffer(SendData, FALSE);
+    CxPlatSendDataFinalizeSendBuffer(SendData);
 
     if (!CxPlatSendDataCanAllocSend(SendData, MaxBufferLength)) {
         return NULL;
@@ -2389,7 +2386,7 @@ CxPlatSocketSendInternal(
     }
 
     if (!IsPendedSend) {
-        CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+        CxPlatSendDataFinalizeSendBuffer(SendData);
         for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
             SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
             SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
