@@ -2,13 +2,13 @@ MsQuic
 ======
 
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
-protocol. It is cross platform, written in C and designed to be a general purpose QUIC library.
+protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library.
 
-IETF Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers), [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation)
-
-[![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blueviolet)](https://microsoft.github.io/msquic/) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/microsoft/msquic.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/microsoft/msquic/context:cpp) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846) [![Discord](https://img.shields.io/discord/827744285595271168?label=Discord&logo=discord&logoColor=white&color=7289DA)](https://discord.gg/YGAtCwTSsc)
+[![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/microsoft/msquic.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/microsoft/msquic/context:cpp) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846) [![Discord](https://img.shields.io/discord/827744285595271168?label=Discord&logo=discord&logoColor=white&color=7289DA)](https://discord.gg/YGAtCwTSsc)
 
 ## Protocol Features
+
+**RFC**: [9000](https://datatracker.ietf.org/doc/html/rfc9000), [9001](https://datatracker.ietf.org/doc/html/rfc9001), [9002](https://datatracker.ietf.org/doc/html/rfc9002) **Draft**: [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
 
 QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
 
@@ -32,7 +32,6 @@ MsQuic has several features that differentiates it from other QUIC implementatio
 
 # Documentation
 
-  * For frequently asked questions, see the [FAQs](./docs/FAQ.md).
   * For platform support details, see the [Platforms docs](./docs/Platforms.md).
   * For release details, see the [Release docs](./docs/Release.md).
   * For performance data, see the [Performance dashboard](https://aka.ms/msquicperformance).
@@ -41,6 +40,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For using the MsQuic API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
   * For deploying with MsQuic, see the [Deployment docs](./docs/Deployment.md).
   * For diagnosing MsQuic, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TSG.md).
+  * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 # Contributing
 
