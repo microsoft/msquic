@@ -10,7 +10,7 @@ Abstract:
 
 Environment:
 
-    Linux
+    POSIX (Linux and macOS)
 
 --*/
 
@@ -89,7 +89,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 // large enough for this purpose.
 //
 
-#ifndef ESTRPIPE // undefined on macOS it seems
+#ifndef ESTRPIPE // undefined on macOS
 #define ESTRPIPE 86
 #endif // ESTRPIPE
 
@@ -107,22 +107,22 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_OUT_OF_MEMORY           ((QUIC_STATUS)ENOMEM)           // 12
 #define QUIC_STATUS_INVALID_PARAMETER       ((QUIC_STATUS)EINVAL)           // 22
 #define QUIC_STATUS_INVALID_STATE           ((QUIC_STATUS)EPERM)            // 1
-#define QUIC_STATUS_NOT_SUPPORTED           ((QUIC_STATUS)EOPNOTSUPP)       // 95
+#define QUIC_STATUS_NOT_SUPPORTED           ((QUIC_STATUS)EOPNOTSUPP)       // 95   (102 on macOS)
 #define QUIC_STATUS_NOT_FOUND               ((QUIC_STATUS)ENOENT)           // 2
-#define QUIC_STATUS_BUFFER_TOO_SMALL        ((QUIC_STATUS)EOVERFLOW)        // 75
-#define QUIC_STATUS_HANDSHAKE_FAILURE       ((QUIC_STATUS)ECONNABORTED)     // 103
-#define QUIC_STATUS_ABORTED                 ((QUIC_STATUS)ECANCELED)        // 125
-#define QUIC_STATUS_ADDRESS_IN_USE          ((QUIC_STATUS)EADDRINUSE)       // 98
-#define QUIC_STATUS_CONNECTION_TIMEOUT      ((QUIC_STATUS)ETIMEDOUT)        // 110
-#define QUIC_STATUS_CONNECTION_IDLE         ((QUIC_STATUS)ETIME)            // 62
+#define QUIC_STATUS_BUFFER_TOO_SMALL        ((QUIC_STATUS)EOVERFLOW)        // 75   (84 on macOS)
+#define QUIC_STATUS_HANDSHAKE_FAILURE       ((QUIC_STATUS)ECONNABORTED)     // 103  (53 on macOS)
+#define QUIC_STATUS_ABORTED                 ((QUIC_STATUS)ECANCELED)        // 125  (89 on macOS)
+#define QUIC_STATUS_ADDRESS_IN_USE          ((QUIC_STATUS)EADDRINUSE)       // 98   (48 on macOS)
+#define QUIC_STATUS_CONNECTION_TIMEOUT      ((QUIC_STATUS)ETIMEDOUT)        // 110  (60 on macOS)
+#define QUIC_STATUS_CONNECTION_IDLE         ((QUIC_STATUS)ETIME)            // 62   (101 on macOS)
 #define QUIC_STATUS_INTERNAL_ERROR          ((QUIC_STATUS)EIO)              // 5
-#define QUIC_STATUS_CONNECTION_REFUSED      ((QUIC_STATUS)ECONNREFUSED)     // 111
-#define QUIC_STATUS_PROTOCOL_ERROR          ((QUIC_STATUS)EPROTO)           // 71
-#define QUIC_STATUS_VER_NEG_ERROR           ((QUIC_STATUS)EPROTONOSUPPORT)  // 93
-#define QUIC_STATUS_UNREACHABLE             ((QUIC_STATUS)EHOSTUNREACH)     // 113
+#define QUIC_STATUS_CONNECTION_REFUSED      ((QUIC_STATUS)ECONNREFUSED)     // 111  (61 on macOS)
+#define QUIC_STATUS_PROTOCOL_ERROR          ((QUIC_STATUS)EPROTO)           // 71   (100 on macOS)
+#define QUIC_STATUS_VER_NEG_ERROR           ((QUIC_STATUS)EPROTONOSUPPORT)  // 93   (43 on macOS)
+#define QUIC_STATUS_UNREACHABLE             ((QUIC_STATUS)EHOSTUNREACH)     // 113  (65 on macOS)
 #define QUIC_STATUS_TLS_ERROR               ((QUIC_STATUS)ENOKEY)           // 126
-#define QUIC_STATUS_USER_CANCELED           ((QUIC_STATUS)EOWNERDEAD)       // 130
-#define QUIC_STATUS_ALPN_NEG_FAILURE        ((QUIC_STATUS)ENOPROTOOPT)      // 92
+#define QUIC_STATUS_USER_CANCELED           ((QUIC_STATUS)EOWNERDEAD)       // 130  (105 on macOS)
+#define QUIC_STATUS_ALPN_NEG_FAILURE        ((QUIC_STATUS)ENOPROTOOPT)      // 92   (42 on macOS)
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ((QUIC_STATUS)ESTRPIPE)         // 86
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        ((QUIC_STATUS)(0xff & Alert) + TLS_ERROR_BASE)
