@@ -1569,6 +1569,7 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 *NewBinding,
                 "Binding ephemeral port reuse encountered");
+            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
             Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -1579,6 +1580,7 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
+            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
             Status = QUIC_STATUS_ADDRESS_IN_USE;
