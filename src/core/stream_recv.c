@@ -46,7 +46,6 @@ QuicStreamRecvShutdown(
     if (Stream->Flags.RemoteCloseAcked ||
         Stream->Flags.RemoteCloseFin ||
         Stream->Flags.RemoteCloseReset) {
-        CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveEnabled);
         //
         // The peer already closed (graceful or abortive). Nothing else to be
         // done.
