@@ -226,7 +226,7 @@ TestConnection::ForceKeyUpdate()
                 0,
                 nullptr);
 
-    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 3);
+    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 10);
 
     return Status;
 }
@@ -255,7 +255,7 @@ TestConnection::ForceCidUpdate()
                 0,
                 nullptr);
 
-    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 3);
+    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 10);
 
     return Status;
 }
