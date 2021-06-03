@@ -703,6 +703,7 @@ QuicStreamRecvFlush(
 
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
+        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
 
         QUIC_BUFFER RecvBuffers[2];
         QUIC_STREAM_EVENT Event = {0};
@@ -792,6 +793,7 @@ QuicStreamRecvFlush(
         }
 
         if (Status == QUIC_STATUS_CONTINUE) {
+            CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.
@@ -872,6 +874,7 @@ QuicStreamReceiveComplete(
     }
 
     if (BufferLength == Stream->RecvPendingLength) {
+        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         //
         // All data was drained from the callback, so additional callbacks can
         // continue to be delivered.
@@ -951,11 +954,13 @@ QuicStreamRecvSetEnabledState(
 {
     if (Stream->Flags.RemoteNotAllowed ||
         Stream->Flags.RemoteCloseFin ||
-        Stream->Flags.RemoteCloseReset) {
+        Stream->Flags.RemoteCloseReset ||
+        Stream->Flags.SentStopSending) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
     if (Stream->Flags.ReceiveEnabled != NewRecvEnabled) {
+        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         Stream->Flags.ReceiveEnabled = NewRecvEnabled;
 
         if (Stream->Flags.Started && NewRecvEnabled) {
