@@ -34,7 +34,8 @@ if [ ! -e "$ARTIFACTS/libmsquic.so" ]; then
 fi
 OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
 mkdir -p ${OUTPUT}
-# RedHat/Cenoos
+
+# RedHat/CentOS
 fpm -f -s dir -t rpm  -n libmsquic -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" \
     "$ARTIFACTS/libmsquic.so"=/usr/${LIBDIR}/libmsquic.so \
