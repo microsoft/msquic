@@ -20,7 +20,7 @@ if [ "$OS" == 'Linux' ]; then
         LIBDIR="lib64"
     else
         ARCH=x86
-        LIBDUR="lib"
+        LIBDIR="lib"
     fi
 else
     echo Only Linux packaging is supported at the moment.
