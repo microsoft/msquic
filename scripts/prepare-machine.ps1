@@ -169,9 +169,18 @@ if ($IsWindows) {
     }
 
     if ($Configuration -eq "Test") {
+        $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
+        if (!(Test-Path c:\CodeSign.pfx)) {
+            $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
+            $CodeSignCertPath = Join-Path $Env:TEMP "CodeSignRoot.cer"
+            Export-Certificate -Type CERT -Cert $CodeSignCert -FilePath $CodeSignCertPath
+            CertUtil.exe -addstore Root $CodeSignCertPath
+            Export-PfxCertificate -Cert $CodeSignCert -Password $PfxPassword -FilePath c:\CodeSign.pfx
+            Remove-Item $CodeSignCertPath
+            Remove-Item $CodeSignCert.PSPath
+        }
         if ($TestCertificates) {
             # Install test certificates on windows
-            $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
             $NewRoot = $false
             Write-Host "Searching for MsQuicTestRoot certificate..."
             $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
