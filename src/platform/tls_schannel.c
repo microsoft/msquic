@@ -1764,7 +1764,7 @@ CxPlatTlsWriteDataToSchannel(
                 TlsContext->SecConfig->ImpersonationToken,
                 TlsContext->SecConfig->CopyOnOpen,
                 TlsContext->SecConfig->EffectiveOnly,
-                TlsContext->SecConfig->ImpersonationLevel);
+                SecurityImpersonation);
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 TlsErrorStatus,
