@@ -12,10 +12,10 @@ Abstract:
 
 #include <vector>
 #include <unordered_map>
+#include <mutex>
 
 #include <quic_datapath.h>
 #include <quic_toeplitz.h>
-#include <msquic.hpp>
 #include <msquichelper.h>
 
 bool Verbose = false;
@@ -28,8 +28,7 @@ struct LbInterface {
     CXPLAT_SOCKET* Socket {nullptr};
     QUIC_ADDR LocalAddress;
 
-    LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic)
-        : IsPublic(IsPublic) {
+    LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic) : IsPublic(IsPublic) {
         if (IsPublic) {
             CxPlatSocketCreateUdp(Datapath, Address, nullptr, this, 0, &Socket);
         } else {
@@ -108,38 +107,34 @@ struct LbPrivateInterface : public LbInterface {
 // packets between public clients and back end (private) server addresses.
 //
 struct LbPublicInterface : public LbInterface {
-
     struct Hasher {
-        CXPLAT_TOEPLITZ_HASH* ToeplitzHash;
-        explicit Hasher(CXPLAT_TOEPLITZ_HASH* Hash) : ToeplitzHash{Hash} {}
+        CXPLAT_TOEPLITZ_HASH Toeplitz;
+        Hasher() {
+            CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+            CxPlatToeplitzHashInitialize(&Toeplitz);
+        }
         size_t operator() (const std::pair<QUIC_ADDR, QUIC_ADDR> key) const {
             uint32_t Key = 0, Offset;
-            CxPlatToeplitzHashComputeAddr(ToeplitzHash, &key.first, &Key, &Offset);
-            CxPlatToeplitzHashComputeAddr(ToeplitzHash, &key.second, &Key, &Offset);
-            return Key; 
+            CxPlatToeplitzHashComputeAddr(&Toeplitz, &key.first, &Key, &Offset);
+            CxPlatToeplitzHashComputeAddr(&Toeplitz, &key.second, &Key, &Offset);
+            return Key;
         }
     };
 
     struct EqualFn {
         bool operator() (const std::pair<QUIC_ADDR, QUIC_ADDR>& t1, const std::pair<QUIC_ADDR, QUIC_ADDR>& t2) const {
             return QuicAddrCompare(&t1.second, &t2.second);
-        } 
+        }
     };
 
-    CXPLAT_TOEPLITZ_HASH ToeplitzHash;
-    std::unordered_map<std::pair<QUIC_ADDR, QUIC_ADDR>, LbPrivateInterface*, Hasher, EqualFn> PrivateInterfaces{10, Hasher{&ToeplitzHash}, EqualFn{}};
-    CXPLAT_DISPATCH_LOCK Lock;
+    std::unordered_map<std::pair<QUIC_ADDR, QUIC_ADDR>, LbPrivateInterface*, Hasher, EqualFn> PrivateInterfaces{10, Hasher{}, EqualFn{}};
+    std::mutex Lock;
+    uint32_t NextInterface = 0;
 
-    LbPublicInterface(_In_ const QUIC_ADDR* PublicAddress)
-        : LbInterface(PublicAddress, true) {
-        CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &ToeplitzHash.HashKey);
-        CxPlatToeplitzHashInitialize(&ToeplitzHash);
-        CxPlatDispatchLockInitialize(&Lock);
-    }
+    LbPublicInterface(_In_ const QUIC_ADDR* PublicAddress) : LbInterface(PublicAddress, true) { }
 
     ~LbPublicInterface() {
         // TODO - Iterate over private interfaces and delete
-        CxPlatDispatchLockUninitialize(&Lock);
     }
 
     void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
@@ -150,36 +145,21 @@ struct LbPublicInterface : public LbInterface {
         PrivateInterface->Send(RecvDataChain);
     }
 
-    uint32_t Hash4Tuple(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
-        uint32_t Key = 0, Offset;
-        CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Local, &Key, &Offset);
-        CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Remote, &Key, &Offset);
-        return Key;
-    }
-
     LbInterface* GetPrivateInterface(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
-        uint32_t Hash = Hash4Tuple(Local, Remote);
-        CxPlatDispatchLockAcquire(&Lock);
+        std::lock_guard<std::mutex> Scope(Lock);
         auto& Entry = PrivateInterfaces[std::pair{*Local, *Remote}];
-        if (Entry) {
-            CxPlatDispatchLockRelease(&Lock);
-            return Entry;
+        if (!Entry) {
+            Entry = new LbPrivateInterface(&PrivateAddrs[NextInterface++ % PrivateAddrs.size()], Remote);
         }
-        auto NewInterface = new LbPrivateInterface(&PrivateAddrs[Hash % PrivateAddrs.size()], Remote);
-        Entry = NewInterface;
-        CxPlatDispatchLockRelease(&Lock);
-        return NewInterface;
+        return Entry;
     }
 };
 
-_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
-void LbReceive(_In_ CXPLAT_SOCKET*, _In_ void* Context, _In_ CXPLAT_RECV_DATA* RecvDataChain)
-{
+void LbReceive(_In_ CXPLAT_SOCKET*, _In_ void* Context, _In_ CXPLAT_RECV_DATA* RecvDataChain) {
     ((LbInterface*)(Context))->Receive(RecvDataChain);
     CxPlatRecvDataReturn(RecvDataChain);
 }
 
-_Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void NoOpUnreachable(_In_ CXPLAT_SOCKET*,_In_ void*, _In_ const QUIC_ADDR*) { }
 
 int
