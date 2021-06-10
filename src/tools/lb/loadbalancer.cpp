@@ -10,12 +10,11 @@ Abstract:
 
 --*/
 
+#include <vector>
 #include <quic_datapath.h>
 #include <quic_toeplitz.h>
 #include <msquic.hpp>
 #include <msquichelper.h>
-#include <stdio.h>
-#include <vector>
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
@@ -165,26 +164,14 @@ struct LbPublicInterface : public LbInterface {
 };
 
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
-void
-LbReceive(
-    _In_ CXPLAT_SOCKET*,
-    _In_ void* Context,
-    _In_ CXPLAT_RECV_DATA* RecvDataChain
-    )
+void LbReceive(_In_ CXPLAT_SOCKET*, _In_ void* Context, _In_ CXPLAT_RECV_DATA* RecvDataChain)
 {
     ((LbInterface*)(Context))->Receive(RecvDataChain);
     CxPlatRecvDataReturn(RecvDataChain);
 }
 
 _Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
-void
-NoOpUnreachable(
-    _In_ CXPLAT_SOCKET*,
-    _In_ void*,
-    _In_ const QUIC_ADDR*
-    )
-{
-}
+void NoOpUnreachable(_In_ CXPLAT_SOCKET*,_In_ void*, _In_ const QUIC_ADDR*) { }
 
 int
 QUIC_MAIN_EXPORT
