@@ -6,45 +6,27 @@
 Abstract:
 
     Load balances QUIC traffic from a public address to a set of private
-    addresses.
+    addresses. Requires the use of NAT'ing. Don't use in production.
 
 --*/
-
-#include <time.h>
-#include <stdio.h>
-#include <vector>
-#include <map>
-#include <mutex>
-#include <algorithm>
 
 #include <quic_datapath.h>
 #include <quic_toeplitz.h>
 #include <msquic.hpp>
 #include <msquichelper.h>
+#include <stdio.h>
+#include <vector>
 
-CXPLAT_DATAPATH_RECEIVE_CALLBACK LbReceive;
-CXPLAT_DATAPATH_UNREACHABLE_CALLBACK NoOpUnreachable;
-CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
-
-struct LbInterface;
-
+bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
-CXPLAT_TOEPLITZ_HASH ToeplitzHash;
-
-uint32_t Hash4Tuple(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
-    uint32_t Key = 0, Offset;
-    CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Local, &Key, &Offset);
-    CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Remote, &Key, &Offset);
-    return Key;
-}
-
-LbInterface* PublicInterface;
+struct LbInterface* PublicInterface;
 std::vector<QUIC_ADDR> PrivateAddrs;
 
 struct LbInterface {
     bool IsPublic;
     CXPLAT_SOCKET* Socket {nullptr};
     QUIC_ADDR LocalAddress;
+    CXPLAT_HASHTABLE_ENTRY HashEntry {0};
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic)
         : IsPublic(IsPublic) {
@@ -72,19 +54,29 @@ struct LbInterface {
             CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
             PeerAddress = &RemoteAddress;
         }
+        CXPLAT_SEND_DATA* Send = nullptr;
         while (RecvDataChain) {
-            auto Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, RecvDataChain->BufferLength);
+            if (!Send) {
+                Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH);
+            }
             if (Send) {
-                auto Buffer = CxPlatSendDataAllocBuffer(Send, RecvDataChain->BufferLength);
+                auto Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
+                if (!Buffer) {
+                    (void)CxPlatSocketSend(Socket, &LocalAddress, PeerAddress, Send, 0);
+                    Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH);
+                    if (Send) {
+                        Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
+                    }
+                }
                 if (Buffer) {
                     Buffer->Length = RecvDataChain->BufferLength;
                     CxPlatCopyMemory(Buffer->Buffer, RecvDataChain->Buffer, RecvDataChain->BufferLength);
-                    (void)CxPlatSocketSend(Socket, &LocalAddress, PeerAddress, Send, 0);
-                } else {
-                    CxPlatSendDataFree(Send);
                 }
             }
             RecvDataChain = RecvDataChain->Next;
+        }
+        if (Send) {
+            (void)CxPlatSocketSend(Socket, &LocalAddress, PeerAddress, Send, 0);
         }
     }
 };
@@ -95,11 +87,16 @@ struct LbInterface {
 //
 struct LbPrivateInterface : public LbInterface {
     const QUIC_ADDR PeerAddress {0};
-    CXPLAT_HASHTABLE_ENTRY HashEntry {0};
 
     LbPrivateInterface(_In_ const QUIC_ADDR* PrivateAddress, _In_ const QUIC_ADDR* PeerAddress, _In_ uint32_t Hash)
         : LbInterface(PrivateAddress, false), PeerAddress(*PeerAddress) {
         HashEntry.Signature = Hash;
+        if (Verbose) {
+            QUIC_ADDR_STR PeerStr, PrivateStr;
+            QuicAddrToString(PeerAddress, &PeerStr);
+            QuicAddrToString(PrivateAddress, &PrivateStr);
+            printf("New private interface, %s => %s\n", PeerStr.Address, PrivateStr.Address);
+        }
     }
 
     bool Equals(const QUIC_ADDR* Address) {
@@ -107,7 +104,7 @@ struct LbPrivateInterface : public LbInterface {
     }
 
     static bool HashEquals(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context) {
-        return CXPLAT_CONTAINING_RECORD(Entry, LbPrivateInterface, HashEntry)->Equals((QUIC_ADDR*)Context);
+        return ((LbPrivateInterface*)CXPLAT_CONTAINING_RECORD(Entry, LbInterface, HashEntry))->Equals((QUIC_ADDR*)Context);
     }
 
     void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
@@ -121,14 +118,20 @@ struct LbPrivateInterface : public LbInterface {
 //
 struct LbPublicInterface : public LbInterface {
 
+    CXPLAT_TOEPLITZ_HASH ToeplitzHash;
     HashTable PrivateInterfaces;
+    CXPLAT_DISPATCH_LOCK Lock;
 
     LbPublicInterface(_In_ const QUIC_ADDR* PublicAddress)
         : LbInterface(PublicAddress, true) {
+        CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &ToeplitzHash.HashKey);
+        CxPlatToeplitzHashInitialize(&ToeplitzHash);
+        CxPlatDispatchLockInitialize(&Lock);
     }
 
     ~LbPublicInterface() {
         // TODO - Iterate over private interfaces and delete
+        CxPlatDispatchLockUninitialize(&Lock);
     }
 
     void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
@@ -139,19 +142,28 @@ struct LbPublicInterface : public LbInterface {
         PrivateInterface->Send(RecvDataChain);
     }
 
+    uint32_t Hash4Tuple(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
+        uint32_t Key = 0, Offset;
+        CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Local, &Key, &Offset);
+        CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Remote, &Key, &Offset);
+        return Key;
+    }
+
     LbInterface* GetPrivateInterface(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
         uint32_t Hash = Hash4Tuple(Local, Remote);
+        CxPlatDispatchLockAcquire(&Lock);
         auto Entry = PrivateInterfaces.LookupEx(Hash, LbPrivateInterface::HashEquals, (void*)Remote);
         if (Entry) {
-            return CXPLAT_CONTAINING_RECORD(Entry, LbPrivateInterface, HashEntry);
+            CxPlatDispatchLockRelease(&Lock);
+            return CXPLAT_CONTAINING_RECORD(Entry, LbInterface, HashEntry);
         }
         auto NewInterface = new LbPrivateInterface(&PrivateAddrs[Hash % PrivateAddrs.size()], Remote, Hash);
         PrivateInterfaces.Insert(&NewInterface->HashEntry);
+        CxPlatDispatchLockRelease(&Lock);
         return NewInterface;
     }
 };
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 LbReceive(
@@ -164,7 +176,6 @@ LbReceive(
     CxPlatRecvDataReturn(RecvDataChain);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
 NoOpUnreachable(
@@ -186,6 +197,7 @@ main(int argc, char **argv)
         printf("Usage: quiclb -pub:<address> -priv:<address>,<address>\n");
         exit(1);
     }
+    Verbose = GetFlag(argc, argv, "v") || GetFlag(argc, argv, "verbose");
 
     QUIC_ADDR PublicAddr;
     if (!QuicAddrFromString(PublicAddress, 0, &PublicAddr) ||
@@ -196,9 +208,7 @@ main(int argc, char **argv)
 
     while (true) {
         char* End = (char*)strchr(PrivateAddresses, ',');
-        if (End) {
-            *End = 0;
-        }
+        if (End) { *End = 0; }
 
         QUIC_ADDR PrivateAddr;
         if (!QuicAddrFromString(PrivateAddresses, 0, &PrivateAddr) ||
@@ -206,40 +216,24 @@ main(int argc, char **argv)
             printf("Failed to decode -priv address: %s.\n", PrivateAddresses);
             exit(1);
         }
-
         PrivateAddrs.push_back(PrivateAddr);
 
-        if (!End) {
-            break;
-        }
-
+        if (!End) { break; }
         PrivateAddresses = End + 1;
     }
 
     CxPlatSystemLoad();
     CxPlatInitialize();
 
-    if (QUIC_FAILED(
-        CxPlatDataPathInitialize(
-            0,
-            &LbUdpCallbacks,
-            NULL,
-            &Datapath))) {
-        printf("CxPlatDataPathInitialize failed.\n");
-        exit(1);
-    }
-
-    CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &ToeplitzHash.HashKey);
-    CxPlatToeplitzHashInitialize(&ToeplitzHash);
+    CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
+    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, &Datapath);
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
     getchar();
 
     delete PublicInterface;
-
     CxPlatDataPathUninitialize(Datapath);
-
     CxPlatUninitialize();
     CxPlatSystemUnload();
 
