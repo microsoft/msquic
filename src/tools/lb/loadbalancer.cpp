@@ -19,11 +19,12 @@ Abstract:
 
 #include <quic_datapath.h>
 #include <quic_toeplitz.h>
+#include <msquic.hpp>
 #include <msquichelper.h>
 
 CXPLAT_DATAPATH_RECEIVE_CALLBACK LbReceive;
-CXPLAT_DATAPATH_UNREACHABLE_CALLBACK LbUnreachable;
-CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, LbUnreachable };
+CXPLAT_DATAPATH_UNREACHABLE_CALLBACK NoOpUnreachable;
+CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
 
 struct LbInterface;
 
@@ -31,106 +32,123 @@ CXPLAT_DATAPATH* Datapath;
 CXPLAT_TOEPLITZ_HASH ToeplitzHash;
 
 uint32_t Hash4Tuple(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
-    uint32_t Key, Offset;
-    if (QuicAddrGetFamily(Local) == QUIC_ADDRESS_FAMILY_INET) {
-        Key =
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Local) + QUIC_ADDR_V4_PORT_OFFSET,
-                2, 0);
-        Key ^=
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Local) + QUIC_ADDR_V4_IP_OFFSET,
-                4, 2);
-        Offset = 2 + 4;
-    } else {
-        Key =
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Local) + QUIC_ADDR_V6_PORT_OFFSET,
-                2, 0);
-        Key ^=
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Local) + QUIC_ADDR_V6_IP_OFFSET,
-                16, 2);
-        Offset = 2 + 16;
-    }
-    if (QuicAddrGetFamily(Remote) == QUIC_ADDRESS_FAMILY_INET) {
-        Key ^=
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Remote) + QUIC_ADDR_V4_PORT_OFFSET,
-                2, 0);
-        Key ^=
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Remote) + QUIC_ADDR_V4_IP_OFFSET,
-                4, 2);
-        Offset = 2 + 4;
-    } else {
-        Key ^=
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Remote) + QUIC_ADDR_V6_PORT_OFFSET,
-                2, 0);
-        Key ^=
-            CxPlatToeplitzHashCompute(
-                &ToeplitzHash,
-                ((uint8_t*)Remote) + QUIC_ADDR_V6_IP_OFFSET,
-                16, 2);
-        Offset = 2 + 16;
-    }
+    uint32_t Key = 0, Offset;
+    CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Local, &Key, &Offset);
+    CxPlatToeplitzHashComputeAddr(&ToeplitzHash, Remote, &Key, &Offset);
     return Key;
 }
 
 LbInterface* PublicInterface;
-std::vector<LbInterface*> PrivateInterfaces;
-
-LbInterface* GetPrivateInterface(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
-    uint32_t Hash = Hash4Tuple(Local, Remote);
-    return PrivateInterfaces[Hash % PrivateInterfaces.size()];
-}
+std::vector<QUIC_ADDR> PrivateAddrs;
 
 struct LbInterface {
-    bool PublicEndpoint;
+    bool IsPublic;
     CXPLAT_SOCKET* Socket {nullptr};
+    QUIC_ADDR LocalAddress;
 
-    LbInterface(_In_ const QUIC_ADDR* Address, _In_ bool PublicEndpoint)
-        : PublicEndpoint(PublicEndpoint) {
-        if (PublicEndpoint) {
-            CxPlatSocketCreateUdp(Datapath, Address, NULL, this, 0, &Socket);
+    LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic)
+        : IsPublic(IsPublic) {
+        if (IsPublic) {
+            CxPlatSocketCreateUdp(Datapath, Address, nullptr, this, 0, &Socket);
         } else {
-            CxPlatSocketCreateUdp(Datapath, NULL, Address, this, 0, &Socket);
+            CxPlatSocketCreateUdp(Datapath, nullptr, Address, this, 0, &Socket);
         }
         if (!Socket) {
             printf("CxPlatSocketCreateUdp failed.\n");
             exit(1);
         }
+        CxPlatSocketGetLocalAddress(Socket, &LocalAddress);
     }
 
-    ~LbInterface() {
+    virtual ~LbInterface() {
         CxPlatSocketDelete(Socket);
     }
 
-    void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
-        if (PublicEndpoint) {
-            auto PrivateInterface =
-                GetPrivateInterface(
-                    &RecvDataChain->Tuple->LocalAddress,
-                    &RecvDataChain->Tuple->RemoteAddress);
-            PrivateInterface->Send(RecvDataChain);
-        } else {
-            PublicInterface->Send(RecvDataChain);
+    virtual void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) = 0;
+
+    void Send(_In_ CXPLAT_RECV_DATA* RecvDataChain, _In_opt_ const QUIC_ADDR* PeerAddress = nullptr) {
+        QUIC_ADDR RemoteAddress;
+        if (PeerAddress == nullptr) {
+            CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
+            PeerAddress = &RemoteAddress;
         }
-        CxPlatRecvDataReturn(RecvDataChain);
+        while (RecvDataChain) {
+            auto Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, RecvDataChain->BufferLength);
+            if (Send) {
+                auto Buffer = CxPlatSendDataAllocBuffer(Send, RecvDataChain->BufferLength);
+                if (Buffer) {
+                    Buffer->Length = RecvDataChain->BufferLength;
+                    CxPlatCopyMemory(Buffer->Buffer, RecvDataChain->Buffer, RecvDataChain->BufferLength);
+                    (void)CxPlatSocketSend(Socket, &LocalAddress, PeerAddress, Send, 0);
+                } else {
+                    CxPlatSendDataFree(Send);
+                }
+            }
+            RecvDataChain = RecvDataChain->Next;
+        }
+    }
+};
+
+//
+// Represents a NAT'ed socket from the load balancer back to a single private
+// server address.
+//
+struct LbPrivateInterface : public LbInterface {
+    const QUIC_ADDR PeerAddress {0};
+    CXPLAT_HASHTABLE_ENTRY HashEntry {0};
+
+    LbPrivateInterface(_In_ const QUIC_ADDR* PrivateAddress, _In_ const QUIC_ADDR* PeerAddress, _In_ uint32_t Hash)
+        : LbInterface(PrivateAddress, false), PeerAddress(*PeerAddress) {
+        HashEntry.Signature = Hash;
     }
 
-    void Send(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
-        // TODO
+    bool Equals(const QUIC_ADDR* Address) {
+        return QuicAddrCompare(&PeerAddress, Address);
     }
 
+    static bool HashEquals(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context) {
+        return CXPLAT_CONTAINING_RECORD(Entry, LbPrivateInterface, HashEntry)->Equals((QUIC_ADDR*)Context);
+    }
+
+    void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
+        PublicInterface->Send(RecvDataChain, &PeerAddress);
+    }
+};
+
+//
+// Represents the public listening socket that load balances (and NATs) UDP
+// packets between public clients and back end (private) server addresses.
+//
+struct LbPublicInterface : public LbInterface {
+
+    HashTable PrivateInterfaces;
+
+    LbPublicInterface(_In_ const QUIC_ADDR* PublicAddress)
+        : LbInterface(PublicAddress, true) {
+    }
+
+    ~LbPublicInterface() {
+        // TODO - Iterate over private interfaces and delete
+    }
+
+    void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
+        auto PrivateInterface =
+            GetPrivateInterface(
+                &RecvDataChain->Tuple->LocalAddress,
+                &RecvDataChain->Tuple->RemoteAddress);
+        PrivateInterface->Send(RecvDataChain);
+    }
+
+    LbInterface* GetPrivateInterface(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
+        uint32_t Hash = Hash4Tuple(Local, Remote);
+        auto Entry = PrivateInterfaces.LookupEx(Hash, LbPrivateInterface::HashEquals, (void*)Remote);
+        if (Entry) {
+            return CXPLAT_CONTAINING_RECORD(Entry, LbPrivateInterface, HashEntry);
+        }
+        auto NewInterface = new LbPrivateInterface(&PrivateAddrs[Hash % PrivateAddrs.size()], Remote, Hash);
+        PrivateInterfaces.Insert(&NewInterface->HashEntry);
+        return NewInterface;
+    }
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -143,12 +161,13 @@ LbReceive(
     )
 {
     ((LbInterface*)(Context))->Receive(RecvDataChain);
+    CxPlatRecvDataReturn(RecvDataChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
-LbUnreachable(
+NoOpUnreachable(
     _In_ CXPLAT_SOCKET*,
     _In_ void*,
     _In_ const QUIC_ADDR*
@@ -175,7 +194,6 @@ main(int argc, char **argv)
         exit(1);
     }
 
-    std::vector<QUIC_ADDR> PrivateAddrs;
     while (true) {
         char* End = (char*)strchr(PrivateAddresses, ',');
         if (End) {
@@ -213,14 +231,12 @@ main(int argc, char **argv)
 
     CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &ToeplitzHash.HashKey);
     CxPlatToeplitzHashInitialize(&ToeplitzHash);
-
-    PublicInterface = new LbInterface(&PublicAddr, true);
-    for (auto& PrivateAddr : PrivateAddrs) {
-        PrivateInterfaces.push_back(new LbInterface(&PrivateAddr, false));
-    }
+    PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
     getchar();
+
+    delete PublicInterface;
 
     CxPlatDataPathUninitialize(Datapath);
 
