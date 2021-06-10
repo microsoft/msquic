@@ -179,52 +179,18 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ("" -eq $Arch) {
-    if ($IsMacOS) {
-        $RunningArch = uname -m
-        if ("x86_64" -eq $RunningArch) {
-            $IsTranslated = sysctl -in sysctl.proc_translated
-            if ($IsTranslated) {
-                $Arch = "arm64"
-            } else {
-                $Arch = "x64"
-            }
-        } elseif ("arm64" -eq $RunningArch) {
-            $Arch = "arm64"
-        } else {
-            Write-Error "Unknown architecture"
-        }
-    } else {
-        $Arch = "x64"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
+
+$Platform = $BuildConfig.Platform
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
     if ($IsWindows) {
         $Generator = "Visual Studio 16 2019"
     } else {
         $Generator = "Unix Makefiles"
-    }
-}
-
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
-
-if ("" -eq $Platform) {
-    if ($IsWindows) {
-        $Platform = "windows"
-    } elseif ($IsLinux) {
-        $Platform = "linux"
-    } elseif ($IsMacOS) {
-        $Platform = "macos"
-    } else {
-        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -240,15 +206,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 
-$ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
-
-if ("" -eq $ExtraArtifactDir) {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
-} else {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
-}
-
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
 if ($Clean) {

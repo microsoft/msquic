@@ -383,6 +383,44 @@ struct SelectiveLossHelper : public DatapathHook
     }
 };
 
+struct MtuDropHelper : public DatapathHook
+{
+    uint16_t ServerDropPacketSize;
+    uint16_t ServerDropPort;
+    uint16_t ClientDropPacketSize;
+    MtuDropHelper(uint16_t ServerPacket, uint16_t ServerPort, uint16_t ClientPacket) :
+        ServerDropPacketSize(ServerPacket), ServerDropPort(ServerPort),
+        ClientDropPacketSize(ClientPacket) {
+        if (ServerDropPacketSize != 0 || ClientDropPacketSize != 0) {
+            DatapathHooks::Instance->AddHook(this);
+        }
+    }
+    ~MtuDropHelper() {
+        if (ServerDropPacketSize != 0 || ClientDropPacketSize != 0) {
+            DatapathHooks::Instance->RemoveHook(this);
+        }
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
+        ) {
+        uint16_t PacketMtu =
+            PacketSizeFromUdpPayloadSize(
+                QuicAddrGetFamily(&Datagram->Tuple->RemoteAddress),
+                Datagram->BufferLength);
+        if (ServerDropPacketSize != 0 && PacketMtu > ServerDropPacketSize &&
+            QuicAddrGetPort(&Datagram->Tuple->RemoteAddress) == ServerDropPort) {
+            return TRUE;
+        }
+        if (ClientDropPacketSize != 0 && PacketMtu > ClientDropPacketSize &&
+            QuicAddrGetPort(&Datagram->Tuple->RemoteAddress) != ServerDropPort) {
+            return TRUE;
+        }
+        return FALSE;
+    }
+};
+
 struct ReplaceAddressHelper : public DatapathHook
 {
     QUIC_ADDR Original;

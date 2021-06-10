@@ -18,6 +18,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 2. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
 3. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
 4. [Why is this API failing?](#why-is-this-api-failing)
+5. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
 
 ## Understanding Error Codes
 
@@ -140,6 +141,48 @@ From here, we simply went backwards from the exit event to find any errors; and 
 
 This clearly shows that listener `7f30ac0dcff0` failed to register with the binding (i.e. UDP socket abstraction) because listener `7f30ac076d90` was already registered for the same ALPN. MsQuic only allows a single listener to be registered for a given ALPN on a local IP address and port.
 
+## Why is the API hanging or deadlocking?
+
+First, a bit of background. The MsQuic API has two types of APIs:
+
+- **Blocking / Synchronous** - These APIs run to completion and only return once finished. When running in the Windows kernel, these **MUST NOT** be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(PASSIVE_LEVEL)` annotation. For example, [ConnectionClose](./api/ConnectionClose.md).
+- **Nonblocking / Asynchronous** - These APIs merely queue work and return immediately. When running in the Windows kernel, these may be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(DISPATCH_LEVEL)` annotation. For example, [StreamSend][./api/StreamSend.md].
+
+Additional documentation on the MsQuic execution model is available [here](./API.md#execution-mode).
+
+Now, back to the problem. The app is calling into an MsQuic API and it is hanging and likely deadlocked. This can only happen for **synchronous** APIs. What do you do next? Generally, this is because the app is breaking one of the following rules:
+
+1. Do not block the MsQuic thread/callback for any length of time. You may acquire a lock/mutex, but you must guarantee very quick execution. Do not grab a lock that you also hold (on a different thread) when calling back into MsQuic.
+2. Do not call MsQuic APIs cross-object on MsQuic the thread/callbacks. For instance, if you're in a callback for Connection A, do not call [ConnectionClose](./api/ConnectionClose.md) for Connection B.
+
+To verify exactly what is happening, [Collect the traces](./Diagnostics.md#trace-collection) and open then up in a text editor (ideally [TextAnalysisTool](./Diagnostics.md#text-analysis-tool)). The simplest way forward from here is to filter the logs based on the pointer of the object you are calling the API on. For instance, if you are calling [ConnectionClose](./api/ConnectionClose.md) on `0x7fd36c0019c0`, then add a filter for `7fd36c0019c0`. Here is an example (filtered) log for just such a case:
+
+```
+[0][53805.5381b][11:22:52.896762][ api] Enter 13 (0x7fd36c0019c0).
+
+[0][53805.53815][11:22:52.896796][conn][0x7fd36c0019c0] Scheduling: 2
+[0][53805.53815][11:22:52.896797][conn][0x7fd36c0019c0] Execute: 1
+[0][53805.53815][11:22:52.896797][conn][0x7fd36c0019c0] Recv 1 UDP datagrams
+[0][53805.53815][11:22:52.896825][conn][0x7fd36c0019c0] IN: BytesRecv=2901
+[0][53805.53815][11:22:52.896826][conn][0x7fd36c0019c0] Batch Recv 1 UDP datagrams
+[0][53805.53815][11:22:52.896854][strm][0x7fd378028360] Created, Conn=0x7fd36c0019c0 ID=0 IsLocal=0
+[0][53805.53815][11:22:52.896856][conn][0x7fd36c0019c0] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [0x7fd378028360, 0x0]
+
+[1][53805.53813][11:22:53.142398][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+[1][53805.53813][11:22:53.392819][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+[1][53805.53813][11:22:53.644259][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+```
+
+You will notice 3 different threads (seen in `[0][53805.X]`):
+
+- `5381b` - The app thread that is calling in to close the connection.
+- `53815` - The MsQuic worker thread that drives execution for the connection.
+- `53813` - The MsQuic UDP thread that is processing received packets and queuing them on the connection.
+
+As you can see, the last event/log on the MsQuic worker thread was an indication of a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event to the app. There are no further events on this thread (easily verified by adding an additional filter for `[53805.53815]`). So, the app must be blocking this thread. The most likely scenario is that the app is holding a lock while calling [ConnectionClose](./api/ConnectionClose.md) on thread `5381b` and then in thread `53815`, the app is trying to acquire the same lock.
+
+The solution here is that the app **must not** hold the lock when it calls into the blocking API, if that lock may also be acquired on the MsQuic thread.
+
 # Trouble Shooting a Performance Issue
 
 1. [Is it a problem with just a single (or very few) connection?](#why-in-performance-bad-for-my-connection)
@@ -149,7 +192,6 @@ This clearly shows that listener `7f30ac0dcff0` failed to register with the bind
 
 1. [Where is the CPU being spent for my connection?](#analyzing-cpu-usage)
 2. [What is limiting throughput for my connection?](#finding-throughput-bottlenecks)
-3.
 
 ### Analyzing CPU Usage
 
@@ -200,7 +242,6 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 ## Why is Performance bad across all my Connections?
 
 1. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
-2.
 
 ### Diagnosing RSS Issues
 

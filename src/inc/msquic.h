@@ -467,35 +467,39 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t IsSetFlags;
         struct {
-            uint64_t MaxBytesPerKey                 : 1;
-            uint64_t HandshakeIdleTimeoutMs         : 1;
-            uint64_t IdleTimeoutMs                  : 1;
-            uint64_t TlsClientMaxSendBuffer         : 1;
-            uint64_t TlsServerMaxSendBuffer         : 1;
-            uint64_t StreamRecvWindowDefault        : 1;
-            uint64_t StreamRecvBufferDefault        : 1;
-            uint64_t ConnFlowControlWindow          : 1;
-            uint64_t MaxWorkerQueueDelayUs          : 1;
-            uint64_t MaxStatelessOperations         : 1;
-            uint64_t InitialWindowPackets           : 1;
-            uint64_t SendIdleTimeoutMs              : 1;
-            uint64_t InitialRttMs                   : 1;
-            uint64_t MaxAckDelayMs                  : 1;
-            uint64_t DisconnectTimeoutMs            : 1;
-            uint64_t KeepAliveIntervalMs            : 1;
-            uint64_t PeerBidiStreamCount            : 1;
-            uint64_t PeerUnidiStreamCount           : 1;
-            uint64_t RetryMemoryLimit               : 1;
-            uint64_t LoadBalancingMode              : 1;
-            uint64_t MaxOperationsPerDrain          : 1;
-            uint64_t SendBufferingEnabled           : 1;
-            uint64_t PacingEnabled                  : 1;
-            uint64_t MigrationEnabled               : 1;
-            uint64_t DatagramReceiveEnabled         : 1;
-            uint64_t ServerResumptionLevel          : 1;
-            uint64_t DesiredVersionsList            : 1;
-            uint64_t VersionNegotiationExtEnabled   : 1;
-            uint64_t RESERVED                       : 36;
+            uint64_t MaxBytesPerKey                         : 1;
+            uint64_t HandshakeIdleTimeoutMs                 : 1;
+            uint64_t IdleTimeoutMs                          : 1;
+            uint64_t TlsClientMaxSendBuffer                 : 1;
+            uint64_t TlsServerMaxSendBuffer                 : 1;
+            uint64_t StreamRecvWindowDefault                : 1;
+            uint64_t StreamRecvBufferDefault                : 1;
+            uint64_t ConnFlowControlWindow                  : 1;
+            uint64_t MaxWorkerQueueDelayUs                  : 1;
+            uint64_t MaxStatelessOperations                 : 1;
+            uint64_t InitialWindowPackets                   : 1;
+            uint64_t SendIdleTimeoutMs                      : 1;
+            uint64_t InitialRttMs                           : 1;
+            uint64_t MaxAckDelayMs                          : 1;
+            uint64_t DisconnectTimeoutMs                    : 1;
+            uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t PeerBidiStreamCount                    : 1;
+            uint64_t PeerUnidiStreamCount                   : 1;
+            uint64_t RetryMemoryLimit                       : 1;
+            uint64_t LoadBalancingMode                      : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t SendBufferingEnabled                   : 1;
+            uint64_t PacingEnabled                          : 1;
+            uint64_t MigrationEnabled                       : 1;
+            uint64_t DatagramReceiveEnabled                 : 1;
+            uint64_t ServerResumptionLevel                  : 1;
+            uint64_t DesiredVersionsList                    : 1;
+            uint64_t VersionNegotiationExtEnabled           : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
+            uint64_t RESERVED                               : 32;
         } IsSet;
     };
 
@@ -529,6 +533,11 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 1;
     const uint32_t* DesiredVersionsList;
     uint32_t DesiredVersionsListLength;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t MtuDiscoveryMissingProbeCount;
+
 
 } QUIC_SETTINGS;
 
@@ -994,7 +1003,7 @@ void
 // remote server. Can be passed either a connection or stream handle.
 //
 typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_START_FN)(
     _In_ _Pre_defensive_ HQUIC Connection,
@@ -1131,7 +1140,8 @@ void
 // Starts processing the stream.
 //
 typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 (QUIC_API * QUIC_STREAM_START_FN)(
     _In_ _Pre_defensive_ HQUIC Stream,

@@ -60,7 +60,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnPacketDiscarded(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet,
+    _In_ BOOLEAN DiscardedForLoss
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -137,7 +138,7 @@ QuicLossDetectionUninitialize(
 
         }
 
-        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE);
     }
     while (LossDetection->LostPackets != NULL) {
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
@@ -149,7 +150,7 @@ QuicLossDetectionUninitialize(
             PtkConnPre(Connection),
             Packet->PacketNumber);
 
-        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE);
     }
 }
 
@@ -603,10 +604,11 @@ QuicLossDetectionOnPacketAcknowledged(
             PacketSizeFromUdpPayloadSize(
                 QuicAddrGetFamily(&Path->RemoteAddress),
                 Packet->PacketLength);
-
+        BOOLEAN ChangedMtu = FALSE;
         if (!Path->IsMinMtuValidated &&
-            Packet->PacketLength >= QUIC_INITIAL_PACKET_LENGTH) {
+            PacketMtu >= Path->Mtu) {
             Path->IsMinMtuValidated = TRUE;
+            ChangedMtu = PacketMtu > Path->Mtu;
             QuicTraceLogConnInfo(
                 PathMinMtuValidated,
                 Connection,
@@ -614,14 +616,16 @@ QuicLossDetectionOnPacketAcknowledged(
                 Path->ID);
         }
 
-        if (PacketMtu > Path->Mtu) {
-            Path->Mtu = PacketMtu;
-            QuicTraceLogConnInfo(
-                PathMtuUpdated,
-                Connection,
-                "Path[%hhu] MTU updated to %hu bytes",
-                Path->ID,
-                Path->Mtu);
+        if (Packet->Flags.IsMtuProbe) {
+            CXPLAT_DBG_ASSERT(Path->IsMinMtuValidated);
+            if (QuicMtuDiscoveryOnAckedPacket(
+                    &Path->MtuDiscovery,
+                    PacketMtu,
+                    Connection)) {
+                ChangedMtu = TRUE;
+            }
+        }
+        if (ChangedMtu) {
             QuicDatagramOnSendStateChanged(&Connection->Datagram);
         }
     }
@@ -647,7 +651,7 @@ QuicLossDetectionRetransmitFrames(
     for (uint8_t i = 0; i < Packet->FrameCount; i++) {
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
-            if (!Packet->Flags.IsPMTUD) {
+            if (!Packet->Flags.IsMtuProbe) {
                 //
                 // Don't consider PING "new data" so that we might still find
                 // "real" data later that should be sent instead.
@@ -840,7 +844,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnPacketDiscarded(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet,
+    _In_ BOOLEAN DiscardedForLoss
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -855,6 +860,18 @@ QuicLossDetectionOnPacketDiscarded(
                 &Packet->Frames[i].DATAGRAM.ClientContext,
                 QUIC_DATAGRAM_SEND_LOST_DISCARDED);
             break;
+        }
+        if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
+            uint8_t PathIndex;
+            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+            UNREFERENCED_PARAMETER(PathIndex);
+            if (Path != NULL) {
+                uint16_t PacketMtu =
+                    PacketSizeFromUdpPayloadSize(
+                        QuicAddrGetFamily(&Path->RemoteAddress),
+                        Packet->PacketLength);
+                QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
+            }
         }
     }
 
@@ -894,7 +911,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
             LossDetection->LostPackets = Packet->Next;
-            QuicLossDetectionOnPacketDiscarded(LossDetection, Packet);
+            QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, TRUE);
         }
         if (LossDetection->LostPackets == NULL) {
             LossDetection->LostPacketsTail = &LossDetection->LostPackets;

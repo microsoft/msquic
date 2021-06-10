@@ -86,7 +86,7 @@ QuicPacketTypeToEncryptLevel(
 #define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000U
 #define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000U
 #define QUIC_CONN_SEND_FLAG_ACK_FREQUENCY           0x00008000U
-#define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000U
+#define QUIC_CONN_SEND_FLAG_DPLPMTUD                0x80000000U
 
 //
 // Flags that aren't blocked by congestion control.
@@ -115,7 +115,7 @@ QuicPacketTypeToEncryptLevel(
     QUIC_CONN_SEND_FLAG_PING | \
     QUIC_CONN_SEND_FLAG_DATAGRAM | \
     QUIC_CONN_SEND_FLAG_ACK_FREQUENCY | \
-    QUIC_CONN_SEND_FLAG_PMTUD \
+    QUIC_CONN_SEND_FLAG_DPLPMTUD \
 )
 
 //

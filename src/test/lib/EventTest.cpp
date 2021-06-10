@@ -45,6 +45,32 @@ struct StreamEventValidator {
     virtual ~StreamEventValidator() { }
 };
 
+struct StreamStartCompleteEventValidator : StreamEventValidator {
+    BOOLEAN PeerAccepted;
+    StreamStartCompleteEventValidator(bool PeerAccepted = false, uint8_t actions = 0, bool optional = false) :
+        StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE, actions, optional),
+        PeerAccepted(PeerAccepted ? TRUE : FALSE) { }
+    virtual void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
+        if (Event->Type != Type) {
+            if (!Optional) {
+                TEST_FAILURE("StreamEventValidator: Expected %u. Actual %u", Type, Event->Type);
+            }
+            return;
+        }
+        if (Event->START_COMPLETE.PeerAccepted != PeerAccepted) {
+            TEST_FAILURE("PeerAccepted mismatch: Expected %u. Actual %u", PeerAccepted, Event->START_COMPLETE.PeerAccepted);
+            return;
+        }
+        Success = true;
+        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_STREAM) {
+            MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
+        }
+        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
+            MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        }
+    }
+};
+
 struct StreamValidator {
     HQUIC Handle;
     StreamEventValidator** ExpectedEvents;
@@ -299,10 +325,12 @@ QuicTestValidateConnectionEvents1(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     ConnValidator Client(
@@ -353,10 +381,12 @@ QuicTestValidateConnectionEvents2(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     ConnValidator Client(
@@ -409,7 +439,7 @@ QuicTestValidateConnectionEvents3(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -508,11 +538,11 @@ QuicTestValidateStreamEvents1(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -531,7 +561,7 @@ QuicTestValidateStreamEvents1(
 
     StreamValidator ClientStream(
         new(std::nothrow) StreamEventValidator* [7] {
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamStartCompleteEventValidator(),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
@@ -610,11 +640,11 @@ QuicTestValidateStreamEvents2(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -633,7 +663,7 @@ QuicTestValidateStreamEvents2(
 
     StreamValidator ClientStream(
         new(std::nothrow) StreamEventValidator* [5] {
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamStartCompleteEventValidator(),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
@@ -697,11 +727,11 @@ QuicTestValidateStreamEvents3(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -720,7 +750,7 @@ QuicTestValidateStreamEvents3(
 
     StreamValidator ClientStream(
         new(std::nothrow) StreamEventValidator* [7] {
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamStartCompleteEventValidator(),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
@@ -818,11 +848,11 @@ QuicTestValidateStreamEvents4(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -841,7 +871,7 @@ QuicTestValidateStreamEvents4(
 
     StreamValidator ClientStream(
         new(std::nothrow) StreamEventValidator* [7] {
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamStartCompleteEventValidator(),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
@@ -938,11 +968,11 @@ QuicTestValidateStreamEvents5(
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
@@ -961,7 +991,7 @@ QuicTestValidateStreamEvents5(
 
     StreamValidator ClientStream(
         new(std::nothrow) StreamEventValidator* [8] {
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamStartCompleteEventValidator(),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_ACCEPTED),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),

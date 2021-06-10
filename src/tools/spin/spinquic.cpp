@@ -208,7 +208,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
             MsQuic->SetContext(Stream, (void*)Event->RECEIVE.TotalBufferLength);
             return QUIC_STATUS_PENDING; // Pend the receive, to be completed later.
         } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
-            Event->RECEIVE.TotalBufferLength = GetRandom(Event->RECEIVE.TotalBufferLength); // Partially consume the data.
+            Event->RECEIVE.TotalBufferLength = GetRandom(Event->RECEIVE.TotalBufferLength + 1); // Partially (or fully) consume the data.
             if (GetRandom(10) == 0) {
                 return QUIC_STATUS_CONTINUE; // Don't pause receive callbacks.
             }

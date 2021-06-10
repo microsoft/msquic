@@ -34,6 +34,7 @@ QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Destination,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
+    _In_ BOOLEAN AllowMtuChanges,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)

@@ -759,6 +759,7 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
+                TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -964,9 +965,9 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = 4 * sizeof(uint32_t);
         ((uint32_t*)Buffer)[0] = VER_MAJOR;
-        ((uint32_t*)Buffer)[0] = VER_MINOR;
-        ((uint32_t*)Buffer)[0] = VER_PATCH;
-        ((uint32_t*)Buffer)[0] = VER_BUILD_ID;
+        ((uint32_t*)Buffer)[1] = VER_MINOR;
+        ((uint32_t*)Buffer)[2] = VER_PATCH;
+        ((uint32_t*)Buffer)[3] = VER_BUILD_ID;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1568,6 +1569,7 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 *NewBinding,
                 "Binding ephemeral port reuse encountered");
+            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
             Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -1578,6 +1580,7 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
+            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
             Status = QUIC_STATUS_ADDRESS_IN_USE;
@@ -1747,7 +1750,7 @@ QuicTraceRundown(
         QuicTraceEvent(
             PerfCountersRundown,
             "[ lib] Perf counters Rundown, Counters=%!CID!",
-            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
+            CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
     CxPlatLockRelease(&MsQuicLib.Lock);

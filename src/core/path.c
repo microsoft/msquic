@@ -28,7 +28,7 @@ QuicPathInitialize(
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->MinRtt = UINT32_MAX;
-    Path->Mtu = QUIC_DEFAULT_PATH_MTU;
+    Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
 
@@ -138,15 +138,13 @@ QuicPathSetValid(
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
 
-    if (Path->IsPeerValidated && Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
+    if (Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
         //
-        // If the active path was just validated, then let's queue up a PMTUD
-        // packet.
+        // If the active path was just validated, then let's queue up DPLPMTUD.
+        // This will force validate min mtu if it has not already been
+        // validated.
         //
-        // TODO - If minimum MTU was not validated, we might want to validate
-        // that first instead.
-        //
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
+        QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
     }
 }
 

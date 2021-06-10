@@ -30,7 +30,7 @@ Abstract:
     (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
 )
 CXPLAT_STATIC_ASSERT(
-    QUIC_DEFAULT_PATH_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
+    QUIC_DPLPMUTD_MIN_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
     "Too many supported version numbers! Requires too big of buffer for response!");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -158,8 +158,8 @@ QuicBindingInitialize(
         "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->Socket,
-        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -255,8 +255,8 @@ QuicBindingTraceRundown(
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->Socket,
-        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 
@@ -436,13 +436,13 @@ Done:
             ConnNoListenerIp,
             "[conn][%p] No Listener for IP address: %!ADDR!",
             Connection,
-            CLOG_BYTEARRAY(sizeof(*Addr), Addr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*Addr), Addr));
     } else if (FailedAlpnMatch) {
         QuicTraceEvent(
             ConnNoListenerAlpn,
             "[conn][%p] No listener matching ALPN: %!ALPN!",
             Connection,
-            CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
+            CASTED_CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_NO_ALPN);
     }
 
