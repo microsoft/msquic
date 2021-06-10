@@ -22,7 +22,7 @@ on the provided configuration.
 .PARAMETER TestCertificates
     Generate test certificates. Only supported for Windows test configuration.
 
-.PARAMETER CodeSignCert
+.PARAMETER SignCode
     Generate a code signing certificate for kernel driver tests.
 
 .EXAMPLE
@@ -57,7 +57,7 @@ param (
     [switch]$TestCertificates,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeSignCert
+    [switch]$SignCode
 )
 
 #Requires -RunAsAdministrator
@@ -176,7 +176,7 @@ if ($IsWindows) {
 
     if ($Configuration -eq "Test") {
         $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
-        if ($CodeSignCert -and !(Test-Path c:\CodeSign.pfx)) {
+        if ($SignCode -and !(Test-Path c:\CodeSign.pfx)) {
             $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
             $CodeSignCertPath = Join-Path $Env:TEMP "CodeSignRoot.cer"
             Export-Certificate -Type CERT -Cert $CodeSignCert -FilePath $CodeSignCertPath
