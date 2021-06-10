@@ -63,6 +63,6 @@ Some settings on the `Configuration`, and on the `Connection`, only take effect 
 
 # See Also
 
-[ConnectionOpen](ConnectionStart.md)<br>
+[ConnectionOpen](ConnectionOpen.md)<br>
 [ConnectionClose](ConnectionClose.md)<br>
 [ConnectionShutdown](ConnectionShutdown.md)<br>
