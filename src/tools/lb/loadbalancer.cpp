@@ -10,12 +10,14 @@ Abstract:
 
 --*/
 
+#include <vector>
+#include <unordered_map>
+
 #include <quic_datapath.h>
 #include <quic_toeplitz.h>
 #include <msquic.hpp>
 #include <msquichelper.h>
 #include <stdio.h>
-#include <vector>
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
@@ -26,7 +28,6 @@ struct LbInterface {
     bool IsPublic;
     CXPLAT_SOCKET* Socket {nullptr};
     QUIC_ADDR LocalAddress;
-    CXPLAT_HASHTABLE_ENTRY HashEntry {0};
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic)
         : IsPublic(IsPublic) {
@@ -88,23 +89,14 @@ struct LbInterface {
 struct LbPrivateInterface : public LbInterface {
     const QUIC_ADDR PeerAddress {0};
 
-    LbPrivateInterface(_In_ const QUIC_ADDR* PrivateAddress, _In_ const QUIC_ADDR* PeerAddress, _In_ uint32_t Hash)
+    LbPrivateInterface(_In_ const QUIC_ADDR* PrivateAddress, _In_ const QUIC_ADDR* PeerAddress)
         : LbInterface(PrivateAddress, false), PeerAddress(*PeerAddress) {
-        HashEntry.Signature = Hash;
         if (Verbose) {
             QUIC_ADDR_STR PeerStr, PrivateStr;
             QuicAddrToString(PeerAddress, &PeerStr);
             QuicAddrToString(PrivateAddress, &PrivateStr);
             printf("New private interface, %s => %s\n", PeerStr.Address, PrivateStr.Address);
         }
-    }
-
-    bool Equals(const QUIC_ADDR* Address) {
-        return QuicAddrCompare(&PeerAddress, Address);
-    }
-
-    static bool HashEquals(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context) {
-        return ((LbPrivateInterface*)CXPLAT_CONTAINING_RECORD(Entry, LbInterface, HashEntry))->Equals((QUIC_ADDR*)Context);
     }
 
     void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
@@ -118,8 +110,25 @@ struct LbPrivateInterface : public LbInterface {
 //
 struct LbPublicInterface : public LbInterface {
 
+    struct Hasher {
+        CXPLAT_TOEPLITZ_HASH* ToeplitzHash;
+        explicit Hasher(CXPLAT_TOEPLITZ_HASH* Hash) : ToeplitzHash{Hash} {}
+        size_t operator() (const std::pair<QUIC_ADDR, QUIC_ADDR> key) const {
+            uint32_t Key = 0, Offset;
+            CxPlatToeplitzHashComputeAddr(ToeplitzHash, &key.first, &Key, &Offset);
+            CxPlatToeplitzHashComputeAddr(ToeplitzHash, &key.second, &Key, &Offset);
+            return Key; 
+        }
+    };
+
+    struct EqualFn {
+        bool operator() (const std::pair<QUIC_ADDR, QUIC_ADDR>& t1, const std::pair<QUIC_ADDR, QUIC_ADDR>& t2) const {
+            return QuicAddrCompare(&t1.second, &t2.second);
+        } 
+    };
+
     CXPLAT_TOEPLITZ_HASH ToeplitzHash;
-    HashTable PrivateInterfaces;
+    std::unordered_map<std::pair<QUIC_ADDR, QUIC_ADDR>, LbPrivateInterface*, Hasher, EqualFn> PrivateInterfaces{10, Hasher{&ToeplitzHash}, EqualFn{}};
     CXPLAT_DISPATCH_LOCK Lock;
 
     LbPublicInterface(_In_ const QUIC_ADDR* PublicAddress)
@@ -152,13 +161,13 @@ struct LbPublicInterface : public LbInterface {
     LbInterface* GetPrivateInterface(_In_ const QUIC_ADDR* Local, _In_ const QUIC_ADDR* Remote) {
         uint32_t Hash = Hash4Tuple(Local, Remote);
         CxPlatDispatchLockAcquire(&Lock);
-        auto Entry = PrivateInterfaces.LookupEx(Hash, LbPrivateInterface::HashEquals, (void*)Remote);
+        auto& Entry = PrivateInterfaces[std::pair{*Local, *Remote}];
         if (Entry) {
             CxPlatDispatchLockRelease(&Lock);
-            return CXPLAT_CONTAINING_RECORD(Entry, LbInterface, HashEntry);
+            return Entry;
         }
-        auto NewInterface = new LbPrivateInterface(&PrivateAddrs[Hash % PrivateAddrs.size()], Remote, Hash);
-        PrivateInterfaces.Insert(&NewInterface->HashEntry);
+        auto NewInterface = new LbPrivateInterface(&PrivateAddrs[Hash % PrivateAddrs.size()], Remote);
+        Entry = NewInterface;
         CxPlatDispatchLockRelease(&Lock);
         return NewInterface;
     }
