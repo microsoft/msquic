@@ -127,7 +127,7 @@ struct LbPublicInterface : public LbInterface {
         }
     };
 
-    std::unordered_map<std::pair<QUIC_ADDR, QUIC_ADDR>, LbPrivateInterface*, Hasher, EqualFn> PrivateInterfaces{10, Hasher{}, EqualFn{}};
+    std::unordered_map<std::pair<QUIC_ADDR, QUIC_ADDR>, LbPrivateInterface*, Hasher, EqualFn> PrivateInterfaces;
     std::mutex Lock;
     uint32_t NextInterface = 0;
 
