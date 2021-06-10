@@ -133,4 +133,9 @@ foreach ($Build in $AllBuilds) {
     }
     # Package zip archive
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
+
+    # For now, package only x64 Release binaries
+    if ($Platform -eq "linux" && $BuildBaseName.Contains("x64_Release")) {
+        scripts/make-packages.sh  --output $DistDir
+    }
 }

@@ -33,6 +33,26 @@ if [ ! -e "$ARTIFACTS/libmsquic.so" ]; then
     exit 1
 fi
 OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
+
+# process arguments and allow to override default values
+while :; do
+    if [ $# -le 0 ]; then
+        break
+    fi
+
+    case $1 in
+        -o|--output)
+            shift
+            OUTPUT=$1
+            ;;
+        *)
+            echo unknown argument
+            ;;
+    esac
+
+    shift
+done
+
 mkdir -p ${OUTPUT}
 
 # RedHat/CentOS
