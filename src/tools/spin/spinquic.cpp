@@ -770,6 +770,10 @@ void QUIC_API DatapathHookCreateCallback(_Inout_opt_ QUIC_ADDR* /* RemoteAddress
 {
 }
 
+void QUIC_API DatapathHookGetAddressCallback(_Inout_ QUIC_ADDR* /* Address */)
+{
+}
+
 BOOLEAN QUIC_API DatapathHookReceiveCallback(struct CXPLAT_RECV_DATA* /* Datagram */)
 {
     uint8_t RandomValue;
@@ -783,7 +787,11 @@ BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_A
 }
 
 QUIC_TEST_DATAPATH_HOOKS DataPathHooks = {
-    DatapathHookCreateCallback, DatapathHookReceiveCallback, DatapathHookSendCallback
+    DatapathHookCreateCallback,
+    DatapathHookGetAddressCallback,
+    DatapathHookGetAddressCallback,
+    DatapathHookReceiveCallback,
+    DatapathHookSendCallback
 };
 
 void PrintHelpText(void)

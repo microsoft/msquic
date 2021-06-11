@@ -1390,7 +1390,7 @@ QuicLibraryLookupBinding(
 #endif
 
         QUIC_ADDR BindingLocalAddr;
-        CxPlatSocketGetLocalAddress(Binding->Socket, &BindingLocalAddr);
+        QuicBindingGetLocalAddress(Binding, &BindingLocalAddr);
 
         if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
             continue;
@@ -1402,7 +1402,7 @@ QuicLibraryLookupBinding(
             }
 
             QUIC_ADDR BindingRemoteAddr;
-            CxPlatSocketGetRemoteAddress(Binding->Socket, &BindingRemoteAddr);
+            QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
             if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
                 continue;
             }
@@ -1507,7 +1507,7 @@ NewBinding:
         goto Exit;
     }
 
-    CxPlatSocketGetLocalAddress((*NewBinding)->Socket, &NewLocalAddress);
+    QuicBindingGetLocalAddress(*NewBinding, &NewLocalAddress);
 
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 

@@ -179,8 +179,8 @@ QuicBindingInitialize(
     }
 
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
-    CxPlatSocketGetLocalAddress(Binding->Socket, &DatapathLocalAddr);
-    CxPlatSocketGetRemoteAddress(Binding->Socket, &DatapathRemoteAddr);
+    QuicBindingGetLocalAddress(Binding, &DatapathLocalAddr);
+    QuicBindingGetRemoteAddress(Binding, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingCreated,
         "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
@@ -276,8 +276,8 @@ QuicBindingTraceRundown(
     // TODO - Trace datapath binding
 
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
-    CxPlatSocketGetLocalAddress(Binding->Socket, &DatapathLocalAddr);
-    CxPlatSocketGetRemoteAddress(Binding->Socket, &DatapathRemoteAddr);
+    QuicBindingGetLocalAddress(Binding, &DatapathLocalAddr);
+    QuicBindingGetRemoteAddress(Binding, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingRundown,
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
@@ -296,6 +296,38 @@ QuicBindingTraceRundown(
     }
 
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingGetLocalAddress(
+    _In_ QUIC_BINDING* Binding,
+    _Out_ QUIC_ADDR* Address
+    )
+{
+    CxPlatSocketGetLocalAddress(Binding->Socket, Address);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    if (Hooks != NULL) {
+        Hooks->GetLocalAddress(Address);
+    }
+#endif
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingGetRemoteAddress(
+    _In_ QUIC_BINDING* Binding,
+    _Out_ QUIC_ADDR* Address
+    )
+{
+    CxPlatSocketGetRemoteAddress(Binding->Socket, Address);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    if (Hooks != NULL) {
+        Hooks->GetRemoteAddress(Address);
+    }
+#endif
 }
 
 //

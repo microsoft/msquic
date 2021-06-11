@@ -167,6 +167,22 @@ struct DatapathHook
     }
 
     virtual
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    GetLocalAddress(
+        _Inout_ QUIC_ADDR* /* Address */
+        ) {
+    }
+
+    virtual
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    GetRemoteAddress(
+        _Inout_ QUIC_ADDR* /* Address */
+        ) {
+    }
+
+    virtual
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
@@ -203,6 +219,26 @@ class DatapathHooks
         _Inout_opt_ QUIC_ADDR* LocalAddress
         ) {
         return Instance->Create(RemoteAddress, LocalAddress);
+    }
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    QUIC_API
+    GetLocalAddressCallback(
+        _Inout_ QUIC_ADDR* Address
+        ) {
+        return Instance->GetLocalAddress(Address);
+    }
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    QUIC_API
+    GetRemoteAddressCallback(
+        _Inout_ QUIC_ADDR* Address
+        ) {
+        return Instance->GetRemoteAddress(Address);
     }
 
     static
@@ -280,6 +316,32 @@ class DatapathHooks
         DatapathHook* Iter = Hooks;
         while (Iter) {
             Iter->Create(RemoteAddress, LocalAddress);
+            Iter = Iter->Next;
+        }
+        CxPlatDispatchLockRelease(&Lock);
+    }
+
+    void
+    GetLocalAddress(
+        _Inout_ QUIC_ADDR* Address
+        ) {
+        CxPlatDispatchLockAcquire(&Lock);
+        DatapathHook* Iter = Hooks;
+        while (Iter) {
+            Iter->GetLocalAddress(Address);
+            Iter = Iter->Next;
+        }
+        CxPlatDispatchLockRelease(&Lock);
+    }
+
+    void
+    GetRemoteAddress(
+        _Inout_ QUIC_ADDR* Address
+        ) {
+        CxPlatDispatchLockAcquire(&Lock);
+        DatapathHook* Iter = Hooks;
+        while (Iter) {
+            Iter->GetRemoteAddress(Address);
             Iter = Iter->Next;
         }
         CxPlatDispatchLockRelease(&Lock);
@@ -602,10 +664,30 @@ struct LoadBalancerHelper : public DatapathHook
             QuicAddrCompare(RemoteAddress, &PublicAddress)) {
             *RemoteAddress = MapSendToPublic(LocalAddress);
             QuicTraceLogVerbose(
-                TestHookReplaceAddrSend,
-                "[test][hook] Send Addr :%hu => :%hu",
+                TestHookReplaceCreateSend,
+                "[test][hook] Create (remote) Addr :%hu => :%hu",
                 QuicAddrGetPort(&PublicAddress),
                 QuicAddrGetPort(RemoteAddress));
+        }
+    }
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    GetLocalAddress(
+        _Inout_ QUIC_ADDR* /* Address */
+        ) {
+    }
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    GetRemoteAddress(
+        _Inout_ QUIC_ADDR* Address
+        ) {
+        for (uint32_t i = 0; i < PrivateAddressesCount; ++i) {
+            if (QuicAddrCompare(
+                    Address,
+                    &PrivateAddresses[i])) {
+                *Address = PublicAddress;
+                break;
+            }
         }
     }
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -621,7 +703,7 @@ struct LoadBalancerHelper : public DatapathHook
                 QuicTraceLogVerbose(
                     TestHookReplaceAddrRecv,
                     "[test][hook] Recv Addr :%hu => :%hu",
-                    QuicAddrGetPort(&Datagram->Tuple->RemoteAddress),
+                    QuicAddrGetPort(&PrivateAddresses[i]),
                     QuicAddrGetPort(&PublicAddress));
                 break;
             }

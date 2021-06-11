@@ -293,9 +293,7 @@ MsQuicListenerStart(
     }
 
     if (PortUnspecified) {
-        CxPlatSocketGetLocalAddress(
-            Listener->Binding->Socket,
-            &BindingLocalAddress);
+        QuicBindingGetLocalAddress(Listener->Binding, &BindingLocalAddress);
         QuicAddrSetPort(
             &Listener->LocalAddress,
             QuicAddrGetPort(&BindingLocalAddress));

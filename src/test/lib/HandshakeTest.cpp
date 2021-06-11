@@ -16,6 +16,8 @@ Abstract:
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
     DatapathHooks::CreateCallback,
+    DatapathHooks::GetLocalAddressCallback,
+    DatapathHooks::GetRemoteAddressCallback,
     DatapathHooks::ReceiveCallback,
     DatapathHooks::SendCallback
 };
@@ -2584,7 +2586,7 @@ struct LoadBalancedServer {
         _In_ uint32_t ListenerCount = 2
         ) noexcept :
         PublicAddress(QuicAddrFamily, (uint16_t)443), PrivateAddresses(new QuicAddr[ListenerCount]),
-        Listeners(new MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount() {
+        Listeners(new MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount(ListenerCount) {
         CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
         QuicAddrSetToLoopback(&PublicAddress.SockAddr);
         for (uint32_t i = 0; i < ListenerCount; ++i) {
@@ -2597,7 +2599,7 @@ struct LoadBalancedServer {
         }
         LoadBalancer = new LoadBalancerHelper(PublicAddress.SockAddr, (QUIC_ADDR*)PrivateAddresses, ListenerCount);
     }
-    ~LoadBalancedServer() {
+    ~LoadBalancedServer() noexcept {
         delete LoadBalancer;
         for (uint32_t i = 0; i < ListenerCount; ++i) {
             delete Listeners[i];
@@ -2606,6 +2608,11 @@ struct LoadBalancedServer {
         delete[] PrivateAddresses;
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    void ValidateLoadBalancing() const noexcept {
+        for (uint32_t i = 0; i < ListenerCount; ++i) {
+            TEST_TRUE(Listeners[i]->AcceptedConnectionCount != 0);
+        }
+    }
 };
 
 void
@@ -2613,7 +2620,7 @@ QuicTestLoadBalancedHandshake(
     _In_ int Family
     )
 {
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
@@ -2626,8 +2633,16 @@ QuicTestLoadBalancedHandshake(
     LoadBalancedServer Listeners(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback, QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listeners.GetInitStatus());
 
-    MsQuicConnection Connection(Registration);
-    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
-    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    QuicAddr ConnLocalAddr(QuicAddrFamily, false);
+    ConnLocalAddr.SetPort(33667); // Randomly chosen!
+    for (uint32_t i = 0; i < 10; ++i) {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr));
+        TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        Connection.Shutdown(0); // Best effort start peer shutdown
+        ConnLocalAddr.IncrementPort();
+    }
+    Listeners.ValidateLoadBalancing();
 }

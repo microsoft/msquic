@@ -290,6 +290,26 @@ QuicBindingTraceRundown(
     );
 
 //
+// Queries the local IP address of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingGetLocalAddress(
+    _In_ QUIC_BINDING* Binding,
+    _Out_ QUIC_ADDR* Address
+    );
+
+//
+// Queries the remote IP address of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingGetRemoteAddress(
+    _In_ QUIC_BINDING* Binding,
+    _Out_ QUIC_ADDR* Address
+    );
+
+//
 // Looks up the listener based on the ALPN list. Optionally, outputs the
 // first ALPN that matches.
 //
