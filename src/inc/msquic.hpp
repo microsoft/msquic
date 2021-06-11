@@ -20,7 +20,7 @@ Supported Platforms:
 
 #pragma once
 
-#include <msquic.h>
+#include "msquic.h"
 #ifdef _KERNEL_MODE
 #include <new.h>
 #else
