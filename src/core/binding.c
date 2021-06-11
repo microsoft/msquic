@@ -125,14 +125,42 @@ QuicBindingInitialize(
     }
 #endif
 
-    Status =
-        CxPlatSocketCreateUdp(
-            MsQuicLib.Datapath,
-            LocalAddress,
-            RemoteAddress,
-            Binding,
-            0,
-            &Binding->Socket);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    if (Hooks != NULL) {
+        QUIC_ADDR RemoteAddressCopy;
+        if (RemoteAddress != NULL) {
+            RemoteAddressCopy = *RemoteAddress;
+        }
+        QUIC_ADDR LocalAddressCopy;
+        if (LocalAddress != NULL) {
+            LocalAddressCopy = *LocalAddress;
+        }
+        Hooks->Create(
+            RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
+            LocalAddress != NULL ? &LocalAddressCopy : NULL);
+
+        Status =
+            CxPlatSocketCreateUdp(
+                MsQuicLib.Datapath,
+                LocalAddress != NULL ? &LocalAddressCopy : NULL,
+                RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
+                Binding,
+                0,
+                &Binding->Socket);
+    } else {
+#endif
+        Status =
+            CxPlatSocketCreateUdp(
+                MsQuicLib.Datapath,
+                LocalAddress,
+                RemoteAddress,
+                Binding,
+                0,
+                &Binding->Socket);
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    }
+#endif
 
 #ifdef QUIC_COMPARTMENT_ID
     if (RevertCompartmentId) {

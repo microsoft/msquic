@@ -15,6 +15,7 @@ Abstract:
 #endif
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
+    DatapathHooks::CreateCallback,
     DatapathHooks::ReceiveCallback,
     DatapathHooks::SendCallback
 };
@@ -2566,4 +2567,67 @@ QuicTestConnectExpiredClientCertificate(
             }
         }
     }
+}
+
+struct LoadBalancedServer {
+    QuicAddr PublicAddress;
+    QuicAddr* PrivateAddresses {nullptr};
+    MsQuicAutoAcceptListener** Listeners {nullptr};
+    uint32_t ListenerCount;
+    LoadBalancerHelper* LoadBalancer {nullptr};
+    QUIC_STATUS InitStatus {QUIC_STATUS_SUCCESS};
+    LoadBalancedServer(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ const MsQuicConfiguration& Config,
+        _In_ MsQuicConnectionCallback* ConnectionHandler,
+        _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_UNSPEC,
+        _In_ uint32_t ListenerCount = 2
+        ) noexcept :
+        PublicAddress(QuicAddrFamily, (uint16_t)443), PrivateAddresses(new QuicAddr[ListenerCount]),
+        Listeners(new MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount() {
+        CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
+        QuicAddrSetToLoopback(&PublicAddress.SockAddr);
+        for (uint32_t i = 0; i < ListenerCount; ++i) {
+            PrivateAddresses[i] = QuicAddr(QuicAddrFamily);
+            QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
+            Listeners[i] = new MsQuicAutoAcceptListener(Registration, Config, ConnectionHandler);
+            TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetInitStatus());
+            TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->Start("MsQuicTest", &PrivateAddresses[i].SockAddr));
+            TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetLocalAddr(PrivateAddresses[i]));
+        }
+        LoadBalancer = new LoadBalancerHelper(PublicAddress.SockAddr, (QUIC_ADDR*)PrivateAddresses, ListenerCount);
+    }
+    ~LoadBalancedServer() {
+        delete LoadBalancer;
+        for (uint32_t i = 0; i < ListenerCount; ++i) {
+            delete Listeners[i];
+        }
+        delete[] Listeners;
+        delete[] PrivateAddresses;
+    }
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+};
+
+void
+QuicTestLoadBalancedHandshake(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    LoadBalancedServer Listeners(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback, QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listeners.GetInitStatus());
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
 }

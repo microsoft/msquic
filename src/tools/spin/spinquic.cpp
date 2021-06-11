@@ -766,6 +766,10 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
     CXPLAT_THREAD_RETURN(0);
 }
 
+void QUIC_API DatapathHookCreateCallback(_Inout_opt_ QUIC_ADDR* /* RemoteAddress */, _Inout_opt_ QUIC_ADDR* /* LocalAddress */)
+{
+}
+
 BOOLEAN QUIC_API DatapathHookReceiveCallback(struct CXPLAT_RECV_DATA* /* Datagram */)
 {
     uint8_t RandomValue;
@@ -779,7 +783,7 @@ BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_A
 }
 
 QUIC_TEST_DATAPATH_HOOKS DataPathHooks = {
-    DatapathHookReceiveCallback, DatapathHookSendCallback
+    DatapathHookCreateCallback, DatapathHookReceiveCallback, DatapathHookSendCallback
 };
 
 void PrintHelpText(void)

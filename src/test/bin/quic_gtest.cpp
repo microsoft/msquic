@@ -981,6 +981,17 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithFamilyArgs, LoadBalanced) {
+    TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, GetParam().Family));
+    } else {
+        QuicTestLoadBalancedHandshake(GetParam().Family);
+    }
+}
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     if (TestingKernelMode) {

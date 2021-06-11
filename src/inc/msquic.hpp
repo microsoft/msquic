@@ -31,6 +31,84 @@ Supported Platforms:
 #define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
 #endif
 
+#ifdef CX_PLATFORM_TYPE
+
+//
+// Abstractions for platform specific types/interfaces
+//
+
+struct CxPlatEvent {
+    CXPLAT_EVENT Handle;
+    CxPlatEvent() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
+    CxPlatEvent(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
+    CxPlatEvent(CXPLAT_EVENT event) noexcept : Handle(event) { }
+    ~CxPlatEvent() noexcept { CxPlatEventUninitialize(Handle); }
+    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
+    operator CXPLAT_EVENT() const noexcept { return Handle; }
+    void Set() { CxPlatEventSet(Handle); }
+    void Reset() { CxPlatEventReset(Handle); }
+    void WaitForever() { CxPlatEventWaitForever(Handle); }
+    bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
+};
+
+#ifdef CXPLAT_HASH_MIN_SIZE
+
+struct HashTable {
+    bool Initialized;
+    CXPLAT_HASHTABLE Table;
+    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
+    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
+    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableRemove(&Table, Entry, nullptr); }
+    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) {
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
+        return CxPlatHashtableLookup(&Table, Signature, &LookupContext);
+    }
+    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) {
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
+        CXPLAT_HASHTABLE_ENTRY* Entry = CxPlatHashtableLookup(&Table, Signature, &LookupContext);
+        while (Entry != NULL) {
+            if (Equals(Entry, Context)) return Entry;
+            Entry = CxPlatHashtableLookupNext(&Table, &LookupContext);
+        }
+        return NULL;
+    }
+};
+
+#endif // CXPLAT_HASH_MIN_SIZE
+
+#ifdef CXPLAT_FRE_ASSERT
+
+class CxPlatWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CxPlatEvent ShutdownEvent {true};
+    uint32_t TimeoutMs;
+    static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (CxPlatWatchdog*)Context;
+        if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "cxplat_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatThreadCreate(&Config, &WatchdogThread)));
+    }
+    ~CxPlatWatchdog() {
+        ShutdownEvent.Set();
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+    }
+};
+
+#endif // CXPLAT_FRE_ASSERT
+
+#endif // CX_PLATFORM_TYPE
+
 struct QuicAddr {
     QUIC_ADDR SockAddr;
     QuicAddr() {
@@ -563,6 +641,10 @@ struct MsQuicConnection {
     MsQuicConnectionCallback* Callback;
     void* Context;
     QUIC_STATUS InitStatus;
+    bool HandshakeComplete {false};
+#ifdef CX_PLATFORM_TYPE
+    CxPlatEvent HandshakeCompleteEvent;
+#endif // CX_PLATFORM_TYPE
 
     MsQuicConnection(
         _In_ const MsQuicRegistration& Registration,
@@ -753,6 +835,12 @@ private:
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) noexcept {
         CXPLAT_DBG_ASSERT(pThis);
+        if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            pThis->HandshakeComplete = true;
+#ifdef CX_PLATFORM_TYPE
+            pThis->HandshakeCompleteEvent.Set();
+#endif // CX_PLATFORM_TYPE
+        }
         auto DeleteOnExit =
             Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
             pThis->CleanUpMode == CleanUpAutoDelete;
@@ -992,81 +1080,3 @@ struct QuicBufferScope {
     operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
-
-#ifdef CX_PLATFORM_TYPE
-
-//
-// Abstractions for platform specific types/interfaces
-//
-
-struct CxPlatEvent {
-    CXPLAT_EVENT Handle;
-    CxPlatEvent() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
-    CxPlatEvent(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
-    CxPlatEvent(CXPLAT_EVENT event) noexcept : Handle(event) { }
-    ~CxPlatEvent() noexcept { CxPlatEventUninitialize(Handle); }
-    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
-    operator CXPLAT_EVENT() const noexcept { return Handle; }
-    void Set() { CxPlatEventSet(Handle); }
-    void Reset() { CxPlatEventReset(Handle); }
-    void WaitForever() { CxPlatEventWaitForever(Handle); }
-    bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
-};
-
-#ifdef CXPLAT_HASH_MIN_SIZE
-
-struct HashTable {
-    bool Initialized;
-    CXPLAT_HASHTABLE Table;
-    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
-    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
-    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
-    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableRemove(&Table, Entry, nullptr); }
-    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) {
-        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
-        return CxPlatHashtableLookup(&Table, Signature, &LookupContext);
-    }
-    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) {
-        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
-        CXPLAT_HASHTABLE_ENTRY* Entry = CxPlatHashtableLookup(&Table, Signature, &LookupContext);
-        while (Entry != NULL) {
-            if (Equals(Entry, Context)) return Entry;
-            Entry = CxPlatHashtableLookupNext(&Table, &LookupContext);
-        }
-        return NULL;
-    }
-};
-
-#endif // CXPLAT_HASH_MIN_SIZE
-
-#ifdef CXPLAT_FRE_ASSERT
-
-class CxPlatWatchdog {
-    CXPLAT_THREAD WatchdogThread;
-    CxPlatEvent ShutdownEvent {true};
-    uint32_t TimeoutMs;
-    static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
-        auto This = (CxPlatWatchdog*)Context;
-        if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
-            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
-        }
-        CXPLAT_THREAD_RETURN(0);
-    }
-public:
-    CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        CXPLAT_THREAD_CONFIG Config = { 0 };
-        Config.Name = "cxplat_watchdog";
-        Config.Callback = WatchdogThreadCallback;
-        Config.Context = this;
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatThreadCreate(&Config, &WatchdogThread)));
-    }
-    ~CxPlatWatchdog() {
-        ShutdownEvent.Set();
-        CxPlatThreadWait(&WatchdogThread);
-        CxPlatThreadDelete(&WatchdogThread);
-    }
-};
-
-#endif // CXPLAT_FRE_ASSERT
-
-#endif // CX_PLATFORM_TYPE

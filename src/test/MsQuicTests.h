@@ -161,6 +161,11 @@ QuicTestInvalidAlpnLengths(
     void
     );
 
+void
+QuicTestLoadBalancedHandshake(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //

@@ -14,6 +14,7 @@ Abstract:
 #endif
 
 #include "msquic.hpp"
+#include "quic_toeplitz.h"
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H
@@ -155,6 +156,15 @@ struct DatapathHook
     DatapathHook() : Next(nullptr) { }
 
     virtual
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    Create(
+        _Inout_opt_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */
+        ) {
+    }
+
+    virtual
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
@@ -181,6 +191,17 @@ class DatapathHooks
 
     DatapathHook* Hooks;
     CXPLAT_DISPATCH_LOCK Lock;
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    QUIC_API
+    CreateCallback(
+        _Inout_opt_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* LocalAddress
+        ) {
+        return Instance->Create(RemoteAddress, LocalAddress);
+    }
 
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -246,6 +267,20 @@ class DatapathHooks
             TestHookUnregistered,
             "[test][hook] Unregistered");
 #endif
+    }
+
+    void
+    Create(
+        _Inout_opt_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* LocalAddress
+        ) {
+        CxPlatDispatchLockAcquire(&Lock);
+        DatapathHook* Iter = Hooks;
+        while (Iter) {
+            Iter->Create(RemoteAddress, LocalAddress);
+            Iter = Iter->Next;
+        }
+        CxPlatDispatchLockRelease(&Lock);
     }
 
     BOOLEAN
@@ -537,5 +572,80 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
             return TRUE; // Drop if it tries to explicitly send to the old address.
         }
         return FALSE;
+    }
+};
+
+struct LoadBalancerHelper : public DatapathHook
+{
+    CXPLAT_TOEPLITZ_HASH Toeplitz;
+    QUIC_ADDR PublicAddress;
+    const QUIC_ADDR* PrivateAddresses;
+    uint32_t PrivateAddressesCount;
+    LoadBalancerHelper(const QUIC_ADDR& Public, const QUIC_ADDR* Private, uint32_t PrivateCount) :
+        PublicAddress(Public), PrivateAddresses(Private), PrivateAddressesCount(PrivateCount) {
+        CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+        CxPlatToeplitzHashInitialize(&Toeplitz);
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~LoadBalancerHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    Create(
+        _Inout_opt_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* LocalAddress
+        ) {
+        if (QuicAddrCompare(RemoteAddress, &PublicAddress)) {
+            *RemoteAddress = MapSendToPublic(LocalAddress);
+            QuicTraceLogVerbose(
+                TestHookReplaceAddrSend,
+                "[test][hook] Send Addr :%hu => :%hu",
+                QuicAddrGetPort(&PublicAddress),
+                QuicAddrGetPort(RemoteAddress));
+        }
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
+        ) {
+        for (uint32_t i = 0; i < PrivateAddressesCount; ++i) {
+            if (QuicAddrCompare(
+                    &Datagram->Tuple->RemoteAddress,
+                    &PrivateAddresses[i])) {
+                Datagram->Tuple->RemoteAddress = PublicAddress;
+                QuicTraceLogVerbose(
+                    TestHookReplaceAddrRecv,
+                    "[test][hook] Recv Addr :%hu => :%hu",
+                    QuicAddrGetPort(&Datagram->Tuple->RemoteAddress),
+                    QuicAddrGetPort(&PublicAddress));
+                break;
+            }
+        }
+        return FALSE;
+    }
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    Send(
+        _Inout_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* LocalAddress,
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendData */
+        ) {
+        if (QuicAddrCompare(RemoteAddress, &PublicAddress)) {
+            *RemoteAddress = MapSendToPublic(LocalAddress);
+            QuicTraceLogVerbose(
+                TestHookReplaceAddrSend,
+                "[test][hook] Send Addr :%hu => :%hu",
+                QuicAddrGetPort(&PublicAddress),
+                QuicAddrGetPort(RemoteAddress));
+        }
+        return FALSE;
+    }
+private:
+    const QUIC_ADDR& MapSendToPublic(_In_ const QUIC_ADDR* SourceAddress) {
+        uint32_t Key = 0, Offset;
+        CxPlatToeplitzHashComputeAddr(&Toeplitz, SourceAddress, &Key, &Offset);
+        return PrivateAddresses[Key % PrivateAddressesCount];
     }
 };
