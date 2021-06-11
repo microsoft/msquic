@@ -318,7 +318,7 @@ MsQuicLibraryInitialize(
     }
     MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcActiveCount();
     CXPLAT_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
-    MsQuicLib.PartitionCount = (uint16_t)min(MsQuicLib.ProcessorCount, DefaultMaxPartitionCount);
+    MsQuicLib.PartitionCount = (uint16_t)CXPLAT_MIN(MsQuicLib.ProcessorCount, DefaultMaxPartitionCount);
 
     MsQuicCalculatePartitionMask();
 

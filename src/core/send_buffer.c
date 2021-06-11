@@ -46,7 +46,7 @@ Abstract:
     streams, and its legacy APIs don't let it pass the problem further up the
     stack to the layer that really knows.
 
-    So then, we indicate min(SendBuffer.IdealBytes, Stream.SendWindow) as the
+    So then, we indicate CXPLAT_MIN(SendBuffer.IdealBytes, Stream.SendWindow) as the
     ISB to each stream. If the app steadily sends on multiple streams, this
     means more data will be buffered than needed. But usually we expect only
     one stream to be steadily sending, in which case this scheme will

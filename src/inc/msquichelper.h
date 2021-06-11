@@ -289,7 +289,7 @@ IsValue(
     _In_z_ const char* toTestAgainst
     )
 {
-    return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
+    return _strnicmp(name, toTestAgainst, CXPLAT_MIN(strlen(name), strlen(toTestAgainst))) == 0;
 }
 
 inline

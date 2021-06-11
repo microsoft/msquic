@@ -296,7 +296,7 @@ QuicStreamStart(
     if (Stream->MaxAllowedSendOffset == 0) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
     }
-    Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
+    Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (Stream->OutFlowBlockedReasons != 0) {
         QuicTraceEvent(

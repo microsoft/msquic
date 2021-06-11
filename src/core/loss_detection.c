@@ -312,7 +312,7 @@ QuicLossDetectionUpdateTimer(
         // If it expires, we'll consider the packet lost.
         //
         TimeoutType = LOSS_TIMER_RACK;
-        uint32_t RttUs = max(Path->SmoothedRtt, Path->LatestRttSample);
+        uint32_t RttUs = CXPLAT_MAX(Path->SmoothedRtt, Path->LatestRttSample);
         TimeFires = OldestPacket->SentTime + QUIC_TIME_REORDER_THRESHOLD(RttUs);
 
     } else if (!Path->GotFirstRttSample) {
@@ -784,7 +784,7 @@ QuicLossDetectionRetransmitFrames(
                 uint32_t TimeNow = CxPlatTimeUs32();
                 CXPLAT_DBG_ASSERT(Connection->Configuration != NULL);
                 uint32_t ValidationTimeout =
-                    max(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
+                    CXPLAT_MAX(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
                         6 * MS_TO_US(Connection->Settings.InitialRttMs));
                 if (CxPlatTimeDiff32(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
                     QuicTraceLogConnInfo(
@@ -924,13 +924,13 @@ QuicLossDetectionDetectAndHandleLostPackets(
         //
         // Remove "suspect" packets inferred lost from out-of-order ACKs.
         // The spec has:
-        // kTimeThreshold * max(SRTT, latest_RTT, kGranularity),
+        // kTimeThreshold * CXPLAT_MAX(SRTT, latest_RTT, kGranularity),
         // where kGranularity is the system timer granularity.
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
         //
         const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
-        uint32_t Rtt = max(Path->SmoothedRtt, Path->LatestRttSample);
+        uint32_t Rtt = CXPLAT_MAX(Path->SmoothedRtt, Path->LatestRttSample);
         uint32_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
         QUIC_SENT_PACKET_METADATA* PrevPacket = NULL;
@@ -1400,7 +1400,7 @@ QuicLossDetectionProcessAckBlocks(
             Packet->PacketNumber,
             QuicPacketTraceType(Packet));
 
-        SmallestRtt = min(SmallestRtt, PacketRtt);
+        SmallestRtt = CXPLAT_MIN(SmallestRtt, PacketRtt);
 
         QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
     }

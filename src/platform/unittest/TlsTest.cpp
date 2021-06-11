@@ -398,7 +398,7 @@ protected:
                     BufferLength -= ConsumedBuffer;
                 } else {
                     ConsumedBuffer = FragmentSize * ++Count;
-                    ConsumedBuffer = min(ConsumedBuffer, BufferLength);
+                    ConsumedBuffer = CXPLAT_MIN(ConsumedBuffer, BufferLength);
                 }
 
             } while (BufferLength != 0 && !(Result & CXPLAT_TLS_RESULT_ERROR));

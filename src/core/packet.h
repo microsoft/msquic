@@ -560,7 +560,7 @@ QuicPacketHash(
             CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 RemoteCid,
-                min(RemoteCidLength, QUIC_MAX_CONNECTION_ID_LENGTH_V1),
+                CXPLAT_MIN(RemoteCidLength, QUIC_MAX_CONNECTION_ID_LENGTH_V1),
                 Offset);
     }
     return Key;
