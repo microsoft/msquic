@@ -341,3 +341,11 @@ CxPlatInternalEventWaitWithTimeout(
     _Inout_ CXPLAT_EVENT* Event,
     _In_ uint32_t TimeoutMs
     );
+
+void
+CxPlatToeplitzHashComputeAddr(
+    _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
+    _In_ const QUIC_ADDR* Addr,
+    _Inout_ uint32_t* Key,
+    _Out_ uint32_t* Offset
+    );
