@@ -155,6 +155,8 @@ struct DatapathHook
 
     DatapathHook() : Next(nullptr) { }
 
+    virtual ~DatapathHook() { }
+
     virtual
     _IRQL_requires_max_(PASSIVE_LEVEL)
     void
@@ -596,7 +598,8 @@ struct LoadBalancerHelper : public DatapathHook
         _Inout_opt_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress
         ) {
-        if (QuicAddrCompare(RemoteAddress, &PublicAddress)) {
+        if (RemoteAddress && LocalAddress &&
+            QuicAddrCompare(RemoteAddress, &PublicAddress)) {
             *RemoteAddress = MapSendToPublic(LocalAddress);
             QuicTraceLogVerbose(
                 TestHookReplaceAddrSend,
