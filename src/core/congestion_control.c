@@ -451,7 +451,7 @@ QuicCongestionControlOnDataAcknowledged(
         // so we simplify the calculation as:
         // W_est(t) ~= WindowMax*BETA + (t/(2*RTT)).
         //
-        // Using CXPLAT_MAX(RTT, 1) prevents division by zero.
+        // Using max(RTT, 1) prevents division by zero.
         //
 
         CXPLAT_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");

@@ -924,7 +924,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         //
         // Remove "suspect" packets inferred lost from out-of-order ACKs.
         // The spec has:
-        // kTimeThreshold * CXPLAT_MAX(SRTT, latest_RTT, kGranularity),
+        // kTimeThreshold * max(SRTT, latest_RTT, kGranularity),
         // where kGranularity is the system timer granularity.
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
