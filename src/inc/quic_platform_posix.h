@@ -92,10 +92,6 @@ CxPlatUninitialize(
 
 #define SOCKET_ERROR (-1)
 
-#define max(a,b) (((a) > (b)) ? (a) : (b))
-
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-
 #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
 
 #define UNREFERENCED_PARAMETER(P) (void)(P)

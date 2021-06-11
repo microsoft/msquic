@@ -46,7 +46,7 @@ QuicHandleRpsClient(
     ExtraData += sizeof(CachedCompletedRequests);
     uint32_t RestOfBufferLength = Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
-    uint32_t MaxCount = min(CachedCompletedRequests, RestOfBufferLength);
+    uint32_t MaxCount = CXPLAT_MIN(CachedCompletedRequests, RestOfBufferLength);
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
     if (RPS == 0) {

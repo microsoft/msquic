@@ -326,7 +326,7 @@ QuicStreamSetInitializeTransportParameters(
             if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
                 Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
                 FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
-                Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
+                Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
             }
 
             if (FlowBlockedFlagsToRemove) {

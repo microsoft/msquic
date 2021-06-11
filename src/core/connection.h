@@ -1442,7 +1442,7 @@ QuicConnGetMaxMtuForPath(
                 (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize);
     }
     uint16_t SettingsMtu = Connection->Settings.MaximumMtu;
-    return min(min(LocalMtu, RemoteMtu), SettingsMtu);
+    return CXPLAT_MIN(CXPLAT_MIN(LocalMtu, RemoteMtu), SettingsMtu);
 }
 
 //

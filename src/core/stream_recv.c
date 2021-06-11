@@ -512,7 +512,7 @@ QuicStreamRecv(
             // MAX_STREAM_DATA.
             //
             Stream->SendWindow =
-                (uint32_t)min(Stream->MaxAllowedSendOffset - Stream->UnAckedOffset, UINT32_MAX);
+                (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset - Stream->UnAckedOffset, UINT32_MAX);
 
             QuicSendBufferStreamAdjust(Stream);
 

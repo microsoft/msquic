@@ -261,7 +261,7 @@ QuicCongestionControlOnCongestionEvent(
 
     Cc->SlowStartThreshold =
     Cc->CongestionWindow =
-        max(
+        CXPLAT_MAX(
             (uint32_t)Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
             Cc->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
 }
@@ -458,13 +458,13 @@ QuicCongestionControlOnDataAcknowledged(
 
         int64_t AimdWindow =
             Cc->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
-            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * max(1, US_TO_MS(SmoothedRtt)));
+            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * CXPLAT_MAX(1, US_TO_MS(SmoothedRtt)));
 
         //
         // Use the cubic or AIMD window, whichever is larger.
         //
         if (AimdWindow > CubicWindow) {
-            Cc->CongestionWindow = (uint32_t)max(AimdWindow, Cc->CongestionWindow + 1);
+            Cc->CongestionWindow = (uint32_t)CXPLAT_MAX(AimdWindow, Cc->CongestionWindow + 1);
         } else {
             //
             // Here we increment by a fraction of the difference, per the spec,
@@ -473,7 +473,7 @@ QuicCongestionControlOnDataAcknowledged(
             // the cubic window may be significantly different from SlowStartThreshold.
             //
             Cc->CongestionWindow +=
-                (uint32_t)max(
+                (uint32_t)CXPLAT_MAX(
                     ((CubicWindow - Cc->CongestionWindow) * Connection->Paths[0].Mtu) / Cc->CongestionWindow,
                     1);
         }
