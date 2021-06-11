@@ -985,7 +985,7 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 TEST_P(WithFamilyArgs, LoadBalanced) {
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
-        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, GetParam().Family));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam().Family));
     } else {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }

@@ -438,7 +438,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(QUIC_RUN_MTU_DISCOVERY_PARAMS)
+    sizeof(QUIC_RUN_MTU_DISCOVERY_PARAMS),
+    sizeof(INT32)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1056,6 +1057,11 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->MtuDiscoveryParams.DropClientProbePackets,
                 Params->MtuDiscoveryParams.DropServerProbePackets,
                 Params->MtuDiscoveryParams.RaiseMinimumMtu));
+        break;
+
+    case IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestLoadBalancedHandshake(Params->Family));
         break;
 
     default:
