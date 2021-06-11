@@ -2585,19 +2585,19 @@ struct LoadBalancedServer {
         _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_UNSPEC,
         _In_ uint32_t ListenerCount = 2
         ) noexcept :
-        PublicAddress(QuicAddrFamily, (uint16_t)443), PrivateAddresses(new QuicAddr[ListenerCount]),
-        Listeners(new MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount(ListenerCount) {
+        PublicAddress(QuicAddrFamily, (uint16_t)443), PrivateAddresses(new(std::nothrow) QuicAddr[ListenerCount]),
+        Listeners(new(std::nothrow) MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount(ListenerCount) {
         CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
         QuicAddrSetToLoopback(&PublicAddress.SockAddr);
         for (uint32_t i = 0; i < ListenerCount; ++i) {
             PrivateAddresses[i] = QuicAddr(QuicAddrFamily);
             QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
-            Listeners[i] = new MsQuicAutoAcceptListener(Registration, Config, ConnectionHandler);
+            Listeners[i] = new(std::nothrow) MsQuicAutoAcceptListener(Registration, Config, ConnectionHandler);
             TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->Start("MsQuicTest", &PrivateAddresses[i].SockAddr));
             TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetLocalAddr(PrivateAddresses[i]));
         }
-        LoadBalancer = new LoadBalancerHelper(PublicAddress.SockAddr, (QUIC_ADDR*)PrivateAddresses, ListenerCount);
+        LoadBalancer = new(std::nothrow) LoadBalancerHelper(PublicAddress.SockAddr, (QUIC_ADDR*)PrivateAddresses, ListenerCount);
     }
     ~LoadBalancedServer() noexcept {
         delete LoadBalancer;
