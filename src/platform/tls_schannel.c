@@ -401,9 +401,6 @@ typedef struct CXPLAT_SEC_CONFIG {
     // Impersonation token from the original call to initialize.
     //
     PACCESS_TOKEN ImpersonationToken;
-    BOOLEAN CopyOnOpen;
-    BOOLEAN EffectiveOnly;
-    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
 #endif // _KERNEL_MODE
 
 } CXPLAT_SEC_CONFIG;
@@ -1261,11 +1258,8 @@ CxPlatTlsSecConfigCreate(
 
     CXPLAT_DBG_ASSERT(AchContext->SecConfig != NULL);
     AchContext->SecConfig->ImpersonationToken =
-        PsReferenceImpersonationToken(
-            PsGetCurrentThread(),
-            &AchContext->SecConfig->CopyOnOpen,
-            &AchContext->SecConfig->EffectiveOnly,
-            &AchContext->SecConfig->ImpersonationLevel);
+        PsReferencePrimaryToken(
+            PsGetCurrentProcess());
 
     QuicTraceLogVerbose(
         SchannelAchWorkerStart,
@@ -1354,7 +1348,7 @@ CxPlatTlsSecConfigDelete(
 
 #ifdef _KERNEL_MODE
     if (ServerConfig->ImpersonationToken) {
-        PsDereferenceImpersonationToken(ServerConfig->ImpersonationToken);
+        PsDereferencePrimaryToken(ServerConfig->ImpersonationToken);
     }
 #endif
 
@@ -1762,8 +1756,8 @@ CxPlatTlsWriteDataToSchannel(
             PsImpersonateClient(
                 PsGetCurrentThread(),
                 TlsContext->SecConfig->ImpersonationToken,
-                TlsContext->SecConfig->CopyOnOpen,
-                TlsContext->SecConfig->EffectiveOnly,
+                FALSE,
+                TRUE,
                 SecurityImpersonation);
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
