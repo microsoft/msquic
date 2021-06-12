@@ -2635,7 +2635,7 @@ QuicTestLoadBalancedHandshake(
 
     QuicAddr ConnLocalAddr(QuicAddrFamily, false);
     ConnLocalAddr.SetPort(33667); // Randomly chosen!
-    for (uint32_t i = 0; i < 10; ++i) {
+    for (uint32_t i = 0; i < 100; ++i) {
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr));
