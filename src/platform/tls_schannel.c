@@ -401,6 +401,10 @@ typedef struct CXPLAT_SEC_CONFIG {
     // Impersonation token from the original call to initialize.
     //
     PACCESS_TOKEN ImpersonationToken;
+    BOOLEAN IsPrimaryToken;
+    BOOLEAN CopyOnOpen;
+    BOOLEAN EffectiveOnly;
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
 #endif // _KERNEL_MODE
 
 } CXPLAT_SEC_CONFIG;
@@ -1258,8 +1262,18 @@ CxPlatTlsSecConfigCreate(
 
     CXPLAT_DBG_ASSERT(AchContext->SecConfig != NULL);
     AchContext->SecConfig->ImpersonationToken =
-        PsReferencePrimaryToken(
-            PsGetCurrentProcess());
+        PsReferenceImpersonationToken(
+            PsGetCurrentThread(),
+            &AchContext->SecConfig->CopyOnOpen,
+            &AchContext->SecConfig->EffectiveOnly,
+            &AchContext->SecConfig->ImpersonationLevel);
+
+    if (AchContext->SecConfig->ImpersonationToken == NULL) {
+        AchContext->SecConfig->ImpersonationToken =
+            PsReferencePrimaryToken(
+                PsGetCurrentProcess());
+        AchContext->SecConfig->IsPrimaryToken = TRUE;
+    }
 
     QuicTraceLogVerbose(
         SchannelAchWorkerStart,
@@ -1348,7 +1362,11 @@ CxPlatTlsSecConfigDelete(
 
 #ifdef _KERNEL_MODE
     if (ServerConfig->ImpersonationToken) {
-        PsDereferencePrimaryToken(ServerConfig->ImpersonationToken);
+        if (ServerConfig->IsPrimaryToken) {
+            PsDereferencePrimaryToken(ServerConfig->ImpersonationToken);
+        } else {
+            PsDereferenceImpersonationToken(ServerConfig->ImpersonationToken);
+        }
     }
 #endif
 
@@ -1752,13 +1770,24 @@ CxPlatTlsWriteDataToSchannel(
 
 #ifdef _KERNEL_MODE
     if (TlsContext->SecConfig->ImpersonationToken) {
-        NTSTATUS Status =
-            PsImpersonateClient(
-                PsGetCurrentThread(),
-                TlsContext->SecConfig->ImpersonationToken,
-                FALSE,
-                TRUE,
-                SecurityImpersonation);
+        NTSTATUS Status;
+        if (TlsContext->SecConfig->IsPrimaryToken) {
+            Status =
+                PsImpersonateClient(
+                    PsGetCurrentThread(),
+                    TlsContext->SecConfig->ImpersonationToken,
+                    FALSE,
+                    FALSE,
+                    SecurityImpersonation);
+        } else {
+            Status =
+                PsImpersonateClient(
+                    PsGetCurrentThread(),
+                    TlsContext->SecConfig->ImpersonationToken,
+                    TlsContext->SecConfig->CopyOnOpen,
+                    TlsContext->SecConfig->EffectiveOnly,
+                    TlsContext->SecConfig->ImpersonationLevel);
+        }
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 TlsErrorStatus,
@@ -1806,6 +1835,10 @@ CxPlatTlsWriteDataToSchannel(
 
 #ifdef _KERNEL_MODE
     if (TlsContext->SecConfig->ImpersonationToken) {
+        //
+        // This must only be called on a worker thread.
+        // Otherwise, this might ruin existing impersonation.
+        //
         PsRevertToSelf();
     }
 #endif
