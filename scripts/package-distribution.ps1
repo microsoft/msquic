@@ -135,10 +135,8 @@ foreach ($Build in $AllBuilds) {
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
 
     # For now, package only x64 Release binaries
-    if ($Platform -eq "linux" && $BuildBaseName.Contains("x64_Release")) {
+    if ($Platform -eq "linux" -and $BuildBaseName.Contains("x64_Release")) {
         Write-Output "Packaging $Build"
         scripts/make-packages.sh  --output $DistDir
-    } else {
-        Write-Output "Skipping packaging for $Build"
     }
 }

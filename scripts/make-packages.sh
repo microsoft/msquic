@@ -57,7 +57,7 @@ mkdir -p ${OUTPUT}
 
 # RedHat/CentOS
 fpm -f -s dir -t rpm  -n libmsquic -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
-    --package "$OUTPUT" \
+    --package "$OUTPUT" --log error \
     "$ARTIFACTS/libmsquic.so"=/usr/${LIBDIR}/libmsquic.so \
     "$ARTIFACTS/libmsquic.lttng.so"=/usr/${LIBDIR}/libmsquic.lttng.so
 
@@ -66,6 +66,6 @@ if [ "$LIBDIR" == 'lib64' ]; then
     LIBDIR="lib/x86_64-linux-gnu"
 fi
 fpm -f -s dir -t deb  -n libmsquic -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
-    --package "$OUTPUT" \
+    --package "$OUTPUT" --log error \
     "$ARTIFACTS/libmsquic.so"=/usr/${LIBDIR}/libmsquic.so \
     "$ARTIFACTS/libmsquic.lttng.so"=/usr/${LIBDIR}/libmsquic.lttng.so
