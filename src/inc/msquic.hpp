@@ -642,8 +642,12 @@ struct MsQuicConnection {
     void* Context;
     QUIC_STATUS InitStatus;
     bool HandshakeComplete {false};
+    bool HandshakeResumed {false};
+    uint32_t ResumptionTicketLength {0};
+    uint8_t* ResumptionTicket {nullptr};
 #ifdef CX_PLATFORM_TYPE
     CxPlatEvent HandshakeCompleteEvent;
+    CxPlatEvent ResumptionTicketReceivedEvent;
 #endif // CX_PLATFORM_TYPE
 
     MsQuicConnection(
@@ -682,6 +686,7 @@ struct MsQuicConnection {
         if (Handle) {
             MsQuic->ConnectionClose(Handle);
         }
+        delete ResumptionTicket;
     }
 
     void
@@ -772,6 +777,17 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    SetResumptionTicket(_In_reads_(TicketLength) const uint8_t* Ticket, uint32_t TicketLength) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_RESUMPTION_TICKET,
+                TicketLength,
+                Ticket);
+    }
+
+    QUIC_STATUS
     SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
         const QUIC_SETTINGS* QSettings = &Settings;
         return
@@ -833,6 +849,27 @@ struct MsQuicConnection {
         return QUIC_STATUS_SUCCESS;
     }
 
+    static
+    QUIC_STATUS
+    QUIC_API
+    SendResumptionCallback(
+        _In_ MsQuicConnection* Connection,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) noexcept {
+        if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            MsQuic->ConnectionSendResumptionTicket(*Connection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            //
+            // Not great beacuse it doesn't provide an application specific
+            // error code. If you expect to get streams, you should not be no-op
+            // the callbacks.
+            //
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
 private:
 
     _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -848,8 +885,16 @@ private:
         CXPLAT_DBG_ASSERT(pThis);
         if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             pThis->HandshakeComplete = true;
+            pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
 #ifdef CX_PLATFORM_TYPE
             pThis->HandshakeCompleteEvent.Set();
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED && !pThis->ResumptionTicket) {
+            pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
+            pThis->ResumptionTicket = new(std::nothrow) uint8_t[pThis->ResumptionTicketLength];
+            CxPlatCopyMemory(pThis->ResumptionTicket, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket, pThis->ResumptionTicketLength);
+#ifdef CX_PLATFORM_TYPE
+            pThis->ResumptionTicketReceivedEvent.Set();
 #endif // CX_PLATFORM_TYPE
         }
         auto DeleteOnExit =

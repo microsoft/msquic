@@ -2574,25 +2574,35 @@ QuicTestConnectExpiredClientCertificate(
 struct LoadBalancedServer {
     QuicAddr PublicAddress;
     QuicAddr* PrivateAddresses {nullptr};
+    QUIC_TICKET_KEY_CONFIG KeyConfig;
+    MsQuicConfiguration** Configurations {nullptr};
     MsQuicAutoAcceptListener** Listeners {nullptr};
     uint32_t ListenerCount;
     LoadBalancerHelper* LoadBalancer {nullptr};
-    QUIC_STATUS InitStatus {QUIC_STATUS_SUCCESS};
+    QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_PARAMETER}; // Only hit in ListenerCount == 0 scenario
     LoadBalancedServer(
         _In_ const MsQuicRegistration& Registration,
-        _In_ const MsQuicConfiguration& Config,
-        _In_ MsQuicConnectionCallback* ConnectionHandler,
         _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_UNSPEC,
+        _In_ MsQuicConnectionCallback* ConnectionHandler = MsQuicConnection::NoOpCallback,
         _In_ uint32_t ListenerCount = 2
         ) noexcept :
         PublicAddress(QuicAddrFamily, (uint16_t)443), PrivateAddresses(new(std::nothrow) QuicAddr[ListenerCount]),
+        Configurations(new(std::nothrow) MsQuicConfiguration*[ListenerCount]),
         Listeners(new(std::nothrow) MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount(ListenerCount) {
+        CxPlatRandom(sizeof(KeyConfig), &KeyConfig);
+        KeyConfig.MaterialLength = sizeof(KeyConfig.Material);
+        CxPlatZeroMemory(Configurations, sizeof(MsQuicConfiguration*) * ListenerCount);
         CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
+        MsQuicSettings Settings;
+        Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
         QuicAddrSetToLoopback(&PublicAddress.SockAddr);
         for (uint32_t i = 0; i < ListenerCount; ++i) {
             PrivateAddresses[i] = QuicAddr(QuicAddrFamily);
             QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
-            Listeners[i] = new(std::nothrow) MsQuicAutoAcceptListener(Registration, Config, ConnectionHandler);
+            Configurations[i] = new(std::nothrow) MsQuicConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+            TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->GetInitStatus());
+            TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->SetTicketKey(&KeyConfig));
+            Listeners[i] = new(std::nothrow) MsQuicAutoAcceptListener(Registration, *Configurations[i], ConnectionHandler);
             TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->Start("MsQuicTest", &PrivateAddresses[i].SockAddr));
             TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetLocalAddr(PrivateAddresses[i]));
@@ -2603,8 +2613,10 @@ struct LoadBalancedServer {
         delete LoadBalancer;
         for (uint32_t i = 0; i < ListenerCount; ++i) {
             delete Listeners[i];
+            delete Configurations[i];
         }
         delete[] Listeners;
+        delete[] Configurations;
         delete[] PrivateAddresses;
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -2623,26 +2635,58 @@ QuicTestLoadBalancedHandshake(
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
-    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-    LoadBalancedServer Listeners(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback, QuicAddrFamily);
+    LoadBalancedServer Listeners(Registration, QuicAddrFamily, MsQuicConnection::SendResumptionCallback);
     TEST_QUIC_SUCCEEDED(Listeners.GetInitStatus());
 
     QuicAddr ConnLocalAddr(QuicAddrFamily, false);
+    uint32_t ResumptionTicketLength = 0;
+    uint8_t* ResumptionTicket = nullptr;
+    bool SchannelMode = false; // Only determined on first resumed connection.
     ConnLocalAddr.SetPort(33667); // Randomly chosen!
     for (uint32_t i = 0; i < 100; ++i) {
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr));
+        bool TryingResumption = false;
+        if (ResumptionTicket) {
+            TEST_QUIC_SUCCEEDED(Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength));
+            delete ResumptionTicket;
+            ResumptionTicket = nullptr;
+            TryingResumption = true;
+        }
+        TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr)); // TODO - Put in loop in case addr is taken
         TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
         TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        if (SchannelMode) {
+            //
+            // HACK: Schannel reuses tickets, so it always resumes. Also, no
+            // point in waiting for a ticket because it won't send it.
+            //
+            TEST_TRUE(Connection.HandshakeResumed);
+
+        } else {
+            TEST_TRUE(Connection.HandshakeResumed == TryingResumption);
+            if (!Connection.ResumptionTicketReceivedEvent.WaitTimeout(TestWaitTimeout)) {
+                if (Connection.HandshakeResumed) {
+                    SchannelMode = true; // Schannel doesn't send tickets on resumed connections.
+                    ResumptionTicket = nullptr;
+                } else {
+                    TEST_FAILURE("Timeout waiting for resumption ticket");
+                    return;
+                }
+            } else {
+                TEST_TRUE(Connection.ResumptionTicket != nullptr);
+                ResumptionTicketLength = Connection.ResumptionTicketLength;
+                ResumptionTicket = Connection.ResumptionTicket;
+                Connection.ResumptionTicket = nullptr;
+            }
+        }
         Connection.Shutdown(0); // Best effort start peer shutdown
         ConnLocalAddr.IncrementPort();
     }
+    delete ResumptionTicket;
     Listeners.ValidateLoadBalancing();
 }
