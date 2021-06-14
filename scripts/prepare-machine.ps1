@@ -289,6 +289,9 @@ if ($IsWindows) {
             sudo apt-get install -y liblttng-ust-dev
             # only used for the codecheck CI run:
             sudo apt-get install -y cppcheck clang-tidy
+            # used for packaging
+            sudo apt-get install -y ruby ruby-dev rpm
+            sudo gem install fpm
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.12
