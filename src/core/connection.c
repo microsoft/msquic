@@ -1868,9 +1868,7 @@ QuicConnStart(
     }
 
     Connection->State.LocalAddressSet = TRUE;
-    CxPlatSocketGetLocalAddress(
-        Path->Binding->Socket,
-        &Path->LocalAddress);
+    QuicBindingGetLocalAddress(Path->Binding, &Path->LocalAddress);
     QuicTraceEvent(
         ConnLocalAddrAdded,
         "[conn][%p] New Local IP: %!ADDR!",
@@ -5675,8 +5673,8 @@ QuicConnParamSet(
                 Connection,
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
-            CxPlatSocketGetLocalAddress(
-                Connection->Paths[0].Binding->Socket,
+            QuicBindingGetLocalAddress(
+                Connection->Paths[0].Binding,
                 &Connection->Paths[0].LocalAddress);
 
             QuicTraceEvent(
