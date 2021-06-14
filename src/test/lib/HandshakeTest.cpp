@@ -2653,7 +2653,7 @@ QuicTestLoadBalancedHandshake(
         bool TryingResumption = false;
         if (ResumptionTicket) {
             TEST_QUIC_SUCCEEDED(Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength));
-            delete ResumptionTicket;
+            delete[] ResumptionTicket;
             ResumptionTicket = nullptr;
             TryingResumption = true;
         }
@@ -2687,6 +2687,6 @@ QuicTestLoadBalancedHandshake(
         Connection.Shutdown(0); // Best effort start peer shutdown
         ConnLocalAddr.IncrementPort();
     }
-    delete ResumptionTicket;
+    delete[] ResumptionTicket;
     Listeners.ValidateLoadBalancing();
 }

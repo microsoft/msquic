@@ -686,7 +686,7 @@ struct MsQuicConnection {
         if (Handle) {
             MsQuic->ConnectionClose(Handle);
         }
-        delete ResumptionTicket;
+        delete[] ResumptionTicket;
     }
 
     void
