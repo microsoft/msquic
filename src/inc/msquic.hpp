@@ -894,7 +894,7 @@ private:
             pThis->ResumptionTicket = new(std::nothrow) uint8_t[pThis->ResumptionTicketLength];
             if (pThis->ResumptionTicket) {
                 CXPLAT_DBG_ASSERT(pThis->ResumptionTicketLength != 0);
-                CxPlatCopyMemory(pThis->ResumptionTicket, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket, pThis->ResumptionTicketLength);
+                memcpy(pThis->ResumptionTicket, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket, pThis->ResumptionTicketLength);
 #ifdef CX_PLATFORM_TYPE
                 pThis->ResumptionTicketReceivedEvent.Set();
 #endif // CX_PLATFORM_TYPE
