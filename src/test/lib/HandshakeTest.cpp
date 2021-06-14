@@ -2639,7 +2639,7 @@ QuicTestLoadBalancedHandshake(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-    LoadBalancedServer Listeners(Registration, QuicAddrFamily, MsQuicConnection::SendResumptionCallback);
+    LoadBalancedServer Listeners(Registration, QuicAddrFamily, MsQuicConnection::SendResumptionCallback, 3);
     TEST_QUIC_SUCCEEDED(Listeners.GetInitStatus());
 
     QuicAddr ConnLocalAddr(QuicAddrFamily, false);
