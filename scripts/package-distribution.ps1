@@ -136,6 +136,9 @@ foreach ($Build in $AllBuilds) {
 
     # For now, package only x64 Release binaries
     if ($Platform -eq "linux" && $BuildBaseName.Contains("x64_Release")) {
+        Write-Output "Packaging $Build"
         scripts/make-packages.sh  --output $DistDir
+    } else {
+        Write-Output "Skipping packaging for $Build"
     }
 }
