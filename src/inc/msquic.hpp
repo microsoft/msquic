@@ -892,10 +892,13 @@ private:
         } else if (Event->Type == QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED && !pThis->ResumptionTicket) {
             pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
             pThis->ResumptionTicket = new(std::nothrow) uint8_t[pThis->ResumptionTicketLength];
-            CxPlatCopyMemory(pThis->ResumptionTicket, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket, pThis->ResumptionTicketLength);
+            if (pThis->ResumptionTicket) {
+                CXPLAT_DBG_ASSERT(pThis->ResumptionTicketLength != 0);
+                CxPlatCopyMemory(pThis->ResumptionTicket, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket, pThis->ResumptionTicketLength);
 #ifdef CX_PLATFORM_TYPE
-            pThis->ResumptionTicketReceivedEvent.Set();
+                pThis->ResumptionTicketReceivedEvent.Set();
 #endif // CX_PLATFORM_TYPE
+            }
         }
         auto DeleteOnExit =
             Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&

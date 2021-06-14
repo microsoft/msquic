@@ -885,6 +885,7 @@ typedef struct QUIC_CONNECTION_EVENT {
     union {
         struct {
             BOOLEAN SessionResumed;
+            _Field_range_(>, 0)
             uint8_t NegotiatedAlpnLength;
             _Field_size_(NegotiatedAlpnLength)
             const uint8_t* NegotiatedAlpn;
@@ -934,7 +935,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             const uint8_t* ResumptionState;
         } RESUMED;
         struct {
+            _Field_range_(>, 0)
             uint32_t ResumptionTicketLength;
+            _Field_size_(ResumptionTicketLength)
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
         struct {
