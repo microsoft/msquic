@@ -841,7 +841,7 @@ struct MsQuicConnection {
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
             //
             // Not great beacuse it doesn't provide an application specific
-            // error code. If you expect to get streams, you should not be no-op
+            // error code. If you expect to get streams, you should not no-op
             // the callbacks.
             //
             MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
@@ -862,7 +862,7 @@ struct MsQuicConnection {
         } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
             //
             // Not great beacuse it doesn't provide an application specific
-            // error code. If you expect to get streams, you should not be no-op
+            // error code. If you expect to get streams, you should not no-op
             // the callbacks.
             //
             MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
