@@ -717,10 +717,12 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateConnectionEvents(Params->Test));
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
         break;
 
