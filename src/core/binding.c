@@ -48,7 +48,6 @@ QuicBindingInitialize(
 {
     QUIC_STATUS Status;
     QUIC_BINDING* Binding;
-    uint8_t HashSalt[20];
     BOOLEAN HashTableInitialized = FALSE;
 
     Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
@@ -67,9 +66,7 @@ QuicBindingInitialize(
     Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
     Binding->StatelessOperCount = 0;
-    Binding->ResetTokenHash = NULL;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
-    CxPlatDispatchLockInitialize(&Binding->ResetTokenLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
     CxPlatListInitializeHead(&Binding->Listeners);
     QuicLookupInitialize(&Binding->Lookup);
@@ -87,23 +84,6 @@ QuicBindingInitialize(
     Binding->RandomReservedVersion =
         (Binding->RandomReservedVersion & ~QUIC_VERSION_RESERVED_MASK) |
         QUIC_VERSION_RESERVED;
-
-    CxPlatRandom(sizeof(HashSalt), HashSalt);
-    Status =
-        CxPlatHashCreate(
-            CXPLAT_HASH_SHA256,
-            HashSalt,
-            sizeof(HashSalt),
-            &Binding->ResetTokenHash);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            BindingErrorStatus,
-            "[bind][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Create reset token hash");
-        goto Error;
-    }
 
 #ifdef QUIC_COMPARTMENT_ID
     Binding->CompartmentId = CompartmentId;
@@ -196,13 +176,11 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Binding != NULL) {
-            CxPlatHashFree(Binding->ResetTokenHash);
             QuicLookupUninitialize(&Binding->Lookup);
             if (HashTableInitialized) {
                 CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
             }
             CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
-            CxPlatDispatchLockUninitialize(&Binding->ResetTokenLock);
             CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
             CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
         }
@@ -253,11 +231,9 @@ QuicBindingUninitialize(
     CXPLAT_DBG_ASSERT(Binding->StatelessOperCount == 0);
     CXPLAT_DBG_ASSERT(Binding->StatelessOperTable.NumEntries == 0);
 
-    CxPlatHashFree(Binding->ResetTokenHash);
     QuicLookupUninitialize(&Binding->Lookup);
     CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
     CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
-    CxPlatDispatchLockUninitialize(&Binding->ResetTokenLock);
     CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
 
     QuicTraceEvent(
@@ -953,7 +929,10 @@ QuicBindingProcessStatelessOperation(
             PacketLength = (uint8_t)RecvPacket->BufferLength - 1;
         }
 
-        CXPLAT_DBG_ASSERT(PacketLength >= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH);
+        if (PacketLength < QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
+            CXPLAT_DBG_ASSERT(FALSE);
+            goto Exit;
+        }
 
         SendDatagram =
             CxPlatSendDataAllocBuffer(SendData, PacketLength);
@@ -976,8 +955,7 @@ QuicBindingProcessStatelessOperation(
         ResetPacket->IsLongHeader = FALSE;
         ResetPacket->FixedBit = 1;
         ResetPacket->KeyPhase = RecvPacket->SH->KeyPhase;
-        QuicBindingGenerateStatelessResetToken(
-            Binding,
+        QuicLibraryGenerateStatelessResetToken(
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
@@ -1834,38 +1812,5 @@ QuicBindingSend(
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
 
-    return Status;
-}
-
-CXPLAT_STATIC_ASSERT(
-    CXPLAT_HASH_SHA256_SIZE >= QUIC_STATELESS_RESET_TOKEN_LENGTH,
-    "Stateless reset token must be shorter than hash size used");
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicBindingGenerateStatelessResetToken(
-    _In_ QUIC_BINDING* Binding,
-    _In_reads_(MsQuicLib.CidTotalLength)
-        const uint8_t* const CID,
-    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
-        uint8_t* ResetToken
-    )
-{
-    uint8_t HashOutput[CXPLAT_HASH_SHA256_SIZE];
-    CxPlatDispatchLockAcquire(&Binding->ResetTokenLock);
-    QUIC_STATUS Status =
-        CxPlatHashCompute(
-            Binding->ResetTokenHash,
-            CID,
-            MsQuicLib.CidTotalLength,
-            sizeof(HashOutput),
-            HashOutput);
-    CxPlatDispatchLockRelease(&Binding->ResetTokenLock);
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatCopyMemory(
-            ResetToken,
-            HashOutput,
-            QUIC_STATELESS_RESET_TOKEN_LENGTH);
-    }
     return Status;
 }

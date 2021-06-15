@@ -57,6 +57,12 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     CXPLAT_POOL PacketSpacePool;
 
     //
+    // Used for generating stateless reset hashes.
+    //
+    CXPLAT_HASH* ResetTokenHash;
+    CXPLAT_LOCK ResetTokenLock;
+
+    //
     // Per-processor performance counters.
     //
     int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
@@ -560,4 +566,16 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLibraryOnHandshakeConnectionRemoved(
     void
+    );
+
+//
+// Generates a stateless reset token for the given connection ID.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGenerateStatelessResetToken(
+    _In_reads_(MsQuicLib.CidTotalLength)
+        const uint8_t* const CID,
+    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
+        uint8_t* ResetToken
     );
