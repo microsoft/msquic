@@ -164,11 +164,12 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
 
 typedef enum QUIC_STREAM_START_FLAGS {
-    QUIC_STREAM_START_FLAG_NONE             = 0x0000,
-    QUIC_STREAM_START_FLAG_FAIL_BLOCKED     = 0x0001,   // Only opens the stream if flow control allows.
-    QUIC_STREAM_START_FLAG_IMMEDIATE        = 0x0002,   // Immediately informs peer that stream is open.
-    QUIC_STREAM_START_FLAG_ASYNC            = 0x0004,   // Don't block the API call to wait for completion.
-    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL = 0x0008,   // Shutdown the stream immediately after start failure.
+    QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
+    QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0001,   // Only opens the stream if flow control allows.
+    QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0002,   // Immediately informs peer that stream is open.
+    QUIC_STREAM_START_FLAG_ASYNC                = 0x0004,   // Don't block the API call to wait for completion.
+    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0008,   // Shutdown the stream immediately after start failure.
+    QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0010,   // Indicate PEER_ACCEPTED event if not accepted at start.
 } QUIC_STREAM_START_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_START_FLAGS)
@@ -466,35 +467,39 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t IsSetFlags;
         struct {
-            uint64_t MaxBytesPerKey                 : 1;
-            uint64_t HandshakeIdleTimeoutMs         : 1;
-            uint64_t IdleTimeoutMs                  : 1;
-            uint64_t TlsClientMaxSendBuffer         : 1;
-            uint64_t TlsServerMaxSendBuffer         : 1;
-            uint64_t StreamRecvWindowDefault        : 1;
-            uint64_t StreamRecvBufferDefault        : 1;
-            uint64_t ConnFlowControlWindow          : 1;
-            uint64_t MaxWorkerQueueDelayUs          : 1;
-            uint64_t MaxStatelessOperations         : 1;
-            uint64_t InitialWindowPackets           : 1;
-            uint64_t SendIdleTimeoutMs              : 1;
-            uint64_t InitialRttMs                   : 1;
-            uint64_t MaxAckDelayMs                  : 1;
-            uint64_t DisconnectTimeoutMs            : 1;
-            uint64_t KeepAliveIntervalMs            : 1;
-            uint64_t PeerBidiStreamCount            : 1;
-            uint64_t PeerUnidiStreamCount           : 1;
-            uint64_t RetryMemoryLimit               : 1;
-            uint64_t LoadBalancingMode              : 1;
-            uint64_t MaxOperationsPerDrain          : 1;
-            uint64_t SendBufferingEnabled           : 1;
-            uint64_t PacingEnabled                  : 1;
-            uint64_t MigrationEnabled               : 1;
-            uint64_t DatagramReceiveEnabled         : 1;
-            uint64_t ServerResumptionLevel          : 1;
-            uint64_t DesiredVersionsList            : 1;
-            uint64_t VersionNegotiationExtEnabled   : 1;
-            uint64_t RESERVED                       : 36;
+            uint64_t MaxBytesPerKey                         : 1;
+            uint64_t HandshakeIdleTimeoutMs                 : 1;
+            uint64_t IdleTimeoutMs                          : 1;
+            uint64_t TlsClientMaxSendBuffer                 : 1;
+            uint64_t TlsServerMaxSendBuffer                 : 1;
+            uint64_t StreamRecvWindowDefault                : 1;
+            uint64_t StreamRecvBufferDefault                : 1;
+            uint64_t ConnFlowControlWindow                  : 1;
+            uint64_t MaxWorkerQueueDelayUs                  : 1;
+            uint64_t MaxStatelessOperations                 : 1;
+            uint64_t InitialWindowPackets                   : 1;
+            uint64_t SendIdleTimeoutMs                      : 1;
+            uint64_t InitialRttMs                           : 1;
+            uint64_t MaxAckDelayMs                          : 1;
+            uint64_t DisconnectTimeoutMs                    : 1;
+            uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t PeerBidiStreamCount                    : 1;
+            uint64_t PeerUnidiStreamCount                   : 1;
+            uint64_t RetryMemoryLimit                       : 1;
+            uint64_t LoadBalancingMode                      : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t SendBufferingEnabled                   : 1;
+            uint64_t PacingEnabled                          : 1;
+            uint64_t MigrationEnabled                       : 1;
+            uint64_t DatagramReceiveEnabled                 : 1;
+            uint64_t ServerResumptionLevel                  : 1;
+            uint64_t DesiredVersionsList                    : 1;
+            uint64_t VersionNegotiationExtEnabled           : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
+            uint64_t RESERVED                               : 32;
         } IsSet;
     };
 
@@ -528,6 +533,11 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 1;
     const uint32_t* DesiredVersionsList;
     uint32_t DesiredVersionsListLength;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t MtuDiscoveryMissingProbeCount;
+
 
 } QUIC_SETTINGS;
 
@@ -588,6 +598,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 3   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      4   // QUIC_SETTINGS
+#define QUIC_PARAM_GLOBAL_VERSION                       5   // uint32_t[4]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
@@ -874,6 +885,7 @@ typedef struct QUIC_CONNECTION_EVENT {
     union {
         struct {
             BOOLEAN SessionResumed;
+            _Field_range_(>, 0)
             uint8_t NegotiatedAlpnLength;
             _Field_size_(NegotiatedAlpnLength)
             const uint8_t* NegotiatedAlpn;
@@ -923,7 +935,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             const uint8_t* ResumptionState;
         } RESUMED;
         struct {
+            _Field_range_(>, 0)
             uint32_t ResumptionTicketLength;
+            _Field_size_(ResumptionTicketLength)
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
         struct {
@@ -992,7 +1006,7 @@ void
 // remote server. Can be passed either a connection or stream handle.
 //
 typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_START_FN)(
     _In_ _Pre_defensive_ HQUIC Connection,
@@ -1044,6 +1058,7 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE    = 6,
     QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
+    QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
 } QUIC_STREAM_EVENT_TYPE;
 
 typedef struct QUIC_STREAM_EVENT {
@@ -1052,6 +1067,8 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             QUIC_STATUS Status;
             QUIC_UINT62 ID;
+            BOOLEAN PeerAccepted : 1;
+            BOOLEAN RESERVED : 7;
         } START_COMPLETE;
         struct {
             /* in */    uint64_t AbsoluteOffset;
@@ -1075,6 +1092,9 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             BOOLEAN Graceful;
         } SEND_SHUTDOWN_COMPLETE;
+        struct {
+            BOOLEAN ConnectionShutdown;
+        } SHUTDOWN_COMPLETE;
         struct {
             uint64_t ByteCount;
         } IDEAL_SEND_BUFFER_SIZE;
@@ -1123,7 +1143,8 @@ void
 // Starts processing the stream.
 //
 typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 (QUIC_API * QUIC_STREAM_START_FN)(
     _In_ _Pre_defensive_ HQUIC Stream,
@@ -1201,7 +1222,8 @@ QUIC_STATUS
     );
 
 //
-// API Function Table.
+// Version 1 API Function Table. Returned from MsQuicOpenVersion when Version
+// is 1. Also returned from MsQuicOpen.
 //
 typedef struct QUIC_API_TABLE {
 
@@ -1254,9 +1276,36 @@ typedef struct QUIC_API_TABLE {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicOpenVersion(
+    _In_ uint32_t Version,
+    _Out_ _Pre_defensive_ const void** QuicApi
+    );
+
+//
+// Version specific helpers that wrap MsQuicOpenVersion.
+//
+
+#ifndef QUIC_CORE_INTERNAL
+
+#if defined(__cplusplus) || defined(WIN32)
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+QUIC_STATUS
 MsQuicOpen(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
-    );
+    )
+{
+    return MsQuicOpenVersion(1, (const void**)QuicApi);
+}
+
+#else
+
+#define MsQuicOpen(QuicApi) MsQuicOpenVersion((const void**)QuicApi, 1)
+
+#endif // defined(__cplusplus) || defined(WIN32)
+
+#endif // QUIC_CORE_INTERNAL
 
 //
 // Cleans up the function table returned from MsQuicOpen and releases the
@@ -1266,7 +1315,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicClose(
-    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
+    _In_ _Pre_defensive_ const void* QuicApi
     );
 
 #if defined(__cplusplus)

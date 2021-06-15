@@ -722,15 +722,16 @@ CxPlatDataPathResolveAddress(
     }
 
     QuicTraceEvent(
-        LibraryError,
-        "[ lib] ERROR, %s.",
+        LibraryErrorStatus,
+        "[ lib] ERROR, %u, %s.",
+        (uint32_t)Result,
         "Resolving hostname to IP");
     QuicTraceLogError(
         DatapathResolveHostNameFailed,
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-    Status = QUIC_STATUS_DNS_RESOLUTION_ERROR;
+    Status = (QUIC_STATUS)Result;
 
 Exit:
 
@@ -1221,8 +1222,8 @@ CxPlatSocketContextRecvComplete(
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
-        CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
     CXPLAT_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
@@ -1438,8 +1439,8 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
@@ -1746,9 +1747,12 @@ CxPlatSendDataCanAllocSendSegment(
     _In_ uint16_t MaxBufferLength
     )
 {
+    if (!SendData->ClientBuffer.Buffer) {
+        return FALSE;
+    }
+
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendData->BufferCount > 0);
-    //CXPLAT_DBG_ASSERT(SendData->BufferCount <= SendData->Owner->Datapath->MaxSendBatchSize);
 
     uint64_t BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
@@ -1774,8 +1778,7 @@ CxPlatSendDataCanAllocSend(
 static
 void
 CxPlatSendDataFinalizeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN IsSendingImmediately
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     if (SendData->ClientBuffer.Length == 0) {
@@ -1808,8 +1811,6 @@ CxPlatSendDataFinalizeSendBuffer(
         //
         // The next segment allocation must create a new backing buffer.
         //
-        CXPLAT_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
-        UNREFERENCED_PARAMETER(IsSendingImmediately);
         SendData->ClientBuffer.Buffer = NULL;
         SendData->ClientBuffer.Length = 0;
     }
@@ -1862,11 +1863,7 @@ CxPlatSendDataAllocSegmentBuffer(
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(MaxBufferLength <= SendData->SegmentSize);
 
-    CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendData->Owner;
-    QUIC_BUFFER* Buffer;
-
-    if (SendData->ClientBuffer.Buffer != NULL &&
-        CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
+    if (CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
 
         //
         // All clear to return the next segment of our contiguous buffer.
@@ -1875,7 +1872,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return &SendData->ClientBuffer;
     }
 
-    Buffer = CxPlatSendDataAllocDataBuffer(SendData, &DatapathProc->LargeSendBufferPool);
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->LargeSendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
@@ -1903,7 +1900,7 @@ CxPlatSendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    CxPlatSendDataFinalizeSendBuffer(SendData, FALSE);
+    CxPlatSendDataFinalizeSendBuffer(SendData);
 
     if (!CxPlatSendDataCanAllocSend(SendData, MaxBufferLength)) {
         return NULL;
@@ -2018,7 +2015,7 @@ CxPlatSocketSendInternal(
     }
 
     if (!IsPendedSend) {
-        CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+        CxPlatSendDataFinalizeSendBuffer(SendData);
         for (size_t i = 0; i < SendData->BufferCount; ++i) {
             SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
             SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
@@ -2030,8 +2027,8 @@ CxPlatSocketSendInternal(
             SendData->TotalSize,
             SendData->BufferCount,
             SendData->SegmentSize,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
         //
         // Check to see if we need to pend.
@@ -2269,5 +2266,5 @@ CxPlatDataPathWorkerThread(
         "[data][%p] Worker stop",
         ProcContext);
 
-    return NO_ERROR;
+    return 0;
 }

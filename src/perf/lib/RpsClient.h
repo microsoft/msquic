@@ -165,6 +165,7 @@ public:
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint32_t WorkerCount;
     uint16_t Port {PERF_DEFAULT_PORT};
+    QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};

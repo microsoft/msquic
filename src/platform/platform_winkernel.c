@@ -79,6 +79,11 @@ CxPlatSystemLoad(
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.RngAlgorithm = NULL;
 
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
+
     QuicTraceLogInfo(
         WindowsKernelLoaded,
         "[ sys] Loaded");
@@ -141,13 +146,13 @@ CxPlatInitialize(
         goto Error;
     }
 
-    Status = CxPlatTlsLibraryInitialize();
+    Status = CxPlatCryptInitialize();
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "CxPlatTlsLibraryInitialize");
+            "CxPlatCryptInitialize");
         goto Error;
     }
 
@@ -183,7 +188,7 @@ CxPlatUninitialize(
     )
 {
     PAGED_CODE();
-    CxPlatTlsLibraryUninitialize();
+    CxPlatCryptUninitialize();
     BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
     CxPlatform.RngAlgorithm = NULL;
     QuicTraceLogInfo(
@@ -228,6 +233,26 @@ CxPlatRandom(
             BufferLen,
             0);
 }
+
+#ifdef DEBUG
+
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+    CxPlatform.AllocCounter = 0;
+}
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
+
+#endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 

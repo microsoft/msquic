@@ -450,8 +450,9 @@ function Invoke-Test {
         }
     } finally {
         if ($Kernel) {
+            net.exe stop secnetperfdrvpriv /y | Out-Null
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete msquictestpriv | Out-Null
+            sc.exe delete secnetperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 

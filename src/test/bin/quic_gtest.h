@@ -25,6 +25,33 @@ class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
+struct MtuArgs {
+    int Family;
+    int DropMode;
+    uint8_t RaiseMinimum;
+    static ::std::vector<MtuArgs> Generate() {
+        ::std::vector<MtuArgs> list;
+        for (int Family : { 4, 6}) {
+            for (int DropMode : {0, 1, 2, 3}) {
+                for (uint8_t RaiseMinimum : {0, 1}) {
+                    list.push_back({ Family, DropMode, RaiseMinimum });
+                }
+            }
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const MtuArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.DropMode << "/" << args.RaiseMinimum << "/";
+}
+
+class WithMtuArgs : public testing::Test,
+    public testing::WithParamInterface<MtuArgs> {
+};
+
 struct FamilyArgs {
     int Family;
     static ::std::vector<FamilyArgs> Generate() {
@@ -388,6 +415,28 @@ std::ostream& operator << (std::ostream& o, const KeyUpdateArgs1& args) {
 
 class WithKeyUpdateArgs1 : public testing::Test,
     public testing::WithParamInterface<KeyUpdateArgs1> {
+};
+
+struct KeyUpdateArgs2 {
+    int Family;
+    uint8_t RandomLossPercentage;
+    static ::std::vector<KeyUpdateArgs2> Generate() {
+        ::std::vector<KeyUpdateArgs2> list;
+        for (int Family : { 4, 6 })
+        for (int RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, (uint8_t)RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const KeyUpdateArgs2& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.RandomLossPercentage;
+}
+
+class WithKeyUpdateArgs2 : public testing::Test,
+    public testing::WithParamInterface<KeyUpdateArgs2> {
 };
 
 struct AbortiveArgs {

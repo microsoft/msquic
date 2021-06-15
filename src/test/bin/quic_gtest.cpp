@@ -69,7 +69,7 @@ public:
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
-            MsQuic = new MsQuicApi();
+            MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
@@ -326,6 +326,39 @@ TEST(Basic, CreateConnection) {
         QuicTestCreateConnection();
     }
 }
+
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+TEST(Mtu, Settings) {
+    TestLogger Logger("QuicTestMtuSettings");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_SETTINGS));
+    } else {
+        QuicTestMtuSettings();
+    }
+}
+
+TEST_P(WithMtuArgs, MtuDiscovery) {
+    TestLoggerT<ParamType> Logger("QuicTestMtuDiscovery", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_MTU_DISCOVERY_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)(GetParam().DropMode & 1),
+            (uint8_t)(GetParam().DropMode & 2),
+            (uint8_t)GetParam().RaiseMinimum
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MTU_DISCOVERY, Params));
+    }
+    else {
+        QuicTestMtuDiscovery(
+            GetParam().Family,
+            GetParam().DropMode & 1,
+            GetParam().DropMode & 2,
+            GetParam().RaiseMinimum);
+    }
+}
+
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST(Alpn, ValidAlpnLengths) {
     TestLogger Logger("QuicTestValidAlpnLengths");
@@ -625,6 +658,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 }
 #endif
 
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -787,6 +821,7 @@ TEST(CredValidation, ConnectValidClientCertificate) {
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
 }
+#endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
@@ -944,6 +979,17 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
         QuicTestChangeMaxStreamID(GetParam().Family);
     }
 }
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithFamilyArgs, LoadBalanced) {
+    TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam().Family));
+    } else {
+        QuicTestLoadBalancedHandshake(GetParam().Family);
+    }
+}
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
@@ -1196,6 +1242,23 @@ TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithKeyUpdateArgs2, RandomLoss) {
+    TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS Params = {
+            GetParam().Family,
+            GetParam().RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS, Params));
+    } else {
+        QuicTestKeyUpdateRandomLoss(
+            GetParam().Family,
+            GetParam().RandomLossPercentage);
+    }
+}
+#endif
+
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
     if (TestingKernelMode) {
@@ -1301,6 +1364,26 @@ TEST(Misc, AbortIncompleteReceive) {
     }
 }
 
+TEST(Misc, SlowReceive) {
+    TestLogger Logger("SlowReceive");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SLOW_RECEIVE));
+    } else {
+        QuicTestSlowReceive();
+    }
+}
+
+#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+TEST(Misc, NthAllocFail) {
+    TestLogger Logger("NthAllocFail");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_ALLOC_FAIL));
+    } else {
+        QuicTestNthAllocFail();
+    }
+}
+#endif
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
@@ -1372,6 +1455,15 @@ INSTANTIATE_TEST_SUITE_P(
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+INSTANTIATE_TEST_SUITE_P(
+    Mtu,
+    WithMtuArgs,
+    ::testing::ValuesIn(MtuArgs::Generate()));
+
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithVersionNegotiationExtArgs,
@@ -1392,10 +1484,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs3,
     testing::ValuesIn(HandshakeArgs3::Generate()));
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1444,6 +1540,15 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs1,
     testing::ValuesIn(KeyUpdateArgs1::Generate()));
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithKeyUpdateArgs2,
+    testing::ValuesIn(KeyUpdateArgs2::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

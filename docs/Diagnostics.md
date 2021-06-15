@@ -101,6 +101,12 @@ clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --
 
 MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
+## Text Analysis Tool
+
+When viewing the traces as text, we recommend [TextAnalysisTool.NET](https://textanalysistool.github.io/) (Windows only) and we have several filter files we maintain for it ([folder](./tat)). The different filters are meant to quickly highlight and color code important information.
+
+![](images/tat.png)
+
 # Performance Counters
 
 To assist investigations into running systems, MsQuic has a number of performance counters that are updated during runtime. These counters are exposed as an array of unsigned 64-bit integers, via a global `GetParam` parameter.

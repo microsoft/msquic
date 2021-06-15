@@ -253,7 +253,10 @@ MsQuicListenerStart(
     QuicAddrSetPort(&BindingLocalAddress,
         PortUnspecified ? 0 : QuicAddrGetPort(LocalAddress));
 
-    QuicLibraryOnListenerRegistered(Listener);
+    if (!QuicLibraryOnListenerRegistered(Listener)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
@@ -291,9 +294,7 @@ MsQuicListenerStart(
     }
 
     if (PortUnspecified) {
-        CxPlatSocketGetLocalAddress(
-            Listener->Binding->Socket,
-            &BindingLocalAddress);
+        QuicBindingGetLocalAddress(Listener->Binding, &BindingLocalAddress);
         QuicAddrSetPort(
             &Listener->LocalAddress,
             QuicAddrGetPort(&BindingLocalAddress));
@@ -304,8 +305,8 @@ MsQuicListenerStart(
         "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
         Listener,
         Listener->Binding,
-        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
-        CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
+        CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
 
 Error:
 
@@ -388,8 +389,8 @@ QuicListenerTraceRundown(
             "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
             Listener,
             Listener->Binding,
-            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
-            CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
+            CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
     }
 }
 

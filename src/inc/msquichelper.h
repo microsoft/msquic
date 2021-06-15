@@ -73,13 +73,13 @@ QuicStatusToString(
 inline
 uint32_t
 GetConnRtt(
-    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuicTable,
     _In_ HQUIC Handle
     )
 {
     QUIC_STATISTICS Value;
     uint32_t ValueSize = sizeof(Value);
-    MsQuic->GetParam(
+    MsQuicTable->GetParam(
         Handle,
         QUIC_PARAM_LEVEL_CONNECTION,
         QUIC_PARAM_CONN_STATISTICS,
@@ -94,13 +94,13 @@ GetConnRtt(
 inline
 uint64_t
 GetStreamID(
-    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuicTable,
     _In_ HQUIC Handle
     )
 {
     uint64_t ID = (uint32_t)(-1);
     uint32_t IDLen = sizeof(ID);
-    MsQuic->GetParam(
+    MsQuicTable->GetParam(
         Handle,
         QUIC_PARAM_LEVEL_STREAM,
         QUIC_PARAM_STREAM_ID,
@@ -116,7 +116,7 @@ GetStreamID(
 inline
 QUIC_ADDR_STR
 GetRemoteAddr(
-    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuicTable,
     _In_ HQUIC Handle
     )
 {
@@ -124,7 +124,7 @@ GetRemoteAddr(
     uint32_t addrLen = sizeof(addr);
     QUIC_ADDR_STR addrStr = { 0 };
     QUIC_STATUS status =
-        MsQuic->GetParam(
+        MsQuicTable->GetParam(
             Handle,
             QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_REMOTE_ADDRESS,
@@ -139,13 +139,13 @@ GetRemoteAddr(
 inline
 QUIC_STATUS
 QuicForceRetry(
-    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuicTable,
     _In_ BOOLEAN Enabled
     )
 {
     uint16_t value = Enabled ? 0 : 65;
     return
-        MsQuic->SetParam(
+        MsQuicTable->SetParam(
             NULL,
             QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
@@ -156,12 +156,12 @@ QuicForceRetry(
 inline
 void
 DumpMsQuicPerfCounters(
-    _In_ const QUIC_API_TABLE* MsQuic
+    _In_ const QUIC_API_TABLE* MsQuicTable
     )
 {
     uint64_t Counters[QUIC_PERF_COUNTER_MAX] = {0};
     uint32_t Lenth = sizeof(Counters);
-    MsQuic->GetParam(
+    MsQuicTable->GetParam(
         NULL,
         QUIC_PARAM_LEVEL_GLOBAL,
         QUIC_PARAM_GLOBAL_PERF_COUNTERS,
@@ -289,7 +289,7 @@ IsValue(
     _In_z_ const char* toTestAgainst
     )
 {
-    return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
+    return _strnicmp(name, toTestAgainst, CXPLAT_MIN(strlen(name), strlen(toTestAgainst))) == 0;
 }
 
 inline
@@ -393,7 +393,28 @@ TryGetValue(
 {
     auto value = GetValue(argc, argv, name);
     if (!value) return false;
-    *pValue = (uint32_t)atoi(value);
+    char* End;
+#ifdef _WIN32
+    *pValue = (uint32_t)_strtoui64(value, &End, 10);
+#else
+    *pValue = (uint32_t)strtoull(value, &End, 10);
+#endif
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ int32_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (int32_t)atoi(value);
     return true;
 }
 
@@ -424,7 +445,7 @@ HQUIC
 GetServerConfigurationFromArgs(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuicTable,
     _In_ HQUIC Registration,
     _In_reads_(AlpnBufferCount) _Pre_defensive_
         const QUIC_BUFFER* const AlpnBuffers,
@@ -491,7 +512,7 @@ GetServerConfigurationFromArgs(
 
     HQUIC Configuration = nullptr;
     if (QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
+        MsQuicTable->ConfigurationOpen(
             Registration,
             AlpnBuffers,
             AlpnBufferCount,
@@ -500,10 +521,10 @@ GetServerConfigurationFromArgs(
             Context,
             &Configuration)) &&
         QUIC_FAILED(
-        MsQuic->ConfigurationLoadCredential(
+        MsQuicTable->ConfigurationLoadCredential(
             Configuration,
             Config))) {
-        MsQuic->ConfigurationClose(Configuration);
+        MsQuicTable->ConfigurationClose(Configuration);
         Configuration = nullptr;
     }
 
@@ -519,17 +540,17 @@ GetServerConfigurationFromArgs(
 inline
 void
 FreeServerConfiguration(
-    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuicTable,
     _In_ HQUIC Configuration
     )
 {
 #ifdef QUIC_TEST_APIS
-    auto SelfSignedConfig = (const QUIC_CREDENTIAL_CONFIG*)MsQuic->GetContext(Configuration);
+    auto SelfSignedConfig = (const QUIC_CREDENTIAL_CONFIG*)MsQuicTable->GetContext(Configuration);
     if (SelfSignedConfig) {
         CxPlatFreeSelfSignedCert(SelfSignedConfig);
     }
 #endif
-    MsQuic->ConfigurationClose(Configuration);
+    MsQuicTable->ConfigurationClose(Configuration);
 }
 
 inline

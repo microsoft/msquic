@@ -60,6 +60,18 @@ void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 
 //
+// MTU tests
+//
+void QuicTestMtuSettings();
+void
+QuicTestMtuDiscovery(
+    _In_ int Family,
+    _In_ BOOLEAN DropClientProbePackets,
+    _In_ BOOLEAN DropServerProbePackets,
+    _In_ BOOLEAN RaiseMinimumMtu
+    );
+
+//
 // Handshake Tests
 //
 
@@ -147,6 +159,11 @@ QuicTestValidAlpnLengths(
 void
 QuicTestInvalidAlpnLengths(
     void
+    );
+
+void
+QuicTestLoadBalancedHandshake(
+    _In_ int Family
     );
 
 //
@@ -268,6 +285,12 @@ QuicTestKeyUpdate(
     _In_ bool ServerKeyUpdate
     );
 
+void
+QuicTestKeyUpdateRandomLoss(
+    _In_ int Family,
+    _In_ uint8_t RandomLossPercentage
+    );
+
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
     ShutdownBoth,
     ShutdownSend,
@@ -343,6 +366,14 @@ typedef enum QUIC_ABORT_RECEIVE_TYPE {
 void
 QuicTestAbortReceive(
     _In_ QUIC_ABORT_RECEIVE_TYPE Type
+    );
+
+void
+QuicTestSlowReceive(
+    );
+
+void
+QuicTestNthAllocFail(
     );
 
 //
@@ -786,4 +817,40 @@ typedef struct {
     QUIC_CTL_CODE(63, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 63
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+    int Family;
+    uint8_t RandomLossPercentage;
+} QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS;
+
+#pragma pack(pop)
+
+#define IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS \
+    QUIC_CTL_CODE(64, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_SLOW_RECEIVE \
+    QUIC_CTL_CODE(65, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_NTH_ALLOC_FAIL \
+    QUIC_CTL_CODE(66, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_MTU_SETTINGS \
+    QUIC_CTL_CODE(67, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
+    int Family;
+    uint8_t DropClientProbePackets;
+    uint8_t DropServerProbePackets;
+    uint8_t RaiseMinimumMtu;
+} QUIC_RUN_MTU_DISCOVERY_PARAMS;
+
+#define IOCTL_QUIC_RUN_MTU_DISCOVERY \
+    QUIC_CTL_CODE(68, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE \
+    QUIC_CTL_CODE(69, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 69

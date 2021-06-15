@@ -107,9 +107,13 @@ PacketSizeFromUdpPayloadSize(
     _In_ uint16_t UdpPayloadSize
     )
 {
-    return Family == QUIC_ADDRESS_FAMILY_INET ?
+    uint32_t PayloadSize = Family == QUIC_ADDRESS_FAMILY_INET ?
         UdpPayloadSize + CXPLAT_MIN_IPV4_HEADER_SIZE + CXPLAT_UDP_HEADER_SIZE :
         UdpPayloadSize + CXPLAT_MIN_IPV6_HEADER_SIZE + CXPLAT_UDP_HEADER_SIZE;
+    if (PayloadSize > UINT16_MAX) {
+        PayloadSize = UINT16_MAX;
+    }
+    return (uint16_t)PayloadSize;
 }
 
 //

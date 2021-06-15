@@ -17,7 +17,20 @@ Supported Environments:
 
 #pragma once
 
+//
+// Due to a bug in VS 16.10, we need to disable stdio inlining
+// Remove this once that bug is fixed
+//
+#ifdef _KERNEL_MODE
+#define _NO_CRT_STDIO_INLINE
+#endif
+#include <stddef.h>
+
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
+
+#define CXPLAT_MAX(a,b) (((a) > (b)) ? (a) : (b))
+
+#define CXPLAT_MIN(a,b) (((a) < (b)) ? (a) : (b))
 
 //
 // Time unit conversion.
@@ -322,6 +335,24 @@ CxPlatListPopEntry(
 
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
+
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    );
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
+#endif
+
+#ifdef DEBUG
+#define CxPlatIsRandomMemoryFailureEnabled() (CxPlatGetAllocFailDenominator() != 0)
+#else
+#define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
+#endif
+
 
 //
 // Test Interface for loading a self-signed certificate.

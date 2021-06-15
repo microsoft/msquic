@@ -479,25 +479,20 @@ DummyConnectionCallback(
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
 static
-_Function_class_(QUIC_CONNECTION_CALLBACK)
 QUIC_STATUS
-QUIC_API
 AutoShutdownConnectionCallback(
-    HQUIC Connection,
+    MsQuicConnection* Connection,
     void* Context,
     QUIC_CONNECTION_EVENT* Event
     )
 {
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
         if (Context != nullptr) {
-            if (!CxPlatEventWaitWithTimeout(*(CXPLAT_EVENT*)Context, 1000)) {
+            if (!((CxPlatEvent*)Context)->WaitTimeout(1000)) {
                 TEST_FAILURE("Peer never signaled connected event");
             }
         }
-        MsQuic->ConnectionShutdown(
-            Connection,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
-            0);
+        Connection->Shutdown(0);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -951,8 +946,7 @@ void QuicTestValidateConnection()
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
-        CXPLAT_EVENT Event;
-        CxPlatEventInitialize(&Event, FALSE, FALSE);
+        CxPlatEvent Event;
         MyListener.Context = &Event;
 
         {
@@ -960,10 +954,10 @@ void QuicTestValidateConnection()
             // Validate that the resumption ticket call fails in the listener.
             //
             {
-            MsQuicConnection Connection(Registration, AutoShutdownConnectionCallback);
+            MsQuicConnection Connection(Registration, CleanUpManual, AutoShutdownConnectionCallback);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
+            TEST_TRUE(Event.WaitTimeout(1000));
             }
 
             //
@@ -971,10 +965,10 @@ void QuicTestValidateConnection()
             // because resumption is not enabled.
             //
             {
-            MsQuicConnection Connection(Registration, AutoShutdownConnectionCallback, &Event);
+            MsQuicConnection Connection(Registration, CleanUpManual, AutoShutdownConnectionCallback, &Event);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
+            TEST_TRUE(Event.WaitTimeout(1000));
             }
 
             //
@@ -982,10 +976,10 @@ void QuicTestValidateConnection()
             // isn't in connected state yet.
             //
             {
-            MsQuicConnection Connection(Registration, AutoShutdownConnectionCallback);
+            MsQuicConnection Connection(Registration, CleanUpManual, AutoShutdownConnectionCallback);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
+            TEST_TRUE(Event.WaitTimeout(1000));
 
             //
             // TODO: add test case to validate ConnectionSendResumptionTicket:
@@ -993,8 +987,6 @@ void QuicTestValidateConnection()
             //
             }
         }
-
-        CxPlatEventUninitialize(Event);
     }
 #endif
 }
@@ -1627,11 +1619,11 @@ QuicTestDesiredVersionSettings()
     // Test setting and getting the desired versions on Connection
     //
     {
-        MsQuicConnection Connection(Registration, DummyConnectionCallback);
+        MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
         //
-        // Test invalid versions are failed on Connetion
+        // Test invalid versions are failed on Connection
         //
         InputSettings.SetDesiredVersionsList(InvalidDesiredVersions, ARRAYSIZE(InvalidDesiredVersions));
         TEST_QUIC_STATUS(

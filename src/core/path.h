@@ -73,6 +73,16 @@ typedef struct QUIC_PATH {
     uint16_t Mtu;
 
     //
+    // The local socket MTU.
+    //
+    uint16_t LocalMtu;
+
+    //
+    // MTU Discovery logic.
+    //
+    QUIC_MTU_DISCOVERY MtuDiscovery;
+
+    //
     // The binding used for sending/receiving UDP packets.
     //
     QUIC_BINDING* Binding;
@@ -90,7 +100,7 @@ typedef struct QUIC_PATH {
     //
     // The destination CID used for sending on this path.
     //
-    QUIC_CID_CXPLAT_LIST_ENTRY* DestCid;
+    QUIC_CID_LIST_ENTRY* DestCid;
 
     //
     // Used on the server side until the client's IP address has been validated
@@ -125,6 +135,17 @@ typedef struct QUIC_PATH {
     uint32_t PathValidationStartTime;
 
 } QUIC_PATH;
+
+#if DEBUG
+#define QuicPathValidate(Path) \
+    CXPLAT_DBG_ASSERT( \
+        (Path)->DestCid == NULL || \
+        (Path)->DestCid->CID.Length == 0 || \
+        ((Path)->DestCid->AssignedPath == (Path) && \
+         (Path)->DestCid->CID.UsedLocally))
+#else
+#define QuicPathValidate(Path) UNREFERENCED_PARAMETER(Path)
+#endif
 
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PATH) < 256,

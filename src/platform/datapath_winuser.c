@@ -1320,8 +1320,8 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -1747,33 +1747,13 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Socket != NULL) {
-            QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Socket);
             if (Socket->ProcsOutstanding != 0) {
-                for (uint16_t i = 0; i < SocketCount; i++) {
-                    CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
-                    uint16_t Processor =
-                         Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
-
-QUIC_DISABLED_BY_FUZZER_START;
-
-                    CancelIo((HANDLE)SocketProc->Socket);
-                    closesocket(SocketProc->Socket);
-
-QUIC_DISABLED_BY_FUZZER_END;
-
-                    //
-                    // Queue a completion to clean up the socket context.
-                    //
-                    PostQueuedCompletionStatus(
-                        Socket->Datapath->Processors[Processor].IOCP,
-                        UINT32_MAX,
-                        (ULONG_PTR)SocketProc,
-                        &SocketProc->Overlapped);
-                }
+                CxPlatSocketDelete(Socket);
             } else {
+                QuicTraceEvent(
+                    DatapathDestroyed,
+                    "[data][%p] Destroyed",
+                    Socket);
                 for (uint16_t i = 0; i < SocketCount; i++) {
                     CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
 
@@ -1831,8 +1811,8 @@ CxPlatSocketCreateTcpInternal(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2132,8 +2112,8 @@ CxPlatSocketCreateTcpListener(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(0, NULL));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(0, NULL));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2822,7 +2802,7 @@ CxPlatSocketHandleUnreachableError(
         "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
         SocketProc->Parent,
         ErrorCode,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
     SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
@@ -2994,7 +2974,7 @@ CxPlatDataPathUdpRecvComplete(
             DatapathTooLarge,
             "[data][%p] Received larger than expected datagram from %!ADDR!",
             SocketProc->Parent,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
         //
@@ -3084,8 +3064,8 @@ CxPlatDataPathUdpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             MessageLength,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3240,8 +3220,8 @@ CxPlatDataPathTcpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             NumberOfBytesTransferred,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3393,9 +3373,12 @@ CxPlatSendDataCanAllocSendSegment(
     _In_ UINT16 MaxBufferLength
     )
 {
+    if (!SendData->ClientBuffer.buf) {
+        return FALSE;
+    }
+
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendData->WsaBufferCount > 0);
-    //CXPLAT_DBG_ASSERT(SendData->WsaBufferCount <= SendData->Owner->Datapath->MaxSendBatchSize);
 
     ULONG BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
@@ -3421,8 +3404,7 @@ CxPlatSendDataCanAllocSend(
 static
 void
 CxPlatSendDataFinalizeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN IsSendingImmediately
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     if (SendData->ClientBuffer.len == 0) {
@@ -3455,8 +3437,6 @@ CxPlatSendDataFinalizeSendBuffer(
         //
         // The next segment allocation must create a new backing buffer.
         //
-        CXPLAT_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
-        UNREFERENCED_PARAMETER(IsSendingImmediately);
         SendData->ClientBuffer.buf = NULL;
         SendData->ClientBuffer.len = 0;
     }
@@ -3509,12 +3489,7 @@ CxPlatSendDataAllocSegmentBuffer(
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(MaxBufferLength <= SendData->SegmentSize);
 
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
-    WSABUF* WsaBuffer;
-
-    if (SendData->ClientBuffer.buf != NULL &&
-        CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
-
+    if (CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
         //
         // All clear to return the next segment of our contiguous buffer.
         //
@@ -3522,7 +3497,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &DatapathProc->LargeSendBufferPool);
+    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->LargeSendBufferPool);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -3548,9 +3523,8 @@ CxPlatSendDataAllocBuffer(
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
-    //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    CxPlatSendDataFinalizeSendBuffer(SendData, FALSE);
+    CxPlatSendDataFinalizeSendBuffer(SendData);
 
     if (!CxPlatSendDataCanAllocSend(SendData, MaxBufferLength)) {
         return NULL;
@@ -3656,8 +3630,8 @@ CxPlatSocketSendInline(
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
@@ -3820,7 +3794,7 @@ CxPlatSocketSend(
     CXPLAT_SOCKET_PROC* SocketProc =
         &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
 
-    CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+    CxPlatSendDataFinalizeSendBuffer(SendData);
 
 #ifdef CXPLAT_DATAPATH_QUEUE_SENDS
     uint16_t Processor =

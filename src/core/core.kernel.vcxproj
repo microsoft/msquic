@@ -50,6 +50,7 @@
     <ClCompile Include="listener.c" />
     <ClCompile Include="lookup.c" />
     <ClCompile Include="loss_detection.c" />
+    <ClCompile Include="mtu_discovery.c" />
     <ClCompile Include="operation.c" />
     <ClCompile Include="packet.c" />
     <ClCompile Include="packet_builder.c" />
@@ -85,6 +86,7 @@
     <ClInclude Include="listener.h" />
     <ClInclude Include="lookup.h" />
     <ClInclude Include="loss_detection.h" />
+    <ClInclude Include="mtu_discovery.h" />
     <ClInclude Include="operation.h" />
     <ClInclude Include="packet.h" />
     <ClInclude Include="packet_builder.h" />
@@ -156,13 +158,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;CXPLAT_TLS_SECRETS_SUPPORT=1;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;CXPLAT_TLS_SECRETS_SUPPORT=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>

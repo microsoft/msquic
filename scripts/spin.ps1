@@ -27,6 +27,9 @@ This script runs spinquic locally for a period of time.
 .PARAMETER Debugger
     Attaches the debugger to the process.
 
+.PARAMETER InitialBreak
+    Debugger starts broken into the process to allow setting breakpoints, etc.
+
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
@@ -45,7 +48,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
@@ -58,6 +61,12 @@ param (
     [Int32]$RepeatCount = 1,
 
     [Parameter(Mandatory = $false)]
+    [Int32]$AllocFail = 0,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Seed = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
@@ -65,6 +74,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitialBreak = $false,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
@@ -83,24 +95,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
-if ($IsWindows) {
-    $Platform = "windows"
-} elseif ($IsLinux) {
-    $Platform = "linux"
-} elseif ($IsMacOS) {
-    $Platform = "macos"
-} else {
-    Write-Error "Unsupported platform type!"
-}
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$RootArtifactDir = $BuildConfig.ArtifactsDir
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -121,12 +120,6 @@ if ($CodeCoverage) {
     }
 }
 
-if ("" -eq $ExtraArtifactDir) {
-    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
-} else {
-    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
-}
-
 # Path to the spinquic exectuable.
 $SpinQuic = $null
 if ($IsWindows) {
@@ -143,7 +136,16 @@ if (!(Test-Path $SpinQuic)) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout) -repeat_count:$($RepeatCount)' -ShowOutput"
+$SpinQuicArgs = "both -timeout:$($Timeout) -repeat_count:$($RepeatCount)"
+
+if ($AllocFail -gt 0) {
+    $SpinQuicArgs += " -alloc_fail:$($AllocFail)"
+}
+if ($Seed -ne "") {
+    $SpinQuicArgs += " -seed:$($Seed)"
+}
+
+$Arguments = "-Path $($SpinQuic) -Arguments '$($SpinQuicArgs)' -ShowOutput"
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"
 }
@@ -152,6 +154,9 @@ if ($GenerateXmlResults) {
 }
 if ($Debugger) {
     $Arguments += " -Debugger"
+}
+if ($InitialBreak) {
+    $Arguments += " -InitialBreak"
 }
 if ("None" -ne $LogProfile) {
     $Arguments += " -LogProfile $($LogProfile)"

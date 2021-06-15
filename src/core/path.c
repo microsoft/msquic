@@ -28,7 +28,7 @@ QuicPathInitialize(
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->MinRtt = UINT32_MAX;
-    Path->Mtu = QUIC_DEFAULT_PATH_MTU;
+    Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
 
@@ -53,6 +53,12 @@ QuicPathRemove(
         Connection,
         "Path[%hhu] Removed",
         Path->ID);
+
+#if DEBUG
+    if (Path->DestCid) {
+        QUIC_CID_SET_PATH(Path->DestCid, NULL);
+    }
+#endif
 
     if (Index + 1 < Connection->PathsCount) {
         CxPlatMoveMemory(
@@ -132,15 +138,13 @@ QuicPathSetValid(
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
 
-    if (Path->IsPeerValidated && Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
+    if (Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
         //
-        // If the active path was just validated, then let's queue up a PMTUD
-        // packet.
+        // If the active path was just validated, then let's queue up DPLPMTUD.
+        // This will force validate min mtu if it has not already been
+        // validated.
         //
-        // TODO - If minimum MTU was not validated, we might want to validate
-        // that first instead.
-        //
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
+        QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
     }
 }
 
@@ -210,10 +214,13 @@ QuicConnGetPathForDatagram(
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
 
-    Path->DestCid = Connection->Paths[0].DestCid;
+    if (Connection->Paths[0].DestCid->CID.Length == 0) {
+        Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
+    }
     Path->Binding = Connection->Paths[0].Binding;
     Path->LocalAddress = Datagram->Tuple->LocalAddress;
     Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
+    QuicPathValidate(Path);
 
     return Path;
 }
@@ -230,6 +237,7 @@ QuicPathSetActive(
         CXPLAT_DBG_ASSERT(!Path->IsActive);
         Path->IsActive = TRUE;
     } else {
+        CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
             QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
             QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);

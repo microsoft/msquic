@@ -175,7 +175,7 @@ PerfServer::StreamCallback(
             uint8_t* Dest = (uint8_t*)&Context->ResponseSize;
             uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
             for (uint32_t i = 0; Offset < sizeof(uint64_t) && i < Event->RECEIVE.BufferCount; ++i) {
-                uint32_t Length = min((uint32_t)(sizeof(uint64_t) - Offset), Event->RECEIVE.Buffers[i].Length);
+                uint32_t Length = CXPLAT_MIN((uint32_t)(sizeof(uint64_t) - Offset), Event->RECEIVE.Buffers[i].Length);
                 memcpy(Dest + Offset, Event->RECEIVE.Buffers[i].Buffer, Length);
                 Offset += Length;
             }
@@ -267,7 +267,7 @@ PerfServer::SendTcpResponse(
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
 
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = (uint32_t)Context->Entry.Signature;
         SendData->Open = Context->BytesSent == 0 ? 1 : 0;
         SendData->Buffer = DataBuffer->Buffer;
@@ -345,7 +345,7 @@ PerfServer::TcpReceiveCallback(
     }
     if (Abort) {
         Stream->ResponseSize = 0; // Reset to make sure we stop sending more
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = StreamID;
         SendData->Open = Open ? TRUE : FALSE;
         SendData->Abort = TRUE;
@@ -357,7 +357,7 @@ PerfServer::TcpReceiveCallback(
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
             This->SendTcpResponse(Stream, Connection);
         } else {
-            auto SendData = new TcpSendData();
+            auto SendData = new(std::nothrow) TcpSendData();
             SendData->StreamId = StreamID;
             SendData->Open = TRUE;
             SendData->Fin = TRUE;
