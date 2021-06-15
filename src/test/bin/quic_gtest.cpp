@@ -231,7 +231,7 @@ TEST_P(WithBool, ValidateStream) {
 TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateConnectionEvents", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS, GetParam().Test));
+        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS, GetParam().Test));
     } else {
         QuicTestValidateConnectionEvents(GetParam().Test);
     }
@@ -240,7 +240,7 @@ TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
 TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS, GetParam().Test));
+        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS, GetParam().Test));
     } else {
         QuicTestValidateStreamEvents(GetParam().Test);
     }
