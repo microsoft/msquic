@@ -930,6 +930,7 @@ QuicBindingProcessStatelessOperation(
         }
 
         if (PacketLength < QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
+            CXPLAT_DBG_ASSERT(FALSE);
             goto Exit;
         }
 
