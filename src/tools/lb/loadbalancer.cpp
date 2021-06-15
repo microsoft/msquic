@@ -30,9 +30,9 @@ struct LbInterface {
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic) : IsPublic(IsPublic) {
         if (IsPublic) {
-            CxPlatSocketCreateUdp(Datapath, Address, nullptr, this, 0, &Socket);
+            CxPlatSocketCreateUdp(Datapath, Address, nullptr, this, 0, 0, &Socket);
         } else {
-            CxPlatSocketCreateUdp(Datapath, nullptr, Address, this, 0, &Socket);
+            CxPlatSocketCreateUdp(Datapath, nullptr, Address, this, 0, 0, &Socket);
         }
         if (!Socket) {
             printf("CxPlatSocketCreateUdp failed.\n");
