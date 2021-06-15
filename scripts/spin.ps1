@@ -48,7 +48,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
@@ -95,24 +95,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
-if ($IsWindows) {
-    $Platform = "windows"
-} elseif ($IsLinux) {
-    $Platform = "linux"
-} elseif ($IsMacOS) {
-    $Platform = "macos"
-} else {
-    Write-Error "Unsupported platform type!"
-}
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$RootArtifactDir = $BuildConfig.ArtifactsDir
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -131,12 +118,6 @@ if ($CodeCoverage) {
     if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         Write-Error "Code coverage tools are not installed";
     }
-}
-
-if ("" -eq $ExtraArtifactDir) {
-    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
-} else {
-    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
 }
 
 # Path to the spinquic exectuable.

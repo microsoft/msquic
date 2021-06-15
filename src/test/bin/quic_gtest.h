@@ -25,6 +25,33 @@ class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
+struct MtuArgs {
+    int Family;
+    int DropMode;
+    uint8_t RaiseMinimum;
+    static ::std::vector<MtuArgs> Generate() {
+        ::std::vector<MtuArgs> list;
+        for (int Family : { 4, 6}) {
+            for (int DropMode : {0, 1, 2, 3}) {
+                for (uint8_t RaiseMinimum : {0, 1}) {
+                    list.push_back({ Family, DropMode, RaiseMinimum });
+                }
+            }
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const MtuArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.DropMode << "/" << args.RaiseMinimum << "/";
+}
+
+class WithMtuArgs : public testing::Test,
+    public testing::WithParamInterface<MtuArgs> {
+};
+
 struct FamilyArgs {
     int Family;
     static ::std::vector<FamilyArgs> Generate() {

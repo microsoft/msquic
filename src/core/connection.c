@@ -119,6 +119,7 @@ QuicConnAlloc(
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
+    Connection->PeerPacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     Connection->Settings = MsQuicLib.Settings;
@@ -186,7 +187,7 @@ QuicConnAlloc(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
-            CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
 
         Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
         Connection->State.RemoteAddressSet = TRUE;
@@ -194,7 +195,7 @@ QuicConnAlloc(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
-            CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
         Path->DestCid =
             QuicCidNewDestination(Packet->SourceCidLen, Packet->SourceCid);
@@ -209,7 +210,7 @@ QuicConnAlloc(
             "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
             Connection,
             Path->DestCid->CID.SequenceNumber,
-            CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
+            CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
 
         QUIC_CID_HASH_ENTRY* SourceCid =
             QuicCidNewSource(Connection, Packet->DestCidLen, Packet->DestCid);
@@ -224,7 +225,7 @@ QuicConnAlloc(
             "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
             Connection,
             SourceCid->CID.SequenceNumber,
-            CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+            CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
         //
         // Server lazily finishes initialization in response to first operation.
@@ -249,7 +250,7 @@ QuicConnAlloc(
             "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
             Connection,
             Path->DestCid->CID.SequenceNumber,
-            CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
+            CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
 
         Connection->State.Initialized = TRUE;
         QuicTraceEvent(
@@ -612,14 +613,14 @@ QuicConnTraceRundownOper(
                     ConnLocalAddrAdded,
                      "[conn][%p] New Local IP: %!ADDR!",
                     Connection,
-                    CLOG_BYTEARRAY(sizeof(Connection->Paths[i].LocalAddress), &Connection->Paths[i].LocalAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].LocalAddress), &Connection->Paths[i].LocalAddress));
             }
             if (Connection->State.RemoteAddressSet || i != 0) {
                 QuicTraceEvent(
                     ConnRemoteAddrAdded,
                     "[conn][%p] New Remote IP: %!ADDR!",
                     Connection,
-                    CLOG_BYTEARRAY(sizeof(Connection->Paths[i].RemoteAddress), &Connection->Paths[i].RemoteAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].RemoteAddress), &Connection->Paths[i].RemoteAddress));
             }
         }
         for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
@@ -636,7 +637,7 @@ QuicConnTraceRundownOper(
                 "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
                 Connection,
                 SourceCid->CID.SequenceNumber,
-                CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+                CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
         }
         for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                 Entry != &Connection->DestCids;
@@ -652,7 +653,7 @@ QuicConnTraceRundownOper(
                 "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
                 Connection,
                 DestCid->CID.SequenceNumber,
-                CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+                CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
         }
     }
     if (Connection->State.Connected) {
@@ -792,7 +793,7 @@ QuicConnUpdateRtt(
     if (RttUpdated) {
         CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
         QuicTraceLogConnVerbose(
-            RttUpdated,
+            RttUpdatedMsg,
             Connection,
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
@@ -864,7 +865,7 @@ QuicConnGenerateNewSourceCid(
         "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
         Connection,
         SourceCid->CID.SequenceNumber,
-        CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+        CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
     SourceCid->CID.SequenceNumber = Connection->NextSourceCidSequenceNumber++;
     if (SourceCid->CID.SequenceNumber > 0) {
@@ -985,7 +986,7 @@ QuicConnRetireCid(
         "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
         Connection,
         DestCid->CID.SequenceNumber,
-        CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+        CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
     Connection->DestCidCount--;
     DestCid->CID.Retired = TRUE;
     DestCid->CID.NeedsToSend = TRUE;
@@ -1510,7 +1511,7 @@ QuicConnTryClose(
             QuicConnTimerSet(
                 Connection,
                 QUIC_CONN_TIMER_SHUTDOWN,
-                max(15, US_TO_MS(Connection->Paths[0].SmoothedRtt * 2)));
+                CXPLAT_MAX(15, US_TO_MS(Connection->Paths[0].SmoothedRtt * 2)));
 
             QuicSendSetSendFlag(
                 &Connection->Send,
@@ -1573,7 +1574,7 @@ QuicConnTryClose(
             QuicConnTimerSet(
                 Connection,
                 QUIC_CONN_TIMER_SHUTDOWN,
-                max(15, US_TO_MS(Connection->Paths[0].SmoothedRtt * 2)));
+                CXPLAT_MAX(15, US_TO_MS(Connection->Paths[0].SmoothedRtt * 2)));
         }
 
         IsFirstCloseForConnection = FALSE;
@@ -1810,7 +1811,7 @@ QuicConnStart(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!ADDR!",
         Connection,
-        CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
     //
     // Get the binding for the current local & remote addresses.
@@ -1856,7 +1857,7 @@ QuicConnStart(
         "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
         Connection,
         SourceCid->CID.SequenceNumber,
-        CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+        CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
     CxPlatListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
@@ -1867,14 +1868,12 @@ QuicConnStart(
     }
 
     Connection->State.LocalAddressSet = TRUE;
-    CxPlatSocketGetLocalAddress(
-        Path->Binding->Socket,
-        &Path->LocalAddress);
+    QuicBindingGetLocalAddress(Path->Binding, &Path->LocalAddress);
     QuicTraceEvent(
         ConnLocalAddrAdded,
         "[conn][%p] New Local IP: %!ADDR!",
         Connection,
-        CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
 
     //
     // Save the server name.
@@ -2751,7 +2750,7 @@ QuicConnProcessPeerTransportParameters(
                 PeerPreferredAddress,
                 Connection,
                 "Peer configured preferred address %!ADDR!",
-                CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
+                CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
 
             //
             // TODO - Implement preferred address feature.
@@ -2974,7 +2973,7 @@ QuicConnUpdateDestCid(
             "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
             Connection,
             DestCid->CID.SequenceNumber,
-            CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+            CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
 
         //
         // We have just received the a packet from a new source CID
@@ -3020,7 +3019,7 @@ QuicConnUpdateDestCid(
                 "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
                 Connection,
                 DestCid->CID.SequenceNumber,
-                CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+                CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
         }
     }
 
@@ -4517,7 +4516,7 @@ QuicConnRecvFrames(
                     "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
                     Connection,
                     DestCid->CID.SequenceNumber,
-                    CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+                    CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
                 CxPlatListInsertTail(&Connection->DestCids, &DestCid->Link);
                 Connection->DestCidCount++;
 
@@ -4769,7 +4768,7 @@ QuicConnRecvFrames(
             }
 
             AckPacketImmediately = TRUE;
-            if (Frame.SequenceNumber < Connection->NextAckFrequencySequenceNumber) {
+            if (Frame.SequenceNumber < Connection->NextRecvAckFreqSeqNum) {
                 //
                 // This sequence number (or a higher one) has already been
                 // received. Ignore this one.
@@ -4777,7 +4776,7 @@ QuicConnRecvFrames(
                 break;
             }
 
-            Connection->NextAckFrequencySequenceNumber = Frame.SequenceNumber + 1;
+            Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
             Connection->State.IgnoreReordering = Frame.IgnoreOrder;
             if (Frame.UpdateMaxAckDelay < 1000) {
                 Connection->Settings.MaxAckDelayMs = 1;
@@ -4790,6 +4789,11 @@ QuicConnRecvFrames(
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
             }
+            QuicTraceLogConnInfo(
+                UpdatePacketTolerance,
+                Connection,
+                "Updating packet tolerance to %hhu",
+                Connection->PacketTolerance);
             break;
         }
 
@@ -4881,7 +4885,7 @@ QuicConnRecvPostProcessing(
                             "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                             Connection,
                             NextSourceCid->CID.SequenceNumber,
-                            CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
+                            CASTED_CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
                         CXPLAT_FREE(NextSourceCid, QUIC_POOL_CIDHASH);
                     }
                 }
@@ -4976,7 +4980,7 @@ QuicConnRecvPostProcessing(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
-            CLOG_BYTEARRAY(sizeof(Connection->Paths[0].RemoteAddress), &Connection->Paths[0].RemoteAddress)); // TODO - Addr removed event?
+            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].RemoteAddress), &Connection->Paths[0].RemoteAddress)); // TODO - Addr removed event?
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;
@@ -5564,6 +5568,28 @@ QuicConnProcessKeepAliveOperation(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnUpdatePeerPacketTolerance(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint8_t NewPacketTolerance
+    )
+{
+    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
+        Connection->PeerPacketTolerance != NewPacketTolerance) {
+        QuicTraceLogConnInfo(
+            UpdatePeerPacketTolerance,
+            Connection,
+            "Updating peer packet tolerance to %hhu",
+            NewPacketTolerance);
+        Connection->SendAckFreqSeqNum++;
+        Connection->PeerPacketTolerance = NewPacketTolerance;
+        QuicSendSetSendFlag(
+            &Connection->Send,
+            QUIC_CONN_SEND_FLAG_ACK_FREQUENCY);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamSet(
     _In_ QUIC_CONNECTION* Connection,
@@ -5608,7 +5634,7 @@ QuicConnParamSet(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
-            CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
         if (Connection->State.Started) {
 
@@ -5645,17 +5671,17 @@ QuicConnParamSet(
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
-                CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
-            CxPlatSocketGetLocalAddress(
-                Connection->Paths[0].Binding->Socket,
+            QuicBindingGetLocalAddress(
+                Connection->Paths[0].Binding,
                 &Connection->Paths[0].LocalAddress);
 
             QuicTraceEvent(
                 ConnLocalAddrAdded,
                 "[conn][%p] New Local IP: %!ADDR!",
                 Connection,
-                CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
         }
@@ -5736,7 +5762,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
 
-        if (BufferLength >= 513) {
+        if (BufferLength > QUIC_MAX_CONN_CLOSE_REASON_LENGTH) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -6181,6 +6207,9 @@ QuicConnParamGet(
         Stats->Timing.Start = Connection->Stats.Timing.Start;
         Stats->Timing.InitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
         Stats->Timing.HandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
+        Stats->Handshake.ClientFlight1Bytes = Connection->Stats.Handshake.ClientFlight1Bytes;
+        Stats->Handshake.ServerFlight1Bytes = Connection->Stats.Handshake.ServerFlight1Bytes;
+        Stats->Handshake.ClientFlight2Bytes = Connection->Stats.Handshake.ClientFlight2Bytes;
         Stats->Send.PathMtu = Path->Mtu;
         Stats->Send.TotalPackets = Connection->Stats.Send.TotalPackets;
         Stats->Send.RetransmittablePackets = Connection->Stats.Send.RetransmittablePackets;
@@ -6414,6 +6443,7 @@ QuicConnApplyNewSettings(
             &Connection->Settings,
             OverWrite,
             CopyExternalToInternal,
+            !Connection->State.Started,
             NewSettingsSize,
             NewSettings)) {
         return FALSE;
@@ -6423,6 +6453,7 @@ QuicConnApplyNewSettings(
 
         Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
         Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
+        Connection->Paths[0].Mtu = Connection->Settings.MinimumMtu;
 
         if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
             Connection->HandshakeTP == NULL) {

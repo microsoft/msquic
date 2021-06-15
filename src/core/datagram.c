@@ -269,7 +269,7 @@ QuicDatagramOnSendStateChanged(
             MtuMaxSendLength =
                 QuicCalculateDatagramLength(
                     QUIC_ADDRESS_FAMILY_INET6,
-                    QUIC_DEFAULT_PATH_MTU,
+                    QUIC_DPLPMUTD_MIN_MTU,
                     QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
         } else {
             const QUIC_PATH* Path = &Connection->Paths[0];

@@ -233,7 +233,7 @@ Error:
         "[ api] Exit");
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
@@ -250,8 +250,6 @@ MsQuicConnectionStart(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
-
-    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -393,8 +391,6 @@ MsQuicConnectionSetConfiguration(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
 
-    CXPLAT_PASSIVE_CODE();
-
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
@@ -488,8 +484,6 @@ MsQuicConnectionSendResumptionTicket(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
     uint8_t* ResumptionDataCopy = NULL;
-
-    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -752,7 +746,8 @@ Error:
 }
 #pragma warning(pop)
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 QUIC_API
 MsQuicStreamStart(
@@ -791,6 +786,9 @@ MsQuicStreamStart(
     }
 
     if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+        CXPLAT_PASSIVE_CODE();
+
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -827,6 +825,8 @@ MsQuicStreamStart(
         Status = QUIC_STATUS_PENDING;
 
     } else {
+
+        CXPLAT_PASSIVE_CODE();
 
         QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 

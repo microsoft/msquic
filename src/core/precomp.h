@@ -45,6 +45,7 @@ extern "C" {
 //
 #include "quicdef.h"
 #include "cid.h"
+#include "mtu_discovery.h"
 #include "path.h"
 #include "transport_params.h"
 #include "lookup.h"

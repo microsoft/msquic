@@ -17,6 +17,8 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 1. [I am getting an error code I don't understand.](#understanding-error-codes)
 2. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
 3. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
+4. [Why is this API failing?](#why-is-this-api-failing)
+5. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
 
 ## Understanding Error Codes
 
@@ -24,16 +26,14 @@ Some error codes are MsQuic specific (`QUIC_STATUS_*`), and some are simply a pa
 
 From [msquic_winuser.h](../src/inc/msquic_winuser.h):
 ```C
-#ifndef ERROR_QUIC_HANDSHAKE_FAILURE
-#define ERROR_QUIC_HANDSHAKE_FAILURE    _HRESULT_TYPEDEF_(0x80410000L)
-#endif
-
-#ifndef ERROR_QUIC_VER_NEG_FAILURE
-#define ERROR_QUIC_VER_NEG_FAILURE      _HRESULT_TYPEDEF_(0x80410001L)
-#endif
-
-...
+#define QUIC_STATUS_ADDRESS_IN_USE          HRESULT_FROM_WIN32(WSAEADDRINUSE)               // 0x80072740
+#define QUIC_STATUS_CONNECTION_TIMEOUT      ERROR_QUIC_CONNECTION_TIMEOUT                   // 0x80410006
+#define QUIC_STATUS_CONNECTION_IDLE         ERROR_QUIC_CONNECTION_IDLE                      // 0x80410005
+#define QUIC_STATUS_UNREACHABLE             HRESULT_FROM_WIN32(ERROR_HOST_UNREACHABLE)      // 0x800704d0
+#define QUIC_STATUS_INTERNAL_ERROR          ERROR_QUIC_INTERNAL_ERROR                       // 0x80410003
 ```
+
+For more info, see the [Well Known Status Codes](./api/QUIC_STATUS.md#well-known-status-codes).
 
 ### Linux File Handle Limit Too Small
 
@@ -74,7 +74,114 @@ The error code indicated in this event is completely application defined (type o
 
 ## Why isn't application data flowing?
 
-> TODO
+Application data is exchanged via [Streams](./Streams.md) and queued by the app via [StreamSend](./api/StreamSend.md). The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The `QUIC_FLOW_BLOCK_REASON` enum in [quic_trace.h](../src/inc/quic_trace.h) contains the full list of reasons that data may be blocked. Below is a short explanation of each:
+
+Value | Meaning
+--- | ---
+**QUIC_FLOW_BLOCKED_SCHEDULING**<br>1 | The cross-connection scheduling logic has determined that too much work is queued on the connection to be processed all at once. Generally, this means we are CPU-bound.
+**QUIC_FLOW_BLOCKED_PACING**<br>2 | Data burst sizes into the network are being limited and periodically sent into the network based on the congestion control's pacing logic.
+**QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT**<br>4 | The peer has not proved ownership of their IP address and therefore we are locally limiting the amount of data to send to it.
+**QUIC_FLOW_BLOCKED_CONGESTION_CONTROL**<br>8 | Congestion control has determined that the network cannot handle any more data currently.
+**QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL**<br>16 | The connection-wide limit for the amount of data that can be buffered or accepted by the peer at this time has been reached.
+**QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL**<br>32 | The limit on the number of streams the peer can accept has been reached.
+**QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL**<br>64 | The limit on the amount of data that can be buffered or accepted by the peer for this stream has been reached.
+**QUIC_FLOW_BLOCKED_APP**<br>128 | All data queued by the application on this stream has been sent. No more data is available to send.
+
+Internally, MsQuic tracks these flags at all times for every connection and stream. Whenever any of them change, MsQuic logs an event. For example:
+
+```
+[0]0004.0F54::2021/05/14-10:30:22.541024000 [Microsoft-Quic][strm][0xC16BA610] Send Blocked Flags: 128
+```
+
+This event indicates that stream `C16BA610` only has the `QUIC_FLOW_BLOCKED_APP` flag, so it is currently blocked because there is no more application data queued to be sent.
+
+![](images/tx-blocked-state.png)
+
+The [QUIC WPA plugin](../src/plugins/trace/README.md) also supports visualizing these blocked states via the `QUIC TX Blocked State` graph. It allows you to see what flags are blocking the connection as a whole (shown as stream 0) and what is blocking each individual stream, over the lifetime of the whole connection.
+
+For instance, in the image above, you can see the stream (1) is blocked most of the time because there is no application data. Beyond that, the connection ("stream" 0) alternated between pacing and congestion control as the blocked reasons.
+
+## Why is this API Failing?
+
+The simplest way to determine exactly why a particular API is failing is via tracing. [Collect the traces](./Diagnostics.md#trace-collection) for the repro and convert them to text and open them in your favorite text editor (try [TextAnalysisTool](./Diagnostics.md#text-analysis-tool)!).
+
+MsQuic logs every API entry and exit. Depending on the platform and tool used to decode the traces to text, you may either have the number or an enum represented as the API type (see `QUIC_TRACE_API_TYPE` in [quic_trace.h](../src/inc/quic_trace.h)), but all events look something like this:
+
+```
+[cpu][process.thread][time][ api] Enter <API Type> (<pointer>)
+[cpu][process.thread][time][ api] Exit [optional status code]
+```
+
+A [TextAnalysisTool](./Diagnostics.md#text-analysis-tool) filter (`api.tat`) is also included in [./docs/tat](./tat) to help quickly find all failed API calls.
+
+### Example (ListenerStart failing with QUIC_STATUS_INVALID_STATE)
+
+In a recent example, we wanted to know why an app occasionally received `QUIC_STATUS_INVALID_STATE` when it called `ListenerStart`. We took the following steps to diagnose it.
+
+1. Collected traces for the repro.
+2. Converted to text and opened them in [TextAnalysisTool](./Diagnostics.md#text-analysis-tool).
+3. Added a filter for all API enter events for `QUIC_TRACE_API_LISTENER_START` (`10`).
+4. Looked for the following `[ api] Exit` event after each enter event on the same `[process.thread]`.
+
+This quickly resulted in the following pair of events. They show the app called `ListenerStart` for the listener pointer `7f30ac0dcff0` at `09:54:03.528362` in process `2e73` on thread `2e8b` (CPU 1). Shortly after, MsQuic returned with status `200000002` (`QUIC_STATUS_INVALID_STATE` on Posix platforms).
+
+```
+[1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
+[1][2e73.2e8b][09:54:03.528913][ api] Exit 200000002
+```
+
+From here, we simply went backwards from the exit event to find any errors; and came up with the full set of important traces:
+
+```
+[1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
+[1][2e73.2e8b][09:54:03.528902][bind][0x7f30b80394e0] Listener (0x7f30ac076d90) already registered on ALPN
+[1][2e73.2e8b][09:54:03.528903][list][0x7f30ac0dcff0] ERROR, "Register with binding".
+[1][2e73.2e8b][09:54:03.528913][ api] Exit 200000002
+```
+
+This clearly shows that listener `7f30ac0dcff0` failed to register with the binding (i.e. UDP socket abstraction) because listener `7f30ac076d90` was already registered for the same ALPN. MsQuic only allows a single listener to be registered for a given ALPN on a local IP address and port.
+
+## Why is the API hanging or deadlocking?
+
+First, a bit of background. The MsQuic API has two types of APIs:
+
+- **Blocking / Synchronous** - These APIs run to completion and only return once finished. When running in the Windows kernel, these **MUST NOT** be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(PASSIVE_LEVEL)` annotation. For example, [ConnectionClose](./api/ConnectionClose.md).
+- **Nonblocking / Asynchronous** - These APIs merely queue work and return immediately. When running in the Windows kernel, these may be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(DISPATCH_LEVEL)` annotation. For example, [StreamSend][./api/StreamSend.md].
+
+Additional documentation on the MsQuic execution model is available [here](./API.md#execution-mode).
+
+Now, back to the problem. The app is calling into an MsQuic API and it is hanging and likely deadlocked. This can only happen for **synchronous** APIs. What do you do next? Generally, this is because the app is breaking one of the following rules:
+
+1. Do not block the MsQuic thread/callback for any length of time. You may acquire a lock/mutex, but you must guarantee very quick execution. Do not grab a lock that you also hold (on a different thread) when calling back into MsQuic.
+2. Do not call MsQuic APIs cross-object on MsQuic the thread/callbacks. For instance, if you're in a callback for Connection A, do not call [ConnectionClose](./api/ConnectionClose.md) for Connection B.
+
+To verify exactly what is happening, [Collect the traces](./Diagnostics.md#trace-collection) and open then up in a text editor (ideally [TextAnalysisTool](./Diagnostics.md#text-analysis-tool)). The simplest way forward from here is to filter the logs based on the pointer of the object you are calling the API on. For instance, if you are calling [ConnectionClose](./api/ConnectionClose.md) on `0x7fd36c0019c0`, then add a filter for `7fd36c0019c0`. Here is an example (filtered) log for just such a case:
+
+```
+[0][53805.5381b][11:22:52.896762][ api] Enter 13 (0x7fd36c0019c0).
+
+[0][53805.53815][11:22:52.896796][conn][0x7fd36c0019c0] Scheduling: 2
+[0][53805.53815][11:22:52.896797][conn][0x7fd36c0019c0] Execute: 1
+[0][53805.53815][11:22:52.896797][conn][0x7fd36c0019c0] Recv 1 UDP datagrams
+[0][53805.53815][11:22:52.896825][conn][0x7fd36c0019c0] IN: BytesRecv=2901
+[0][53805.53815][11:22:52.896826][conn][0x7fd36c0019c0] Batch Recv 1 UDP datagrams
+[0][53805.53815][11:22:52.896854][strm][0x7fd378028360] Created, Conn=0x7fd36c0019c0 ID=0 IsLocal=0
+[0][53805.53815][11:22:52.896856][conn][0x7fd36c0019c0] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [0x7fd378028360, 0x0]
+
+[1][53805.53813][11:22:53.142398][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+[1][53805.53813][11:22:53.392819][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+[1][53805.53813][11:22:53.644259][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+```
+
+You will notice 3 different threads (seen in `[0][53805.X]`):
+
+- `5381b` - The app thread that is calling in to close the connection.
+- `53815` - The MsQuic worker thread that drives execution for the connection.
+- `53813` - The MsQuic UDP thread that is processing received packets and queuing them on the connection.
+
+As you can see, the last event/log on the MsQuic worker thread was an indication of a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event to the app. There are no further events on this thread (easily verified by adding an additional filter for `[53805.53815]`). So, the app must be blocking this thread. The most likely scenario is that the app is holding a lock while calling [ConnectionClose](./api/ConnectionClose.md) on thread `5381b` and then in thread `53815`, the app is trying to acquire the same lock.
+
+The solution here is that the app **must not** hold the lock when it calls into the blocking API, if that lock may also be acquired on the MsQuic thread.
 
 # Trouble Shooting a Performance Issue
 
@@ -85,7 +192,6 @@ The error code indicated in this event is completely application defined (type o
 
 1. [Where is the CPU being spent for my connection?](#analyzing-cpu-usage)
 2. [What is limiting throughput for my connection?](#finding-throughput-bottlenecks)
-3.
 
 ### Analyzing CPU Usage
 
@@ -93,7 +199,7 @@ The error code indicated in this event is completely application defined (type o
 
 It's extremely common that everything may be functional, but not just as fast as expected. So the normal next step is then to grab a performance trace for the scenario and then dive into the details to analyze what exactly is happening. When you're explicitly looking for where the CPU is spending its time in the scenario, you will need to collect CPU traces. One way to do this is to [use WPR](./Diagnostics.md#using-wpr-to-collect-traces) (with `Stacks.Light` profile).
 
-Once you have the ETL, open it [in WPA](../src/plugins/wpa/README.md) (MsQuic plugin is unnecessary). Then, go to the `Graph Explorer`, expand `Computation`, expand `CPU Usage (Sampled)` and open up `Utilization by Process, Thread, Stack`. The following is an example of a CPU trace a server in a client upload scenario:
+Once you have the ETL, open it [in WPA](../src/plugins/trace/README.md) (MsQuic plugin is unnecessary). Then, go to the `Graph Explorer`, expand `Computation`, expand `CPU Usage (Sampled)` and open up `Utilization by Process, Thread, Stack`. The following is an example of a CPU trace a server in a client upload scenario:
 
 ![](images/cpu-debug-1.png)
 
@@ -136,7 +242,6 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 ## Why is Performance bad across all my Connections?
 
 1. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
-2.
 
 ### Diagnosing RSS Issues
 

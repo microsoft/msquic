@@ -318,7 +318,7 @@ MsQuicLibraryInitialize(
     }
     MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcActiveCount();
     CXPLAT_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
-    MsQuicLib.PartitionCount = (uint16_t)min(MsQuicLib.ProcessorCount, DefaultMaxPartitionCount);
+    MsQuicLib.PartitionCount = (uint16_t)CXPLAT_MIN(MsQuicLib.ProcessorCount, DefaultMaxPartitionCount);
 
     MsQuicCalculatePartitionMask();
 
@@ -759,6 +759,7 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
+                TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -964,9 +965,9 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = 4 * sizeof(uint32_t);
         ((uint32_t*)Buffer)[0] = VER_MAJOR;
-        ((uint32_t*)Buffer)[0] = VER_MINOR;
-        ((uint32_t*)Buffer)[0] = VER_PATCH;
-        ((uint32_t*)Buffer)[0] = VER_BUILD_ID;
+        ((uint32_t*)Buffer)[1] = VER_MINOR;
+        ((uint32_t*)Buffer)[2] = VER_PATCH;
+        ((uint32_t*)Buffer)[3] = VER_BUILD_ID;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1389,7 +1390,7 @@ QuicLibraryLookupBinding(
 #endif
 
         QUIC_ADDR BindingLocalAddr;
-        CxPlatSocketGetLocalAddress(Binding->Socket, &BindingLocalAddr);
+        QuicBindingGetLocalAddress(Binding, &BindingLocalAddr);
 
         if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
             continue;
@@ -1401,7 +1402,7 @@ QuicLibraryLookupBinding(
             }
 
             QUIC_ADDR BindingRemoteAddr;
-            CxPlatSocketGetRemoteAddress(Binding->Socket, &BindingRemoteAddr);
+            QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
             if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
                 continue;
             }
@@ -1432,15 +1433,17 @@ QuicLibraryGetBinding(
     QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
+    BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
 
     //
     // First check to see if a binding already exists that matches the
     // requested addresses.
     //
-
-    if (LocalAddress == NULL) {
+    if (PortUnspecified) {
         //
-        // No specified local address, so we just always create a new binding.
+        // No specified local port, so we always create a new binding, and let
+        // the networking stack assign us a new ephemeral port. We can skip the
+        // lookup because the stack **should** always give us something new.
         //
         goto NewBinding;
     }
@@ -1461,7 +1464,12 @@ QuicLibraryGetBinding(
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
             //
-            Status = QUIC_STATUS_INVALID_STATE;
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
         } else {
             //
             // Match found and can be shared.
@@ -1499,7 +1507,7 @@ NewBinding:
         goto Exit;
     }
 
-    CxPlatSocketGetLocalAddress((*NewBinding)->Socket, &NewLocalAddress);
+    QuicBindingGetLocalAddress(*NewBinding, &NewLocalAddress);
 
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
@@ -1525,9 +1533,10 @@ NewBinding:
             NULL);
 #endif
     if (Binding != NULL) {
-        if (!Binding->Exclusive) {
+        if (!PortUnspecified && !Binding->Exclusive) {
             //
-            // Another thread got the binding first, but it's not exclusive.
+            // Another thread got the binding first, but it's not exclusive,
+            // and it's not what should be a new ephemeral port.
             //
             CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
             Binding->RefCount++;
@@ -1548,8 +1557,34 @@ NewBinding:
     CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 
     if (Binding != NULL) {
-        if (Binding->Exclusive) {
-            Status = QUIC_STATUS_INVALID_STATE;
+        if (PortUnspecified) {
+            //
+            // The datapath somehow returned us a "new" ephemeral socket that
+            // already matched one of our existing ones. We've seen this on
+            // Linux occasionally. This shouldn't happen, but it does. Log and
+            // bail.
+            //
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                *NewBinding,
+                "Binding ephemeral port reuse encountered");
+            (*NewBinding)->RefCount--;
+            QuicBindingUninitialize(*NewBinding);
+            *NewBinding = NULL;
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+
+        } else if (Binding->Exclusive) {
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            (*NewBinding)->RefCount--;
+            QuicBindingUninitialize(*NewBinding);
+            *NewBinding = NULL;
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+
         } else {
             (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
@@ -1715,7 +1750,7 @@ QuicTraceRundown(
         QuicTraceEvent(
             PerfCountersRundown,
             "[ lib] Perf counters Rundown, Counters=%!CID!",
-            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
+            CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
     CxPlatLockRelease(&MsQuicLib.Lock);

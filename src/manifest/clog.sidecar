@@ -934,6 +934,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "UpdatePacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating packet tolerance to %hhu",
+      "UniqueId": "UpdatePacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
@@ -974,6 +990,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "UpdatePeerPacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating peer packet tolerance to %hhu",
+      "UniqueId": "UpdatePeerPacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -1022,10 +1054,10 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "RttUpdated": {
+    "RttUpdatedMsg": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u",
-      "UniqueId": "RttUpdated",
+      "UniqueId": "RttUpdatedMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -4657,6 +4689,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "BindingError": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] ERROR, %s.",
+      "UniqueId": "BindingError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryServerInit": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Shared server state initializing",
@@ -5168,26 +5216,6 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "PathMtuUpdated": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
-      "UniqueId": "PathMtuUpdated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
     "PathValidationTimeout": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] validation timed out",
@@ -5311,6 +5339,138 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "MtuSearchComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu",
+      "UniqueId": "MtuSearchComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuSearching": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
+      "UniqueId": "MtuSearching",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuPathInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u",
+      "UniqueId": "MtuPathInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathMtuUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
+      "UniqueId": "PathMtuUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuDiscarded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+      "UniqueId": "MtuDiscarded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuIncorrectSize": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
+      "UniqueId": "MtuIncorrectSize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnExecApiOper": {
       "ModuleProperites": {},
@@ -5940,10 +6100,10 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "RemoveSendFlags": {
+    "RemoveSendFlagsMsg": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing flags %x",
-      "UniqueId": "RemoveSendFlags",
+      "UniqueId": "RemoveSendFlagsMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -6376,6 +6536,54 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingMinimumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Minimum Mtu            = %hu",
+      "UniqueId": "SettingMinimumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingMaximumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Maximum Mtu            = %hu",
+      "UniqueId": "SettingMaximumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingMtuCompleteTimeout": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Mtu complete timeout   = %llu",
+      "UniqueId": "SettingMtuCompleteTimeout",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingMtuMissingProbeCount": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Mtu probe count        = %hhu",
+      "UniqueId": "SettingMtuMissingProbeCount",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpDesiredVersionsListLength": {
       "ModuleProperites": {},
       "TraceString": "[sett] Desired Version length = %u",
@@ -6404,6 +6612,54 @@
       "ModuleProperites": {},
       "TraceString": "[sett] Version Negotiation Ext Enabled = %hhu",
       "UniqueId": "SettingDumpVersionNegoExtEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMinimumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Minimum Mtu             = %hu",
+      "UniqueId": "SettingDumpMinimumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMaximumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Maximum Mtu             = %hu",
+      "UniqueId": "SettingDumpMaximumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMtuCompleteTimeout": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Mtu complete timeout   = %llu",
+      "UniqueId": "SettingDumpMtuCompleteTimeout",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMtuMissingProbeCount": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Mtu probe count        = %hhu",
+      "UniqueId": "SettingDumpMtuMissingProbeCount",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -7048,10 +7304,10 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "AckRange": {
+    "AckRangeMsg": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received ack for %d bytes, offset=%llu, FF=0x%hx",
-      "UniqueId": "AckRange",
+      "UniqueId": "AckRangeMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -8389,6 +8645,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "TlsLogSecret": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "TlsLogSecret",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] UDP send segmentation helper socket failed to open, 0x%x",
@@ -8785,10 +9061,10 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathUnreachable": {
+    "DatapathUnreachableMsg": {
       "ModuleProperites": {},
       "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
-      "UniqueId": "DatapathUnreachable",
+      "UniqueId": "DatapathUnreachableMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -9099,26 +9375,6 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "OpenSslLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "OpenSslLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -9495,20 +9751,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "SchannelInitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library initialized",
-      "UniqueId": "SchannelInitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelUninitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library uninitialized",
-      "UniqueId": "SchannelUninitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "SchannelAchAsync": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Calling SspiAcquireCredentialsHandleAsyncW",
@@ -9538,26 +9780,6 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "SchannelLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -10110,6 +10332,22 @@
       "TraceString": "[test][hook] Dropping send over limit to new addr",
       "UniqueId": "TestHookDropLimitAddrSend",
       "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TestHookReplaceCreateSend": {
+      "ModuleProperites": {},
+      "TraceString": "[test][hook] Create (remote) Addr :%hu => :%hu",
+      "UniqueId": "TestHookReplaceCreateSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
       "macroName": "QuicTraceLogVerbose"
     },
     "InteropTestStart": {
@@ -10890,6 +11128,10 @@
         "TraceID": "HandshakeConfirmedFrame"
       },
       {
+        "UniquenessHash": "e232b42d-9955-4467-0464-559ea5965464",
+        "TraceID": "UpdatePacketTolerance"
+      },
+      {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
         "TraceID": "FirstCidUsage"
       },
@@ -10900,6 +11142,10 @@
       {
         "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
         "TraceID": "Unreachable"
+      },
+      {
+        "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
+        "TraceID": "UpdatePeerPacketTolerance"
       },
       {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
@@ -10914,8 +11160,8 @@
         "TraceID": "ApplySettings"
       },
       {
-        "UniquenessHash": "ffeb66e8-2636-b98b-46a5-564068b26843",
-        "TraceID": "RttUpdated"
+        "UniquenessHash": "dc25a415-b386-47ec-0128-415c6f31795b",
+        "TraceID": "RttUpdatedMsg"
       },
       {
         "UniquenessHash": "5bdd3273-8aaf-afec-f7e3-a031e8c0122c",
@@ -11734,6 +11980,10 @@
         "TraceID": "LibraryRelease"
       },
       {
+        "UniquenessHash": "36d08274-918b-3ecd-861c-ada8d4fda4d5",
+        "TraceID": "BindingError"
+      },
+      {
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
         "TraceID": "LibraryServerInit"
       },
@@ -11858,10 +12108,6 @@
         "TraceID": "PathMinMtuValidated"
       },
       {
-        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
-        "TraceID": "PathMtuUpdated"
-      },
-      {
         "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",
         "TraceID": "PathValidationTimeout"
       },
@@ -11888,6 +12134,30 @@
       {
         "UniquenessHash": "26dded12-d106-a37b-0903-9a3cb98e3618",
         "TraceID": "ConnPacketACKed"
+      },
+      {
+        "UniquenessHash": "92ab8084-33fb-0565-da7b-d2278d05c642",
+        "TraceID": "MtuSearchComplete"
+      },
+      {
+        "UniquenessHash": "c7a85c07-7d70-b24f-313d-2db9a20333bd",
+        "TraceID": "MtuSearching"
+      },
+      {
+        "UniquenessHash": "3f758826-f3d7-22eb-b7df-0453cdad3bc8",
+        "TraceID": "MtuPathInitialized"
+      },
+      {
+        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
+        "TraceID": "PathMtuUpdated"
+      },
+      {
+        "UniquenessHash": "1aa1d324-af31-356c-0738-863e209f6f21",
+        "TraceID": "MtuDiscarded"
+      },
+      {
+        "UniquenessHash": "a20786c3-f6b7-176d-7e63-b6c558f7d394",
+        "TraceID": "MtuIncorrectSize"
       },
       {
         "UniquenessHash": "4ef04b3e-7dde-88ad-60eb-150c807af68f",
@@ -12006,8 +12276,8 @@
         "TraceID": "ScheduleSendFlags"
       },
       {
-        "UniquenessHash": "93fcf6ee-a709-3273-c039-2c2b81572b48",
-        "TraceID": "RemoveSendFlags"
+        "UniquenessHash": "b4aa5fad-d1de-466c-0214-1bbda4b9eb95",
+        "TraceID": "RemoveSendFlagsMsg"
       },
       {
         "UniquenessHash": "4a595158-b864-777b-d90a-dbb944e765ac",
@@ -12142,6 +12412,22 @@
         "TraceID": "SettingDumpServerResumptionLevel"
       },
       {
+        "UniquenessHash": "5cfc25ac-dfa1-9a54-17d2-4ce6571269ed",
+        "TraceID": "SettingMinimumMtu"
+      },
+      {
+        "UniquenessHash": "ea3d9556-cb67-75dc-54ab-d483b4155090",
+        "TraceID": "SettingMaximumMtu"
+      },
+      {
+        "UniquenessHash": "723ecd2b-bc97-f800-09aa-8b0afbabf1b2",
+        "TraceID": "SettingMtuCompleteTimeout"
+      },
+      {
+        "UniquenessHash": "2c824e32-faa5-c3ff-c353-69de8545a634",
+        "TraceID": "SettingMtuMissingProbeCount"
+      },
+      {
         "UniquenessHash": "0080f5a7-d4e1-7c9d-e023-eb4dd540fffe",
         "TraceID": "SettingDumpDesiredVersionsListLength"
       },
@@ -12152,6 +12438,22 @@
       {
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled"
+      },
+      {
+        "UniquenessHash": "06df85ad-1521-606b-f16e-2846609c486b",
+        "TraceID": "SettingDumpMinimumMtu"
+      },
+      {
+        "UniquenessHash": "3458b9f9-5880-bdc3-9828-0541357312c2",
+        "TraceID": "SettingDumpMaximumMtu"
+      },
+      {
+        "UniquenessHash": "22454166-54ff-d066-4929-cdf21f7f1101",
+        "TraceID": "SettingDumpMtuCompleteTimeout"
+      },
+      {
+        "UniquenessHash": "8c10c4ab-2e33-aaf2-7cc3-d7f4e734d321",
+        "TraceID": "SettingDumpMtuMissingProbeCount"
       },
       {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
@@ -12314,8 +12616,8 @@
         "TraceID": "RecoverRange"
       },
       {
-        "UniquenessHash": "79ffdfe4-2d35-3e89-ccb1-9617b2c74c00",
-        "TraceID": "AckRange"
+        "UniquenessHash": "1f842f1b-027f-b5ec-e0ac-fc9491aeb629",
+        "TraceID": "AckRangeMsg"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
@@ -12642,6 +12944,10 @@
         "TraceID": "LibraryError"
       },
       {
+        "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
+        "TraceID": "TlsLogSecret"
+      },
+      {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",
         "TraceID": "DatapathOpenUdpSocketFailed"
       },
@@ -12754,8 +13060,8 @@
         "TraceID": "DatapathUroExceeded"
       },
       {
-        "UniquenessHash": "37423b13-b9e3-7961-07d6-137252085127",
-        "TraceID": "DatapathUnreachable"
+        "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",
+        "TraceID": "DatapathUnreachableMsg"
       },
       {
         "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
@@ -12858,10 +13164,6 @@
         "TraceID": "StorageOpenKey"
       },
       {
-        "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
-        "TraceID": "OpenSslLogSecret"
-      },
-      {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
         "TraceID": "OpenSslAlert"
       },
@@ -12958,14 +13260,6 @@
         "TraceID": "TlsErrorStatus"
       },
       {
-        "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
-        "TraceID": "SchannelInitialized"
-      },
-      {
-        "UniquenessHash": "b21a8d0d-c484-ac00-8081-90d5e8de9d1f",
-        "TraceID": "SchannelUninitialized"
-      },
-      {
         "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
         "TraceID": "SchannelAchAsync"
       },
@@ -12980,10 +13274,6 @@
       {
         "UniquenessHash": "7a6ea81a-5491-2148-a007-711c5a641acc",
         "TraceID": "SchannelAchCompleteInline"
-      },
-      {
-        "UniquenessHash": "c04de4b9-64de-c415-dda2-b07f295f9897",
-        "TraceID": "SchannelLogSecret"
       },
       {
         "UniquenessHash": "799852e0-2f39-43d4-6888-98a33178b844",
@@ -13160,6 +13450,10 @@
       {
         "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
         "TraceID": "TestHookDropLimitAddrSend"
+      },
+      {
+        "UniquenessHash": "be2459c1-0870-ccba-da9b-ae1ecc23ded8",
+        "TraceID": "TestHookReplaceCreateSend"
       },
       {
         "UniquenessHash": "e98e6411-dfab-d3a6-e7bd-d1782209846d",

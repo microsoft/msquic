@@ -26,6 +26,7 @@ PrintHelp(
         "  -target:<####>              The target server to connect to.\n"
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "  -ip:<0/4/6>                  A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -conns:<####>               The number of connections to use. (def:%u)\n"
         "  -requests:<####>            The number of requests to send at a time. (def:2*conns)\n"
         "  -request:<####>             The length of request payloads. (def:%u)\n"
@@ -77,6 +78,14 @@ RpsClient::Init(
     TryGetValue(argc, argv, "requests", &RequestCount);
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
+
+    uint16_t Ip;
+    if (TryGetValue(argc, argv, "ip", &Ip)) {
+        switch (Ip) {
+        case 4: RemoteFamily = QUIC_ADDRESS_FAMILY_INET; break;
+        case 6: RemoteFamily = QUIC_ADDRESS_FAMILY_INET6; break;
+        }
+    }
 
     uint32_t Affinitize;
     if (TryGetValue(argc, argv, "affinitize", &Affinitize)) {
@@ -240,7 +249,7 @@ RpsClient::Start(
             MsQuic->ConnectionStart(
                 Connections[i],
                 Configuration,
-                QUIC_ADDRESS_FAMILY_UNSPEC,
+                RemoteFamily,
                 Target.get(),
                 Port);
         if (QUIC_FAILED(Status)) {

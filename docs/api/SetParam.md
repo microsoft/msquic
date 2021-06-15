@@ -33,11 +33,11 @@ The level at which the parameter is defined (for example, `QUIC_PARAM_LEVEL_CONN
 
 `Param`
 
-The parameter for which the value is to be set (for example, `QUIC_PARAM_CONN_IDLE_TIMEOUT`). The *Param* parameter must be a parameter defined within the specified *Level*, or behavior is undefined.
+The parameter for which the value is to be set (for example, `QUIC_PARAM_CONN_IDLE_TIMEOUT`). The `Param` parameter must be a parameter defined within the specified `Level`, or behavior is undefined.
 
 `BufferLength`
 
-A pointer to the size, in bytes, of the *Buffer* buffer.
+A pointer to the size, in bytes, of the `Buffer` buffer.
 
 `Buffer`
 
@@ -53,4 +53,5 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # See Also
 
+[Settings](../Settings.md#api-object-parameters)<br>
 [GetParam](GetParam.md)<br>

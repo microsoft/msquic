@@ -23,6 +23,21 @@ extern "C" {
 typedef struct CXPLAT_RECV_DATA CXPLAT_RECV_DATA;
 typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+(QUIC_API * QUIC_TEST_DATAPATH_CREATE_HOOK)(
+    _Inout_opt_ QUIC_ADDR* RemoteAddress,
+    _Inout_opt_ QUIC_ADDR* LocalAddress
+    );
+
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+(QUIC_API * QUIC_TEST_DATAPATH_GET_ADDRESS_HOOK)(
+    _Inout_ QUIC_ADDR* Address
+    );
+
 //
 // Returns TRUE to drop the packet.
 //
@@ -46,6 +61,9 @@ BOOLEAN
     );
 
 typedef struct QUIC_TEST_DATAPATH_HOOKS {
+    QUIC_TEST_DATAPATH_CREATE_HOOK Create;
+    QUIC_TEST_DATAPATH_GET_ADDRESS_HOOK GetLocalAddress;
+    QUIC_TEST_DATAPATH_GET_ADDRESS_HOOK GetRemoteAddress;
     QUIC_TEST_DATAPATH_RECEIVE_HOOK Receive;
     QUIC_TEST_DATAPATH_SEND_HOOK Send;
 } QUIC_TEST_DATAPATH_HOOKS;

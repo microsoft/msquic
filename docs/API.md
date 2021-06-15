@@ -67,6 +67,10 @@ This doesn't mean the app isn't allowed to do any work in the callback. In fact,
 
 One important aspect of this design is that all blocking calls invoked on a callback always happen inline (to prevent deadlocks), and will supercede any calls in progress or queued from a separate thread.
 
+## Settings and Configuration
+
+MsQuic supports a variety of configuration options available to both application developers and administrators deploying MsQuic. See [Settings](Settings.md) for a detailed explanation of these settings and configuration options.
+
 # API Objects
 
 ## Library Function Table
@@ -124,6 +128,6 @@ Once the stream handle is available and started, the app can start receiving eve
 
 ## Datagrams
 
-MsQuic supports the [unreliable datagram extension](https://tools.ietf.org/html/draft-ietf-quic-datagram) which allows for the app to send and receive unreliable (i.e. not retransmitted on packet loss) data securely. To enable support for receiving datagrams, the app must set `DatagramReceiveEnabled` to `TRUE` in its `QUIC_SETTINGS`. During the handshake, support for receiving datagrams is negotiated between endpoints. The app receives the `QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED` event to indicate if the peer supports receiving datagrams (and what the current maximum size is).
+MsQuic supports the [unreliable datagram extension](https://tools.ietf.org/html/draft-ietf-quic-datagram) which allows for the app to send and receive unreliable (i.e. not retransmitted on packet loss) data securely. To enable support for receiving datagrams, the app must set `DatagramReceiveEnabled` to `TRUE` in its [QUIC_SETTINGS](api/QUIC_SETTINGS.md). During the handshake, support for receiving datagrams is negotiated between endpoints. The app receives the `QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED` event to indicate if the peer supports receiving datagrams (and what the current maximum size is).
 
 If the peer has enabled receiving datagrams, then an app may call [DatagramSend](api/DatagramSend.md). If/when the app receives a datagram from the peer it will receive a `QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED` event.

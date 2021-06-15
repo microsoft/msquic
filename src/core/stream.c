@@ -296,7 +296,7 @@ QuicStreamStart(
     if (Stream->MaxAllowedSendOffset == 0) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
     }
-    Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
+    Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (Stream->OutFlowBlockedReasons != 0) {
         QuicTraceEvent(
@@ -427,7 +427,7 @@ QuicStreamIndicateStartComplete(
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
     Event.START_COMPLETE.PeerAccepted =
-        !!(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
+        !(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
         Stream,
