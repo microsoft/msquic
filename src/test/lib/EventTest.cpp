@@ -19,7 +19,6 @@ Abstract:
 
 const uint8_t StreamPayload[64] = {0x1};
 const QUIC_BUFFER StreamBuffer = { sizeof(StreamPayload), (uint8_t*)StreamPayload };
-const QUIC_BUFFER StreamBufferEmpty = { 0, nullptr };
 
 struct StreamEventValidator {
     bool Success;
@@ -520,7 +519,8 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    std::vector<void (*)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr)> Tests = {
+    typedef void (*TestFunc)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr);
+    const TestFunc Tests[] = {
         QuicTestValidateConnectionEvents1,
         QuicTestValidateConnectionEvents2,
         QuicTestValidateConnectionEvents3
@@ -1193,7 +1193,8 @@ void QuicTestValidateStreamEvents(uint32_t Test)
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    std::vector<void (*)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr)> Tests = {
+    typedef void (*TestFunc)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr);
+    const TestFunc Tests[] = {
         QuicTestValidateStreamEvents1,
         QuicTestValidateStreamEvents2,
         QuicTestValidateStreamEvents3,
