@@ -223,12 +223,6 @@ typedef struct QUIC_BINDING {
     QUIC_LOOKUP Lookup;
 
     //
-    // Used for generating stateless reset hashes.
-    //
-    QUIC_HASH* ResetTokenHash;
-    QUIC_DISPATCH_LOCK ResetTokenLock;
-
-    //
     // Stateless operation tracking structures.
     //
     QUIC_DISPATCH_LOCK StatelessOperLock;
@@ -419,19 +413,6 @@ QuicBindingSend(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
-    );
-
-//
-// Generates a stateless reset token for the given connection ID.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicBindingGenerateStatelessResetToken(
-    _In_ QUIC_BINDING* Binding,
-    _In_reads_(MsQuicLib.CidTotalLength)
-        const uint8_t* const CID,
-    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
-        uint8_t* ResetToken
     );
 
 //

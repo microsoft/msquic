@@ -2225,8 +2225,7 @@ QuicConnGenerateLocalTransportParameters(
 
         LocalTP->Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
         QUIC_STATUS Status =
-            QuicBindingGenerateStatelessResetToken(
-                Connection->Paths[0].Binding,
+            QuicLibraryGenerateStatelessResetToken(
                 SourceCid->CID.Data,
                 LocalTP->StatelessResetToken);
         if (QUIC_FAILED(Status)) {
@@ -2235,7 +2234,7 @@ QuicConnGenerateLocalTransportParameters(
                 "[conn][%p] ERROR, %u, %s.",
                 Connection,
                 Status,
-                "QuicBindingGenerateStatelessResetToken");
+                "QuicLibraryGenerateStatelessResetToken");
             return Status;
         }
 
