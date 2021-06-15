@@ -335,6 +335,9 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
+    uint8_t ResetHashSalt[20];
+    CxPlatRandom(sizeof(ResetHashSalt), ResetHashSalt);
+
     for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         CxPlatPoolInitialize(
             FALSE,
@@ -351,6 +354,21 @@ MsQuicLibraryInitialize(
             sizeof(QUIC_PACKET_SPACE),
             QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].PacketSpacePool);
+        CxPlatLockInitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+        Status =
+            CxPlatHashCreate(
+                CXPLAT_HASH_SHA256,
+                ResetHashSalt,
+                sizeof(ResetHashSalt),
+                &MsQuicLib.PerProc[i].ResetTokenHash);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Create reset token hash");
+            goto Error;
+        }
         CxPlatZeroMemory(
             &MsQuicLib.PerProc[i].PerfCounters,
             sizeof(MsQuicLib.PerProc[i].PerfCounters));
@@ -401,6 +419,8 @@ Error:
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
+                CxPlatLockUninitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+                CxPlatHashFree(MsQuicLib.PerProc[i].ResetTokenHash);
             }
             CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
             MsQuicLib.PerProc = NULL;
@@ -499,6 +519,8 @@ MsQuicLibraryUninitialize(
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
+        CxPlatLockUninitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+        CxPlatHashFree(MsQuicLib.PerProc[i].ResetTokenHash);
     }
     CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
     MsQuicLib.PerProc = NULL;
@@ -1877,4 +1899,37 @@ QuicLibraryEvaluateSendRetryState(
             "[ lib] New SendRetryEnabled state, %hhu",
             NewSendRetryState);
     }
+}
+
+CXPLAT_STATIC_ASSERT(
+    CXPLAT_HASH_SHA256_SIZE >= QUIC_STATELESS_RESET_TOKEN_LENGTH,
+    "Stateless reset token must be shorter than hash size used");
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicLibraryGenerateStatelessResetToken(
+    _In_reads_(MsQuicLib.CidTotalLength)
+        const uint8_t* const CID,
+    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
+        uint8_t* ResetToken
+    )
+{
+    uint8_t HashOutput[CXPLAT_HASH_SHA256_SIZE];
+    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
+    CxPlatLockAcquire(&MsQuicLib.PerProc[CurProcIndex].ResetTokenLock);
+    QUIC_STATUS Status =
+        CxPlatHashCompute(
+            MsQuicLib.PerProc[CurProcIndex].ResetTokenHash,
+            CID,
+            MsQuicLib.CidTotalLength,
+            sizeof(HashOutput),
+            HashOutput);
+    CxPlatLockRelease(&MsQuicLib.PerProc[CurProcIndex].ResetTokenLock);
+    if (QUIC_SUCCEEDED(Status)) {
+        CxPlatCopyMemory(
+            ResetToken,
+            HashOutput,
+            QUIC_STATELESS_RESET_TOKEN_LENGTH);
+    }
+    return Status;
 }
