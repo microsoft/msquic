@@ -395,8 +395,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     0,
     sizeof(UINT8),
-    0,
-    0,
+    sizeof(uint32_t),
+    sizeof(uint32_t),
     sizeof(INT32),
     sizeof(QUIC_RUN_KEY_UPDATE_PARAMS),
     0,
@@ -468,6 +468,7 @@ typedef union {
     QUIC_ABORT_RECEIVE_TYPE AbortReceiveType;
     QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
     QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
+    uint32_t Test;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -716,11 +717,13 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS:
-        QuicTestCtlRun(QuicTestValidateConnectionEvents());
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestValidateConnectionEvents(Params->Test));
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS:
-        QuicTestCtlRun(QuicTestValidateStreamEvents());
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
         break;
 
     case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:

@@ -228,21 +228,21 @@ TEST_P(WithBool, ValidateStream) {
     }
 }
 
-TEST(ParameterValidation, ValidateConnectionEvents) {
-    TestLogger Logger("QuicTestValidateConnectionEvents");
+TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
+    TestLoggerT<ParamType> Logger("QuicTestValidateConnectionEvents", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS));
+        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS, GetParam().Test));
     } else {
-        QuicTestValidateConnectionEvents();
+        QuicTestValidateConnectionEvents(GetParam().Test);
     }
 }
 
-TEST(ParameterValidation, ValidateStreamEvents) {
-    TestLogger Logger("QuicTestValidateStreamEvents");
+TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
+    TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS));
+        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS, GetParam().Test));
     } else {
-        QuicTestValidateStreamEvents();
+        QuicTestValidateStreamEvents(GetParam().Test);
     }
 }
 
@@ -1449,6 +1449,16 @@ INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithBool,
     ::testing::Values(false, true));
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateConnectionEventArgs,
+    testing::ValuesIn(ValidateConnectionEventArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateStreamEventArgs,
+    testing::ValuesIn(ValidateStreamEventArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Basic,
