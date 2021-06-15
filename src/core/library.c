@@ -335,8 +335,8 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    uint8_t ResetHashSalt[20];
-    CxPlatRandom(sizeof(ResetHashSalt), ResetHashSalt);
+    uint8_t ResetHashKey[20];
+    CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
 
     for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         CxPlatPoolInitialize(
@@ -355,11 +355,18 @@ MsQuicLibraryInitialize(
             QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].PacketSpacePool);
         CxPlatLockInitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+        MsQuicLib.PerProc[i].ResetTokenHash = NULL;
+        CxPlatZeroMemory(
+            &MsQuicLib.PerProc[i].PerfCounters,
+            sizeof(MsQuicLib.PerProc[i].PerfCounters));
+    }
+
+    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         Status =
             CxPlatHashCreate(
                 CXPLAT_HASH_SHA256,
-                ResetHashSalt,
-                sizeof(ResetHashSalt),
+                ResetHashKey,
+                sizeof(ResetHashKey),
                 &MsQuicLib.PerProc[i].ResetTokenHash);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -369,9 +376,6 @@ MsQuicLibraryInitialize(
                 "Create reset token hash");
             goto Error;
         }
-        CxPlatZeroMemory(
-            &MsQuicLib.PerProc[i].PerfCounters,
-            sizeof(MsQuicLib.PerProc[i].PerfCounters));
     }
 
     Status =
@@ -433,6 +437,8 @@ Error:
             CxPlatUninitialize();
         }
     }
+
+    CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
 
     return Status;
 }
