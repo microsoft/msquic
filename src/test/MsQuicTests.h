@@ -41,8 +41,8 @@ void QuicTestDesiredVersionSettings();
 // Event Validation Tests
 //
 
-void QuicTestValidateConnectionEvents();
-void QuicTestValidateStreamEvents();
+void QuicTestValidateConnectionEvents(uint32_t Test);
+void QuicTestValidateStreamEvents(uint32_t Test);
 
 //
 // Basic Functionality Tests
@@ -595,9 +595,11 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS \
     QUIC_CTL_CODE(25, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #define IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS \
     QUIC_CTL_CODE(26, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #define IOCTL_QUIC_RUN_VERSION_NEGOTIATION \
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)

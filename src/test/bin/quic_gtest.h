@@ -628,3 +628,43 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
 class WithDrillInitialPacketTokenArgs: public testing::Test,
     public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
 };
+
+struct ValidateConnectionEventArgs {
+    uint32_t Test;
+    static ::std::vector<ValidateConnectionEventArgs> Generate() {
+        ::std::vector<ValidateConnectionEventArgs> list;
+#ifndef QUIC_DISABLE_0RTT_TESTS
+        for (uint32_t Test = 0; Test < 3; ++Test)
+#else
+        for (uint32_t Test = 0; Test < 2; ++Test)
+#endif
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {
+    return o << args.Test;
+}
+
+class WithValidateConnectionEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateConnectionEventArgs> {
+};
+
+struct ValidateStreamEventArgs {
+    uint32_t Test;
+    static ::std::vector<ValidateStreamEventArgs> Generate() {
+        ::std::vector<ValidateStreamEventArgs> list;
+        for (uint32_t Test = 0; Test < 6; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args) {
+    return o << args.Test;
+}
+
+class WithValidateStreamEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateStreamEventArgs> {
+};

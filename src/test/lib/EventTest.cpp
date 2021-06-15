@@ -504,7 +504,7 @@ QuicTestValidateConnectionEvents3(
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
 }
 
-void QuicTestValidateConnectionEvents()
+void QuicTestValidateConnectionEvents(uint32_t Test)
 {
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
@@ -520,11 +520,13 @@ void QuicTestValidateConnectionEvents()
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    QuicTestValidateConnectionEvents1(Registration, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateConnectionEvents2(Registration, Listener.Handle, ServerLocalAddr);
-#ifndef QUIC_DISABLE_0RTT_TESTS
-    QuicTestValidateConnectionEvents3(Registration, Listener.Handle, ServerLocalAddr);
-#endif
+    std::vector<void (*)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr)> Tests = {
+        QuicTestValidateConnectionEvents1,
+        QuicTestValidateConnectionEvents2,
+        QuicTestValidateConnectionEvents3
+    };
+
+    Tests[Test](Registration, Listener, ServerLocalAddr);
 
     } // Listener Scope
 }
@@ -1175,7 +1177,7 @@ QuicTestValidateStreamEvents6(
     } // Connections scope
 }
 
-void QuicTestValidateStreamEvents()
+void QuicTestValidateStreamEvents(uint32_t Test)
 {
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
@@ -1191,12 +1193,16 @@ void QuicTestValidateStreamEvents()
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    QuicTestValidateStreamEvents1(Registration, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateStreamEvents2(Registration, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateStreamEvents3(Registration, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateStreamEvents4(Registration, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateStreamEvents5(Registration, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateStreamEvents6(Registration, Listener.Handle, ServerLocalAddr);
+    std::vector<void (*)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr)> Tests = {
+        QuicTestValidateStreamEvents1,
+        QuicTestValidateStreamEvents2,
+        QuicTestValidateStreamEvents3,
+        QuicTestValidateStreamEvents4,
+        QuicTestValidateStreamEvents5,
+        QuicTestValidateStreamEvents6
+    };
+
+    Tests[Test](Registration, Listener, ServerLocalAddr);
 
     } // Listener Scope
 }
