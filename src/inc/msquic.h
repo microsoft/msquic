@@ -499,7 +499,9 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaximumMtu                             : 1;
             uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t RESERVED                               : 32;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t RESERVED                               : 30;
         } IsSet;
     };
 
@@ -537,7 +539,8 @@ typedef struct QUIC_SETTINGS {
     uint16_t MaximumMtu;
     uint64_t MtuDiscoverySearchCompleteTimeoutUs;
     uint8_t MtuDiscoveryMissingProbeCount;
-
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
 
 } QUIC_SETTINGS;
 

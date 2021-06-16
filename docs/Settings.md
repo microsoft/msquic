@@ -33,7 +33,7 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Stream Receive Window              | uint32_t   | StreamRecvWindowDefault     |            32,768 | Initial stream receive window size.                                                                                           |
 | Stream Receive Buffer              | uint32_t   | StreamRecvBufferDefault     |             4,096 | Stream initial buffer size.                                                                                                   |
 | Flow Control Window                | uint32_t   | ConnFlowControlWindow       |        16,777,216 | Connection-wide flow control window.                                                                                          |
-| Max Stateless Operations           | uint32_t   | MaxStatelessOperations      |                16 | The maximum number of stateless operations that may be queued at any one time.                                                |
+| Max Stateless Operations           | uint32_t   | MaxStatelessOperations      |                16 | The maximum number of stateless operations that may be queued on a worker at any one time.                                                |
 | Initial Window                     | uint32_t   | InitialWindowPackets        |                10 | The size (in packets) of the initial congestion window for a connection.                                                      |
 | Send Idle Timeout                  | uint32_t   | SendIdleTimeoutMs           |             1,000 | Reset congestion control after being idle `SendIdleTimeoutMs` milliseconds.                                                   |
 | Initial RTT                        | uint32_t   | InitialRttMs                |               333 | Initial RTT estimate.                                                                                                         |
@@ -51,6 +51,12 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Datagram Receive Support           | uint8_t    | DatagramReceiveEnabled      |         0 (FALSE) | Advertise support for QUIC datagram extension.                                                                                |
 | Server Resumption Level            | uint8_t    | ServerResumptionLevel       | 0 (No resumption) | Server only. Controls resumption tickets and/or 0-RTT server support.                                                         |
 | Version Negotiation Extension      | uint8_t    | VersionNegotiationExtEnabled|         0 (FALSE) | Controls QUIC Version Negotiation Extension support.                                                                          |
+| Minimum MTU   | uint16_t   | MinimumMtu  |            TODO | TODO |
+| Maximum MTU   | uint16_t   | MaximumMtu  |            TODO | TODO |
+| MTU Discovery Search Timeout   | uint64_t   | MtuDiscoverySearchCompleteTimeoutUs  |            TODO | TODO |
+| MTU Discovery Missing Probe Count   | uint8_t   | MtuDiscoveryMissingProbeCount  |            TODO | TODO |
+| Max Binding Stateless Operations   | uint16_t   | MaxBindingStatelessOperations  |            100 | The maximum number of stateless operations that may be queued on a binding at any one time.                                                |
+| Stateless Operation Expiration     | uint16_t   | StatelessOperationExpirationMs |            100 | The time limit between operations for the same endpoint, in milliseconds. |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.

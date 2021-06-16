@@ -6536,54 +6536,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "SettingMinimumMtu": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] Minimum Mtu            = %hu",
-      "UniqueId": "SettingMinimumMtu",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingMaximumMtu": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] Maximum Mtu            = %hu",
-      "UniqueId": "SettingMaximumMtu",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingMtuCompleteTimeout": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] Mtu complete timeout   = %llu",
-      "UniqueId": "SettingMtuCompleteTimeout",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingMtuMissingProbeCount": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] Mtu probe count        = %hhu",
-      "UniqueId": "SettingMtuMissingProbeCount",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "SettingDumpDesiredVersionsListLength": {
       "ModuleProperites": {},
       "TraceString": "[sett] Desired Version length = %u",
@@ -6622,7 +6574,7 @@
     },
     "SettingDumpMinimumMtu": {
       "ModuleProperites": {},
-      "TraceString": "[sett] Minimum Mtu             = %hu",
+      "TraceString": "[sett] MinimumMtu             = %hu",
       "UniqueId": "SettingDumpMinimumMtu",
       "splitArgs": [
         {
@@ -6634,7 +6586,7 @@
     },
     "SettingDumpMaximumMtu": {
       "ModuleProperites": {},
-      "TraceString": "[sett] Maximum Mtu             = %hu",
+      "TraceString": "[sett] MaximumMtu             = %hu",
       "UniqueId": "SettingDumpMaximumMtu",
       "splitArgs": [
         {
@@ -6646,7 +6598,7 @@
     },
     "SettingDumpMtuCompleteTimeout": {
       "ModuleProperites": {},
-      "TraceString": "[sett] Mtu complete timeout   = %llu",
+      "TraceString": "[sett] MtuCompleteTimeout     = %llu",
       "UniqueId": "SettingDumpMtuCompleteTimeout",
       "splitArgs": [
         {
@@ -6658,11 +6610,35 @@
     },
     "SettingDumpMtuMissingProbeCount": {
       "ModuleProperites": {},
-      "TraceString": "[sett] Mtu probe count        = %hhu",
+      "TraceString": "[sett] MtuMissingProbeCount   = %hhu",
       "UniqueId": "SettingDumpMtuMissingProbeCount",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMaxBindingStatelessOper": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MaxBindingStatelessOper= %hu",
+      "UniqueId": "SettingDumpMaxBindingStatelessOper",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpStatelessOperExpirMs": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StatelessOperExpirMs   = %hu",
+      "UniqueId": "SettingDumpStatelessOperExpirMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg2"
         }
       ],
@@ -12412,22 +12388,6 @@
         "TraceID": "SettingDumpServerResumptionLevel"
       },
       {
-        "UniquenessHash": "5cfc25ac-dfa1-9a54-17d2-4ce6571269ed",
-        "TraceID": "SettingMinimumMtu"
-      },
-      {
-        "UniquenessHash": "ea3d9556-cb67-75dc-54ab-d483b4155090",
-        "TraceID": "SettingMaximumMtu"
-      },
-      {
-        "UniquenessHash": "723ecd2b-bc97-f800-09aa-8b0afbabf1b2",
-        "TraceID": "SettingMtuCompleteTimeout"
-      },
-      {
-        "UniquenessHash": "2c824e32-faa5-c3ff-c353-69de8545a634",
-        "TraceID": "SettingMtuMissingProbeCount"
-      },
-      {
         "UniquenessHash": "0080f5a7-d4e1-7c9d-e023-eb4dd540fffe",
         "TraceID": "SettingDumpDesiredVersionsListLength"
       },
@@ -12440,20 +12400,28 @@
         "TraceID": "SettingDumpVersionNegoExtEnabled"
       },
       {
-        "UniquenessHash": "06df85ad-1521-606b-f16e-2846609c486b",
+        "UniquenessHash": "380762fe-b4e0-231a-3107-17a5e545c780",
         "TraceID": "SettingDumpMinimumMtu"
       },
       {
-        "UniquenessHash": "3458b9f9-5880-bdc3-9828-0541357312c2",
+        "UniquenessHash": "1398ba42-f72d-dac1-4c89-f9ae626a5c7b",
         "TraceID": "SettingDumpMaximumMtu"
       },
       {
-        "UniquenessHash": "22454166-54ff-d066-4929-cdf21f7f1101",
+        "UniquenessHash": "fe0a786d-3839-19aa-8cd3-e2e1b75eb49e",
         "TraceID": "SettingDumpMtuCompleteTimeout"
       },
       {
-        "UniquenessHash": "8c10c4ab-2e33-aaf2-7cc3-d7f4e734d321",
+        "UniquenessHash": "07e96091-df10-e8a0-aae5-ed943ffea694",
         "TraceID": "SettingDumpMtuMissingProbeCount"
+      },
+      {
+        "UniquenessHash": "64337501-b792-a81e-678a-aebffa63483e",
+        "TraceID": "SettingDumpMaxBindingStatelessOper"
+      },
+      {
+        "UniquenessHash": "940f7585-40ed-60f4-0e01-fa5ef6bea02f",
+        "TraceID": "SettingDumpStatelessOperExpirMs"
       },
       {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
