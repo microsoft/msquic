@@ -647,7 +647,7 @@ QuicBindingCreateStatelessOperation(
                 ListEntry);
 
         if (CxPlatTimeDiff32(OldStatelessCtx->CreationTimeMs, TimeMs) <
-            QUIC_STATELESS_OPERATION_EXPIRATION_MS) {
+            (uint32_t)MsQuicLib.Settings.StatelessOperationExpirationMs) {
             break;
         }
 
@@ -672,7 +672,7 @@ QuicBindingCreateStatelessOperation(
         }
     }
 
-    if (Binding->StatelessOperCount >= QUIC_MAX_BINDING_STATELESS_OPERATIONS) {
+    if (Binding->StatelessOperCount >= (uint32_t)MsQuicLib.Settings.MaxBindingStatelessOperations) {
         QuicPacketLogDrop(Binding, CxPlatDataPathRecvDataToRecvPacket(Datagram),
             "Max binding operations reached");
         goto Exit;

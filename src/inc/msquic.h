@@ -499,7 +499,9 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaximumMtu                             : 1;
             uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t RESERVED                               : 32;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t RESERVED                               : 30;
         } IsSet;
     };
 
@@ -521,8 +523,8 @@ typedef struct QUIC_SETTINGS {
     uint32_t KeepAliveIntervalMs;
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint16_t RetryMemoryLimit;              // Global only
-    uint16_t LoadBalancingMode;             // Global only
+    uint16_t RetryMemoryLimit;                  // Global only
+    uint16_t LoadBalancingMode;                 // Global only
     uint8_t MaxOperationsPerDrain;
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
@@ -537,7 +539,8 @@ typedef struct QUIC_SETTINGS {
     uint16_t MaximumMtu;
     uint64_t MtuDiscoverySearchCompleteTimeoutUs;
     uint8_t MtuDiscoveryMissingProbeCount;
-
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
 
 } QUIC_SETTINGS;
 
