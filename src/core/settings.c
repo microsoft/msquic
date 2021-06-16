@@ -478,16 +478,18 @@ QuicSettingApply(
             Destination->IsSet.MtuDiscoveryMissingProbeCount = TRUE;
         }
     }
-    if (SETTING_HAS_FIELD(NewSettingsSize, MaxBindingStatelessOperations) &&
-        Source->IsSet.MaxBindingStatelessOperations && (!Destination->IsSet.MaxBindingStatelessOperations || OverWrite)) {
-        Destination->MaxBindingStatelessOperations = Source->MaxBindingStatelessOperations;
-        Destination->IsSet.MaxBindingStatelessOperations = TRUE;
+
+    if (SETTING_HAS_FIELD(NewSettingsSize, StatelessOperationExpirationMs)) {
+        if (Source->IsSet.MaxBindingStatelessOperations && (!Destination->IsSet.MaxBindingStatelessOperations || OverWrite)) {
+            Destination->MaxBindingStatelessOperations = Source->MaxBindingStatelessOperations;
+            Destination->IsSet.MaxBindingStatelessOperations = TRUE;
+        }
+        if (Source->IsSet.StatelessOperationExpirationMs && (!Destination->IsSet.StatelessOperationExpirationMs || OverWrite)) {
+            Destination->StatelessOperationExpirationMs = Source->StatelessOperationExpirationMs;
+            Destination->IsSet.StatelessOperationExpirationMs = TRUE;
+        }
     }
-    if (SETTING_HAS_FIELD(NewSettingsSize, StatelessOperationExpirationMs) &&
-        Source->IsSet.StatelessOperationExpirationMs && (!Destination->IsSet.StatelessOperationExpirationMs || OverWrite)) {
-        Destination->StatelessOperationExpirationMs = Source->StatelessOperationExpirationMs;
-        Destination->IsSet.StatelessOperationExpirationMs = TRUE;
-    }
+
     return TRUE;
 }
 
