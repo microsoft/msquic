@@ -239,7 +239,7 @@ QuicSettingApply(
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
         const QUIC_SETTINGS* Source
@@ -377,7 +377,13 @@ QuicSettingApply(
         Destination->VersionNegotiationExtEnabled = Source->VersionNegotiationExtEnabled;
         Destination->IsSet.VersionNegotiationExtEnabled = TRUE;
     }
-    if (Source->IsSet.DesiredVersionsList) {
+
+    //
+    // All new settings MUST explicitly validate they are within NewSettingsSize.
+    //
+
+    if (SETTING_HAS_FIELD(NewSettingsSize, DesiredVersionsListLength) &&
+        Source->IsSet.DesiredVersionsList) {
         if (Destination->IsSet.DesiredVersionsList &&
             (OverWrite || Source->DesiredVersionsListLength == 0)) {
             CXPLAT_FREE(Destination->DesiredVersionsList, QUIC_POOL_DESIRED_VER_LIST);
@@ -429,46 +435,48 @@ QuicSettingApply(
         }
     }
 
-    if (AllowMtuChanges) {
-        uint16_t MinimumMtu = Destination->MinimumMtu;
-        uint16_t MaximumMtu = Destination->MaximumMtu;
-        if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
-            MinimumMtu = Source->MinimumMtu;
-            if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-                MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
-            } else if (MinimumMtu > CXPLAT_MAX_MTU) {
-                MinimumMtu = CXPLAT_MAX_MTU;
+    if (SETTING_HAS_FIELD(NewSettingsSize, MtuDiscoveryMissingProbeCount)) {
+        if (AllowMtuChanges) {
+            uint16_t MinimumMtu = Destination->MinimumMtu;
+            uint16_t MaximumMtu = Destination->MaximumMtu;
+            if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
+                MinimumMtu = Source->MinimumMtu;
+                if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+                    MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
+                } else if (MinimumMtu > CXPLAT_MAX_MTU) {
+                    MinimumMtu = CXPLAT_MAX_MTU;
+                }
             }
-        }
-        if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
-            MaximumMtu = Source->MaximumMtu;
-            if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-                MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
-            } else if (MaximumMtu > CXPLAT_MAX_MTU) {
-                MaximumMtu = CXPLAT_MAX_MTU;
+            if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
+                MaximumMtu = Source->MaximumMtu;
+                if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+                    MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
+                } else if (MaximumMtu > CXPLAT_MAX_MTU) {
+                    MaximumMtu = CXPLAT_MAX_MTU;
+                }
             }
-        }
-        if (MinimumMtu > MaximumMtu) {
+            if (MinimumMtu > MaximumMtu) {
+                return FALSE;
+            }
+            if (Destination->MinimumMtu != MinimumMtu) {
+                Destination->IsSet.MinimumMtu = TRUE;
+            }
+            if (Destination->MaximumMtu != MaximumMtu) {
+                Destination->IsSet.MaximumMtu = TRUE;
+            }
+            Destination->MinimumMtu = MinimumMtu;
+            Destination->MaximumMtu = MaximumMtu;
+        } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
             return FALSE;
         }
-        if (Destination->MinimumMtu != MinimumMtu) {
-            Destination->IsSet.MinimumMtu = TRUE;
+        if (Source->IsSet.MtuDiscoverySearchCompleteTimeoutUs && (!Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs || OverWrite)) {
+            Destination->MtuDiscoverySearchCompleteTimeoutUs = Source->MtuDiscoverySearchCompleteTimeoutUs;
+            Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
         }
-        if (Destination->MaximumMtu != MaximumMtu) {
-            Destination->IsSet.MaximumMtu = TRUE;
+        if (Source->IsSet.MtuDiscoveryMissingProbeCount && (!Destination->IsSet.MtuDiscoveryMissingProbeCount || OverWrite)) {
+            Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
+            Destination->IsSet.MtuDiscoveryMissingProbeCount = TRUE;
         }
-        Destination->MinimumMtu = MinimumMtu;
-        Destination->MaximumMtu = MaximumMtu;
-    } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
-        return FALSE;
-    }
-    if (Source->IsSet.MtuDiscoverySearchCompleteTimeoutUs && (!Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs || OverWrite)) {
-        Destination->MtuDiscoverySearchCompleteTimeoutUs = Source->MtuDiscoverySearchCompleteTimeoutUs;
-        Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
-    }
-    if (Source->IsSet.MtuDiscoveryMissingProbeCount && (!Destination->IsSet.MtuDiscoveryMissingProbeCount || OverWrite)) {
-        Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
-        Destination->IsSet.MtuDiscoveryMissingProbeCount = TRUE;
     }
     if (SETTING_HAS_FIELD(NewSettingsSize, MaxBindingStatelessOperations) &&
         Source->IsSet.MaxBindingStatelessOperations && (!Destination->IsSet.MaxBindingStatelessOperations || OverWrite)) {
@@ -923,7 +931,7 @@ QuicSettingsDump(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDumpNew(
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
         uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
         const QUIC_SETTINGS* Settings
@@ -1007,33 +1015,45 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.ServerResumptionLevel) {
         QuicTraceLogVerbose(SettingDumpServerResumptionLevel,       "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     }
-    if (Settings->IsSet.DesiredVersionsList) {
-        QuicTraceLogVerbose(SettingDumpDesiredVersionsListLength,   "[sett] Desired Version length = %u", Settings->DesiredVersionsListLength);
-        if (Settings->DesiredVersionsListLength > 0) {
-            QuicTraceLogVerbose(SettingDumpDesiredVersionsList,     "[sett] Desired Version[0]     = 0x%x", Settings->DesiredVersionsList[0]);
+
+    //
+    // All new settings MUST explicitly validate they are within SettingsSize.
+    //
+
+    if (SETTING_HAS_FIELD(SettingsSize, DesiredVersionsListLength)) {
+        if (Settings->IsSet.DesiredVersionsList) {
+            QuicTraceLogVerbose(SettingDumpDesiredVersionsListLength,   "[sett] Desired Version length = %u", Settings->DesiredVersionsListLength);
+            if (Settings->DesiredVersionsListLength > 0) {
+                QuicTraceLogVerbose(SettingDumpDesiredVersionsList,     "[sett] Desired Version[0]     = 0x%x", Settings->DesiredVersionsList[0]);
+            }
+        }
+        if (Settings->IsSet.VersionNegotiationExtEnabled) {
+            QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
         }
     }
-    if (Settings->IsSet.VersionNegotiationExtEnabled) {
-        QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
+    if (SETTING_HAS_FIELD(SettingsSize, MtuDiscoveryMissingProbeCount)) {
+        if (Settings->IsSet.VersionNegotiationExtEnabled) {
+            QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
+        }
+        if (Settings->IsSet.MinimumMtu) {
+            QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
+        }
+        if (Settings->IsSet.MaximumMtu) {
+            QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] MaximumMtu             = %hu", Settings->MaximumMtu);
+        }
+        if (Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
+            QuicTraceLogVerbose(SettingDumpMtuCompleteTimeout,          "[sett] MtuCompleteTimeout     = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
+        }
+        if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
+            QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
+        }
     }
-    if (Settings->IsSet.MinimumMtu) {
-        QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
-    }
-    if (Settings->IsSet.MaximumMtu) {
-        QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] MaximumMtu             = %hu", Settings->MaximumMtu);
-    }
-    if (Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
-        QuicTraceLogVerbose(SettingDumpMtuCompleteTimeout,          "[sett] MtuCompleteTimeout     = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
-    }
-    if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
-        QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
-    }
-    if (SETTING_HAS_FIELD(SettingsSize, MaxBindingStatelessOperations) &&
-        Settings->IsSet.MaxBindingStatelessOperations) {
-        QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper,     "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
-    }
-    if (SETTING_HAS_FIELD(SettingsSize, StatelessOperationExpirationMs) &&
-        Settings->IsSet.StatelessOperationExpirationMs) {
-        QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
+    if (SETTING_HAS_FIELD(SettingsSize, StatelessOperationExpirationMs)) {
+        if (Settings->IsSet.MaxBindingStatelessOperations) {
+            QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper,     "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
+        }
+        if (Settings->IsSet.StatelessOperationExpirationMs) {
+            QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
+        }
     }
 }
