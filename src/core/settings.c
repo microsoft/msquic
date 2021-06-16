@@ -1034,9 +1034,6 @@ QuicSettingsDumpNew(
         }
     }
     if (SETTING_HAS_FIELD(SettingsSize, MtuDiscoveryMissingProbeCount)) {
-        if (Settings->IsSet.VersionNegotiationExtEnabled) {
-            QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
-        }
         if (Settings->IsSet.MinimumMtu) {
             QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
         }
