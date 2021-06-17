@@ -201,7 +201,7 @@ cmake -g 'Visual Studio 16 2019' -A x64 ..
 
 ```
 mkdir build && cd build
-cmake -g 'Linux Makefiles' ..
+cmake -G 'Unix Makefiles' ..
 ```
 
 ## Running a Build
