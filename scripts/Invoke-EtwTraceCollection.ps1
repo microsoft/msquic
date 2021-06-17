@@ -82,12 +82,15 @@ $IPv6Regex = [Regex]::new($IPv6Pattern, $RegexOptions)
 $IPv4Regex = [Regex]::new($IPv4Pattern, $RegexOptions)
 
 # Create HMAC for salted hashing.
-$Secret = Get-Random # todo - More random
+$Secret = ""
+for ($i = 0; $i -lt 4; $i++) {
+    $Secret+= $(Get-Random).ToString('x8')
+}
 $HmacSha = New-Object System.Security.Cryptography.HMACSHA256
 $HmacSha.key = [Text.Encoding]::ASCII.GetBytes($Secret)
 
 function Perform-SaltedHash($Input) {
-    return [Convert]::ToBase64String($HmacSha.ComputeHash([Text.Encoding]::ASCII.GetBytes($Input)))
+    return [Convert]::ToBase64String($HmacSha.ComputeHash([Text.Encoding]::ASCII.GetBytes($Input))).SubString(0,12)
 }
 
 function Format-IPAddresses {
