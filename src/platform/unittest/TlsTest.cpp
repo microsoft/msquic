@@ -1909,4 +1909,88 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
     }
 }
 
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+static void
+QUIC_API
+OpenSslSecConfigCreateComplete(
+    _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
+    )
+{
+#if QUIC_TLS_OPENSSL
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, SecConfig);
+    *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
+#elif QUIC_TLS_SCHANNEL
+    //
+    // Test should fail before getting this far.
+    //
+    ASSERT_TRUE(FALSE);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Status);
+    UNREFERENCED_PARAMETER(SecConfig);
+#else
+#error "New TLS library? Please update test."
+#endif
+}
+
+void
+ValidateSecConfigStatusOpenSsl(
+    _In_ QUIC_STATUS Status,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig
+    )
+{
+#if QUIC_TLS_OPENSSL
+        VERIFY_QUIC_SUCCESS(Status);
+        ASSERT_NE(nullptr, SecConfig);
+        CxPlatTlsSecConfigDelete(SecConfig);
+#elif QUIC_TLS_SCHANNEL
+        ASSERT_TRUE(QUIC_FAILED(Status));
+        ASSERT_EQ(nullptr, SecConfig);
+#else
+#error "New TLS library? Please update test."
+#endif
+}
+
+TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
+{
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION,
+        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES }) {
+
+        QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
+            QUIC_CREDENTIAL_TYPE_NONE,
+            TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            QUIC_ALLOWED_CIPHER_SUITE_NONE
+        };
+        CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
+
+        QUIC_STATUS Status =
+            CxPlatTlsSecConfigCreate(
+                &TestClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ClientSecConfig,
+                OpenSslSecConfigCreateComplete);
+        ValidateSecConfigStatusOpenSsl(Status, ClientSecConfig);
+
+        SelfSignedCertParams->Flags = TestFlag;
+        CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
+
+        Status =
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ServerSecConfig,
+                OpenSslSecConfigCreateComplete);
+        ValidateSecConfigStatusOpenSsl(Status, ServerSecConfig);
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
