@@ -1551,12 +1551,14 @@ Exit:
                         close(SocketContext->SocketFd);
                     }
                     CxPlatRundownRelease(&Binding->Rundown);
-                    CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
                 }
             }
             CxPlatRundownReleaseAndWait(&Binding->Rundown);
             CxPlatRundownRelease(&Datapath->BindingsRundown);
             CxPlatRundownUninitialize(&Binding->Rundown);
+            for (uint32_t i = 0; i < SocketCount; i++) {
+                CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendDataLock);
+            }
             CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
             Binding = NULL;
         }

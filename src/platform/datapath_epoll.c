@@ -1820,6 +1820,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
+        Binding->SocketContexts[i].CleanupFd = INVALID_SOCKET;
         for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
             Binding->SocketContexts[i].RecvIov[j].iov_len =
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
@@ -1915,16 +1916,24 @@ Exit:
                 //
                 for (uint32_t i = 0; i < SocketCount; i++) {
                     CXPLAT_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+                    int EpollFd = SocketContext->ProcContext->EpollFd;
+                    if (SocketContext->CleanupFd != INVALID_SOCKET) {
+                        epoll_ctl(EpollFd, EPOLL_CTL_DEL, SocketContext->CleanupFd, NULL);
+                        close(SocketContext->CleanupFd);
+                    }
                     if (SocketContext->SocketFd != INVALID_SOCKET) {
+                        epoll_ctl(EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
                         close(SocketContext->SocketFd);
                     }
                     CxPlatRundownRelease(&Binding->Rundown);
-                    CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
                 }
             }
             CxPlatRundownReleaseAndWait(&Binding->Rundown);
             CxPlatRundownRelease(&Datapath->BindingsRundown);
             CxPlatRundownUninitialize(&Binding->Rundown);
+            for (uint32_t i = 0; i < SocketCount; i++) {
+                CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendDataLock);
+            }
             CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
             Binding = NULL;
         }
