@@ -1818,4 +1818,95 @@ TEST_F(TlsTest, CipherSuiteInvalid)
     }
 }
 
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+static void
+QUIC_API
+SchannelSecConfigCreateComplete(
+    _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
+    )
+{
+#if QUIC_TLS_SCHANNEL
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, SecConfig);
+    *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
+#elif QUIC_TLS_OPENSSL
+    //
+    // Test should fail before getting this far.
+    //
+    ASSERT_TRUE(FALSE);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Status);
+    UNREFERENCED_PARAMETER(SecConfig);
+#else
+#error "New TLS library? Please update test."
+#endif
+}
+
+void
+ValidateSecConfigStatusSchannel(
+    _In_ QUIC_STATUS Status,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig
+    )
+{
+#if QUIC_TLS_SCHANNEL
+        VERIFY_QUIC_SUCCESS(Status);
+        ASSERT_NE(nullptr, SecConfig);
+        CxPlatTlsSecConfigDelete(SecConfig);
+#elif QUIC_TLS_OPENSSL
+        ASSERT_TRUE(QUIC_FAILED(Status));
+        ASSERT_EQ(nullptr, SecConfig);
+#else
+#error "New TLS library? Please update test."
+#endif
+}
+
+TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
+{
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION,
+        (QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED),
+        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN,
+        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT, QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK,
+        QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE }) {
+
+        QUIC_STATUS Status;
+
+        if (TestFlag != QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
+                QUIC_CREDENTIAL_TYPE_NONE,
+                TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                QUIC_ALLOWED_CIPHER_SUITE_NONE
+            };
+            CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
+
+            Status =
+                CxPlatTlsSecConfigCreate(
+                    &TestClientCredConfig,
+                    CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                    &TlsContext::TlsCallbacks,
+                    &ClientSecConfig,
+                    SchannelSecConfigCreateComplete);
+            ValidateSecConfigStatusSchannel(Status, ClientSecConfig);
+        }
+
+        SelfSignedCertParams->Flags = TestFlag;
+        CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
+
+        Status =
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ServerSecConfig,
+                SchannelSecConfigCreateComplete);
+        ValidateSecConfigStatusSchannel(Status, ServerSecConfig);
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
