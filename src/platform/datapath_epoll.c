@@ -1560,8 +1560,8 @@ Drop:
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
-            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.",
-            Status);
+            Status
+            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
     }
 }
 
