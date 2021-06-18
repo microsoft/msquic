@@ -2657,7 +2657,7 @@ QuicTestLoadBalancedHandshake(
             ResumptionTicket = nullptr;
             TryingResumption = true;
         }
-        TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr)); // TODO - Put in loop in case addr is taken
+        TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr));
         TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
         TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
         if (!Connection.HandshakeComplete) {
