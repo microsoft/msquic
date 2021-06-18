@@ -1149,10 +1149,8 @@ CxPlatSocketContextStartReceive(
         //
         // Return any allocations
         //
-        for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
-            if (SocketContext->CurrentRecvBlocks[i] != NULL) {
-                CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlocks[i]->RecvPacket);
-            }
+        if (SocketContext->CurrentRecvBlock != NULL) {
+            CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
         }
 
         goto Error;
