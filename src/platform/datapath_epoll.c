@@ -277,6 +277,11 @@ typedef struct CXPLAT_SOCKET {
     uint16_t Mtu;
 
     //
+    // The number of per-processor socket contexts that still need to be cleaned up.
+    //
+    short volatile ProcsOutstanding;
+
+    //
     // Set of socket contexts one per proc.
     //
     CXPLAT_SOCKET_CONTEXT SocketContexts[];
@@ -462,6 +467,7 @@ CxPlatProcessorContextInitialize(
     int Ret = 0;
     uint32_t RecvPacketLength = 0;
     BOOLEAN EventFdAdded = FALSE;
+    BOOLEAN ThreadCreated = FALSE;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
@@ -560,22 +566,28 @@ CxPlatProcessorContextInitialize(
         goto Exit;
     }
 
+    ThreadCreated = true;
+
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        if (EventFdAdded) {
-            epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
+        if (ThreadCreated) {
+            CxPlatProcessorContextUninitialize(ProcContext);
+        } else {
+            if (EventFdAdded) {
+                epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
+            }
+            if (EventFd != INVALID_SOCKET) {
+                close(EventFd);
+            }
+            if (EpollFd != INVALID_SOCKET) {
+                close(EpollFd);
+            }
+            CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+            CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+            CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+            CxPlatPoolUninitialize(&ProcContext->SendDataPool);
         }
-        if (EventFd != INVALID_SOCKET) {
-            close(EventFd);
-        }
-        if (EpollFd != INVALID_SOCKET) {
-            close(EpollFd);
-        }
-        CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-        CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-        CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-        CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     }
 
     return Status;
@@ -1413,11 +1425,6 @@ CxPlatSocketContextStartReceive(
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
-        close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET;
-    }
-
     return Status;
 }
 
@@ -1858,6 +1865,7 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
+    Binding->ProcsOutstanding = (short)SocketCount;
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
@@ -1873,18 +1881,26 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         if (Binding != NULL) {
-            QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-            // TODO - Clean up socket contexts
-            CxPlatRundownRelease(&Datapath->BindingsRundown);
-            CxPlatRundownUninitialize(&Binding->Rundown);
-            for (uint32_t i = 0; i < SocketCount; i++) {
-                CxPlatLockUninitialize(&Binding->SocketContexts[i].PendingSendDataLock);
+            if (Binding->ProcsOutstanding != 0) {
+                CxPlatSocketDelete(Binding);
+            } else {
+                QuicTraceEvent(
+                    DatapathDestroyed,
+                    "[data][%p] Destroyed",
+                    Binding);
+                for (uint16_t i = 0; i < SocketCount; i++) {
+                    CXPLAT_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+                    if (SocketContext->SocketFd != INVALID_SOCKET) {
+                        close(SocketContext->SocketFd);
+                    }
+                    CxPlatRundownRelease(&Binding->Rundown);
+                    CxPlatLockUninitialize(SocketContext->PendingSendDataLock);
+                }
+                CxPlatRundownRelease(&Datapath->BindingsRundown);
+                CxPlatRundownUninitialize(&Binding->Rundown);
+                CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
+                Binding = NULL;
             }
-            CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
-            Binding = NULL;
         }
     }
 
