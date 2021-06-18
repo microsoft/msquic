@@ -1293,6 +1293,11 @@ MsQuicOpenVersion(
 #if defined(__cplusplus) || defined(WIN32)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+#ifdef WIN32
+__forceinline
+#else
+__attribute__((always_inline))
+#endif
 inline
 QUIC_STATUS
 MsQuicOpen(
