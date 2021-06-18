@@ -1888,7 +1888,7 @@ Exit:
                     DatapathDestroyed,
                     "[data][%p] Destroyed",
                     Binding);
-                for (uint16_t i = 0; i < SocketCount; i++) {
+                for (uint32_t i = 0; i < SocketCount; i++) {
                     CXPLAT_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
                     if (SocketContext->SocketFd != INVALID_SOCKET) {
                         close(SocketContext->SocketFd);
