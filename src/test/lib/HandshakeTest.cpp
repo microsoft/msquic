@@ -2660,31 +2660,40 @@ QuicTestLoadBalancedHandshake(
         TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr)); // TODO - Put in loop in case addr is taken
         TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
         TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        if (SchannelMode) {
+        if (!Connection.HandshakeComplete) {
             //
-            // HACK: Schannel reuses tickets, so it always resumes. Also, no
-            // point in waiting for a ticket because it won't send it.
+            // Sometimes the local port might be used already. Just ignore this
+            // failure and continue on.
             //
-            TEST_TRUE(Connection.HandshakeResumed);
+            TEST_TRUE(Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE);
 
         } else {
-            TEST_TRUE(Connection.HandshakeResumed == TryingResumption);
-            if (!Connection.ResumptionTicketReceivedEvent.WaitTimeout(TestWaitTimeout)) {
-                if (Connection.HandshakeResumed) {
-                    SchannelMode = true; // Schannel doesn't send tickets on resumed connections.
-                    ResumptionTicket = nullptr;
-                } else {
-                    TEST_FAILURE("Timeout waiting for resumption ticket");
-                    return;
-                }
+            if (SchannelMode) {
+                //
+                // HACK: Schannel reuses tickets, so it always resumes. Also, no
+                // point in waiting for a ticket because it won't send it.
+                //
+                TEST_TRUE(Connection.HandshakeResumed);
+
             } else {
-                TEST_TRUE(Connection.ResumptionTicket != nullptr);
-                ResumptionTicketLength = Connection.ResumptionTicketLength;
-                ResumptionTicket = Connection.ResumptionTicket;
-                Connection.ResumptionTicket = nullptr;
+                TEST_TRUE(Connection.HandshakeResumed == TryingResumption);
+                if (!Connection.ResumptionTicketReceivedEvent.WaitTimeout(TestWaitTimeout)) {
+                    if (Connection.HandshakeResumed) {
+                        SchannelMode = true; // Schannel doesn't send tickets on resumed connections.
+                        ResumptionTicket = nullptr;
+                    } else {
+                        TEST_FAILURE("Timeout waiting for resumption ticket");
+                        return;
+                    }
+                } else {
+                    TEST_TRUE(Connection.ResumptionTicket != nullptr);
+                    ResumptionTicketLength = Connection.ResumptionTicketLength;
+                    ResumptionTicket = Connection.ResumptionTicket;
+                    Connection.ResumptionTicket = nullptr;
+                }
             }
+            Connection.Shutdown(0); // Best effort start peer shutdown
         }
-        Connection.Shutdown(0); // Best effort start peer shutdown
         ConnLocalAddr.IncrementPort();
     }
     delete[] ResumptionTicket;
