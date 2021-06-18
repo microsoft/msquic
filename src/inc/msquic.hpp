@@ -641,6 +641,9 @@ struct MsQuicConnection {
     MsQuicConnectionCallback* Callback;
     void* Context;
     QUIC_STATUS InitStatus;
+    // TODO - All the rest of this is not always necessary. Move to a separate class.
+    QUIC_STATUS TransportShutdownStatus {0};
+    QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
     uint32_t ResumptionTicketLength {0};
@@ -888,6 +891,20 @@ private:
             pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
 #ifdef CX_PLATFORM_TYPE
             pThis->HandshakeCompleteEvent.Set();
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT) {
+            pThis->TransportShutdownStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
+#ifdef CX_PLATFORM_TYPE
+            if (!pThis->HandshakeComplete) {
+                pThis->HandshakeCompleteEvent.Set();
+            }
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER) {
+            pThis->AppShutdownErrorCode = Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode;
+#ifdef CX_PLATFORM_TYPE
+            if (!pThis->HandshakeComplete) {
+                pThis->HandshakeCompleteEvent.Set();
+            }
 #endif // CX_PLATFORM_TYPE
         } else if (Event->Type == QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED && !pThis->ResumptionTicket) {
             pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
