@@ -253,11 +253,6 @@ typedef struct CXPLAT_SOCKET {
     uint16_t Mtu;
 
     //
-    // The number of per-processor socket contexts that still need to be cleaned up.
-    //
-    short volatile ProcsOutstanding;
-
-    //
     // Set of socket contexts one per proc.
     //
     CXPLAT_SOCKET_CONTEXT SocketContexts[];
@@ -1150,6 +1145,16 @@ CxPlatSocketContextStartReceive(
             SocketContext->Binding,
             Status,
             "kevent failed");
+
+        //
+        // Return any allocations
+        //
+        for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+            if (SocketContext->CurrentRecvBlocks[i] != NULL) {
+                CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlocks[i]->RecvPacket);
+            }
+        }
+
         goto Error;
     }
 
@@ -1417,6 +1422,7 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
+    int32_t SuccessfulStartReceives = -1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1499,12 +1505,13 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    Binding->ProcsOutstanding = (short)SocketCount;
+    SuccessfulStartReceives = 0;
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i]);
         if (QUIC_FAILED(Status)) {
+            SuccessfulStartReceives = (int32_t)i;
             goto Exit;
         }
     }
@@ -1515,13 +1522,31 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         if (Binding != NULL) {
-            if (Binding->ProcsOutstanding != 0) {
-                CxPlatSocketDelete(Binding);
+            QuicTraceEvent(
+                DatapathDestroyed,
+                "[data][%p] Destroyed",
+                Binding);
+
+            if (SuccessfulStartReceives >= 0) {
+                uint32_t CurrentSocket = 0;
+                Binding->Shutdown = TRUE;
+
+                //
+                // First shutdown any sockets that fully started
+                //
+                for (; CurrentSocket < (uint32_t)SuccessfulStartReceives; CurrentSocket++) {
+                    CxPlatSocketContextUninitialize(&Binding->SocketContexts[CurrentSocket]);
+                }
+                //
+                // Then shutdown any sockets that failed to start
+                //
+                for (; CurrentSocket < SocketCount; CurrentSocket++) {
+                    CxPlatSocketContextUninitializeComplete(&Binding->SocketContexts[CurrentSocket]);
+                }
             } else {
-                QuicTraceEvent(
-                    DatapathDestroyed,
-                    "[data][%p] Destroyed",
-                    Binding);
+                //
+                // No sockets fully started. Only uninitialize static things
+                //
                 for (uint32_t i = 0; i < SocketCount; i++) {
                     CXPLAT_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
                     if (SocketContext->SocketFd != INVALID_SOCKET) {
@@ -1530,11 +1555,12 @@ Exit:
                     CxPlatRundownRelease(&Binding->Rundown);
                     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
                 }
-                CxPlatRundownRelease(&Datapath->BindingsRundown);
-                CxPlatRundownUninitialize(&Binding->Rundown);
-                CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
-                Binding = NULL;
             }
+            CxPlatRundownReleaseAndWait(&Binding->Rundown);
+            CxPlatRundownRelease(&Datapath->BindingsRundown);
+            CxPlatRundownUninitialize(&Binding->Rundown);
+            CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
+            Binding = NULL;
         }
     }
 
