@@ -43,12 +43,13 @@ protected:
             }
         }
         void Load(
-            _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+            _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
             VERIFY_QUIC_SUCCESS(
                 CxPlatTlsSecConfigCreate(
                     CredConfig,
-                    CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                    TlsFlags,
                     &TlsContext::TlsCallbacks,
                     &SecConfig,
                     OnSecConfigCreateComplete));
@@ -73,18 +74,20 @@ protected:
     struct CxPlatServerSecConfig : public CxPlatSecConfig {
         CxPlatServerSecConfig(
             _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NONE,
-            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
             SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | CredFlags;
             SelfSignedCertParams->AllowedCipherSuites = CipherFlags;
-            Load(SelfSignedCertParams);
+            Load(SelfSignedCertParams, TlsFlags);
         }
     };
 
     struct CxPlatClientSecConfig : public CxPlatSecConfig {
         CxPlatClientSecConfig(
             _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
-            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
             QUIC_CREDENTIAL_CONFIG CredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
@@ -96,7 +99,7 @@ protected:
                 QUIC_ALLOWED_CIPHER_SUITE_NONE};
             CredConfig.Flags |= CredFlags;
             CredConfig.AllowedCipherSuites = CipherFlags;
-            Load(&CredConfig);
+            Load(&CredConfig, TlsFlags);
         }
     };
 
@@ -1089,6 +1092,50 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
     ASSERT_FALSE(ServerContext2.State.SessionResumed);
 
     ASSERT_NE(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
+}
+
+TEST_F(TlsTest, HandshakeResumptionClientDisabled)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+        QUIC_ALLOWED_CIPHER_SUITE_NONE,
+        CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_EQ(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+}
+
+TEST_F(TlsTest, HandshakeResumptionServerDisabled)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+
+    CxPlatServerSecConfig ResumptionDisabledServerConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+        QUIC_ALLOWED_CIPHER_SUITE_NONE,
+        CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
+    TlsContext ServerContext2, ClientContext2;
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
+    ServerContext2.InitializeServer(ResumptionDisabledServerConfig);
+    DoHandshake(ServerContext2, ClientContext2);
+
+    ASSERT_FALSE(ClientContext2.State.SessionResumed);
+    ASSERT_FALSE(ServerContext2.State.SessionResumed);
+
+    ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
 #endif
