@@ -1251,7 +1251,18 @@ CxPlatSocketContextRecvComplete(
             RecvPacket);
     }
 
-    Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    int32_t RetryCount = 0;
+    do {
+        Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            DatapathError,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
+    }
 
     //
     // Prepare can only fail under low memory condition. Treat it as a fatal
