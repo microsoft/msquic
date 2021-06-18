@@ -1557,10 +1557,11 @@ Drop:
 
     if (!QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
-            DatapathError,
+            DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
-            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
+            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.",
+            Status);
     }
 }
 
