@@ -454,6 +454,26 @@ Error:
 }
 #endif
 
+void
+CxPlatProcessorContextUninitialize(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    )
+{
+    const eventfd_t Value = 1;
+    eventfd_write(ProcContext->EventFd, Value);
+    CxPlatThreadWait(&ProcContext->EpollWaitThread);
+    CxPlatThreadDelete(&ProcContext->EpollWaitThread);
+
+    epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, ProcContext->EventFd, NULL);
+    close(ProcContext->EventFd);
+    close(ProcContext->EpollFd);
+
+    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
+}
+
 QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -591,26 +611,6 @@ Exit:
     }
 
     return Status;
-}
-
-void
-CxPlatProcessorContextUninitialize(
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
-    )
-{
-    const eventfd_t Value = 1;
-    eventfd_write(ProcContext->EventFd, Value);
-    CxPlatThreadWait(&ProcContext->EpollWaitThread);
-    CxPlatThreadDelete(&ProcContext->EpollWaitThread);
-
-    epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, ProcContext->EventFd, NULL);
-    close(ProcContext->EventFd);
-    close(ProcContext->EpollFd);
-
-    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
 }
 
 QUIC_STATUS
@@ -1894,7 +1894,7 @@ Exit:
                         close(SocketContext->SocketFd);
                     }
                     CxPlatRundownRelease(&Binding->Rundown);
-                    CxPlatLockUninitialize(SocketContext->PendingSendDataLock);
+                    CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
                 }
                 CxPlatRundownRelease(&Datapath->BindingsRundown);
                 CxPlatRundownUninitialize(&Binding->Rundown);

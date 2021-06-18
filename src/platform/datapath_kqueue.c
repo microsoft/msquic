@@ -377,6 +377,25 @@ CxPlatSocketSendInternal(
     _In_ BOOLEAN IsPendedSend
     );
 
+void
+CxPlatProcessorContextUninitialize(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    )
+{
+    struct kevent Event = {0};
+    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
+    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+    CxPlatThreadWait(&ProcContext->KqueueWaitThread);
+    CxPlatThreadDelete(&ProcContext->KqueueWaitThread);
+
+    close(ProcContext->KqueueFd);
+
+    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
+}
+
 QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -471,25 +490,6 @@ Exit:
     }
 
     return Status;
-}
-
-void
-CxPlatProcessorContextUninitialize(
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
-    )
-{
-    struct kevent Event = {0};
-    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
-    CxPlatThreadWait(&ProcContext->KqueueWaitThread);
-    CxPlatThreadDelete(&ProcContext->KqueueWaitThread);
-
-    close(ProcContext->KqueueFd);
-
-    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
 }
 
 QUIC_STATUS
@@ -1528,7 +1528,7 @@ Exit:
                         close(SocketContext->SocketFd);
                     }
                     CxPlatRundownRelease(&Binding->Rundown);
-                    CxPlatLockUninitialize(SocketContext->PendingSendDataLock);
+                    CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
                 }
                 CxPlatRundownRelease(&Datapath->BindingsRundown);
                 CxPlatRundownUninitialize(&Binding->Rundown);
