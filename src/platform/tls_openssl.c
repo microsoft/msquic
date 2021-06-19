@@ -183,7 +183,8 @@ CxPlatTlsAlpnSelectCallback(
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
-    _In_ const char* SNI
+    _In_ const char* SNI,
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
     );
 
 static
@@ -201,7 +202,7 @@ CxPlatTlsCertificateVerifyCallback(
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
-        preverify_ok = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI);
+        preverify_ok = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
@@ -811,13 +812,22 @@ CxPlatTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
-        return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
+#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
+        return QUIC_STATUS_NOT_SUPPORTED; // Only available on windows
+#else
+        if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+#endif
     }
 
     if (CredConfig->Reserved != NULL) {
