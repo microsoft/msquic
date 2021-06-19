@@ -88,6 +88,8 @@ extern "C" {
 // Interlocked implementations.
 //
 
+#define YieldProcessor() // no-op
+
 inline
 long
 InterlockedIncrement(
@@ -107,6 +109,26 @@ InterlockedDecrement(
 }
 
 inline
+long
+InterlockedAnd(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    )
+{
+    return __sync_and_and_fetch(Destination, Value);
+}
+
+inline
+long
+InterlockedOr(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    )
+{
+    return __sync_or_and_fetch(Destination, Value);
+}
+
+inline
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -122,6 +144,17 @@ InterlockedCompareExchange16(
     _Inout_ _Interlocked_operand_ short volatile *Destination,
     _In_ short ExChange,
     _In_ short Comperand
+    )
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
+short
+InterlockedCompareExchange(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long ExChange,
+    _In_ long Comperand
     )
 {
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
