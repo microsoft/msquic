@@ -189,7 +189,7 @@ extern "C" {
 //
 // Called in main, DLLMain or DriverEntry.
 //
-INITCODE
+PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSystemLoad(

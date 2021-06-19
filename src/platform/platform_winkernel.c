@@ -61,14 +61,13 @@ uint64_t CxPlatTotalMemory;
 CX_PLATFORM CxPlatform = { NULL };
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
-INITCODE
+PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSystemLoad(
     void
     )
 {
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
