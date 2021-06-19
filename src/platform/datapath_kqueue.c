@@ -1261,7 +1261,7 @@ CxPlatSocketContextRecvComplete(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
-            Status
+            Status,
             "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
     }
 }
