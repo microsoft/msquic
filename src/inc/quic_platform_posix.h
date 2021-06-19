@@ -88,7 +88,7 @@ extern "C" {
 // Interlocked implementations.
 //
 
-#define YieldProcessor() // no-op
+#define YieldProcessor() pthread_yield()
 
 inline
 long
