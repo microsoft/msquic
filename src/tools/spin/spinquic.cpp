@@ -1046,6 +1046,9 @@ main(int argc, char **argv)
     const QUIC_API_TABLE* TempMsQuic;
     QUIC_STATUS Status = MsQuicOpen(&TempMsQuic);
     CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    if (QUIC_FAILED(Status)) {
+        return;
+    }
     CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 
     if (Settings.AllocFailDenominator > 0) {

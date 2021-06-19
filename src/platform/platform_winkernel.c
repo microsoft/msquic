@@ -68,6 +68,8 @@ CxPlatSystemLoad(
     void
     )
 {
+    PAGED_CODE();
+
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
