@@ -84,48 +84,6 @@ extern "C" {
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
 //
-// Library Initialization
-//
-
-//
-// Called in DLLMain or DriverEntry.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatSystemLoad(
-    void
-    );
-
-//
-// Called in DLLMain or DriverUnload.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatSystemUnload(
-    void
-    );
-
-//
-// Initializes the PAL library. Calls to this and
-// CxPlatformUninitialize must be serialized and cannot overlap.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatInitialize(
-    void
-    );
-
-//
-// Uninitializes the PAL library. Calls to this and
-// CxPlatformInitialize must be serialized and cannot overlap.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatUninitialize(
-    void
-    );
-
-//
 // Static Analysis Interfaces
 //
 

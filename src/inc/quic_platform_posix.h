@@ -61,30 +61,6 @@ extern "C" {
     (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
 //
-// Library Initialization routines.
-//
-
-void
-CxPlatSystemLoad(
-    void
-    );
-
-void
-CxPlatSystemUnload(
-    void
-    );
-
-QUIC_STATUS
-CxPlatInitialize(
-    void
-    );
-
-void
-CxPlatUninitialize(
-    void
-    );
-
-//
 // Generic stuff.
 //
 

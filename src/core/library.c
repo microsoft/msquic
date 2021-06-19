@@ -40,6 +40,7 @@ MsQuicLibraryLoad(
     void
     )
 {
+    CxPlatSystemLoad();
     CxPlatLockInitialize(&MsQuicLib.Lock);
     CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
     CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
@@ -65,6 +66,7 @@ MsQuicLibraryUnload(
     CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
     CxPlatLockUninitialize(&MsQuicLib.Lock);
+    CxPlatSystemUnload();
 }
 
 void
