@@ -1548,7 +1548,7 @@ CxPlatSocketContextRecvComplete(
             DatagramHead);
     }
 
-Drop:
+Drop: ;
 
     int32_t RetryCount = 0;
     do {
