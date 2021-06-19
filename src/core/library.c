@@ -30,28 +30,77 @@ QuicLibraryEvaluateSendRetryState(
     void
     );
 
+#define UNLOADING_BIT (1 << 31)
+#define LOADED_BIT (1 << 30)
+#define REFCOUNT_MASK (LOADED_BIT - 1)
+
 //
-// Initializes all global variables.
+// Initializes all global variables if not already done.
 //
-INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryLoad(
     void
     )
 {
-    CxPlatSystemLoad();
-    CxPlatLockInitialize(&MsQuicLib.Lock);
-    CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
-    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
-    CxPlatListInitializeHead(&MsQuicLib.Registrations);
-    CxPlatListInitializeHead(&MsQuicLib.Bindings);
-    QuicTraceRundownCallback = QuicTraceRundown;
-    MsQuicLib.Loaded = TRUE;
+    long NextState = InterlockedIncrement(&MsQuicLib.LoadState);
+    long PriorCount = (NextState & REFCOUNT_MASK) - 1;
+
+    if (PriorCount == 0) {
+        //
+        // We're responsible for ensuring the library is loaded. Spin until we
+        // aren't unloading the library.
+        //
+        while ((NextState & UNLOADING_BIT) != 0) {
+            YieldProcessor();
+            NextState = InterlockedOr(&MsQuicLib.LoadState, 0); // No-op atomic read
+        }
+
+        //
+        // NOTE: Because this open call has atomically incremented the ref count
+        // already, it's impossible for the ref count to dip to zero at this
+        // time.
+        //
+
+        //
+        // This expression can be FALSE if we arrived here prior to the
+        // unloading process start. In this case, we proceed without further
+        // operation.
+        //
+        if ((NextState & LOADED_BIT) == 0) {
+            //
+            // Load the library.
+            //
+            CxPlatSystemLoad();
+            CxPlatLockInitialize(&MsQuicLib.Lock);
+            CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+            CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
+            CxPlatListInitializeHead(&MsQuicLib.Registrations);
+            CxPlatListInitializeHead(&MsQuicLib.Bindings);
+            QuicTraceRundownCallback = QuicTraceRundown;
+
+            //
+            // Try and transition to the loaded state.
+            //
+            while (NextState != InterlockedCompareExchange(&MsQuicLib.LoadState, NextState | LOADED_BIT, NextState)) {
+                YieldProcessor();
+                NextState = InterlockedOr(&MsQuicLib.LoadState, 0); // No-op atomic read
+            }
+        }
+
+    } else {
+        //
+        // Busy wait until we aren't in a loading state anymore.
+        //
+        while ((NextState & LOADED_BIT) == 0) {
+            YieldProcessor();
+            NextState = InterlockedOr(&MsQuicLib.LoadState, 0); // No-op atomic read
+        }
+    }
 }
 
 //
-// Uninitializes global variables.
+// Uninitializes global variables if necessary.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -59,14 +108,37 @@ MsQuicLibraryUnload(
     void
     )
 {
-    CXPLAT_FRE_ASSERT(MsQuicLib.Loaded);
-    QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
-    QUIC_LIB_VERIFY(!MsQuicLib.InUse);
-    MsQuicLib.Loaded = FALSE;
-    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
-    CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
-    CxPlatLockUninitialize(&MsQuicLib.Lock);
-    CxPlatSystemUnload();
+    long NextState = InterlockedDecrement(&MsQuicLib.LoadState);
+    long PriorCount = (NextState & REFCOUNT_MASK) + 1;
+
+    if (PriorCount == 1) {
+        //
+        // We are responsible for unloading the library IFF another thread
+        // doesn't open the library in the meantime.
+        //
+        // Attempt to transition to the unloading state. If we fail, that
+        // means another thread has already incremented the ref count before
+        // we arrived at this instruction. Thus, we don't bother unloading
+        // the library.
+        //
+        if (InterlockedCompareExchange(&MsQuicLib.LoadState, UNLOADING_BIT, NextState) == NextState) {
+            //
+            // We've succeeded. Unload the library.
+            //
+            QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
+            QUIC_LIB_VERIFY(!MsQuicLib.InUse);
+            CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
+            CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
+            CxPlatLockUninitialize(&MsQuicLib.Lock);
+            CxPlatSystemUnload();
+
+            //
+            // Allow possibly spinning thread that incremented ref count in
+            // the meantime to proceed.
+            //
+            InterlockedAnd(&MsQuicLib.LoadState, ~UNLOADING_BIT);
+        }
+    }
 }
 
 void
@@ -559,8 +631,8 @@ MsQuicAddRef(
     // If you hit this assert, you are trying to call MsQuic API without
     // actually loading/starting the library/driver.
     //
-    CXPLAT_TEL_ASSERT(MsQuicLib.Loaded);
-    if (!MsQuicLib.Loaded) {
+    CXPLAT_TEL_ASSERT(MsQuicLib.LoadState);
+    if (!MsQuicLib.LoadState) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -1287,6 +1359,9 @@ MsQuicOpen(
     )
 {
     QUIC_STATUS Status;
+    BOOLEAN ReleaseRefOnFailure = FALSE;
+
+    MsQuicLibraryLoad();
 
     if (QuicApi == NULL) {
         QuicTraceLogVerbose(
@@ -1304,11 +1379,12 @@ MsQuicOpen(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+    ReleaseRefOnFailure = TRUE;
 
     QUIC_API_TABLE* Api = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
     if (Api == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        goto Exit;
     }
 
     Api->SetContext = MsQuicSetContext;
@@ -1350,18 +1426,20 @@ MsQuicOpen(
 
     *QuicApi = Api;
 
-Error:
-
-    if (QUIC_FAILED(Status)) {
-        MsQuicRelease();
-    }
-
 Exit:
 
     QuicTraceLogVerbose(
         LibraryMsQuicOpenExit,
         "[ api] MsQuicOpen, status=0x%x",
         Status);
+
+    if (QUIC_FAILED(Status)) {
+        if (ReleaseRefOnFailure) {
+            MsQuicRelease();
+        }
+
+        MsQuicLibraryUnload();
+    }
 
     return Status;
 }
@@ -1393,6 +1471,7 @@ MsQuicClose(
             "[ api] MsQuicClose");
         CXPLAT_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
+        MsQuicLibraryUnload();
     }
 }
 
@@ -1737,7 +1816,7 @@ QuicTraceRundown(
     void
     )
 {
-    if (!MsQuicLib.Loaded) {
+    if (!MsQuicLib.LoadState) {
         return;
     }
 

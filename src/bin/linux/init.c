@@ -11,16 +11,6 @@ Abstract:
 
 #include "quic_platform.h"
 
-void
-MsQuicLibraryLoad(
-    void
-    );
-
-void
-MsQuicLibraryUnload(
-    void
-    );
-
 static
 void
 Entry(
@@ -39,7 +29,6 @@ Entry(
     void
     )
 {
-    MsQuicLibraryLoad();
 }
 
 static
@@ -48,5 +37,4 @@ Exit(
     void
     )
 {
-    MsQuicLibraryUnload();
 }

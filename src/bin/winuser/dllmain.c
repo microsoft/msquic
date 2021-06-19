@@ -14,16 +14,6 @@ Abstract:
 #include "quic_trace.h"
 #endif
 
-void
-MsQuicLibraryLoad(
-    void
-    );
-
-void
-MsQuicLibraryUnload(
-    void
-    );
-
 BOOL
 __stdcall
 DllMain(
@@ -42,11 +32,6 @@ DllMain(
 #else
         UNREFERENCED_PARAMETER(Instance);
 #endif
-        MsQuicLibraryLoad();
-        break;
-
-    case DLL_PROCESS_DETACH:
-        MsQuicLibraryUnload();
         break;
     }
 

@@ -76,14 +76,15 @@ typedef struct QUIC_LIBRARY {
 
     //
     // Tracks whether the library loaded (DllMain or DriverEntry invoked on Windows).
+    // MSB [Unloading:1] [Loading:1] [RefCount:30] LSB
     //
-    BOOLEAN Loaded : 1;
+    volatile long LoadState;
 
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
     //
-    BOOLEAN IsVerifying : 1;
+    BOOLEAN IsVerifying;
 #endif
 
     //
