@@ -88,7 +88,11 @@ extern "C" {
 // Interlocked implementations.
 //
 
+#ifdef CX_PLATFORM_DARWIN
+#define YieldProcessor()
+#else
 #define YieldProcessor() pthread_yield()
+#endif
 
 inline
 long

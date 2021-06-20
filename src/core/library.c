@@ -30,9 +30,9 @@ QuicLibraryEvaluateSendRetryState(
     void
     );
 
-#define UNLOADING_BIT (1 << 31)
-#define LOADED_BIT (1 << 30)
-#define REFCOUNT_MASK (LOADED_BIT - 1)
+#define UNLOADING_BIT 0x80000000u
+#define LOADED_BIT    0x40000000u
+#define REFCOUNT_MASK 0x3FFFFFFFu
 
 //
 // Initializes all global variables if not already done.
@@ -43,8 +43,8 @@ MsQuicLibraryLoad(
     void
     )
 {
-    long NextState = InterlockedIncrement(&MsQuicLib.LoadState);
-    long PriorCount = (NextState & REFCOUNT_MASK) - 1;
+    uint32_t NextState = (uint32_t)InterlockedIncrement((long*)&MsQuicLib.LoadState);
+    uint32_t PriorCount = (NextState & REFCOUNT_MASK) - 1;
 
     if (PriorCount == 0) {
         //
@@ -53,7 +53,7 @@ MsQuicLibraryLoad(
         //
         while ((NextState & UNLOADING_BIT) != 0) {
             YieldProcessor();
-            NextState = InterlockedOr(&MsQuicLib.LoadState, 0); // No-op atomic read
+            NextState = (uint32_t)InterlockedOr((long*)&MsQuicLib.LoadState, 0); // No-op atomic read
         }
 
         //
@@ -82,9 +82,9 @@ MsQuicLibraryLoad(
             //
             // Try and transition to the loaded state.
             //
-            while (NextState != InterlockedCompareExchange(&MsQuicLib.LoadState, NextState | LOADED_BIT, NextState)) {
+            while (NextState != (uint32_t)InterlockedCompareExchange((long*)&MsQuicLib.LoadState, (long)(NextState | LOADED_BIT), (long)NextState)) {
                 YieldProcessor();
-                NextState = InterlockedOr(&MsQuicLib.LoadState, 0); // No-op atomic read
+                NextState = (uint32_t)InterlockedOr((long*)&MsQuicLib.LoadState, 0); // No-op atomic read
             }
         }
 
@@ -94,7 +94,7 @@ MsQuicLibraryLoad(
         //
         while ((NextState & LOADED_BIT) == 0) {
             YieldProcessor();
-            NextState = InterlockedOr(&MsQuicLib.LoadState, 0); // No-op atomic read
+            NextState = (uint32_t)InterlockedOr((long*)&MsQuicLib.LoadState, 0); // No-op atomic read
         }
     }
 }
@@ -108,8 +108,8 @@ MsQuicLibraryUnload(
     void
     )
 {
-    long NextState = InterlockedDecrement(&MsQuicLib.LoadState);
-    long PriorCount = (NextState & REFCOUNT_MASK) + 1;
+    uint32_t NextState = (uint32_t)InterlockedDecrement((long*)&MsQuicLib.LoadState);
+    uint32_t PriorCount = (NextState & REFCOUNT_MASK) + 1;
 
     if (PriorCount == 1) {
         //
@@ -121,7 +121,7 @@ MsQuicLibraryUnload(
         // we arrived at this instruction. Thus, we don't bother unloading
         // the library.
         //
-        if (InterlockedCompareExchange(&MsQuicLib.LoadState, UNLOADING_BIT, NextState) == NextState) {
+        if ((uint32_t)InterlockedCompareExchange((long*)&MsQuicLib.LoadState, UNLOADING_BIT, (long)NextState) == NextState) {
             //
             // We've succeeded. Unload the library.
             //
@@ -136,7 +136,7 @@ MsQuicLibraryUnload(
             // Allow possibly spinning thread that incremented ref count in
             // the meantime to proceed.
             //
-            InterlockedAnd(&MsQuicLib.LoadState, ~UNLOADING_BIT);
+            InterlockedAnd((long*)&MsQuicLib.LoadState, (long)~UNLOADING_BIT);
         }
     }
 }
