@@ -791,6 +791,18 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    SetShareUdpBinding(_In_ bool ShareBinding = true) noexcept {
+        BOOLEAN Value = ShareBinding ? TRUE : FALSE;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Value),
+                &Value);
+    }
+
+    QUIC_STATUS
     SetResumptionTicket(_In_reads_(TicketLength) const uint8_t* Ticket, uint32_t TicketLength) noexcept {
         return
             MsQuic->SetParam(
