@@ -3173,6 +3173,7 @@ Drop:
             DatapathError,
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
+            Status,
             "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
     }
 
