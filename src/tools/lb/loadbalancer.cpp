@@ -166,8 +166,8 @@ int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv)
 {
-    const char* PublicAddress;
-    const char* PrivateAddresses;
+    const char* PublicAddress = "";
+    const char* PrivateAddresses = "";
     if (!TryGetValue(argc, argv, "pub", &PublicAddress) ||
         !TryGetValue(argc, argv, "priv", &PrivateAddresses)) {
         printf("Usage: quiclb -pub:<address> -priv:<address>,<address>\n");

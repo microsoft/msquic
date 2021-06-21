@@ -1545,21 +1545,33 @@ NewBinding:
     // one and already create the binding.
     //
 
-#if 0
-    Binding = QuicLibraryLookupBinding(&NewLocalAddress, RemoteAddress);
-#else
-    //
-    // Don't allow multiple sockets on the same local tuple currently. So just
-    // do collision detection based on local tuple.
-    //
-    Binding =
-        QuicLibraryLookupBinding(
+    if (CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
+        //
+        // The datapath supports multiple connected sockets on the same local
+        // tuple, so we need to do collision detection based on the whole
+        // 4-tuple.
+        //
+        Binding =
+            QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
+                CompartmentId,
 #endif
-            &NewLocalAddress,
-            NULL);
+                &NewLocalAddress,
+                RemoteAddress);
+    } else {
+        //
+        // The datapath does not supports multiple connected sockets on the same
+        // local tuple, so we just do collision detection based on the local
+        // tuple.
+        //
+        Binding =
+            QuicLibraryLookupBinding(
+#ifdef QUIC_COMPARTMENT_ID
+                CompartmentId,
 #endif
+                &NewLocalAddress,
+                NULL);
+    }
     if (Binding != NULL) {
         if (!PortUnspecified && !Binding->Exclusive) {
             //

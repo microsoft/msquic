@@ -727,6 +727,10 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     CxPlatDataPath Datapath(0, &UdpRecvCallbacks);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
+    if (!(CxPlatDataPathGetSupportedFeatures(Datapath) & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING)) {
+        std::cout << "SKIP: Sharing Feature Unsupported" << std::endl;
+        return;
+    }
 
     auto serverAddress = GetNewLocalAddr();
     CxPlatSocket Server1(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
@@ -745,12 +749,12 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
 
     serverAddress.SockAddr = Server1.GetLocalAddress();
-    CxPlatSocket Client1(Datapath, nullptr, &serverAddress.SockAddr, &RecvContext);
+    CxPlatSocket Client1(Datapath, nullptr, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
     VERIFY_QUIC_SUCCESS(Client1.GetInitStatus());
 
     auto clientAddress = Client1.GetLocalAddress();
     serverAddress.SockAddr = Server2.GetLocalAddress();
-    CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext);
+    CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
     VERIFY_QUIC_SUCCESS(Client2.GetInitStatus());
 
     auto ClientSendData = CxPlatSendDataAlloc(Client1, CXPLAT_ECN_NON_ECT, 0);
