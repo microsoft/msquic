@@ -115,7 +115,6 @@ void PrintUsage()
 //
 // Helper functions to look up a command line arguments.
 //
-inline
 BOOLEAN
 GetFlag(
     _In_ int argc,
@@ -133,7 +132,6 @@ GetFlag(
     return FALSE;
 }
 
-inline
 _Ret_maybenull_ _Null_terminated_ const char*
 GetValue(
     _In_ int argc,
@@ -155,7 +153,10 @@ GetValue(
 //
 // Helper function to convert a hex character to its decimal value.
 //
-uint8_t DecodeHexChar(char c)
+uint8_t 
+DecodeHexChar(
+    _In_ char c
+    )
 {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'A' && c <= 'F') return 10 + c - 'A';
