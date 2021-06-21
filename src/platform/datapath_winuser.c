@@ -2833,6 +2833,11 @@ CxPlatSocketStartReceive(
                 DatapathProc->Index);
         if (SocketProc->CurrentRecvContext == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Socket Receive Buffer",
+                SocketProc->Parent->Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH);
             goto Error;
         }
     }
@@ -3157,7 +3162,21 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)CxPlatSocketStartReceive(SocketProc, DatapathProc);
+    int32_t RetryCount = 0;
+    QUIC_STATUS Status;
+    do {
+        Status = CxPlatSocketStartReceive(SocketProc, DatapathProc);
+    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            Status,
+            "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
+    }
+
 }
 
 void
