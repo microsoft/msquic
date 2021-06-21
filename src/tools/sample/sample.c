@@ -48,6 +48,10 @@ Abstract:
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(P) (void)(P)
+#endif
+
 //
 // The (optional) registration configuration for the app. This sets a name for
 // the app (used for persistent storage and for debugging). It also configures
