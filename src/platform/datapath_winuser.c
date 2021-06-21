@@ -3170,7 +3170,7 @@ Drop:
 
     if (!QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
-            DatapathError,
+            DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             Status,
