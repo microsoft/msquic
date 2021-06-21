@@ -1307,7 +1307,7 @@ MsQuicOpen(
 
 #else
 
-#define MsQuicOpen(QuicApi) MsQuicOpenVersion((const void**)QuicApi, 1)
+#define MsQuicOpen(QuicApi) MsQuicOpenVersion(1, (const void**)QuicApi)
 
 #endif // defined(__cplusplus) || defined(WIN32)
 
