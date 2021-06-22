@@ -1284,6 +1284,16 @@ MsQuicSetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
+    if ((Param & 0xFC000000) != 0) {
+        // Has level embedded parameter
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
+
     if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -1393,6 +1403,16 @@ MsQuicGetParam(
     )
 {
     CXPLAT_PASSIVE_CODE();
+
+    if ((Param & 0xFC000000) != 0) {
+        // Has level embedded parameter
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
 
     if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
         BufferLength == NULL) {
