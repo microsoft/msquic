@@ -138,11 +138,6 @@ typedef struct CX_PLATFORM {
 extern CX_PLATFORM CxPlatform;
 
 //
-// Internal flags used with CxPlatSocketCreateUdp
-//
-#define CXPLAT_SOCKET_FLAG_PCP  0x00000001
-
-//
 // PCP Receive Callback
 //
 CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;

@@ -351,6 +351,7 @@ CxPlatDataPathUninitialize(
 #define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
 #define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
 #define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
+#define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
 
 //
 // Queries the currently supported features of the datapath.
@@ -384,6 +385,9 @@ CxPlatDataPathResolveAddress(
 //
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
+
+#define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
+#define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
 
 //
 // Creates a UDP socket for the given (optional) local address and/or (optional)

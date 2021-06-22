@@ -257,6 +257,9 @@ if(WIN32)
     add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
     set_property(TARGET MsQuicEtw_Resource PROPERTY FOLDER "helpers")
 
+    message(STATUS "Disabling (client) shared port support")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
+
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
     endif()
@@ -315,7 +318,7 @@ if(WIN32)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
-else()
+else() #!WIN32
     # Custom build flags.
 
     if (QUIC_OPTIMIZE_LOCAL AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
@@ -334,8 +337,12 @@ else()
     if (CX_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_DARWIN)
         list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
+        message(STATUS "Disabling (client) shared port support")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
     else()
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
+        message(STATUS "Enabling shared ephemeral port work around")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
     endif()
 
     if (QUIC_DISABLE_POSIX_GSO)

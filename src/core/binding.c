@@ -126,7 +126,7 @@ QuicBindingInitialize(
                 LocalAddress != NULL ? &LocalAddressCopy : NULL,
                 RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
                 Binding,
-                0,
+                ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0,
                 &Binding->Socket);
     } else {
 #endif
@@ -136,7 +136,7 @@ QuicBindingInitialize(
                 LocalAddress,
                 RemoteAddress,
                 Binding,
-                0,
+                ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0,
                 &Binding->Socket);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
