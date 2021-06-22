@@ -896,6 +896,10 @@ main(int argc, char **argv)
             // This may fail on subsequent iterations, but not on the first.
             //
             CXPLAT_DBG_ASSERT(i > 0);
+            for (size_t j = 0; j < BufferCount; ++j) {
+                free(Buffers[j].Buffer);
+                Buffers[j].Buffer = nullptr;
+            }
             continue;
         }
 
