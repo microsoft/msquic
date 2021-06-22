@@ -433,6 +433,10 @@ Error:
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
         }
+        if (MsQuicLib.DefaultCompatibilityList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+            MsQuicLib.DefaultCompatibilityList = NULL;
+        }
         if (PlatformInitialized) {
             CxPlatUninitialize();
         }
