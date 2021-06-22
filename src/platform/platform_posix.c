@@ -549,7 +549,7 @@ CxPlatThreadCreate(
         cpu_set_t CpuSet;
         CPU_ZERO(&CpuSet);
         CPU_SET(Config->IdealProcessor, &CpuSet);
-        if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
+        if (pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -564,7 +564,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+        if (pthread_attr_setschedparam(&Attr, &Params)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
@@ -617,7 +617,7 @@ CxPlatThreadCreate(
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
-            if (!pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
+            if (pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
