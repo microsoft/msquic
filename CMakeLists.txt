@@ -318,7 +318,7 @@ if(WIN32)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
-else()
+else() #!WIN32
     # Custom build flags.
 
     if (QUIC_OPTIMIZE_LOCAL AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
@@ -341,6 +341,8 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
     else()
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
+        message(STATUS "Enabling shared ephemeral port work around")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
     endif()
 
     if (QUIC_DISABLE_POSIX_GSO)
