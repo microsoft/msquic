@@ -26,7 +26,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
 
 # Members
 
-## `Type`
+#### `Type`
 
 Indicates which type of credential is represented.
 
@@ -57,7 +57,7 @@ Only valid for OpenSSL.
 Provide an in-memory ASN.1 blob of a PKCS12 (PFX) certificate and private, with optional private key password, pointed to by the `CertificatePkcs12` member.
 Not currently supported.
 
-## `Flags`
+#### `Flags`
 
 Any combination of the following flags which change the credential behavior.
 
