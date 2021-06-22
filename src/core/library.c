@@ -543,6 +543,7 @@ MsQuicLibraryUninitialize(
     QuicSettingsCleanup(&MsQuicLib.Settings);
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+    MsQuicLib.DefaultCompatibilityList = NULL;
 
     QuicTraceEvent(
         LibraryUninitialized,
