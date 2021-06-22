@@ -1458,7 +1458,7 @@ QuicLibraryGetBinding(
     _Out_ QUIC_BINDING** NewBinding
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
+    QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
     BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
@@ -1490,6 +1490,7 @@ SharedEphemeralRetry:
         goto NewBinding;
     }
 
+    Status = QUIC_STATUS_NOT_FOUND;
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
     Binding =
