@@ -1293,6 +1293,9 @@ MsQuicOpenVersion(
 #if defined(__cplusplus) || defined(WIN32)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+#ifndef WIN32
+__attribute__((always_inline))
+#endif
 inline
 QUIC_STATUS
 MsQuicOpen(
@@ -1304,7 +1307,7 @@ MsQuicOpen(
 
 #else
 
-#define MsQuicOpen(QuicApi) MsQuicOpenVersion((const void**)QuicApi, 1)
+#define MsQuicOpen(QuicApi) MsQuicOpenVersion(1, (const void**)QuicApi)
 
 #endif // defined(__cplusplus) || defined(WIN32)
 
