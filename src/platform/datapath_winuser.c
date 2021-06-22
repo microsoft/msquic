@@ -1291,6 +1291,7 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _In_ uint32_t InternalFlags,
+    _In_ uint16_t IdealProcessor,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
@@ -1614,7 +1615,7 @@ CxPlatSocketCreateUdp(
 
         if (RemoteAddress != NULL) {
             AffinitizedProcessor =
-                ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
+                IdealProcessor % Datapath->ProcCount;
             Socket->ProcessorAffinity = AffinitizedProcessor;
         }
 

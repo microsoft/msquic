@@ -1306,9 +1306,11 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _In_ uint32_t InternalFlags,
+    _In_ uint16_t IdealProcessor,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
+    UNREFERENCED_PARAMETER(IdealProcessor);
     QUIC_STATUS Status = STATUS_SUCCESS;
     size_t BindingSize;
     CXPLAT_SOCKET* Binding = NULL;

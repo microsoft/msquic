@@ -498,6 +498,7 @@ TEST_F(DataPathTest, UdpBind)
             nullptr,
             nullptr,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &Socket));
     ASSERT_NE(nullptr, Socket);
 
@@ -532,6 +533,7 @@ TEST_F(DataPathTest, UdpRebind)
             nullptr,
             nullptr,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &binding1));
     ASSERT_NE(nullptr, binding1);
 
@@ -546,6 +548,7 @@ TEST_F(DataPathTest, UdpRebind)
             nullptr,
             nullptr,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &binding2));
     ASSERT_NE(nullptr, binding2);
 
@@ -589,6 +592,7 @@ TEST_P(DataPathTest, UdpData)
                 nullptr,
                 &RecvContext,
                 0,
+                (uint16_t)CxPlatProcCurrentNumber(),
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -611,6 +615,7 @@ TEST_P(DataPathTest, UdpData)
             &serverAddress.SockAddr,
             &RecvContext,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -674,6 +679,7 @@ TEST_P(DataPathTest, UdpDataRebind)
                 nullptr,
                 &RecvContext,
                 0,
+                (uint16_t)CxPlatProcCurrentNumber(),
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -696,6 +702,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             &serverAddress.SockAddr,
             &RecvContext,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -732,6 +739,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             &serverAddress.SockAddr,
             &RecvContext,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -794,6 +802,7 @@ TEST_P(DataPathTest, UdpDataECT0)
                 nullptr,
                 &RecvContext,
                 0,
+                (uint16_t)CxPlatProcCurrentNumber(),
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -816,6 +825,7 @@ TEST_P(DataPathTest, UdpDataECT0)
             &serverAddress.SockAddr,
             &RecvContext,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &client));
     ASSERT_NE(nullptr, client);
 

@@ -187,6 +187,7 @@ CxPlatPcpInitialize(
                 &GatewayAddresses[i],
                 PcpContext,
                 CXPLAT_SOCKET_FLAG_PCP,
+                (uint16_t)CxPlatProcCurrentNumber(),
                 &PcpContext->GatewaySockets[i]);
         if (QUIC_FAILED(Status)) {
             goto Exit;

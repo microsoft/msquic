@@ -43,6 +43,7 @@ QuicBindingInitialize(
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_ uint16_t IdealProcessor,
     _Out_ QUIC_BINDING** NewBinding
     )
 {
@@ -127,6 +128,7 @@ QuicBindingInitialize(
                 RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
                 Binding,
                 0,
+                IdealProcessor,
                 &Binding->Socket);
     } else {
 #endif
@@ -137,6 +139,7 @@ QuicBindingInitialize(
                 RemoteAddress,
                 Binding,
                 0,
+                IdealProcessor,
                 &Binding->Socket);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
