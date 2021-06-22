@@ -1288,6 +1288,10 @@ MsQuicSetParam(
         // Has level embedded parameter
         QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
         if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {
@@ -1408,6 +1412,10 @@ MsQuicGetParam(
         // Has level embedded parameter
         QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
         if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {
