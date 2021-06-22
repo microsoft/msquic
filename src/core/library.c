@@ -507,6 +507,10 @@ Error:
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
         }
+        if (MsQuicLib.DefaultCompatibilityList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+            MsQuicLib.DefaultCompatibilityList = NULL;
+        }
         if (PlatformInitialized) {
             CxPlatUninitialize();
         }
@@ -613,6 +617,7 @@ MsQuicLibraryUninitialize(
     QuicSettingsCleanup(&MsQuicLib.Settings);
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+    MsQuicLib.DefaultCompatibilityList = NULL;
 
     QuicTraceEvent(
         LibraryUninitialized,
@@ -1539,16 +1544,30 @@ QuicLibraryGetBinding(
     _Out_ QUIC_BINDING** NewBinding
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
+    QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
     BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
+
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+    //
+    // To work around the Linux bug where the stack sometimes gives us a "new"
+    // empheral port that matches an existing one, we retry, starting from that
+    // port and incrementing the number until we get one that works.
+    //
+    BOOLEAN SharedEphemeralWorkAround = FALSE;
+SharedEphemeralRetry:
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
 
     //
     // First check to see if a binding already exists that matches the
     // requested addresses.
     //
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+    if (PortUnspecified && !SharedEphemeralWorkAround) {
+#else
     if (PortUnspecified) {
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
         //
         // No specified local port, so we always create a new binding, and let
         // the networking stack assign us a new ephemeral port. We can skip the
@@ -1557,6 +1576,7 @@ QuicLibraryGetBinding(
         goto NewBinding;
     }
 
+    Status = QUIC_STATUS_NOT_FOUND;
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
     Binding =
@@ -1593,6 +1613,13 @@ QuicLibraryGetBinding(
     CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 
     if (Status != QUIC_STATUS_NOT_FOUND) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+        if (QUIC_FAILED(Status) && SharedEphemeralWorkAround) {
+            CXPLAT_DBG_ASSERT(LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+        }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
         goto Exit;
     }
 
@@ -1613,6 +1640,13 @@ NewBinding:
             RemoteAddress,
             NewBinding);
     if (QUIC_FAILED(Status)) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+        if (SharedEphemeralWorkAround) {
+            CXPLAT_DBG_ASSERT(LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+        }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
         goto Exit;
     }
 
@@ -1626,21 +1660,33 @@ NewBinding:
     // one and already create the binding.
     //
 
-#if 0
-    Binding = QuicLibraryLookupBinding(&NewLocalAddress, RemoteAddress);
-#else
-    //
-    // Don't allow multiple sockets on the same local tuple currently. So just
-    // do collision detection based on local tuple.
-    //
-    Binding =
-        QuicLibraryLookupBinding(
+    if (CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
+        //
+        // The datapath supports multiple connected sockets on the same local
+        // tuple, so we need to do collision detection based on the whole
+        // 4-tuple.
+        //
+        Binding =
+            QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
+                CompartmentId,
 #endif
-            &NewLocalAddress,
-            NULL);
+                &NewLocalAddress,
+                RemoteAddress);
+    } else {
+        //
+        // The datapath does not supports multiple connected sockets on the same
+        // local tuple, so we just do collision detection based on the local
+        // tuple.
+        //
+        Binding =
+            QuicLibraryLookupBinding(
+#ifdef QUIC_COMPARTMENT_ID
+                CompartmentId,
 #endif
+                &NewLocalAddress,
+                NULL);
+    }
     if (Binding != NULL) {
         if (!PortUnspecified && !Binding->Exclusive) {
             //
@@ -1670,8 +1716,7 @@ NewBinding:
             //
             // The datapath somehow returned us a "new" ephemeral socket that
             // already matched one of our existing ones. We've seen this on
-            // Linux occasionally. This shouldn't happen, but it does. Log and
-            // bail.
+            // Linux occasionally. This shouldn't happen, but it does.
             //
             QuicTraceEvent(
                 BindingError,
@@ -1681,7 +1726,19 @@ NewBinding:
             (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
+
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+            //
+            // Use the invalid address as a starting point to search for a new
+            // one.
+            //
+            SharedEphemeralWorkAround = TRUE;
+            LocalAddress = &NewLocalAddress;
+            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+#else
             Status = QUIC_STATUS_INTERNAL_ERROR;
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
 
         } else if (Binding->Exclusive) {
             QuicTraceEvent(
@@ -1692,6 +1749,13 @@ NewBinding:
             (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+            if (SharedEphemeralWorkAround) {
+                CXPLAT_DBG_ASSERT(LocalAddress);
+                QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+                goto SharedEphemeralRetry;
+            }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
             Status = QUIC_STATUS_ADDRESS_IN_USE;
 
         } else {

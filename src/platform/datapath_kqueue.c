@@ -372,6 +372,25 @@ CxPlatSocketSendInternal(
     _In_ BOOLEAN IsPendedSend
     );
 
+void
+CxPlatProcessorContextUninitialize(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    )
+{
+    struct kevent Event = {0};
+    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
+    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+    CxPlatThreadWait(&ProcContext->KqueueWaitThread);
+    CxPlatThreadDelete(&ProcContext->KqueueWaitThread);
+
+    close(ProcContext->KqueueFd);
+
+    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
+}
+
 QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -382,6 +401,7 @@ CxPlatProcessorContextInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int KqueueFd = INVALID_SOCKET;
     uint32_t RecvPacketLength = 0;
+    BOOLEAN ThreadCreated = FALSE;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
@@ -451,35 +471,20 @@ CxPlatProcessorContextInitialize(
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        if (KqueueFd != INVALID_SOCKET) {
-            close(KqueueFd);
+        if (ThreadCreated) {
+            CxPlatProcessorContextUninitialize(ProcContext);
+        } else {
+            if (KqueueFd != INVALID_SOCKET) {
+                close(KqueueFd);
+            }
+            CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+            CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+            CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+            CxPlatPoolUninitialize(&ProcContext->SendDataPool);
         }
-        CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-        CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-        CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-        CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     }
 
     return Status;
-}
-
-void
-CxPlatProcessorContextUninitialize(
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
-    )
-{
-    struct kevent Event = {0};
-    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
-    CxPlatThreadWait(&ProcContext->KqueueWaitThread);
-    CxPlatThreadDelete(&ProcContext->KqueueWaitThread);
-
-    close(ProcContext->KqueueFd);
-
-    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
 }
 
 QUIC_STATUS
@@ -1140,15 +1145,18 @@ CxPlatSocketContextStartReceive(
             SocketContext->Binding,
             Status,
             "kevent failed");
+
+        //
+        // Return any allocations
+        //
+        if (SocketContext->CurrentRecvBlock != NULL) {
+            CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
+        }
+
         goto Error;
     }
 
 Error:
-
-    if (QUIC_FAILED(Status)) {
-        close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET;
-    }
 
     return Status;
 }
@@ -1243,13 +1251,19 @@ CxPlatSocketContextRecvComplete(
             RecvPacket);
     }
 
-    Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    int32_t RetryCount = 0;
+    do {
+        Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
 
-    //
-    // Prepare can only fail under low memory condition. Treat it as a fatal
-    // error.
-    //
-    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
+    }
 }
 
 //
@@ -1412,6 +1426,7 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
+    int32_t SuccessfulStartReceives = -1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1494,11 +1509,13 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
+    SuccessfulStartReceives = 0;
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i]);
         if (QUIC_FAILED(Status)) {
+            SuccessfulStartReceives = (int32_t)i;
             goto Exit;
         }
     }
@@ -1513,7 +1530,36 @@ Exit:
                 DatapathDestroyed,
                 "[data][%p] Destroyed",
                 Binding);
-            // TODO - Clean up socket contexts
+
+            if (SuccessfulStartReceives >= 0) {
+                uint32_t CurrentSocket = 0;
+                Binding->Shutdown = TRUE;
+
+                //
+                // First shutdown any sockets that fully started
+                //
+                for (; CurrentSocket < (uint32_t)SuccessfulStartReceives; CurrentSocket++) {
+                    CxPlatSocketContextUninitialize(&Binding->SocketContexts[CurrentSocket]);
+                }
+                //
+                // Then shutdown any sockets that failed to start
+                //
+                for (; CurrentSocket < SocketCount; CurrentSocket++) {
+                    CxPlatSocketContextUninitializeComplete(&Binding->SocketContexts[CurrentSocket]);
+                }
+            } else {
+                //
+                // No sockets fully started. Only uninitialize static things
+                //
+                for (uint32_t i = 0; i < SocketCount; i++) {
+                    CXPLAT_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+                    if (SocketContext->SocketFd != INVALID_SOCKET) {
+                        close(SocketContext->SocketFd);
+                    }
+                    CxPlatRundownRelease(&Binding->Rundown);
+                }
+            }
+            CxPlatRundownReleaseAndWait(&Binding->Rundown);
             CxPlatRundownRelease(&Datapath->BindingsRundown);
             CxPlatRundownUninitialize(&Binding->Rundown);
             for (uint32_t i = 0; i < SocketCount; i++) {

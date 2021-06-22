@@ -769,6 +769,17 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    GetLocalAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
     SetLocalAddr(_In_ const QuicAddr& Addr) noexcept {
         return
             MsQuic->SetParam(
@@ -777,6 +788,18 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 sizeof(Addr.SockAddr),
                 &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    SetShareUdpBinding(_In_ bool ShareBinding = true) noexcept {
+        BOOLEAN Value = ShareBinding ? TRUE : FALSE;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Value),
+                &Value);
     }
 
     QUIC_STATUS
