@@ -101,7 +101,7 @@ struct SpinQuicGlobals {
     QUIC_BUFFER* Alpns {nullptr};
     uint32_t AlpnCount {0};
     QUIC_BUFFER Buffers[BufferCount];
-    SpinQuicGlobals() {}
+    SpinQuicGlobals() { CxPlatZeroMemory(Buffers, sizeof(Buffers)); }
     ~SpinQuicGlobals() {
         while (ClientConfigurations.size() > 0) {
             auto Configuration = ClientConfigurations.back();
@@ -117,8 +117,10 @@ struct SpinQuicGlobals {
         if (Registration) {
             MsQuic->RegistrationClose(Registration);
         }
-        DumpMsQuicPerfCounters(MsQuic);
-        MsQuicClose(MsQuic);
+        if (MsQuic) {
+            DumpMsQuicPerfCounters(MsQuic);
+            MsQuicClose(MsQuic);
+        }
         for (size_t j = 0; j < BufferCount; ++j) {
             free(Buffers[j].Buffer);
         }
