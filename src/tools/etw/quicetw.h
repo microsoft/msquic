@@ -5,8 +5,8 @@
 
 --*/
 
-#include <quic_platform.h>
-#include <msquic.h>
+#include "quic_platform.h"
+#include "msquic.h"
 #include <evntrace.h>
 #include <evntcons.h>
 #include <tdh.h>

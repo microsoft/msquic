@@ -42,7 +42,7 @@ Environment:
 #include <wsk.h>
 #include <bcrypt.h>
 #include <intrin.h>
-#include <msquic_winkernel.h>
+#include "msquic_winkernel.h"
 #pragma warning(pop)
 
 #if defined(__cplusplus)

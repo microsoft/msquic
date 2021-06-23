@@ -10,8 +10,8 @@
 
 #include <string>
 #include <vector>
-#include <msquichelper.h>
-#include <quic_trace.h>
+#include "msquichelper.h"
+#include "quic_trace.h"
 
 //
 // Different features tested by this tool.

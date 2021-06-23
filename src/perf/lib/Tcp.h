@@ -12,8 +12,8 @@ Abstract:
 #pragma once
 
 #include "PerfHelpers.h"
-#include <quic_datapath.h>
-#include <quic_tls.h>
+#include "quic_datapath.h"
+#include "quic_tls.h"
 
 #define TLS_BLOCK_SIZE 0x4000
 

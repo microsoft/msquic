@@ -9,9 +9,9 @@ Abstract:
 
 --*/
 
-#include <quic_platform.h>
-#include <quic_datapath.h>
-#include <MsQuicTests.h>
+#include "quic_platform.h"
+#include "quic_datapath.h"
+#include "MsQuicTests.h"
 
 const uint32_t TestWaitTimeout = 2000;
 

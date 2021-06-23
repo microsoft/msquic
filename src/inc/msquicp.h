@@ -14,7 +14,7 @@ Abstract:
 #ifndef _MSQUICP_
 #define _MSQUICP_
 
-#include <msquic.h>
+#include "msquic.h"
 
 #if defined(__cplusplus)
 extern "C" {
