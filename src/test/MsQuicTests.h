@@ -36,6 +36,7 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
 void QuicTestDesiredVersionSettings();
+void QuicTestValidateParamApi();
 
 //
 // Event Validation Tests
@@ -855,4 +856,7 @@ typedef struct {
     QUIC_CTL_CODE(69, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 69
+#define IOCTL_QUIC_RUN_VALIDATE_PARAM_API \
+    QUIC_CTL_CODE(70, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 70

@@ -1287,7 +1287,9 @@ MsQuicSetParam(
     CXPLAT_PASSIVE_CODE();
 
     if ((Param & 0xFC000000) != 0) {
-        // Has level embedded parameter
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
         QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
         if (ParamContainedLevel != Level) {
             QuicTraceEvent(
@@ -1297,6 +1299,9 @@ MsQuicSetParam(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
         Param = QUIC_PARAM_GENERATOR(Level, Param);
     }
 
@@ -1411,7 +1416,9 @@ MsQuicGetParam(
     CXPLAT_PASSIVE_CODE();
 
     if ((Param & 0xFC000000) != 0) {
-        // Has level embedded parameter
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
         QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
         if (ParamContainedLevel != Level) {
             QuicTraceEvent(
@@ -1421,6 +1428,9 @@ MsQuicGetParam(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
         Param = QUIC_PARAM_GENERATOR(Level, Param);
     }
 

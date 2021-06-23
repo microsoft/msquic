@@ -255,6 +255,15 @@ TEST(ParameterValidation, ValidateDesiredVersionSettings) {
     }
 }
 
+TEST(ParameterValidation, ValidateParamApi) {
+    TestLogger Logger("QuicTestValidateParamApi");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_PARAM_API));
+    } else {
+        QuicTestValidateParamApi();
+    }
+}
+
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
     if (TestingKernelMode) {
