@@ -805,27 +805,29 @@ CxPlatTlsSecConfigCreate(
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
-#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
-    SecurityConfig->Flags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
-#endif
+    QUIC_CREDENTIAL_FLAGS CredConfigFlags = CredConfig->Flags;
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
         CredConfig->AsyncHandler == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
-    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) &&
-        (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
+    CredConfigFlags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
+#endif
+
+    if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) &&
+        (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -833,7 +835,7 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and should be NULL.
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
         }
@@ -873,7 +875,7 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
         ((CredConfig->AllowedCipherSuites &
             (QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 |
             QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 |
@@ -911,7 +913,7 @@ CxPlatTlsSecConfigCreate(
 
     CxPlatZeroMemory(SecurityConfig, sizeof(CXPLAT_SEC_CONFIG));
     SecurityConfig->Callbacks = *TlsCallbacks;
-    SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->Flags = CredConfigFlags;
     SecurityConfig->TlsFlags = TlsCredFlags;
 
     //
@@ -956,7 +958,7 @@ CxPlatTlsSecConfigCreate(
     }
 
     char* CipherSuites = CXPLAT_TLS_DEFAULT_SSL_CIPHERS;
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
         //
         // Calculate allowed cipher suite string length.
         //
@@ -1075,7 +1077,7 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
-    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) &&
+    if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) &&
         !(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
         SSL_CTX_set_session_cache_mode(
             SecurityConfig->SSLCtx,
@@ -1085,7 +1087,7 @@ CxPlatTlsSecConfigCreate(
             CxPlatTlsOnClientSessionTicketReceived);
     }
 
-    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+    if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         if (!(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
             Ret = SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, 0xFFFFFFFF);
             if (Ret != 1) {
@@ -1126,7 +1128,7 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, CxPlatTlsCertificateVerifyCallback);
         SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
 
@@ -1331,7 +1333,7 @@ CxPlatTlsSecConfigCreate(
     CompletionHandler(CredConfig, Context, Status, SecurityConfig);
     SecurityConfig = NULL;
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
         Status = QUIC_STATUS_PENDING;
     } else {
         Status = QUIC_STATUS_SUCCESS;
