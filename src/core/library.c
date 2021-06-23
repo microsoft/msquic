@@ -136,7 +136,7 @@ MsQuicLibraryUnload(
             // Allow possibly spinning thread that incremented ref count in
             // the meantime to proceed.
             //
-            InterlockedAnd((long*)&MsQuicLib.LoadState, 0x7FFFFFFFl); // ~UNLOADING_BIT
+            InterlockedAnd((long*)&MsQuicLib.LoadState, 0x7FFFFFFFL); // ~UNLOADING_BIT
         }
     }
 }
