@@ -650,6 +650,7 @@ CxPlatDataPathInitialize(
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
+    Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
 
 #ifdef UDP_SEGMENT
@@ -926,7 +927,8 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ BOOLEAN ForceShare
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1179,9 +1181,9 @@ CxPlatSocketContextInitialize(
 
     //
     // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-    // assigned a server port.
+    // assigned a server port (unless it's forcing sharing).
     //
-    if (RemoteAddress == NULL) {
+    if (ForceShare || RemoteAddress == NULL) {
         //
         // The port is shared across processors.
         //
@@ -1848,7 +1850,8 @@ CxPlatSocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 LocalAddress,
-                RemoteAddress);
+                RemoteAddress,
+                InternalFlags & CXPLAT_SOCKET_FLAG_SHARE);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }

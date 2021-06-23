@@ -489,6 +489,17 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
 }
 #endif // QUIC_DISABLE_RESUMPTION
 
+#ifndef QUIC_DISABLE_SHARED_PORT_TESTS
+TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
+    TestLoggerT<ParamType> Logger("QuicTestClientSharedLocalPort", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT, GetParam().Family));
+    } else {
+        QuicTestClientSharedLocalPort(GetParam().Family);
+    }
+}
+#endif
+
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
     if (TestingKernelMode) {

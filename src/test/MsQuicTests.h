@@ -167,6 +167,11 @@ QuicTestLoadBalancedHandshake(
     _In_ int Family
     );
 
+void
+QuicTestClientSharedLocalPort(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -856,7 +861,11 @@ typedef struct {
     QUIC_CTL_CODE(69, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define IOCTL_QUIC_RUN_VALIDATE_PARAM_API \
+#define IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT \
     QUIC_CTL_CODE(70, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 70
+#define IOCTL_QUIC_RUN_VALIDATE_PARAM_API \
+    QUIC_CTL_CODE(71, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 71
