@@ -5,8 +5,8 @@
 
 --*/
 
-#include <msquichelper.h>
-#include <quic_pcp.h>
+#include "msquichelper.h"
+#include "quic_pcp.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_PCP_CALLBACK)

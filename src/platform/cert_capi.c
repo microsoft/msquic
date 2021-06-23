@@ -20,7 +20,7 @@ Environment:
 #endif
 
 #include <wincrypt.h>
-#include <msquic.h>
+#include "msquic.h"
 
 typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;

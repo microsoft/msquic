@@ -19,8 +19,8 @@
 #include "quic_versions.h"
 #include "quic_trace.h"
 
-#include <msquic.h>
-#include <msquicp.h>
+#include "msquic.h"
+#include "msquicp.h"
 
 #ifdef QUIC_FUZZER
 #include "msquic_fuzz.h"

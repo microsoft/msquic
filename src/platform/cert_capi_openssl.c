@@ -37,7 +37,7 @@ Environment:
 
 #ifdef _WIN32
 #include <wincrypt.h>
-#include <msquic.h>
+#include "msquic.h"
 
 BOOLEAN
 CxPlatTlsVerifyCertificate(

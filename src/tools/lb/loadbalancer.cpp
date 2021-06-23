@@ -14,9 +14,9 @@ Abstract:
 #include <unordered_map>
 #include <mutex>
 
-#include <quic_datapath.h>
-#include <quic_toeplitz.h>
-#include <msquichelper.h>
+#include "quic_datapath.h"
+#include "quic_toeplitz.h"
+#include "msquichelper.h"
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;

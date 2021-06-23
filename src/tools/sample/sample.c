@@ -44,7 +44,7 @@ Abstract:
 //
 #pragma warning(disable:5105)
 #endif
-#include <msquic.h>
+#include "msquic.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -153,7 +153,7 @@ GetValue(
 //
 // Helper function to convert a hex character to its decimal value.
 //
-uint8_t 
+uint8_t
 DecodeHexChar(
     _In_ char c
     )

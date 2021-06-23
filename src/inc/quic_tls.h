@@ -11,8 +11,8 @@ Abstract:
 
 #pragma once
 
-#include <msquic.h>
-#include <quic_crypt.h>
+#include "msquic.h"
+#include "quic_crypt.h"
 
 #if defined(__cplusplus)
 extern "C" {

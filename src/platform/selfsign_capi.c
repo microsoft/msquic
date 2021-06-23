@@ -17,7 +17,7 @@ Abstract:
 #endif
 
 #include <wincrypt.h>
-#include <msquic.h>
+#include "msquic.h"
 
 #define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
 #define CXPLAT_CERT_CREATION_EVENT_WAIT                 10000
