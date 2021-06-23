@@ -937,6 +937,9 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             }
             Gb.ClientConfigurations.push_back(Configuration);
         }
+        if (Gb.ClientConfigurations.size() != Gb.AlpnCount) {
+            break;
+        }
 
         CXPLAT_THREAD Threads[2];
 
