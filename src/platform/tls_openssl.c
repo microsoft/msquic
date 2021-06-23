@@ -805,6 +805,10 @@ CxPlatTlsSecConfigCreate(
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
+#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
+    SecurityConfig->Flags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
+#endif
+
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
         CredConfig->AsyncHandler == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -816,18 +820,13 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) &&
+        (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
         CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
-        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
-#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
-        return QUIC_STATUS_NOT_SUPPORTED; // Only available on windows
-#else
-        if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-#endif
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (CredConfig->Reserved != NULL) {
@@ -1037,10 +1036,6 @@ CxPlatTlsSecConfigCreate(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-
-#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
-    SecurityConfig->Flags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
-#endif
 
     if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
         Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
