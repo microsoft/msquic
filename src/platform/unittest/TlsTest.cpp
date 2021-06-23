@@ -1875,11 +1875,11 @@ SchannelSecConfigCreateComplete(
     _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
     )
 {
-#if QUIC_TLS_SCHANNEL
+#if QUIC_TEST_SCHANNEL_FLAGS
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, SecConfig);
     *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
-#elif QUIC_TLS_OPENSSL
+#else
     //
     // Test should fail before getting this far.
     //
@@ -1887,8 +1887,6 @@ SchannelSecConfigCreateComplete(
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Status);
     UNREFERENCED_PARAMETER(SecConfig);
-#else
-#error "New TLS library? Please update test."
 #endif
 }
 
@@ -1898,15 +1896,13 @@ ValidateSecConfigStatusSchannel(
     _In_ CXPLAT_SEC_CONFIG* SecConfig
     )
 {
-#if QUIC_TLS_SCHANNEL
+#if QUIC_TEST_SCHANNEL_FLAGS
         VERIFY_QUIC_SUCCESS(Status);
         ASSERT_NE(nullptr, SecConfig);
         CxPlatTlsSecConfigDelete(SecConfig);
-#elif QUIC_TLS_OPENSSL
+#else
         ASSERT_TRUE(QUIC_FAILED(Status));
         ASSERT_EQ(nullptr, SecConfig);
-#else
-#error "New TLS library? Please update test."
 #endif
 }
 
@@ -1968,11 +1964,11 @@ OpenSslSecConfigCreateComplete(
     _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
     )
 {
-#if QUIC_TLS_OPENSSL
+#if QUIC_TEST_OPENSSL_FLAGS
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, SecConfig);
     *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
-#elif QUIC_TLS_SCHANNEL
+#else
     //
     // Test should fail before getting this far.
     //
@@ -1980,8 +1976,6 @@ OpenSslSecConfigCreateComplete(
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Status);
     UNREFERENCED_PARAMETER(SecConfig);
-#else
-#error "New TLS library? Please update test."
 #endif
 }
 
@@ -1991,15 +1985,13 @@ ValidateSecConfigStatusOpenSsl(
     _In_ CXPLAT_SEC_CONFIG* SecConfig
     )
 {
-#if QUIC_TLS_OPENSSL
+#if QUIC_TEST_OPENSSL_FLAGS
         VERIFY_QUIC_SUCCESS(Status);
         ASSERT_NE(nullptr, SecConfig);
         CxPlatTlsSecConfigDelete(SecConfig);
-#elif QUIC_TLS_SCHANNEL
+#else
         ASSERT_TRUE(QUIC_FAILED(Status));
         ASSERT_EQ(nullptr, SecConfig);
-#else
-#error "New TLS library? Please update test."
 #endif
 }
 
