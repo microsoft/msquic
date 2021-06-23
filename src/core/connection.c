@@ -3154,6 +3154,14 @@ QuicConnRecvRetry(
     }
 
     //
+    // Make sure the connection is still active
+    //
+    if (Connection->State.ClosedLocally || Connection->State.ClosedRemotely) {
+        QuicPacketLogDrop(Connection, Packet, "Connection is shutting down");
+        return;
+    }
+
+    //
     // Decode and validate the Retry packet.
     //
 
