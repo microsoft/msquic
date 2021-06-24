@@ -30,10 +30,6 @@ QuicLibraryEvaluateSendRetryState(
     void
     );
 
-#define UNLOADING_BIT 0x80000000u
-#define LOADED_BIT    0x40000000u
-#define REFCOUNT_MASK 0x3FFFFFFFu
-
 //
 // Initializes all global variables if not already done.
 //
