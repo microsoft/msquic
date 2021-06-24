@@ -7,9 +7,9 @@
 
 #define QUIC_TEST_APIS 1
 
-#include <quic_platform.h>
-#include <MsQuicTests.h>
-#include <msquichelper.h>
+#include "quic_platform.h"
+#include "MsQuicTests.h"
+#include "msquichelper.h"
 #include "quic_trace.h"
 #include "quic_driver_helpers.h"
 #undef min // gtest headers conflict with previous definitions of min/max.

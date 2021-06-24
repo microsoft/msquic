@@ -13,7 +13,7 @@ Abstract:
 
 --*/
 
-#include <quic_platform.h>
+#include "quic_platform.h"
 #include <stdio.h>
 
 inline ULONG HashPtr(ULONG64 ObjPtr)

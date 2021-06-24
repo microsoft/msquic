@@ -38,13 +38,13 @@ Environment:
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <msquic_posix.h>
+#include "msquic_posix.h"
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
-#include <quic_sal_stub.h>
+#include "quic_sal_stub.h"
 
 #if defined(__cplusplus)
 extern "C" {

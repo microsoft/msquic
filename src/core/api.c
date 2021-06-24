@@ -1268,6 +1268,8 @@ Exit:
     return Status;
 }
 
+#define QUIC_PARAM_GENERATOR(Level, Value) (((Level + 1) & 0x3F) << 26 | (Value & 0x3FFFFFF))
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1283,6 +1285,25 @@ MsQuicSetParam(
     )
 {
     CXPLAT_PASSIVE_CODE();
+
+    if ((Param & 0xFC000000) != 0) {
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
 
     if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1393,6 +1414,25 @@ MsQuicGetParam(
     )
 {
     CXPLAT_PASSIVE_CODE();
+
+    if ((Param & 0xFC000000) != 0) {
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
 
     if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
         BufferLength == NULL) {

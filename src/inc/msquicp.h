@@ -14,7 +14,7 @@ Abstract:
 #ifndef _MSQUICP_
 #define _MSQUICP_
 
-#include <msquic.h>
+#include "msquic.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -121,18 +121,18 @@ typedef struct CXPLAT_TLS_SECRETS {
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
 
-#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x80000001  // QUIC_TEST_DATAPATH_HOOKS*
-#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x80000002  // uint32_t
-#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x80000003  // uint32_t
+#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x5000001  // QUIC_TEST_DATAPATH_HOOKS*
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x5000002  // uint32_t
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x5000003  // uint32_t
 
 //
 // The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.
 //
 
-#define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000001  // No payload
-#define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000002  // No payload
-#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
-#define QUIC_PARAM_CONN_TLS_SECRETS                     0x80000004  // CXPLAT_TLS_SECRETS (SSLKEYLOGFILE compatible)
+#define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x15000001  // No payload
+#define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x15000002  // No payload
+#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x15000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
+#define QUIC_PARAM_CONN_TLS_SECRETS                     0x15000004  // CXPLAT_TLS_SECRETS (SSLKEYLOGFILE compatible)
 
 #if defined(__cplusplus)
 }

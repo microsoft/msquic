@@ -16,8 +16,8 @@ TODO:
 
 #pragma once
 
-#include <msquic.h>
-#include <msquicp.h>
+#include "msquic.h"
+#include "msquicp.h"
 
 #ifdef ENABLE_QUIC_PRINTF
 #include <stdio.h>

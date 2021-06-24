@@ -21,7 +21,7 @@ Future:
 #endif
 
 extern "C" {
-#include <quic_datapath.h>
+#include "quic_datapath.h"
 }
 
 void
