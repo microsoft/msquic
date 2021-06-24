@@ -3994,6 +3994,11 @@ QuicConnRecvFrames(
     uint16_t PayloadLength = Packet->PayloadLength;
     uint64_t RecvTime = CxPlatTimeUs64();
 
+    if (!QuicConnIsServer(Connection) &&
+        !Connection->State.GotFirstServerResponse) {
+        Connection->State.GotFirstServerResponse = TRUE;
+    }
+
     uint16_t Offset = 0;
     while (Offset < PayloadLength) {
 
@@ -4814,11 +4819,6 @@ QuicConnRecvFrames(
     }
 
 Done:
-
-    if (!QuicConnIsServer(Connection) &&
-        !Connection->State.GotFirstServerResponse) {
-        Connection->State.GotFirstServerResponse = TRUE;
-    }
 
     if (UpdatedFlowControl) {
         QuicConnLogOutFlowStats(Connection);
