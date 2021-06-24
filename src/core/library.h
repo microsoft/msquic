@@ -76,15 +76,14 @@ typedef struct QUIC_LIBRARY {
 
     //
     // Tracks whether the library loaded (DllMain or DriverEntry invoked on Windows).
-    // MSB [Unloading:1] [Loading:1] [RefCount:30] LSB
     //
-    volatile uint32_t LoadState;
+    BOOLEAN Loaded : 1;
 
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
     //
-    BOOLEAN IsVerifying;
+    BOOLEAN IsVerifying : 1;
 #endif
 
     //
@@ -120,9 +119,14 @@ typedef struct QUIC_LIBRARY {
     CXPLAT_DISPATCH_LOCK DatapathLock;
 
     //
-    // Total outstanding references on the library.
+    // Total outstanding references from calls to MsQuicLoadLibrary.
     //
-    uint32_t RefCount;
+    volatile short LoadRefCount;
+
+    //
+    // Total outstanding references from calls to MsQuicOpen.
+    //
+    uint16_t OpenRefCount;
 
     //
     // Number of processors currently being used.
