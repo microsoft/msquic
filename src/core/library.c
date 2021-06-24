@@ -50,6 +50,7 @@ MsQuicLibraryLoad(
         CxPlatListInitializeHead(&MsQuicLib.Registrations);
         CxPlatListInitializeHead(&MsQuicLib.Bindings);
         QuicTraceRundownCallback = QuicTraceRundown;
+        MsQuicLib.Loaded = TRUE;
     }
 }
 
@@ -62,9 +63,11 @@ MsQuicLibraryUnload(
     void
     )
 {
+    CXPLAT_FRE_ASSERT(MsQuicLib.Loaded);
     if (InterlockedDecrement16(&MsQuicLib.LoadRefCount) == 0) {
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
+        MsQuicLib.Loaded = FALSE;
         CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
