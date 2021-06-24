@@ -1,0 +1,310 @@
+{
+  "Windows_x64_schannel": [
+    {
+      "RttMs": 5,
+      "BottleneckMbps": 30,
+      "BottleneckBufferPackets": 3,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 18920,
+      "RawRateKbps": [
+        19042,
+        18737,
+        18981
+      ]
+    },
+    {
+      "RttMs": 5,
+      "BottleneckMbps": 30,
+      "BottleneckBufferPackets": 14,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 27858,
+      "RawRateKbps": [
+        27867,
+        27845,
+        27861
+      ]
+    },
+    {
+      "RttMs": 50,
+      "BottleneckMbps": 30,
+      "BottleneckBufferPackets": 34,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 24694,
+      "RawRateKbps": [
+        26674,
+        20844,
+        26565
+      ]
+    },
+    {
+      "RttMs": 50,
+      "BottleneckMbps": 30,
+      "BottleneckBufferPackets": 138,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 27093,
+      "RawRateKbps": [
+        27083,
+        27082,
+        27115
+      ]
+    },
+    {
+      "RttMs": 200,
+      "BottleneckMbps": 30,
+      "BottleneckBufferPackets": 138,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 23380,
+      "RawRateKbps": [
+        23289,
+        23327,
+        23523
+      ]
+    },
+    {
+      "RttMs": 200,
+      "BottleneckMbps": 30,
+      "BottleneckBufferPackets": 550,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 23895,
+      "RawRateKbps": [
+        23912,
+        23877,
+        23897
+      ]
+    },
+    {
+      "RttMs": 5,
+      "BottleneckMbps": 100,
+      "BottleneckBufferPackets": 11,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 68635,
+      "RawRateKbps": [
+        68344,
+        67973,
+        69589
+      ]
+    },
+    {
+      "RttMs": 5,
+      "BottleneckMbps": 100,
+      "BottleneckBufferPackets": 46,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 88680,
+      "RawRateKbps": [
+        88509,
+        88570,
+        88962
+      ]
+    },
+    {
+      "RttMs": 50,
+      "BottleneckMbps": 100,
+      "BottleneckBufferPackets": 115,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 83978,
+      "RawRateKbps": [
+        85612,
+        83272,
+        83049
+      ]
+    },
+    {
+      "RttMs": 50,
+      "BottleneckMbps": 100,
+      "BottleneckBufferPackets": 458,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 89674,
+      "RawRateKbps": [
+        89780,
+        89570,
+        89673
+      ]
+    },
+    {
+      "RttMs": 200,
+      "BottleneckMbps": 100,
+      "BottleneckBufferPackets": 458,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 76292,
+      "RawRateKbps": [
+        76551,
+        75781,
+        76544
+      ]
+    },
+    {
+      "RttMs": 200,
+      "BottleneckMbps": 100,
+      "BottleneckBufferPackets": 1833,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 77041,
+      "RawRateKbps": [
+        76485,
+        77420,
+        77217
+      ]
+    },
+    {
+      "RttMs": 5,
+      "BottleneckMbps": 5,
+      "BottleneckBufferPackets": 1,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 4503,
+      "RawRateKbps": [
+        4521,
+        4522,
+        4466
+      ]
+    },
+    {
+      "RttMs": 5,
+      "BottleneckMbps": 5,
+      "BottleneckBufferPackets": 2,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 4639,
+      "RawRateKbps": [
+        4639,
+        4640,
+        4638
+      ]
+    },
+    {
+      "RttMs": 50,
+      "BottleneckMbps": 5,
+      "BottleneckBufferPackets": 6,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 4413,
+      "RawRateKbps": [
+        4421,
+        4422,
+        4396
+      ]
+    },
+    {
+      "RttMs": 50,
+      "BottleneckMbps": 5,
+      "BottleneckBufferPackets": 23,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 4568,
+      "RawRateKbps": [
+        4566,
+        4571,
+        4566
+      ]
+    },
+    {
+      "RttMs": 200,
+      "BottleneckMbps": 5,
+      "BottleneckBufferPackets": 23,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 3074,
+      "RawRateKbps": [
+        2750,
+        3251,
+        3221
+      ]
+    },
+    {
+      "RttMs": 200,
+      "BottleneckMbps": 5,
+      "BottleneckBufferPackets": 92,
+      "RandomLossDenominator": 0,
+      "RandomReorderDenominator": 0,
+      "ReorderDelayDeltaMs": 0,
+      "Tcp": false,
+      "DurationMs": 10000,
+      "Pacing": true,
+      "RateKbps": 4249,
+      "RawRateKbps": [
+        4249,
+        4248,
+        4250
+      ]
+    }
+  ]
+}
