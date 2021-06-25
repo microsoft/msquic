@@ -715,14 +715,13 @@ CxPlatProcCurrentNumber(
 // older versions of Windows.
 //
 #if !defined(QUIC_UWP_BUILD)
-#define ThreadNameInformation ((THREADINFOCLASS)38)
+#define ThreadNameInformationPrivate ((THREADINFOCLASS)38)
 
-typedef struct _THREAD_NAME_INFORMATION {
+typedef struct _THREAD_NAME_INFORMATION_PRIVATE {
     UNICODE_STRING ThreadName;
-} THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
+} THREAD_NAME_INFORMATION_PRIVATE, *PTHREAD_NAME_INFORMATION_PRIVATE;
 
 __kernel_entry
-NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationThread(
@@ -843,11 +842,11 @@ CxPlatThreadCreate(
 #if defined(QUIC_UWP_BUILD)
         SetThreadDescription(*Thread, WideName);
 #else
-        THREAD_NAME_INFORMATION ThreadNameInfo;
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, WideName);
         NtSetInformationThread(
             *Thread,
-            ThreadNameInformation,
+            ThreadNameInformationPrivate,
             &ThreadNameInfo,
             sizeof(ThreadNameInfo));
 #endif
