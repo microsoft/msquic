@@ -712,17 +712,18 @@ CxPlatProcCurrentNumber(
 //
 // This is the undocumented interface for setting a thread's name. This is
 // essentially what SetThreadDescription does, but that is not available in
-// older versions of Windows.
+// older versions of Windows. These API's are suffixed _PRIVATE in order
+// to not colide with the built in windows definitions, which are not gated
+// behind any preprocessor macros
 //
 #if !defined(QUIC_UWP_BUILD)
-#define ThreadNameInformation ((THREADINFOCLASS)38)
+#define ThreadNameInformationPrivate ((THREADINFOCLASS)38)
 
-typedef struct _THREAD_NAME_INFORMATION {
+typedef struct _THREAD_NAME_INFORMATION_PRIVATE {
     UNICODE_STRING ThreadName;
-} THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
+} THREAD_NAME_INFORMATION_PRIVATE, *PTHREAD_NAME_INFORMATION_PRIVATE;
 
 __kernel_entry
-NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationThread(
@@ -843,11 +844,11 @@ CxPlatThreadCreate(
 #if defined(QUIC_UWP_BUILD)
         SetThreadDescription(*Thread, WideName);
 #else
-        THREAD_NAME_INFORMATION ThreadNameInfo;
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, WideName);
         NtSetInformationThread(
             *Thread,
-            ThreadNameInformation,
+            ThreadNameInformationPrivate,
             &ThreadNameInfo,
             sizeof(ThreadNameInfo));
 #endif
