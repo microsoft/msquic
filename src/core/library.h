@@ -119,9 +119,14 @@ typedef struct QUIC_LIBRARY {
     CXPLAT_DISPATCH_LOCK DatapathLock;
 
     //
-    // Total outstanding references on the library.
+    // Total outstanding references from calls to MsQuicLoadLibrary.
     //
-    uint32_t RefCount;
+    volatile short LoadRefCount;
+
+    //
+    // Total outstanding references from calls to MsQuicOpen.
+    //
+    uint16_t OpenRefCount;
 
     //
     // Number of processors currently being used.

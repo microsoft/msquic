@@ -31,26 +31,31 @@ QuicLibraryEvaluateSendRetryState(
     );
 
 //
-// Initializes all global variables.
+// Initializes all global variables if not already done.
 //
-INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryLoad(
     void
     )
 {
-    CxPlatLockInitialize(&MsQuicLib.Lock);
-    CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
-    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
-    CxPlatListInitializeHead(&MsQuicLib.Registrations);
-    CxPlatListInitializeHead(&MsQuicLib.Bindings);
-    QuicTraceRundownCallback = QuicTraceRundown;
-    MsQuicLib.Loaded = TRUE;
+    if (InterlockedIncrement16(&MsQuicLib.LoadRefCount) == 1) {
+        //
+        // Load the library.
+        //
+        CxPlatSystemLoad();
+        CxPlatLockInitialize(&MsQuicLib.Lock);
+        CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+        CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatListInitializeHead(&MsQuicLib.Registrations);
+        CxPlatListInitializeHead(&MsQuicLib.Bindings);
+        QuicTraceRundownCallback = QuicTraceRundown;
+        MsQuicLib.Loaded = TRUE;
+    }
 }
 
 //
-// Uninitializes global variables.
+// Uninitializes global variables if necessary.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -59,12 +64,15 @@ MsQuicLibraryUnload(
     )
 {
     CXPLAT_FRE_ASSERT(MsQuicLib.Loaded);
-    QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
-    QUIC_LIB_VERIFY(!MsQuicLib.InUse);
-    MsQuicLib.Loaded = FALSE;
-    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
-    CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
-    CxPlatLockUninitialize(&MsQuicLib.Lock);
+    if (InterlockedDecrement16(&MsQuicLib.LoadRefCount) == 0) {
+        QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
+        QUIC_LIB_VERIFY(!MsQuicLib.InUse);
+        MsQuicLib.Loaded = FALSE;
+        CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
+        CxPlatLockUninitialize(&MsQuicLib.Lock);
+        CxPlatSystemUnload();
+    }
 }
 
 void
@@ -124,7 +132,7 @@ QuicLibrarySumPerfCountersExternal(
 {
     CxPlatLockAcquire(&MsQuicLib.Lock);
 
-    if (MsQuicLib.RefCount == 0) {
+    if (MsQuicLib.OpenRefCount == 0) {
         CxPlatZeroMemory(Buffer, BufferLength);
     } else {
         QuicLibrarySumPerfCounters(Buffer, BufferLength);
@@ -575,10 +583,10 @@ MsQuicAddRef(
     // Increment global ref count, and if this is the first ref, initialize all
     // the global library state.
     //
-    if (++MsQuicLib.RefCount == 1) {
+    if (++MsQuicLib.OpenRefCount == 1) {
         Status = MsQuicLibraryInitialize();
         if (QUIC_FAILED(Status)) {
-            MsQuicLib.RefCount--;
+            MsQuicLib.OpenRefCount--;
             goto Error;
         }
     }
@@ -607,12 +615,12 @@ MsQuicRelease(
     // last ref.
     //
 
-    CXPLAT_FRE_ASSERT(MsQuicLib.RefCount > 0);
+    CXPLAT_FRE_ASSERT(MsQuicLib.OpenRefCount > 0);
     QuicTraceEvent(
         LibraryRelease,
         "[ lib] Release");
 
-    if (--MsQuicLib.RefCount == 0) {
+    if (--MsQuicLib.OpenRefCount == 0) {
         MsQuicLibraryUninitialize();
     }
 
@@ -1290,6 +1298,9 @@ MsQuicOpen(
     )
 {
     QUIC_STATUS Status;
+    BOOLEAN ReleaseRefOnFailure = FALSE;
+
+    MsQuicLibraryLoad();
 
     if (QuicApi == NULL) {
         QuicTraceLogVerbose(
@@ -1307,11 +1318,12 @@ MsQuicOpen(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+    ReleaseRefOnFailure = TRUE;
 
     QUIC_API_TABLE* Api = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
     if (Api == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        goto Exit;
     }
 
     Api->SetContext = MsQuicSetContext;
@@ -1353,18 +1365,20 @@ MsQuicOpen(
 
     *QuicApi = Api;
 
-Error:
-
-    if (QUIC_FAILED(Status)) {
-        MsQuicRelease();
-    }
-
 Exit:
 
     QuicTraceLogVerbose(
         LibraryMsQuicOpenExit,
         "[ api] MsQuicOpen, status=0x%x",
         Status);
+
+    if (QUIC_FAILED(Status)) {
+        if (ReleaseRefOnFailure) {
+            MsQuicRelease();
+        }
+
+        MsQuicLibraryUnload();
+    }
 
     return Status;
 }
@@ -1396,6 +1410,7 @@ MsQuicClose(
             "[ api] MsQuicClose");
         CXPLAT_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
+        MsQuicLibraryUnload();
     }
 }
 
@@ -1805,7 +1820,7 @@ QuicTraceRundown(
 
     CxPlatLockAcquire(&MsQuicLib.Lock);
 
-    if (MsQuicLib.RefCount > 0) {
+    if (MsQuicLib.OpenRefCount > 0) {
         QuicTraceEvent(
             LibraryRundown,
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",

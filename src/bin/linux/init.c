@@ -39,7 +39,6 @@ Entry(
     void
     )
 {
-    CxPlatSystemLoad();
     MsQuicLibraryLoad();
 }
 
@@ -50,5 +49,4 @@ Exit(
     )
 {
     MsQuicLibraryUnload();
-    CxPlatSystemUnload();
 }

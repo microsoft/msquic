@@ -178,6 +178,64 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #error "Unsupported Platform"
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+//
+// Library Initialization
+//
+
+//
+// Called in main, DLLMain or DriverEntry.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSystemLoad(
+    void
+    );
+
+//
+// Called in main (exit), DLLMain or DriverUnload.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSystemUnload(
+    void
+    );
+
+//
+// Initializes the PAL library. Calls to this and
+// CxPlatformUninitialize must be serialized and cannot overlap.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatInitialize(
+    void
+    );
+
+//
+// Uninitializes the PAL library. Calls to this and
+// CxPlatformInitialize must be serialized and cannot overlap.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUninitialize(
+    void
+    );
+
+#if defined(__cplusplus)
+}
+#endif
+
+//
+// List Abstraction
+//
+
 #define QuicListEntryValidate(Entry) \
     CXPLAT_DBG_ASSERT( \
         (((Entry->Flink)->Blink) == Entry) && \

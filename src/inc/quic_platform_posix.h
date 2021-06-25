@@ -61,30 +61,6 @@ extern "C" {
     (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
 //
-// Library Initialization routines.
-//
-
-void
-CxPlatSystemLoad(
-    void
-    );
-
-void
-CxPlatSystemUnload(
-    void
-    );
-
-QUIC_STATUS
-CxPlatInitialize(
-    void
-    );
-
-void
-CxPlatUninitialize(
-    void
-    );
-
-//
 // Generic stuff.
 //
 
@@ -112,6 +88,12 @@ CxPlatUninitialize(
 // Interlocked implementations.
 //
 
+#ifdef CX_PLATFORM_DARWIN
+#define YieldProcessor()
+#else
+#define YieldProcessor() pthread_yield()
+#endif
+
 inline
 long
 InterlockedIncrement(
@@ -131,6 +113,26 @@ InterlockedDecrement(
 }
 
 inline
+long
+InterlockedAnd(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    )
+{
+    return __sync_and_and_fetch(Destination, Value);
+}
+
+inline
+long
+InterlockedOr(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    )
+{
+    return __sync_or_and_fetch(Destination, Value);
+}
+
+inline
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -146,6 +148,17 @@ InterlockedCompareExchange16(
     _Inout_ _Interlocked_operand_ short volatile *Destination,
     _In_ short ExChange,
     _In_ short Comperand
+    )
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
+short
+InterlockedCompareExchange(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long ExChange,
+    _In_ long Comperand
     )
 {
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);

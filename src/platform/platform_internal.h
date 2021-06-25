@@ -41,8 +41,6 @@
 
 typedef struct CX_PLATFORM {
 
-    PDRIVER_OBJECT DriverObject;
-
     //
     // Random number algorithm loaded for DISPATCH_LEVEL usage.
     //
