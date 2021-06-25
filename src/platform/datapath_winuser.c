@@ -739,12 +739,12 @@ QuicDataPathInitialize(
 #ifdef QUIC_UWP_BUILD
         SetThreadDescription(Datapath->ProcContexts[i].CompletionThread, L"quic_datapath");
 #else
-        THREAD_NAME_INFORMATION ThreadNameInfo;
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"quic_datapath");
         NTSTATUS NtStatus =
             NtSetInformationThread(
                 Datapath->ProcContexts[i].CompletionThread,
-                ThreadNameInformation,
+                ThreadNameInformationPrivate,
                 &ThreadNameInfo,
                 sizeof(ThreadNameInfo));
         if (!NT_SUCCESS(NtStatus)) {
