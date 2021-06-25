@@ -935,12 +935,12 @@ CxPlatDataPathInitialize(
 #ifdef QUIC_UWP_BUILD
         SetThreadDescription(Datapath->Processors[i].CompletionThread, L"cxplat_datapath");
 #else
-        THREAD_NAME_INFORMATION ThreadNameInfo;
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"cxplat_datapath");
         NTSTATUS NtStatus =
             NtSetInformationThread(
                 Datapath->Processors[i].CompletionThread,
-                ThreadNameInformation,
+                ThreadNameInformationPrivate,
                 &ThreadNameInfo,
                 sizeof(ThreadNameInfo));
         if (!NT_SUCCESS(NtStatus)) {
