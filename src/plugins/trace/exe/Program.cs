@@ -4,6 +4,8 @@
 //
 
 using System;
+using System.Threading;
+using Microsoft.Diagnostics.Tracing.Session;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.Toolkit.Engine;
 using QuicTrace.DataModel;
@@ -41,8 +43,17 @@ namespace QuicTrace
 
         static string? CaptureLocalTrace()
         {
-            Console.WriteLine("--local capture is not currently supported!");
-            return null; // TODO - Support local trace collection
+            const string fileName = "C:\\Windows\\System32\\LogFiles\\WMI\\quicetw.etl";
+            const string name = "quicetw";
+            Guid providerGuid = Guid.Parse("{ff15e657-4f26-570e-88ab-0796b258d11c}");
+
+
+            using var session = new TraceEventSession(name, fileName);
+            Console.WriteLine(session.EnableProvider(providerGuid, Microsoft.Diagnostics.Tracing.TraceEventLevel.Verbose, matchAnyKeywords: 0));
+
+            Thread.Sleep(250); // Just let the rundowns fire.
+
+            return fileName;
         }
 
         static QuicState ProcessTraceFile(string filePath)
