@@ -712,7 +712,9 @@ CxPlatProcCurrentNumber(
 //
 // This is the undocumented interface for setting a thread's name. This is
 // essentially what SetThreadDescription does, but that is not available in
-// older versions of Windows.
+// older versions of Windows. These API's are suffixed _PRIVATE in order
+// to not colide with the built in windows definitions, which are not gated
+// behind any preprocessor macros
 //
 #if !defined(QUIC_UWP_BUILD)
 #define ThreadNameInformationPrivate ((THREADINFOCLASS)38)
