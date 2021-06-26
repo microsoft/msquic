@@ -188,8 +188,8 @@ EXT_COMMAND(
             Dml("DATAGRAM\n"
                 "\t                     ");
         }
-        if (SendFlags & QUIC_CONN_SEND_FLAG_PMTUD) {
-            Dml("PMTUD\n"
+        if (SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) {
+            Dml("DPLPMTUD\n"
                 "\t                     ");
         }
     }

@@ -1159,13 +1159,13 @@ main(
 {
     int EndpointIndex = -1;
 
-    if (GetValue(argc, argv, "help") ||
-        GetValue(argc, argv, "?")) {
+    if (GetFlag(argc, argv, "help") ||
+        GetFlag(argc, argv, "?")) {
         PrintUsage();
         return 0;
     }
 
-    if (GetValue(argc, argv, "list")) {
+    if (GetFlag(argc, argv, "list")) {
         printf("\nKnown implementations and servers:\n");
         for (uint32_t i = 0; i < PublicEndpointsCount; ++i) {
             printf("  %12s\t%s\n", PublicEndpoints[i].ImplementationName,
@@ -1194,7 +1194,7 @@ main(
         }
     }
 
-    RunSerially = GetValue(argc, argv, "serial") != nullptr;
+    RunSerially = GetFlag(argc, argv, "serial");
 
     CxPlatSystemLoad();
 

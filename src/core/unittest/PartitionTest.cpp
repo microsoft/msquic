@@ -70,7 +70,7 @@ TEST(PartitionTest, RandomPartitionId)
         for (uint32_t j = 0; j < i; ++j) {
             uint16_t PartitionIndex = (uint16_t)j;
 
-            for (uint32_t k = 0; k < 1000; ++k) {
+            for (uint32_t k = 0; k < 50; ++k) {
                 uint16_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
                 ASSERT_EQ(PartitionIndex, QuicPartitionIdGetIndex(PartitionId));
             }

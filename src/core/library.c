@@ -31,25 +31,31 @@ QuicLibraryEvaluateSendRetryState(
     );
 
 //
-// Initializes all global variables.
+// Initializes all global variables if not already done.
 //
-INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryLoad(
     void
     )
 {
-    CxPlatLockInitialize(&MsQuicLib.Lock);
-    CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
-    CxPlatListInitializeHead(&MsQuicLib.Registrations);
-    CxPlatListInitializeHead(&MsQuicLib.Bindings);
-    QuicTraceRundownCallback = QuicTraceRundown;
-    MsQuicLib.Loaded = TRUE;
+    if (InterlockedIncrement16(&MsQuicLib.LoadRefCount) == 1) {
+        //
+        // Load the library.
+        //
+        CxPlatSystemLoad();
+        CxPlatLockInitialize(&MsQuicLib.Lock);
+        CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+        CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatListInitializeHead(&MsQuicLib.Registrations);
+        CxPlatListInitializeHead(&MsQuicLib.Bindings);
+        QuicTraceRundownCallback = QuicTraceRundown;
+        MsQuicLib.Loaded = TRUE;
+    }
 }
 
 //
-// Uninitializes global variables.
+// Uninitializes global variables if necessary.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -58,11 +64,15 @@ MsQuicLibraryUnload(
     )
 {
     CXPLAT_FRE_ASSERT(MsQuicLib.Loaded);
-    QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
-    QUIC_LIB_VERIFY(!MsQuicLib.InUse);
-    MsQuicLib.Loaded = FALSE;
-    CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
-    CxPlatLockUninitialize(&MsQuicLib.Lock);
+    if (InterlockedDecrement16(&MsQuicLib.LoadRefCount) == 0) {
+        QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
+        QUIC_LIB_VERIFY(!MsQuicLib.InUse);
+        MsQuicLib.Loaded = FALSE;
+        CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
+        CxPlatLockUninitialize(&MsQuicLib.Lock);
+        CxPlatSystemUnload();
+    }
 }
 
 void
@@ -122,7 +132,7 @@ QuicLibrarySumPerfCountersExternal(
 {
     CxPlatLockAcquire(&MsQuicLib.Lock);
 
-    if (MsQuicLib.RefCount == 0) {
+    if (MsQuicLib.OpenRefCount == 0) {
         CxPlatZeroMemory(Buffer, BufferLength);
     } else {
         QuicLibrarySumPerfCounters(Buffer, BufferLength);
@@ -268,7 +278,6 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
-    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
@@ -317,7 +326,7 @@ MsQuicLibraryInitialize(
     }
     MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcActiveCount();
     CXPLAT_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
-    MsQuicLib.PartitionCount = (uint16_t)min(MsQuicLib.ProcessorCount, DefaultMaxPartitionCount);
+    MsQuicLib.PartitionCount = (uint16_t)CXPLAT_MIN(MsQuicLib.ProcessorCount, DefaultMaxPartitionCount);
 
     MsQuicCalculatePartitionMask();
 
@@ -333,6 +342,9 @@ MsQuicLibraryInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+
+    uint8_t ResetHashKey[20];
+    CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
 
     for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         CxPlatPoolInitialize(
@@ -350,9 +362,28 @@ MsQuicLibraryInitialize(
             sizeof(QUIC_PACKET_SPACE),
             QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].PacketSpacePool);
+        CxPlatLockInitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+        MsQuicLib.PerProc[i].ResetTokenHash = NULL;
         CxPlatZeroMemory(
             &MsQuicLib.PerProc[i].PerfCounters,
             sizeof(MsQuicLib.PerProc[i].PerfCounters));
+    }
+
+    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+        Status =
+            CxPlatHashCreate(
+                CXPLAT_HASH_SHA256,
+                ResetHashKey,
+                sizeof(ResetHashKey),
+                &MsQuicLib.PerProc[i].ResetTokenHash);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Create reset token hash");
+            goto Error;
+        }
     }
 
     Status =
@@ -400,6 +431,8 @@ Error:
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
+                CxPlatLockUninitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+                CxPlatHashFree(MsQuicLib.PerProc[i].ResetTokenHash);
             }
             CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
             MsQuicLib.PerProc = NULL;
@@ -408,10 +441,16 @@ Error:
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
         }
+        if (MsQuicLib.DefaultCompatibilityList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+            MsQuicLib.DefaultCompatibilityList = NULL;
+        }
         if (PlatformInitialized) {
             CxPlatUninitialize();
         }
     }
+
+    CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
 
     return Status;
 }
@@ -423,6 +462,21 @@ MsQuicLibraryUninitialize(
     )
 {
     //
+    // The library's stateless registration may still have half-opened
+    // connections that need to be cleaned up before all the bindings and
+    // sockets can be cleaned up. Kick off a clean up of those connections.
+    //
+    if (MsQuicLib.StatelessRegistration != NULL) {
+        //
+        // Best effort to clean up existing connections.
+        //
+        MsQuicRegistrationShutdown(
+            (HQUIC)MsQuicLib.StatelessRegistration,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+            0);
+    }
+
+    //
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
@@ -430,15 +484,10 @@ MsQuicLibraryUninitialize(
     MsQuicLib.Datapath = NULL;
 
     //
-    // The library's stateless registration for processing half-opened
-    // connections needs to be cleaned up next, as it's the last thing that can
-    // be holding on to connection objects.
+    // Wait for the final clean up of everything in the stateless registration
+    // and then free it.
     //
     if (MsQuicLib.StatelessRegistration != NULL) {
-        MsQuicRegistrationShutdown(
-            (HQUIC)MsQuicLib.StatelessRegistration,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-            0);
         MsQuicRegistrationClose(
             (HQUIC)MsQuicLib.StatelessRegistration);
         MsQuicLib.StatelessRegistration = NULL;
@@ -488,6 +537,8 @@ MsQuicLibraryUninitialize(
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
+        CxPlatLockUninitialize(&MsQuicLib.PerProc[i].ResetTokenLock);
+        CxPlatHashFree(MsQuicLib.PerProc[i].ResetTokenHash);
     }
     CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
     MsQuicLib.PerProc = NULL;
@@ -496,11 +547,11 @@ MsQuicLibraryUninitialize(
         CxPlatKeyFree(MsQuicLib.StatelessRetryKeys[i]);
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
-    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
     QuicSettingsCleanup(&MsQuicLib.Settings);
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+    MsQuicLib.DefaultCompatibilityList = NULL;
 
     QuicTraceEvent(
         LibraryUninitialized,
@@ -532,10 +583,10 @@ MsQuicAddRef(
     // Increment global ref count, and if this is the first ref, initialize all
     // the global library state.
     //
-    if (++MsQuicLib.RefCount == 1) {
+    if (++MsQuicLib.OpenRefCount == 1) {
         Status = MsQuicLibraryInitialize();
         if (QUIC_FAILED(Status)) {
-            MsQuicLib.RefCount--;
+            MsQuicLib.OpenRefCount--;
             goto Error;
         }
     }
@@ -564,12 +615,12 @@ MsQuicRelease(
     // last ref.
     //
 
-    CXPLAT_FRE_ASSERT(MsQuicLib.RefCount > 0);
+    CXPLAT_FRE_ASSERT(MsQuicLib.OpenRefCount > 0);
     QuicTraceEvent(
         LibraryRelease,
         "[ lib] Release");
 
-    if (--MsQuicLib.RefCount == 0) {
+    if (--MsQuicLib.OpenRefCount == 0) {
         MsQuicLibraryUninitialize();
     }
 
@@ -749,6 +800,7 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
+                TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -776,6 +828,40 @@ QuicLibrarySetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+#endif
+
+#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR: {
+        if (BufferLength != sizeof(int32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
+        if (Value < 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatSetAllocFailDenominator(Value);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE: {
+        if (BufferLength != sizeof(int32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        int32_t Value;
+        CxPlatCopyMemory(&Value, Buffer, sizeof(Value));
+        if (Value < 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatSetAllocFailDenominator(-Value);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
 #endif
 
     default:
@@ -901,6 +987,28 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(QUIC_SETTINGS);
         CxPlatCopyMemory(Buffer, &MsQuicLib.Settings, sizeof(QUIC_SETTINGS));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_VERSION:
+
+        if (*BufferLength < 4 * sizeof(uint32_t)) {
+            *BufferLength = 4 * sizeof(uint32_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = 4 * sizeof(uint32_t);
+        ((uint32_t*)Buffer)[0] = VER_MAJOR;
+        ((uint32_t*)Buffer)[1] = VER_MINOR;
+        ((uint32_t*)Buffer)[2] = VER_PATCH;
+        ((uint32_t*)Buffer)[3] = VER_BUILD_ID;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1179,15 +1287,9 @@ Error:
     return Status;
 }
 
-#ifdef QUIC_BUILD_STATIC
-// This variable has a bit layout according to the following scheme:
-// MSB [Unloading:1] [Loading:1] [RefCount:30] LSB
-volatile long LoadState = 0;
-#define UNLOADING_BIT (1 << 31)
-#define LOADED_BIT (1 << 30)
-#define REFCOUNT_MASK (LOADED_BIT - 1)
-#endif // QUIC_BUILD_STATIC
-
+//
+// N.B Maintained and exported for backwards compatiblity with old V1 clients.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1195,49 +1297,10 @@ MsQuicOpen(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
-#ifdef QUIC_BUILD_STATIC
-    long NextState = InterlockedIncrement(&LoadState);
-    long PriorCount = NextState & REFCOUNT_MASK - 1;
-
-    if (PriorCount == 0) {
-        // We're responsible for ensuring the library is loaded
-
-        // Spin until we aren't unloading the library
-        while ((NextState & UNLOADING_BIT) != 0) {
-            YieldProcessor();
-            // No-op atomic read
-            NextState = InterlockedOr(&LoadState, 0);
-        }
-
-        // NOTE: Because this open call has atomically incremented the
-        // ref count already, it's impossible for the ref count to dip
-        // to zero at this time
-
-        // This expression can be FALSE if we arrived here prior to the
-        // unloading process start. In this case, we proceed without
-        // further operation.
-        if ((NextState & LOADED_BIT) == 0) {
-            CxPlatSystemLoad();
-            MsQuicLibraryLoad();
-
-            // Try and transition to the loaded state
-            while (NextState != InterlockedCompareExchange(&LoadState, NextState | LOADED_BIT, NextState)) {
-                YieldProcessor();
-                // No-op atomic read
-                NextState = InterlockedOr(&LoadState, 0);
-            }
-        }
-    } else {
-        // Busy wait until we aren't in a loading state anymore
-        while ((NextState & LOADED_BIT) == 0) {
-            YieldProcessor();
-            // No-op atomic read
-            NextState = InterlockedOr(&LoadState, 0);
-        }
-    }
-#endif // QUIC_BUILD_STATIC
-
     QUIC_STATUS Status;
+    BOOLEAN ReleaseRefOnFailure = FALSE;
+
+    MsQuicLibraryLoad();
 
     if (QuicApi == NULL) {
         QuicTraceLogVerbose(
@@ -1255,11 +1318,12 @@ MsQuicOpen(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+    ReleaseRefOnFailure = TRUE;
 
     QUIC_API_TABLE* Api = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
     if (Api == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        goto Exit;
     }
 
     Api->SetContext = MsQuicSetContext;
@@ -1301,12 +1365,6 @@ MsQuicOpen(
 
     *QuicApi = Api;
 
-Error:
-
-    if (QUIC_FAILED(Status)) {
-        MsQuicRelease();
-    }
-
 Exit:
 
     QuicTraceLogVerbose(
@@ -1314,14 +1372,36 @@ Exit:
         "[ api] MsQuicOpen, status=0x%x",
         Status);
 
+    if (QUIC_FAILED(Status)) {
+        if (ReleaseRefOnFailure) {
+            MsQuicRelease();
+        }
+
+        MsQuicLibraryUnload();
+    }
+
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicOpenVersion(
+    _In_ uint32_t Version,
+    _Out_ _Pre_defensive_ const void** QuicApi
+    )
+{
+    if (Version != 1) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+    return MsQuicOpen((const QUIC_API_TABLE**)QuicApi);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicClose(
-    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
+    _In_ _Pre_defensive_ const void* QuicApi
     )
 {
     if (QuicApi != NULL) {
@@ -1330,31 +1410,8 @@ MsQuicClose(
             "[ api] MsQuicClose");
         CXPLAT_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
+        MsQuicLibraryUnload();
     }
-
-#ifdef QUIC_BUILD_STATIC
-    long NextState = InterlockedDecrement(&LoadState);
-    long PriorCount = (NextState & REFCOUNT_MASK) + 1;
-
-    if (PriorCount == 1) {
-        // We are responsible for unloading the library IFF another thread
-        // doesn't open the library in the meantime
-
-        // Attempt to transition to the unloading state. If we fail, that
-        // means another thread has already incremented the ref count before
-        // we arrived at this instruction. Thus, we don't bother unloading
-        // the library
-        if (InterlockedCompareExchange(&LoadState, UNLOADING_BIT, NextState) == NextState) {
-            // We've succeeded. Unload the library
-            MsQuicLibraryUnload();
-            CxPlatSystemUnload();
-
-            // Allow possibly spinning thread that incremented ref count in
-            // the meantime to proceed
-            InterlockedAnd(&LoadState, ~UNLOADING_BIT);
-        }
-    }
-#endif // QUIC_BUILD_STATIC
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1381,7 +1438,7 @@ QuicLibraryLookupBinding(
 #endif
 
         QUIC_ADDR BindingLocalAddr;
-        CxPlatSocketGetLocalAddress(Binding->Socket, &BindingLocalAddr);
+        QuicBindingGetLocalAddress(Binding, &BindingLocalAddr);
 
         if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
             continue;
@@ -1393,7 +1450,7 @@ QuicLibraryLookupBinding(
             }
 
             QUIC_ADDR BindingRemoteAddr;
-            CxPlatSocketGetRemoteAddress(Binding->Socket, &BindingRemoteAddr);
+            QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
             if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
                 continue;
             }
@@ -1421,22 +1478,39 @@ QuicLibraryGetBinding(
     _Out_ QUIC_BINDING** NewBinding
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
+    QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
+    BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
+
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+    //
+    // To work around the Linux bug where the stack sometimes gives us a "new"
+    // empheral port that matches an existing one, we retry, starting from that
+    // port and incrementing the number until we get one that works.
+    //
+    BOOLEAN SharedEphemeralWorkAround = FALSE;
+SharedEphemeralRetry:
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
 
     //
     // First check to see if a binding already exists that matches the
     // requested addresses.
     //
-
-    if (LocalAddress == NULL) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+    if (PortUnspecified && !SharedEphemeralWorkAround) {
+#else
+    if (PortUnspecified) {
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
         //
-        // No specified local address, so we just always create a new binding.
+        // No specified local port, so we always create a new binding, and let
+        // the networking stack assign us a new ephemeral port. We can skip the
+        // lookup because the stack **should** always give us something new.
         //
         goto NewBinding;
     }
 
+    Status = QUIC_STATUS_NOT_FOUND;
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
     Binding =
@@ -1453,7 +1527,12 @@ QuicLibraryGetBinding(
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
             //
-            Status = QUIC_STATUS_INVALID_STATE;
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
         } else {
             //
             // Match found and can be shared.
@@ -1468,6 +1547,13 @@ QuicLibraryGetBinding(
     CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 
     if (Status != QUIC_STATUS_NOT_FOUND) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+        if (QUIC_FAILED(Status) && SharedEphemeralWorkAround) {
+            CXPLAT_DBG_ASSERT(LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+        }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
         goto Exit;
     }
 
@@ -1488,10 +1574,17 @@ NewBinding:
             RemoteAddress,
             NewBinding);
     if (QUIC_FAILED(Status)) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+        if (SharedEphemeralWorkAround) {
+            CXPLAT_DBG_ASSERT(LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+        }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
         goto Exit;
     }
 
-    CxPlatSocketGetLocalAddress((*NewBinding)->Socket, &NewLocalAddress);
+    QuicBindingGetLocalAddress(*NewBinding, &NewLocalAddress);
 
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
@@ -1501,25 +1594,38 @@ NewBinding:
     // one and already create the binding.
     //
 
-#if 0
-    Binding = QuicLibraryLookupBinding(&NewLocalAddress, RemoteAddress);
-#else
-    //
-    // Don't allow multiple sockets on the same local tuple currently. So just
-    // do collision detection based on local tuple.
-    //
-    Binding =
-        QuicLibraryLookupBinding(
+    if (CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
+        //
+        // The datapath supports multiple connected sockets on the same local
+        // tuple, so we need to do collision detection based on the whole
+        // 4-tuple.
+        //
+        Binding =
+            QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
+                CompartmentId,
 #endif
-            &NewLocalAddress,
-            NULL);
+                &NewLocalAddress,
+                RemoteAddress);
+    } else {
+        //
+        // The datapath does not supports multiple connected sockets on the same
+        // local tuple, so we just do collision detection based on the local
+        // tuple.
+        //
+        Binding =
+            QuicLibraryLookupBinding(
+#ifdef QUIC_COMPARTMENT_ID
+                CompartmentId,
 #endif
+                &NewLocalAddress,
+                NULL);
+    }
     if (Binding != NULL) {
-        if (!Binding->Exclusive) {
+        if (!PortUnspecified && !Binding->Exclusive) {
             //
-            // Another thread got the binding first, but it's not exclusive.
+            // Another thread got the binding first, but it's not exclusive,
+            // and it's not what should be a new ephemeral port.
             //
             CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
             Binding->RefCount++;
@@ -1540,8 +1646,52 @@ NewBinding:
     CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 
     if (Binding != NULL) {
-        if (Binding->Exclusive) {
-            Status = QUIC_STATUS_INVALID_STATE;
+        if (PortUnspecified) {
+            //
+            // The datapath somehow returned us a "new" ephemeral socket that
+            // already matched one of our existing ones. We've seen this on
+            // Linux occasionally. This shouldn't happen, but it does.
+            //
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                *NewBinding,
+                "Binding ephemeral port reuse encountered");
+            (*NewBinding)->RefCount--;
+            QuicBindingUninitialize(*NewBinding);
+            *NewBinding = NULL;
+
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+            //
+            // Use the invalid address as a starting point to search for a new
+            // one.
+            //
+            SharedEphemeralWorkAround = TRUE;
+            LocalAddress = &NewLocalAddress;
+            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+#else
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
+
+        } else if (Binding->Exclusive) {
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            (*NewBinding)->RefCount--;
+            QuicBindingUninitialize(*NewBinding);
+            *NewBinding = NULL;
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+            if (SharedEphemeralWorkAround) {
+                CXPLAT_DBG_ASSERT(LocalAddress);
+                QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+                goto SharedEphemeralRetry;
+            }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+
         } else {
             (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
@@ -1670,7 +1820,7 @@ QuicTraceRundown(
 
     CxPlatLockAcquire(&MsQuicLib.Lock);
 
-    if (MsQuicLib.RefCount > 0) {
+    if (MsQuicLib.OpenRefCount > 0) {
         QuicTraceEvent(
             LibraryRundown,
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
@@ -1707,7 +1857,7 @@ QuicTraceRundown(
         QuicTraceEvent(
             PerfCountersRundown,
             "[ lib] Perf counters Rundown, Counters=%!CID!",
-            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
+            CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
     CxPlatLockRelease(&MsQuicLib.Lock);
@@ -1834,4 +1984,37 @@ QuicLibraryEvaluateSendRetryState(
             "[ lib] New SendRetryEnabled state, %hhu",
             NewSendRetryState);
     }
+}
+
+CXPLAT_STATIC_ASSERT(
+    CXPLAT_HASH_SHA256_SIZE >= QUIC_STATELESS_RESET_TOKEN_LENGTH,
+    "Stateless reset token must be shorter than hash size used");
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGenerateStatelessResetToken(
+    _In_reads_(MsQuicLib.CidTotalLength)
+        const uint8_t* const CID,
+    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
+        uint8_t* ResetToken
+    )
+{
+    uint8_t HashOutput[CXPLAT_HASH_SHA256_SIZE];
+    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
+    CxPlatLockAcquire(&MsQuicLib.PerProc[CurProcIndex].ResetTokenLock);
+    QUIC_STATUS Status =
+        CxPlatHashCompute(
+            MsQuicLib.PerProc[CurProcIndex].ResetTokenHash,
+            CID,
+            MsQuicLib.CidTotalLength,
+            sizeof(HashOutput),
+            HashOutput);
+    CxPlatLockRelease(&MsQuicLib.PerProc[CurProcIndex].ResetTokenLock);
+    if (QUIC_SUCCEEDED(Status)) {
+        CxPlatCopyMemory(
+            ResetToken,
+            HashOutput,
+            QUIC_STATELESS_RESET_TOKEN_LENGTH);
+    }
+    return Status;
 }

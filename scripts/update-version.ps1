@@ -29,30 +29,34 @@ $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 
 # Get the current version number from the msquic.ver file.
-$OriginalVersion = (Select-String -Path $MsQuicVerFilePath "VER_FILEVERSION *(.*),0$" -AllMatches).Matches[0].Groups[1].Value
-$OriginalVersion2 = $OriginalVersion.Replace(",", ".")
-$Version = $OriginalVersion.Split(",")
-Write-Host "Current version: $Version"
+$VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
+$VerMinor = (Select-String -Path $MsQuicVerFilePath "#define VER_MINOR (.*)" -AllMatches).Matches[0].Groups[1].Value
+$VerPatch = (Select-String -Path $MsQuicVerFilePath "#define VER_PATCH (.*)" -AllMatches).Matches[0].Groups[1].Value
+Write-Host "Current version: $VerMajor.$VerMinor.$VerPatch"
+
+$NewVerMajor = [int]$VerMajor;
+$NewVerMinor = [int]$VerMinor;
+$NewVerPatch = [int]$VerPatch;
 
 # Increment the version number according to the input arg.
 switch ($Part) {
-    "Major"   { $Version[0] = [int]$Version[0] + 1; $Version[1] = 0; $Version[2] = 0 }
-    "Minor"   { $Version[1] = [int]$Version[1] + 1; $Version[2] = 0  }
-    "Patch"   { $Version[2] = [int]$Version[2] + 1 }
+    "Major"   { $NewVerMajor = $NewVerMajor + 1; $NewVerMinor = 0; $NewVerPatch = 0 }
+    "Minor"   { $NewVerMinor = $NewVerMinor + 1; $NewVerPatch = 0  }
+    "Patch"   { $NewVerPatch = $NewVerPatch + 1 }
 }
-Write-Host "    New version: $Version"
+Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 
 # Write the new version to the files.
 (Get-Content $MsQuicVerFilePath) `
-    -replace "($OriginalVersion)", "$($Version[0]),$($Version[1]),$($Version[2])" `
-    -replace "($OriginalVersion2)", "$($Version[0]).$($Version[1]).$($Version[2])" |`
+    -replace "#define VER_MAJOR (.*)", "#define VER_MAJOR $NewVerMajor" `
+    -replace "#define VER_MINOR (.*)", "#define VER_MINOR $NewVerMinor" `
+    -replace "#define VER_PATCH (.*)", "#define VER_PATCH $NewVerPatch" |`
     Out-File $MsQuicVerFilePath
 (Get-Content $CreatePackageFilePath) `
-    -replace "majorVer: (.*)", "majorVer: $($Version[0])" `
-    -replace "minorVer: (.*)", "minorVer: $($Version[1])" `
-    -replace "patchVer: (.*)", "patchVer: $($Version[2])" |`
+    -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
+    -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
+    -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
     Out-File $CreatePackageFilePath
 (Get-Content $QnsFilePath) `
-    -replace "($OriginalVersion)", "$($Version[0]),$($Version[1]),$($Version[2])" `
-    -replace "($OriginalVersion2)", "$($Version[0]).$($Version[1]).$($Version[2])" |`
+    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $QnsFilePath

@@ -24,6 +24,7 @@ set(SOURCES
     listener.c
     lookup.c
     loss_detection.c
+    mtu_discovery.c
     operation.c
     packet.c
     packet_builder.c
@@ -70,6 +71,6 @@ target_link_libraries(core PRIVATE warnings)
 
 set_property(TARGET core PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if (MSVC)
+if (MSVC AND NOT QUIC_ENABLE_SANITIZERS)
     target_compile_options(core PRIVATE /analyze)
 endif()

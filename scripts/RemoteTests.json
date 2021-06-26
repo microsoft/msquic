@@ -12,7 +12,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -37,7 +37,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-8.0"
+            "RegressionThreshold": "-10.0"
         },
         {
             "TestName": "TcpThroughputUp",
@@ -65,7 +65,7 @@
                 "Tls": ["openssl"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -upload:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -upload:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -90,7 +90,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-10.0"
+            "RegressionThreshold": "-60.0"
         },
         {
             "TestName": "ThroughputDown",
@@ -99,7 +99,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -download:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -download:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -116,7 +116,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-8.0"
+            "RegressionThreshold": "-10.0"
         },
         {
         "TestName": "TcpThroughputDown",
@@ -144,7 +144,7 @@
                 "Tls": ["openssl"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -download:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -download:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -161,7 +161,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-10.0"
+            "RegressionThreshold": "-60.0"
         },
         {
             "TestName": "RPS",
@@ -247,7 +247,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"],
-            "RegressionThreshold": "-50.0"
+            "RegressionThreshold": "-75.0"
         },
         {
             "TestName": "HPS",
@@ -256,7 +256,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:HPS -target:$RemoteAddress"
+                "Arguments": "-test:HPS -target:$RemoteAddress -incrementtarget:1"
             },
             "Variables": [],
             "AllowLoopback": false,
@@ -281,7 +281,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": "Result: (.*) HPS.*",
             "Formats": ["{0} HPS"],
-            "RegressionThreshold": "-40.0"
+            "RegressionThreshold": "-75.0"
         }
     ]
 }

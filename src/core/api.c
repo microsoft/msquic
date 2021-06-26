@@ -233,14 +233,14 @@ Error:
         "[ api] Exit");
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ _Pre_defensive_ HQUIC ConfigHandle,
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
     )
@@ -250,8 +250,6 @@ MsQuicConnectionStart(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
-
-    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -393,8 +391,6 @@ MsQuicConnectionSetConfiguration(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
 
-    CXPLAT_PASSIVE_CODE();
-
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
@@ -488,8 +484,6 @@ MsQuicConnectionSendResumptionTicket(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
     uint8_t* ResumptionDataCopy = NULL;
-
-    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -752,7 +746,8 @@ Error:
 }
 #pragma warning(pop)
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 QUIC_API
 MsQuicStreamStart(
@@ -791,6 +786,9 @@ MsQuicStreamStart(
     }
 
     if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+        CXPLAT_PASSIVE_CODE();
+
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -827,6 +825,8 @@ MsQuicStreamStart(
         Status = QUIC_STATUS_PENDING;
 
     } else {
+
+        CXPLAT_PASSIVE_CODE();
 
         QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
@@ -926,37 +926,46 @@ MsQuicStreamShutdown(
     Connection = Stream->Connection;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
-    if (Oper == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "STRM_SHUTDOWN operation",
-            0);
-        goto Error;
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+        //
+        // Execute this blocking API call inline if called on the worker thread.
+        //
+        QuicStreamShutdown(Stream, Flags, ErrorCode);
+        Status = QUIC_STATUS_SUCCESS;
+
+    } else {
+
+        QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+
+        Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+        if (Oper == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "STRM_SHUTDOWN operation",
+                0);
+            goto Error;
+        }
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
+        Oper->API_CALL.Context->STRM_SHUTDOWN.Stream = Stream;
+        Oper->API_CALL.Context->STRM_SHUTDOWN.Flags = Flags;
+        Oper->API_CALL.Context->STRM_SHUTDOWN.ErrorCode = ErrorCode;
+
+        //
+        // Async stream operations need to hold a ref on the stream so that the
+        // stream isn't freed before the operation can be processed. The ref is
+        // released after the operation is processed.
+        //
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+        //
+        // Queue the operation but don't wait for the completion.
+        //
+        QuicConnQueueOper(Connection, Oper);
+        Status = QUIC_STATUS_PENDING;
     }
-    Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
-    Oper->API_CALL.Context->STRM_SHUTDOWN.Stream = Stream;
-    Oper->API_CALL.Context->STRM_SHUTDOWN.Flags = Flags;
-    Oper->API_CALL.Context->STRM_SHUTDOWN.ErrorCode = ErrorCode;
-
-    //
-    // Async stream operations need to hold a ref on the stream so that the
-    // stream isn't freed before the operation can be processed. The ref is
-    // released after the operation is processed.
-    //
-    QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
-
-    //
-    // Queue the operation but don't wait for the completion.
-    //
-    QuicConnQueueOper(Connection, Oper);
-    Status = QUIC_STATUS_PENDING;
 
 Error:
 
@@ -1259,6 +1268,8 @@ Exit:
     return Status;
 }
 
+#define QUIC_PARAM_GENERATOR(Level, Value) (((Level + 1) & 0x3F) << 26 | (Value & 0x3FFFFFF))
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1274,6 +1285,25 @@ MsQuicSetParam(
     )
 {
     CXPLAT_PASSIVE_CODE();
+
+    if ((Param & 0xFC000000) != 0) {
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
 
     if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1384,6 +1414,25 @@ MsQuicGetParam(
     )
 {
     CXPLAT_PASSIVE_CODE();
+
+    if ((Param & 0xFC000000) != 0) {
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
 
     if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
         BufferLength == NULL) {

@@ -12,8 +12,8 @@ Abstract:
 #pragma once
 
 #include "PerfHelpers.h"
-#include <quic_datapath.h>
-#include <quic_tls.h>
+#include "quic_datapath.h"
+#include "quic_tls.h"
 
 #define TLS_BLOCK_SIZE 0x4000
 
@@ -259,7 +259,7 @@ public:
         _In_ TcpEngine* Engine,
         _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
         _In_ QUIC_ADDRESS_FAMILY Family,
-        _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+        _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
             const char* ServerName,
         _In_ uint16_t ServerPort,
         _In_ const QUIC_ADDR* LocalAddress = nullptr,

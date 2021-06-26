@@ -258,6 +258,6 @@ QuicPacketBuilderAddStreamFrame(
     )
 {
     Builder->Metadata->Frames[Builder->Metadata->FrameCount].MAX_STREAM_DATA.Stream = Stream;
-    QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    QuicStreamSentMetadataIncrement(Stream);
     return QuicPacketBuilderAddFrame(Builder, FrameType, TRUE);
 }

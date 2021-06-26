@@ -25,9 +25,6 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER ExecutionMode
-    Controls the execution mode when running each test case.
-
 .PARAMETER IsolationMode
     Controls the isolation mode when running each test case.
 
@@ -91,7 +88,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
@@ -107,12 +104,8 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Serial", "Parallel")]
-    [string]$ExecutionMode = "Serial",
-
-    [Parameter(Mandatory = $false)]
     [ValidateSet("Batch", "Isolated")]
-    [string]$IsolationMode = "Batch",
+    [string]$IsolationMode = "Isolated",
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -149,11 +142,24 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipUnitTests = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+function Test-Administrator
+{
+    $user = [Security.Principal.WindowsIdentity]::GetCurrent();
+    (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+if ($IsWindows -and !(Test-Administrator)) {
+    Write-Warning "We recommend running this test as administrator. Crash dumps will not work"
+}
 
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
@@ -176,24 +182,11 @@ if ($CodeCoverage) {
     }
 }
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
-if ($IsWindows) {
-    $Platform = "windows"
-} elseif ($IsLinux) {
-    $Platform = "linux"
-} elseif ($IsMacOS) {
-    $Platform = "macos"
-} else {
-    Write-Error "Unsupported platform type!"
-}
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$RootArtifactDir = $BuildConfig.ArtifactsDir
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -211,13 +204,8 @@ if ($CodeCoverage) {
 # Path to the run-gtest Powershell script.
 $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
-if ("" -eq $ExtraArtifactDir) {
-    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
-} else {
-    if ($Kernel) {
-        Write-Error "Kernel not supported with extra artifact dir"
-    }
-    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+if ("" -ne $ExtraArtifactDir -and $Kernel) {
+    Write-Error "Kernel not supported with extra artifact dir"
 }
 
 # Path to the msquictest exectuable.
@@ -257,7 +245,7 @@ if (!(Test-Path $PfxFile)) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode -PfxPath $PfxFile"
+$TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile"
 
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"
@@ -303,7 +291,7 @@ if ($AZP) {
 }
 
 # Run the script.
-if (!$Kernel) {
+if (!$Kernel -and !$SkipUnitTests) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }

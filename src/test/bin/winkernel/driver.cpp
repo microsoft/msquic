@@ -9,8 +9,8 @@ Abstract:
 
 --*/
 
-#include <quic_platform.h>
-#include <MsQuicTests.h>
+#include "quic_platform.h"
+#include "MsQuicTests.h"
 #include <new.h>
 
 #include "quic_trace.h"
@@ -32,29 +32,21 @@ VOID
 QuicTestCtlUninitialize(
     );
 
-void* __cdecl operator new (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
-}
-
 _Ret_maybenull_ _Post_writable_byte_size_(_Size)
 void* __cdecl operator new (size_t Size, const std::nothrow_t&) throw(){
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
 
-void __cdecl operator delete (_In_opt_ void* Mem) {
+void __cdecl operator delete (/*_In_opt_*/ void* Mem) noexcept {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }
 }
 
-void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
+void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) noexcept {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }
-}
-
-void* __cdecl operator new[] (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
 
 _Ret_maybenull_ _Post_writable_byte_size_(_Size)
@@ -62,7 +54,7 @@ void* __cdecl operator new[] (size_t Size, const std::nothrow_t&) throw(){
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
 
-void __cdecl operator delete[] (_In_opt_ void* Mem) {
+void __cdecl operator delete[] (/*_In_opt_*/ void* Mem) {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }
@@ -109,7 +101,7 @@ Return Value:
     WDFDRIVER Driver;
     BOOLEAN PlatformInitialized = FALSE;
 
-    CxPlatSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad();
 
     Status = CxPlatInitialize();
     if (!NT_SUCCESS(Status)) {

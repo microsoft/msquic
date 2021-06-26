@@ -111,6 +111,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
+        BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
 
         BOOLEAN SendOpen                : 1;    // Send a STREAM frame immediately on start.
         BOOLEAN SendOpenAcked           : 1;    // A STREAM frame has been acknowledged.
@@ -196,6 +197,12 @@ typedef struct QUIC_STREAM {
 #if DEBUG
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
 #endif
+
+    //
+    // Number of outstanding sent metadata items currently being tracked for
+    // this stream.
+    //
+    uint32_t OutstandingSentMetadata;
 
     union {
         //
@@ -637,6 +644,40 @@ QuicStreamRelease(
     return FALSE;
 }
 #pragma warning(pop)
+
+//
+// Increments the sent metadata counter.
+// No synchronization necessary as it's always called on the worker thread.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicStreamSentMetadataIncrement(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    if (++Stream->OutstandingSentMetadata == 1) {
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    }
+    CXPLAT_DBG_ASSERT(Stream->OutstandingSentMetadata != 0);
+}
+
+//
+// Decrements the sent metadata counter.
+// No synchronization necessary as it's always called on the worker thread.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicStreamSentMetadataDecrement(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->OutstandingSentMetadata != 0);
+    if (--Stream->OutstandingSentMetadata == 0) {
+        QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    }
+}
 
 //
 // Send Functions

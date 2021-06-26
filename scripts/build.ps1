@@ -75,9 +75,6 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER RandomAllocFail
-    Enables random allocation failures.
-
 .PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
@@ -173,9 +170,6 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RandomAllocFail = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$TlsSecretsSupport = $false,
 
     [Parameter(Mandatory = $false)]
@@ -191,52 +185,18 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ("" -eq $Arch) {
-    if ($IsMacOS) {
-        $RunningArch = uname -m
-        if ("x86_64" -eq $RunningArch) {
-            $IsTranslated = sysctl -in sysctl.proc_translated
-            if ($IsTranslated) {
-                $Arch = "arm64"
-            } else {
-                $Arch = "x64"
-            }
-        } elseif ("arm64" -eq $RunningArch) {
-            $Arch = "arm64"
-        } else {
-            Write-Error "Unknown architecture"
-        }
-    } else {
-        $Arch = "x64"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
+
+$Platform = $BuildConfig.Platform
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
     if ($IsWindows) {
         $Generator = "Visual Studio 16 2019"
     } else {
         $Generator = "Unix Makefiles"
-    }
-}
-
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
-
-if ("" -eq $Platform) {
-    if ($IsWindows) {
-        $Platform = "windows"
-    } elseif ($IsLinux) {
-        $Platform = "linux"
-    } elseif ($IsMacOS) {
-        $Platform = "macos"
-    } else {
-        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -257,15 +217,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 
-$ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
-
-if ("" -eq $ExtraArtifactDir) {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
-} else {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
-}
-
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
 if ($Clean) {
@@ -379,9 +331,6 @@ function CMake-Generate {
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }
-    if ($RandomAllocFail) {
-        $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
-    }
     if ($TlsSecretsSupport) {
         $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
     }
@@ -422,17 +371,23 @@ function CMake-Build {
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
-        if ($PGO -and $Config -eq "Release") {
+        if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
             $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
             $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
             if (Test-Path $VCToolsPath) {
-                Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "mspdbcore.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
+                if ($PGO) {
+                    Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "mspdbcore.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
+                }
+                if ($SanitizeAddress) {
+                    Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dbg_dynamic-x86_64.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dynamic-x86_64.dll") $ArtifactsDir
+                }
             } else {
                 Log "Failed to find VC Tools path!"
             }

@@ -238,10 +238,22 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be powe
 CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
 
 //
-// Path MTU discovery will always start with/initialize with the smallest
-// allowable MTU for QUIC (1280 bytes).
+// Minimum MTU allowed to be configured. Must be able to fit a
+// QUIC_MIN_INITIAL_PACKET_LENGTH in an IPv6 datagram.
 //
-#define QUIC_DEFAULT_PATH_MTU                   1280    // TODO - Use 1200 instead
+#define QUIC_DPLPMUTD_MIN_MTU                   (QUIC_MIN_INITIAL_PACKET_LENGTH + \
+                                                CXPLAT_MIN_IPV6_HEADER_SIZE     + \
+                                                CXPLAT_UDP_HEADER_SIZE)
+
+//
+// The minimum IP MTU DPLPMTUD will use by default.
+//
+#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           QUIC_DPLPMUTD_MIN_MTU
+
+//
+// The maximum IP MTU DPLPMTUD will use by default.
+//
+#define QUIC_DPLPMUTD_DEFAULT_MAX_MTU           1500
 
 //
 // The maximum time an app callback can take before we log a warning.
@@ -367,12 +379,6 @@ CXPLAT_STATIC_ASSERT(
 // The scaling factor used locally for AckDelay field in the ACK_FRAME.
 //
 #define QUIC_ACK_DELAY_EXPONENT                 8
-//
-// The length of the client initial packets sent. Instead of the required min of
-// 1200 we send the full 1280 to give the server more credit to overcome
-// amplification protection.
-//
-#define QUIC_INITIAL_PACKET_LENGTH              1280
 
 //
 // The lifetime of a QUIC stateless retry token encryption key.
@@ -431,6 +437,26 @@ CXPLAT_STATIC_ASSERT(
 //
 #define CXPLAT_AEAD_INTEGRITY_LIMIT               11863283
 
+//
+// Maximum length, in bytes, for a connection_close reason phrase.
+//
+#define QUIC_MAX_CONN_CLOSE_REASON_LENGTH           512
+
+//
+// The maximum number of probe packets sent before considering an MTU too large.
+//
+#define QUIC_DPLPMTUD_MAX_PROBES                    3
+
+//
+// The timeout time in microseconds for the DPLPMTUD wait time.
+//
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT           S_TO_US(600)
+
+//
+// The amount of bytes to increase our PLMTU each probe
+//
+#define QUIC_DPLPMTUD_INCREMENT                     80
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/
@@ -442,6 +468,8 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_LOAD_BALANCING_MODE            "LoadBalancingMode"
 #define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY         "MaxWorkerQueueDelayMs"
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS       "MaxStatelessOperations"
+#define QUIC_SETTING_MAX_BINDING_STATELESS_OPERATIONS "MaxBindingStatelessOperations"
+#define QUIC_SETTING_STATELESS_OPERATION_EXPIRATION "StatelessOperationExpirationMs"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN       "MaxOperationsPerDrain"
 
 #define QUIC_SETTING_SEND_BUFFERING_DEFAULT         "SendBufferingDefault"
@@ -470,3 +498,8 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_SERVER_RESUMPTION_LEVEL        "ResumptionLevel"
 
 #define QUIC_SETTING_VERSION_NEGOTIATION_EXT_ENABLE "VersionNegotiationExtEnabled"
+
+#define QUIC_SETTING_MINIMUM_MTU                    "MinimumMtu"
+#define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"
+#define QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT    "MtuDiscoverySearchCompleteTimeoutUs"
+#define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"

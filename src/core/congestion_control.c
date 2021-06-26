@@ -118,32 +118,6 @@ QuicCongestionControlReset(
     QuicConnLogCubic(Connection);
 }
 
-//
-// Attempts to predict what the congestion window will be one RTT from now.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
-QuicCongestionControlPredictNextWindow(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    //
-    // TODO - Replace NewReno prediction logic.
-    //
-    uint32_t Wnd;
-    if (Cc->CongestionWindow < Cc->SlowStartThreshold) {
-        Wnd = Cc->CongestionWindow << 1;
-        if (Wnd > Cc->SlowStartThreshold) {
-            Wnd = Cc->SlowStartThreshold;
-        }
-    } else {
-        Wnd =
-            Cc->CongestionWindow +
-            QuicCongestionControlGetConnection(Cc)->Paths[0].Mtu;
-    }
-    return Wnd;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCongestionControlGetSendAllowance(
@@ -181,10 +155,20 @@ QuicCongestionControlGetSendAllowance(
         //
         // Since the window grows via ACK feedback and since we defer packets
         // when pacing, using the current window to calculate the pacing
-        // interval is not quite as aggressive as we'd like. Instead, use the
-        // predicted window of the next round trip.
+        // interval can slow the growth of the window. So instead, use the
+        // predicted window of the next round trip. In slowstart, this is double
+        // the current window. In congestion avoidance the growth function is
+        // more complicated, and we use a simple estimate of 25% growth.
         //
-        uint64_t EstimatedWnd = QuicCongestionControlPredictNextWindow(Cc);
+        uint64_t EstimatedWnd;
+        if (Cc->CongestionWindow < Cc->SlowStartThreshold) {
+            EstimatedWnd = (uint64_t)Cc->CongestionWindow << 1;
+            if (EstimatedWnd > Cc->SlowStartThreshold) {
+                EstimatedWnd = Cc->SlowStartThreshold;
+            }
+        } else {
+            EstimatedWnd = Cc->CongestionWindow + (Cc->CongestionWindow >> 2); // CongestionWindow * 1.25
+        }
 
         SendAllowance =
             (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
@@ -277,7 +261,7 @@ QuicCongestionControlOnCongestionEvent(
 
     Cc->SlowStartThreshold =
     Cc->CongestionWindow =
-        max(
+        CXPLAT_MAX(
             (uint32_t)Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
             Cc->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
 }
@@ -474,13 +458,13 @@ QuicCongestionControlOnDataAcknowledged(
 
         int64_t AimdWindow =
             Cc->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
-            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * max(1, US_TO_MS(SmoothedRtt)));
+            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * CXPLAT_MAX(1, US_TO_MS(SmoothedRtt)));
 
         //
         // Use the cubic or AIMD window, whichever is larger.
         //
         if (AimdWindow > CubicWindow) {
-            Cc->CongestionWindow = (uint32_t)max(AimdWindow, Cc->CongestionWindow + 1);
+            Cc->CongestionWindow = (uint32_t)CXPLAT_MAX(AimdWindow, Cc->CongestionWindow + 1);
         } else {
             //
             // Here we increment by a fraction of the difference, per the spec,
@@ -489,7 +473,7 @@ QuicCongestionControlOnDataAcknowledged(
             // the cubic window may be significantly different from SlowStartThreshold.
             //
             Cc->CongestionWindow +=
-                (uint32_t)max(
+                (uint32_t)CXPLAT_MAX(
                     ((CubicWindow - Cc->CongestionWindow) * Connection->Paths[0].Mtu) / Cc->CongestionWindow,
                     1);
         }

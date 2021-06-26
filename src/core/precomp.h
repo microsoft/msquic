@@ -17,6 +17,7 @@
 #pragma warning(disable:28931) // Unused Assignment
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1
+#define QUIC_CORE_INTERNAL 1
 
 //
 // Platform or Public Headers.
@@ -32,6 +33,9 @@
 #include "msquic.h"
 #include "msquicp.h"
 
+#define QUIC_VERSION_ONLY 1
+#include "msquic.ver"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -41,6 +45,7 @@ extern "C" {
 //
 #include "quicdef.h"
 #include "cid.h"
+#include "mtu_discovery.h"
 #include "path.h"
 #include "transport_params.h"
 #include "lookup.h"

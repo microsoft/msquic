@@ -14,7 +14,7 @@ Abstract:
 
 #include "precomp.h"
 
-#include <msquic_fuzz.h>
+#include "msquic_fuzz.h"
 #ifdef QUIC_CLOG
 #include "injection.c.clog.h"
 #endif

@@ -4,91 +4,9 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-#region Stack Walk Profiles
-
-# WPA Profile for collecting stacks.
-$WpaStackWalkProfileXml = `
-@"
-<?xml version="1.0" encoding="utf-8"?>
-<WindowsPerformanceRecorder Version="1.0" Author="MsQuic" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
-  <Profiles>
-    <SystemCollector Id="SC_HighVolume" Realtime="false">
-      <BufferSize Value="1024"/>
-      <Buffers Value="80"/>
-    </SystemCollector>
-    <SystemProvider Id="SP_CPU">
-      <Keywords>
-        <Keyword Value="CpuConfig"/>
-        <Keyword Value="Loader"/>
-        <Keyword Value="ProcessThread"/>
-        <Keyword Value="SampledProfile"/>
-      </Keywords>
-      <Stacks>
-        <Stack Value="SampledProfile"/>
-      </Stacks>
-    </SystemProvider>
-    <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
-      <Collectors>
-        <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_CPU" />
-        </SystemCollectorId>
-      </Collectors>
-    </Profile>
-  </Profiles>
-</WindowsPerformanceRecorder>
-"@
-
-# WPA Profile for collecting QUIC Logs.
-$WpaQUICLogProfileXml = `
-@"
-<?xml version="1.0" encoding="utf-8"?>
-<WindowsPerformanceRecorder Version="1.0" Author="MsQuic" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
-  <Profiles>
-    <SystemCollector Id="SC_HighVolume" Realtime="false">
-      <BufferSize Value="1024"/>
-      <Buffers Value="80"/>
-    </SystemCollector>
-    <EventCollector Id="EC_LowVolume" Realtime="false" Name="LowVolume">
-      <BufferSize Value="1024"/>
-      <Buffers Value="80"/>
-    </EventCollector>
-    <SystemProvider Id="SP_CPU">
-      <Keywords>
-        <Keyword Value="CpuConfig"/>
-        <Keyword Value="Loader"/>
-        <Keyword Value="ProcessThread"/>
-        <Keyword Value="SampledProfile"/>
-      </Keywords>
-      <Stacks>
-        <Stack Value="SampledProfile"/>
-      </Stacks>
-    </SystemProvider>
-    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="5">
-      <Keywords>
-        <Keyword Value="0xE0000000"/>
-      </Keywords>
-    </EventProvider>
-    <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
-      <Collectors>
-        <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_CPU" />
-        </SystemCollectorId>
-        <EventCollectorId Value="EC_LowVolume">
-          <EventProviders>
-            <EventProviderId Value="MsQuicEtwPerf" />
-          </EventProviders>
-        </EventCollectorId>
-      </Collectors>
-    </Profile>
-  </Profiles>
-</WindowsPerformanceRecorder>
-"@
-
-#endregion
-
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -97,16 +15,31 @@ function Set-ScriptVariables {
     $script:Config = $Config
     $script:Publish = $Publish
     $script:Record = $Record
-    $script:RecordQUIC = $RecordQUIC
+    $script:LogProfile = $LogProfile
     $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
     $script:Kernel = $Kernel
     $script:FailOnRegression = $FailOnRegression
+    $script:OsBuildNumber = [System.Environment]::OSVersion.Version.Build
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
         }
     }
+}
+
+function Set-DebugLogFile {
+    param ($DebugLogFile)
+    $script:DebugLogFile = $DebugLogFile
+}
+
+function Write-LogAndDebug {
+    param([AllowNull()]$Data)
+    if ($null -eq $Data) {
+        return
+    }
+    Write-Debug $Data
+    $Data | Out-File $script:DebugLogFile -Append
 }
 
 function Set-Session {
@@ -277,7 +210,7 @@ function Get-GitHash {
     try {
         $CurrentCommitHash = git rev-parse HEAD
     } catch {
-        Write-Debug "Failed to get commit hash from git"
+        Write-LogAndDebug "Failed to get commit hash from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
     return $CurrentCommitHash
@@ -293,7 +226,7 @@ function Get-CommitDate {
         $CurrentCommitDate = git show -s --format=%ct
         $CurrentCommitDate = [DateTimeOffset]::FromUnixTimeSeconds($CurrentCommitDate).ToUnixTimeMilliseconds()
     } catch {
-        Write-Debug "Failed to get commit date from git"
+        Write-LogAndDebug "Failed to get commit date from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
     return $CurrentCommitDate
@@ -308,7 +241,7 @@ function Get-CurrentBranch {
     try {
         $CurrentBranch = git branch --show-current
     } catch {
-        Write-Debug "Failed to get commit date from git"
+        Write-LogAndDebug "Failed to get commit date from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
     return $CurrentBranch
@@ -349,6 +282,21 @@ function Get-ExeName {
 
 function Remove-PerfServices {
     if ($IsWindows) {
+        if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
+            try {
+                net.exe stop secnetperfdrvpriv /y | Out-Null
+            }
+            catch {}
+            sc.exe delete secnetperfdrvpriv /y | Out-Null
+        }
+        if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
+            try {
+                net.exe stop msquicpriv /y | Out-Null
+            }
+            catch {}
+            sc.exe delete msquicpriv /y | Out-Null
+        }
+
         Invoke-TestCommand -Session $Session -ScriptBlock {
             if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {
@@ -369,7 +317,7 @@ function Remove-PerfServices {
 }
 
 function Invoke-RemoteExe {
-    param ($Exe, $RunArgs)
+    param ($Exe, $RunArgs, $RemoteDirectory)
 
     # Command to run chmod if necessary, and get base path
     $BasePath = Invoke-TestCommand -Session $Session -ScriptBlock {
@@ -385,24 +333,18 @@ function Invoke-RemoteExe {
         $RunArgs = "-driverNamePriv:secnetperfdrvpriv $RunArgs"
     }
 
-    Write-Debug "Running Remote: $Exe $RunArgs"
-
-    $WpaXml = $WpaStackWalkProfileXml
-    if ($RecordQUIC) {
-        $WpaXml = $WpaQUICLogProfileXml
-    }
+    Write-LogAndDebug "Running Remote: $Exe $RunArgs"
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
-        param ($Exe, $RunArgs, $BasePath, $Record, $WpaXml, $Kernel)
+        param ($Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory)
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
 
-        if ($Record -and $IsWindows) {
-            $EtwXmlName = $Exe + ".remote.wprp"
+        $LogScript = Join-Path $RemoteDirectory log.ps1
 
-            $WpaXml | Out-File $EtwXmlName
-            wpr.exe -start $EtwXmlName -filemode 2> $null
+        if ($Record) {
+            & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory | Out-Null
         }
 
         $Arch = Split-Path (Split-Path $Exe -Parent) -Leaf
@@ -425,11 +367,47 @@ function Invoke-RemoteExe {
             sc.exe delete msquicpriv | Out-Null
         }
 
-        if ($Record -and $IsWindows) {
-            $EtwName = $Exe + ".remote.etl"
-            wpr.exe -stop $EtwName 2> $null
+        if ($Record) {
+            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -ProfileInScriptDirectory | Out-Null
         }
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaXml, $Kernel
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
+}
+
+function Get-RemoteLogDirectory {
+    param ([string]$Local, [string]$Remote, [string]$SmbDir, [switch]$Cleanup)
+
+    New-Item -Path $Local -ItemType Directory -Force | Out-Null
+    if (![string]::IsNullOrWhiteSpace($SmbDir)) {
+        Write-Host $SmbDir
+        Write-Host $Local
+        robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
+        if ($LASTEXITCODE -ne 3) {
+            Write-Error "Robocopy failed: $LASTEXITCODE"
+        } else {
+            $global:LASTEXITCODE = 0
+        }
+        if ($Cleanup) {
+            try {
+                Remove-Item -Path "$SmbDir/*" -Recurse -Force
+            } catch [System.Management.Automation.ItemNotFoundException] {
+                # Ignore Not Found for when the directory does not exist
+                # This will still throw if a file cannot successfuly be deleted
+            }
+        }
+    } else {
+        Copy-Item -Path "$Remote\*" -Destination $Local -FromSession $Session  -Recurse -Force
+        if ($Cleanup) {
+            Invoke-TestCommand $Session -ScriptBlock {
+                param ($Remote)
+                try {
+                    Remove-Item -Path "$Remote/*" -Recurse -Force
+                } catch [System.Management.Automation.ItemNotFoundException] {
+                    # Ignore Not Found for when the directory does not exist
+                    # This will still throw if a file cannot successfuly be deleted
+                }
+            } -ArgumentList $Remote
+        }
+    }
 }
 
 function Get-RemoteFile {
@@ -452,32 +430,25 @@ function Remove-RemoteFile {
 }
 
 function Start-Tracing {
-    param($Exe)
-    if ($Record -and $IsWindows -and !$Local) {
-        $EtwXmlName = $Exe + ".local.wprp"
-
-        $WpaXml = $WpaStackWalkProfileXml
-        if ($RecordQUIC) {
-            $WpaXml = $WpaQUICLogProfileXml
-        }
-
-        $WpaXml | Out-File $EtwXmlName
-        wpr.exe -start $EtwXmlName -filemode 2> $null
+    param($LocalDirectory)
+    if ($Record -and !$Local) {
+        $LogScript = Join-Path $LocalDirectory log.ps1
+        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory | Out-Null
     }
 }
 
 function Stop-Tracing {
-    param($Exe)
-    if ($Record -and $IsWindows -and !$Local) {
-        $EtwName = $Exe + ".local.etl"
-        wpr.exe -stop $EtwName 2> $null
+    param($LocalDirectory, $OutputDir, $Test)
+    if ($Record -and !$Local) {
+        $LogScript = Join-Path $LocalDirectory log.ps1
+        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -ProfileInScriptDirectory | Out-Null
     }
 }
 
 function Merge-PGOCounts {
     param ($Path, $OutputDir)
     $Command = "$Path\pgomgr.exe /merge $Path $Path\msquic.pgd"
-    Invoke-Expression $Command | Write-Debug
+    Invoke-Expression $Command | Write-LogAndDebug
     Remove-Item "$Path\*.pgc" | Out-Null
 }
 
@@ -516,7 +487,7 @@ function Invoke-LocalExe {
     $RunArgs = "-watchdog:$TimeoutMs $RunArgs"
 
     $FullCommand = "$Exe $RunArgs"
-    Write-Debug "Running Locally: $FullCommand"
+    Write-LogAndDebug "Running Locally: $FullCommand"
 
     $ExeName = Split-Path $Exe -Leaf
     # Path to the WER registry key used for collecting dumps.
@@ -590,30 +561,44 @@ function Get-TestResult($Results, $Matcher) {
     }
 }
 
-function Get-LatestCommitHash([string]$Branch) {
+$NumberOfCommitsToAverage = 5
+
+function Get-LatestCommitHashes([string]$Branch) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
-    Write-Debug "Requesting: $Uri"
+    Write-LogAndDebug "Requesting: $Uri"
     try {
         $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
-        Write-Debug "Result: $AllCommits"
-        $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
-        Write-Debug "Latest Commit: $LatestResult"
-    return $LatestResult.CommitHash
+        Write-LogAndDebug "Result: $AllCommits"
+        if ($AllCommits.Count -eq 0) {
+            return ""
+        }
+        $SortedList = $AllCommits | Sort-Object -Property Date -Descending
+        if ($SortedList.Count -lt $NumberOfCommitsToAverage) {
+            $LatestResult = $SortedList
+        } else {
+            $LatestResult = $SortedList | Select-Object -First $NumberOfCommitsToAverage
+        }
+        Write-LogAndDebug "Latest Commits: $LatestResult"
+        return $LatestResult
     } catch {
         return ""
     }
 }
 
-function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
-    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
-    Write-Debug "Requesting: $Uri"
-    try {
-        $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
-        Write-Debug "Result: $LatestResult"
-    return $LatestResult
-    } catch {
-        return ""
+function Get-LatestCpuTestResults([string]$Branch, $CommitHashes) {
+    $Items = [System.Collections.Generic.List[object]]::new()
+    foreach ($Result in $CommitHashes) {
+        try {
+            $CommitHash = $Result.CommitHash
+            $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
+            Write-LogAndDebug "Requesting: $Uri"
+            $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+            Write-LogAndDebug "Result: $LatestResult"
+            $Items.Add($LatestResult)
+        } catch {
+        }
     }
+    return $Items
 }
 
 $global:HasRegression = $false
@@ -690,16 +675,24 @@ class ThroughputRequest {
 
 function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
     try {
+        $Values = [System.Collections.Generic.List[int]]::new()
         $TestConfig = $Request.GetConfiguration()
-        foreach ($Test in $CpuData.Tests) {
-            if ($null -eq $Test.TputConfig) {
-                continue;
-            }
+        foreach ($Result in $CpuData) {
+            foreach ($Test in $Result.Tests) {
+                if ($null -eq $Test.TputConfig) {
+                    continue;
+                }
 
-            if ($Test.TestName -eq $Request.TestName -and $TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-                return $Test
+                if ($Test.TestName -eq $Request.TestName -and $TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                    $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
+                    break;
+                }
             }
         }
+        if ($Values.Count -eq 0) {
+            return $null
+        }
+        return ($Values | Measure-Object -Average).Average
     } catch {
     }
     return $null
@@ -750,7 +743,7 @@ function Publish-ThroughputTestResults {
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
+        $MedianLastResult = $FullLastResult
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -776,9 +769,9 @@ function Publish-ThroughputTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $null
+        $MachineName = ($script:OsBuildNumber).ToString()
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7), $Tcp)
         $Results.AuthKey = $CurrentCommitDate;
@@ -786,7 +779,7 @@ function Publish-ThroughputTestResults {
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif (!$Publish) {
-        Write-Debug "Failed to publish because of missing commit hash"
+        Write-LogAndDebug "Failed to publish because of missing commit hash"
     }
 }
 
@@ -841,16 +834,24 @@ class RPSRequest {
 
 function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
     try {
+        $Values = [System.Collections.Generic.List[int]]::new()
         $TestConfig = $Request.GetConfiguration()
-        foreach ($Test in $CpuData.Tests) {
-            if ($null -eq $Test.RpsConfig) {
-                continue;
-            }
+        foreach ($Result in $CpuData) {
+            foreach ($Test in $Result.Tests) {
+                if ($null -eq $Test.RpsConfig) {
+                    continue;
+                }
 
-            if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-                return $Test
+                if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                    $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
+                    break;
+                }
             }
         }
+        if ($Values.Count -eq 0) {
+            return $null
+        }
+        return ($Values | Measure-Object -Average).Average
     } catch {
     }
     return $null
@@ -907,7 +908,7 @@ function Publish-RPSTestResults {
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
+        $MedianLastResult = $FullLastResult
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -930,9 +931,9 @@ function Publish-RPSTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $null
+        $MachineName = ($script:OsBuildNumber).ToString()
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
         $Results.AuthKey = $CurrentCommitDate;
@@ -940,7 +941,7 @@ function Publish-RPSTestResults {
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif (!$Publish) {
-        Write-Debug "Failed to publish because of missing commit hash"
+        Write-LogAndDebug "Failed to publish because of missing commit hash"
     }
 }
 
@@ -975,16 +976,24 @@ class HPSRequest {
 
 function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
     try {
+        $Values = [System.Collections.Generic.List[int]]::new()
         $TestConfig = $Request.GetConfiguration()
-        foreach ($Test in $CpuData.Tests) {
-            if ($null -eq $Test.HpsConfig) {
-                continue;
-            }
+        foreach ($Result in $CpuData) {
+            foreach ($Test in $Result.Tests) {
+                if ($null -eq $Test.HpsConfig) {
+                    continue;
+                }
 
-            if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-                return $Test
+                if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                    $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
+                    break;
+                }
             }
         }
+        if ($Values.Count -eq 0) {
+            return $null
+        }
+        return ($Values | Measure-Object -Average).Average
     } catch {
     }
     return $null
@@ -1024,7 +1033,7 @@ function Publish-HPSTestResults {
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
+        $MedianLastResult = $FullLastResult
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -1047,9 +1056,9 @@ function Publish-HPSTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $null
+        $MachineName = ($script:OsBuildNumber).ToString()
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
         $Results.AuthKey = $CurrentCommitDate;
@@ -1057,7 +1066,7 @@ function Publish-HPSTestResults {
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif (!$Publish) {
-        Write-Debug "Failed to publish because of missing commit hash"
+        Write-LogAndDebug "Failed to publish because of missing commit hash"
     }
 }
 

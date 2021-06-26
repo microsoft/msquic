@@ -20,7 +20,7 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    if (GetValue(argc, argv, "?") || GetValue(argc, argv, "help")) {
+    if (GetFlag(argc, argv, "?") || GetFlag(argc, argv, "help")) {
         printf("Usage:\n");
         printf("  quicipclient.exe [-target:<...>] [-local:<...>] [-unsecure]\n");
         return 0;
@@ -34,7 +34,7 @@ main(
 
     TryGetValue(argc, argv, "target", &Target);
     TryGetValue(argc, argv, "local", &LocalAddressArg);
-    if (GetValue(argc, argv, "unsecure")) {
+    if (GetFlag(argc, argv, "unsecure")) {
         Unsecure = true;
     }
 

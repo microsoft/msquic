@@ -39,6 +39,13 @@ QuicStreamInitialize(
     }
     CxPlatZeroMemory(Stream, sizeof(QUIC_STREAM));
 
+#if DEBUG
+    CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+    CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
+    CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+#endif
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
     Stream->ID = UINT64_MAX;
@@ -85,19 +92,6 @@ QuicStreamInitialize(
         }
     }
 
-#if 1 // Special case code to force bugcheck or failure. Will be removed when no longer needed.
-    CXPLAT_FRE_ASSERT(Connection->Settings.StreamRecvBufferDefault != 0x80000000U);
-    if (Connection->Settings.StreamRecvBufferDefault == 0x40000000U) {
-        QuicTraceEvent(
-            StreamError,
-            "[strm][%p] ERROR, %s.",
-            Stream,
-            "Unsupported receive buffer size");
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Exit;
-    }
-#endif
-
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
         PreallocatedRecvBuffer = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
@@ -121,21 +115,20 @@ QuicStreamInitialize(
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
     Stream->RecvWindowLastUpdate = CxPlatTimeUs32();
 
-#if DEBUG
-    CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
-    CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
-    CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
-#endif
-
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
     Stream = NULL;
     PreallocatedRecvBuffer = NULL;
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
 Exit:
 
     if (Stream) {
+#if DEBUG
+        CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+        CxPlatListEntryRemove(&Stream->AllStreamsLink);
+        CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+#endif
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
         CxPlatPoolFree(&Worker->StreamPool, Stream);
@@ -158,8 +151,8 @@ QuicStreamFree(
     QUIC_WORKER* Worker = Connection->Worker;
 
     CXPLAT_TEL_ASSERT(Stream->RefCount == 0);
-    CXPLAT_TEL_ASSERT(Stream->Flags.ShutdownComplete);
-    CXPLAT_TEL_ASSERT(Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
+    CXPLAT_TEL_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
     CXPLAT_TEL_ASSERT(Stream->ClosedLink.Flink == NULL);
     CXPLAT_TEL_ASSERT(Stream->SendLink.Flink == NULL);
 
@@ -173,6 +166,7 @@ QuicStreamFree(
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
@@ -187,8 +181,6 @@ QuicStreamFree(
 
     Stream->Flags.Freed = TRUE;
     CxPlatPoolFree(&Worker->StreamPool, Stream);
-
-    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     if (WasStarted) {
 #pragma warning(push)
@@ -241,6 +233,7 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
+    Stream->Flags.IndicatePeerAccepted = !!(Flags & QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT);
 
     QuicTraceEvent(
         StreamCreated,
@@ -290,7 +283,7 @@ QuicStreamStart(
     if (Stream->MaxAllowedSendOffset == 0) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
     }
-    Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
+    Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (Stream->OutFlowBlockedReasons != 0) {
         QuicTraceEvent(
@@ -420,11 +413,15 @@ QuicStreamIndicateStartComplete(
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
+    Event.START_COMPLETE.PeerAccepted =
+        !(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
         Stream,
-        "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
-        Status);
+        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
+        Status,
+        Stream->ID,
+        Event.START_COMPLETE.PeerAccepted);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
 
@@ -439,10 +436,14 @@ QuicStreamIndicateShutdownComplete(
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
+        Event.SHUTDOWN_COMPLETE.ConnectionShutdown =
+            Stream->Connection->State.ClosedLocally ||
+            Stream->Connection->State.ClosedRemotely;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

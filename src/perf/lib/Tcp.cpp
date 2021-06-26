@@ -102,7 +102,7 @@ TcpEngine::TcpEngine(
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
     TcpSendCompleteHandler SendCompleteHandler) :
-    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new TcpWorker[ProcCount]),
+    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
@@ -283,7 +283,7 @@ TcpServer::AcceptCallback(
     )
 {
     auto This = (TcpServer*)ListenerContext;
-    auto Connection = new TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
+    auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
     Connection->Context = This;
     *AcceptClientContext = Connection;
 }
@@ -294,7 +294,7 @@ TcpConnection::TcpConnection(
     TcpEngine* Engine,
     const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort,
     const QUIC_ADDR* LocalAddress,

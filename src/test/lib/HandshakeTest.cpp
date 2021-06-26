@@ -15,6 +15,9 @@ Abstract:
 #endif
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
+    DatapathHooks::CreateCallback,
+    DatapathHooks::GetLocalAddressCallback,
+    DatapathHooks::GetRemoteAddressCallback,
     DatapathHooks::ReceiveCallback,
     DatapathHooks::SendCallback
 };
@@ -564,8 +567,8 @@ QuicTestPathValidationTimeout(
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, QUIC_TEST_NO_ERROR);
             }
 
-            if (!Server->WaitForShutdownComplete()) {
-                return;
+            if (Server) {
+                Server->WaitForShutdownComplete();
             }
         }
     }
@@ -1776,6 +1779,131 @@ QuicTestConnectServerRejected(
 }
 
 void
+QuicTestKeyUpdateRandomLoss(
+    _In_ int Family,
+    _In_ uint8_t RandomLossPercentage
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    const int Iterations = 10;
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        Listener.SetHasRandomLoss(true);
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(true);
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                {
+                    RandomLossHelper LossHelper(RandomLossPercentage);
+
+                    CxPlatSleep(100);
+
+                    for (uint16_t i = 0; i < Iterations; ++i) {
+
+                        //
+                        // We don't care if this call succeeds, we just want to trigger it every time
+                        //
+                        Client.ForceKeyUpdate();
+                        Server->ForceKeyUpdate();
+
+                        //
+                        // Send some data to perform the key update.
+                        // TODO: Update this to send stream data, like QuicConnectAndPing does.
+                        //
+                        TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101 + i)));
+                        TEST_EQUAL((uint16_t)(101 + i), Client.GetPeerBidiStreamCount());
+                        CxPlatSleep(50);
+
+                        //
+                        // Force a client key update to occur again to check for double update
+                        // while server is still waiting for key response.
+                        //
+                        Client.ForceKeyUpdate();
+
+                        TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100 + i)));
+                        TEST_EQUAL((uint16_t)(100 + i), Server->GetPeerBidiStreamCount());
+                        CxPlatSleep(50);
+                    }
+
+                    CxPlatSleep(100);
+                }
+
+                QUIC_STATISTICS Stats = Client.GetStatistics();
+                if (Stats.Recv.DecryptionFailures) {
+                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                    return;
+                }
+
+                if (Stats.Misc.KeyUpdateCount < 1) {
+                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.Misc.KeyUpdateCount);
+                    return;
+                }
+
+                Stats = Server->GetStatistics();
+                if (Stats.Recv.DecryptionFailures) {
+                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                    return;
+                }
+
+                if (Stats.Misc.KeyUpdateCount < 1) {
+                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.Misc.KeyUpdateCount);
+                    return;
+                }
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void
 QuicTestKeyUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations,
@@ -1858,6 +1986,14 @@ QuicTestKeyUpdate(
                     TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());
                     CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
+
+                    //
+                    // Force a client key update to occur again to check for double update
+                    // while server is still waiting for key response.
+                    //
+                    if (ClientKeyUpdate) {
+                        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
+                    }
 
                     TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
                     TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
@@ -2433,4 +2569,180 @@ QuicTestConnectExpiredClientCertificate(
             }
         }
     }
+}
+
+struct LoadBalancedServer {
+    QuicAddr PublicAddress;
+    QuicAddr* PrivateAddresses {nullptr};
+    QUIC_TICKET_KEY_CONFIG KeyConfig;
+    MsQuicConfiguration** Configurations {nullptr};
+    MsQuicAutoAcceptListener** Listeners {nullptr};
+    uint32_t ListenerCount;
+    LoadBalancerHelper* LoadBalancer {nullptr};
+    QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_PARAMETER}; // Only hit in ListenerCount == 0 scenario
+    LoadBalancedServer(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_UNSPEC,
+        _In_ MsQuicConnectionCallback* ConnectionHandler = MsQuicConnection::NoOpCallback,
+        _In_ uint32_t ListenerCount = 2
+        ) noexcept :
+        PublicAddress(QuicAddrFamily, (uint16_t)443), PrivateAddresses(new(std::nothrow) QuicAddr[ListenerCount]),
+        Configurations(new(std::nothrow) MsQuicConfiguration*[ListenerCount]),
+        Listeners(new(std::nothrow) MsQuicAutoAcceptListener*[ListenerCount]), ListenerCount(ListenerCount) {
+        CxPlatRandom(sizeof(KeyConfig), &KeyConfig);
+        KeyConfig.MaterialLength = sizeof(KeyConfig.Material);
+        CxPlatZeroMemory(Configurations, sizeof(MsQuicConfiguration*) * ListenerCount);
+        CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
+        MsQuicSettings Settings;
+        Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
+        QuicAddrSetToLoopback(&PublicAddress.SockAddr);
+        for (uint32_t i = 0; i < ListenerCount; ++i) {
+            PrivateAddresses[i] = QuicAddr(QuicAddrFamily);
+            QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
+            Configurations[i] = new(std::nothrow) MsQuicConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+            TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->GetInitStatus());
+            TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->SetTicketKey(&KeyConfig));
+            Listeners[i] = new(std::nothrow) MsQuicAutoAcceptListener(Registration, *Configurations[i], ConnectionHandler);
+            TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetInitStatus());
+            TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->Start("MsQuicTest", &PrivateAddresses[i].SockAddr));
+            TEST_QUIC_SUCCEEDED(InitStatus = Listeners[i]->GetLocalAddr(PrivateAddresses[i]));
+        }
+        LoadBalancer = new(std::nothrow) LoadBalancerHelper(PublicAddress.SockAddr, (QUIC_ADDR*)PrivateAddresses, ListenerCount);
+    }
+    ~LoadBalancedServer() noexcept {
+        delete LoadBalancer;
+        for (uint32_t i = 0; i < ListenerCount; ++i) {
+            delete Listeners[i];
+            delete Configurations[i];
+        }
+        delete[] Listeners;
+        delete[] Configurations;
+        delete[] PrivateAddresses;
+    }
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    void ValidateLoadBalancing() const noexcept {
+        for (uint32_t i = 0; i < ListenerCount; ++i) {
+            TEST_TRUE(Listeners[i]->AcceptedConnectionCount != 0);
+        }
+    }
+};
+
+void
+QuicTestLoadBalancedHandshake(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    LoadBalancedServer Listeners(Registration, QuicAddrFamily, MsQuicConnection::SendResumptionCallback, 3);
+    TEST_QUIC_SUCCEEDED(Listeners.GetInitStatus());
+
+    QuicAddr ConnLocalAddr(QuicAddrFamily, false);
+    uint32_t ResumptionTicketLength = 0;
+    uint8_t* ResumptionTicket = nullptr;
+    bool SchannelMode = false; // Only determined on first resumed connection.
+    ConnLocalAddr.SetPort(33667); // Randomly chosen!
+    for (uint32_t i = 0; i < 100; ++i) {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        bool TryingResumption = false;
+        if (ResumptionTicket) {
+            TEST_QUIC_SUCCEEDED(Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength));
+            delete[] ResumptionTicket;
+            ResumptionTicket = nullptr;
+            TryingResumption = true;
+        }
+        TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr));
+        TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        if (!Connection.HandshakeComplete) {
+            //
+            // Sometimes the local port might be used already. Just ignore this
+            // failure and continue on.
+            //
+            TEST_TRUE(Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE);
+
+        } else {
+            if (SchannelMode) {
+                //
+                // HACK: Schannel reuses tickets, so it always resumes. Also, no
+                // point in waiting for a ticket because it won't send it.
+                //
+                TEST_TRUE(Connection.HandshakeResumed);
+
+            } else {
+                TEST_TRUE(Connection.HandshakeResumed == TryingResumption);
+                if (!Connection.ResumptionTicketReceivedEvent.WaitTimeout(TestWaitTimeout)) {
+                    if (Connection.HandshakeResumed) {
+                        SchannelMode = true; // Schannel doesn't send tickets on resumed connections.
+                        ResumptionTicket = nullptr;
+                    } else {
+                        TEST_FAILURE("Timeout waiting for resumption ticket");
+                        return;
+                    }
+                } else {
+                    TEST_TRUE(Connection.ResumptionTicket != nullptr);
+                    ResumptionTicketLength = Connection.ResumptionTicketLength;
+                    ResumptionTicket = Connection.ResumptionTicket;
+                    Connection.ResumptionTicket = nullptr;
+                }
+            }
+            Connection.Shutdown(0); // Best effort start peer shutdown
+        }
+        ConnLocalAddr.IncrementPort();
+    }
+    delete[] ResumptionTicket;
+    Listeners.ValidateLoadBalancing();
+}
+
+void
+QuicTestClientSharedLocalPort(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+
+    MsQuicAutoAcceptListener Listener1(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener1.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener1.GetInitStatus());
+    QuicAddr Server1LocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener1.GetLocalAddr(Server1LocalAddr));
+
+    MsQuicAutoAcceptListener Listener2(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener2.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener2.GetInitStatus());
+    QuicAddr Server2LocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener2.GetLocalAddr(Server2LocalAddr));
+
+    MsQuicConnection Connection1(Registration);
+    TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection1.SetShareUdpBinding());
+    TEST_QUIC_SUCCEEDED(Connection1.StartLocalhost(ClientConfiguration, Server1LocalAddr));
+    TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection1.HandshakeComplete);
+    QuicAddr Client1LocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection1.GetLocalAddr(Client1LocalAddr));
+
+    MsQuicConnection Connection2(Registration);
+    TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection2.SetShareUdpBinding());
+    TEST_QUIC_SUCCEEDED(Connection2.SetLocalAddr(Client1LocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection2.StartLocalhost(ClientConfiguration, Server1LocalAddr));
+    TEST_TRUE(Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection2.HandshakeComplete);
 }

@@ -17,7 +17,20 @@ Supported Environments:
 
 #pragma once
 
+//
+// Due to a bug in VS 16.10, we need to disable stdio inlining
+// Remove this once that bug is fixed
+//
+#ifdef _KERNEL_MODE
+#define _NO_CRT_STDIO_INLINE
+#endif
+#include <stddef.h>
+
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
+
+#define CXPLAT_MAX(a,b) (((a) > (b)) ? (a) : (b))
+
+#define CXPLAT_MIN(a,b) (((a) < (b)) ? (a) : (b))
 
 //
 // Time unit conversion.
@@ -148,22 +161,80 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 
 #ifdef _KERNEL_MODE
 #define CX_PLATFORM_TYPE 1
-#include <quic_platform_winkernel.h>
+#include "quic_platform_winkernel.h"
 #elif _WIN32
 #define CX_PLATFORM_TYPE 2
-#include <quic_platform_winuser.h>
+#include "quic_platform_winuser.h"
 #elif CX_PLATFORM_LINUX
 #define CX_PLATFORM_TYPE 3
 #define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
-#include <quic_platform_posix.h>
+#include "quic_platform_posix.h"
 #elif CX_PLATFORM_DARWIN
 #define CX_PLATFORM_TYPE 4
 #define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
-#include <quic_platform_posix.h>
+#include "quic_platform_posix.h"
 #else
 #define CX_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"
 #endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+//
+// Library Initialization
+//
+
+//
+// Called in main, DLLMain or DriverEntry.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSystemLoad(
+    void
+    );
+
+//
+// Called in main (exit), DLLMain or DriverUnload.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSystemUnload(
+    void
+    );
+
+//
+// Initializes the PAL library. Calls to this and
+// CxPlatformUninitialize must be serialized and cannot overlap.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatInitialize(
+    void
+    );
+
+//
+// Uninitializes the PAL library. Calls to this and
+// CxPlatformInitialize must be serialized and cannot overlap.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUninitialize(
+    void
+    );
+
+#if defined(__cplusplus)
+}
+#endif
+
+//
+// List Abstraction
+//
 
 #define QuicListEntryValidate(Entry) \
     CXPLAT_DBG_ASSERT( \
@@ -322,6 +393,24 @@ CxPlatListPopEntry(
 
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
+
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    );
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
+#endif
+
+#ifdef DEBUG
+#define CxPlatIsRandomMemoryFailureEnabled() (CxPlatGetAllocFailDenominator() != 0)
+#else
+#define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
+#endif
+
 
 //
 // Test Interface for loading a self-signed certificate.

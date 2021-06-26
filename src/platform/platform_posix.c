@@ -15,7 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 #include "quic_platform.h"
-#include "quic_platform_dispatch.h"
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
 #include <sys/syscall.h>
@@ -31,11 +30,8 @@ Environment:
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-CX_PLATFORM_DISPATCH* PlatDispatch = NULL;
-#else
+CX_PLATFORM CxPlatform = { NULL };
 int RandomFd; // Used for reading random numbers.
-#endif
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so";
@@ -132,6 +128,11 @@ CxPlatSystemLoad(
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
 }
 
 void
@@ -146,14 +147,10 @@ CxPlatInitialize(
     void
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    CXPLAT_FRE_ASSERT(PlatDispatch != NULL);
-#else
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         return (QUIC_STATUS)errno;
     }
-#endif
 
     CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
 
@@ -165,9 +162,7 @@ CxPlatUninitialize(
     void
     )
 {
-#ifndef CX_PLATFORM_DISPATCH_TABLE
     close(RandomFd);
-#endif
 }
 
 void*
@@ -177,16 +172,14 @@ CxPlatAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Alloc(ByteCount);
-#else
-#ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
-#else
+#ifdef DEBUG
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+#endif
     return malloc(ByteCount);
-#endif // QUIC_RANDOM_ALLOC_FAIL
-#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 void
@@ -196,11 +189,7 @@ CxPlatFree(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->Free(Mem);
-#else
     free(Mem);
-#endif
 }
 
 void
@@ -470,14 +459,10 @@ CxPlatRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Random(BufferLen, Buffer);
-#else
     if (read(RandomFd, Buffer, BufferLen) == -1) {
         return (QUIC_STATUS)errno;
     }
     return QUIC_STATUS_SUCCESS;
-#endif
 }
 
 void
@@ -521,6 +506,24 @@ CxPlatConvertFromMappedV6(
     }
 }
 
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+    CxPlatform.AllocCounter = 0;
+}
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
+#endif
+
 #if defined(CX_PLATFORM_LINUX)
 
 QUIC_STATUS
@@ -546,7 +549,7 @@ CxPlatThreadCreate(
         cpu_set_t CpuSet;
         CPU_ZERO(&CpuSet);
         CPU_SET(Config->IdealProcessor, &CpuSet);
-        if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
+        if (pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -561,7 +564,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+        if (pthread_attr_setschedparam(&Attr, &Params)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
@@ -614,7 +617,7 @@ CxPlatThreadCreate(
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
-            if (!pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
+            if (pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",

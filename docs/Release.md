@@ -37,11 +37,13 @@ A release branch will be created (forked) for each release of MsQuic. Official r
 
 This table describes all MsQuic releases, both officially supported (LTSC or SAC) and unsupported (PRE).
 
-| [Type](Release.md#release-support-policies) | Branch | Fork Date | Release Date | End of Support |
-| -- | -- | -- | -- | -- |
-| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
-| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD |
-| PRE | [release/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | Mar 26 2020 | N/A |N/A |
+| [Type](Release.md#release-support-policies) | Branch | Windows | Fork Date | Release Date | End of Support |
+| -- | -- | -- | -- | -- | -- |
+| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Server 2022 | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
+| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | TBD | Feb 10 2021 | TBD | TBD |
+| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A |N/A |
+| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A |N/A |
+| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A |N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -59,9 +61,13 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 >  * Server Preferred Address
 >  * Path MTU Discovery
 
+### Known Issues
+
+- `GetParam` for `QUIC_PARAM_CONN_STATISTICS` does not populate `Handshake.*` fields.
+
 ## MsQuic v1.1 (TBD)
 
-[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (Cobalt) release. These changes include:
+[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (official name TBD) release. These changes include:
 
  - Preview support for [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-03) extension.
  - Public API header build fixes.
@@ -73,6 +79,10 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
  - Diagnostics documentation improvements.
 
 The QUIC specifications have been approved by the IESG and are in RFC editor queue. Both the v1 and draft-29 versions are supported by this release.
+
+### Known Issues
+
+- `GetParam` for `QUIC_PARAM_CONN_STATISTICS` does not populate `Handshake.*` fields.
 
 ## MsQuic v1.2 (Prerelease)
 
@@ -91,3 +101,51 @@ The QUIC specifications have been approved by the IESG and are in RFC editor que
 - Support for pkcs12 imports
 
 The QUIC specifications are still in RFC editor queue. Both the v1 and draft-29 versions are still supported by this release.
+
+## MsQuic v1.3 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.3](https://github.com/microsoft/msquic/releases/tag/v1.3.0) has numerous improvements from v1.2. As this is a prerelease, there is no expected shipping vehicle for this release. Some noted changes in this release include:
+
+- Removed old/unused `mitls` and `stub` TLS providers. Only `schannel` and `openssl` are officially supported (#1398, #1411).
+- Fully support Resumption and 0-RTT with OpenSSL (#1469).
+- Fully support Windows UWP apps (#1429, #1452, #1454).
+- Support Client certificate validation (#1366).
+- Support ChaCha20-Poly1305 with OpenSSL (#1431).
+- Support Cipher Suite allow-list (#1430).
+- Support Portable Certificate verification (#1450).
+- Various performance improvements (tune recv pkt queue, worker partition ID for send, UDP send queuing) (#1424, #1448, #1451, #1456, #1474, #1483).
+- Fixed SO_REUSEPORT perf issue on server sockets (Linux only) (#1391).
+- Fixed various issues with macOS (arm platform detection, max CPU count) (#1388, #1427).
+- Fixes bugs that causes stream to get in (temporary) bad state when aborting receive path (#1513, #1516).
+- Update `StreamShutdown` to run inline on callbacks (#1521).
+- Support universal binaries for macOS (#1414).
+- Added/updated documentation, especially around trouble shooting (#1423, #1467, #1481, #1486).
+- Refactored/improved WPA plugin and cmd line tool, QuicTrace (#1482, #1484, #1485, #1490, #1493, #1499).
+
+The QUIC specifications are being actively looked at by the RFC editor. Both the v1 and draft-29 versions are still supported by this release.
+
+## MsQuic v1.4 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.4](https://github.com/microsoft/msquic/releases/tag/v1.4.0) has numerous improvements from v1.3. As this is a prerelease, there is no expected shipping vehicle for this release. Some noted changes in this release include:
+
+- Updated User Mode PGO.
+- Perf improvement from sent packet metadata stream ref counting (#1529).
+- Support address sanitizer on Windows.
+- Random allocation test support for SpinQuic and BVT (#1537, #1541).
+- Fix key phase and key update detection logic (#1548).
+- Fixed bug with stateless reset and retired CIDs (#1568).
+- Add support for Peer Accept Stream event (#1560).
+- Various bug fixes found from random allocation failure tests.
+- Various additional test cases added.
+- Added multiple API version support.
+- Lots of improved documentation.
+- Enabled ACK frequency in CPU limited scenarios (#1588).
+- Support for DPLPMTUD (#1563).
+- Reduced min MTU to 1248 (#1673).
+- Refactored POSIX error codes (breaking change for POSIX, #1645).
+
+The QUIC specifications now offically RFC. Both the v1 and draft-29 versions are still supported by this release.

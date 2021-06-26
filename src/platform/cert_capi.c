@@ -20,7 +20,7 @@ Environment:
 #endif
 
 #include <wincrypt.h>
-#include <msquic.h>
+#include "msquic.h"
 
 typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;
@@ -800,7 +800,7 @@ CxPlatCertVerifyCertChainPolicy(
     memset(&HttpsPolicy, 0, sizeof(HTTPSPolicyCallbackData));
     HttpsPolicy.cbStruct = sizeof(HTTPSPolicyCallbackData);
     HttpsPolicy.dwAuthType = AUTHTYPE_SERVER;
-    HttpsPolicy.fdwChecks = IgnoreFlags;
+    HttpsPolicy.fdwChecks = 0;
     HttpsPolicy.pwszServerName = ServerName;
 
     memset(&PolicyPara, 0, sizeof(PolicyPara));
@@ -823,6 +823,12 @@ CxPlatCertVerifyCertChainPolicy(
             "CertVerifyCertificateChainPolicy failed");
         goto Exit;
 
+    } else if (PolicyStatus.dwError == CRYPT_E_NO_REVOCATION_CHECK &&
+        (IgnoreFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK)) {
+        Status = NO_ERROR;
+    } else if (PolicyStatus.dwError == CRYPT_E_REVOCATION_OFFLINE &&
+        (IgnoreFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        Status = NO_ERROR;
     } else if (PolicyStatus.dwError != NO_ERROR) {
 
         Status = PolicyStatus.dwError;
@@ -851,6 +857,7 @@ BOOLEAN
 CxPlatCertValidateChain(
     _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
+    _In_ uint32_t CertFlags,
     _In_ uint32_t IgnoreFlags
     )
 {
@@ -880,7 +887,7 @@ CxPlatCertValidateChain(
             NULL,
             LeafCertCtx->hCertStore,
             &ChainPara,
-            0,
+            CertFlags,
             NULL,
             &ChainContext)) {
         QuicTraceEvent(

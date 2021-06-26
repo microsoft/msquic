@@ -2,33 +2,66 @@
 
 ## Running the Tests
 
-To run the tests, simply run:
+To run the all the tests, (after [building](./BUILD.md)) simply run:
 
 ```PowerShell
 ./scripts/test.ps1
 ```
 
-By default this will run all tests in series. To run in parallel, use the `-Parallel` switch. Running in parallel is much faster than in series, but it sometimes can cause additional test failures because of the increased (likely maximum) CPU load it creates. Additionally, while running in parallel, you cannot collect the logs.
+> **Note** - On Windows, `schannel` is the default TLS provider, but requires the latest Windows OS versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
 
-So, for a reliable run, that also includes logs for failed tests, run:
+```PowerShell
+./scripts/test.ps1 -Tls openssl
+```
+
+By default this will run all tests in series, with no log to collection. To include log collection for failed tests, run:
 
 ```PowerShell
 ./scripts/test.ps1 -LogProfile Full.Light
 ```
 
+> **Note** - On Windows, you will need to run Powershell as **Administrator** to get the logs.
+
 If there are any failed tests, this will generate a directory for each failed test that incldues the console output from running the test and any logs collected.
 
-**Example Output**
-```
-PS G:\msquic> ./scripts/test.ps1 -LogProfile Full.Light
-[01/21/2020 07:20:29] Executing 967 tests in series...
-[01/21/2020 07:46:42] 963 test(s) passed.
-[01/21/2020 07:46:42] 4 test(s) failed:
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadALPN/0
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadALPN/1
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadSNI/0
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadSNI/1
-[01/21/2020 07:46:42] Logs can be found in G:\msquic\artifacts\logs\01.21.2020.07.20.29
+**Example Output** (Windows)
+```PowerShell
+PS F:\msquic> .\scripts\test.ps1
+[05/24/2021 08:17:35] F:\msquic\artifacts\bin\windows\x64_Debug_schannel\msquiccoretest.exe (208 test case(s))
+...
+[05/24/2021 08:17:48] 208 test(s) run.
+[05/24/2021 08:17:48] F:\msquic\artifacts\bin\windows\x64_Debug_schannel\msquicplatformtest.exe (66 test case(s))
+...
+[05/24/2021 08:17:55] 66 test(s) run.
+[05/24/2021 08:17:56] F:\msquic\artifacts\bin\windows\x64_Debug_schannel\msquictest.exe (1681 test case(s))
+...
+[05/24/2021 08:26:58] 1681 test(s) run.
+[05/24/2021 08:26:58] Output can be found in F:\msquic\artifacts\logs\msquictest.exe\05.24.2021.08.17.55
+Write-Error: 4 test(s) failed.
 ```
 
-**TODO** - Document additional configuration options.
+## PowerShell Script Arguments
+
+There are a number of other useful arguments for `test.ps1`.
+
+`Config <Debug/Release>` - The build configuration (**default**: `debug`) to test. Must have been built first.
+
+`Arch <x86/x64/arm/arm64>` - The CPU architecture (**default**: `x64`) to test. Must have been built first.
+
+`Tls <openssl/schannel>` - The TLS provider to use (**Windows default**: `schannel`, **Posix default**: `openssl`) to test. Must have been built first.
+
+`Filter <GoogleTest filter>` - A filter for which tests to run. More details [here](https://google.github.io/googletest/advanced.html#running-a-subset-of-the-tests) on the syntax.
+
+`ListTestCases` - Lists all the (optionally filtered) tests instead of running them.
+
+`NoProgress` - Don't display progress during test execution.
+
+`LogProfile <profile>` - The profile to use for logging. **TODO** - Add more here.
+
+`KeepOutputOnSuccess` - Keep logs even if tests pass.
+
+`Debugger` - Run with the debugger attached.
+
+`InitialBreak` - Break in the debugger on initial attach/start.
+
+`BreakOnFailure` - Break into the debugger for any test failures.

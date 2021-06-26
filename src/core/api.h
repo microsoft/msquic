@@ -128,14 +128,14 @@ MsQuicConnectionShutdown(
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ _Pre_defensive_ HQUIC ConfigHandle,
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
     );
@@ -179,7 +179,8 @@ MsQuicStreamClose(
         HQUIC Handle
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 QUIC_API
 MsQuicStreamStart(

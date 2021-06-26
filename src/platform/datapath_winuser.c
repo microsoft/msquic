@@ -40,6 +40,12 @@ CxPlatFuzzerRecvMsg(
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
 //
+// If set, CXPLAT_DATAPATH_QUEUE_SENDS enables logic to queue the UDP send
+// to the datapath worker thread instead of inline execution.
+//
+//#define CXPLAT_DATAPATH_QUEUE_SENDS 1
+
+//
 // This IOCTL allows for creating per-processor sockets for the same UDP port.
 // This is used to get better parallelization to improve performance.
 //
@@ -183,6 +189,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     WSABUF ClientBuffer;
 
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
     //
     // The local address to bind to.
     //
@@ -192,6 +199,7 @@ typedef struct CXPLAT_SEND_DATA {
     // The remote address to send to.
     //
     QUIC_ADDR RemoteAddress;
+#endif
 
 } CXPLAT_SEND_DATA;
 
@@ -950,12 +958,12 @@ CxPlatDataPathInitialize(
 #ifdef QUIC_UWP_BUILD
         SetThreadDescription(Datapath->Processors[i].CompletionThread, L"cxplat_datapath");
 #else
-        THREAD_NAME_INFORMATION ThreadNameInfo;
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"cxplat_datapath");
         NTSTATUS NtStatus =
             NtSetInformationThread(
                 Datapath->Processors[i].CompletionThread,
-                ThreadNameInformation,
+                ThreadNameInformationPrivate,
                 &ThreadNameInfo,
                 sizeof(ThreadNameInfo));
         if (!NT_SUCCESS(NtStatus)) {
@@ -1311,8 +1319,8 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -1738,33 +1746,13 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Socket != NULL) {
-            QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Socket);
             if (Socket->ProcsOutstanding != 0) {
-                for (uint16_t i = 0; i < SocketCount; i++) {
-                    CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
-                    uint16_t Processor =
-                         Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
-
-QUIC_DISABLED_BY_FUZZER_START;
-
-                    CancelIo((HANDLE)SocketProc->Socket);
-                    closesocket(SocketProc->Socket);
-
-QUIC_DISABLED_BY_FUZZER_END;
-
-                    //
-                    // Queue a completion to clean up the socket context.
-                    //
-                    PostQueuedCompletionStatus(
-                        Socket->Datapath->Processors[Processor].IOCP,
-                        UINT32_MAX,
-                        (ULONG_PTR)SocketProc,
-                        &SocketProc->Overlapped);
-                }
+                CxPlatSocketDelete(Socket);
             } else {
+                QuicTraceEvent(
+                    DatapathDestroyed,
+                    "[data][%p] Destroyed",
+                    Socket);
                 for (uint16_t i = 0; i < SocketCount; i++) {
                     CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
 
@@ -1822,8 +1810,8 @@ CxPlatSocketCreateTcpInternal(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2123,8 +2111,8 @@ CxPlatSocketCreateTcpListener(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(0, NULL));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(0, NULL));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2813,7 +2801,7 @@ CxPlatSocketHandleUnreachableError(
         "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
         SocketProc->Parent,
         ErrorCode,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
     SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
@@ -2845,6 +2833,11 @@ CxPlatSocketStartReceive(
                 DatapathProc->Index);
         if (SocketProc->CurrentRecvContext == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Socket Receive Buffer",
+                SocketProc->Parent->Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH);
             goto Error;
         }
     }
@@ -2985,7 +2978,7 @@ CxPlatDataPathUdpRecvComplete(
             DatapathTooLarge,
             "[data][%p] Received larger than expected datagram from %!ADDR!",
             SocketProc->Parent,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
         //
@@ -3075,8 +3068,8 @@ CxPlatDataPathUdpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             MessageLength,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3169,7 +3162,21 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)CxPlatSocketStartReceive(SocketProc, DatapathProc);
+    int32_t RetryCount = 0;
+    QUIC_STATUS Status;
+    do {
+        Status = CxPlatSocketStartReceive(SocketProc, DatapathProc);
+    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            Status,
+            "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
+    }
+
 }
 
 void
@@ -3231,8 +3238,8 @@ CxPlatDataPathTcpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             NumberOfBytesTransferred,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3384,9 +3391,12 @@ CxPlatSendDataCanAllocSendSegment(
     _In_ UINT16 MaxBufferLength
     )
 {
+    if (!SendData->ClientBuffer.buf) {
+        return FALSE;
+    }
+
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendData->WsaBufferCount > 0);
-    //CXPLAT_DBG_ASSERT(SendData->WsaBufferCount <= SendData->Owner->Datapath->MaxSendBatchSize);
 
     ULONG BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
@@ -3412,8 +3422,7 @@ CxPlatSendDataCanAllocSend(
 static
 void
 CxPlatSendDataFinalizeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN IsSendingImmediately
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     if (SendData->ClientBuffer.len == 0) {
@@ -3446,8 +3455,6 @@ CxPlatSendDataFinalizeSendBuffer(
         //
         // The next segment allocation must create a new backing buffer.
         //
-        CXPLAT_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
-        UNREFERENCED_PARAMETER(IsSendingImmediately);
         SendData->ClientBuffer.buf = NULL;
         SendData->ClientBuffer.len = 0;
     }
@@ -3500,12 +3507,7 @@ CxPlatSendDataAllocSegmentBuffer(
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(MaxBufferLength <= SendData->SegmentSize);
 
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
-    WSABUF* WsaBuffer;
-
-    if (SendData->ClientBuffer.buf != NULL &&
-        CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
-
+    if (CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
         //
         // All clear to return the next segment of our contiguous buffer.
         //
@@ -3513,7 +3515,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &DatapathProc->LargeSendBufferPool);
+    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->LargeSendBufferPool);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -3539,9 +3541,8 @@ CxPlatSendDataAllocBuffer(
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
-    //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    CxPlatSendDataFinalizeSendBuffer(SendData, FALSE);
+    CxPlatSendDataFinalizeSendBuffer(SendData);
 
     if (!CxPlatSendDataCanAllocSend(SendData, MaxBufferLength)) {
         return NULL;
@@ -3624,115 +3625,7 @@ CxPlatSendDataComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatSocketSend(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
-    )
-{
-    QUIC_STATUS Status;
-    CXPLAT_SOCKET_PROC* SocketProc;
-    CXPLAT_DATAPATH* Datapath;
-    BOOL Result;
-    DWORD BytesSent;
-    uint16_t Processor;
-
-    CXPLAT_DBG_ASSERT(
-        Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL);
-
-    if (SendData->WsaBufferCount == 0) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    Datapath = Socket->Datapath;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
-    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
-
-    CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
-    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
-
-    if (Socket->Type != CXPLAT_SOCKET_UDP) {
-        Result =
-            WSASend(
-                SocketProc->Socket,
-                SendData->WsaBuffers,
-                SendData->WsaBufferCount,
-                &BytesSent,
-                0,
-                &SendData->Overlapped,
-                NULL);
-
-        if (Result == SOCKET_ERROR) {
-            int WsaError = WSAGetLastError();
-            if (WsaError != WSA_IO_PENDING) {
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    SocketProc->Parent,
-                    WsaError,
-                    "WSASendMsg");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Exit;
-            }
-        } else {
-            //
-            // Completed synchronously.
-            //
-            CxPlatSendDataComplete(
-                SocketProc,
-                SendData,
-                QUIC_STATUS_SUCCESS);
-        }
-
-        Status = QUIC_STATUS_SUCCESS;
-        goto Exit;
-    }
-
-    CxPlatCopyMemory(
-        &SendData->LocalAddress,
-        LocalAddress,
-        sizeof(*LocalAddress));
-
-    CxPlatCopyMemory(
-        &SendData->RemoteAddress,
-        RemoteAddress,
-        sizeof(*RemoteAddress));
-
-    Result = PostQueuedCompletionStatus(
-        Datapath->Processors[Processor].IOCP,
-        UINT32_MAX,
-        (ULONG_PTR)SocketProc,
-        &SendData->Overlapped);
-    if (!Result) {
-        int LastError = GetLastError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            LastError,
-            "PostQueuedCompletionStatus");
-        Status = HRESULT_FROM_WIN32(LastError);
-        goto Exit;
-    }
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Exit:
-
-    if (QUIC_FAILED(Status)) {
-        CxPlatSendDataFree(SendData);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-CxPlatSocketSendInternal(
+CxPlatSocketSendInline(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -3748,8 +3641,6 @@ CxPlatSocketSendInternal(
     Datapath = SocketProc->Parent->Datapath;
     Socket = SocketProc->Parent;
 
-    CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_UDP);
-
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -3757,8 +3648,8 @@ CxPlatSocketSendInternal(
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
@@ -3848,14 +3739,26 @@ CxPlatSocketSendInternal(
     // Start the async send.
     //
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
-    Result =
-        Datapath->WSASendMsg(
-            SocketProc->Socket,
-            &WSAMhdr,
-            0,
-            &BytesSent,
-            &SendData->Overlapped,
-            NULL);
+    if (Socket->Type == CXPLAT_SOCKET_UDP) {
+        Result =
+            Datapath->WSASendMsg(
+                SocketProc->Socket,
+                &WSAMhdr,
+                0,
+                &BytesSent,
+                &SendData->Overlapped,
+                NULL);
+    } else {
+        Result =
+            WSASend(
+                SocketProc->Socket,
+                SendData->WsaBuffers,
+                SendData->WsaBufferCount,
+                &BytesSent,
+                0,
+                &SendData->Overlapped,
+                NULL);
+    }
 
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
@@ -3888,6 +3791,88 @@ Exit:
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t IdealProcessor
+    )
+{
+    CXPLAT_DBG_ASSERT(
+        Socket != NULL && LocalAddress != NULL &&
+        RemoteAddress != NULL && SendData != NULL &&
+        SendData->WsaBufferCount != 0);
+
+    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
+    CXPLAT_SOCKET_PROC* SocketProc =
+        &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+
+    CxPlatSendDataFinalizeSendBuffer(SendData);
+
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+    uint16_t Processor =
+        Socket->HasFixedRemoteAddress ?
+            Socket->ProcessorAffinity :
+            IdealProcessor % Datapath->ProcCount;
+
+    if ((Socket->Type != CXPLAT_SOCKET_UDP)) {
+        //
+        // Currently TCP always sends inline.
+        //
+        return
+            CxPlatSocketSendInline(
+                SocketProc,
+                LocalAddress,
+                RemoteAddress,
+                SendData);
+    }
+
+    CxPlatCopyMemory(
+        &SendData->LocalAddress,
+        LocalAddress,
+        sizeof(*LocalAddress));
+
+    CxPlatCopyMemory(
+        &SendData->RemoteAddress,
+        RemoteAddress,
+        sizeof(*RemoteAddress));
+
+    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
+    BOOL Result =
+        PostQueuedCompletionStatus(
+            Datapath->Processors[Processor].IOCP,
+            UINT32_MAX,
+            (ULONG_PTR)SocketProc,
+            &SendData->Overlapped);
+    if (!Result) {
+        int LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "PostQueuedCompletionStatus");
+        CxPlatSendDataFree(SendData);
+        return HRESULT_FROM_WIN32(LastError);
+    }
+
+    return QUIC_STATUS_SUCCESS;
+
+#else // CXPLAT_DATAPATH_QUEUE_SENDS
+
+    return
+        CxPlatSocketSendInline(
+            SocketProc,
+            LocalAddress,
+            RemoteAddress,
+            SendData);
+
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
 }
 
 DWORD
@@ -4021,15 +4006,18 @@ CxPlatDataPathWorkerThread(
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
-            if (NumberOfBytesTransferred == UINT32_MAX && 
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+            if (NumberOfBytesTransferred == UINT32_MAX &&
                 CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-                CxPlatSocketSendInternal(
+                CxPlatSocketSendInline(
                     SocketProc,
                     &SendData->LocalAddress,
                     &SendData->RemoteAddress,
                     SendData);
-                CxPlatRundownRelease(&SocketProc->UpcallRundown);                
-            } else {
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);
+            } else
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
+            {
                 CxPlatSendDataComplete(
                     SocketProc,
                     SendData,

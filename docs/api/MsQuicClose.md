@@ -19,7 +19,7 @@ MsQuicClose(
 
 `QuicApi`
 
-The function table from a previous call to [MsQuicOpen](MsQuicOpen.md).
+The function table from a previous call to [MsQuicOpenVersion](MsQuicOpenVersion.md).
 
 # Remarks
 
@@ -27,4 +27,4 @@ This function **must** be called when the app is done with the MsQuic library.
 
 # See Also
 
-[MsQuicOpen](MsQuicOpen.md)<br>
+[MsQuicOpenVersion](MsQuicOpenVersion.md)<br>

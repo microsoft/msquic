@@ -92,6 +92,10 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
     [string]$WinRMUser = "",
 
     [Parameter(Mandatory = $false)]
@@ -107,16 +111,10 @@ param (
     [switch]$Local = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RecordStack = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
     [int]$Timeout = 120,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$RecordQUIC = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$TestToRun = "",
@@ -152,7 +150,7 @@ if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-$Record = $RecordStack -or $RecordQUIC
+$Record = "None" -ne $LogProfile
 
 # Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
@@ -180,9 +178,6 @@ if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
 if (!$IsWindows) {
     if ($PGO) {
         Write-Error "'-PGO' is not supported on this platform!"
-    }
-    if ($Record) {
-        Write-Error "'-Record' is not supported on this platform!"
     }
 }
 
@@ -234,7 +229,7 @@ Set-ScriptVariables -Local $Local `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
-                    -RecordQUIC $RecordQUIC `
+                    -LogProfile $LogProfile `
                     -RemoteAddress $RemoteAddress `
                     -Session $Session `
                     -Kernel $Kernel `
@@ -251,8 +246,24 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
+$DebugFileName = $Local ? "DebugLogLocal.txt" : "DebugLog.txt"
+if ($Kernel) {
+    $DebugFileName = "Kernel$DebugFileName"
+}
+$DebugLogFile = Join-Path $OutputDir $DebugFileName
+"" | Out-File $DebugLogFile
+
+Set-DebugLogFile -DebugLogFile $DebugLogFile
+
+$OsBuildNumber = [System.Environment]::OSVersion.Version.Build
+Write-LogAndDebug "Running on $OsBuildNumber"
+
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
+
+# Copy manifest and log script to local directory
+Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
@@ -295,7 +306,7 @@ function LocalSetup {
             $apipaAddr = Get-NetIPAddress 169.254.*
             if ($null -ne $apipaAddr) {
                 # Disable all the APIPA interfaces for URO perf.
-                Write-Debug "Temporarily disabling APIPA interfaces"
+                Write-LogAndDebug "Temporarily disabling APIPA interfaces"
                 $RetObj.apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | Where-Object {$_.AdminStatus -eq "Up"}
                 $RetObj.apipaInterfaces | Disable-NetAdapter -Confirm:$false
             }
@@ -311,7 +322,7 @@ function LocalTeardown {
     param ($LocalCache)
     if ($null -ne $LocalCache.apipaInterfaces) {
         # Re-enable the interfaces we disabled earlier.
-        Write-Debug "Re-enabling APIPA interfaces"
+        Write-LogAndDebug "Re-enabling APIPA interfaces"
         $LocalCache.apipaInterfaces | Enable-NetAdapter
     }
 }
@@ -329,7 +340,12 @@ if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
         $BranchName = Get-CurrentBranch -RepoDir $RootDir
     } else {
         # Azure Build
-        $BranchName = $AzpBranchName.Substring(11);
+        $BuildReason = $env:BUILD_REASON
+        if ("Manual" -eq $BuildReason) {
+            $BranchName = "main"
+        } else {
+            $BranchName = $AzpBranchName.Substring(11);
+        }
     }
 } else {
     # PR Build
@@ -340,8 +356,8 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
     $BranchName = $ForceBranchName
 }
 
-$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
-$PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash
+$LastCommitHashes = Get-LatestCommitHashes -Branch $BranchName
+$PreviousResults = Get-LatestCpuTestResults -Branch $BranchName -CommitHashes $LastCommitHashes
 
 function Invoke-Test {
     param ([TestRunDefinition]$Test, [RemoteConfig]$RemoteConfig)
@@ -374,10 +390,25 @@ function Invoke-Test {
 
     $RemoteArguments = $RemoteConfig.Arguments
 
-    Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
+    if ($LocalArguments.Contains("-stats:1")) {
+        $RemoteArguments += " -stats:1"
+    }
+
+    if ($Kernel) {
+        $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
+        $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent
+        $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
+
+        Copy-Item (Join-Path $KernelDir "secnetperfdrvpriv.sys") (Split-Path $LocalExe -Parent)
+        Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $LocalExe -Parent)
+
+        $LocalArguments = "-driverNamePriv:secnetperfdrvpriv $LocalArguments"
+    }
+
+    Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
-    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
+    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments -RemoteDirectory $RemoteDirectory
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
 
     if (!$ReadyToStart) {
@@ -389,12 +420,13 @@ function Invoke-Test {
 
     $AllRunsResults = @()
 
-    Start-Tracing -Exe $LocalExe
+    Start-Tracing -LocalDirectory $LocalDirectory
 
     try {
         1..$Test.Iterations | ForEach-Object {
-            Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
+            Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+            Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
@@ -414,20 +446,33 @@ function Invoke-Test {
             $OutputString = "Run $($_): $Joined"
 
             Write-Output $OutputString
-            $LocalResults | Write-Debug
+            $LocalResults | Write-LogAndDebug
         }
     } finally {
-        $RemoteResults = Wait-ForRemote -Job $RemoteJob
-        Write-Debug $RemoteResults.ToString()
+        if ($Kernel) {
+            net.exe stop secnetperfdrvpriv /y | Out-Null
+            net.exe stop msquicpriv /y | Out-Null
+            sc.exe delete secnetperfdrvpriv | Out-Null
+            sc.exe delete msquicpriv | Out-Null
+        }
 
-        Stop-Tracing -Exe $LocalExe
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob
+        Write-LogAndDebug $RemoteResults.ToString()
+
+        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
 
         if ($Record) {
             if ($Local) {
-                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+                $LocalLogPath = (Join-Path $RemoteDirectory serverlogs)
+                Copy-Item -Path $LocalLogPath -Destination (Join-Path $OutputDir $Test.ToString()) -Recurse -Force
+                try {
+                    Remove-Item -Path "$LocalLogPath/*" -Recurse -Force
+                } catch [System.Management.Automation.ItemNotFoundException] {
+                    # Ignore Not Found for when the directory does not exist
+                    # This will still throw if a file cannot successfuly be deleted
+                }
             } else {
-                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-                Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+                Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
             }
         }
     }

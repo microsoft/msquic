@@ -9,6 +9,7 @@ set(SOURCES
     DrillDescriptor.cpp
     EventTest.cpp
     HandshakeTest.cpp
+    MtuTest.cpp
     QuicDrill.cpp
     TestConnection.cpp
     TestListener.cpp
