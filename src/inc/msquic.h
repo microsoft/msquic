@@ -1294,13 +1294,14 @@ MsQuicOpenVersion(
 
 #ifndef QUIC_CORE_INTERNAL
 
-#if defined(__cplusplus) || defined(WIN32)
+/*#if defined(__cplusplus) || defined(WIN32)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-#ifndef WIN32
-__attribute__((always_inline))
+#ifdef WIN32
+__forceinline
+#else
+__attribute__((always_inline)) inline
 #endif
-inline
 QUIC_STATUS
 MsQuicOpen(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
@@ -1309,11 +1310,11 @@ MsQuicOpen(
     return MsQuicOpenVersion(1, (const void**)QuicApi);
 }
 
-#else
+#else*/
 
 #define MsQuicOpen(QuicApi) MsQuicOpenVersion(1, (const void**)QuicApi)
 
-#endif // defined(__cplusplus) || defined(WIN32)
+/*#endif // defined(__cplusplus) || defined(WIN32)*/
 
 #endif // QUIC_CORE_INTERNAL
 

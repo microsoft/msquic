@@ -1048,7 +1048,7 @@ main(int argc, char **argv)
     //
     // Initial MsQuicOpen and initialization.
     //
-    const QUIC_API_TABLE* TempMsQuic;
+    const QUIC_API_TABLE* TempMsQuic = nullptr;
     ASSERT_ON_FAILURE(MsQuicOpen(&TempMsQuic));
     CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 

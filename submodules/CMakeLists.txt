@@ -114,7 +114,7 @@ add_custom_target(
     $<$<CONFIG:Debug>:${LIBSSL_DEBUG_PATH}>
     $<$<NOT:$<CONFIG:Debug>>:${LIBSSL_PATH}>
 )
-set_property(TARGET OpenSSL_Target PROPERTY FOLDER "helpers")
+set_property(TARGET OpenSSL_Target PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
 # Target to export to parent project
 add_library(OpenSSLQuic INTERFACE)
