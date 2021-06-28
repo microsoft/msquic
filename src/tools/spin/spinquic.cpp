@@ -569,6 +569,8 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             HQUIC Stream;
             QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(2), SpinQuicHandleStreamEvent, nullptr, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
+                SpinQuicGetRandomParam(Stream);
+                SpinQuicSetRandomStreamParam(Stream);
                 SpinQuicConnection::Get(Connection)->AddStream(Stream);
             }
             break;
