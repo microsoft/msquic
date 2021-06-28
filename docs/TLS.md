@@ -1,7 +1,7 @@
 MsQuic TLS Abstraction Layer
 ======
 
-MsQuic includes TLS in the general "Platform Abstraction Layer" or PAL. This interface provides all the functionality required of TLS by the QUIC protocol, as defined by the IETF [QUIC-TLS](https://tools.ietf.org/html/draft-ietf-quic-tls) spec.
+MsQuic includes TLS in the general "Platform Abstraction Layer" or PAL. This interface provides all the functionality required of TLS by the QUIC protocol, as defined by the IETF [QUIC-TLS](https://datatracker.ietf.org/doc/html/rfc9001) spec.
 
 # High-Level Overview
 
