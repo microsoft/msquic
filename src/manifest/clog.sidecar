@@ -111,6 +111,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
@@ -6684,6 +6696,22 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "UpdatePriority": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] New send priority = %hu",
+      "UniqueId": "UpdatePriority",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamInfo"
+    },
     "IndicateStartComplete": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
@@ -8608,18 +8636,6 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryError": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] ERROR, %s.",
-      "UniqueId": "LibraryError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
     },
     "TlsLogSecret": {
       "ModuleProperites": {},
@@ -10880,6 +10896,10 @@
         "TraceID": "StreamError"
       },
       {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
         "TraceID": "ConnError"
       },
@@ -12436,6 +12456,10 @@
         "TraceID": "EventSilentDiscard"
       },
       {
+        "UniquenessHash": "1b92f995-0f00-00a4-3898-3e5121f9f323",
+        "TraceID": "UpdatePriority"
+      },
+      {
         "UniquenessHash": "66dd140b-9fd3-eddc-e34c-cb81639e1aca",
         "TraceID": "IndicateStartComplete"
       },
@@ -12906,10 +12930,6 @@
       {
         "UniquenessHash": "d53212c8-2068-d598-a55f-1b238ec86ad1",
         "TraceID": "CertCapiVerify"
-      },
-      {
-        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
-        "TraceID": "LibraryError"
       },
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",

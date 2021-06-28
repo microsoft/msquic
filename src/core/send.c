@@ -150,7 +150,19 @@ QuicSendQueueFlushForStream(
         // Not previously queued, so add the stream to the end of the queue.
         //
         CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
-        CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
+        CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
+        while (Entry != &Send->SendStreams) {
+            //
+            // Search back to front for the right place (based on priority) to
+            // insert the stream.
+            //
+            if (Stream->SendPriority <=
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink)->SendPriority) {
+                break;
+            }
+            Entry = Entry->Blink;
+        }
+        CxPlatListInsertHead(Entry, &Stream->SendLink); // Insert after current Entry
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
@@ -888,10 +900,23 @@ QuicSendGetNextStream(
 
             if (Connection->State.UseRoundRobinStreamScheduling) {
                 //
-                // Move the stream to the end of the queue.
+                // Move the stream after any streams of the same priority. Start
+                // with the "next" entry in the list and keep going until the
+                // next entry's priority is less. Then move the stream before
+                // that entry.
                 //
-                CxPlatListEntryRemove(&Stream->SendLink);
-                CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
+                CXPLAT_LIST_ENTRY* LastEntry = Stream->SendLink.Flink;
+                while (Stream->SendLink.Flink != &Send->SendStreams) {
+                    if (Stream->SendPriority >
+                        CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink)->SendPriority) {
+                        break;
+                    }
+                    LastEntry = LastEntry->Flink;
+                }
+                if (LastEntry->Blink != &Stream->SendLink) {
+                    CxPlatListEntryRemove(&Stream->SendLink);
+                    CxPlatListInsertTail(LastEntry, &Stream->SendLink);
+                }
 
                 *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
 
