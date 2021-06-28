@@ -542,6 +542,12 @@ QuicStreamParamSet(
     QUIC_STATUS Status;
 
     switch (Param) {
+    case QUIC_PARAM_STREAM_ID:
+    case QUIC_PARAM_STREAM_0RTT_LENGTH:
+    case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+
     case QUIC_PARAM_STREAM_PRIORITY:
 
         if (BufferLength != sizeof(Stream->SendPriority)) {
