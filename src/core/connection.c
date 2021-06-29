@@ -5511,16 +5511,18 @@ QuicConnResetIdleTimeout(
     }
 
     if (IdleTimeoutMs != 0) {
-        //
-        // Idle timeout must be no less than the PTOs for closing.
-        //
-        uint32_t MinIdleTimeoutMs =
-            US_TO_MS(QuicLossDetectionComputeProbeTimeout(
-                &Connection->LossDetection,
-                &Connection->Paths[0],
-                QUIC_CLOSE_PTO_COUNT));
-        if (IdleTimeoutMs < MinIdleTimeoutMs) {
-            IdleTimeoutMs = MinIdleTimeoutMs;
+        if (Connection->State.Connected) {
+            //
+            // Idle timeout must be no less than the PTOs for closing.
+            //
+            uint32_t MinIdleTimeoutMs =
+                US_TO_MS(QuicLossDetectionComputeProbeTimeout(
+                    &Connection->LossDetection,
+                    &Connection->Paths[0],
+                    QUIC_CLOSE_PTO_COUNT));
+            if (IdleTimeoutMs < MinIdleTimeoutMs) {
+                IdleTimeoutMs = MinIdleTimeoutMs;
+            }
         }
 
         QuicConnTimerSet(Connection, QUIC_CONN_TIMER_IDLE, IdleTimeoutMs);
