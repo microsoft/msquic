@@ -48,6 +48,7 @@ namespace QuicTrace.DataModel
         ApiWaitOperation,
         PerfCountersRundown,
         LibrarySendRetryStateUpdated,
+        LibraryVersion,
 
         RegistrationCreated = 1024,
         RegistrationDestroyed,

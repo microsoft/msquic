@@ -104,6 +104,11 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN CurrentStatelessRetryKey;
 
     //
+    // Current binary version.
+    //
+    uint32_t Version[4];
+
+    //
     // Configurable (app & registry) settings.
     //
     QUIC_SETTINGS Settings;

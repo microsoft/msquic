@@ -387,6 +387,25 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicLibraryVersionEvent : QuicEvent
+    {
+        public uint Major { get; }
+        public uint Minor { get; }
+        public uint Patch { get; }
+        public uint Build { get; }
+
+        public override string PayloadString => string.Format("Version {0}.{1}.{2}.{3}", Major, Minor, Patch, Build);
+
+        internal QuicLibraryVersionEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint major, uint minor, uint patch, uint build) :
+            base(QuicEventId.LibraryVersion, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            Major = major;
+            Minor = minor;
+            Patch = patch;
+            Build = build;
+        }
+    }
+
     public class QuicLibraryMessageEvent : QuicEvent
     {
         public string Message { get; }

@@ -68,6 +68,10 @@ MsQuicLibraryUnload(
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
+        MsQuicLib.Version[0] = VER_MAJOR;
+        MsQuicLib.Version[1] = VER_MINOR;
+        MsQuicLib.Version[2] = VER_PATCH;
+        MsQuicLib.Version[3] = VER_BUILD_ID;
         CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
@@ -406,6 +410,13 @@ MsQuicLibraryInitialize(
         "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
         MsQuicLib.PartitionCount,
         CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+    QuicTraceEvent(
+        LibraryVersion,
+        "[ lib] Version %u.%u.%u.%u",
+        MsQuicLib.Version[0],
+        MsQuicLib.Version[1],
+        MsQuicLib.Version[2],
+        MsQuicLib.Version[3]);
 
 #ifdef CxPlatVerifierEnabled
     uint32_t Flags;
@@ -993,8 +1004,8 @@ QuicLibraryGetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_VERSION:
 
-        if (*BufferLength < 4 * sizeof(uint32_t)) {
-            *BufferLength = 4 * sizeof(uint32_t);
+        if (*BufferLength < sizeof(MsQuicLib.Version)) {
+            *BufferLength = sizeof(MsQuicLib.Version);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -1004,11 +1015,8 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        *BufferLength = 4 * sizeof(uint32_t);
-        ((uint32_t*)Buffer)[0] = VER_MAJOR;
-        ((uint32_t*)Buffer)[1] = VER_MINOR;
-        ((uint32_t*)Buffer)[2] = VER_PATCH;
-        ((uint32_t*)Buffer)[3] = VER_BUILD_ID;
+        *BufferLength = sizeof(MsQuicLib.Version);
+        CxPlatCopyMemory(Buffer, MsQuicLib.Version, sizeof(MsQuicLib.Version));
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1826,6 +1834,13 @@ QuicTraceRundown(
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
             CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        QuicTraceEvent(
+            LibraryVersion,
+            "[ lib] Version %u.%u.%u.%u",
+            MsQuicLib.Version[0],
+            MsQuicLib.Version[1],
+            MsQuicLib.Version[2],
+            MsQuicLib.Version[3]);
 
         QuicTraceEvent(
             LibrarySendRetryStateUpdated,
