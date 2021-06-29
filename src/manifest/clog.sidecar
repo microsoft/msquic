@@ -111,6 +111,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
@@ -4668,6 +4680,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Version %u.%u.%u.%u",
+      "UniqueId": "LibraryVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Uninitialized",
@@ -8609,18 +8645,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "LibraryError": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] ERROR, %s.",
-      "UniqueId": "LibraryError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "TlsLogSecret": {
       "ModuleProperites": {},
       "TraceString": "[ tls] %s[%u]: %s",
@@ -10880,6 +10904,10 @@
         "TraceID": "StreamError"
       },
       {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
         "TraceID": "ConnError"
       },
@@ -11944,6 +11972,10 @@
         "TraceID": "LibraryInitialized"
       },
       {
+        "UniquenessHash": "c5092562-eb73-dded-1d42-ad7fdd896841",
+        "TraceID": "LibraryVersion"
+      },
+      {
         "UniquenessHash": "75aa07a5-b70c-1670-9f7b-cddc495a508c",
         "TraceID": "LibraryUninitialized"
       },
@@ -12906,10 +12938,6 @@
       {
         "UniquenessHash": "d53212c8-2068-d598-a55f-1b238ec86ad1",
         "TraceID": "CertCapiVerify"
-      },
-      {
-        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
-        "TraceID": "LibraryError"
       },
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
