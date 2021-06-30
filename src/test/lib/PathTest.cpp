@@ -15,6 +15,7 @@ Abstract:
 #endif
 
 struct PathTestContext {
+    CxPlatEvent HandshakeCompleteEvent;
     CxPlatEvent ShutdownEvent;
     MsQuicConnection* Connection {nullptr};
     CxPlatEvent PeerAddrChangedEvent;
@@ -26,8 +27,10 @@ struct PathTestContext {
             Ctx->Connection = nullptr;
             Ctx->PeerAddrChangedEvent.Set();
             Ctx->ShutdownEvent.Set();
-        }
-        else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
+            Ctx->HandshakeCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            Ctx->HandshakeCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
             Ctx->PeerAddrChangedEvent.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -39,16 +42,13 @@ QuicTestLocalPathChanges(
     _In_ int Family
     )
 {
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration{true};
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
-    MsQuicAlpn Alpn("MsQuicTest");
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig{});
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     PathTestContext Context;
@@ -56,7 +56,7 @@ QuicTestLocalPathChanges(
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
-    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     MsQuicConnection Connection(Registration);
@@ -64,9 +64,8 @@ QuicTestLocalPathChanges(
 
     TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-
-    CxPlatSleep(1000);
     TEST_NOT_EQUAL(nullptr, Context.Connection);
+    TEST_TRUE(Context.Connection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
 
     QuicAddr OrigLocalAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
@@ -84,11 +83,4 @@ QuicTestLocalPathChanges(
         TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &ServerRemoteAddr.SockAddr));
         Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
     }
-
-    TEST_NOT_EQUAL(nullptr, Context.Connection);
-
-    Connection.Shutdown(1);
-    Context.Connection->Shutdown(1);
-
-    Context.ShutdownEvent.WaitTimeout(2000);
 }
