@@ -588,6 +588,24 @@
                 name="PerfCounters"
                 />
           </template>
+          <template tid="tid_LIBRARY_VERSION">
+            <data
+                inType="win:UInt32"
+                name="Major"
+                />
+            <data
+                inType="win:UInt32"
+                name="Minor"
+                />
+            <data
+                inType="win:UInt32"
+                name="Patch"
+                />
+            <data
+                inType="win:UInt32"
+                name="Build"
+                />
+          </template>
           <template tid="tid_API_ENTER">
             <data
                 inType="win:UInt32"
@@ -1866,6 +1884,15 @@
               symbol="QuicLibrarySendRetryStateUpdated"
               template="tid_BOOL"
               value="16"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryVersion)"
+              opcode="Global"
+              symbol="QuicLibraryVersion"
+              template="tid_LIBRARY_VERSION"
+              value="17"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3522,6 +3549,10 @@
         <string
             id="Etw.LibrarySendRetryStateUpdated"
             value="[ lib] New SendRetryEnabled state, %1"
+            />
+        <string
+            id="Etw.LibraryVersion"
+            value="[ lib] Version %1.%2.%3.%4"
             />
         <!-- Map/enum strings -->
         <string

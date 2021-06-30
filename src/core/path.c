@@ -56,7 +56,8 @@ QuicPathRemove(
 
 #if DEBUG
     if (Path->DestCid) {
-        QUIC_CID_SET_PATH(Path->DestCid, NULL);
+        CXPLAT_DBG_ASSERT(Path->DestCid->AssignedPath != NULL);
+        QUIC_CID_CLEAR_PATH(Path->DestCid);
     }
 #endif
 

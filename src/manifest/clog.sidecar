@@ -4680,6 +4680,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Version %u.%u.%u.%u",
+      "UniqueId": "LibraryVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Uninitialized",
@@ -11962,6 +11986,10 @@
       {
         "UniquenessHash": "8f218f73-51d3-e674-6f43-937ce1e861c9",
         "TraceID": "LibraryInitialized"
+      },
+      {
+        "UniquenessHash": "c5092562-eb73-dded-1d42-ad7fdd896841",
+        "TraceID": "LibraryVersion"
       },
       {
         "UniquenessHash": "75aa07a5-b70c-1670-9f7b-cddc495a508c",
