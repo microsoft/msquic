@@ -682,8 +682,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
                 QUIC_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
-                QuicBindingGenerateStatelessResetToken(
-                    Builder->Path->Binding,
+                QuicLibraryGenerateStatelessResetToken(
                     SourceCid->CID.Data,
                     Frame.Buffer + SourceCid->CID.Length);
 
