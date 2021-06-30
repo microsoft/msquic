@@ -554,6 +554,16 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     }
 }
 
+TEST_P(WithFamilyArgs, LocalPathChanges) {
+    TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
+    if (TestingKernelMode) {
+        // TODO
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
+    } else {
+        QuicTestLocalPathChanges(GetParam().Family);
+    }
+}
+
 TEST_P(WithFamilyArgs, VersionNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
     if (TestingKernelMode) {

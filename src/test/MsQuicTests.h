@@ -73,6 +73,14 @@ QuicTestMtuDiscovery(
     );
 
 //
+// Path tests
+//
+void
+QuicTestLocalPathChanges(
+    _In_ int Family
+    );
+
+//
 // Handshake Tests
 //
 
