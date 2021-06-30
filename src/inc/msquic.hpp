@@ -815,11 +815,6 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
-    SetKeepAlive(_In_ uint32_t Value) noexcept {
-        return SetSettings(MsQuicSettings{}.SetKeepAlive(Value));
-    }
-
-    QUIC_STATUS
     SetResumptionTicket(_In_reads_(TicketLength) const uint8_t* Ticket, uint32_t TicketLength) noexcept {
         return
             MsQuic->SetParam(

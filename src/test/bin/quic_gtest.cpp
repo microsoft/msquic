@@ -338,6 +338,15 @@ TEST(Basic, CreateConnection) {
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+TEST_P(WithFamilyArgs, LocalPathChanges) {
+    TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES, GetParam().Family));
+    } else {
+        QuicTestLocalPathChanges(GetParam().Family);
+    }
+}
+
 TEST(Mtu, Settings) {
     TestLogger Logger("QuicTestMtuSettings");
     if (TestingKernelMode) {
@@ -551,16 +560,6 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             false,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0);     // RandomLossPercentage
-    }
-}
-
-TEST_P(WithFamilyArgs, LocalPathChanges) {
-    TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
-    if (TestingKernelMode) {
-        // TODO
-        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
-    } else {
-        QuicTestLocalPathChanges(GetParam().Family);
     }
 }
 

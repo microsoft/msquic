@@ -17,17 +17,18 @@ Abstract:
 struct PathTestContext {
     CxPlatEvent ShutdownEvent;
     MsQuicConnection* Connection {nullptr};
-    bool PeerAddrChanged {false};
+    CxPlatEvent PeerAddrChangedEvent;
 
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         PathTestContext* Ctx = static_cast<PathTestContext*>(Context);
         Ctx->Connection = Conn;
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
             Ctx->Connection = nullptr;
+            Ctx->PeerAddrChangedEvent.Set();
             Ctx->ShutdownEvent.Set();
         }
         else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
-            Ctx->PeerAddrChanged = true;
+            Ctx->PeerAddrChangedEvent.Set();
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -70,33 +71,20 @@ QuicTestLocalPathChanges(
     QuicAddr OrigLocalAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
     QuicAddr NewLocalAddr(OrigLocalAddr);
-    
-    
-    for (int i = 0; i < 50; i++) {
-        NewLocalAddr.IncrementPort();
-        ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
-        Connection.SetKeepAlive(25);
+    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
 
-        bool ServerAddressUpdated = false;
-        uint32_t Try = 0;
-        do {
-            if (Try != 0) {
-                CxPlatSleep(200);
-            }
-            QuicAddr ServerRemoteAddr;
-            TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
-            if (Context.PeerAddrChanged &&
-                QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
-                ServerAddressUpdated = true;
-                Context.PeerAddrChanged = false;
-                break;
-            }
-        } while (++Try <= 3);
-        TEST_TRUE(ServerAddressUpdated);
-        Connection.SetKeepAlive(0);
+    for (int i = 0; i < 50; i++) {
+        QuicAddrSetPort(&AddrHelper.New, QuicAddrGetPort(&AddrHelper.New) + 1);
+        Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+
+        TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+        Context.PeerAddrChangedEvent.Reset();
+        QuicAddr ServerRemoteAddr;
+        TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
+        TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &ServerRemoteAddr.SockAddr));
+        Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
     }
 
-    CxPlatSleep(1000);
     TEST_NOT_EQUAL(nullptr, Context.Connection);
 
     Connection.Shutdown(1);

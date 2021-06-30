@@ -441,7 +441,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_MTU_DISCOVERY_PARAMS),
     sizeof(INT32),
     sizeof(INT32),
-    0
+    0,
+    sizeof(INT32)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1076,6 +1077,11 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_VALIDATE_PARAM_API:
         QuicTestCtlRun(QuicTestValidateParamApi());
+        break;
+
+    case IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestLocalPathChanges(Params->Family));
         break;
 
     default:

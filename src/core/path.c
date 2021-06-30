@@ -201,13 +201,10 @@ QuicConnGetPathForDatagram(
         // to the array shifting that happens in QuicPathRemove.
         //
         for (uint8_t i = Connection->PathsCount - 1; i > 0; i--) {
-            BOOLEAN IsSimilarRemoteAddress =
-                QuicAddrGetFamily(&Datagram->Tuple->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].RemoteAddress) &&
-                QuicAddrCompareIp(&Datagram->Tuple->RemoteAddress, &Connection->Paths[i].RemoteAddress);
-            BOOLEAN IsSameLocalAddress = QuicAddrCompare(&Datagram->Tuple->LocalAddress, &Connection->Paths[i].LocalAddress);
-            if (IsSimilarRemoteAddress
-                && IsSameLocalAddress
-                && !Connection->Paths[i].IsActive) {
+            if (!Connection->Paths[i].IsActive
+                && QuicAddrGetFamily(&Datagram->Tuple->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].RemoteAddress)
+                && QuicAddrCompareIp(&Datagram->Tuple->RemoteAddress, &Connection->Paths[i].RemoteAddress)
+                && QuicAddrCompare(&Datagram->Tuple->LocalAddress, &Connection->Paths[i].LocalAddress)) {
                 QuicPathRemove(Connection, i);
             }
         }
