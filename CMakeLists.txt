@@ -128,7 +128,7 @@ option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
-option(QUIC_FOLDER_PREFIX "Optional prefix for source group folders when using an IDE generator" "")
+set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
@@ -628,7 +628,7 @@ if(QUIC_BUILD_TEST)
     include(FetchContent)
 
     enable_testing()
-    
+
     # Build the googletest framework.
 
     # Enforce static builds for test artifacts
