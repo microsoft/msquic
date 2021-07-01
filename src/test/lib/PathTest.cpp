@@ -69,8 +69,7 @@ QuicTestLocalPathChanges(
 
     QuicAddr OrigLocalAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
-    QuicAddr NewLocalAddr(OrigLocalAddr);
-    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
+    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
     for (int i = 0; i < 50; i++) {
         QuicAddrSetPort(&AddrHelper.New, QuicAddrGetPort(&AddrHelper.New) + 1);
