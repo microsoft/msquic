@@ -2,7 +2,9 @@
 # Licensed under the MIT License.
 
 if(WIN32)
-    set(SOURCES winuser/dllmain.c winuser/msquic.rc $<TARGET_OBJECTS:MsQuicEtw_Resource>)
+    configure_file(winuser/msquic.rc.in ${CMAKE_CURRENT_BINARY_DIR}/msquic.rc )
+    configure_file(winuser/msquic.def.in ${CMAKE_CURRENT_BINARY_DIR}/msquic.def )
+    set(SOURCES winuser/dllmain.c ${CMAKE_CURRENT_BINARY_DIR}/msquic.rc $<TARGET_OBJECTS:MsQuicEtw_Resource>)
 else()
     set(SOURCES linux/init.c)
 endif()
@@ -10,6 +12,7 @@ endif()
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
     target_link_libraries(msquic PRIVATE core platform inc warnings)
+    set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
 else()
     add_library(msquic_static STATIC static/empty.c)
     target_link_libraries(msquic_static PRIVATE core platform inc)
@@ -203,7 +206,7 @@ if(WIN32)
         target_link_libraries(msquic PUBLIC OneCoreUAP)
     endif()
     SET_TARGET_PROPERTIES(msquic
-        PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/winuser/msquic.def\"")
+        PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
 elseif (CX_PLATFORM STREQUAL "linux")
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")

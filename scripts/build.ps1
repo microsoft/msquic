@@ -87,6 +87,9 @@ This script provides helpers for building msquic.
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
+.PARAMETER NetLibraryRename
+    Renames the library to MsQuicNative to match what .NET expects
+
 .EXAMPLE
     build.ps1
 
@@ -179,7 +182,10 @@ param (
     [switch]$UseSystemOpenSSLCrypto = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NetLibraryRename = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -340,6 +346,9 @@ function CMake-Generate {
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
+    if ($NetLibraryRename) {
+        $Arguments += " -DQUIC_LIBRARY_NAME=MsQuicNative"
+    }
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
@@ -370,7 +379,11 @@ function CMake-Build {
     CMake-Execute $Arguments
 
     if ($IsWindows) {
-        Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
+        if ($NetLibraryRename) {
+            Copy-Item (Join-Path $BuildDir "obj" $Config "MsQuicNative.lib") $ArtifactsDir
+        } else {
+            Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
+        }
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath

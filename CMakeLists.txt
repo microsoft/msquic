@@ -129,6 +129,7 @@ option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
+set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
