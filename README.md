@@ -37,7 +37,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For performance data, see the [Performance dashboard](https://aka.ms/msquicperformance).
   * For building the MsQuic library, see the [Build docs](./docs/BUILD.md).
   * For testing the MsQuic library, after the build step see the [Run Tests](./docs/TEST.md).
-  * For using the MsQuic API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
+  * For using the MsQuic API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.c).
   * For deploying with MsQuic, see the [Deployment docs](./docs/Deployment.md).
   * For diagnosing MsQuic, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TSG.md).
   * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
