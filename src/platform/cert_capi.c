@@ -566,9 +566,9 @@ BOOLEAN
 CxPlatCertSelect(
     _In_opt_ PCCERT_CONTEXT CertCtx,
     _In_reads_(SignatureAlgorithmsLength)
-        const UINT16 *SignatureAlgorithms,
+        const uint16_t *SignatureAlgorithms,
     _In_ size_t SignatureAlgorithmsLength,
-    _Out_ UINT16 *SelectedSignature
+    _Out_ uint16_t *SelectedSignature
     )
 {
     //
