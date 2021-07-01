@@ -19,7 +19,7 @@ if [ "$OS" == 'Linux' ]; then
         ARCH='x64'
         LIBDIR="lib64"
     else
-        ARCH=x86
+        ARCH='x86'
         LIBDIR="lib"
     fi
 else
@@ -66,6 +66,17 @@ if [ "$LIBDIR" == 'lib64' ]; then
     LIBDIR="lib/x86_64-linux-gnu"
 fi
 fpm -f -s dir -t deb  -n libmsquic -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
+    --package "$OUTPUT" --log error \
+    "$ARTIFACTS/libmsquic.so"=/usr/${LIBDIR}/libmsquic.so \
+    "$ARTIFACTS/libmsquic.lttng.so"=/usr/${LIBDIR}/libmsquic.lttng.so
+
+# Arch
+if [ "$LIBDIR" == 'lib' ]; then
+    LIBDIR="lib32"
+else
+    LIBDIR="lib"
+fi
+fpm -f -s dir -t pacman  -n libmsquic -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" --log error \
     "$ARTIFACTS/libmsquic.so"=/usr/${LIBDIR}/libmsquic.so \
     "$ARTIFACTS/libmsquic.lttng.so"=/usr/${LIBDIR}/libmsquic.lttng.so
