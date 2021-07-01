@@ -313,6 +313,16 @@ QuicSendQueueFlushForStream(
     );
 
 //
+// Updates the stream's order in response to a priority change.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendUpdateStreamPriority(
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
 // Tries to drain all queued data that needs to be sent. Returns TRUE if all the
 // data was drained.
 //

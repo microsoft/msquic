@@ -548,23 +548,33 @@ QuicStreamParamSet(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
 
-    case QUIC_PARAM_STREAM_PRIORITY:
+    case QUIC_PARAM_STREAM_PRIORITY: {
 
         if (BufferLength != sizeof(Stream->SendPriority)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Stream->SendPriority = *(uint16_t*)Buffer;
+        if (Stream->SendPriority != *(uint16_t*)Buffer) {
+            Stream->SendPriority = *(uint16_t*)Buffer;
 
-        QuicTraceLogStreamInfo(
-            UpdatePriority,
-            Stream,
-            "New send priority = %hu",
-            (uint32_t)Stream->SendPriority);
+            QuicTraceLogStreamInfo(
+                UpdatePriority,
+                Stream,
+                "New send priority = %hu",
+                Stream->SendPriority);
+
+            if (Stream->Flags.Started && Stream->SendFlags != 0) {
+                //
+                // Update the stream's place in the send queue if necessary.
+                //
+                QuicSendUpdateStreamPriority(&Stream->Connection->Send, Stream);
+            }
+        }
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

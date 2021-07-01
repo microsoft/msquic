@@ -184,6 +184,31 @@ QuicSendQueueFlushForStream(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendUpdateStreamPriority(
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->SendLink.Flink != NULL);
+    CxPlatListEntryRemove(&Stream->SendLink);
+
+    CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
+    while (Entry != &Send->SendStreams) {
+        //
+        // Search back to front for the right place (based on priority) to
+        // insert the stream.
+        //
+        if (Stream->SendPriority <=
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink)->SendPriority) {
+            break;
+        }
+        Entry = Entry->Blink;
+    }
+    CxPlatListInsertHead(Entry, &Stream->SendLink); // Insert after current Entry
+}
+
 #if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

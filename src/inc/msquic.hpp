@@ -1105,6 +1105,29 @@ struct MsQuicStream {
         return MsQuic->StreamReceiveSetEnabled(Handle, IsEnabled ? TRUE : FALSE);
     }
 
+    QUIC_STATUS
+    SetPriority(_In_ uint16_t Priority) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_PRIORITY,
+                sizeof(Priority),
+                &Priority);
+    }
+
+    QUIC_STATUS
+    GetPriority(_Out_ uint16_t* Priority) const noexcept {
+        uint32_t Size = sizeof(*Priority);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_PRIORITY,
+                &Size,
+                Priority);
+    }
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicStream(MsQuicStream& other) = delete;
