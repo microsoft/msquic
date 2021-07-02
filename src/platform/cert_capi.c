@@ -564,7 +564,7 @@ CxPlatCertFree(
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatCertSelect(
-    _In_opt_ PCCERT_CONTEXT CertCtx,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_reads_(SignatureAlgorithmsLength)
         const uint16_t *SignatureAlgorithms,
     _In_ size_t SignatureAlgorithmsLength,
@@ -577,6 +577,8 @@ CxPlatCertSelect(
     // Low byte of SignatureAlgorithms[] is the TLS SignatureAlgorithm:
     //  anonymous(0), rsa(1), dsa(2), ecdsa(3)
     //
+    
+    PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
 
     if (CertCtx == NULL) {
         *SelectedSignature = SignatureAlgorithms[0];
