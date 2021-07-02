@@ -748,15 +748,6 @@ ClientLoadConfiguration(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     //
-    // Default to using the draft-29 version for now, since it's more
-    // universally supported by the TLS abstractions currently.
-    //
-    const uint32_t Version = 0xff00001dU; // IETF draft 29
-    Settings.DesiredVersionsList = &Version;
-    Settings.DesiredVersionsListLength = 1;
-    Settings.IsSet.DesiredVersionsList = TRUE;
-
-    //
     // Configures a default client configuration, optionally disabling
     // server certificate validation.
     //
