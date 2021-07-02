@@ -290,7 +290,7 @@ if ($IsWindows) {
             # only used for the codecheck CI run:
             sudo apt-get install -y cppcheck clang-tidy
             # used for packaging
-            sudo apt-get install -y ruby ruby-dev rpm
+            sudo apt-get install -y ruby ruby-dev rpm bsdtar zstd
             sudo gem install fpm
         }
         "Test" {
