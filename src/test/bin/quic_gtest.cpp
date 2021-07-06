@@ -1413,6 +1413,15 @@ TEST(Misc, NthAllocFail) {
 }
 #endif
 
+TEST(Misc, StreamPriority) {
+    TestLogger Logger("StreamPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY));
+    } else {
+        QuicTestStreamPriority();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

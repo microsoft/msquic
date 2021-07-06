@@ -141,6 +141,7 @@ typedef enum {
     SpinQuicAPICallStreamClose,
     SpinQuicAPICallSetParamConnection,
     SpinQuicAPICallGetParamConnection,
+    SpinQuicAPICallSetParamStream,
     SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
     SpinQuicAPICallStreamReceiveSetEnabled,
@@ -387,7 +388,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
     SetParamHelper Helper(QUIC_PARAM_LEVEL_CONNECTION);
 
-    switch (GetRandom(22) + 1) {
+    switch (0x14000000 | (GetRandom(22) + 1)) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
         // QUIC_VERSION is get-only
         break;
@@ -430,6 +431,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_RESUMPTION_TICKET:                         // uint8_t[]
         // TODO
         break;
+    case QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID:                    // uint8_t (BOOLEAN)
+        Helper.SetUint8(QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID, (uint8_t)GetRandom(2));
+        break;
     default:
         break;
     }
@@ -437,14 +441,35 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     Helper.Apply(Connection);
 }
 
+void SpinQuicSetRandomStreamParam(HQUIC Stream)
+{
+    SetParamHelper Helper(QUIC_PARAM_LEVEL_STREAM);
+
+    switch (0x1C000000 | (GetRandom(4) + 1)) {
+    case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
+        break; // Get Only
+    case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
+        break; // Get Only
+    case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:                  // QUIC_ADDR
+        break; // Get Only
+    case QUIC_PARAM_STREAM_PRIORITY:                                // uint16_t
+        Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX));
+        break;
+    default:
+        break;
+    }
+
+    Helper.Apply(Stream);
+}
+
 const uint32_t ParamCounts[] = {
     QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE + 1,
     QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
     0,
     QUIC_PARAM_LISTENER_STATS + 1,
-    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1,
+    QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID + 1,
     0,
-    QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE + 1
+    QUIC_PARAM_STREAM_PRIORITY + 1
 };
 
 #define GET_PARAM_LOOP_COUNT 10
@@ -453,7 +478,7 @@ void SpinQuicGetRandomParam(HQUIC Handle)
 {
     for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
         QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
-        uint32_t Param = (uint32_t)GetRandom(ParamCounts[Level] + 1);
+        uint32_t Param = (uint32_t)GetRandom((ParamCounts[Level] & 0x3FFFFF) + 1);
 
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
@@ -544,6 +569,8 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             HQUIC Stream;
             QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(2), SpinQuicHandleStreamEvent, nullptr, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
+                SpinQuicGetRandomParam(Stream);
+                SpinQuicSetRandomStreamParam(Stream);
                 SpinQuicConnection::Get(Connection)->AddStream(Stream);
             }
             break;
@@ -642,6 +669,28 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             SpinQuicGetRandomParam(Connection);
             break;
         }
+        case SpinQuicAPICallSetParamStream: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                /* TODO:
+
+                    Currently deadlocks because it makes a blocking call to wait
+                    on the QUIC worker thread, but the worker thread tries to
+                    grab the same lock when cleaning up the connections' streams.
+
+                    We're going to need some kind of ref counting solution on
+                    the stream handle instead of a lock in order to do this.
+
+                SpinQuicSetRandomStreamParam(Stream);
+                */
+            }
+            break;
+        }
         case SpinQuicAPICallGetParamStream: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
@@ -654,7 +703,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
 
                     Currently deadlocks because it makes a blocking call to wait
                     on the QUIC worker thread, but the worker thread tries to
-                    grab the same log when cleaning up the connections' streams.
+                    grab the same lock when cleaning up the connections' streams.
 
                     We're going to need some kind of ref counting solution on
                     the stream handle instead of a lock in order to do this.

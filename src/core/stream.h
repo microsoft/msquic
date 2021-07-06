@@ -51,6 +51,8 @@ typedef struct QUIC_CONNECTION QUIC_CONNECTION;
     QUIC_SEND_FLAG_BUFFERED \
 )
 
+#define QUIC_STREAM_PRIORITY_DEFAULT 0x7FFF // Medium priority by default
+
 //
 // Tracks the data queued up for sending by an application.
 //
@@ -341,6 +343,12 @@ typedef struct QUIC_STREAM {
     // The ACK ranges greater than 'UnAckedOffset', with holes between them.
     //
     QUIC_RANGE SparseAckRanges;
+
+    //
+    // The relative priority between the different streams that determines the
+    // order that queued data will be sent out.
+    //
+    uint16_t SendPriority;
 
     //
     // Recv State
