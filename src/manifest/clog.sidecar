@@ -6720,6 +6720,22 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "UpdatePriority": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] New send priority = %hu",
+      "UniqueId": "UpdatePriority",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamInfo"
+    },
     "IndicateStartComplete": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
@@ -12466,6 +12482,10 @@
       {
         "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",
         "TraceID": "EventSilentDiscard"
+      },
+      {
+        "UniquenessHash": "1b92f995-0f00-00a4-3898-3e5121f9f323",
+        "TraceID": "UpdatePriority"
       },
       {
         "UniquenessHash": "66dd140b-9fd3-eddc-e34c-cb81639e1aca",

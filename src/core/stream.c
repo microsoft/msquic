@@ -57,6 +57,7 @@ QuicStreamInitialize(
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
+    Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
     CxPlatRefInitialize(&Stream->RefCount);
     QuicRangeInitialize(
@@ -538,11 +539,49 @@ QuicStreamParamSet(
         const void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Stream);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_INVALID_PARAMETER;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_STREAM_ID:
+    case QUIC_PARAM_STREAM_0RTT_LENGTH:
+    case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+
+    case QUIC_PARAM_STREAM_PRIORITY: {
+
+        if (BufferLength != sizeof(Stream->SendPriority)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Stream->SendPriority != *(uint16_t*)Buffer) {
+            Stream->SendPriority = *(uint16_t*)Buffer;
+
+            QuicTraceLogStreamInfo(
+                UpdatePriority,
+                Stream,
+                "New send priority = %hu",
+                Stream->SendPriority);
+
+            if (Stream->Flags.Started && Stream->SendFlags != 0) {
+                //
+                // Update the stream's place in the send queue if necessary.
+                //
+                QuicSendUpdateStreamPriority(&Stream->Connection->Send, Stream);
+            }
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
 }
 
 QUIC_STATUS
@@ -556,8 +595,7 @@ QuicStreamParamGet(
 {
     QUIC_STATUS Status;
 
-    switch (Param)
-    {
+    switch (Param) {
     case QUIC_PARAM_STREAM_ID:
 
         if (*BufferLength < sizeof(Stream->ID)) {
@@ -623,6 +661,25 @@ QuicStreamParamGet(
         *BufferLength = sizeof(uint64_t);
         *(uint64_t*)Buffer =
             Stream->Connection->SendBuffer.IdealBytes;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_STREAM_PRIORITY:
+
+        if (*BufferLength < sizeof(Stream->SendPriority)) {
+            *BufferLength = sizeof(Stream->SendPriority);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(Stream->SendPriority);
+        *(uint16_t*)Buffer = Stream->SendPriority;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

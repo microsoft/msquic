@@ -1614,7 +1614,6 @@ QuicCryptoCustomCertValidationComplete(
     _In_ BOOLEAN Result
     )
 {
-    CXPLAT_TEL_ASSERT(Crypto->CertValidationPending);
     if (!Crypto->CertValidationPending) {
         return;
     }

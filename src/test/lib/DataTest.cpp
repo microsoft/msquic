@@ -2294,12 +2294,13 @@ QuicTestNthAllocFail(
     AllocFailScope Scope{};
 
     for (uint32_t i = 100; i > 1; i--) {
-        TEST_QUIC_SUCCEEDED(MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
-                    sizeof(i),
-                    &i));
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
+                sizeof(i),
+                &i));
 
         CxPlatWatchdog Watchdog(2000);
 
@@ -2333,4 +2334,84 @@ QuicTestNthAllocFail(
         RecvContext.ServerStreamRecv.WaitTimeout(10);
         RecvContext.ServerStreamShutdown.WaitTimeout(10);
     }
+}
+
+struct StreamPriorityTestContext {
+    QUIC_UINT62 ReceiveEvents[3];
+    uint32_t CurrentReceiveCount {0};
+    CxPlatEvent AllReceivesComplete;
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamPriorityTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            if (TestContext->CurrentReceiveCount >= ARRAYSIZE(ReceiveEvents)) {
+                TEST_FAILURE("Too many receive events!");
+            } else {
+                Stream->GetID(&TestContext->ReceiveEvents[TestContext->CurrentReceiveCount++]);
+                if (TestContext->CurrentReceiveCount == ARRAYSIZE(ReceiveEvents)) {
+                    TestContext->AllReceivesComplete.Set();
+                }
+            }
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestStreamPriority(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(3), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamPriorityTestContext Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamPriorityTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    uint8_t RawBuffer[100];
+    QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+
+    MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream1.SetPriority(0xFFFF));
+    TEST_QUIC_SUCCEEDED(Stream1.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+    MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream2.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream2.SetPriority(0xFFFF));
+    TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+    MsQuicStream Stream3(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream3.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+    TEST_QUIC_SUCCEEDED(Stream1.SetPriority(0)); // Change to lowest priority
+
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ReceiveEvents[0] == Stream2.ID());
+    TEST_TRUE(Context.ReceiveEvents[1] == Stream3.ID());
+    TEST_TRUE(Context.ReceiveEvents[2] == Stream1.ID());
 }

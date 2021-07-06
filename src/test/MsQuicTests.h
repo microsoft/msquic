@@ -382,6 +382,10 @@ void
 QuicTestNthAllocFail(
     );
 
+void
+QuicTestStreamPriority(
+    );
+
 //
 // QuicDrill tests
 //
@@ -867,5 +871,9 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_VALIDATE_PARAM_API \
     QUIC_CTL_CODE(71, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 71
+#define IOCTL_QUIC_RUN_STREAM_PRIORITY \
+    QUIC_CTL_CODE(72, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 72

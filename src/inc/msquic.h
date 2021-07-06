@@ -667,6 +667,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
 #define QUIC_PARAM_STREAM_ID                            0x1C000000   // QUIC_UINT62
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x1C000001   // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x1C000002   // uint64_t - bytes
+#define QUIC_PARAM_STREAM_PRIORITY                      0x1C000003   // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
