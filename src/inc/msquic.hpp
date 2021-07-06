@@ -1106,6 +1106,24 @@ struct MsQuicStream {
     }
 
     QUIC_STATUS
+    GetID(_Out_ QUIC_UINT62* ID) const noexcept {
+        uint32_t Size = sizeof(*ID);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_ID,
+                &Size,
+                ID);
+    }
+
+    QUIC_UINT62 ID() const noexcept {
+        QUIC_UINT62 ID;
+        GetID(&ID);
+        return ID;
+    }
+
+    QUIC_STATUS
     SetPriority(_In_ uint16_t Priority) noexcept {
         return
             MsQuic->SetParam(
