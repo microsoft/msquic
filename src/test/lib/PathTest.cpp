@@ -46,10 +46,13 @@ QuicTestLocalPathChanges(
     MsQuicRegistration Registration{true};
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig{});
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig{});
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &Context);
