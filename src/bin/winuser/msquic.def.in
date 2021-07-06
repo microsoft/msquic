@@ -1,4 +1,4 @@
-LIBRARY msquic
+LIBRARY @QUIC_LIBRARY_NAME@
 
 EXPORTS
     MsQuicOpen
