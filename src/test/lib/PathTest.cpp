@@ -42,6 +42,7 @@ QuicTestLocalPathChanges(
     _In_ int Family
     )
 {
+    PathTestContext Context;
     MsQuicRegistration Registration{true};
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -51,7 +52,6 @@ QuicTestLocalPathChanges(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig{});
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    PathTestContext Context;
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
