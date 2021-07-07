@@ -78,7 +78,7 @@ QuicTestLocalPathChanges(
         QuicAddrSetPort(&AddrHelper.New, QuicAddrGetPort(&AddrHelper.New) + 1);
         Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
 
-        TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+        TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1500))
         Context.PeerAddrChangedEvent.Reset();
         QuicAddr ServerRemoteAddr;
         TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
