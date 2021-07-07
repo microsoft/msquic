@@ -524,12 +524,23 @@ struct ReplaceAddressHelper : public DatapathHook
 {
     QUIC_ADDR Original;
     QUIC_ADDR New;
+    ReplaceAddressHelper(const QUIC_ADDR& OrigAddr) :
+        Original(OrigAddr), New(OrigAddr) {
+        DatapathHooks::Instance->AddHook(this);
+    }
     ReplaceAddressHelper(const QUIC_ADDR& OrigAddr, const QUIC_ADDR& NewAddr) :
         Original(OrigAddr), New(NewAddr) {
         DatapathHooks::Instance->AddHook(this);
     }
     ~ReplaceAddressHelper() {
         DatapathHooks::Instance->RemoveHook(this);
+    }
+    void IncrementPort() {
+        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&New) != 0xFFFF);
+        QuicAddrSetPort(&New, (uint16_t)1 + QuicAddrGetPort(&New));
+    }
+    void IncrementAddr() {
+        QuicAddrIncrement(&New);
     }
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN

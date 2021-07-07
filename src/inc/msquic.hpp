@@ -21,6 +21,7 @@ Supported Platforms:
 #pragma once
 
 #include "msquic.h"
+#include "msquicp.h"
 #ifdef _KERNEL_MODE
 #include <new.h>
 #else
@@ -379,6 +380,7 @@ public:
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
+    MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -848,6 +850,17 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_STATISTICS,
                 &Size,
                 Statistics);
+    }
+
+    QUIC_STATUS
+    SetKeepAlivePadding(_In_ uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_KEEP_ALIVE_PADDING,
+                sizeof(Value),
+                &Value);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }

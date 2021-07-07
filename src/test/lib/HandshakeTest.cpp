@@ -305,194 +305,123 @@ QuicTestConnect(
     }
 }
 
+struct RebindContext {
+    bool Connected {false};
+    CxPlatEvent HandshakeCompleteEvent;
+    CxPlatEvent PeerAddrChangedEvent;
+    QuicAddr PeerAddr;
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto This = static_cast<RebindContext*>(Context);
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            This->PeerAddrChangedEvent.Set();
+            This->HandshakeCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            This->Connected = true;
+            This->HandshakeCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED) {
+            This->PeerAddr.SockAddr = *Event->PEER_ADDRESS_CHANGED.Address;
+            This->PeerAddrChangedEvent.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
 void
 QuicTestNatPortRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     )
 {
+    RebindContext Context;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicAlpn Alpn("MsQuicTest");
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, RebindContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.Connected);
+    CxPlatSleep(10);
 
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
+    QuicAddr OrigLocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
+    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr);
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
-
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-
-                QuicAddr OrigLocalAddr;
-                TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
-                QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                CxPlatSleep(100);
-
-                ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
-                TEST_FALSE(Client.GetIsShutdown());
-                Client.SetKeepAlive(25);
-
-                bool ServerAddressUpdated = false;
-                uint32_t Try = 0;
-                do {
-                    if (Try != 0) {
-                        CxPlatSleep(200);
-                    }
-                    QuicAddr ServerRemoteAddr;
-                    TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
-                    if (Server->GetPeerAddrChanged() &&
-                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
-                        ServerAddressUpdated = true;
-                        break;
-                    }
-                } while (++Try <= 3);
-                TEST_TRUE(ServerAddressUpdated);
-
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
-
-                TEST_FALSE(Client.GetPeerClosed());
-                TEST_FALSE(Client.GetTransportClosed());
-            }
-
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-        }
+    AddrHelper.IncrementPort();
+    if (KeepAlivePaddingSize) {
+        Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
     }
+    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+
+    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+    TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
+
+    Connection.Shutdown(1);
 }
 
 void
 QuicTestNatAddrRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     )
 {
-    MsQuicRegistration Registration;
+    RebindContext Context;
+    MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicAlpn Alpn("MsQuicTest");
-
-    MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(10000);
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, RebindContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.Connected);
+    CxPlatSleep(10);
 
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
+    QuicAddr OrigLocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
+    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
-
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-
-                QuicAddr OrigLocalAddr;
-                TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
-                QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                NewLocalAddr.IncrementAddr();
-                CxPlatSleep(100);
-
-                ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
-                TEST_FALSE(Client.GetIsShutdown());
-                Client.SetKeepAlive(25);
-
-                bool ServerAddressUpdated = false;
-                uint32_t Try = 0;
-                do {
-                    if (Try != 0) {
-                        CxPlatSleep(200);
-                    }
-                    QuicAddr ServerRemoteAddr;
-                    TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
-                    if (Server->GetPeerAddrChanged() &&
-                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
-                        ServerAddressUpdated = true;
-                        break;
-                    }
-                } while (++Try <= 3);
-                TEST_TRUE(ServerAddressUpdated);
-
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
-
-                TEST_FALSE(Client.GetPeerClosed());
-                TEST_FALSE(Client.GetTransportClosed());
-            }
-
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-        }
+    AddrHelper.IncrementAddr();
+    if (KeepAlivePaddingSize) {
+        Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
     }
+    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(1));
+
+    TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+    TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
+
+    Connection.Shutdown(1);
 }
 
 void

@@ -6040,6 +6040,17 @@ QuicConnParamSet(
 #endif
         break;
 
+    case QUIC_PARAM_CONN_KEEP_ALIVE_PADDING:
+
+        if (BufferLength != sizeof(Connection->KeepAlivePadding)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->KeepAlivePadding = *(uint16_t*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

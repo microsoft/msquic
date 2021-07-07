@@ -133,6 +133,7 @@ typedef struct CXPLAT_TLS_SECRETS {
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x15000002  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x15000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x15000004  // CXPLAT_TLS_SECRETS (SSLKEYLOGFILE compatible)
+#define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x15000005  // uint16_t
 
 #if defined(__cplusplus)
 }

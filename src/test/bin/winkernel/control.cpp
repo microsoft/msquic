@@ -411,8 +411,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION),
     sizeof(INT32),
-    sizeof(INT32),
-    sizeof(INT32),
+    sizeof(QUIC_RUN_REBIND_PARAMS),
+    sizeof(QUIC_RUN_REBIND_PARAMS),
     sizeof(INT32),
     sizeof(INT32),
     0,
@@ -472,6 +472,7 @@ typedef union {
     QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
     QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
     uint32_t Test;
+    QUIC_RUN_REBIND_PARAMS RebindParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -837,14 +838,16 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestNatPortRebind(
-                Params->Family));
+                Params->RebindParams.Family,
+                Params->RebindParams.Padding));
         break;
 
     case IOCTL_QUIC_RUN_NAT_ADDR_REBIND:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestNatAddrRebind(
-                Params->Family));
+                Params->RebindParams.Family,
+                Params->RebindParams.Padding));
         break;
 
     case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:

@@ -966,18 +966,52 @@ TEST_P(WithFamilyArgs, ServerRejected) {
 TEST_P(WithFamilyArgs, RebindPort) {
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, GetParam().Family));
+        QUIC_RUN_REBIND_PARAMS Params = {
+            GetParam().Family,
+            0
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
-        QuicTestNatPortRebind(GetParam().Family);
+        QuicTestNatPortRebind(GetParam().Family, 0);
+    }
+}
+
+TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
+    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_REBIND_PARAMS Params = {
+            GetParam().Family,
+            GetParam().Padding
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+    } else {
+        QuicTestNatPortRebind(GetParam().Family, GetParam().Padding);
     }
 }
 
 TEST_P(WithFamilyArgs, RebindAddr) {
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, GetParam().Family));
+        QUIC_RUN_REBIND_PARAMS Params = {
+            GetParam().Family,
+            0
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family);
+        QuicTestNatAddrRebind(GetParam().Family, 0);
+    }
+}
+
+TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_REBIND_PARAMS Params = {
+            GetParam().Family,
+            GetParam().Padding
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
+    } else {
+        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
     }
 }
 
@@ -1500,6 +1534,11 @@ INSTANTIATE_TEST_SUITE_P(
     Mtu,
     WithMtuArgs,
     ::testing::ValuesIn(MtuArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithRebindPaddingArgs,
+    ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
