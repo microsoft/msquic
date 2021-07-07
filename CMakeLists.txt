@@ -104,11 +104,11 @@ set(SELF_DIR "$\{SELF_DIR\}")
 enable_testing()
 
 # Set the default TLS method for each platform.
-if (WIN32)
-    set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
-else()
+#if (WIN32)
+#    set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
+#else()
     set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
-endif()
+#endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
