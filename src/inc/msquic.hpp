@@ -379,6 +379,7 @@ public:
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
+    MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -775,6 +776,17 @@ struct MsQuicConnection {
             GetParam(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    GetRemoteAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
                 &Size,
                 &Addr.SockAddr);
     }
