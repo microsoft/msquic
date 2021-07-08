@@ -73,6 +73,14 @@ QuicTestMtuDiscovery(
     );
 
 //
+// Path tests
+//
+void
+QuicTestLocalPathChanges(
+    _In_ int Family
+    );
+
+//
 // Handshake Tests
 //
 
@@ -883,4 +891,8 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_PRIORITY \
     QUIC_CTL_CODE(72, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 72
+#define IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES \
+    QUIC_CTL_CODE(73, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 73

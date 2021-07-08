@@ -782,6 +782,17 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    GetRemoteAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
     SetLocalAddr(_In_ const QuicAddr& Addr) noexcept {
         return
             MsQuic->SetParam(
