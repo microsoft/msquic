@@ -855,7 +855,15 @@ QuicSendWriteFrames(
         if (Builder->DatagramLength < AvailableBufferLength) {
             Builder->Datagram->Buffer[Builder->DatagramLength++] = QUIC_FRAME_PING;
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PING;
-            Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+            if (Connection->KeepAlivePadding) {
+                Builder->MinimumDatagramLength =
+                    Builder->DatagramLength + Connection->KeepAlivePadding + Builder->EncryptionOverhead;
+                if (Builder->MinimumDatagramLength > (uint16_t)Builder->Datagram->Length) {
+                    Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+                }
+            } else {
+                Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+            }
             if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PING, TRUE)) {
                 return TRUE;
             }

@@ -21,6 +21,7 @@ Supported Platforms:
 #pragma once
 
 #include "msquic.h"
+#include "msquicp.h"
 #ifdef _KERNEL_MODE
 #include <new.h>
 #else
@@ -860,6 +861,17 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_STATISTICS,
                 &Size,
                 Statistics);
+    }
+
+    QUIC_STATUS
+    SetKeepAlivePadding(_In_ uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_KEEP_ALIVE_PADDING,
+                sizeof(Value),
+                &Value);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }

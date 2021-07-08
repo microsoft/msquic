@@ -579,6 +579,11 @@ typedef struct QUIC_CONNECTION {
     //
     uint32_t PreviousQuicVersion;
 
+    //
+    // The size of the keep alive padding.
+    //
+    uint16_t KeepAlivePadding;
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

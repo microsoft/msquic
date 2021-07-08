@@ -230,12 +230,14 @@ QuicTestConnectExpiredClientCertificate(
 
 void
 QuicTestNatPortRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     );
 
 void
 QuicTestNatAddrRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     );
 
 void
@@ -728,13 +730,18 @@ typedef struct {
     QUIC_CTL_CODE(40, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
+typedef struct {
+    int Family;
+    uint16_t Padding;
+} QUIC_RUN_REBIND_PARAMS;
+
 #define IOCTL_QUIC_RUN_NAT_PORT_REBIND \
     QUIC_CTL_CODE(41, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_RUN_REBIND_PARAMS
 
 #define IOCTL_QUIC_RUN_NAT_ADDR_REBIND \
     QUIC_CTL_CODE(42, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_RUN_REBIND_PARAMS
 
 #define IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID \
     QUIC_CTL_CODE(43, METHOD_BUFFERED, FILE_WRITE_DATA)
