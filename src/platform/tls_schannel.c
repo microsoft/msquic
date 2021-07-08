@@ -586,12 +586,6 @@ QuicPacketKeyCreate(
 #define SecStatusToQuicStatus(x) (QUIC_STATUS)(x)
 
 #ifdef _KERNEL_MODE
-#define NtStatusToQuicStatus(x) (x)
-#else
-#define NtStatusToQuicStatus(x) HRESULT_FROM_WIN32(RtlNtStatusToDosError(x))
-#endif
-
-#ifdef _KERNEL_MODE
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
