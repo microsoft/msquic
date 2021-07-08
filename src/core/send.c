@@ -1277,7 +1277,12 @@ QuicSendFlush(
             // We now have enough data in the current packet that we should
             // finalize it.
             //
-            QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams);
+            if (!QuicPacketBuilderFinalize(&Builder, !WrotePacketFrames || FlushBatchedDatagrams)) {
+                //
+                // Don't have any more space to send.
+                //
+                break;
+            }
         }
 
 #if DEBUG

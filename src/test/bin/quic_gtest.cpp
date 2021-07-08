@@ -985,7 +985,7 @@ TEST_P(WithFamilyArgs, RebindPort) {
     }
 }
 
-/*TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
+TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -996,7 +996,7 @@ TEST_P(WithFamilyArgs, RebindPort) {
     } else {
         QuicTestNatPortRebind(GetParam().Family, GetParam().Padding);
     }
-}*/
+}
 
 TEST_P(WithFamilyArgs, RebindAddr) {
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
@@ -1011,7 +1011,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
     }
 }
 
-/*TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
+TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1022,7 +1022,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
     } else {
         QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
     }
-}*/
+}
 
 TEST_P(WithFamilyArgs, PathValidationTimeout) {
     TestLoggerT<ParamType> Logger("QuicTestPathValidationTimeout", GetParam());
@@ -1544,10 +1544,10 @@ INSTANTIATE_TEST_SUITE_P(
     WithMtuArgs,
     ::testing::ValuesIn(MtuArgs::Generate()));
 
-/*INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithRebindPaddingArgs,
-    ::testing::ValuesIn(RebindPaddingArgs::Generate()));*/
+    ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
