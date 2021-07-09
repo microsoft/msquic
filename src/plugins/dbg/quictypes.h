@@ -200,7 +200,7 @@ typedef union QUIC_CONNECTION_STATE {
 
         //
         // When true, this indicates that the connection is currently executing
-        // and API call inline (from a reentrant call on a callback).
+        // an API call inline (from a reentrant call on a callback).
         //
         BOOLEAN InlineApiExecution : 1;
 
