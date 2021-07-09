@@ -1582,7 +1582,7 @@ CxPlatSocketCreateUdp(
     CxPlatEventReset(Binding->WskCompletionEvent);
 
     if (Config->InterfaceIndex != 0) {
-        Option = (int)htonl(Config->InterfaceIndex);
+        Option = (int)RtlUlongByteSwap(Config->InterfaceIndex);
         Status =
             CxPlatDataPathSetControlSocket(
                 Binding,
