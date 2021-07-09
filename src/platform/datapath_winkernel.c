@@ -1302,10 +1302,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* RecvCallbackContext,
-    _In_ uint32_t InternalFlags,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
@@ -1344,15 +1341,15 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 
     RtlZeroMemory(Binding, BindingSize);
     Binding->Datapath = Datapath;
-    Binding->ClientContext = RecvCallbackContext;
-    Binding->Connected = (RemoteAddress != NULL);
-    if (LocalAddress != NULL) {
-        CxPlatConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
+    Binding->ClientContext = Config->CallbackContext;
+    Binding->Connected = (Config->RemoteAddress != NULL);
+    if (Config->LocalAddress != NULL) {
+        CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
     } else {
         Binding->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
@@ -1360,7 +1357,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
         CxPlatRundownInitialize(&Binding->Rundown[i]);
     }
-    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
+    if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Binding->PcpBinding = TRUE;
     }
 
@@ -1584,6 +1581,44 @@ CxPlatSocketCreateUdp(
         TRUE);
     CxPlatEventReset(Binding->WskCompletionEvent);
 
+    if (Config->InterfaceIndex != 0) {
+        Option = (int)htonl(Config->InterfaceIndex);
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_UNICAST_IF,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_UNICAST_IF");
+            goto Error;
+        }
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_UNICAST_IF,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_UNICAST_IF");
+            goto Error;
+        }
+    }
+
     Status =
         Binding->DgrmSocket->Dispatch->
         WskBind(
@@ -1616,9 +1651,9 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    if (RemoteAddress) {
+    if (Config->RemoteAddress) {
         SOCKADDR_INET MappedRemoteAddress = { 0 };
-        CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+        CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedRemoteAddress);
 
         Status =
             CxPlatDataPathSetControlSocket(
@@ -1685,14 +1720,14 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
 
-    if (RemoteAddress != NULL) {
-        Binding->RemoteAddress = *RemoteAddress;
+    if (Config->RemoteAddress != NULL) {
+        Binding->RemoteAddress = *Config->RemoteAddress;
     } else {
         Binding->RemoteAddress.Ipv4.sin_port = 0;
     }

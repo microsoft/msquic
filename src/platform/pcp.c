@@ -178,15 +178,19 @@ CxPlatPcpInitialize(
     PcpContext->ClientCallback = Handler;
     PcpContext->GatewayCount = GatewayAddressesCount;
 
+    CXPLAT_UDP_CONFIG UdpConfig;
+    UdpConfig.LocalAddress = NULL;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_PCP;
+    UdpConfig.InterfaceIndex = 0;
+    UdpConfig.CallbackContext = PcpContext;
+
     for (uint32_t i = 0; i < GatewayAddressesCount; ++i) {
         QuicAddrSetPort(&GatewayAddresses[i], CXPLAT_PCP_PORT);
+        UdpConfig.RemoteAddress = &GatewayAddresses[i];
         Status =
             CxPlatSocketCreateUdp(
                 Datapath,
-                NULL,
-                &GatewayAddresses[i],
-                PcpContext,
-                CXPLAT_SOCKET_FLAG_PCP,
+                &UdpConfig,
                 &PcpContext->GatewaySockets[i]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
