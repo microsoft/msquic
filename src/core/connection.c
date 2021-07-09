@@ -487,6 +487,7 @@ QuicConnCloseHandle(
     )
 {
     CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
+    Connection->State.HandleClosed = TRUE;
 
     QuicConnCloseLocally(
         Connection,
@@ -498,7 +499,6 @@ QuicConnCloseHandle(
         QuicConnOnShutdownComplete(Connection);
     }
 
-    Connection->State.HandleClosed = TRUE;
     Connection->ClientCallbackHandler = NULL;
 
     if (Connection->State.Registered) {
@@ -683,27 +683,32 @@ QuicConnIndicateEvent(
     )
 {
     QUIC_STATUS Status;
-    if (!Connection->State.HandleClosed) {
-        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL || !Connection->State.ExternalOwner);
-        if (Connection->ClientCallbackHandler == NULL) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            QuicTraceLogConnWarning(
-                ApiEventNoHandler,
-                Connection,
-                "Event silently discarded (no handler).");
-        } else {
-            Status =
-                Connection->ClientCallbackHandler(
-                    (HQUIC)Connection,
-                    Connection->ClientContext,
-                    Event);
-        }
+    if (Connection->ClientCallbackHandler != NULL) {
+        //
+        // MsQuic shouldn't indicate reentrancy to the app when at all possible.
+        // The general exception to this rule is when the connection is being
+        // closed because the API MUST block until all work is completed, so we
+        // have to execute the event callbacks inline.
+        //
+        CXPLAT_DBG_ASSERT(
+            !Connection->State.InlineApiExecution ||
+            Connection->State.HandleClosed);
+        Status =
+            Connection->ClientCallbackHandler(
+                (HQUIC)Connection,
+                Connection->ClientContext,
+                Event);
     } else {
+        QUIC_CONN_VERIFY(
+            Connection,
+            Connection->State.HandleClosed ||
+                Connection->State.HandleShutdown ||
+                !Connection->State.ExternalOwner);
         Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceLogConnWarning(
-            ApiEventAlreadyClosed,
+            ApiEventNoHandler,
             Connection,
-            "Event silently discarded.");
+            "Event silently discarded (no handler).");
     }
     return Status;
 }
@@ -1402,7 +1407,7 @@ QuicConnOnShutdownComplete(
         Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
             !Connection->State.ShutdownCompleteTimedOut;
         Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
-            Connection->State.AppCloseInProgress;
+            Connection->State.HandleClosed;
 
         QuicTraceLogConnVerbose(
             IndicateConnectionShutdownComplete,
@@ -6554,7 +6559,6 @@ QuicConnProcessApiOperation(
     switch (ApiCtx->Type) {
 
     case QUIC_API_TYPE_CONN_CLOSE:
-        Connection->State.AppCloseInProgress = TRUE;
         QuicConnCloseHandle(Connection);
         break;
 
