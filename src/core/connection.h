@@ -148,16 +148,16 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // Indicates that an app close from a non worker thread is in progress.
-        // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
-        //
-        BOOLEAN AppCloseInProgress: 1;
-
-        //
         // When true, this indicates that reordering shouldn't elict an
         // immediate acknowledgement.
         //
         BOOLEAN IgnoreReordering : 1;
+
+        //
+        // When true, this indicates that the connection is currently executing
+        // an API call inline (from a reentrant call on a callback).
+        //
+        BOOLEAN InlineApiExecution : 1;
 
 #ifdef CxPlatVerifierEnabledByAddr
         //
@@ -167,6 +167,8 @@ typedef union QUIC_CONNECTION_STATE {
 #endif
     };
 } QUIC_CONNECTION_STATE;
+
+CXPLAT_STATIC_ASSERT(sizeof(QUIC_CONNECTION_STATE) == sizeof(uint32_t), "Ensure correct size/type");
 
 //
 // Different references on a connection.
