@@ -89,7 +89,7 @@ In some scenarios, the app may know that additional data (possibly on a differen
 
 **Important:** Data queued via `StreamSend` with the `QUIC_SEND_FLAG_DELAY_SEND` flag is not guaranteed to be sent until a subsequent `StreamSend` call on any stream is performed without the `QUIC_SEND_FLAG_DELAY_SEND` flag.
 
-For additional information on sending on streams see [here](..\Streams.md#Sending).
+For additional information on sending on streams see [here](../Streams.md#Sending).
 
 # See Also
 
