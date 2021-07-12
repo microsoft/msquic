@@ -1456,6 +1456,15 @@ TEST(Misc, StreamPriority) {
     }
 }
 
+TEST(Misc, StreamDifferentAbortErrors) {
+    TestLogger Logger("StreamDifferentAbortErrors");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS));
+    } else {
+        QuicTestStreamDifferentAbortErrors();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
