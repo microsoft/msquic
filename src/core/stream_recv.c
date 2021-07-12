@@ -72,7 +72,7 @@ QuicStreamRecvShutdown(
         goto Exit;
     }
 
-    Stream->SendCloseErrorCode = ErrorCode;
+    Stream->RecvShutdownErrorCode = ErrorCode;
     Stream->Flags.SentStopSending = TRUE;
 
     //

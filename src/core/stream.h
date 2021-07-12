@@ -261,11 +261,6 @@ typedef struct QUIC_STREAM {
     //
 
     //
-    // The error code sent in either RESET_STREAM or STOP_SENDING.
-    //
-    QUIC_VAR_INT SendCloseErrorCode;
-
-    //
     // API calls to StreamSend queue the send request here and then queue the
     // send operation. That operation moves the send request onto the
     // SendRequests list.
@@ -340,6 +335,11 @@ typedef struct QUIC_STREAM {
     #define RECOV_WINDOW_OPEN(S) ((S)->RecoveryNextOffset < (S)->RecoveryEndOffset)
 
     //
+    // The error code for why the send path was shutdown.
+    //
+    QUIC_VAR_INT SendShutdownErrorCode;
+
+    //
     // The ACK ranges greater than 'UnAckedOffset', with holes between them.
     //
     QUIC_RANGE SparseAckRanges;
@@ -390,6 +390,11 @@ typedef struct QUIC_STREAM {
     // The length of the pending receive call to the app.
     //
     uint64_t RecvPendingLength;
+
+    //
+    // The error code for why the receive path was shutdown.
+    //
+    QUIC_VAR_INT RecvShutdownErrorCode;
 
     //
     // The handler for the API client's callbacks.
