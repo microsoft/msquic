@@ -2425,7 +2425,7 @@ struct StreamDifferentAbortErrors {
         auto TestContext = (StreamDifferentAbortErrors*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED) {
             TestContext->PeerRecvAbortErrorCode = Event->PEER_RECEIVE_ABORTED.ErrorCode;
-        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED) {
+        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
             TestContext->PeerSendAbortErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
         } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->StreamShutdownComplete.Set();
