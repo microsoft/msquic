@@ -2421,7 +2421,7 @@ struct StreamDifferentAbortErrors {
     QUIC_UINT62 PeerRecvAbortErrorCode {0};
     CxPlatEvent StreamShutdownComplete;
 
-    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamDifferentAbortErrors*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED) {
             TestContext->PeerRecvAbortErrorCode = Event->PEER_RECEIVE_ABORTED.ErrorCode;
