@@ -20,7 +20,7 @@ On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 funct
 
 > **Important** This configuration relies on a [fork of OpenSSL](https://github.com/quictls/openssl) for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details. MsQuic with OpenSSL **does** fully support 0-RTT.
 
-> **Important** This configuration does not yes support client certificates ([#1803](https://github.com/microsoft/msquic/issues/1803)).
+> **Important** This configuration does not yet support client certificates ([#1803](https://github.com/microsoft/msquic/issues/1803)).
 
 ## Other
 
