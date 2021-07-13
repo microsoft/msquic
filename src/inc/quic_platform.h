@@ -17,13 +17,6 @@ Supported Environments:
 
 #pragma once
 
-//
-// Due to a bug in VS 16.10, we need to disable stdio inlining
-// Remove this once that bug is fixed
-//
-#ifdef _KERNEL_MODE
-#define _NO_CRT_STDIO_INLINE
-#endif
 #include <stddef.h>
 
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
