@@ -12,7 +12,7 @@ On Windows, by default, MsQuic relies on built-in support from [Schannel](https:
 
 ### OpenSSL
 
-Optionally, `msqyuc.dll` can be built with OpenSSL (see below for more details) instead of Schannel on Windows. This removes the Windows OS dependency on TLS from MsQuic, so MsQuic should work on most Windows 10 based client and server versions.
+Optionally, `msquic.dll` can be built with OpenSSL (see below for more details) instead of Schannel on Windows. This removes the Windows OS dependency on TLS from MsQuic, so MsQuic should work on most Windows 10 based client and server versions.
 
 ## Linux
 
