@@ -68,6 +68,9 @@
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\lib\</OutDir>
   </PropertyGroup>
+ <PropertyGroup>
+    <ExternalIncludePath />
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(SolutionDir)build\clog;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
