@@ -1993,8 +1993,11 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         SecStatus,
                         "query cert validation result");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
+
+                    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
                 }
             }
 
