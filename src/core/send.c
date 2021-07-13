@@ -106,6 +106,10 @@ QuicSendCanSendFlagsNow(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
+        if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL &&
+            CxPlatListIsEmpty(&Send->SendStreams)) {
+            return TRUE;
+        }
         if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
@@ -1090,8 +1094,6 @@ QuicSendFlush(
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
     }
-
-    CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
     QUIC_STREAM* Stream = NULL;
