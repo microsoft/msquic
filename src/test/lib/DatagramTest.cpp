@@ -257,7 +257,9 @@ QuicTestDatagramSend(
                     return;
                 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
                 TEST_EQUAL(1, Client.GetDatagramsLost());
+#endif
 
                 TEST_FALSE(Client.GetPeerClosed());
                 TEST_FALSE(Client.GetTransportClosed());
