@@ -120,23 +120,31 @@ QuicBindingInitialize(
             RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
             LocalAddress != NULL ? &LocalAddressCopy : NULL);
 
+        CXPLAT_UDP_CONFIG UdpConfig;
+        UdpConfig.LocalAddress = LocalAddress != NULL ? &LocalAddressCopy : NULL;
+        UdpConfig.RemoteAddress = RemoteAddress != NULL ? &RemoteAddressCopy : NULL;
+        UdpConfig.Flags = ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = Binding;
+
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
-                LocalAddress != NULL ? &LocalAddressCopy : NULL,
-                RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
-                Binding,
-                ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0,
+                &UdpConfig,
                 &Binding->Socket);
     } else {
 #endif
+        CXPLAT_UDP_CONFIG UdpConfig;
+        UdpConfig.LocalAddress = LocalAddress;
+        UdpConfig.RemoteAddress = RemoteAddress;
+        UdpConfig.Flags = ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = Binding;
+
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
-                LocalAddress,
-                RemoteAddress,
-                Binding,
-                ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0,
+                &UdpConfig,
                 &Binding->Socket);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }

@@ -389,6 +389,14 @@ CxPlatDataPathResolveAddress(
 #define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
 #define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
 
+typedef struct CXPLAT_UDP_CONFIG {
+    const QUIC_ADDR* LocalAddress;  // optional
+    const QUIC_ADDR* RemoteAddress; // optional
+    uint32_t Flags;                 // CXPLAT_SOCKET_FLAG_*
+    uint32_t InterfaceIndex;        // 0 means any/all
+    void* CallbackContext;          // optional
+} CXPLAT_UDP_CONFIG;
+
 //
 // Creates a UDP socket for the given (optional) local address and/or (optional)
 // remote address. This function immediately registers for receive upcalls from
@@ -398,10 +406,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* CallbackContext,
-    _In_ uint32_t InternalFlags,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** Socket
     );
 

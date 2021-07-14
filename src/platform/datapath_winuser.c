@@ -1287,20 +1287,17 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* RecvCallbackContext,
-    _In_ uint32_t InternalFlags,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
     int Result;
     int Option;
-    BOOLEAN IsServerSocket = RemoteAddress == NULL;
+    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
 
-    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketLength =
         sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
@@ -1319,23 +1316,23 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
-    Socket->ClientContext = RecvCallbackContext;
-    Socket->HasFixedRemoteAddress = (RemoteAddress != NULL);
+    Socket->ClientContext = Config->CallbackContext;
+    Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Internal = FALSE;
     Socket->Type = CXPLAT_SOCKET_UDP;
-    if (LocalAddress) {
-        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+    if (Config->LocalAddress) {
+        CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     Socket->Mtu = CXPLAT_MAX_MTU;
     CxPlatRundownAcquire(&Datapath->SocketsRundown);
-    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
+    if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
 
@@ -1399,7 +1396,7 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
-        if (RemoteAddress == NULL) {
+        if (Config->RemoteAddress == NULL) {
             uint16_t Processor = i; // API only supports 16-bit proc index.
             Result =
                 WSAIoctl(
@@ -1612,7 +1609,7 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
-        if (RemoteAddress != NULL) {
+        if (Config->RemoteAddress != NULL) {
             AffinitizedProcessor =
                 ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
             Socket->ProcessorAffinity = AffinitizedProcessor;
@@ -1637,6 +1634,46 @@ QUIC_DISABLED_BY_FUZZER_START;
             goto Error;
         }
 
+        if (Config->InterfaceIndex != 0) {
+            Option = (int)htonl(Config->InterfaceIndex);
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_IPV6,
+                    IPV6_UNICAST_IF,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IPV6_UNICAST_IF");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_IP,
+                    IP_UNICAST_IF,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IP_UNICAST_IF");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+        }
+
         Result =
             bind(
                 SocketProc->Socket,
@@ -1654,9 +1691,9 @@ QUIC_DISABLED_BY_FUZZER_START;
             goto Error;
         }
 
-        if (RemoteAddress != NULL) {
+        if (Config->RemoteAddress != NULL) {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
-            CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+            CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedRemoteAddress);
 
             Result =
                 connect(
@@ -1702,8 +1739,8 @@ QUIC_DISABLED_BY_FUZZER_START;
                 goto Error;
             }
 
-            if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-                CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+            if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
+                CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
             }
         }
 
@@ -1712,8 +1749,8 @@ QUIC_DISABLED_BY_FUZZER_END;
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-    if (RemoteAddress != NULL) {
-        Socket->RemoteAddress = *RemoteAddress;
+    if (Config->RemoteAddress != NULL) {
+        Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
         Socket->RemoteAddress.Ipv4.sin_port = 0;
     }
