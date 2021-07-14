@@ -954,7 +954,7 @@ QuicConnGetUnusedDestCid(
                 Entry,
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
-        if (!DestCid->CID.UsedLocally) {
+        if (!DestCid->CID.UsedLocally && !DestCid->CID.Retired) {
             return DestCid;
         }
     }
