@@ -36,6 +36,8 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so";
 
+uint32_t CxPlatProcessorCount
+
 uint64_t CxPlatTotalMemory;
 
 __attribute__((noinline, noreturn))
@@ -64,6 +66,16 @@ CxPlatSystemLoad(
     void
     )
 {
+    #if defined(CX_PLATFORM_DARWIN)
+    //
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
+    //
+    CxPlatProcessorCount = 1;
+#else
+    CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+
     //
     // Following code is modified from coreclr.
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
@@ -406,44 +418,12 @@ CxPlatSleep(
 }
 
 uint32_t
-CxPlatProcMaxCount(
-    void
-    )
-{
-#if defined(CX_PLATFORM_DARWIN)
-    //
-    // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core.
-    //
-    return 1;
-#else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-}
-
-uint32_t
-CxPlatProcActiveCount(
-    void
-    )
-{
-#if defined(CX_PLATFORM_DARWIN)
-    //
-    // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core.
-    //
-    return 1;
-#else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-}
-
-uint32_t
 CxPlatProcCurrentNumber(
     void
     )
 {
 #if defined(CX_PLATFORM_LINUX)
-    return (uint32_t)sched_getcpu();
+    return (uint32_t)sched_getcpu() % CxPlatProcessorCount;
 #elif defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
