@@ -41,8 +41,7 @@ namespace Microsoft.Quic
             }
             else
             {
-                // TODO make this work
-                throw new PlatformNotSupportedException();
+                return status <= 0;
             }
         }
 
@@ -54,8 +53,7 @@ namespace Microsoft.Quic
             }
             else
             {
-                // TODO make this work
-                throw new PlatformNotSupportedException();
+                return status > 0;
             }
         }
     }

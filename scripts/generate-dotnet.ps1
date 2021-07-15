@@ -15,11 +15,11 @@ $MsQuicPosixHeader = Join-Path $RootDir src inc msquic_posix.h
 
 $LicenseHeader = Join-Path $RootDir src cs LicenseHeader.txt
 
-ClangSharpPInvokeGenerator -f $MsQuicHeader -n Microsoft.Quic -o $MsQuicGeneratedSource -m MsQuic -l msquic `
+if ($IsWindows) {
+    ClangSharpPInvokeGenerator -f $MsQuicHeader -n Microsoft.Quic -o $MsQuicGeneratedSource -m MsQuic -l msquic `
     -c exclude-enum-operators -r _SOCKADDR_INET=QuicAddr -c generate-macro-bindings -h $LicenseHeader `
     -e QUIC_UINT62_MAX
 
-if ($IsWindows) {
     ClangSharpPInvokeGenerator -f $MsQuicWindowsHeader -n Microsoft.Quic -o $MsQuicWindowsGeneratedSource -m MsQuic_Windows -l msquic `
         -c generate-macro-bindings -c exclude-funcs-with-body -h $LicenseHeader `
         -D CSHARP_GENERATION `
@@ -40,6 +40,8 @@ if ($IsWindows) {
         -e QUIC_ADDR_V4_IP_OFFSET `
         -e QUIC_ADDR_V6_PORT_OFFSET `
         -e QUIC_ADDR_V6_IP_OFFSET `
+        -e _strnicmp `
+        -e QUIC_ADDR
 
     # In the current version of PInvokeGenerator, macros with ternarys are generated incorrectly. Manually fix this up
     (Get-Content $MsQuicPosixGeneratedSource).Replace("public static readonly", "public const") | Set-Content $MsQuicPosixGeneratedSource
