@@ -14,7 +14,7 @@ namespace Microsoft.Quic
         public static unsafe QUIC_API_TABLE* Open()
         {
             QUIC_API_TABLE* ApiTable;
-            int Status = MsQuicOpen(&ApiTable);
+            int Status = MsQuicOpenVersion(1, (void**)&ApiTable);
             ThrowIfFailure(Status);
             return ApiTable;
         }

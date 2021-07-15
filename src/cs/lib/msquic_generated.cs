@@ -52,6 +52,16 @@ namespace Microsoft.Quic
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x00000400,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK = 0x00000800,
         QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE = 0x00001000,
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES = 0x00002000,
+        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES = 0x00004000,
+    }
+
+    public enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
+    {
+        QUIC_ALLOWED_CIPHER_SUITE_NONE = 0x0,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 = 0x1,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 = 0x2,
+        QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 = 0x4,
     }
 
     public enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
@@ -100,6 +110,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_START_FLAG_IMMEDIATE = 0x0002,
         QUIC_STREAM_START_FLAG_ASYNC = 0x0004,
         QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL = 0x0008,
+        QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0010,
     }
 
     public enum QUIC_STREAM_SHUTDOWN_FLAGS
@@ -203,17 +214,18 @@ namespace Microsoft.Quic
 
         public QUIC_CREDENTIAL_FLAGS Flags;
 
-        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:261:5)")]
+        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:274:5)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
         public sbyte* Principal;
 
-        [NativeTypeName("void *")]
         public void* Reserved;
 
         [NativeTypeName("QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER")]
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void>* AsyncHandler;
+
+        public QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
 
         public ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
@@ -285,11 +297,9 @@ namespace Microsoft.Quic
         public unsafe partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("QUIC_CERTIFICATE_HASH *")]
             public QUIC_CERTIFICATE_HASH* CertificateHash;
 
             [FieldOffset(0)]
-            [NativeTypeName("QUIC_CERTIFICATE_HASH_STORE *")]
             public QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
 
             [FieldOffset(0)]
@@ -297,15 +307,12 @@ namespace Microsoft.Quic
             public void* CertificateContext;
 
             [FieldOffset(0)]
-            [NativeTypeName("QUIC_CERTIFICATE_FILE *")]
             public QUIC_CERTIFICATE_FILE* CertificateFile;
 
             [FieldOffset(0)]
-            [NativeTypeName("QUIC_CERTIFICATE_FILE_PROTECTED *")]
             public QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
 
             [FieldOffset(0)]
-            [NativeTypeName("QUIC_CERTIFICATE_PKCS12 *")]
             public QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
         }
     }
@@ -375,12 +382,15 @@ namespace Microsoft.Quic
 
     public enum QUIC_CIPHER_ALGORITHM
     {
+        QUIC_CIPHER_ALGORITHM_NONE = 0,
         QUIC_CIPHER_ALGORITHM_AES_128 = 0x660E,
         QUIC_CIPHER_ALGORITHM_AES_256 = 0x6610,
+        QUIC_CIPHER_ALGORITHM_CHACHA20 = 0x6612,
     }
 
     public enum QUIC_HASH_ALGORITHM
     {
+        QUIC_HASH_ALGORITHM_NONE = 0,
         QUIC_HASH_ALGORITHM_SHA_256 = 0x800C,
         QUIC_HASH_ALGORITHM_SHA_384 = 0x800D,
     }
@@ -394,6 +404,7 @@ namespace Microsoft.Quic
     {
         QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256 = 0x1301,
         QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384 = 0x1302,
+        QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256 = 0x1303,
     }
 
     public partial struct QUIC_HANDSHAKE_INFO
@@ -490,19 +501,19 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         public uint MaxRtt;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:368:5)")]
+        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:386:5)")]
         public _Timing_e__Struct Timing;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:373:5)")]
+        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:391:5)")]
         public _Handshake_e__Struct Handshake;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:378:5)")]
+        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:396:5)")]
         public _Send_e__Struct Send;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:389:5)")]
+        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:407:5)")]
         public _Recv_e__Struct Recv;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:399:5)")]
+        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:417:5)")]
         public _Misc_e__Struct Misc;
 
         public partial struct _Timing_e__Struct
@@ -601,12 +612,12 @@ namespace Microsoft.Quic
         [NativeTypeName("uint64_t")]
         public ulong TotalRejectedConnections;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:409:5)")]
+        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:427:5)")]
         public _Binding_e__Struct Binding;
 
         public partial struct _Binding_e__Struct
         {
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:410:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:428:9)")]
             public _Recv_e__Struct Recv;
 
             public partial struct _Recv_e__Struct
@@ -651,7 +662,7 @@ namespace Microsoft.Quic
 
     public unsafe partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:449:5)")]
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:467:5)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint64_t")]
@@ -823,6 +834,24 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         public uint DesiredVersionsListLength;
 
+        [NativeTypeName("uint16_t")]
+        public ushort MinimumMtu;
+
+        [NativeTypeName("uint16_t")]
+        public ushort MaximumMtu;
+
+        [NativeTypeName("uint64_t")]
+        public ulong MtuDiscoverySearchCompleteTimeoutUs;
+
+        [NativeTypeName("uint8_t")]
+        public byte MtuDiscoveryMissingProbeCount;
+
+        [NativeTypeName("uint16_t")]
+        public ushort MaxBindingStatelessOperations;
+
+        [NativeTypeName("uint16_t")]
+        public ushort StatelessOperationExpirationMs;
+
         public ref ulong IsSetFlags
         {
             get
@@ -847,7 +876,7 @@ namespace Microsoft.Quic
             public ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:451:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:469:9)")]
             public _IsSet_e__Struct IsSet;
 
             public partial struct _IsSet_e__Struct
@@ -1246,17 +1275,101 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 36")]
-                public ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                public ulong MinimumMtu
                 {
                     get
                     {
-                        return (_bitfield >> 28) & 0xFUL;
+                        return (_bitfield >> 28) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0xFUL << 28)) | ((value & 0xFUL) << 28);
+                        _bitfield = (_bitfield & ~(0x1UL << 28)) | ((value & 0x1UL) << 28);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                public ulong MaximumMtu
+                {
+                    get
+                    {
+                        return (_bitfield >> 29) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 29)) | ((value & 0x1UL) << 29);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                public ulong MtuDiscoverySearchCompleteTimeoutUs
+                {
+                    get
+                    {
+                        return (_bitfield >> 30) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 30)) | ((value & 0x1UL) << 30);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                public ulong MtuDiscoveryMissingProbeCount
+                {
+                    get
+                    {
+                        return (_bitfield >> 31) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 31)) | ((value & 0x1UL) << 31);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                public ulong MaxBindingStatelessOperations
+                {
+                    get
+                    {
+                        return (_bitfield >> 32) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 32)) | ((value & 0x1UL) << 32);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                public ulong StatelessOperationExpirationMs
+                {
+                    get
+                    {
+                        return (_bitfield >> 33) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 33)) | ((value & 0x1UL) << 33);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 30")]
+                public ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
                     }
                 }
             }
@@ -1279,7 +1392,6 @@ namespace Microsoft.Quic
         [NativeTypeName("unsigned long")]
         public uint Attribute;
 
-        [NativeTypeName("void *")]
         public void* Buffer;
     }
 
@@ -1292,7 +1404,7 @@ namespace Microsoft.Quic
     {
         public QUIC_LISTENER_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:762:5)")]
+        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:798:5)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
@@ -1307,7 +1419,7 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:763:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:799:9)")]
             public _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
             public unsafe partial struct _NEW_CONNECTION_e__Struct
@@ -1345,7 +1457,7 @@ namespace Microsoft.Quic
     {
         public QUIC_CONNECTION_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:857:5)")]
+        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:893:5)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
@@ -1472,63 +1584,63 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:858:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:894:9)")]
             public _CONNECTED_e__Struct CONNECTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:864:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:901:9)")]
             public _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:867:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:904:9)")]
             public _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:870:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:907:9)")]
             public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:875:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:912:9)")]
             public _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:878:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:915:9)")]
             public _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:881:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:918:9)")]
             public _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:885:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:922:9)")]
             public _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:889:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:926:9)")]
             public _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:892:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:929:9)")]
             public _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:896:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:933:9)")]
             public _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:900:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:937:9)")]
             public _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:904:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:941:9)")]
             public _RESUMED_e__Struct RESUMED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:908:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:945:9)")]
             public _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:912:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:951:9)")]
             public _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
 
             public unsafe partial struct _CONNECTED_e__Struct
@@ -1656,7 +1768,6 @@ namespace Microsoft.Quic
 
             public unsafe partial struct _DATAGRAM_SEND_STATE_CHANGED_e__Struct
             {
-                [NativeTypeName("void *")]
                 public void* ClientContext;
 
                 public QUIC_DATAGRAM_SEND_STATE State;
@@ -1682,7 +1793,7 @@ namespace Microsoft.Quic
 
             public unsafe partial struct _PEER_CERTIFICATE_RECEIVED_e__Struct
             {
-                [NativeTypeName("void *")]
+                [NativeTypeName("QUIC_CERTIFICATE *")]
                 public void* Certificate;
 
                 [NativeTypeName("uint32_t")]
@@ -1690,6 +1801,9 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("HRESULT")]
                 public int DeferredStatus;
+
+                [NativeTypeName("QUIC_CERTIFICATE_CHAIN *")]
+                public void* Chain;
             }
         }
     }
@@ -1705,13 +1819,14 @@ namespace Microsoft.Quic
         QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE = 6,
         QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE = 7,
         QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = 8,
+        QUIC_STREAM_EVENT_PEER_ACCEPTED = 9,
     }
 
     public partial struct QUIC_STREAM_EVENT
     {
         public QUIC_STREAM_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1033:5)")]
+        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1074:5)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
@@ -1762,6 +1877,14 @@ namespace Microsoft.Quic
             }
         }
 
+        public ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
+            }
+        }
+
         public ref _Anonymous_e__Union._IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE
         {
             get
@@ -1774,31 +1897,35 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1034:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1075:9)")]
             public _START_COMPLETE_e__Struct START_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1038:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1081:9)")]
             public _RECEIVE_e__Struct RECEIVE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1047:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1090:9)")]
             public _SEND_COMPLETE_e__Struct SEND_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1051:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1094:9)")]
             public _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1054:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1097:9)")]
             public _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1057:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1100:9)")]
             public _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1060:9)")]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1103:9)")]
+            public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1106:9)")]
             public _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
 
             public partial struct _START_COMPLETE_e__Struct
@@ -1808,6 +1935,36 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("QUIC_UINT62")]
                 public ulong ID;
+
+                public byte _bitfield;
+
+                [NativeTypeName("BOOLEAN : 1")]
+                public byte PeerAccepted
+                {
+                    get
+                    {
+                        return (byte)(_bitfield & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 7")]
+                public byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 1) & 0x7Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
+                    }
+                }
             }
 
             public unsafe partial struct _RECEIVE_e__Struct
@@ -1832,7 +1989,6 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN")]
                 public byte Canceled;
 
-                [NativeTypeName("void *")]
                 public void* ClientContext;
             }
 
@@ -1852,6 +2008,12 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("BOOLEAN")]
                 public byte Graceful;
+            }
+
+            public partial struct _SHUTDOWN_COMPLETE_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                public byte ConnectionShutdown;
             }
 
             public partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct
@@ -1956,10 +2118,10 @@ namespace Microsoft.Quic
     {
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int MsQuicOpen([NativeTypeName("const QUIC_API_TABLE **")] QUIC_API_TABLE** QuicApi);
+        public static extern int MsQuicOpenVersion([NativeTypeName("uint32_t")] uint Version, [NativeTypeName("const void **")] void** QuicApi);
 
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void MsQuicClose([NativeTypeName("const QUIC_API_TABLE *")] QUIC_API_TABLE* QuicApi);
+        public static extern void MsQuicClose([NativeTypeName("const void *")] void* QuicApi);
 
         [NativeTypeName("#define QUIC_MAX_ALPN_LENGTH 255")]
         public const int QUIC_MAX_ALPN_LENGTH = 255;
@@ -1973,103 +2135,109 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         public const int QUIC_MAX_TICKET_KEY_COUNT = 16;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0")]
-        public const int QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x4000000")]
+        public const int QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x4000000;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 1")]
-        public const int QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 1;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 0x4000001")]
+        public const int QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x4000001;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 2")]
-        public const int QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 2;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 0x4000002")]
+        public const int QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x4000002;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 3")]
-        public const int QUIC_PARAM_GLOBAL_PERF_COUNTERS = 3;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 0x4000003")]
+        public const int QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x4000003;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 4")]
-        public const int QUIC_PARAM_GLOBAL_SETTINGS = 4;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 0x4000004")]
+        public const int QUIC_PARAM_GLOBAL_SETTINGS = 0x4000004;
 
-        [NativeTypeName("#define QUIC_PARAM_REGISTRATION_CID_PREFIX 0")]
-        public const int QUIC_PARAM_REGISTRATION_CID_PREFIX = 0;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION 0x4000005")]
+        public const int QUIC_PARAM_GLOBAL_VERSION = 0x4000005;
 
-        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0")]
-        public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0;
+        [NativeTypeName("#define QUIC_PARAM_REGISTRATION_CID_PREFIX 0x8000000")]
+        public const int QUIC_PARAM_REGISTRATION_CID_PREFIX = 0x8000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 1")]
-        public const int QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 1;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0xC000000")]
+        public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0xC000000;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0")]
-        public const int QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 0xC000001")]
+        public const int QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0xC000001;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 1")]
-        public const int QUIC_PARAM_LISTENER_STATS = 1;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x10000000")]
+        public const int QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x10000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0")]
-        public const int QUIC_PARAM_CONN_QUIC_VERSION = 0;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x10000001")]
+        public const int QUIC_PARAM_LISTENER_STATS = 0x10000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 1")]
-        public const int QUIC_PARAM_CONN_LOCAL_ADDRESS = 1;
+        [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x14000000")]
+        public const int QUIC_PARAM_CONN_QUIC_VERSION = 0x14000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 2")]
-        public const int QUIC_PARAM_CONN_REMOTE_ADDRESS = 2;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 0x14000001")]
+        public const int QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x14000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 3")]
-        public const int QUIC_PARAM_CONN_IDEAL_PROCESSOR = 3;
+        [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 0x14000002")]
+        public const int QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x14000002;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 4")]
-        public const int QUIC_PARAM_CONN_SETTINGS = 4;
+        [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 0x14000003")]
+        public const int QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x14000003;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 5")]
-        public const int QUIC_PARAM_CONN_STATISTICS = 5;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 0x14000004")]
+        public const int QUIC_PARAM_CONN_SETTINGS = 0x14000004;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 6")]
-        public const int QUIC_PARAM_CONN_STATISTICS_PLAT = 6;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 0x14000005")]
+        public const int QUIC_PARAM_CONN_STATISTICS = 0x14000005;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 7")]
-        public const int QUIC_PARAM_CONN_SHARE_UDP_BINDING = 7;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 0x14000006")]
+        public const int QUIC_PARAM_CONN_STATISTICS_PLAT = 0x14000006;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 8")]
-        public const int QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 8;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 0x14000007")]
+        public const int QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x14000007;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 9")]
-        public const int QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 9;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 0x14000008")]
+        public const int QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x14000008;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 10")]
-        public const int QUIC_PARAM_CONN_MAX_STREAM_IDS = 10;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 0x14000009")]
+        public const int QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x14000009;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 11")]
-        public const int QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 11;
+        [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 0x1400000A")]
+        public const int QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x1400000A;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 12")]
-        public const int QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 12;
+        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 0x1400000B")]
+        public const int QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x1400000B;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 13")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 13;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 0x1400000C")]
+        public const int QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x1400000C;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 14")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 14;
+        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 0x1400000D")]
+        public const int QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x1400000D;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 16")]
-        public const int QUIC_PARAM_CONN_RESUMPTION_TICKET = 16;
+        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 0x1400000E")]
+        public const int QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x1400000E;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 17")]
-        public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 17;
+        [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 0x14000010")]
+        public const int QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x14000010;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x1000000")]
-        public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x1000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x14000011")]
+        public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x14000011;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0")]
-        public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0;
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x19000000")]
+        public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x19000000;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 1")]
-        public const int QUIC_PARAM_TLS_NEGOTIATED_ALPN = 1;
+        [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x18000000")]
+        public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x18000000;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0")]
-        public const int QUIC_PARAM_STREAM_ID = 0;
+        [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 0x18000001")]
+        public const int QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x18000001;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 1")]
-        public const int QUIC_PARAM_STREAM_0RTT_LENGTH = 1;
+        [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x1C000000")]
+        public const int QUIC_PARAM_STREAM_ID = 0x1C000000;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 2")]
-        public const int QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 2;
+        [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 0x1C000001")]
+        public const int QUIC_PARAM_STREAM_0RTT_LENGTH = 0x1C000001;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 0x1C000002")]
+        public const int QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x1C000002;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x1C000003")]
+        public const int QUIC_PARAM_STREAM_PRIORITY = 0x1C000003;
     }
 }

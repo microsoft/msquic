@@ -7,24 +7,6 @@ namespace Microsoft.Quic
 {
     public static partial class MsQuic_Windows
     {
-        [NativeTypeName("#define ERROR_QUIC_USER_CANCELED _HRESULT_TYPEDEF_(0x80410002L)")]
-        public const int ERROR_QUIC_USER_CANCELED = unchecked((int)(0x80410002));
-
-        [NativeTypeName("#define ERROR_QUIC_INTERNAL_ERROR _HRESULT_TYPEDEF_(0x80410003L)")]
-        public const int ERROR_QUIC_INTERNAL_ERROR = unchecked((int)(0x80410003));
-
-        [NativeTypeName("#define ERROR_QUIC_PROTOCOL_VIOLATION _HRESULT_TYPEDEF_(0x80410004L)")]
-        public const int ERROR_QUIC_PROTOCOL_VIOLATION = unchecked((int)(0x80410004));
-
-        [NativeTypeName("#define ERROR_QUIC_CONNECTION_IDLE _HRESULT_TYPEDEF_(0x80410005L)")]
-        public const int ERROR_QUIC_CONNECTION_IDLE = unchecked((int)(0x80410005));
-
-        [NativeTypeName("#define ERROR_QUIC_CONNECTION_TIMEOUT _HRESULT_TYPEDEF_(0x80410006L)")]
-        public const int ERROR_QUIC_CONNECTION_TIMEOUT = unchecked((int)(0x80410006));
-
-        [NativeTypeName("#define ERROR_QUIC_ALPN_NEG_FAILURE _HRESULT_TYPEDEF_(0x80410007L)")]
-        public const int ERROR_QUIC_ALPN_NEG_FAILURE = unchecked((int)(0x80410007));
-
         [NativeTypeName("#define ERROR_QUIC_STREAM_LIMIT_REACHED _HRESULT_TYPEDEF_(0x80410008L)")]
         public const int ERROR_QUIC_STREAM_LIMIT_REACHED = unchecked((int)(0x80410008));
 
@@ -106,8 +88,23 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATUS_BAD_CERTIFICATE QUIC_STATUS_TLS_ALERT(42)")]
         public const int QUIC_STATUS_BAD_CERTIFICATE = unchecked(((int)(0x80410100)) | (0xff & 42));
 
+        [NativeTypeName("#define QUIC_STATUS_UNSUPPORTED_CERTIFICATE QUIC_STATUS_TLS_ALERT(43)")]
+        public const int QUIC_STATUS_UNSUPPORTED_CERTIFICATE = unchecked(((int)(0x80410100)) | (0xff & 43));
+
+        [NativeTypeName("#define QUIC_STATUS_REVOKED_CERTIFICATE QUIC_STATUS_TLS_ALERT(44)")]
+        public const int QUIC_STATUS_REVOKED_CERTIFICATE = unchecked(((int)(0x80410100)) | (0xff & 44));
+
         [NativeTypeName("#define QUIC_STATUS_EXPIRED_CERTIFICATE QUIC_STATUS_TLS_ALERT(45)")]
         public const int QUIC_STATUS_EXPIRED_CERTIFICATE = unchecked(((int)(0x80410100)) | (0xff & 45));
+
+        [NativeTypeName("#define QUIC_STATUS_UNKNOWN_CERTIFICATE QUIC_STATUS_TLS_ALERT(46)")]
+        public const int QUIC_STATUS_UNKNOWN_CERTIFICATE = unchecked(((int)(0x80410100)) | (0xff & 46));
+
+        [NativeTypeName("#define QUIC_STATUS_CERT_EXPIRED CERT_E_EXPIRED")]
+        public const int QUIC_STATUS_CERT_EXPIRED = unchecked((int)(0x800B0101));
+
+        [NativeTypeName("#define QUIC_STATUS_CERT_UNTRUSTED_ROOT CERT_E_UNTRUSTEDROOT")]
+        public const int QUIC_STATUS_CERT_UNTRUSTED_ROOT = unchecked((int)(0x800B0109));
 
         [NativeTypeName("#define QUIC_ADDRESS_FAMILY_UNSPEC AF_UNSPEC")]
         public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
