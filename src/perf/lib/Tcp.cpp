@@ -102,7 +102,7 @@ TcpEngine::TcpEngine(
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
     TcpSendCompleteHandler SendCompleteHandler) :
-    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
+    ProcCount((uint16_t)CxPlatProcMaxCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {

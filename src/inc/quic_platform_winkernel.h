@@ -818,7 +818,6 @@ typedef ULONG_PTR CXPLAT_THREAD_ID;
 //
 
 #define CxPlatProcMaxCount() KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS)
-#define CxPlatProcActiveCount() KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS)
 #define CxPlatProcCurrentNumber() KeGetCurrentProcessorIndex()
 
 //

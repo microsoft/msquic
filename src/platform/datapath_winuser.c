@@ -764,7 +764,7 @@ CxPlatDataPathInitialize(
     CXPLAT_DATAPATH* Datapath;
     uint32_t DatapathLength;
 
-    uint32_t MaxProcCount = CxPlatProcActiveCount();
+    uint32_t MaxProcCount = CxPlatProcMaxCount();
     CXPLAT_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);
     if (MaxProcCount >= UINT16_MAX) {
         MaxProcCount = UINT16_MAX - 1;

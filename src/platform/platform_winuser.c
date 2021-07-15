@@ -84,7 +84,7 @@ CxPlatProcessorInfoInit(
     uint8_t* Buffer = NULL;
     uint32_t Offset;
 
-    uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
+    uint32_t ActiveProcessorCount = CxPlatProcMaxCount();
     uint32_t ProcessorGroupCount = 0;
     uint32_t ProcessorsPerGroup = 0;
     uint32_t NumaNodeCount = 0;
@@ -612,27 +612,6 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 #ifdef QUIC_UWP_BUILD
-DWORD
-CxPlatProcActiveCount(
-    )
-{
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
-    DWORD ProcLength;
-    DWORD Count;
-
-    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
-        CXPLAT_DBG_ASSERT(FALSE);
-        return 0;
-    }
-
-    Count = 0;
-    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count +=  ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
-    }
-    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    CXPLAT_DBG_ASSERT(Count != 0);
-    return Count;
-}
 
 DWORD
 CxPlatProcMaxCount(

@@ -22,7 +22,7 @@
 
 #define ATTACK_TIMEOUT_DEFAULT_MS (60 * 1000)
 
-#define ATTACK_THREADS_DEFAULT CxPlatProcActiveCount()
+#define ATTACK_THREADS_DEFAULT CxPlatProcMaxCount()
 
 #define ATTACK_PORT_DEFAULT 443
 
@@ -342,7 +342,7 @@ void RunAttack()
     CXPLAT_THREAD* Threads =
         (CXPLAT_THREAD*)CXPLAT_ALLOC_PAGED(ThreadCount * sizeof(CXPLAT_THREAD), QUIC_POOL_TOOL);
 
-    uint32_t ProcCount = CxPlatProcActiveCount();
+    uint32_t ProcCount = CxPlatProcMaxCount();
     TimeStart = CxPlatTimeMs64();
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
