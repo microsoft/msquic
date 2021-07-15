@@ -105,14 +105,5 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_STATUS_CERT_UNTRUSTED_ROOT CERT_E_UNTRUSTEDROOT")]
         public const int QUIC_STATUS_CERT_UNTRUSTED_ROOT = unchecked((int)(0x800B0109));
-
-        [NativeTypeName("#define QUIC_ADDRESS_FAMILY_UNSPEC AF_UNSPEC")]
-        public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
-
-        [NativeTypeName("#define QUIC_ADDRESS_FAMILY_INET AF_INET")]
-        public const int QUIC_ADDRESS_FAMILY_INET = 2;
-
-        [NativeTypeName("#define QUIC_ADDRESS_FAMILY_INET6 AF_INET6")]
-        public const int QUIC_ADDRESS_FAMILY_INET6 = 23;
     }
 }

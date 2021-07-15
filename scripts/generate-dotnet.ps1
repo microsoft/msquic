@@ -28,6 +28,9 @@ if ($IsWindows) {
         -e QUIC_ADDR_V4_IP_OFFSET `
         -e QUIC_ADDR_V6_PORT_OFFSET `
         -e QUIC_ADDR_V6_IP_OFFSET `
+        -e QUIC_ADDRESS_FAMILY_UNSPEC `
+        -e QUIC_ADDRESS_FAMILY_INET `
+        -e QUIC_ADDRESS_FAMILY_INET6
 
     # In the current version of PInvokeGenerator, macros with ternarys are generated incorrectly. Manually fix this up
     (Get-Content $MsQuicWindowsGeneratedSource).Replace("public static readonly", "public const") | Set-Content $MsQuicWindowsGeneratedSource
@@ -41,7 +44,12 @@ if ($IsWindows) {
         -e QUIC_ADDR_V6_PORT_OFFSET `
         -e QUIC_ADDR_V6_IP_OFFSET `
         -e _strnicmp `
-        -e QUIC_ADDR
+        -e QUIC_ADDR `
+        -e TRUE `
+        -e FALSE `
+        -e QUIC_ADDRESS_FAMILY_UNSPEC `
+        -e QUIC_ADDRESS_FAMILY_INET `
+        -e QUIC_ADDRESS_FAMILY_INET6
 
     # In the current version of PInvokeGenerator, macros with ternarys are generated incorrectly. Manually fix this up
     (Get-Content $MsQuicPosixGeneratedSource).Replace("public static readonly", "public const") | Set-Content $MsQuicPosixGeneratedSource

@@ -112,21 +112,6 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATUS_CERT_UNTRUSTED_ROOT QUIC_STATUS_CERT_ERROR(2)")]
         public const uint QUIC_STATUS_CERT_UNTRUSTED_ROOT = ((uint)(2) + 512 + 200000000);
 
-        [NativeTypeName("#define QUIC_ADDRESS_FAMILY_UNSPEC 0")]
-        public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
-
-        [NativeTypeName("#define QUIC_ADDRESS_FAMILY_INET 2")]
-        public const int QUIC_ADDRESS_FAMILY_INET = 2;
-
-        [NativeTypeName("#define QUIC_ADDRESS_FAMILY_INET6 23")]
-        public const int QUIC_ADDRESS_FAMILY_INET6 = 23;
-
-        [NativeTypeName("#define FALSE 0")]
-        public const int FALSE = 0;
-
-        [NativeTypeName("#define TRUE 1")]
-        public const int TRUE = 1;
-
         [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION 0x00000080")]
         public const int QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION = 0x00000080;
 
