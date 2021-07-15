@@ -370,6 +370,7 @@ main(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
     bool KeyboardWait = false;
@@ -387,9 +388,10 @@ main(
     int ArgCount = 0;
 
     CxPlatSystemLoad();
-    if (QUIC_FAILED(CxPlatInitialize())) {
+    if (QUIC_FAILED(Status = CxPlatInitialize())) {
         printf("Platform failed to initialize\n");
-        goto Exit;
+        CxPlatSystemUnload();
+        return Status;
     }
 
     for (int i = 0; i < argc; ++i) {
