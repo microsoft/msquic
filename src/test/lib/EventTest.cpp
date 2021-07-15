@@ -27,11 +27,14 @@ struct StreamEventValidator {
     uint8_t Actions;
     StreamEventValidator(QUIC_STREAM_EVENT_TYPE type, uint8_t actions = 0, bool optional = false) : Success(false),
         Optional(optional), Type(type), Actions(actions) { }
-    virtual void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
+    void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {
                 TEST_FAILURE("StreamEventValidator: Expected %u. Actual %u", Type, Event->Type);
             }
+            return;
+        }
+        if (!ValidateMore(Stream, Event)) {
             return;
         }
         Success = true;
@@ -42,6 +45,7 @@ struct StreamEventValidator {
             MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
     }
+    virtual bool ValidateMore(_In_ HQUIC, _Inout_ QUIC_STREAM_EVENT*) { return true; }
     virtual ~StreamEventValidator() { }
 };
 
@@ -50,24 +54,12 @@ struct StreamStartCompleteEventValidator : StreamEventValidator {
     StreamStartCompleteEventValidator(bool PeerAccepted = false, uint8_t actions = 0, bool optional = false) :
         StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE, actions, optional),
         PeerAccepted(PeerAccepted ? TRUE : FALSE) { }
-    virtual void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
-        if (Event->Type != Type) {
-            if (!Optional) {
-                TEST_FAILURE("StreamEventValidator: Expected %u. Actual %u", Type, Event->Type);
-            }
-            return;
-        }
+    virtual bool ValidateMore(_In_ HQUIC, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->START_COMPLETE.PeerAccepted != PeerAccepted) {
             TEST_FAILURE("PeerAccepted mismatch: Expected %u. Actual %u", PeerAccepted, Event->START_COMPLETE.PeerAccepted);
-            return;
+            return false;
         }
-        Success = true;
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_STREAM) {
-            MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
-        }
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
-            MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-        }
+        return true;
     }
 };
 
@@ -76,24 +68,12 @@ struct StreamPeerRecvAbortEventValidator : StreamEventValidator {
     StreamPeerRecvAbortEventValidator(QUIC_UINT62 errorcode, uint8_t actions = 0, bool optional = false) :
         StreamEventValidator(QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED, actions, optional),
         ErrorCode(errorcode) { }
-    virtual void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
-        if (Event->Type != Type) {
-            if (!Optional) {
-                TEST_FAILURE("StreamEventValidator: Expected %u. Actual %u", Type, Event->Type);
-            }
-            return;
-        }
+    virtual bool ValidateMore(_In_ HQUIC, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->PEER_RECEIVE_ABORTED.ErrorCode != ErrorCode) {
             TEST_FAILURE("PeerRecvAbort mismatch: Expected %llu. Actual %llu", ErrorCode, Event->PEER_RECEIVE_ABORTED.ErrorCode);
-            return;
+            return false;
         }
-        Success = true;
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_STREAM) {
-            MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
-        }
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
-            MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-        }
+        return true;
     }
 };
 
