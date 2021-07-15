@@ -50,7 +50,7 @@ HpsClient::Init(
         return Configuration.GetInitStatus();
     }
 
-    ActiveProcCount = CxPlatProcMaxCount();
+    ActiveProcCount = CxPlatProcActiveCount();
     if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
@@ -159,7 +159,7 @@ HpsClient::Start(
         Contexts[Proc].ThreadStarted = true;
     }
 
-    uint32_t ThreadToSetAffinityTo = CxPlatProcMaxCount();
+    uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         Status =

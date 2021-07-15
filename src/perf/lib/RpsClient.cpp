@@ -92,7 +92,7 @@ RpsClient::Init(
         AffinitizeWorkers = Affinitize != 0;
     }
 
-    WorkerCount = CxPlatProcMaxCount();
+    WorkerCount = CxPlatProcActiveCount();
     if (WorkerCount > PERF_MAX_THREAD_COUNT) {
         WorkerCount = PERF_MAX_THREAD_COUNT;
     }
@@ -187,7 +187,7 @@ RpsClient::Start(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    uint32_t ActiveProcCount = CxPlatProcMaxCount();
+    uint32_t ActiveProcCount = CxPlatProcActiveCount();
     if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
@@ -289,7 +289,7 @@ RpsClient::Start(
         Connections[i % ConnectionCount].Worker->QueueSendRequest();
     }
 
-    uint32_t ThreadToSetAffinityTo = CxPlatProcMaxCount();
+    uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         Status =
