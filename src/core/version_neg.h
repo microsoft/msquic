@@ -31,6 +31,12 @@ typedef struct QUIC_SERVER_VER_NEG_INFO {
     const uint32_t* SupportedVersions;
 } QUIC_SERVER_VER_NEG_INFO;
 
+typedef struct QUIC_VERSION_INFORMATION_V1 {
+    uint32_t ChosenVersion;
+    QUIC_VAR_INT OtherVersionsCount;
+    const uint32_t* OtherVersions;
+} QUIC_VERSION_INFORMATION_V1;
+
 BOOLEAN
 QuicVersionNegotiationExtIsVersionServerSupported(
     _In_ uint32_t Version
@@ -65,21 +71,13 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     );
 
 QUIC_STATUS
-QuicVersionNegotiationExtParseClientVerNegInfo(
+QuicVersionNegotiationExtParseVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
-    _Out_ QUIC_CLIENT_VER_NEG_INFO* ClientVNI
-    );
-
-QUIC_STATUS
-QuicVersionNegotiationExtParseServerVerNegInfo(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* const Buffer,
-    _In_ uint16_t BufferLength,
-    _Out_ QUIC_SERVER_VER_NEG_INFO* ServerVNI
+    _In_ BOOLEAN IsServer,
+    _Out_ QUIC_VERSION_INFORMATION_V1* VersionInfo
     );
 
 //

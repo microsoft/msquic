@@ -1694,7 +1694,7 @@ QuicCryptoTlsDecodeTransportParameters(
                     "Invalid length of QUIC_TP_ID_VERSION_NEGOTIATION_EXT");
                 goto Exit;
             }
-            TransportParams->VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_VER_NEG_INFO);
+            TransportParams->VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_VERSION_INFO);
             if (TransportParams->VersionNegotiationInfo == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -1790,7 +1790,7 @@ QuicCryptoTlsCopyTransportParameters(
     *Destination = *Source;
     if (Source->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
         Destination->VersionNegotiationInfo =
-            CXPLAT_ALLOC_NONPAGED((size_t)Source->VersionNegotiationInfoLength, QUIC_POOL_VER_NEG_INFO);
+            CXPLAT_ALLOC_NONPAGED((size_t)Source->VersionNegotiationInfoLength, QUIC_POOL_VERSION_INFO);
         if (Destination->VersionNegotiationInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1816,7 +1816,7 @@ QuicCryptoTlsCleanupTransportParameters(
     )
 {
     if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-        CXPLAT_FREE(TransportParams->VersionNegotiationInfo, QUIC_POOL_VER_NEG_INFO);
+        CXPLAT_FREE(TransportParams->VersionNegotiationInfo, QUIC_POOL_VERSION_INFO);
         TransportParams->VersionNegotiationInfo = NULL;
         TransportParams->VersionNegotiationInfoLength = 0;
         TransportParams->Flags &= ~QUIC_TP_FLAG_VERSION_NEGOTIATION;

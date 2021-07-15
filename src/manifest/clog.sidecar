@@ -8078,7 +8078,7 @@
     },
     "ServerVersionNegotiationInfoEncoded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Server VNI Encoded: Negotiated Ver:%x Supported Ver Count:%u",
+      "TraceString": "[conn][%p] Server VNI Encoded: Chosen Ver:%x Other Ver Count:%u",
       "UniqueId": "ServerVersionNegotiationInfoEncoded",
       "splitArgs": [
         {
@@ -10413,6 +10413,30 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "ServerVersionInfoDecodeFailed3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] %s version info contains partial Other Version (%hu bytes vs. %llu bytes)",
+      "UniqueId": "ServerVersionInfoDecodeFailed3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     }
   },
   "Version": 1,
@@ -12804,10 +12828,6 @@
         "TraceID": "ServerVersionNegotiationInfoDecoded"
       },
       {
-        "UniquenessHash": "5072570b-8e83-90f2-03ba-a94f1f31a6ef",
-        "TraceID": "ServerVersionNegotiationInfoEncoded"
-      },
-      {
         "UniquenessHash": "60fdd608-9cdd-99aa-464d-8589a3b832ac",
         "TraceID": "ClientVersionNegotiationInfoEncoded"
       },
@@ -13478,6 +13498,54 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
+      },
+      {
+        "UniquenessHash": "eb447a25-63e1-1f7e-8e4d-b24e05563bd1",
+        "TraceID": "ServerVersionInfoVersionMismatch"
+      },
+      {
+        "UniquenessHash": "2ae32fc2-e372-7d38-69d2-e085f736570f",
+        "TraceID": "ServerVersionInformationChosenVersionNotInOtherVerList"
+      },
+      {
+        "UniquenessHash": "c6d87f8f-4d33-ae2b-fcbd-d0b6e78983ef",
+        "TraceID": "VersionInfoDecodeFailed1"
+      },
+      {
+        "UniquenessHash": "c2f064f6-71da-2427-2ef1-08cf9aab4383",
+        "TraceID": "VersionInfoDecodeFailed2"
+      },
+      {
+        "UniquenessHash": "480078f5-500f-8ca6-d4b1-303dfcc1bd23",
+        "TraceID": "ServerVersionInfoDecodeFailed4"
+      },
+      {
+        "UniquenessHash": "7325b8a8-9276-234c-8a0f-6ba3e7178afe",
+        "TraceID": "ServerVersionInfoDecoded"
+      },
+      {
+        "UniquenessHash": "1d923bfa-cf8d-a334-7e1c-386bdbb40dd3",
+        "TraceID": "ServerVersionNegotiationInfoEncoded"
+      },
+      {
+        "UniquenessHash": "6bc9ff45-687f-b5d8-b16a-00bc145ec05e",
+        "TraceID": "ConnVNEOtherVersionList"
+      },
+      {
+        "UniquenessHash": "412694ad-c22e-de81-738e-8778466420f0",
+        "TraceID": "ClientVersionInfoVersionMismatch"
+      },
+      {
+        "UniquenessHash": "e3311a70-0df4-e618-3d6e-779ed92d435f",
+        "TraceID": "ServerVersionInformationPreviousVersionIsChosenVersion"
+      },
+      {
+        "UniquenessHash": "c0975309-af60-f767-e139-f7cb6071e863",
+        "TraceID": "ServerVersionInformationPreviousVersionInOtherVerList"
+      },
+      {
+        "UniquenessHash": "83e8d139-9f04-8332-c4f8-8a3761250cd7",
+        "TraceID": "ServerVersionInfoDecodeFailed3"
       }
     ]
   }

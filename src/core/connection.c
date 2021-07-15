@@ -2562,13 +2562,14 @@ QuicConnProcessPeerVersionNegotiationTP(
             return QUIC_STATUS_VER_NEG_ERROR;
         }
 
-        QUIC_CLIENT_VER_NEG_INFO ClientVNI;
+        QUIC_VERSION_INFORMATION_V1 ClientVI;
         Status =
-            QuicVersionNegotiationExtParseClientVerNegInfo(
+            QuicVersionNegotiationExtParseVersionInfo(
                 Connection,
                 Connection->PeerTransportParams.VersionNegotiationInfo,
                 (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
-                &ClientVNI);
+                FALSE,
+                &ClientVI);
         if (QUIC_FAILED(Status)) {
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
@@ -2578,51 +2579,15 @@ QuicConnProcessPeerVersionNegotiationTP(
         // Assume QuicVersion on the Connection is the long header value
         // and verify it matches the VNE TP.
         //
-        if (Connection->Stats.QuicVersion != ClientVNI.CurrentVersion) {
+        if (Connection->Stats.QuicVersion != ClientVI.ChosenVersion) {
             QuicTraceLogConnError(
-                ClientVersionNegotiationInfoVersionMismatch,
+                ClientVersionInfoVersionMismatch,
                 Connection,
-                "Client Current Version doesn't match long header. 0x%x != 0x%x",
-                ClientVNI.CurrentVersion,
+                "Client Chosen Version doesn't match long header. 0x%x != 0x%x",
+                ClientVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
-        }
-
-        if (ClientVNI.RecvNegotiationVerCount > 0) {
-            if (ClientVNI.RecvNegotiationVerCount != (SupportedVersionsLength + 1) ||
-                ClientVNI.RecvNegotiationVersions[0] != Connection->Paths[0].Binding->RandomReservedVersion ||
-                memcmp(
-                    ClientVNI.RecvNegotiationVersions + 1,
-                    SupportedVersions,
-                    SupportedVersionsLength * sizeof(uint32_t)) != 0) {
-                //
-                // The list of versions the client provided as proof of VN is wrong,
-                // Kill the connection.
-                //
-                QuicTraceLogConnError(
-                    ClientVersionNegotiationRecvdVersionsMismatch,
-                    Connection,
-                    "Client Received Versions list doesn't match server");
-                QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
-                return QUIC_STATUS_PROTOCOL_ERROR;
-            }
-
-            for (uint32_t i = 0; i < SupportedVersionsLength; ++i) {
-                if (SupportedVersions[i] == ClientVNI.PreviousVersion) {
-                    //
-                    // If the previous version is supported, we wouldn't have done IVN.
-                    // Kill the connection.
-                    //
-                    QuicTraceLogConnError(
-                        ClientVersionNegotiationPrevVersionIncorrect,
-                        Connection,
-                        "Client Previous Version is supported: 0x%x",
-                        ClientVNI.PreviousVersion);
-                    QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
-                    return QUIC_STATUS_PROTOCOL_ERROR;
-                }
-            }
         }
 
         //
@@ -2632,12 +2597,12 @@ QuicConnProcessPeerVersionNegotiationTP(
             if (QuicIsVersionReserved(SupportedVersions[ServerVersionIdx])) {
                 continue;
             }
-            for (uint32_t ClientVersionIdx = 0; ClientVersionIdx < ClientVNI.CompatibleVersionCount; ++ClientVersionIdx) {
-                if (!QuicIsVersionReserved(ClientVNI.CompatibleVersions[ClientVersionIdx]) &&
-                    ClientVNI.CompatibleVersions[ClientVersionIdx] == SupportedVersions[ServerVersionIdx] &&
+            for (uint32_t ClientVersionIdx = 0; ClientVersionIdx < ClientVI.OtherVersionsCount; ++ClientVersionIdx) {
+                if (!QuicIsVersionReserved(ClientVI.OtherVersions[ClientVersionIdx]) &&
+                    ClientVI.OtherVersions[ClientVersionIdx] == SupportedVersions[ServerVersionIdx] &&
                     QuicVersionNegotiationExtAreVersionsCompatible(
-                        ClientVNI.CurrentVersion,
-                        ClientVNI.CompatibleVersions[ClientVersionIdx])) {
+                        ClientVI.ChosenVersion,
+                        ClientVI.OtherVersions[ClientVersionIdx])) {
                     QuicTraceLogConnVerbose(
                         ClientVersionNegotiationCompatibleVersionUpgrade,
                         Connection,
@@ -2657,42 +2622,74 @@ QuicConnProcessPeerVersionNegotiationTP(
         //
         // Client must perform downgrade prevention
         //
-        QUIC_SERVER_VER_NEG_INFO ServerVNI = {0};
+        QUIC_VERSION_INFORMATION_V1 ServerVI = {0};
         Status =
-            QuicVersionNegotiationExtParseServerVerNegInfo(
+            QuicVersionNegotiationExtParseVersionInfo(
                 Connection,
                 Connection->PeerTransportParams.VersionNegotiationInfo,
                 (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
-                &ServerVNI);
+                TRUE,
+                &ServerVI);
         if (QUIC_FAILED(Status)) {
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
-        if (Connection->Stats.QuicVersion != ServerVNI.NegotiatedVersion) {
+        if (Connection->Stats.QuicVersion != ServerVI.ChosenVersion) {
             QuicTraceLogConnError(
-                ServerVersionNegotiationInfoVersionMismatch,
+                ServerVersionInfoVersionMismatch,
                 Connection,
-                "Server Negotiated Version doesn't match long header. 0x%x != 0x%x",
-                ServerVNI.NegotiatedVersion,
+                "Server Chosen Version doesn't match long header. 0x%x != 0x%x",
+                ServerVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
-        BOOLEAN NegotiatedVersionFound = FALSE;
-        for (uint32_t i = 0; i < ServerVNI.SupportedVersionCount; ++i) {
-            if (ServerVNI.SupportedVersions[i] == ServerVNI.NegotiatedVersion) {
-                NegotiatedVersionFound = TRUE;
+        BOOLEAN ChosenVersionFound = FALSE;
+        for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
+            if (ServerVI.OtherVersions[i] == ServerVI.ChosenVersion) {
+                ChosenVersionFound = TRUE;
                 break;
             }
         }
-        if (!NegotiatedVersionFound) {
+        if (!ChosenVersionFound) {
             QuicTraceLogConnError(
-                ServerVersionNegotiationNegotiatedVersionNotInSupportedList,
+                ServerVersionInformationChosenVersionNotInOtherVerList,
                 Connection,
-                "Server Negotiated Version is not in Server Supported Versions: 0x%x",
-                CxPlatByteSwapUint32(ServerVNI.NegotiatedVersion));
+                "Server Chosen Version is not in Server Other Versions list: 0x%x",
+                ServerVI.ChosenVersion);
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+        if (Connection->PreviousQuicVersion != 0) {
+            if (Connection->PreviousQuicVersion == ServerVI.ChosenVersion) {
+                QuicTraceLogConnError(
+                    ServerVersionInformationPreviousVersionIsChosenVersion,
+                    Connection,
+                    "Previous Client Version is Server Chosen Version: 0x%x",
+                    Connection->PreviousQuicVersion);
+                QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                return QUIC_STATUS_PROTOCOL_ERROR;
+            }
+            for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
+                if (Connection->PreviousQuicVersion == ServerVI.OtherVersions[i]) {
+                    QuicTraceLogConnError(
+                        ServerVersionInformationPreviousVersionInOtherVerList,
+                        Connection,
+                        "Previous Client Version in Server Other Versions list: 0x%x",
+                        Connection->PreviousQuicVersion);
+                    QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                    return QUIC_STATUS_PROTOCOL_ERROR;
+
+                }
+            }
+            //
+            // If a client has reacted to a Version Negotiation packet, it MUST
+            // validate ... that the client would have
+            // selected the same negotiated version if it had received a Version
+            // Negotiation packet whose Supported Versions field had the same
+            // contents as the server's "Other Versions" field.
+            //
+            // HOW DO??
         }
     }
     return QUIC_STATUS_SUCCESS;
@@ -2727,11 +2724,21 @@ QuicConnProcessPeerTransportParameters(
             Status = QuicConnProcessPeerVersionNegotiationTP(Connection);
             if (QUIC_FAILED(Status)) {
                 //
-                // If the Version Negotiation Info failed to parse, indicate the failure up the stack
+                // If the Version Info failed to parse, indicate the failure up the stack
                 // to perform Incompatible Version Negotiation or so the connection can be closed.
                 //
                 goto Error;
             }
+        }
+        if (!QuicConnIsServer(Connection) && Connection->Settings.VersionNegotiationExtEnabled &&
+            Connection->PreviousQuicVersion != 0 && !(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION)) {
+            //
+            // Client responded to a version negotiation packet, but server didn't send Version Info TP.
+            // Kill the connection.
+            //
+            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+            Status = QUIC_STATUS_PROTOCOL_ERROR;
+            goto Error;
         }
 
         if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
@@ -3402,6 +3409,7 @@ QuicConnRecvHeader(
                 QuicVersionNegotiationExtIsVersionCompatible(Connection, Packet->Invariant->LONG_HDR.Version)) {
                 //
                 // Server did compatible version negotiation, update local version.
+                // DON'T ALWAYS DO THIS; IT COULD ALLOW AN ATTACKER TO MESS WITH THINGS
                 //
                 Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
                 QuicConnOnQuicVersionSet(Connection);
