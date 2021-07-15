@@ -159,6 +159,13 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN InlineApiExecution : 1;
 
+        //
+        // True once a client connection has completed a compatible version
+        // negotiation, and false otherwise. Used to prevent packets with invalid
+        // version fields from being accepted.
+        //
+        BOOLEAN CompatibleVersionNegotiation : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

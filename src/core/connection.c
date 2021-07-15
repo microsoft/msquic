@@ -2661,6 +2661,10 @@ QuicConnProcessPeerVersionNegotiationTP(
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
         if (Connection->PreviousQuicVersion != 0) {
+            //
+            // If the client has already received a version negotiation packet, do
+            // extra validation.
+            //
             if (Connection->PreviousQuicVersion == ServerVI.ChosenVersion) {
                 QuicTraceLogConnError(
                     ServerVersionInformationPreviousVersionIsChosenVersion,
@@ -2670,6 +2674,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                 QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                 return QUIC_STATUS_PROTOCOL_ERROR;
             }
+            uint32_t ClientChosenVersion = 0;
             for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
                 if (Connection->PreviousQuicVersion == ServerVI.OtherVersions[i]) {
                     QuicTraceLogConnError(
@@ -2679,17 +2684,22 @@ QuicConnProcessPeerVersionNegotiationTP(
                         Connection->PreviousQuicVersion);
                     QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
-
+                }
+                if (ClientChosenVersion == 0 &&
+                    QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.OtherVersions[i])) {
+                    ClientChosenVersion = ServerVI.OtherVersions[i];
                 }
             }
-            //
-            // If a client has reacted to a Version Negotiation packet, it MUST
-            // validate ... that the client would have
-            // selected the same negotiated version if it had received a Version
-            // Negotiation packet whose Supported Versions field had the same
-            // contents as the server's "Other Versions" field.
-            //
-            // HOW DO??
+            if (ClientChosenVersion == 0 || ClientChosenVersion != ServerVI.ChosenVersion) {
+                QuicTraceLogConnError(
+                    ClientChosenVersionMismatchServerChosenVersion,
+                    Connection,
+                    "Client Chosen Version doesn't match Server Chosen Version: 0x%x vs. 0x%x",
+                    ClientChosenVersion,
+                    ServerVI.ChosenVersion);
+                QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                return QUIC_STATUS_PROTOCOL_ERROR;
+            }
         }
     }
     return QUIC_STATUS_SUCCESS;
@@ -2731,10 +2741,11 @@ QuicConnProcessPeerTransportParameters(
             }
         }
         if (!QuicConnIsServer(Connection) && Connection->Settings.VersionNegotiationExtEnabled &&
-            Connection->PreviousQuicVersion != 0 && !(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION)) {
+            (Connection->State.CompatibleVersionNegotiation || Connection->PreviousQuicVersion != 0) &&
+            !(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION)) {
             //
-            // Client responded to a version negotiation packet, but server didn't send Version Info TP.
-            // Kill the connection.
+            // Client responded to a version negotiation packet, or compatible version negotiation,
+            // but server didn't send Version Info TP. Kill the connection.
             //
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
             Status = QUIC_STATUS_PROTOCOL_ERROR;
@@ -3406,11 +3417,14 @@ QuicConnRecvHeader(
     if (!Packet->IsShortHeader) {
         if (Packet->Invariant->LONG_HDR.Version != Connection->Stats.QuicVersion) {
             if (!QuicConnIsServer(Connection) &&
+                !Connection->State.CompatibleVersionNegotiation &&
                 QuicVersionNegotiationExtIsVersionCompatible(Connection, Packet->Invariant->LONG_HDR.Version)) {
                 //
-                // Server did compatible version negotiation, update local version.
-                // DON'T ALWAYS DO THIS; IT COULD ALLOW AN ATTACKER TO MESS WITH THINGS
+                // Server did compatible version negotiation, update local version
+                // to proceed to TP processing. The TP processing must validate
+                // this new version is the same as in the ChosenVersion field.
                 //
+                Connection->State.CompatibleVersionNegotiation = TRUE;
                 Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
                 QuicConnOnQuicVersionSet(Connection);
                 //

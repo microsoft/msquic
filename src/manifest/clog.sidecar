@@ -13546,6 +13546,10 @@
       {
         "UniquenessHash": "83e8d139-9f04-8332-c4f8-8a3761250cd7",
         "TraceID": "ServerVersionInfoDecodeFailed3"
+      },
+      {
+        "UniquenessHash": "828fe056-14ad-503a-e3dc-5b6fe1333ddb",
+        "TraceID": "ClientChosenVersionMismatchServerChosenVersion"
       }
     ]
   }
