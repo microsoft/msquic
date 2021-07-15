@@ -53,6 +53,13 @@ QuicStreamRecvShutdown(
         goto Exit;
     }
 
+    if (Stream->Flags.SentStopSending) {
+        //
+        // We've already aborted locally. Just ignore any additional shutdowns.
+        //
+        goto Exit;
+    }
+
     //
     // Disable all future receive events.
     //
