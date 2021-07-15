@@ -433,10 +433,10 @@ if(QUIC_TLS STREQUAL "openssl")
 
         if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${LIBCRYPTO_PATH})
             message(STATUS "Found existing OpenSSL Release cache, skipping openssl build")
-            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_SSL)
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_SSL OpenSSL_Crypto)
         elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${LIBCRYPTO_DEBUG_PATH})
             message(STATUS "Found existing OpenSSL Debug cache, skipping openssl build")
-            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_SSL)
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_SSL OpenSSL_Crypto)
         else()
             include(FetchContent)
 
