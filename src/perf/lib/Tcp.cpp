@@ -93,7 +93,6 @@ const CXPLAT_TCP_DATAPATH_CALLBACKS TcpEngine::TcpCallbacks = {
 };
 
 const CXPLAT_TLS_CALLBACKS TcpEngine::TlsCallbacks = {
-    TcpConnection::TlsProcessCompleteCallback,
     TcpConnection::TlsReceiveTpCallback,
     TcpConnection::TlsReceiveTicketCallback
 };
@@ -103,7 +102,7 @@ TcpEngine::TcpEngine(
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
     TcpSendCompleteHandler SendCompleteHandler) :
-    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new TcpWorker[ProcCount]),
+    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
@@ -140,6 +139,7 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
 {
     CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
     CXPLAT_DBG_ASSERT(!Connection->Worker);
+    Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
 }
 
@@ -283,7 +283,7 @@ TcpServer::AcceptCallback(
     )
 {
     auto This = (TcpServer*)ListenerContext;
-    auto Connection = new TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
+    auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
     Connection->Context = This;
     *AcceptClientContext = Connection;
 }
@@ -294,7 +294,7 @@ TcpConnection::TcpConnection(
     TcpEngine* Engine,
     const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort,
     const QUIC_ADDR* LocalAddress,
@@ -455,15 +455,6 @@ TcpConnection::SendCompleteCallback(
     This->Queue();
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-TcpConnection::TlsProcessCompleteCallback(
-    _In_ QUIC_CONNECTION* /* Context */
-    )
-{
-    // Unsupported
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 TcpConnection::TlsReceiveTpCallback(
@@ -532,7 +523,7 @@ void TcpConnection::Process()
     }
     if (BatchedSendData) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
             IndicateDisconnect = true;
         }
         BatchedSendData = nullptr;
@@ -597,11 +588,6 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
             Buffer,
             &BufferLength,
             &TlsState);
-    if (Results & CXPLAT_TLS_RESULT_PENDING) {
-        // TODO - Not supported yet
-        WriteOutput("CxPlatTlsProcessData PENDING (not supported)\n");
-        return false;
-    }
     if (Results & CXPLAT_TLS_RESULT_ERROR) {
         WriteOutput("CxPlatTlsProcessData FAILED\n");
         return false;
@@ -920,7 +906,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
             return false;
         }

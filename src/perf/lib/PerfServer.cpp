@@ -24,7 +24,15 @@ PerfServer::Init(
         return InitStatus;
     }
 
-    TryGetValue(argc, argv, "port", &Port);
+    TryGetValue(argc, argv, "stats", &PrintStats);
+
+    const char* LocalAddress = nullptr;
+    if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
+        if (!ConvertArgToAddress(LocalAddress, PERF_DEFAULT_PORT, &LocalAddr)) {
+            WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
 
     DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
     if (!DataBuffer) {
@@ -43,25 +51,13 @@ QUIC_STATUS
 PerfServer::Start(
     _In_ CXPLAT_EVENT* _StopEvent
     ) {
-    QUIC_ADDR Address;
-    CxPlatZeroMemory(&Address, sizeof(Address));
-    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    QuicAddrSetPort(&Address, Port);
-
-    if (!Server.Start(&Address)) { // TCP
+    if (!Server.Start(&LocalAddr)) { // TCP
         //printf("TCP Server failed to start!\n");
     }
 
     StopEvent = _StopEvent;
 
-    return
-        Listener.Start(
-            Alpn,
-            &Address,
-            [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
-                return ((PerfServer*)Context)->ListenerCallback(Handle, Event);
-            },
-            this);
+    return Listener.Start(Alpn, &LocalAddr);
 }
 
 QUIC_STATUS
@@ -135,6 +131,9 @@ PerfServer::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            if (PrintStats) {
+                QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
+            }
             MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;
@@ -176,7 +175,7 @@ PerfServer::StreamCallback(
             uint8_t* Dest = (uint8_t*)&Context->ResponseSize;
             uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
             for (uint32_t i = 0; Offset < sizeof(uint64_t) && i < Event->RECEIVE.BufferCount; ++i) {
-                uint32_t Length = min((uint32_t)(sizeof(uint64_t) - Offset), Event->RECEIVE.Buffers[i].Length);
+                uint32_t Length = CXPLAT_MIN((uint32_t)(sizeof(uint64_t) - Offset), Event->RECEIVE.Buffers[i].Length);
                 memcpy(Dest + Offset, Event->RECEIVE.Buffers[i].Buffer, Length);
                 Offset += Length;
             }
@@ -268,7 +267,7 @@ PerfServer::SendTcpResponse(
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
 
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = (uint32_t)Context->Entry.Signature;
         SendData->Open = Context->BytesSent == 0 ? 1 : 0;
         SendData->Buffer = DataBuffer->Buffer;
@@ -346,7 +345,7 @@ PerfServer::TcpReceiveCallback(
     }
     if (Abort) {
         Stream->ResponseSize = 0; // Reset to make sure we stop sending more
-        auto SendData = new TcpSendData();
+        auto SendData = new(std::nothrow) TcpSendData();
         SendData->StreamId = StreamID;
         SendData->Open = Open ? TRUE : FALSE;
         SendData->Abort = TRUE;
@@ -358,7 +357,7 @@ PerfServer::TcpReceiveCallback(
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
             This->SendTcpResponse(Stream, Connection);
         } else {
-            auto SendData = new TcpSendData();
+            auto SendData = new(std::nothrow) TcpSendData();
             SendData->StreamId = StreamID;
             SendData->Open = TRUE;
             SendData->Fin = TRUE;

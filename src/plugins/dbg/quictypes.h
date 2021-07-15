@@ -34,6 +34,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
+        BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
 
         BOOLEAN SendOpen                : 1;    // Send a STREAM frame immediately on start.
         BOOLEAN SendOpenAcked           : 1;    // A STREAM frame has been acknowledged.
@@ -192,10 +193,16 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // Indicates that an app close from a non worker thread is in progress.
-        // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
+        // When true, this indicates that reordering shouldn't elict an
+        // immediate acknowledgement.
         //
-        BOOLEAN AppCloseInProgress: 1;
+        BOOLEAN IgnoreReordering : 1;
+
+        //
+        // When true, this indicates that the connection is currently executing
+        // an API call inline (from a reentrant call on a callback).
+        //
+        BOOLEAN InlineApiExecution : 1;
 
 #ifdef CxPlatVerifierEnabledByAddr
         //
@@ -256,6 +263,8 @@ struct LinkedList : ListEntry {
             NextAddr = 0;
         }
     }
+
+    bool IsEmpty() { return NextAddr == 0; }
 
     ULONG64 Next() {
         if (NextAddr == 0) {
@@ -720,7 +729,7 @@ struct Stream : Struct {
 #define QUIC_CONN_SEND_FLAG_PING                    0x00001000
 #define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000
 #define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000
-#define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000
+#define QUIC_CONN_SEND_FLAG_DPLPMTUD                0x80000000
 
 struct Send : Struct {
 
@@ -865,7 +874,7 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
     UINT8 KeyType                   : 2;
     BOOLEAN IsAckEliciting          : 1;
-    BOOLEAN IsPMTUD                 : 1;
+    BOOLEAN IsMtuProbe              : 1;
     BOOLEAN SuspectedLost           : 1;
 
     PCSTR KeyTypeStr() {
@@ -1265,10 +1274,11 @@ struct Worker : Struct {
     }
 
     PSTR StateStr() {
+        bool HasWorkQueue = !GetConnections().IsEmpty() || !GetOperations().IsEmpty();
         if (IsActive()) {
-            return "ACTIVE";
+            return HasWorkQueue ? "ACTIVE (+queue)" : "ACTIVE";
         } else {
-            return "IDLE";
+            return HasWorkQueue ? "QUEUE" : "IDLE";
         }
     }
 
@@ -1286,6 +1296,10 @@ struct Worker : Struct {
 
     LinkedList GetConnections() {
         return LinkedList(AddrOf("Connections"));
+    }
+
+    LinkedList GetOperations() {
+        return LinkedList(AddrOf("Operations"));
     }
 };
 

@@ -58,6 +58,9 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         struct {
             void* ClientContext;
         } DATAGRAM;
+        struct {
+            QUIC_VAR_INT Sequence;
+        } ACK_FREQUENCY;
     };
     //
     // The following to fields are for STREAM. However, if they were in stream
@@ -82,7 +85,7 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
     uint8_t KeyType                 : 2;
     BOOLEAN IsAckEliciting          : 1;
-    BOOLEAN IsPMTUD                 : 1;
+    BOOLEAN IsMtuProbe              : 1;
     BOOLEAN KeyPhase                : 1;
     BOOLEAN SuspectedLost           : 1;
 #if DEBUG
@@ -115,6 +118,9 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     QUIC_SENT_FRAME_METADATA Frames[0];
 
 } QUIC_SENT_PACKET_METADATA;
+
+#define SIZEOF_QUIC_SENT_PACKET_METADATA(FrameCount) \
+    (sizeof(QUIC_SENT_PACKET_METADATA) + FrameCount * sizeof(QUIC_SENT_FRAME_METADATA))
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline

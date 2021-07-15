@@ -10,13 +10,16 @@ This script provides helpers for building msquic.
     The CPU architecture to build for.
 
 .PARAMETER Platform
-    Specify which platform to build for
+    Specify which platform to build for.
+
+.PARAMETER Static
+    Specify a static library is preferred (shared is the default).
 
 .PARAMETER Tls
     The TLS library to use.
 
 .PARAMETER ToolchainFile
-    Toolchain file to use (if cross)
+    Toolchain file to use (if cross).
 
 .PARAMETER DisableLogs
     Disables log collection.
@@ -72,9 +75,6 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER RandomAllocFail
-    Enables random allocation failures.
-
 .PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
@@ -86,6 +86,9 @@ This script provides helpers for building msquic.
 
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
+
+.PARAMETER LibraryName
+    Renames the library to whatever is passed in
 
 .EXAMPLE
     build.ps1
@@ -109,7 +112,10 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [switch]$Static = $false,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("schannel", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -167,9 +173,6 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RandomAllocFail = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$TlsSecretsSupport = $false,
 
     [Parameter(Mandatory = $false)]
@@ -179,65 +182,37 @@ param (
     [switch]$UseSystemOpenSSLCrypto = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$LibraryName = "msquic"
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ("" -eq $Arch) {
-    if ($IsMacOS) {
-        $RunningArch = uname -m
-        if ("x86_64" -eq $RunningArch) {
-            $IsTranslated = sysctl -in sysctl.proc_translated
-            if ($IsTranslated) {
-                $Arch = "arm64"
-            } else {
-                $Arch = "x64"
-            }
-        } elseif ("arm64" -eq $RunningArch) {
-            $Arch = "arm64"
-        } else {
-            Write-Error "Unknown architecture"
-        }
-    } else {
-        $Arch = "x64"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
+
+$Platform = $BuildConfig.Platform
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
     if ($IsWindows) {
         $Generator = "Visual Studio 16 2019"
-    } elseif ($IsLinux) {
-        $Generator = "Ninja"
     } else {
         $Generator = "Unix Makefiles"
     }
 }
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
-
-if ("" -eq $Platform) {
-    if ($IsWindows) {
-        $Platform = "windows"
-    } elseif ($IsLinux) {
-        $Platform = "linux"
-    } elseif ($IsMacOS) {
-        $Platform = "macos"
-    } else {
-        Write-Error "Unsupported platform type!"
-    }
-}
-
 if (!$IsWindows -And $Platform -eq "uwp") {
     Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
+    exit
+}
+
+if (!$IsWindows -And $Static) {
+    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
     exit
 }
 
@@ -248,15 +223,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 
-$ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
-
-if ("" -eq $ExtraArtifactDir) {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
-} else {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
-}
-
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
 if ($Clean) {
@@ -297,9 +264,14 @@ function CMake-Execute([String]$Arguments) {
 
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
-    $Arguments = "-g"
+    $Arguments = "-G"
+
+    if ($Generator.Contains(" ")) {
+        $Generator = """$Generator"""
+    }
+
     if ($IsWindows) {
-        $Arguments += " '$Generator' -A "
+        $Arguments += " $Generator -A "
         switch ($Arch) {
             "x86"   { $Arguments += "Win32" }
             "x64"   { $Arguments += "x64" }
@@ -307,13 +279,16 @@ function CMake-Generate {
             "arm64" { $Arguments += "arm64" }
         }
     } elseif ($IsMacOS) {
-        $Arguments += " '$Generator'"
+        $Arguments += " $Generator"
         switch ($Arch) {
             "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
         }
     } else {
-        $Arguments += " '$Generator'"
+        $Arguments += " $Generator"
+    }
+    if($Static) {
+        $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
@@ -362,9 +337,6 @@ function CMake-Generate {
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }
-    if ($RandomAllocFail) {
-        $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
-    }
     if ($TlsSecretsSupport) {
         $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
     }
@@ -374,6 +346,7 @@ function CMake-Generate {
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
+    $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
@@ -404,18 +377,24 @@ function CMake-Build {
     CMake-Execute $Arguments
 
     if ($IsWindows) {
-        Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
-        if ($PGO -and $Config -eq "Release") {
+        Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
+        if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
             $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
             $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
             if (Test-Path $VCToolsPath) {
-                Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "mspdbcore.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
-                Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
+                if ($PGO) {
+                    Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "mspdbcore.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
+                }
+                if ($SanitizeAddress) {
+                    Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dbg_dynamic-x86_64.dll") $ArtifactsDir
+                    Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dynamic-x86_64.dll") $ArtifactsDir
+                }
             } else {
                 Log "Failed to find VC Tools path!"
             }

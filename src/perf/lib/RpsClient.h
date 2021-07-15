@@ -149,7 +149,10 @@ public:
         _Inout_ QUIC_CONNECTION_EVENT* Event
         );
 
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-client-rps",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
@@ -162,6 +165,7 @@ public:
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint32_t WorkerCount;
     uint16_t Port {PERF_DEFAULT_PORT};
+    QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
@@ -180,7 +184,7 @@ public:
     CXPLAT_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];
     uint32_t ActiveConnections {0};
-    EventScope AllConnected {true};
+    CxPlatEvent AllConnected {true};
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};

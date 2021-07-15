@@ -28,6 +28,7 @@ PrintHelp(
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -parallel:<####>            The number of parallel connections per core. (def:%u)\n"
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores/threads\n"
+        "  -incrementtarget:<#>        Set to 1 to append core index to target\n"
         "\n",
         HPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -88,13 +89,37 @@ HpsClient::Init(
     TryGetValue(argc, argv, "runtime", &RunTime);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "parallel", &Parallel);
+    TryGetValue(argc, argv, "incrementtarget", &IncrementTarget);
 
     return QUIC_STATUS_SUCCESS;
+}
+
+
+
+static void AppendIntToString(char* String, uint8_t Value) {
+    const char* Hex = "0123456789ABCDEF";
+
+    String[0] = Hex[(Value >> 4) & 0xF];
+    String[1] = Hex[Value & 0xF];
+    String[2] = '\0';
 }
 
 CXPLAT_THREAD_CALLBACK(HpsWorkerThread, _Context)
 {
     auto Context = (HpsWorkerContext*)_Context;
+
+    // Compute thread address
+    const char* Target = Context->pThis->Target.get();
+    size_t Len = strlen(Target);
+
+    Context->Target.reset(new(std::nothrow) char[Len + 10]);
+    CxPlatCopyMemory(Context->Target.get(), Target, Len);
+
+    if (Context->pThis->IncrementTarget) {
+        AppendIntToString(Context->Target.get() + Len, (uint8_t)Context->Processor);
+    } else {
+        Context->Target.get()[Len] = '\0';
+    }
 
     while (!Context->pThis->Shutdown) {
         if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
@@ -321,7 +346,7 @@ HpsClient::StartConnection(
             Scope.Connection,
             Configuration,
             QUIC_ADDRESS_FAMILY_UNSPEC,
-            Target.get(),
+            Context->Target.get(),
             Port);
     if (QUIC_FAILED(Status)) {
         if (!Shutdown) {

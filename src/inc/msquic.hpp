@@ -20,11 +20,95 @@ Supported Platforms:
 
 #pragma once
 
-#include <msquic.h>
+#include "msquic.h"
+#include "msquicp.h"
+#ifdef _KERNEL_MODE
+#include <new.h>
+#else
+#include <new>
+#endif
 
 #ifndef CXPLAT_DBG_ASSERT
 #define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
 #endif
+
+#ifdef CX_PLATFORM_TYPE
+
+//
+// Abstractions for platform specific types/interfaces
+//
+
+struct CxPlatEvent {
+    CXPLAT_EVENT Handle;
+    CxPlatEvent() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
+    CxPlatEvent(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
+    CxPlatEvent(CXPLAT_EVENT event) noexcept : Handle(event) { }
+    ~CxPlatEvent() noexcept { CxPlatEventUninitialize(Handle); }
+    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
+    operator CXPLAT_EVENT() const noexcept { return Handle; }
+    void Set() { CxPlatEventSet(Handle); }
+    void Reset() { CxPlatEventReset(Handle); }
+    void WaitForever() { CxPlatEventWaitForever(Handle); }
+    bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
+};
+
+#ifdef CXPLAT_HASH_MIN_SIZE
+
+struct HashTable {
+    bool Initialized;
+    CXPLAT_HASHTABLE Table;
+    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
+    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
+    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableRemove(&Table, Entry, nullptr); }
+    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) {
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
+        return CxPlatHashtableLookup(&Table, Signature, &LookupContext);
+    }
+    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) {
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
+        CXPLAT_HASHTABLE_ENTRY* Entry = CxPlatHashtableLookup(&Table, Signature, &LookupContext);
+        while (Entry != NULL) {
+            if (Equals(Entry, Context)) return Entry;
+            Entry = CxPlatHashtableLookupNext(&Table, &LookupContext);
+        }
+        return NULL;
+    }
+};
+
+#endif // CXPLAT_HASH_MIN_SIZE
+
+#ifdef CXPLAT_FRE_ASSERT
+
+class CxPlatWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CxPlatEvent ShutdownEvent {true};
+    uint32_t TimeoutMs;
+    static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (CxPlatWatchdog*)Context;
+        if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "cxplat_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatThreadCreate(&Config, &WatchdogThread)));
+    }
+    ~CxPlatWatchdog() {
+        ShutdownEvent.Set();
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+    }
+};
+
+#endif // CXPLAT_FRE_ASSERT
+
+#endif // CX_PLATFORM_TYPE
 
 struct QuicAddr {
     QUIC_ADDR SockAddr;
@@ -56,6 +140,7 @@ struct QuicAddr {
     void IncrementAddr() {
         QuicAddrIncrement(&SockAddr);
     }
+    QUIC_ADDRESS_FAMILY GetFamily() const { return QuicAddrGetFamily(&SockAddr); }
     uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
     void SetPort(uint16_t Port) noexcept { QuicAddrSetPort(&SockAddr, Port); }
 };
@@ -291,6 +376,36 @@ public:
     MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
         DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
     MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
+    MsQuicSettings& SetMaximumMtu(uint16_t Mtu) { MaximumMtu = Mtu; IsSet.MaximumMtu = TRUE; return *this; }
+    MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
+    MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
+    MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
+    MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
+
+    QUIC_STATUS
+    SetGlobal() const noexcept {
+        const QUIC_SETTINGS* Settings = this;
+        return
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(*Settings),
+                Settings);
+    }
+
+    QUIC_STATUS
+    GetGlobal() noexcept {
+        QUIC_SETTINGS* Settings = this;
+        uint32_t Size = sizeof(*Settings);
+        return
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                &Size,
+                Settings);
+    }
 };
 
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
@@ -420,15 +535,28 @@ public:
                 KeyCount * sizeof(QUIC_TICKET_KEY_CONFIG),
                 KeyConfig);
     }
+    QUIC_STATUS
+    SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        const QUIC_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
+    }
 };
 
 struct MsQuicListener {
     HQUIC Handle { nullptr };
     QUIC_STATUS InitStatus;
-    QUIC_LISTENER_CALLBACK_HANDLER Handler { nullptr };
-    void* Context{ nullptr };
 
-    MsQuicListener(const MsQuicRegistration& Registration) noexcept {
+    MsQuicListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
+        _In_ void* Context = nullptr
+        ) noexcept {
         if (!Registration.IsValid()) {
             InitStatus = Registration.GetInitStatus();
             return;
@@ -437,19 +565,14 @@ struct MsQuicListener {
             InitStatus =
                 MsQuic->ListenerOpen(
                     Registration,
-                    [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
-                        MsQuicListener* Listener = (MsQuicListener*)Context;
-                        return Listener->Handler(Handle, Listener->Context, Event);
-                    },
-                    this,
+                    Handler,
+                    Context,
                     &Handle))) {
             Handle = nullptr;
         }
     }
+
     ~MsQuicListener() noexcept {
-        if (Handler != nullptr) {
-            MsQuic->ListenerStop(Handle);
-        }
         if (Handle) {
             MsQuic->ListenerClose(Handle);
         }
@@ -458,17 +581,42 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpns,
-        _In_ QUIC_ADDR* Address,
-        _In_ QUIC_LISTENER_CALLBACK_HANDLER _Handler,
-        _In_ void* _Context) noexcept {
-        Handler = _Handler;
-        Context = _Context;
+        _In_ QUIC_ADDR* Address = nullptr
+        ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }
 
     QUIC_STATUS
-    ListenerCallback(HQUIC Listener, QUIC_LISTENER_EVENT* Event) noexcept {
-        return Handler(Listener, Context, Event);
+    SetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _In_ uint32_t BufferLength,
+        _In_reads_bytes_(BufferLength)
+            const void* Buffer
+        ) noexcept {
+        return MsQuic->SetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+        _Out_writes_bytes_opt_(*BufferLength)
+            void* Buffer
+        ) noexcept {
+        return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetLocalAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_LISTENER,
+                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -478,12 +626,589 @@ struct MsQuicListener {
     operator HQUIC () const noexcept { return Handle; }
 };
 
-struct ListenerScope {
-    HQUIC Handle;
-    ListenerScope() noexcept : Handle(nullptr) { }
-    ListenerScope(HQUIC handle) noexcept : Handle(handle) { }
-    ~ListenerScope() noexcept { if (Handle) { MsQuic->ListenerClose(Handle); } }
-    operator HQUIC() const noexcept { return Handle; }
+enum MsQuicCleanUpMode {
+    CleanUpManual,
+    CleanUpAutoDelete,
+};
+
+typedef QUIC_STATUS MsQuicConnectionCallback(
+    _In_ struct MsQuicConnection* Connection,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    );
+
+struct MsQuicConnection {
+    HQUIC Handle { nullptr };
+    MsQuicCleanUpMode CleanUpMode;
+    MsQuicConnectionCallback* Callback;
+    void* Context;
+    QUIC_STATUS InitStatus;
+    // TODO - All the rest of this is not always necessary. Move to a separate class.
+    QUIC_STATUS TransportShutdownStatus {0};
+    QUIC_UINT62 AppShutdownErrorCode {0};
+    bool HandshakeComplete {false};
+    bool HandshakeResumed {false};
+    uint32_t ResumptionTicketLength {0};
+    uint8_t* ResumptionTicket {nullptr};
+#ifdef CX_PLATFORM_TYPE
+    CxPlatEvent HandshakeCompleteEvent;
+    CxPlatEvent ResumptionTicketReceivedEvent;
+#endif // CX_PLATFORM_TYPE
+
+    MsQuicConnection(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        if (!Registration.IsValid()) {
+            InitStatus = Registration.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->ConnectionOpen(
+                    Registration,
+                    (QUIC_CONNECTION_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    MsQuicConnection(
+        _In_ HQUIC ConnectionHandle,
+        _In_ MsQuicCleanUpMode CleanUpMode,
+        _In_ MsQuicConnectionCallback* Callback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        Handle = ConnectionHandle;
+        MsQuic->SetCallbackHandler(Handle, (void*)MsQuicCallback, this);
+        InitStatus = QUIC_STATUS_SUCCESS;
+    }
+
+    ~MsQuicConnection() noexcept {
+        if (Handle) {
+            MsQuic->ConnectionClose(Handle);
+        }
+        delete[] ResumptionTicket;
+    }
+
+    void
+    Shutdown(
+        _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
+        ) noexcept {
+        MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ const MsQuicConfiguration& Config,
+        _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+            const char* ServerName,
+        _In_ uint16_t ServerPort // Host byte order
+        ) noexcept {
+        return MsQuic->ConnectionStart(Handle, Config, QUIC_ADDRESS_FAMILY_UNSPEC, ServerName, ServerPort);
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ const MsQuicConfiguration& Config,
+        _In_ QUIC_ADDRESS_FAMILY Family,
+        _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+            const char* ServerName,
+        _In_ uint16_t ServerPort // Host byte order
+        ) noexcept {
+        return MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
+    }
+
+    QUIC_STATUS
+    StartLocalhost(
+        _In_ const MsQuicConfiguration& Config,
+        _In_ const QuicAddr& LocalhostAddr
+        ) noexcept {
+        return MsQuic->ConnectionStart(Handle, Config, LocalhostAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()), LocalhostAddr.GetPort());
+    }
+
+    QUIC_STATUS
+    SetConfiguration(
+        _In_ const MsQuicConfiguration& Config
+        ) noexcept {
+        return MsQuic->ConnectionSetConfiguration(Handle, Config);
+    }
+
+    QUIC_STATUS
+    SendResumptionTicket(
+        _In_ QUIC_SEND_RESUMPTION_FLAGS Flags = QUIC_SEND_RESUMPTION_FLAG_NONE,
+        _In_ uint16_t DataLength = 0,
+        _In_reads_bytes_opt_(DataLength)
+            const uint8_t* ResumptionData = nullptr
+        ) noexcept {
+        return MsQuic->ConnectionSendResumptionTicket(Handle, Flags, DataLength, ResumptionData);
+    }
+
+    QUIC_STATUS
+    SetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _In_ uint32_t BufferLength,
+        _In_reads_bytes_(BufferLength)
+            const void* Buffer
+        ) noexcept {
+        return MsQuic->SetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+        _Out_writes_bytes_opt_(*BufferLength)
+            void* Buffer
+        ) noexcept {
+        return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetLocalAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    GetRemoteAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    SetLocalAddr(_In_ const QuicAddr& Addr) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                sizeof(Addr.SockAddr),
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    SetShareUdpBinding(_In_ bool ShareBinding = true) noexcept {
+        BOOLEAN Value = ShareBinding ? TRUE : FALSE;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Value),
+                &Value);
+    }
+
+    QUIC_STATUS
+    SetResumptionTicket(_In_reads_(TicketLength) const uint8_t* Ticket, uint32_t TicketLength) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_RESUMPTION_TICKET,
+                TicketLength,
+                Ticket);
+    }
+
+    QUIC_STATUS
+    SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        const QUIC_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
+    }
+
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings* Settings) const noexcept {
+        QUIC_SETTINGS* QSettings = Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SETTINGS,
+                &Size,
+                QSettings);
+    }
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_STATISTICS* Statistics) const noexcept {
+        uint32_t Size = sizeof(*Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_STATISTICS,
+                &Size,
+                Statistics);
+    }
+
+    QUIC_STATUS
+    SetKeepAlivePadding(_In_ uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_KEEP_ALIVE_PADDING,
+                sizeof(Value),
+                &Value);
+    }
+
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    MsQuicConnection(MsQuicConnection& other) = delete;
+    MsQuicConnection operator=(MsQuicConnection& Other) = delete;
+    operator HQUIC () const noexcept { return Handle; }
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    NoOpCallback(
+        _In_ MsQuicConnection* /* Connection */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) noexcept {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            //
+            // Not great beacuse it doesn't provide an application specific
+            // error code. If you expect to get streams, you should not no-op
+            // the callbacks.
+            //
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    SendResumptionCallback(
+        _In_ MsQuicConnection* Connection,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) noexcept {
+        if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            MsQuic->ConnectionSendResumptionTicket(*Connection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            //
+            // Not great beacuse it doesn't provide an application specific
+            // error code. If you expect to get streams, you should not no-op
+            // the callbacks.
+            //
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+private:
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    MsQuicCallback(
+        _In_ HQUIC /* Connection */,
+        _In_opt_ MsQuicConnection* pThis,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) noexcept {
+        CXPLAT_DBG_ASSERT(pThis);
+        if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            pThis->HandshakeComplete = true;
+            pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
+#ifdef CX_PLATFORM_TYPE
+            pThis->HandshakeCompleteEvent.Set();
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT) {
+            pThis->TransportShutdownStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
+#ifdef CX_PLATFORM_TYPE
+            if (!pThis->HandshakeComplete) {
+                pThis->HandshakeCompleteEvent.Set();
+            }
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER) {
+            pThis->AppShutdownErrorCode = Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode;
+#ifdef CX_PLATFORM_TYPE
+            if (!pThis->HandshakeComplete) {
+                pThis->HandshakeCompleteEvent.Set();
+            }
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED && !pThis->ResumptionTicket) {
+            pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
+            pThis->ResumptionTicket = new(std::nothrow) uint8_t[pThis->ResumptionTicketLength];
+            if (pThis->ResumptionTicket) {
+                CXPLAT_DBG_ASSERT(pThis->ResumptionTicketLength != 0);
+                memcpy(pThis->ResumptionTicket, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket, pThis->ResumptionTicketLength);
+#ifdef CX_PLATFORM_TYPE
+                pThis->ResumptionTicketReceivedEvent.Set();
+#endif // CX_PLATFORM_TYPE
+            }
+        }
+        auto DeleteOnExit =
+            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
+        auto Status = pThis->Callback(pThis, pThis->Context, Event);
+        if (DeleteOnExit) {
+            delete pThis;
+        }
+        return Status;
+    }
+};
+
+struct MsQuicAutoAcceptListener : public MsQuicListener {
+    const MsQuicConfiguration& Configuration;
+    MsQuicConnectionCallback* ConnectionHandler;
+    void* ConnectionContext;
+    uint32_t AcceptedConnectionCount {0};
+
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ const MsQuicConfiguration& Config,
+        _In_ MsQuicConnectionCallback* _ConnectionHandler,
+        _In_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, ListenerCallback, this),
+        Configuration(Config),
+        ConnectionHandler(_ConnectionHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
+
+private:
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    ListenerCallback(
+        _In_ HQUIC /* Listener */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        ) noexcept {
+        auto pThis = (MsQuicAutoAcceptListener*)Context; CXPLAT_DBG_ASSERT(pThis);
+        QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
+        if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+            auto Connection = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, pThis->ConnectionHandler, pThis->ConnectionContext);
+            if (Connection) {
+                Status = Connection->SetConfiguration(pThis->Configuration);
+                if (QUIC_FAILED(Status)) {
+                    //
+                    // The connection is being rejected. Let MsQuic free the handle.
+                    //
+                    Connection->Handle = nullptr;
+                    delete Connection;
+                } else {
+                    InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);
+                }
+            }
+        }
+        return Status;
+    }
+};
+
+typedef QUIC_STATUS MsQuicStreamCallback(
+    _In_ struct MsQuicStream* Stream,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    );
+
+struct MsQuicStream {
+    HQUIC Handle { nullptr };
+    MsQuicCleanUpMode CleanUpMode;
+    MsQuicStreamCallback* Callback;
+    void* Context;
+    QUIC_STATUS InitStatus;
+
+    MsQuicStream(
+        _In_ const MsQuicConnection& Connection,
+        _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        if (!Connection.IsValid()) {
+            InitStatus = Connection.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->StreamOpen(
+                    Connection,
+                    Flags,
+                    (QUIC_STREAM_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    MsQuicStream(
+        _In_ HQUIC StreamHandle,
+        _In_ MsQuicCleanUpMode CleanUpMode,
+        _In_ MsQuicStreamCallback* Callback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        Handle = StreamHandle;
+        MsQuic->SetCallbackHandler(Handle, (void*)MsQuicCallback, this);
+        InitStatus = QUIC_STATUS_SUCCESS;
+    }
+
+    ~MsQuicStream() noexcept {
+        if (Handle) {
+            MsQuic->StreamClose(Handle);
+        }
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_ASYNC
+        ) noexcept {
+        return MsQuic->StreamStart(Handle, Flags);
+    }
+
+    QUIC_STATUS
+    Shutdown(
+        _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
+        _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags = QUIC_STREAM_SHUTDOWN_FLAG_ABORT
+        ) noexcept {
+        return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    ConnectionShutdown(
+        _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
+        ) noexcept {
+        MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    QUIC_STATUS
+    Send(
+        _In_reads_(BufferCount) _Pre_defensive_
+            const QUIC_BUFFER* const Buffers,
+        _In_ uint32_t BufferCount = 1,
+        _In_ QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE,
+        _In_opt_ void* ClientSendContext = nullptr
+        ) noexcept {
+        return MsQuic->StreamSend(Handle, Buffers, BufferCount, Flags, ClientSendContext);
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    ReceiveComplete(
+        _In_ uint64_t BufferLength
+        ) noexcept {
+        return MsQuic->StreamReceiveComplete(Handle, BufferLength);
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    QUIC_STATUS
+    ReceiveSetEnabled(
+        _In_ bool IsEnabled = true
+        ) noexcept {
+        return MsQuic->StreamReceiveSetEnabled(Handle, IsEnabled ? TRUE : FALSE);
+    }
+
+    QUIC_STATUS
+    GetID(_Out_ QUIC_UINT62* ID) const noexcept {
+        uint32_t Size = sizeof(*ID);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_ID,
+                &Size,
+                ID);
+    }
+
+    QUIC_UINT62 ID() const noexcept {
+        QUIC_UINT62 ID;
+        GetID(&ID);
+        return ID;
+    }
+
+    QUIC_STATUS
+    SetPriority(_In_ uint16_t Priority) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_PRIORITY,
+                sizeof(Priority),
+                &Priority);
+    }
+
+    QUIC_STATUS
+    GetPriority(_Out_ uint16_t* Priority) const noexcept {
+        uint32_t Size = sizeof(*Priority);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_PRIORITY,
+                &Size,
+                Priority);
+    }
+
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    MsQuicStream(MsQuicStream& other) = delete;
+    MsQuicStream operator=(MsQuicStream& Other) = delete;
+    operator HQUIC () const noexcept { return Handle; }
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    NoOpCallback(
+        _In_ MsQuicStream* /* Stream */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_STREAM_EVENT* /* Event */
+        ) noexcept {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+private:
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    MsQuicCallback(
+        _In_ HQUIC /* Stream */,
+        _In_opt_ MsQuicStream* pThis,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        ) noexcept {
+        CXPLAT_DBG_ASSERT(pThis);
+        auto DeleteOnExit =
+            Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
+        auto Status = pThis->Callback(pThis, pThis->Context, Event);
+        if (DeleteOnExit) {
+            delete pThis;
+        }
+        return Status;
+    }
 };
 
 struct ConnectionScope {
@@ -513,7 +1238,8 @@ struct ConfigurationScope {
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
     QuicBufferScope() noexcept : Buffer(nullptr) { }
-    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new(std::nothrow) uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+        CXPLAT_DBG_ASSERT(Buffer);
         memset(Buffer, 0, sizeof(*Buffer) + Size);
         Buffer->Length = Size;
         Buffer->Buffer = (uint8_t*)(Buffer + 1);
@@ -521,47 +1247,3 @@ struct QuicBufferScope {
     operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
-
-#ifdef CX_PLATFORM_TYPE
-
-//
-// Abstractions for platform specific types/interfaces
-//
-
-struct EventScope {
-    CXPLAT_EVENT Handle;
-    EventScope() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
-    EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
-    EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
-    ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
-    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
-    operator CXPLAT_EVENT() const noexcept { return Handle; }
-};
-
-#ifdef CXPLAT_HASH_MIN_SIZE
-
-struct HashTable {
-    bool Initialized;
-    CXPLAT_HASHTABLE Table;
-    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
-    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
-    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
-    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableRemove(&Table, Entry, nullptr); }
-    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) {
-        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
-        return CxPlatHashtableLookup(&Table, Signature, &LookupContext);
-    }
-    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) {
-        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
-        CXPLAT_HASHTABLE_ENTRY* Entry = CxPlatHashtableLookup(&Table, Signature, &LookupContext);
-        while (Entry != NULL) {
-            if (Equals(Entry, Context)) return Entry;
-            Entry = CxPlatHashtableLookupNext(&Table, &LookupContext);
-        }
-        return NULL;
-    }
-};
-
-#endif // CXPLAT_HASH_MIN_SIZE
-
-#endif // CX_PLATFORM_TYPE

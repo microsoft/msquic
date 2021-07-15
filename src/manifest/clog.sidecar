@@ -111,6 +111,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
@@ -306,6 +318,38 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnNoListenerIp": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] No Listener for IP address: %!ADDR!",
+      "UniqueId": "ConnNoListenerIp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnNoListenerAlpn": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] No listener matching ALPN: %!ALPN!",
+      "UniqueId": "ConnNoListenerAlpn",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ALPN!",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -902,6 +946,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "UpdatePacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating packet tolerance to %hhu",
+      "UniqueId": "UpdatePacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
@@ -942,6 +1002,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "UpdatePeerPacketTolerance": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updating peer packet tolerance to %hhu",
+      "UniqueId": "UpdatePeerPacketTolerance",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -990,10 +1066,10 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "RttUpdated": {
+    "RttUpdatedMsg": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u",
-      "UniqueId": "RttUpdated",
+      "UniqueId": "RttUpdatedMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -4604,6 +4680,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Version %u.%u.%u.%u",
+      "UniqueId": "LibraryVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Uninitialized",
@@ -4623,6 +4723,22 @@
       "TraceString": "[ lib] Release",
       "UniqueId": "LibraryRelease",
       "splitArgs": [],
+      "macroName": "QuicTraceEvent"
+    },
+    "BindingError": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] ERROR, %s.",
+      "UniqueId": "BindingError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
       "macroName": "QuicTraceEvent"
     },
     "LibraryServerInit": {
@@ -4754,7 +4870,7 @@
     },
     "ListenerStarted": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
+      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
       "UniqueId": "ListenerStarted",
       "splitArgs": [
         {
@@ -4768,6 +4884,10 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!ALPN!",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -5132,26 +5252,6 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "PathMtuUpdated": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
-      "UniqueId": "PathMtuUpdated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
     "PathValidationTimeout": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] validation timed out",
@@ -5275,6 +5375,138 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "MtuSearchComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu",
+      "UniqueId": "MtuSearchComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuSearching": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
+      "UniqueId": "MtuSearching",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuPathInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Initialized: max_mtu=%u, cur/min_mtu=%u",
+      "UniqueId": "MtuPathInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathMtuUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
+      "UniqueId": "PathMtuUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuDiscarded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Packet Discarded: size=%u, probe_count=%u",
+      "UniqueId": "MtuDiscarded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "MtuIncorrectSize": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Mtu Discovery Received Out of Order: expected=%u received=%u",
+      "UniqueId": "MtuIncorrectSize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnExecApiOper": {
       "ModuleProperites": {},
@@ -5904,10 +6136,10 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "RemoveSendFlags": {
+    "RemoveSendFlagsMsg": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing flags %x",
-      "UniqueId": "RemoveSendFlags",
+      "UniqueId": "RemoveSendFlagsMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -6376,6 +6608,78 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpMinimumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MinimumMtu             = %hu",
+      "UniqueId": "SettingDumpMinimumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMaximumMtu": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MaximumMtu             = %hu",
+      "UniqueId": "SettingDumpMaximumMtu",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMtuCompleteTimeout": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MtuCompleteTimeout     = %llu",
+      "UniqueId": "SettingDumpMtuCompleteTimeout",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMtuMissingProbeCount": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MtuMissingProbeCount   = %hhu",
+      "UniqueId": "SettingDumpMtuMissingProbeCount",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpMaxBindingStatelessOper": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MaxBindingStatelessOper= %hu",
+      "UniqueId": "SettingDumpMaxBindingStatelessOper",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpStatelessOperExpirMs": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StatelessOperExpirMs   = %hu",
+      "UniqueId": "SettingDumpStatelessOperExpirMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid version supplied to settings! 0x%x at position %d",
@@ -6416,9 +6720,25 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "UpdatePriority": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] New send priority = %hu",
+      "UniqueId": "UpdatePriority",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamInfo"
+    },
     "IndicateStartComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
       "UniqueId": "IndicateStartComplete",
       "splitArgs": [
         {
@@ -6428,18 +6748,30 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicateStreamShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
       "UniqueId": "IndicateStreamShutdownComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -7000,10 +7332,10 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "AckRange": {
+    "AckRangeMsg": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received ack for %d bytes, offset=%llu, FF=0x%hx",
-      "UniqueId": "AckRange",
+      "UniqueId": "AckRangeMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -7132,6 +7464,18 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "IndicatePeerAccepted": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED",
+      "UniqueId": "IndicatePeerAccepted",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "MaxStreamCountUpdated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] App configured max stream count of %hu (type=%hhu).",
@@ -7154,7 +7498,7 @@
     },
     "IndicateStreamsAvailable": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
       "UniqueId": "IndicateStreamsAvailable",
       "splitArgs": [
         {
@@ -8317,30 +8661,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "LibraryError": {
+    "TlsLogSecret": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] ERROR, %s.",
-      "UniqueId": "LibraryError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "CertOpenSslGetProcessAddressFailure": {
-      "ModuleProperites": {},
-      "TraceString": "[cert] GetProcAddress failed for %s, 0x%x",
-      "UniqueId": "CertOpenSslGetProcessAddressFailure",
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "TlsLogSecret",
       "splitArgs": [
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "x",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -8741,10 +9077,10 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathUnreachable": {
+    "DatapathUnreachableMsg": {
       "ModuleProperites": {},
       "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
-      "UniqueId": "DatapathUnreachable",
+      "UniqueId": "DatapathUnreachableMsg",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -9059,536 +9395,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "miTlsInitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Initializing miTLS library",
-      "UniqueId": "miTlsInitialize",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "miTlsUninitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Cleaning up miTLS library",
-      "UniqueId": "miTlsUninitialize",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "miTlsLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "miTlsLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "miTlsFfiProcessFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] FFI_mitls_quic_process failed, tls_error %hu, %s",
-      "UniqueId": "miTlsFfiProcessFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnError"
-    },
-    "miTlsFfiGetHelloSummaryFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] FFI_mitls_get_hello_summary failed, cookie_len: %zu, ticket_len: %zu",
-      "UniqueId": "miTlsFfiGetHelloSummaryFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "zu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "zu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnError"
-    },
-    "miTlsCertValidationDisabled": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Certificate validation disabled!",
-      "UniqueId": "miTlsCertValidationDisabled",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnWarning"
-    },
-    "miTlsCertSelected": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x",
-      "UniqueId": "miTlsCertSelected",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "4.4x",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "miTlsUsing0Rtt": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Using 0-RTT ticket.",
-      "UniqueId": "miTlsUsing0Rtt",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsProcess": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Processing %u bytes",
-      "UniqueId": "miTlsProcess",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsSend0RttTicket": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Sending 0-RTT ticket",
-      "UniqueId": "miTlsSend0RttTicket",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsFfiProces": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] FFI_mitls_quic_process processing %u input bytes",
-      "UniqueId": "miTlsFfiProces",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsFfiProcessResult": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] FFI_mitls_quic_process read %u bytes and has %u bytes ready to send",
-      "UniqueId": "miTlsFfiProcessResult",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsHandshakeComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake complete",
-      "UniqueId": "miTlsHandshakeComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsEarlyDataRejected": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Early data rejected",
-      "UniqueId": "miTlsEarlyDataRejected",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsEarlyDataAccepted": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Early data accepted",
-      "UniqueId": "miTlsEarlyDataAccepted",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsEarlyDataNotAttempted": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Early data not attempted",
-      "UniqueId": "miTlsEarlyDataNotAttempted",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsEarlyDataAttempted": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Early data attempted",
-      "UniqueId": "miTlsEarlyDataAttempted",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsKeySchedule": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Key schedule = %hu",
-      "UniqueId": "miTlsKeySchedule",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTls0RttReadKeyExported": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] 0-RTT read key exported",
-      "UniqueId": "miTls0RttReadKeyExported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsHandshakeReadKeyExported": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake read key exported",
-      "UniqueId": "miTlsHandshakeReadKeyExported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTls1RttReadKeyExported": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] 1-RTT read key exported",
-      "UniqueId": "miTls1RttReadKeyExported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTls0RttWriteKeyExported": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] 0-RTT write key exported",
-      "UniqueId": "miTls0RttWriteKeyExported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsHandshakeWriteKeyExported": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake write key exported",
-      "UniqueId": "miTlsHandshakeWriteKeyExported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTls1RttWriteKeyExported": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] 1-RTT write key exported",
-      "UniqueId": "miTls1RttWriteKeyExported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsHandshakeWriteOffsetSet": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake write offset = %u",
-      "UniqueId": "miTlsHandshakeWriteOffsetSet",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTls1RttWriteOffsetSet": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] 1-RTT write offset = %u",
-      "UniqueId": "miTls1RttWriteOffsetSet",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsFfiProcesComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Consumed %u bytes",
-      "UniqueId": "miTlsFfiProcesComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsOnCertSelect": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OnCertSelect",
-      "UniqueId": "miTlsOnCertSelect",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsOnNegotiate": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OnNegotiate",
-      "UniqueId": "miTlsOnNegotiate",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsProcessServerAlpn": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Processing server ALPN (Length=%u)",
-      "UniqueId": "miTlsProcessServerAlpn",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsOnCertFormat": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OnCertFormat",
-      "UniqueId": "miTlsOnCertFormat",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsOnCertSign": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OnCertSign",
-      "UniqueId": "miTlsOnCertSign",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsOnCertVerify": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OnCertVerify",
-      "UniqueId": "miTlsOnCertVerify",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "miTlsRecvNewSessionTicket": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Received new ticket. ticket_len:%u session_len:%u for %s",
-      "UniqueId": "miTlsRecvNewSessionTicket",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg5"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "TlsMessage": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls][%p] %s",
-      "UniqueId": "TlsMessage",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "TlsError": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls][%p] ERROR, %s.",
-      "UniqueId": "TlsError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "OpenSslLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "OpenSslLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "OpenSslAlert": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Send alert = %u (Level = %u)",
@@ -9837,6 +9643,38 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "OpenSslTickedDecrypted": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Session ticket decrypted, status %u",
+      "UniqueId": "OpenSslTickedDecrypted",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "OpenSslRecvTicketData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received ticket data, %u bytes",
+      "UniqueId": "OpenSslRecvTicketData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "OpenSslContextCreated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TLS context Created",
@@ -9861,10 +9699,10 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "OpenSsslIgnoringTicket": {
+    "OpenSslSendTicketData": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Ignoring %u ticket bytes",
-      "UniqueId": "OpenSsslIgnoringTicket",
+      "TraceString": "[conn][%p] Sending ticket data, %u bytes",
+      "UniqueId": "OpenSslSendTicketData",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -9893,6 +9731,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "TlsError": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] ERROR, %s.",
+      "UniqueId": "TlsError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "TlsErrorStatus": {
       "ModuleProperites": {},
       "TraceString": "[ tls][%p] ERROR, %u, %s.",
@@ -9912,20 +9766,6 @@
         }
       ],
       "macroName": "QuicTraceEvent"
-    },
-    "SchannelInitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library initialized",
-      "UniqueId": "SchannelInitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelUninitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] Library uninitialized",
-      "UniqueId": "SchannelUninitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelAchAsync": {
       "ModuleProperites": {},
@@ -9956,26 +9796,6 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SchannelLogSecret": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls] %s[%u]: %s",
-      "UniqueId": "SchannelLogSecret",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -10188,134 +10008,6 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Processing %u received bytes",
       "UniqueId": "SchannelProcessingData",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "StubTlsCertValidationDisabled": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Certificate validation disabled!",
-      "UniqueId": "StubTlsCertValidationDisabled",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnWarning"
-    },
-    "StubTlsHandshakeComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake complete",
-      "UniqueId": "StubTlsHandshakeComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "StubTlsProducedData": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Produced %hu bytes",
-      "UniqueId": "StubTlsProducedData",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "StubTlsConsumedData": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Consumed %u bytes",
-      "UniqueId": "StubTlsConsumedData",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "StubTlsContextCreated": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] TLS context Created",
-      "UniqueId": "StubTlsContextCreated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "StubTlsUsing0Rtt": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Using 0-RTT ticket.",
-      "UniqueId": "StubTlsUsing0Rtt",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "StubTlsContextCleaningUp": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Cleaning up",
-      "UniqueId": "StubTlsContextCleaningUp",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "StubTlsRecvNewSessionTicket": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Received new ticket. ticket_len:%u for %s",
-      "UniqueId": "StubTlsRecvNewSessionTicket",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "StubTlsProcessData": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Processing %u received bytes",
-      "UniqueId": "StubTlsProcessData",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -10658,6 +10350,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "TestHookReplaceCreateSend": {
+      "ModuleProperites": {},
+      "TraceString": "[test][hook] Create (remote) Addr :%hu => :%hu",
+      "UniqueId": "TestHookReplaceCreateSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "InteropTestStart": {
       "ModuleProperites": {},
       "TraceString": "[ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.",
@@ -10762,7 +10470,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            UTF8Encoding utf8 = new UTF8Encoding(false, true);\n            utf8.DecoderFallback = new DecoderExceptionFallback();\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                try {\n                    String CurrentAlpn = utf8.GetString(value, (int)i, (int)AlpnLength);\n                    AlpnList.Append(CurrentAlpn);\n                    i += AlpnLength;\n                } catch {\n                    // Fall back to printing hex\n                    for (; AlpnLength > 0; AlpnLength--, i++)\n                    {\n                        AlpnList.Append(value[i].ToString(\"x2\"));\n                        if (AlpnLength > 1) {\n                            AlpnList.Append(\",\");\n                        }\n                    }\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -10771,6 +10479,12 @@
           "CType": "CLOG_PTR",
           "DefinationEncoding": "!ADDR!",
           "CustomDecoder": "msquic.clog_config.Types.ADDR"
+        },
+        {
+          "EncodingType": "ByteArray",
+          "CType": "CLOG_PTR",
+          "DefinationEncoding": "!ALPN!",
+          "CustomDecoder": "msquic.clog_config.Types.ALPN"
         },
         {
           "EncodingType": "ByteArray",
@@ -11206,6 +10920,10 @@
         "TraceID": "StreamError"
       },
       {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
         "TraceID": "ConnError"
       },
@@ -11252,6 +10970,14 @@
       {
         "UniquenessHash": "229b6b27-7423-c3ab-5a3e-f99929ef7e50",
         "TraceID": "BindingRundown"
+      },
+      {
+        "UniquenessHash": "11b93e99-5a6c-6cc9-12c9-6ef575ffa8e0",
+        "TraceID": "ConnNoListenerIp"
+      },
+      {
+        "UniquenessHash": "36572545-3721-e03a-c50a-7afdd62c4614",
+        "TraceID": "ConnNoListenerAlpn"
       },
       {
         "UniquenessHash": "3726f8cb-fca2-1ea3-208b-0f223c09aae2",
@@ -11422,6 +11148,10 @@
         "TraceID": "HandshakeConfirmedFrame"
       },
       {
+        "UniquenessHash": "e232b42d-9955-4467-0464-559ea5965464",
+        "TraceID": "UpdatePacketTolerance"
+      },
+      {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
         "TraceID": "FirstCidUsage"
       },
@@ -11432,6 +11162,10 @@
       {
         "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
         "TraceID": "Unreachable"
+      },
+      {
+        "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
+        "TraceID": "UpdatePeerPacketTolerance"
       },
       {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
@@ -11446,8 +11180,8 @@
         "TraceID": "ApplySettings"
       },
       {
-        "UniquenessHash": "ffeb66e8-2636-b98b-46a5-564068b26843",
-        "TraceID": "RttUpdated"
+        "UniquenessHash": "dc25a415-b386-47ec-0128-415c6f31795b",
+        "TraceID": "RttUpdatedMsg"
       },
       {
         "UniquenessHash": "5bdd3273-8aaf-afec-f7e3-a031e8c0122c",
@@ -12254,6 +11988,10 @@
         "TraceID": "LibraryInitialized"
       },
       {
+        "UniquenessHash": "c5092562-eb73-dded-1d42-ad7fdd896841",
+        "TraceID": "LibraryVersion"
+      },
+      {
         "UniquenessHash": "75aa07a5-b70c-1670-9f7b-cddc495a508c",
         "TraceID": "LibraryUninitialized"
       },
@@ -12264,6 +12002,10 @@
       {
         "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",
         "TraceID": "LibraryRelease"
+      },
+      {
+        "UniquenessHash": "36d08274-918b-3ecd-861c-ada8d4fda4d5",
+        "TraceID": "BindingError"
       },
       {
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
@@ -12302,7 +12044,7 @@
         "TraceID": "ListenerError"
       },
       {
-        "UniquenessHash": "753890f0-f5e6-b412-0d97-189eed7c57ef",
+        "UniquenessHash": "9b2d757a-63f3-549c-eff6-53512cd8b811",
         "TraceID": "ListenerStarted"
       },
       {
@@ -12390,10 +12132,6 @@
         "TraceID": "PathMinMtuValidated"
       },
       {
-        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
-        "TraceID": "PathMtuUpdated"
-      },
-      {
         "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",
         "TraceID": "PathValidationTimeout"
       },
@@ -12420,6 +12158,30 @@
       {
         "UniquenessHash": "26dded12-d106-a37b-0903-9a3cb98e3618",
         "TraceID": "ConnPacketACKed"
+      },
+      {
+        "UniquenessHash": "92ab8084-33fb-0565-da7b-d2278d05c642",
+        "TraceID": "MtuSearchComplete"
+      },
+      {
+        "UniquenessHash": "c7a85c07-7d70-b24f-313d-2db9a20333bd",
+        "TraceID": "MtuSearching"
+      },
+      {
+        "UniquenessHash": "3f758826-f3d7-22eb-b7df-0453cdad3bc8",
+        "TraceID": "MtuPathInitialized"
+      },
+      {
+        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
+        "TraceID": "PathMtuUpdated"
+      },
+      {
+        "UniquenessHash": "1aa1d324-af31-356c-0738-863e209f6f21",
+        "TraceID": "MtuDiscarded"
+      },
+      {
+        "UniquenessHash": "a20786c3-f6b7-176d-7e63-b6c558f7d394",
+        "TraceID": "MtuIncorrectSize"
       },
       {
         "UniquenessHash": "4ef04b3e-7dde-88ad-60eb-150c807af68f",
@@ -12538,8 +12300,8 @@
         "TraceID": "ScheduleSendFlags"
       },
       {
-        "UniquenessHash": "93fcf6ee-a709-3273-c039-2c2b81572b48",
-        "TraceID": "RemoveSendFlags"
+        "UniquenessHash": "b4aa5fad-d1de-466c-0214-1bbda4b9eb95",
+        "TraceID": "RemoveSendFlagsMsg"
       },
       {
         "UniquenessHash": "4a595158-b864-777b-d90a-dbb944e765ac",
@@ -12686,6 +12448,30 @@
         "TraceID": "SettingDumpVersionNegoExtEnabled"
       },
       {
+        "UniquenessHash": "380762fe-b4e0-231a-3107-17a5e545c780",
+        "TraceID": "SettingDumpMinimumMtu"
+      },
+      {
+        "UniquenessHash": "1398ba42-f72d-dac1-4c89-f9ae626a5c7b",
+        "TraceID": "SettingDumpMaximumMtu"
+      },
+      {
+        "UniquenessHash": "fe0a786d-3839-19aa-8cd3-e2e1b75eb49e",
+        "TraceID": "SettingDumpMtuCompleteTimeout"
+      },
+      {
+        "UniquenessHash": "07e96091-df10-e8a0-aae5-ed943ffea694",
+        "TraceID": "SettingDumpMtuMissingProbeCount"
+      },
+      {
+        "UniquenessHash": "64337501-b792-a81e-678a-aebffa63483e",
+        "TraceID": "SettingDumpMaxBindingStatelessOper"
+      },
+      {
+        "UniquenessHash": "940f7585-40ed-60f4-0e01-fa5ef6bea02f",
+        "TraceID": "SettingDumpStatelessOperExpirMs"
+      },
+      {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
         "TraceID": "SettingsInvalidVersion"
       },
@@ -12698,11 +12484,15 @@
         "TraceID": "EventSilentDiscard"
       },
       {
-        "UniquenessHash": "f6a10aa5-a444-631e-8d6f-de27fd8a5565",
+        "UniquenessHash": "1b92f995-0f00-00a4-3898-3e5121f9f323",
+        "TraceID": "UpdatePriority"
+      },
+      {
+        "UniquenessHash": "66dd140b-9fd3-eddc-e34c-cb81639e1aca",
         "TraceID": "IndicateStartComplete"
       },
       {
-        "UniquenessHash": "0640b2d1-a929-3d01-b4c9-08733e3f0196",
+        "UniquenessHash": "8340b390-8b79-ab44-6593-7e449f0ec748",
         "TraceID": "IndicateStreamShutdownComplete"
       },
       {
@@ -12846,8 +12636,8 @@
         "TraceID": "RecoverRange"
       },
       {
-        "UniquenessHash": "79ffdfe4-2d35-3e89-ccb1-9617b2c74c00",
-        "TraceID": "AckRange"
+        "UniquenessHash": "1f842f1b-027f-b5ec-e0ac-fc9491aeb629",
+        "TraceID": "AckRangeMsg"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
@@ -12870,11 +12660,15 @@
         "TraceID": "NotAccepted"
       },
       {
+        "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",
+        "TraceID": "IndicatePeerAccepted"
+      },
+      {
         "UniquenessHash": "418770bb-5594-978f-0b62-4bb47315bfa1",
         "TraceID": "MaxStreamCountUpdated"
       },
       {
-        "UniquenessHash": "4d2f7315-100a-d85f-c10c-0b5f037df46a",
+        "UniquenessHash": "26bdd068-e9fa-9f1e-2d26-60dbed5c5080",
         "TraceID": "IndicateStreamsAvailable"
       },
       {
@@ -13166,12 +12960,8 @@
         "TraceID": "CertCapiVerify"
       },
       {
-        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
-        "TraceID": "LibraryError"
-      },
-      {
-        "UniquenessHash": "f11702ec-fc18-f5bb-c732-90e621e3356d",
-        "TraceID": "CertOpenSslGetProcessAddressFailure"
+        "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
+        "TraceID": "TlsLogSecret"
       },
       {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",
@@ -13286,8 +13076,8 @@
         "TraceID": "DatapathUroExceeded"
       },
       {
-        "UniquenessHash": "37423b13-b9e3-7961-07d6-137252085127",
-        "TraceID": "DatapathUnreachable"
+        "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",
+        "TraceID": "DatapathUnreachableMsg"
       },
       {
         "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
@@ -13390,154 +13180,6 @@
         "TraceID": "StorageOpenKey"
       },
       {
-        "UniquenessHash": "892901ea-49a8-594b-6e05-edb0fc36be3d",
-        "TraceID": "miTlsInitialize"
-      },
-      {
-        "UniquenessHash": "912c1707-c315-0036-76ca-602ae12a94b7",
-        "TraceID": "miTlsUninitialize"
-      },
-      {
-        "UniquenessHash": "e0e483e0-e15e-e93b-6ec0-cb084e300cb3",
-        "TraceID": "miTlsLogSecret"
-      },
-      {
-        "UniquenessHash": "fc766c70-8cec-7846-ba14-63bc930b4e06",
-        "TraceID": "miTlsFfiProcessFailed"
-      },
-      {
-        "UniquenessHash": "0e9054b4-02e7-dad9-6893-dd902ebb0dd4",
-        "TraceID": "miTlsFfiGetHelloSummaryFailed"
-      },
-      {
-        "UniquenessHash": "76420f88-75d8-6a13-f42b-bea06884e542",
-        "TraceID": "miTlsCertValidationDisabled"
-      },
-      {
-        "UniquenessHash": "adbd41df-cab6-b314-1ceb-dc00def1c425",
-        "TraceID": "miTlsCertSelected"
-      },
-      {
-        "UniquenessHash": "0eb36a7a-47b3-271a-054b-94a5ebf6c257",
-        "TraceID": "miTlsUsing0Rtt"
-      },
-      {
-        "UniquenessHash": "4cb2a299-89dc-7245-b116-4dcc9875d5fe",
-        "TraceID": "miTlsProcess"
-      },
-      {
-        "UniquenessHash": "54a1f582-7b8d-434a-143e-9df24a874f95",
-        "TraceID": "miTlsSend0RttTicket"
-      },
-      {
-        "UniquenessHash": "bdbaac9e-6abe-7c57-d354-df78a89838ce",
-        "TraceID": "miTlsFfiProces"
-      },
-      {
-        "UniquenessHash": "27d4a0a4-4e32-0043-3d90-166d1b378f92",
-        "TraceID": "miTlsFfiProcessResult"
-      },
-      {
-        "UniquenessHash": "cbc269aa-13ca-8f88-d61e-db9403a335de",
-        "TraceID": "miTlsHandshakeComplete"
-      },
-      {
-        "UniquenessHash": "4833606e-5d9c-82d2-86e1-875d57efdaf6",
-        "TraceID": "miTlsEarlyDataRejected"
-      },
-      {
-        "UniquenessHash": "18f82502-f22b-ca5d-6393-cdd01c7bd873",
-        "TraceID": "miTlsEarlyDataAccepted"
-      },
-      {
-        "UniquenessHash": "717e49dd-7942-4cae-f517-3f001e43e7b5",
-        "TraceID": "miTlsEarlyDataNotAttempted"
-      },
-      {
-        "UniquenessHash": "21c32d30-e5c5-164a-e1ee-e9485d64813f",
-        "TraceID": "miTlsEarlyDataAttempted"
-      },
-      {
-        "UniquenessHash": "9a6e2c4c-9ed2-e2d4-56d1-f3453c281a20",
-        "TraceID": "miTlsKeySchedule"
-      },
-      {
-        "UniquenessHash": "a18ddb89-8c56-1236-6421-a14072f160f8",
-        "TraceID": "miTls0RttReadKeyExported"
-      },
-      {
-        "UniquenessHash": "dfaeb8b5-339e-c0e7-7289-15228d5f084a",
-        "TraceID": "miTlsHandshakeReadKeyExported"
-      },
-      {
-        "UniquenessHash": "9d6d3263-01ca-a734-569a-07f0f9b5d3da",
-        "TraceID": "miTls1RttReadKeyExported"
-      },
-      {
-        "UniquenessHash": "6baedb0e-b86a-72c2-b3ec-341ef8235aa9",
-        "TraceID": "miTls0RttWriteKeyExported"
-      },
-      {
-        "UniquenessHash": "f42df196-45dc-9a31-96ef-31226467df0e",
-        "TraceID": "miTlsHandshakeWriteKeyExported"
-      },
-      {
-        "UniquenessHash": "74e3e2f2-0fb6-e892-57ac-85fcda2a4a7a",
-        "TraceID": "miTls1RttWriteKeyExported"
-      },
-      {
-        "UniquenessHash": "d4d7056c-435c-b5b8-900c-f95f770ddb9d",
-        "TraceID": "miTlsHandshakeWriteOffsetSet"
-      },
-      {
-        "UniquenessHash": "dbd24fcc-7265-6088-8693-f8fdfc7030b5",
-        "TraceID": "miTls1RttWriteOffsetSet"
-      },
-      {
-        "UniquenessHash": "71ed54f4-e631-7f1d-2d2e-65e1b533d8e5",
-        "TraceID": "miTlsFfiProcesComplete"
-      },
-      {
-        "UniquenessHash": "0bd9bfa0-b1eb-3e4a-234b-bf10c2013d9c",
-        "TraceID": "miTlsOnCertSelect"
-      },
-      {
-        "UniquenessHash": "36f092f6-9fee-e5ec-bd11-6e3418458161",
-        "TraceID": "miTlsOnNegotiate"
-      },
-      {
-        "UniquenessHash": "7f747d9f-de9d-f24e-44e1-a097950c0429",
-        "TraceID": "miTlsProcessServerAlpn"
-      },
-      {
-        "UniquenessHash": "db04d0d6-a7a5-38c6-37a6-fa059a2b11f3",
-        "TraceID": "miTlsOnCertFormat"
-      },
-      {
-        "UniquenessHash": "e175542b-2cfb-6134-82ad-89a84cb3a964",
-        "TraceID": "miTlsOnCertSign"
-      },
-      {
-        "UniquenessHash": "22fc0283-1a6e-1ee5-1c6e-901b14517e07",
-        "TraceID": "miTlsOnCertVerify"
-      },
-      {
-        "UniquenessHash": "deb3fa41-4cad-e7b7-a02c-478a669346bd",
-        "TraceID": "miTlsRecvNewSessionTicket"
-      },
-      {
-        "UniquenessHash": "71d0a82e-145c-f936-f56e-7dcb4099b96e",
-        "TraceID": "TlsMessage"
-      },
-      {
-        "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
-        "TraceID": "TlsError"
-      },
-      {
-        "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
-        "TraceID": "OpenSslLogSecret"
-      },
-      {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
         "TraceID": "OpenSslAlert"
       },
@@ -13602,6 +13244,14 @@
         "TraceID": "OpenSslAddHandshakeData"
       },
       {
+        "UniquenessHash": "72e491bb-79fd-ba28-760a-54e0b9a4d854",
+        "TraceID": "OpenSslTickedDecrypted"
+      },
+      {
+        "UniquenessHash": "882fcfec-93cc-9255-700a-96a9263f2421",
+        "TraceID": "OpenSslRecvTicketData"
+      },
+      {
         "UniquenessHash": "e1629f75-f460-8951-5138-b0602b8f4db0",
         "TraceID": "OpenSslContextCreated"
       },
@@ -13610,24 +13260,20 @@
         "TraceID": "OpenSslContextCleaningUp"
       },
       {
-        "UniquenessHash": "cc5e9bc2-359a-36f2-27f3-a319e5aee533",
-        "TraceID": "OpenSsslIgnoringTicket"
+        "UniquenessHash": "78497dcf-70d4-80d5-af6d-0856653591e3",
+        "TraceID": "OpenSslSendTicketData"
       },
       {
         "UniquenessHash": "ff332af9-4ba2-95a8-bb2c-c5c729be4ccd",
         "TraceID": "OpenSslProcessData"
       },
       {
+        "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
+        "TraceID": "TlsError"
+      },
+      {
         "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
         "TraceID": "TlsErrorStatus"
-      },
-      {
-        "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
-        "TraceID": "SchannelInitialized"
-      },
-      {
-        "UniquenessHash": "b21a8d0d-c484-ac00-8081-90d5e8de9d1f",
-        "TraceID": "SchannelUninitialized"
       },
       {
         "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
@@ -13644,10 +13290,6 @@
       {
         "UniquenessHash": "7a6ea81a-5491-2148-a007-711c5a641acc",
         "TraceID": "SchannelAchCompleteInline"
-      },
-      {
-        "UniquenessHash": "c04de4b9-64de-c415-dda2-b07f295f9897",
-        "TraceID": "SchannelLogSecret"
       },
       {
         "UniquenessHash": "799852e0-2f39-43d4-6888-98a33178b844",
@@ -13704,42 +13346,6 @@
       {
         "UniquenessHash": "183e91b7-6ad7-7a8b-0d77-94004bde6757",
         "TraceID": "SchannelProcessingData"
-      },
-      {
-        "UniquenessHash": "64ef2389-7553-24d5-62f5-94fa1ab55eac",
-        "TraceID": "StubTlsCertValidationDisabled"
-      },
-      {
-        "UniquenessHash": "2ca06c46-059c-c3e2-a6db-dc8f0d6292eb",
-        "TraceID": "StubTlsHandshakeComplete"
-      },
-      {
-        "UniquenessHash": "8671265f-83a7-8d8f-4fac-ea0d14b9da84",
-        "TraceID": "StubTlsProducedData"
-      },
-      {
-        "UniquenessHash": "27a202b6-2090-aed6-26c8-4b193f0cb901",
-        "TraceID": "StubTlsConsumedData"
-      },
-      {
-        "UniquenessHash": "d3788ab1-cacd-d552-e06c-2e7bee8b6da9",
-        "TraceID": "StubTlsContextCreated"
-      },
-      {
-        "UniquenessHash": "16a301c5-8f8d-0d34-6fb9-0a608367097e",
-        "TraceID": "StubTlsUsing0Rtt"
-      },
-      {
-        "UniquenessHash": "068a93f4-8ad9-2eae-53e9-44da62c39494",
-        "TraceID": "StubTlsContextCleaningUp"
-      },
-      {
-        "UniquenessHash": "9ca0fd16-2037-7132-3b3f-25691460af7f",
-        "TraceID": "StubTlsRecvNewSessionTicket"
-      },
-      {
-        "UniquenessHash": "9b5f99a0-b1b6-bae7-12fd-89f89d1f1667",
-        "TraceID": "StubTlsProcessData"
       },
       {
         "UniquenessHash": "75b94a49-9bfe-7be0-7756-8f014aeeddba",
@@ -13860,6 +13466,10 @@
       {
         "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
         "TraceID": "TestHookDropLimitAddrSend"
+      },
+      {
+        "UniquenessHash": "be2459c1-0870-ccba-da9b-ae1ecc23ded8",
+        "TraceID": "TestHookReplaceCreateSend"
       },
       {
         "UniquenessHash": "e98e6411-dfab-d3a6-e7bd-d1782209846d",

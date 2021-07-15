@@ -36,13 +36,14 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
 void QuicTestDesiredVersionSettings();
+void QuicTestValidateParamApi();
 
 //
 // Event Validation Tests
 //
 
-void QuicTestValidateConnectionEvents();
-void QuicTestValidateStreamEvents();
+void QuicTestValidateConnectionEvents(uint32_t Test);
+void QuicTestValidateStreamEvents(uint32_t Test);
 
 //
 // Basic Functionality Tests
@@ -58,6 +59,26 @@ void QuicTestStartListenerExplicit(_In_ int Family);
 void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
+
+//
+// MTU tests
+//
+void QuicTestMtuSettings();
+void
+QuicTestMtuDiscovery(
+    _In_ int Family,
+    _In_ BOOLEAN DropClientProbePackets,
+    _In_ BOOLEAN DropServerProbePackets,
+    _In_ BOOLEAN RaiseMinimumMtu
+    );
+
+//
+// Path tests
+//
+void
+QuicTestLocalPathChanges(
+    _In_ int Family
+    );
 
 //
 // Handshake Tests
@@ -149,6 +170,16 @@ QuicTestInvalidAlpnLengths(
     void
     );
 
+void
+QuicTestLoadBalancedHandshake(
+    _In_ int Family
+    );
+
+void
+QuicTestClientSharedLocalPort(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -183,18 +214,30 @@ QuicTestConnectValidServerCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
 
+void
+QuicTestConnectValidClientCertificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    );
+
+void
+QuicTestConnectExpiredClientCertificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    );
+
 //
 // Post Handshake Tests
 //
 
 void
 QuicTestNatPortRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     );
 
 void
 QuicTestNatAddrRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     );
 
 void
@@ -258,6 +301,12 @@ QuicTestKeyUpdate(
     _In_ bool ServerKeyUpdate
     );
 
+void
+QuicTestKeyUpdateRandomLoss(
+    _In_ int Family,
+    _In_ uint8_t RandomLossPercentage
+    );
+
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
     ShutdownBoth,
     ShutdownSend,
@@ -273,6 +322,8 @@ typedef union QUIC_ABORTIVE_TRANSFER_FLAGS {
         uint32_t WaitForStream : 1;
         uint32_t ShutdownDirection : 2;
         uint32_t UnidirectionalStream : 1;
+        uint32_t PauseReceive : 1;
+        uint32_t PendReceive : 1;
     };
     uint32_t IntValue;
 } QUIC_ABORTIVE_TRANSFER_FLAGS;
@@ -320,6 +371,33 @@ QuicTestReceiveResumeNoData(
 void
 QuicTestAckSendDelay(
     _In_ int Family
+    );
+
+typedef enum QUIC_ABORT_RECEIVE_TYPE {
+    QUIC_ABORT_RECEIVE_PAUSED,
+    QUIC_ABORT_RECEIVE_PENDING,
+    QUIC_ABORT_RECEIVE_INCOMPLETE
+} QUIC_ABORT_RECEIVE_TYPE;
+
+void
+QuicTestAbortReceive(
+    _In_ QUIC_ABORT_RECEIVE_TYPE Type
+    );
+
+void
+QuicTestSlowReceive(
+    );
+
+void
+QuicTestNthAllocFail(
+    );
+
+void
+QuicTestStreamPriority(
+    );
+
+void
+QuicTestStreamDifferentAbortErrors(
     );
 
 //
@@ -541,9 +619,11 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS \
     QUIC_CTL_CODE(25, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #define IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS \
     QUIC_CTL_CODE(26, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #define IOCTL_QUIC_RUN_VERSION_NEGOTIATION \
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -654,13 +734,18 @@ typedef struct {
     QUIC_CTL_CODE(40, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
+typedef struct {
+    int Family;
+    uint16_t Padding;
+} QUIC_RUN_REBIND_PARAMS;
+
 #define IOCTL_QUIC_RUN_NAT_PORT_REBIND \
     QUIC_CTL_CODE(41, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_RUN_REBIND_PARAMS
 
 #define IOCTL_QUIC_RUN_NAT_ADDR_REBIND \
     QUIC_CTL_CODE(42, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_RUN_REBIND_PARAMS
 
 #define IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID \
     QUIC_CTL_CODE(43, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -753,4 +838,68 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALID_SERVER_CERT \
     QUIC_CTL_CODE(60, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 60
+#define IOCTL_QUIC_RUN_VALID_CLIENT_CERT \
+    QUIC_CTL_CODE(61, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT \
+    QUIC_CTL_CODE(62, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_ABORT_RECEIVE \
+    QUIC_CTL_CODE(63, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // BOOLEAN
+
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+    int Family;
+    uint8_t RandomLossPercentage;
+} QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS;
+
+#pragma pack(pop)
+
+#define IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS \
+    QUIC_CTL_CODE(64, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_SLOW_RECEIVE \
+    QUIC_CTL_CODE(65, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_NTH_ALLOC_FAIL \
+    QUIC_CTL_CODE(66, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_MTU_SETTINGS \
+    QUIC_CTL_CODE(67, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
+    int Family;
+    uint8_t DropClientProbePackets;
+    uint8_t DropServerProbePackets;
+    uint8_t RaiseMinimumMtu;
+} QUIC_RUN_MTU_DISCOVERY_PARAMS;
+
+#define IOCTL_QUIC_RUN_MTU_DISCOVERY \
+    QUIC_CTL_CODE(68, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE \
+    QUIC_CTL_CODE(69, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT \
+    QUIC_CTL_CODE(70, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_VALIDATE_PARAM_API \
+    QUIC_CTL_CODE(71, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_PRIORITY \
+    QUIC_CTL_CODE(72, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES \
+    QUIC_CTL_CODE(73, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS \
+    QUIC_CTL_CODE(74, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 74

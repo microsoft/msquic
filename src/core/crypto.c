@@ -23,13 +23,11 @@ Abstract:
 #include "crypto.c.clog.h"
 #endif
 
-CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 CXPLAT_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 CXPLAT_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
 CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK QuicConnPeerCertReceived;
 
 CXPLAT_TLS_CALLBACKS QuicTlsCallbacks = {
-    QuicTlsProcessDataCompleteCallback,
     QuicConnReceiveTP,
     QuicConnRecvResumptionTicket,
     QuicConnPeerCertReceived
@@ -173,10 +171,10 @@ QuicCryptoInitialize(
 
     } else {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+        QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
-                QUIC_CID_CXPLAT_LIST_ENTRY,
+                QUIC_CID_LIST_ENTRY,
                 Link);
 
         HandshakeCid = DestCid->CID.Data;
@@ -359,8 +357,6 @@ QuicCryptoReset(
     )
 {
     CXPLAT_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
-    CXPLAT_TEL_ASSERT(!Crypto->TlsDataPending);
-    CXPLAT_TEL_ASSERT(!Crypto->TlsCallPending);
     CXPLAT_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
 
     Crypto->MaxSentLength = 0;
@@ -408,10 +404,10 @@ QuicCryptoOnVersionChange(
 
     } else {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+        QUIC_CID_LIST_ENTRY* DestCid =
             CXPLAT_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
-                QUIC_CID_CXPLAT_LIST_ENTRY,
+                QUIC_CID_LIST_ENTRY,
                 Link);
 
         HandshakeCid = DestCid->CID.Data;
@@ -536,7 +532,21 @@ QuicCryptoDiscardKeys(
     if (Crypto->NextSendOffset < BufferOffset) {
         Crypto->NextSendOffset = BufferOffset;
     }
+    if (Crypto->RecoveryNextOffset < BufferOffset) {
+        Crypto->RecoveryNextOffset = BufferOffset;
+    }
     if (Crypto->UnAckedOffset < BufferOffset) {
+        uint32_t DrainLength = BufferOffset - Crypto->UnAckedOffset;
+        CXPLAT_DBG_ASSERT(DrainLength <= (uint32_t)Crypto->TlsState.BufferLength);
+        if ((uint32_t)Crypto->TlsState.BufferLength > DrainLength) {
+            Crypto->TlsState.BufferLength -= (uint16_t)DrainLength;
+            CxPlatMoveMemory(
+                Crypto->TlsState.Buffer,
+                Crypto->TlsState.Buffer + DrainLength,
+                Crypto->TlsState.BufferLength);
+        } else {
+            Crypto->TlsState.BufferLength = 0;
+        }
         Crypto->UnAckedOffset = BufferOffset;
         QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
     }
@@ -855,29 +865,38 @@ QuicCryptoWriteFrames(
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
+        //
+        // Likely an ACK after retransmission got us into this state. Just
+        // remove the send flag and continue on.
+        //
+        Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
+        return TRUE;
+    }
+
+    if (Builder->PacketType !=
+        QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(Crypto))) {
+        //
+        // Nothing to send in this packet / encryption level, just continue on.
+        //
+        return TRUE;
+    }
+
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
 
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
 
-    if (QuicCryptoHasPendingCryptoFrame(Crypto)) {
-        QuicCryptoWriteCryptoFrames(
-            Crypto,
-            Builder,
-            &Builder->DatagramLength,
-            AvailableBufferLength,
-            Builder->Datagram->Buffer);
+    QuicCryptoWriteCryptoFrames(
+        Crypto,
+        Builder,
+        &Builder->DatagramLength,
+        AvailableBufferLength,
+        Builder->Datagram->Buffer);
 
-        if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
-            Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
-        }
-
-    } else {
-        //
-        // If it doesn't have anything to send, it shouldn't have been queued in
-        // the first place.
-        //
-        CXPLAT_DBG_ASSERT(FALSE);
+    if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
+        Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
     }
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
@@ -1088,10 +1107,8 @@ QuicCryptoOnAck(
                 Length,
                 &SacksUpdated);
         if (Sack == NULL) {
-
             QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
             return;
-
         }
 
         if (SacksUpdated) {
@@ -1226,33 +1243,27 @@ QuicCryptoProcessFrame(
     Status =
         QuicCryptoProcessDataFrame(
             Crypto, KeyType, Frame, &DataReady);
+    if (QUIC_FAILED(Status) || !DataReady) {
+        goto Error;
+    }
 
-    if (QUIC_SUCCEEDED(Status) && DataReady) {
-        if (!Crypto->TlsCallPending) {
-            Status = QuicCryptoProcessData(Crypto, FALSE);
-            if (QUIC_FAILED(Status)) {
-                goto Error;
-            }
+    Status = QuicCryptoProcessData(Crypto, FALSE);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
-            QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-            if (Connection->State.ClosedLocally) {
-                //
-                // If processing the received frame caused us to close the
-                // connection, make sure to stop processing anything else in the
-                // packet.
-                //
-                Status = QUIC_STATUS_INVALID_STATE;
-            }
-        } else {
-            //
-            // Can't call TLS yet (either hasn't been initialized or already
-            // working) so just indicate we have data pending ready for delivery.
-            //
-            Crypto->TlsDataPending = TRUE;
-        }
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    if (Connection->State.ClosedLocally) {
+        //
+        // If processing the received frame caused us to close the
+        // connection, make sure to stop processing anything else in the
+        // packet.
+        //
+        Status = QUIC_STATUS_INVALID_STATE;
     }
 
 Error:
+
     return Status;
 }
 
@@ -1287,9 +1298,6 @@ QuicCryptoProcessTlsCompletion(
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-
-    CXPLAT_DBG_ASSERT(Crypto->TlsCallPending);
-    Crypto->TlsCallPending = FALSE;
 
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         QuicTraceEvent(
@@ -1484,7 +1492,7 @@ QuicCryptoProcessTlsCompletion(
         QuicCryptoValidate(Crypto);
     }
 
-    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_COMPLETE) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
         CXPLAT_DBG_ASSERT(!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR));
         CXPLAT_TEL_ASSERT(!Connection->State.Connected);
 
@@ -1553,7 +1561,13 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
+        //
+        // A handshake complete means the peer has been validated. Trigger MTU
+        // discovery on path.
+        //
+        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
+        QUIC_PATH* Path = &Connection->Paths[0];
+        QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
 
         if (QuicConnIsServer(Connection) &&
             Crypto->TlsState.BufferOffset1Rtt != 0 &&
@@ -1590,40 +1604,7 @@ QuicCryptoProcessDataComplete(
 
     if (!Crypto->CertValidationPending) {
         QuicCryptoProcessTlsCompletion(Crypto);
-        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-            (void)QuicCryptoProcessData(Crypto, FALSE);
-        }
     }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicTlsProcessDataCompleteCallback(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    QUIC_OPERATION* Oper;
-    if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TLS_COMPLETE)) != NULL) {
-        QuicConnQueueOper(Connection, Oper);
-    } else {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "TLS complete operation",
-            0);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCryptoProcessCompleteOperation(
-    _In_ QUIC_CRYPTO* Crypto
-    )
-{
-    uint32_t BufferConsumed = 0;
-    Crypto->ResultFlags =
-        CxPlatTlsProcessDataComplete(Crypto->TLS, &BufferConsumed);
-    QuicCryptoProcessDataComplete(Crypto, BufferConsumed);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1633,7 +1614,6 @@ QuicCryptoCustomCertValidationComplete(
     _In_ BOOLEAN Result
     )
 {
-    CXPLAT_TEL_ASSERT(Crypto->CertValidationPending);
     if (!Crypto->CertValidationPending) {
         return;
     }
@@ -1645,9 +1625,6 @@ QuicCryptoCustomCertValidationComplete(
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
         QuicCryptoProcessTlsCompletion(Crypto);
-        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-            QuicCryptoProcessData(Crypto, FALSE);
-        }
 
     } else {
         QuicTraceEvent(
@@ -1671,8 +1648,6 @@ QuicCryptoProcessData(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
-
-    CXPLAT_TEL_ASSERT(!Crypto->TlsCallPending);
 
     if (IsClientInitial) {
         Buffer.Length = 0;
@@ -1774,9 +1749,6 @@ QuicCryptoProcessData(
         goto Error;
     }
 
-    Crypto->TlsDataPending = FALSE;
-    Crypto->TlsCallPending = TRUE;
-
     QuicCryptoValidate(Crypto);
 
     Crypto->ResultFlags =
@@ -1787,13 +1759,7 @@ QuicCryptoProcessData(
             &Buffer.Length,
             &Crypto->TlsState);
 
-    CXPLAT_TEL_ASSERT(
-        !IsClientInitial ||
-        Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
-
-    if (Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING) {
-        QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
-    }
+    QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
 
     return Status;
 
@@ -1815,12 +1781,7 @@ QuicCryptoProcessAppData(
     )
 {
     QUIC_STATUS Status;
-    if (Crypto->TlsCallPending) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
 
-    Crypto->TlsCallPending = TRUE;
     Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,
@@ -1837,9 +1798,7 @@ QuicCryptoProcessAppData(
         goto Error;
     }
 
-    if (!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_PENDING)) {
-        QuicCryptoProcessDataComplete(Crypto, 0);
-    }
+    QuicCryptoProcessDataComplete(Crypto, 0);
 
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1983,6 +1942,11 @@ QuicCryptoUpdateKeyPhase(
     PacketSpace->WriteKeyPhaseStartPacketNumber = Connection->Send.NextPacketNumber;
     PacketSpace->CurrentKeyPhase = !PacketSpace->CurrentKeyPhase;
 
+    //
+    // Reset the read packet space so any new packet will be properly detected.
+    //
+    PacketSpace->ReadKeyPhaseStartPacketNumber = UINT64_MAX;
+
     PacketSpace->AwaitingKeyPhaseConfirmation = TRUE;
 
     PacketSpace->CurrentKeyPhaseBytesSent = 0;
@@ -2109,7 +2073,7 @@ Error:
 
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TicketLength,
     _In_reads_bytes_(TicketLength)
         const uint8_t* Ticket,
@@ -2156,7 +2120,7 @@ QuicCryptoDecodeServerTicket(
 
     uint32_t QuicVersion;
     memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
-    if (!QuicIsVersionSupported(QuicVersion)) {
+    if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, QuicVersion)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

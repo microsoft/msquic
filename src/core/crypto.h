@@ -31,16 +31,6 @@ typedef struct QUIC_CRYPTO {
     BOOLEAN InRecovery : 1;
 
     //
-    // Indicates there is data ready to be passed to TLS.
-    //
-    BOOLEAN TlsDataPending : 1;
-
-    //
-    // Indicates a TLS call is outstanding.
-    //
-    BOOLEAN TlsCallPending : 1;
-
-    //
     // Indicates custom cert validation (by the app) is outstanding.
     //
     BOOLEAN CertValidationPending : 1;
@@ -252,15 +242,6 @@ QuicCryptoProcessData(
     );
 
 //
-// Handles the completion operation for the TLS complete operation.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCryptoProcessCompleteOperation(
-    _In_ QUIC_CRYPTO* Crypto
-    );
-
-//
 // Processes app-provided data for TLS (i.e. resumption ticket data).
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -367,7 +348,7 @@ QuicCryptoEncodeServerTicket(
 //
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TicketLength,
     _In_reads_bytes_(TicketLength)
         const uint8_t* Ticket,

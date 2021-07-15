@@ -14,8 +14,6 @@
 #include "CryptTest.cpp.clog.h"
 #endif
 
-#ifndef QUIC_TLS_STUB
-
 void
 LogTestBuffer(
     _In_z_ const char* Name,
@@ -257,6 +255,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     QuicPacketKeyFree(NewPacketKey);
 }
 
+#ifndef QUIC_DISABLE_CHACHA20_TESTS
 TEST_F(CryptTest, WellKnownChaChaPoly)
 {
     const QuicBuffer SecretBuffer("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b");
@@ -347,7 +346,10 @@ TEST_F(CryptTest, HpMaskChaCha20)
         LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
+
+    CxPlatHpKeyFree(HpKey);
 }
+#endif // QUIC_DISABLE_CHACHA20_TESTS
 
 TEST_F(CryptTest, HpMaskAes256)
 {
@@ -371,6 +373,8 @@ TEST_F(CryptTest, HpMaskAes256)
         LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
+
+    CxPlatHpKeyFree(HpKey);
 }
 
 TEST_F(CryptTest, HpMaskAes128)
@@ -395,6 +399,8 @@ TEST_F(CryptTest, HpMaskAes128)
         LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
+
+    CxPlatHpKeyFree(HpKey);
 }
 
 TEST_P(CryptTest, Encryption)
@@ -517,5 +523,3 @@ TEST_P(CryptTest, HashRandom)
 }
 
 INSTANTIATE_TEST_SUITE_P(CryptTest, CryptTest, ::testing::Values(0, 1, 2));
-
-#endif // CXPLAT_TLS_STUB

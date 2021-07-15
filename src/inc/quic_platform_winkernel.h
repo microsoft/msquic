@@ -30,6 +30,7 @@ Environment:
 #pragma warning(disable:26071)
 #pragma warning(disable:28118)
 #pragma warning(disable:28196)
+#pragma warning(disable:28251)
 #pragma warning(disable:28252)
 #pragma warning(disable:28253)
 #pragma warning(disable:28309)
@@ -41,7 +42,7 @@ Environment:
 #include <wsk.h>
 #include <bcrypt.h>
 #include <intrin.h>
-#include <msquic_winkernel.h>
+#include "msquic_winkernel.h"
 #pragma warning(pop)
 
 #if defined(__cplusplus)
@@ -97,53 +98,6 @@ ZwQueryInformationThread (
 #define QUIC_CACHEALIGN DECLSPEC_CACHEALIGN
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
-
-//
-// Library Initialization
-//
-
-//
-// Called in DLLMain or DriverEntry.
-//
-INITCODE
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatSystemLoad(
-    _In_ PDRIVER_OBJECT DriverObject,
-    _In_ PUNICODE_STRING RegistryPath
-    );
-
-//
-// Called in DLLMain or DriverUnload.
-//
-PAGEDX
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatSystemUnload(
-    void
-    );
-
-//
-// Initializes the PAL library. Calls to this and
-// CxPlatformUninitialize must be serialized and cannot overlap.
-//
-PAGEDX
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatInitialize(
-    void
-    );
-
-//
-// Uninitializes the PAL library. Calls to this and
-// CxPlatformInitialize must be serialized and cannot overlap.
-//
-PAGEDX
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatUninitialize(
-    void
-    );
 
 //
 // Static Analysis Interfaces

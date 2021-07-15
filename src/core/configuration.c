@@ -53,7 +53,7 @@ MsQuicConfigurationOpen(
     }
 
     if (Settings != NULL &&
-        SettingsSize < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey)) {
+        SettingsSize < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -168,9 +168,10 @@ MsQuicConfigurationOpen(
     }
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
-        CXPLAT_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey));
+        CXPLAT_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList));
         if (!QuicSettingApply(
                 &Configuration->Settings,
+                TRUE,
                 TRUE,
                 TRUE,
                 SettingsSize,
@@ -463,6 +464,7 @@ QuicConfigurationParamSet(
 
         if (!QuicSettingApply(
                 &Configuration->Settings,
+                TRUE,
                 TRUE,
                 TRUE,
                 BufferLength,

@@ -106,7 +106,10 @@ private:
 
     void OnStreamShutdownComplete(_In_ StreamContext* Context);
 
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-client-tput",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
@@ -120,10 +123,11 @@ private:
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t UseTcp {FALSE};
-    uint8_t UseSendBuffer {TRUE};
+    uint8_t UseSendBuffer {FALSE};
     uint8_t UsePacing {TRUE};
     uint8_t UseEncryption {TRUE};
     uint8_t TimedTransfer {FALSE};
+    uint8_t PrintStats {FALSE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};

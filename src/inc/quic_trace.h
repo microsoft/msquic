@@ -104,11 +104,15 @@ typedef enum QUIC_TRACE_API_TYPE {
 #ifdef __cplusplus
 extern "C"
 #endif
+typedef
+_Function_class_(QUIC_TRACE_RUNDOWN_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicTraceRundown(
+(QUIC_TRACE_RUNDOWN_CALLBACK)(
     void
     );
+
+extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #ifdef QUIC_CLOG
 
@@ -119,6 +123,7 @@ QuicTraceRundown(
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
 
+#define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
 #else
 
 #ifdef QUIC_EVENTS_STUB
@@ -138,6 +143,7 @@ QuicTraceEventStubVarArgs(
 #define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs("", __VA_ARGS__)
 
 #define CLOG_BYTEARRAY(Len, Data) (Len)
+#define CASTED_CLOG_BYTEARRAY(Len, Data) (Len)
 
 #endif // QUIC_EVENTS_STUB
 
@@ -183,6 +189,8 @@ QuicEtwCallback(
 #endif
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
+
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 

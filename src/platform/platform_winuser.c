@@ -24,6 +24,7 @@ CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 uint64_t* CxPlatNumaMasks;
 uint32_t* CxPlatProcessorGroupOffsets;
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -37,6 +38,10 @@ CxPlatSystemLoad(
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.Heap = NULL;
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
 
     QuicTraceLogInfo(
         WindowsUserLoaded,
@@ -57,6 +62,17 @@ CxPlatSystemUnload(
     EventUnregisterMicrosoft_Quic();
 #endif
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+_Success_(return != FALSE)
+BOOLEAN
+CxPlatProcessorGroupInfo(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
+    _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_ PDWORD BufferLength
+    );
 
 BOOLEAN
 CxPlatProcessorInfoInit(
@@ -86,34 +102,10 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    GetLogicalProcessorInformationEx(RelationAll, NULL, &BufferLength);
-    if (BufferLength == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
-        goto Error;
-    }
-
-    Buffer = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    if (Buffer == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
-            BufferLength);
-        goto Error;
-    }
-
-    if (!GetLogicalProcessorInformationEx(
+    if (!CxPlatProcessorGroupInfo(
             RelationAll,
-            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)Buffer,
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)&Buffer,
             &BufferLength)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "GetLogicalProcessorInformationEx failed");
         goto Error;
     }
 
@@ -317,7 +309,7 @@ CxPlatInitialize(
         goto Error;
     }
 
-    Status = CxPlatTlsLibraryInitialize();
+    Status = CxPlatCryptInitialize();
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -347,7 +339,7 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatTlsLibraryUninitialize();
+    CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
     CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
     CxPlatNumaMasks = NULL;
@@ -437,11 +429,13 @@ CxPlatAlloc(
     )
 {
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
-#ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    if ((Rand % 100) == 1) return NULL;
-#else
 #ifdef DEBUG
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+
     void* Alloc = HeapAlloc(CxPlatform.Heap, 0, ByteCount + AllocOffset);
     if (Alloc == NULL) {
         return NULL;
@@ -452,7 +446,6 @@ CxPlatAlloc(
     UNREFERENCED_PARAMETER(Tag);
     return HeapAlloc(CxPlatform.Heap, 0, ByteCount);
 #endif
-#endif // QUIC_RANDOM_ALLOC_FAIL
 }
 
 void
@@ -463,8 +456,12 @@ CxPlatFree(
 {
 #ifdef DEBUG
     void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
-    uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
-    CXPLAT_DBG_ASSERT(TagToCheck == Tag);
+    if (Mem != NULL) {
+        uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
+        CXPLAT_DBG_ASSERT(TagToCheck == Tag);
+    } else {
+        ActualAlloc = NULL;
+    }
     (void)HeapFree(CxPlatform.Heap, 0, ActualAlloc);
 #else
     UNREFERENCED_PARAMETER(Tag);
@@ -544,15 +541,121 @@ Error:
     return HRESULT_FROM_WIN32(Error);
 }
 
-__declspec(noreturn)
-void
-KrmlExit(
-    int n
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+_Success_(return != FALSE)
+BOOLEAN
+CxPlatProcessorGroupInfo(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
+    _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_ PDWORD BufferLength
     )
 {
-    UNREFERENCED_PARAMETER(n);
-    CXPLAT_FRE_ASSERTMSG(FALSE, "miTLS hit a fatal error");
+    *BufferLength = 0;
+    GetLogicalProcessorInformationEx(Relationship, NULL, BufferLength);
+    if (*BufferLength == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
+        goto Error;
+    }
+
+    *Buffer = CXPLAT_ALLOC_NONPAGED(*BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (*Buffer == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
+            *BufferLength);
+        goto Error;
+    }
+
+    if (!GetLogicalProcessorInformationEx(
+            Relationship,
+            *Buffer,
+            BufferLength)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "GetLogicalProcessorInformationEx failed");
+        CXPLAT_FREE(*Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        goto Error;
+    }
+
+    return TRUE;
+
+Error:
+
+    *Buffer = NULL;
+    *BufferLength = 0;
+    return FALSE;
 }
+
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+    CxPlatform.AllocCounter = 0;
+}
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
+#endif
+
+#ifdef QUIC_UWP_BUILD
+DWORD
+CxPlatProcActiveCount(
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
+    DWORD ProcLength;
+    DWORD Count;
+
+    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+        CXPLAT_DBG_ASSERT(FALSE);
+        return 0;
+    }
+
+    Count = 0;
+    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
+        Count +=  ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
+    }
+    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_DBG_ASSERT(Count != 0);
+    return Count;
+}
+
+DWORD
+CxPlatProcMaxCount(
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
+    DWORD ProcLength;
+    DWORD Count;
+
+    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+        CXPLAT_DBG_ASSERT(FALSE);
+        return 0;
+    }
+
+    Count = 0;
+    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
+        Count +=  ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
+    }
+    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_DBG_ASSERT(Count != 0);
+    return Count;
+}
+#endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -575,11 +678,15 @@ QuicEtwCallback(
     UNREFERENCED_PARAMETER(MatchAllKeyword);
     UNREFERENCED_PARAMETER(FilterData);
 
+    if (!QuicTraceRundownCallback) {
+        return;
+    }
+
     switch(ControlCode) {
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
-            QuicTraceRundown();
+            QuicTraceRundownCallback();
         }
         break;
     case EVENT_CONTROL_CODE_DISABLE_PROVIDER:

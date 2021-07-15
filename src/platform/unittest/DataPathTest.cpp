@@ -71,8 +71,15 @@ struct QuicAddr
 };
 
 struct UdpRecvContext {
-    QUIC_ADDR ServerAddress;
+    QUIC_ADDR DestinationAddress;
     CXPLAT_EVENT ClientCompletion;
+    CXPLAT_ECN_TYPE EcnType {CXPLAT_ECN_NON_ECT};
+    UdpRecvContext() {
+        CxPlatEventInitialize(&ClientCompletion, FALSE, FALSE);
+    }
+    ~UdpRecvContext() {
+        CxPlatEventUninitialize(ClientCompletion);
+    }
 };
 
 struct TcpClientContext {
@@ -103,7 +110,14 @@ struct TcpListenerContext {
         CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
     }
     ~TcpListenerContext() {
+        DeleteSocket();
         CxPlatEventUninitialize(AcceptEvent);
+    }
+    void DeleteSocket() {
+        if (Server) {
+            CxPlatSocketDelete(Server);
+            Server = nullptr;
+        }
     }
 };
 
@@ -218,16 +232,14 @@ protected:
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
             ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
-            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
+            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
-                auto ServerSendData =
-                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, 0);
+                ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
+
+                auto ServerSendData = CxPlatSendDataAlloc(Socket, RecvContext->EcnType, 0);
                 ASSERT_NE(nullptr, ServerSendData);
-
-                auto ServerBuffer =
-                    CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
+                auto ServerBuffer = CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerBuffer);
-
                 memcpy(ServerBuffer->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
@@ -235,60 +247,14 @@ protected:
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
-                        ServerSendData
-                    ));
+                        ServerSendData,
+                        0));
+
+            } else if (RecvData->Tuple->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+                CxPlatEventSet(RecvContext->ClientCompletion);
 
             } else {
-                CxPlatEventSet(RecvContext->ClientCompletion);
-            }
-
-            RecvData = RecvData->Next;
-        }
-
-        CxPlatRecvDataReturn(RecvDataChain);
-    }
-
-    static void
-    UdpDataRecvCallbackECT0(
-        _In_ CXPLAT_SOCKET* Socket,
-        _In_ void* Context,
-        _In_ CXPLAT_RECV_DATA* RecvDataChain
-        )
-    {
-        UdpRecvContext* RecvContext = (UdpRecvContext*)Context;
-        ASSERT_NE(nullptr, RecvContext);
-
-        CXPLAT_RECV_DATA* RecvData = RecvDataChain;
-
-        while (RecvData != NULL) {
-            ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
-            ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
-
-            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
-
-                CXPLAT_ECN_TYPE ecn = (CXPLAT_ECN_TYPE)RecvData->TypeOfService;
-
-                auto ServerSendData =
-                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_ECT_0, 0);
-                ASSERT_NE(nullptr, ServerSendData);
-
-                auto ServerBuffer =
-                    CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
-                ASSERT_NE(nullptr, ServerBuffer);
-                ASSERT_EQ(ecn, CXPLAT_ECN_ECT_0);
-
-                memcpy(ServerBuffer->Buffer, RecvData->Buffer, RecvData->BufferLength);
-
-                VERIFY_QUIC_SUCCESS(
-                    CxPlatSocketSend(
-                        Socket,
-                        &RecvData->Tuple->LocalAddress,
-                        &RecvData->Tuple->RemoteAddress,
-                        ServerSendData
-                    ));
-
-            } else {
-                CxPlatEventSet(RecvContext->ClientCompletion);
+                GTEST_NONFATAL_FAILURE_("Received on unexpected address!");
             }
 
             RecvData = RecvData->Next;
@@ -383,11 +349,6 @@ protected:
         EmptyUnreachableCallback,
     };
 
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpRecvECT0Callbacks = {
-        UdpDataRecvCallbackECT0,
-        EmptyUnreachableCallback,
-    };
-
     const CXPLAT_TCP_DATAPATH_CALLBACKS EmptyTcpCallbacks = {
         EmptyAcceptCallback,
         EmptyConnectCallback,
@@ -407,787 +368,570 @@ volatile uint16_t DataPathTest::NextPort;
 QuicAddr DataPathTest::LocalIPv4;
 QuicAddr DataPathTest::LocalIPv6;
 
+struct CxPlatDataPath {
+    CXPLAT_DATAPATH* Datapath {nullptr};
+    QUIC_STATUS InitStatus;
+    CxPlatDataPath(
+        _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+        _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks = nullptr,
+        _In_ uint32_t ClientRecvContextLength = 0
+        ) noexcept
+    {
+        InitStatus =
+            CxPlatDataPathInitialize(
+                ClientRecvContextLength,
+                UdpCallbacks,
+                TcpCallbacks,
+                &Datapath);
+    }
+    ~CxPlatDataPath() noexcept {
+        if (Datapath) {
+            CxPlatDataPathUninitialize(Datapath);
+        }
+    }
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    CxPlatDataPath(CxPlatDataPath& other) = delete;
+    CxPlatDataPath operator=(CxPlatDataPath& Other) = delete;
+    operator CXPLAT_DATAPATH* () const noexcept { return Datapath; }
+    uint32_t GetSupportedFeatures() const noexcept { return CxPlatDataPathGetSupportedFeatures(Datapath); }
+};
+
+struct CxPlatSocket {
+    CXPLAT_SOCKET* Socket {nullptr};
+    QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
+    CxPlatSocket() { }
+    CxPlatSocket(
+        _In_ CxPlatDataPath& Datapath,
+        _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
+        _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
+        _In_opt_ void* CallbackContext = nullptr,
+        _In_ uint32_t InternalFlags = 0
+        ) noexcept // UDP
+    {
+        CreateUdp(
+            Datapath,
+            LocalAddress,
+            RemoteAddress,
+            CallbackContext,
+            InternalFlags);
+    }
+    ~CxPlatSocket() noexcept {
+        if (Socket) {
+            CxPlatSocketDelete(Socket);
+        }
+    }
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    CxPlatSocket(CxPlatSocket& other) = delete;
+    CxPlatSocket operator=(CxPlatSocket& Other) = delete;
+    operator CXPLAT_SOCKET* () const noexcept { return Socket; }
+    void CreateUdp(
+        _In_ CxPlatDataPath& Datapath,
+        _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
+        _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
+        _In_opt_ void* CallbackContext = nullptr,
+        _In_ uint32_t InternalFlags = 0
+        ) noexcept
+    {
+        InitStatus =
+            CxPlatSocketCreateUdp(
+                Datapath,
+                LocalAddress,
+                RemoteAddress,
+                CallbackContext,
+                InternalFlags,
+                &Socket);
+#ifdef _WIN32
+        if (InitStatus == HRESULT_FROM_WIN32(WSAEACCES)) {
+            InitStatus = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(LocalAddress->Ipv4.sin_port) << std::endl;
+        }
+#endif //_WIN32
+    }
+    void CreateTcp(
+        _In_ CxPlatDataPath& Datapath,
+        _In_opt_ const QUIC_ADDR* LocalAddress,
+        _In_ const QUIC_ADDR* RemoteAddress,
+        _In_opt_ void* CallbackContext = nullptr
+        ) noexcept
+    {
+        InitStatus =
+            CxPlatSocketCreateTcp(
+                Datapath,
+                LocalAddress,
+                RemoteAddress,
+                CallbackContext,
+                &Socket);
+    }
+    void CreateTcpListener(
+        _In_ CxPlatDataPath& Datapath,
+        _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
+        _In_opt_ void* CallbackContext = nullptr
+        ) noexcept
+    {
+        InitStatus =
+            CxPlatSocketCreateTcpListener(
+                Datapath,
+                LocalAddress,
+                CallbackContext,
+                &Socket);
+#ifdef _WIN32
+        if (InitStatus == HRESULT_FROM_WIN32(WSAEACCES)) {
+            InitStatus = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(LocalAddress->Ipv4.sin_port) << std::endl;
+        }
+#endif //_WIN32
+    }
+    QUIC_ADDR GetLocalAddress() const noexcept {
+        QUIC_ADDR Addr;
+        CxPlatSocketGetLocalAddress(Socket, &Addr);
+        return Addr;
+    }
+    QUIC_ADDR GetRemoteAddress() const noexcept {
+        QUIC_ADDR Addr;
+        CxPlatSocketGetRemoteAddress(Socket, &Addr);
+        return Addr;
+    }
+    QUIC_STATUS
+    Send(
+        _In_ const QUIC_ADDR& LocalAddress,
+        _In_ const QUIC_ADDR& RemoteAddress,
+        _In_ CXPLAT_SEND_DATA* SendData,
+        _In_ uint16_t PartitionId = 0
+        ) const noexcept
+    {
+        return
+            CxPlatSocketSend(
+                Socket,
+                &LocalAddress,
+                &RemoteAddress,
+                SendData,
+                PartitionId);
+    }
+    QUIC_STATUS
+    Send(
+        _In_ const QUIC_ADDR& RemoteAddress,
+        _In_ CXPLAT_SEND_DATA* SendData,
+        _In_ uint16_t PartitionId = 0
+        ) const noexcept
+    {
+        return Send(GetLocalAddress(), RemoteAddress, SendData, PartitionId);
+    }
+    QUIC_STATUS
+    Send(
+        _In_ CXPLAT_SEND_DATA* SendData,
+        _In_ uint16_t PartitionId = 0
+        ) const noexcept
+    {
+        return Send(GetLocalAddress(), GetRemoteAddress(), SendData, PartitionId);
+    }
+};
+
 TEST_F(DataPathTest, Initialize)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            &EmptyUdpCallbacks,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            &EmptyTcpCallbacks,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
+    {
+        CxPlatDataPath Datapath(nullptr);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
+    {
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
+    {
+        CxPlatDataPath Datapath(nullptr, &EmptyTcpCallbacks);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
 }
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
-    const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks1 = {
-        nullptr,
-        EmptyUnreachableCallback,
-    };
-    const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks2 = {
-        EmptyReceiveCallback,
-        nullptr,
-    };
-
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            nullptr,
-            nullptr));
-
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        CxPlatDataPathInitialize(
-            0,
-            &InvalidUdpCallbacks1,
-            nullptr,
-            &Datapath));
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        CxPlatDataPathInitialize(
-            0,
-            &InvalidUdpCallbacks2,
-            nullptr,
-            &Datapath));
+    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr));
+    {
+        const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks = { nullptr, EmptyUnreachableCallback };
+        CxPlatDataPath Datapath(&InvalidUdpCallbacks);
+        ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+    }
+    {
+        const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks = { EmptyReceiveCallback, nullptr };
+        CxPlatDataPath Datapath(&InvalidUdpCallbacks);
+        ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+    }
 }
 
 TEST_F(DataPathTest, UdpBind)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* Socket = nullptr;
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            &EmptyUdpCallbacks,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            nullptr,
-            nullptr,
-            0,
-            &Socket));
-    ASSERT_NE(nullptr, Socket);
-
-    QUIC_ADDR Address;
-    CxPlatSocketGetLocalAddress(Socket, &Address);
-    ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
-
-    CxPlatSocketDelete(Socket);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
+    CxPlatSocket Socket(Datapath);
+    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+    ASSERT_NE(nullptr, Socket.Socket);
+    ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
 TEST_F(DataPathTest, UdpRebind)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* binding1 = nullptr;
-    CXPLAT_SOCKET* binding2 = nullptr;
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            &EmptyUdpCallbacks,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(nullptr, Datapath);
+    CxPlatSocket Socket1(Datapath);
+    VERIFY_QUIC_SUCCESS(Socket1.GetInitStatus());
+    ASSERT_NE(nullptr, Socket1.Socket);
+    ASSERT_NE(Socket1.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            nullptr,
-            nullptr,
-            0,
-            &binding1));
-    ASSERT_NE(nullptr, binding1);
-
-    QUIC_ADDR Address1;
-    CxPlatSocketGetLocalAddress(binding1, &Address1);
-    ASSERT_NE(Address1.Ipv4.sin_port, (uint16_t)0);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            nullptr,
-            nullptr,
-            0,
-            &binding2));
-    ASSERT_NE(nullptr, binding2);
-
-    QUIC_ADDR Address2;
-    CxPlatSocketGetLocalAddress(binding2, &Address2);
-    ASSERT_NE(Address2.Ipv4.sin_port, (uint16_t)0);
-
-    CxPlatSocketDelete(binding1);
-    CxPlatSocketDelete(binding2);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
+    CxPlatSocket Socket2(Datapath);
+    VERIFY_QUIC_SUCCESS(Socket2.GetInitStatus());
+    ASSERT_NE(nullptr, Socket2.Socket);
+    ASSERT_NE(Socket2.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
 TEST_P(DataPathTest, UdpData)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* server = nullptr;
-    CXPLAT_SOCKET* client = nullptr;
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
     auto serverAddress = GetNewLocalAddr();
-
-    UdpRecvContext RecvContext = {};
-
-    CxPlatEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpRecvCallbacks,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(nullptr, Datapath);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateUdp(
-                Datapath,
-                &serverAddress.SockAddr,
-                nullptr,
-                &RecvContext,
-                0,
-                &server);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, server);
-    CxPlatSocketGetLocalAddress(server, &RecvContext.ServerAddress);
-    ASSERT_NE(RecvContext.ServerAddress.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
+    VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
+    ASSERT_NE(nullptr, Server.Socket);
+    RecvContext.DestinationAddress = Server.GetLocalAddress();
+    ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &RecvContext,
-            0,
-            &client));
-    ASSERT_NE(nullptr, client);
+    CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
+    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendData);
-
-    auto ClientBuffer =
-        CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
-
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    QUIC_ADDR ClientAddress;
-    CxPlatSocketGetLocalAddress(client, &ClientAddress);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketSend(
-            client,
-            &ClientAddress,
-            &serverAddress.SockAddr,
-            ClientSendData));
-
+    VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-
-    CxPlatSocketDelete(client);
-    CxPlatSocketDelete(server);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
-
-    CxPlatEventUninitialize(RecvContext.ClientCompletion);
 }
 
 TEST_P(DataPathTest, UdpDataRebind)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* server = nullptr;
-    CXPLAT_SOCKET* client = nullptr;
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
     auto serverAddress = GetNewLocalAddr();
-
-    UdpRecvContext RecvContext = {};
-
-    CxPlatEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpRecvCallbacks,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(nullptr, Datapath);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateUdp(
-                Datapath,
-                &serverAddress.SockAddr,
-                nullptr,
-                &RecvContext,
-                0,
-                &server);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, server);
-    CxPlatSocketGetLocalAddress(server, &RecvContext.ServerAddress);
-    ASSERT_NE(RecvContext.ServerAddress.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
+    VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
+    ASSERT_NE(nullptr, Server.Socket);
+    RecvContext.DestinationAddress = Server.GetLocalAddress();
+    ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &RecvContext,
-            0,
-            &client));
-    ASSERT_NE(nullptr, client);
+    {
+        CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+        VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+        ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
-    ASSERT_NE(nullptr, ClientSendData);
+        auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+        ASSERT_NE(nullptr, ClientSendData);
+        auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+        ASSERT_NE(nullptr, ClientBuffer);
+        memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    auto ClientBuffer =
-        CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
-    ASSERT_NE(nullptr, ClientBuffer);
+        VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+        ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+        CxPlatEventReset(RecvContext.ClientCompletion);
+    }
 
-    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
+    {
+        CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+        VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+        ASSERT_NE(nullptr, Client.Socket);
 
-    QUIC_ADDR ClientAddress;
-    CxPlatSocketGetLocalAddress(client, &ClientAddress);
+        auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+        ASSERT_NE(nullptr, ClientSendData);
+        auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+        ASSERT_NE(nullptr, ClientBuffer);
+        memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketSend(
-            client,
-            &ClientAddress,
-            &serverAddress.SockAddr,
-            ClientSendData));
-
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-
-    CxPlatSocketDelete(client);
-    client = nullptr;
-    CxPlatEventReset(RecvContext.ClientCompletion);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &RecvContext,
-            0,
-            &client));
-    ASSERT_NE(nullptr, client);
-
-    ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
-    ASSERT_NE(nullptr, ClientSendData);
-
-    ClientBuffer =
-        CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
-    ASSERT_NE(nullptr, ClientBuffer);
-
-    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
-
-    CxPlatSocketGetLocalAddress(client, &ClientAddress);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketSend(
-            client,
-            &ClientAddress,
-            &serverAddress.SockAddr,
-            ClientSendData));
-
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-
-    CxPlatSocketDelete(client);
-    CxPlatSocketDelete(server);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
-
-    CxPlatEventUninitialize(RecvContext.ClientCompletion);
+        VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+        ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    }
 }
 
 TEST_P(DataPathTest, UdpDataECT0)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* server = nullptr;
-    CXPLAT_SOCKET* client = nullptr;
+    UdpRecvContext RecvContext;
+    RecvContext.EcnType = CXPLAT_ECN_ECT_0;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
     auto serverAddress = GetNewLocalAddr();
-
-    UdpRecvContext RecvContext = {};
-
-    CxPlatEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            &UdpRecvECT0Callbacks,
-            nullptr,
-            &Datapath));
-    ASSERT_NE(nullptr, Datapath);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateUdp(
-                Datapath,
-                &serverAddress.SockAddr,
-                nullptr,
-                &RecvContext,
-                0,
-                &server);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, server);
-    CxPlatSocketGetLocalAddress(server, &RecvContext.ServerAddress);
-    ASSERT_NE(RecvContext.ServerAddress.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
+    VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
+    ASSERT_NE(nullptr, Server.Socket);
+    RecvContext.DestinationAddress = Server.GetLocalAddress();
+    ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateUdp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &RecvContext,
-            0,
-            &client));
-    ASSERT_NE(nullptr, client);
+    CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_ECT_0, 0);
+    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_ECT_0, 0);
     ASSERT_NE(nullptr, ClientSendData);
-
-    auto ClientBuffer =
-        CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
-
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    QUIC_ADDR ClientAddress;
-    CxPlatSocketGetLocalAddress(client, &ClientAddress);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketSend(
-            client,
-            &ClientAddress,
-            &serverAddress.SockAddr,
-            ClientSendData));
-
+    VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-
-    CxPlatSocketDelete(client);
-    CxPlatSocketDelete(server);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
-
-    CxPlatEventUninitialize(RecvContext.ClientCompletion);
 }
 
+TEST_P(DataPathTest, UdpShareClientSocket)
+{
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+    if (!(Datapath.GetSupportedFeatures() & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING)) {
+        std::cout << "SKIP: Sharing Feature Unsupported" << std::endl;
+        return;
+    }
+
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Server1(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server1.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    }
+    VERIFY_QUIC_SUCCESS(Server1.GetInitStatus());
+
+    serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+    CxPlatSocket Server2(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    while (Server2.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server2.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    }
+    VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
+
+    serverAddress.SockAddr = Server1.GetLocalAddress();
+    CxPlatSocket Client1(Datapath, nullptr, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
+    VERIFY_QUIC_SUCCESS(Client1.GetInitStatus());
+
+    auto clientAddress = Client1.GetLocalAddress();
+    serverAddress.SockAddr = Server2.GetLocalAddress();
+    CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
+    VERIFY_QUIC_SUCCESS(Client2.GetInitStatus());
+
+    auto ClientSendData = CxPlatSendDataAlloc(Client1, CXPLAT_ECN_NON_ECT, 0);
+    ASSERT_NE(nullptr, ClientSendData);
+    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    ASSERT_NE(nullptr, ClientBuffer);
+    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
+
+    RecvContext.DestinationAddress = Server1.GetLocalAddress();
+    VERIFY_QUIC_SUCCESS(Client1.Send(ClientSendData));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    CxPlatEventReset(RecvContext.ClientCompletion);
+
+    ClientSendData = CxPlatSendDataAlloc(Client2, CXPLAT_ECN_NON_ECT, 0);
+    ASSERT_NE(nullptr, ClientSendData);
+    ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    ASSERT_NE(nullptr, ClientBuffer);
+    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
+
+    RecvContext.DestinationAddress = Server2.GetLocalAddress();
+    VERIFY_QUIC_SUCCESS(Client2.Send(ClientSendData));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    CxPlatEventReset(RecvContext.ClientCompletion);
+}
+
+#if WIN32
 TEST_F(DataPathTest, TcpListener)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* Socket = nullptr;
+    CxPlatDataPath Datapath(nullptr, &EmptyTcpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     TcpListenerContext ListenerContext;
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            &EmptyTcpCallbacks,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateTcpListener(
-            Datapath,
-            nullptr,
-            &ListenerContext,
-            &Socket));
-    ASSERT_NE(nullptr, Socket);
-
-    QUIC_ADDR Address;
-    CxPlatSocketGetLocalAddress(Socket, &Address);
-    ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
-
-    CxPlatSocketDelete(Socket);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, nullptr, &ListenerContext);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
 TEST_P(DataPathTest, TcpConnect)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* Listener = nullptr;
-    CXPLAT_SOCKET* Client = nullptr;
-    auto serverAddress = GetNewLocalAddr();
+    CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     TcpListenerContext ListenerContext;
-    TcpClientContext ClientContext;
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            &TcpRecvCallbacks,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    while (Listener.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateTcpListener(
-                Datapath,
-                &serverAddress.SockAddr,
-                &ListenerContext,
-                &Listener);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, Listener);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    serverAddress.SockAddr = Listener.GetLocalAddress();
+    ASSERT_NE(serverAddress.SockAddr.Ipv4.sin_port, (uint16_t)0);
 
-    QUIC_ADDR Address;
-    CxPlatSocketGetLocalAddress(Listener, &Address);
-    ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(Address.Ipv4.sin_port);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateTcp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &ClientContext,
-            &Client));
-    ASSERT_NE(nullptr, Client);
+    TcpClientContext ClientContext;
+    CxPlatSocket Client; Client.CreateTcp(Datapath, nullptr, &serverAddress.SockAddr, &ClientContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+    ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    CxPlatSocketDelete(ListenerContext.Server);
-    ListenerContext.Server = nullptr;
+    ListenerContext.DeleteSocket();
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 100));
-
-    CxPlatSocketDelete(Client);
-    CxPlatSocketDelete(Listener);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
 }
 
 TEST_P(DataPathTest, TcpDisconnect)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* Listener = nullptr;
-    CXPLAT_SOCKET* Client = nullptr;
-    auto serverAddress = GetNewLocalAddr();
+    CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     TcpListenerContext ListenerContext;
-    TcpClientContext ClientContext;
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            &TcpRecvCallbacks,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    while (Listener.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateTcpListener(
-                Datapath,
-                &serverAddress.SockAddr,
-                &ListenerContext,
-                &Listener);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, Listener);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    serverAddress.SockAddr = Listener.GetLocalAddress();
+    ASSERT_NE(serverAddress.SockAddr.Ipv4.sin_port, (uint16_t)0);
 
-    QUIC_ADDR Address;
-    CxPlatSocketGetLocalAddress(Listener, &Address);
-    ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(Address.Ipv4.sin_port);
+    {
+        TcpClientContext ClientContext;
+        CxPlatSocket Client; Client.CreateTcp(Datapath, nullptr, &serverAddress.SockAddr, &ClientContext);
+        VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+        ASSERT_NE(nullptr, Client.Socket);
+        ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateTcp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &ClientContext,
-            &Client));
-    ASSERT_NE(nullptr, Client);
-
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
-    ASSERT_NE(nullptr, ListenerContext.Server);
-
-    CxPlatSocketDelete(Client);
+        ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
+        ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+        ASSERT_NE(nullptr, ListenerContext.Server);
+    }
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.DisconnectEvent, 100));
-
-    CxPlatSocketDelete(ListenerContext.Server);
-    CxPlatSocketDelete(Listener);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
 }
 
 TEST_P(DataPathTest, TcpDataClient)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* Listener = nullptr;
-    CXPLAT_SOCKET* Client = nullptr;
-    auto serverAddress = GetNewLocalAddr();
+    CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     TcpListenerContext ListenerContext;
-    TcpClientContext ClientContext;
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            &TcpRecvCallbacks,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    while (Listener.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateTcpListener(
-                Datapath,
-                &serverAddress.SockAddr,
-                &ListenerContext,
-                &Listener);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, Listener);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    serverAddress.SockAddr = Listener.GetLocalAddress();
+    ASSERT_NE(serverAddress.SockAddr.Ipv4.sin_port, (uint16_t)0);
 
-    QUIC_ADDR ServerAddress;
-    CxPlatSocketGetLocalAddress(Listener, &ServerAddress);
-    ASSERT_NE(ServerAddress.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(ServerAddress.Ipv4.sin_port);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateTcp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &ClientContext,
-            &Client));
-    ASSERT_NE(nullptr, Client);
-
-    QUIC_ADDR ClientAddress;
-    CxPlatSocketGetLocalAddress(Client, &ClientAddress);
+    TcpClientContext ClientContext;
+    CxPlatSocket Client; Client.CreateTcp(Datapath, nullptr, &serverAddress.SockAddr, &ClientContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+    ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    auto SendData =
-        CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+    auto SendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, SendData);
-
-    auto SendBuffer =
-        CxPlatSendDataAllocBuffer(SendData, ExpectedDataSize);
+    auto SendBuffer = CxPlatSendDataAllocBuffer(SendData, ExpectedDataSize);
     ASSERT_NE(nullptr, SendBuffer);
-
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketSend(
-            Client,
-            &ServerAddress,
-            &ClientAddress,
-            SendData));
-
+    VERIFY_QUIC_SUCCESS(Client.Send(SendData));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 100));
-
-    CxPlatSocketDelete(Client);
-    CxPlatSocketDelete(ListenerContext.Server);
-    CxPlatSocketDelete(Listener);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
 }
 
 TEST_P(DataPathTest, TcpDataServer)
 {
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    CXPLAT_SOCKET* Listener = nullptr;
-    CXPLAT_SOCKET* Client = nullptr;
-    auto serverAddress = GetNewLocalAddr();
+    CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
 
     TcpListenerContext ListenerContext;
-    TcpClientContext ClientContext;
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatDataPathInitialize(
-            0,
-            nullptr,
-            &TcpRecvCallbacks,
-            &Datapath));
-    ASSERT_NE(Datapath, nullptr);
-
-    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
-    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    while (Listener.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Status =
-            CxPlatSocketCreateTcpListener(
-                Datapath,
-                &serverAddress.SockAddr,
-                &ListenerContext,
-                &Listener);
-#ifdef _WIN32
-        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
-                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
-        }
-#endif //_WIN32
+        Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
     }
-    VERIFY_QUIC_SUCCESS(Status);
-    ASSERT_NE(nullptr, Listener);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    serverAddress.SockAddr = Listener.GetLocalAddress();
+    ASSERT_NE(serverAddress.SockAddr.Ipv4.sin_port, (uint16_t)0);
 
-    QUIC_ADDR ServerAddress;
-    CxPlatSocketGetLocalAddress(Listener, &ServerAddress);
-    ASSERT_NE(ServerAddress.Ipv4.sin_port, (uint16_t)0);
-    serverAddress.SetPort(ServerAddress.Ipv4.sin_port);
-
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketCreateTcp(
-            Datapath,
-            nullptr,
-            &serverAddress.SockAddr,
-            &ClientContext,
-            &Client));
-    ASSERT_NE(nullptr, Client);
-
-    QUIC_ADDR ClientAddress;
-    CxPlatSocketGetLocalAddress(Client, &ClientAddress);
+    TcpClientContext ClientContext;
+    CxPlatSocket Client; Client.CreateTcp(Datapath, nullptr, &serverAddress.SockAddr, &ClientContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+    ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    auto SendData =
-        CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0);
+    auto SendData = CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, SendData);
-
-    auto SendBuffer =
-        CxPlatSendDataAllocBuffer(SendData, ExpectedDataSize);
+    auto SendBuffer = CxPlatSendDataAllocBuffer(SendData, ExpectedDataSize);
     ASSERT_NE(nullptr, SendBuffer);
-
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
+
+    QUIC_ADDR ServerAddress = Listener.GetLocalAddress();
+    QUIC_ADDR ClientAddress = Client.GetLocalAddress();
 
     VERIFY_QUIC_SUCCESS(
         CxPlatSocketSend(
             ListenerContext.Server,
             &ServerAddress,
             &ClientAddress,
-            SendData));
-
+            SendData, 0));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
-
-    CxPlatSocketDelete(Client);
-    CxPlatSocketDelete(ListenerContext.Server);
-    CxPlatSocketDelete(Listener);
-
-    CxPlatDataPathUninitialize(
-        Datapath);
 }
+#endif // WIN32
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());

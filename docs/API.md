@@ -67,18 +67,22 @@ This doesn't mean the app isn't allowed to do any work in the callback. In fact,
 
 One important aspect of this design is that all blocking calls invoked on a callback always happen inline (to prevent deadlocks), and will supercede any calls in progress or queued from a separate thread.
 
+## Settings and Configuration
+
+MsQuic supports a variety of configuration options available to both application developers and administrators deploying MsQuic. See [Settings](Settings.md) for a detailed explanation of these settings and configuration options.
+
 # API Objects
 
 ## Library Function Table
 
 There are only two top level functions:
 
-- [MsQuicOpen](api/MsQuicOpen.md) - Initializes the MsQuic library and returns a the API function table.
-- [MsQuicClose](api/MsQuicClose.md) - Cleans up the function table and releases the library reference from the previous [MsQuicOpen](api/MsQuicOpen.md) call.
+- [MsQuicOpenVersion](api/MsQuicOpenVersion.md) - Initializes the MsQuic library and returns a the API function table.
+- [MsQuicClose](api/MsQuicClose.md) - Cleans up the function table and releases the library reference from the previous [MsQuicOpenVersion](api/MsQuicOpenVersion.md) call.
 
-When the app is done with the MsQuic library, it **must** call [MsQuicClose](api/MsQuicClose.md) and pass in the function table it received from [MsQuicOpen](api/MsQuicOpen.md). This allows for the library state to be cleaned up.
+When the app is done with the MsQuic library, it **must** call [MsQuicClose](api/MsQuicClose.md) and pass in the function table it received from [MsQuicOpenVersion](api/MsQuicOpenVersion.md). This allows for the library state to be cleaned up.
 
-Please note, there is no explicit start/stop API for this library. Each API function table has a reference on the QUIC library: the library is initialized when the first call to [MsQuicOpen](api/MsQuicOpen.md) succeeds and uninitialized when the last call to [MsQuicClose](api/MsQuicClose.md) completes. An app should therefore beware of repeatedly calling [MsQuicOpen](api/MsQuicOpen.md) and [MsQuicClose](api/MsQuicClose.md), as library setup/cleanup can be expensive.
+Please note, there is no explicit start/stop API for this library. Each API function table has a reference on the QUIC library: the library is initialized when the first call to [MsQuicOpenVersion](api/MsQuicOpenVersion.md) succeeds and uninitialized when the last call to [MsQuicClose](api/MsQuicClose.md) completes. An app should therefore beware of repeatedly calling [MsQuicOpenVersion](api/MsQuicOpenVersion.md) and [MsQuicClose](api/MsQuicClose.md), as library setup/cleanup can be expensive.
 
 ## Registration
 
@@ -124,6 +128,6 @@ Once the stream handle is available and started, the app can start receiving eve
 
 ## Datagrams
 
-MsQuic supports the [unreliable datagram extension](https://tools.ietf.org/html/draft-ietf-quic-datagram) which allows for the app to send and receive unreliable (i.e. not retransmitted on packet loss) data securely. To enable support for receiving datagrams, the app must set `DatagramReceiveEnabled` to `TRUE` in its `QUIC_SETTINGS`. During the handshake, support for receiving datagrams is negotiated between endpoints. The app receives the `QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED` event to indicate if the peer supports receiving datagrams (and what the current maximum size is).
+MsQuic supports the [unreliable datagram extension](https://tools.ietf.org/html/draft-ietf-quic-datagram) which allows for the app to send and receive unreliable (i.e. not retransmitted on packet loss) data securely. To enable support for receiving datagrams, the app must set `DatagramReceiveEnabled` to `TRUE` in its [QUIC_SETTINGS](api/QUIC_SETTINGS.md). During the handshake, support for receiving datagrams is negotiated between endpoints. The app receives the `QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED` event to indicate if the peer supports receiving datagrams (and what the current maximum size is).
 
 If the peer has enabled receiving datagrams, then an app may call [DatagramSend](api/DatagramSend.md). If/when the app receives a datagram from the peer it will receive a `QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED` event.

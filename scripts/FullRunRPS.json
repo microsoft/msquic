@@ -9,7 +9,7 @@
             "TestName": "RPS",
             "Local": {
                 "Platform": "Windows",
-                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
                 "Arguments": "-test:RPS -target:$RemoteAddress"

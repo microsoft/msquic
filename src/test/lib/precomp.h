@@ -17,10 +17,10 @@
 
 #include "TestAbstractionLayer.h"
 
-#include <msquic.h>
-#include <msquicp.h>
-#include <quic_versions.h>
-#include <quic_trace.h>
+#include "msquic.h"
+#include "msquicp.h"
+#include "quic_versions.h"
+#include "quic_trace.h"
 
 #ifdef _KERNEL_MODE
 #ifdef PAGEDX

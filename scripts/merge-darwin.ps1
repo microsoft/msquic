@@ -20,8 +20,11 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = ""
+    [ValidateSet("schannel", "openssl")]
+    [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DeleteSource = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -60,4 +63,9 @@ foreach ($X64Artifact in $X64Artifacts) {
     $UniversalArtifact = Join-Path $UniversalArtifactsDir $X64Artifact.Name
 
     lipo -create -output $UniversalArtifact $X64Artifact $ArmArtifact
+}
+
+if ($DeleteSource) {
+    Remove-Item -Path $X64ArtifactsDir -Recurse -Force
+    Remove-Item -Path $Arm64ArtifactsDir -Recurse -Force
 }

@@ -23,11 +23,11 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "universal")]
     [string]$Arch,
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl")]
     [string]$Tls
 )
 

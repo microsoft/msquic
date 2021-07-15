@@ -19,10 +19,8 @@
 #include "quic_versions.h"
 #include "quic_trace.h"
 
-#include <msquic.h>
-#include <msquicp.h>
-
-#define CXPLAT_CREDENTIAL_TYPE_NULL ((QUIC_CREDENTIAL_TYPE)0xF0000000)    // Stub-only special case type
+#include "msquic.h"
+#include "msquicp.h"
 
 #ifdef QUIC_FUZZER
 #include "msquic_fuzz.h"
@@ -43,20 +41,37 @@
 
 typedef struct CX_PLATFORM {
 
-    PDRIVER_OBJECT DriverObject;
-
     //
     // Random number algorithm loaded for DISPATCH_LEVEL usage.
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
 
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    long AllocCounter;
+#endif
+
 } CX_PLATFORM;
 
 #elif _WIN32
 
+#pragma warning(push)
+#pragma warning(disable:6385) // Invalid data: accessing [buffer-name], the readable size is size1 bytes but size2 bytes may be read
+#pragma warning(disable:6101) // Returning uninitialized memory
 #include <ws2tcpip.h>
-#include <mswsock.h>
 #include <mstcpip.h>
+#pragma warning(pop)
+
+#include <mswsock.h>
+
 #if DEBUG
 #include <crtdbg.h>
 #endif
@@ -70,6 +85,19 @@ typedef struct CX_PLATFORM {
     //
     HANDLE Heap;
 
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    long AllocCounter;
+#endif
+
 } CX_PLATFORM;
 
 #elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
@@ -77,6 +105,19 @@ typedef struct CX_PLATFORM {
 typedef struct CX_PLATFORM {
 
     void* Reserved; // Nothing right now.
+
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    long AllocCounter;
+#endif
 
 } CX_PLATFORM;
 
@@ -93,11 +134,6 @@ typedef struct CX_PLATFORM {
 // Global Platform variables/state.
 //
 extern CX_PLATFORM CxPlatform;
-
-//
-// Internal flags used with CxPlatSocketCreateUdp
-//
-#define CXPLAT_SOCKET_FLAG_PCP  0x00000001
 
 //
 // PCP Receive Callback
@@ -170,15 +206,15 @@ CxPlatConvertFromMappedV6(
 #endif
 
 //
-// TLS Initialization
+// Crypt Initialization
 //
 
 QUIC_STATUS
-CxPlatTlsLibraryInitialize(
+CxPlatCryptInitialize(
     void
     );
 
 void
-CxPlatTlsLibraryUninitialize(
+CxPlatCryptUninitialize(
     void
     );

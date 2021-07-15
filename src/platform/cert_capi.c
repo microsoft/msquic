@@ -20,7 +20,7 @@ Environment:
 #endif
 
 #include <wincrypt.h>
-#include <msquic.h>
+#include "msquic.h"
 
 typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;
@@ -368,31 +368,40 @@ CxPlatCertStoreFind(
     )
 {
     PCSTR OID_SERVER_AUTH = szOID_PKIX_KP_SERVER_AUTH;
+    PCSTR OID_CLIENT_AUTH = szOID_PKIX_KP_CLIENT_AUTH;
     CERT_ENHKEY_USAGE Usage;
     Usage.cUsageIdentifier = 1;
     Usage.rgpszUsageIdentifier = (LPSTR*)&OID_SERVER_AUTH;
 
-    PCCERT_CONTEXT CertCtx;
-    for (PCCERT_CONTEXT PrevCertCtx = NULL;
-        (CertCtx =
-            CertFindCertificateInStore(
-                CertStore,
-                X509_ASN_ENCODING,
-                CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG, // FindFlags
-                CERT_FIND_ENHKEY_USAGE,
-                &Usage,
-                PrevCertCtx)) != NULL;
-        PrevCertCtx = CertCtx) {
-
-        if (CertHash != NULL && !CxPlatCertMatchHash(CertCtx, CertHash)) {
-            continue;
+    for (int i = 0; i < 2; ++i) {
+        if (i == 0) {
+            Usage.rgpszUsageIdentifier = (LPSTR*)&OID_SERVER_AUTH;
+        } else if (i == 1) {
+            Usage.rgpszUsageIdentifier = (LPSTR*)&OID_CLIENT_AUTH;
         }
 
-        if (Principal != NULL && !CxPlatCertMatchPrincipal(CertCtx, Principal)) {
-            continue;
-        }
+        PCCERT_CONTEXT CertCtx;
+        for (PCCERT_CONTEXT PrevCertCtx = NULL;
+            (CertCtx =
+                CertFindCertificateInStore(
+                    CertStore,
+                    X509_ASN_ENCODING,
+                    CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG, // FindFlags
+                    CERT_FIND_ENHKEY_USAGE,
+                    &Usage,
+                    PrevCertCtx)) != NULL;
+            PrevCertCtx = CertCtx) {
 
-        return CertCtx;
+            if (CertHash != NULL && !CxPlatCertMatchHash(CertCtx, CertHash)) {
+                continue;
+            }
+
+            if (Principal != NULL && !CxPlatCertMatchPrincipal(CertCtx, Principal)) {
+                continue;
+            }
+
+            return CertCtx;
+        }
     }
 
     return NULL;
@@ -555,11 +564,11 @@ CxPlatCertFree(
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatCertSelect(
-    _In_opt_ PCCERT_CONTEXT CertCtx,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_reads_(SignatureAlgorithmsLength)
-        const UINT16 *SignatureAlgorithms,
+        const uint16_t *SignatureAlgorithms,
     _In_ size_t SignatureAlgorithmsLength,
-    _Out_ UINT16 *SelectedSignature
+    _Out_ uint16_t *SelectedSignature
     )
 {
     //
@@ -568,6 +577,8 @@ CxPlatCertSelect(
     // Low byte of SignatureAlgorithms[] is the TLS SignatureAlgorithm:
     //  anonymous(0), rsa(1), dsa(2), ecdsa(3)
     //
+    
+    PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
 
     if (CertCtx == NULL) {
         *SelectedSignature = SignatureAlgorithms[0];
@@ -791,7 +802,7 @@ CxPlatCertVerifyCertChainPolicy(
     memset(&HttpsPolicy, 0, sizeof(HTTPSPolicyCallbackData));
     HttpsPolicy.cbStruct = sizeof(HTTPSPolicyCallbackData);
     HttpsPolicy.dwAuthType = AUTHTYPE_SERVER;
-    HttpsPolicy.fdwChecks = IgnoreFlags;
+    HttpsPolicy.fdwChecks = 0;
     HttpsPolicy.pwszServerName = ServerName;
 
     memset(&PolicyPara, 0, sizeof(PolicyPara));
@@ -814,6 +825,12 @@ CxPlatCertVerifyCertChainPolicy(
             "CertVerifyCertificateChainPolicy failed");
         goto Exit;
 
+    } else if (PolicyStatus.dwError == CRYPT_E_NO_REVOCATION_CHECK &&
+        (IgnoreFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK)) {
+        Status = NO_ERROR;
+    } else if (PolicyStatus.dwError == CRYPT_E_REVOCATION_OFFLINE &&
+        (IgnoreFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        Status = NO_ERROR;
     } else if (PolicyStatus.dwError != NO_ERROR) {
 
         Status = PolicyStatus.dwError;
@@ -842,6 +859,7 @@ BOOLEAN
 CxPlatCertValidateChain(
     _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
+    _In_ uint32_t CertFlags,
     _In_ uint32_t IgnoreFlags
     )
 {
@@ -871,7 +889,7 @@ CxPlatCertValidateChain(
             NULL,
             LeafCertCtx->hCertStore,
             &ChainPara,
-            0,
+            CertFlags,
             NULL,
             &ChainContext)) {
         QuicTraceEvent(

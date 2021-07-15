@@ -85,7 +85,8 @@ QuicPacketTypeToEncryptLevel(
 #define QUIC_CONN_SEND_FLAG_PING                    0x00001000U
 #define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000U
 #define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000U
-#define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000U
+#define QUIC_CONN_SEND_FLAG_ACK_FREQUENCY           0x00008000U
+#define QUIC_CONN_SEND_FLAG_DPLPMTUD                0x80000000U
 
 //
 // Flags that aren't blocked by congestion control.
@@ -113,7 +114,8 @@ QuicPacketTypeToEncryptLevel(
     QUIC_CONN_SEND_FLAG_PATH_RESPONSE | \
     QUIC_CONN_SEND_FLAG_PING | \
     QUIC_CONN_SEND_FLAG_DATAGRAM | \
-    QUIC_CONN_SEND_FLAG_PMTUD \
+    QUIC_CONN_SEND_FLAG_ACK_FREQUENCY | \
+    QUIC_CONN_SEND_FLAG_DPLPMTUD \
 )
 
 //
@@ -308,6 +310,16 @@ QuicSendQueueFlushForStream(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
+    );
+
+//
+// Updates the stream's order in response to a priority change.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendUpdateStreamPriority(
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream
     );
 
 //

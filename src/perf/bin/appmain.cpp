@@ -29,8 +29,6 @@ typedef struct {
 
 #endif
 
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 QUIC_STATUS
 QuicHandleRpsClient(
     _In_reads_(Length) uint8_t* ExtraData,
@@ -48,7 +46,7 @@ QuicHandleRpsClient(
     ExtraData += sizeof(CachedCompletedRequests);
     uint32_t RestOfBufferLength = Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
-    uint32_t MaxCount = min(CachedCompletedRequests, RestOfBufferLength);
+    uint32_t MaxCount = CXPLAT_MIN(CachedCompletedRequests, RestOfBufferLength);
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
     if (RPS == 0) {
@@ -111,7 +109,7 @@ QuicUserMain(
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
     _In_opt_z_ const char* FileName
     ) {
-    EventScope StopEvent {true};
+    CxPlatEvent StopEvent {true};
 
     QUIC_STATUS Status;
 
@@ -221,6 +219,7 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    QuicDriverService MsQuicPrivDriverService;
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
 
@@ -231,14 +230,31 @@ QuicKernelMain(
         DependentDriverNames = "msquic\0";
     }
 
+    if (PrivateTestLibrary) {
+        if (!MsQuicPrivDriverService.Initialize("msquicpriv", "")) {
+            printf("Failed to initialize msquicpriv driver service\n");
+            CXPLAT_FREE(Data, QUIC_POOL_PERF);
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+        if (!MsQuicPrivDriverService.Start()) {
+            printf("Starting msquicpriv Driver Service Failed\n");
+            MsQuicPrivDriverService.Uninitialize();
+            CXPLAT_FREE(Data, QUIC_POOL_PERF);
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+
     if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
+        MsQuicPrivDriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
         DriverService.Uninitialize();
+        MsQuicPrivDriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -252,6 +268,7 @@ QuicKernelMain(
     if (!DriverClient.Initialize(&CertParams, DriverName)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
+        MsQuicPrivDriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -340,6 +357,7 @@ QuicKernelMain(
 
     DriverClient.Uninitialize();
     DriverService.Uninitialize();
+    MsQuicPrivDriverService.Uninitialize();
 
     return RunSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }
@@ -352,6 +370,7 @@ main(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
     bool KeyboardWait = false;
@@ -369,9 +388,10 @@ main(
     int ArgCount = 0;
 
     CxPlatSystemLoad();
-    if (QUIC_FAILED(CxPlatInitialize())) {
+    if (QUIC_FAILED(Status = CxPlatInitialize())) {
         printf("Platform failed to initialize\n");
-        goto Exit;
+        CxPlatSystemUnload();
+        return Status;
     }
 
     for (int i = 0; i < argc; ++i) {

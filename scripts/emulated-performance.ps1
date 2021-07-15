@@ -34,6 +34,9 @@ be in the current directory.
 .PARAMETER ReorderDelayDeltaMs
     The extra delay applied to any reordered packets in the emulated network.
 
+.PARAMETER BaseRandomSeed
+    Base seed value for the DuoNic RNG.
+
 .PARAMETER DurationMs
     The duration(s) of each test run over the emulated network.
 
@@ -55,7 +58,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -78,6 +81,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [Int32[]]$ReorderDelayDeltaMs = 0,
+
+    [Parameter(Mandatory = $false)]
+    [string]$BaseRandomSeed = "",
 
     [Parameter(Mandatory = $false)]
     [Int32[]]$DurationMs = 10000,
@@ -222,6 +228,9 @@ function Get-LatestWanTestResult([string]$Branch, [string]$CommitHash) {
     }
 }
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # See if we are an AZP PR
 $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
 if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
@@ -255,9 +264,6 @@ if ("" -eq $Tls) {
     }
 }
 
-# Root directory of the project.
-$RootDir = Split-Path $PSScriptRoot -Parent
-
 # Script for controlling loggings.
 $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
@@ -275,6 +281,17 @@ if ($LogProfile -ne "None") {
 
 $Platform = $IsWindows ? "windows" : "linux"
 $PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+
+if ($BaseRandomSeed -eq "") {
+    for ($i = 0; $i -lt 3; $i++) {
+        $BaseRandomSeed += $(Get-Random).ToString('x8')
+    }
+    $BaseRandomSeed += $(Get-Random).ToString('x8').Substring(0,6)
+    # This gives 15 bytes of random seed, and the last byte will be
+    # the iteration count.
+}
+
+Write-Host "BaseRandomSeed: $($BaseRandomSeed)"
 
 # Path to the secnetperf exectuable.
 $ExeName = $IsWindows ? "secnetperf.exe" : "secnetperf"
@@ -359,9 +376,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
     Set-NetAdapterAdvancedProperty duo? -DisplayName RandomLossDenominator -RegistryValue $ThisRandomLossDenominator -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisRandomReorderDenominator -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
-    Write-Debug "Restarting NIC"
-    Restart-NetAdapter duo?
-    Start-Sleep 5 # (wait for duonic to restart)
 
     # Loop over all the test configurations.
     foreach ($ThisProtocol in $Protocol) {
@@ -380,6 +394,9 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
+            $RandomSeed = $BaseRandomSeed + $i.ToString('x2').Substring(0,2)
+            Set-NetAdapterAdvancedProperty duo? -DisplayName RandomSeed -RegistryValue $RandomSeed -NoRestart
+
             if ($LogProfile -ne "None") {
                 try {
                     & $LogScript -Start -Profile $LogProfile | Out-Null
@@ -387,6 +404,10 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                     Write-Debug "Logging exception"
                 }
             }
+
+            Write-Debug "Restarting NIC"
+            Restart-NetAdapter duo?
+            Start-Sleep 5 # (wait for duonic to restart)
 
             # Run the throughput upload test with the current configuration.
             Write-Debug "Run upload test: Iteration=$($i + 1)"

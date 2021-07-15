@@ -13,8 +13,8 @@
 #include <mutex>
 #include <algorithm>
 
-#include <quic_datapath.h>
-#include <msquichelper.h>
+#include "quic_datapath.h"
+#include "msquichelper.h"
 
 uint16_t Port = 443;
 const char* ServerName = "localhost";
@@ -22,14 +22,14 @@ const char* ServerIp = nullptr;
 QUIC_ADDR ServerAddress = {0};
 std::vector<const char*> ALPNs({ "h3", "h3-29", "hq-interop", "hq-29", "smb" });
 const char* InputAlpn = nullptr;
+uint32_t InputVersion = 0;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 
-extern "C" void QuicTraceRundown(void) { }
-
 struct ConnectionContext {
     bool GotConnected;
+    uint32_t QuicVersion;
     CXPLAT_EVENT Complete;
 };
 
@@ -45,10 +45,13 @@ ConnectionHandler(
 {
     auto Context = (ConnectionContext*)_Context;
     switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
+    case QUIC_CONNECTION_EVENT_CONNECTED: {
         Context->GotConnected = true;
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        uint32_t Size = sizeof(Context->QuicVersion);
+        MsQuic->GetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
         break;
+    }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
         CxPlatEventSet(Context->Complete);
@@ -72,6 +75,11 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.IdleTimeoutMs = 10 * 1000;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    if (InputVersion) {
+        Settings.IsSet.DesiredVersionsList = TRUE;
+        Settings.DesiredVersionsList = &InputVersion;
+        Settings.DesiredVersionsListLength = 1;
+    }
 
     HQUIC Configuration = nullptr;
     if (QUIC_FAILED(MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
@@ -112,9 +120,9 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
     CxPlatEventUninitialize(Context.Complete);
 
     if (Context.GotConnected) {
-        printf("  %6s    reachable\n", (char*)_Alpn);
+        printf("  0x%08x %12s    reachable\n", Context.QuicVersion, (char*)_Alpn);
     } else {
-        printf("  %6s  unreachable\n", (char*)_Alpn);
+        printf("             %12s  unreachable\n", (char*)_Alpn);
     }
 
     CXPLAT_THREAD_RETURN(0);
@@ -132,7 +140,7 @@ main(int argc, char **argv)
             !strcmp(argv[1], "/?") ||
             !strcmp(argv[1], "help")
         )) {
-        printf("Usage: quicreach.exe [-server:<name>] [-ip:<ip>] [-port:<number>] [-alpn:<alpn>]\n");
+        printf("Usage: quicreach.exe [-server:<name>] [-ip:<ip>] [-port:<number>] [-alpn:<alpn>] [-version:<quic_version>]\n");
         exit(1);
     }
 
@@ -140,6 +148,7 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "ip", &ServerIp);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "alpn", &InputAlpn);
+    TryGetValue(argc, argv, "version", &InputVersion);
 
     CxPlatSystemLoad();
     CxPlatInitialize();

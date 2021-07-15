@@ -19,6 +19,7 @@ Abstract:
 
 struct HpsWorkerContext {
     class HpsClient* pThis {nullptr};
+    UniquePtr<char[]> Target;
     QUIC_ADDR RemoteAddr;
     QUIC_ADDR LocalAddrs[HPS_BINDINGS_PER_WORKER];
     uint16_t Processor {0};
@@ -92,7 +93,10 @@ public:
     void StartConnection(HpsWorkerContext* Context);
 
     HpsWorkerContext Contexts[PERF_MAX_THREAD_COUNT];
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration {
+        "secnetperf-client-hps",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        false};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
@@ -107,6 +111,7 @@ public:
     UniquePtr<char[]> Target;
     uint32_t RunTime {HPS_DEFAULT_RUN_TIME};
     uint32_t Parallel {HPS_DEFAULT_PARALLEL_COUNT};
+    uint8_t IncrementTarget {FALSE};
     CXPLAT_EVENT* CompletionEvent {nullptr};
     uint64_t CreatedConnections {0};
     uint64_t StartedConnections {0};

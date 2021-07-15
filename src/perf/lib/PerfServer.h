@@ -21,6 +21,9 @@ public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
         Server(&Engine, CredConfig, this) {
+        CxPlatZeroMemory(&LocalAddr, sizeof(LocalAddr));
+        QuicAddrSetFamily(&LocalAddr, QUIC_ADDRESS_FAMILY_UNSPEC);
+        QuicAddrSetPort(&LocalAddr, PERF_DEFAULT_PORT);
         InitStatus =
             Configuration.IsValid() ?
                 Configuration.LoadCredential(CredConfig) :
@@ -91,6 +94,16 @@ private:
         _Inout_ QUIC_LISTENER_EVENT* Event
         );
 
+    static
+    QUIC_STATUS
+    ListenerCallbackStatic(
+        _In_ HQUIC ListenerHandle,
+        _In_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        ) {
+        return ((PerfServer*)Context)->ListenerCallback(ListenerHandle, Event);
+    }
+
     QUIC_STATUS
     ConnectionCallback(
         _In_ HQUIC ConnectionHandle,
@@ -111,7 +124,10 @@ private:
         );
 
     QUIC_STATUS InitStatus;
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-server",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicAlpn Alpn {PERF_ALPN};
     MsQuicConfiguration Configuration {
         Registration,
@@ -123,10 +139,11 @@ private:
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
             .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)};
-    MsQuicListener Listener {Registration};
-    uint16_t Port {PERF_DEFAULT_PORT};
+    MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
+    QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
+    uint8_t PrintStats {FALSE};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;

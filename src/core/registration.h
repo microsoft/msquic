@@ -144,7 +144,7 @@ QuicRegistrationAcceptConnection(
 // Queues a new (client or server) connection to be processed. The worker that
 // the connection is queued on is determined by the connection's partition ID.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRegistrationQueueNewConnection(
     _In_ QUIC_REGISTRATION* Registration,

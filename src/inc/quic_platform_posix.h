@@ -38,13 +38,13 @@ Environment:
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <msquic_posix.h>
+#include "msquic_posix.h"
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
-#include <quic_sal_stub.h>
+#include "quic_sal_stub.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -61,40 +61,12 @@ extern "C" {
     (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
 //
-// Library Initialization routines.
-//
-
-void
-CxPlatSystemLoad(
-    void
-    );
-
-void
-CxPlatSystemUnload(
-    void
-    );
-
-QUIC_STATUS
-CxPlatInitialize(
-    void
-    );
-
-void
-CxPlatUninitialize(
-    void
-    );
-
-//
 // Generic stuff.
 //
 
 #define INVALID_SOCKET ((int)(-1))
 
 #define SOCKET_ERROR (-1)
-
-#define max(a,b) (((a) > (b)) ? (a) : (b))
-
-#define min(a,b) (((a) < (b)) ? (a) : (b))
 
 #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
 
@@ -116,6 +88,12 @@ CxPlatUninitialize(
 // Interlocked implementations.
 //
 
+#ifdef CX_PLATFORM_DARWIN
+#define YieldProcessor()
+#else
+#define YieldProcessor() pthread_yield()
+#endif
+
 inline
 long
 InterlockedIncrement(
@@ -135,6 +113,26 @@ InterlockedDecrement(
 }
 
 inline
+long
+InterlockedAnd(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    )
+{
+    return __sync_and_and_fetch(Destination, Value);
+}
+
+inline
+long
+InterlockedOr(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    )
+{
+    return __sync_or_and_fetch(Destination, Value);
+}
+
+inline
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -150,6 +148,17 @@ InterlockedCompareExchange16(
     _Inout_ _Interlocked_operand_ short volatile *Destination,
     _In_ short ExChange,
     _In_ short Comperand
+    )
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
+short
+InterlockedCompareExchange(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long ExChange,
+    _In_ long Comperand
     )
 {
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
@@ -423,6 +432,10 @@ typedef struct CXPLAT_POOL_ENTRY {
     uint32_t SpecialFlag;
 } CXPLAT_POOL_ENTRY;
 #define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
 #endif
 
 inline
@@ -470,9 +483,11 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if QUIC_DISABLE_MEM_POOL
-    return CxPlatAlloc(Pool->Size);
-#else
+#if DEBUG
+    if (CxPlatGetAllocFailDenominator()) {
+        return CxPlatAlloc(Pool->Size, Pool->Tag);
+    }
+#endif
     CxPlatLockAcquire(&Pool->Lock);
     void* Entry = CxPlatListPopEntry(&Pool->ListHead);
     if (Entry != NULL) {
@@ -489,7 +504,6 @@ CxPlatPoolAlloc(
     }
 #endif
     return Entry;
-#endif
 }
 
 inline
@@ -499,12 +513,11 @@ CxPlatPoolFree(
     _In_ void* Entry
     )
 {
-#if QUIC_DISABLE_MEM_POOL
-    UNREFERENCED_PARAMETER(Pool);
-    CxPlatFree(Entry);
-    return;
-#else
 #if DEBUG
+    if (CxPlatGetAllocFailDenominator()) {
+        CxPlatFree(Entry, Pool->Tag);
+        return;
+    }
     CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
     ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
@@ -516,7 +529,6 @@ CxPlatPoolFree(
         Pool->ListDepth++;
         CxPlatLockRelease(&Pool->Lock);
     }
-#endif
 }
 
 //
@@ -922,15 +934,10 @@ CxPlatCurThreadID(
 // Processor Count and Index.
 //
 
-uint32_t
-CxPlatProcMaxCount(
-    void
-    );
+extern uint32_t CxPlatProcessorCount;
 
-uint32_t
-CxPlatProcActiveCount(
-    void
-    );
+#define CxPlatProcMaxCount() CxPlatProcessorCount
+#define CxPlatProcActiveCount() CxPlatProcessorCount
 
 uint32_t
 CxPlatProcCurrentNumber(

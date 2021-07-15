@@ -115,6 +115,18 @@ InterlockedDecrement(
     _Inout_ _Interlocked_operand_ long volatile *Addend
     );
 
+long
+InterlockedAnd(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    );
+
+long
+InterlockedOr(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    );
+
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -126,6 +138,13 @@ InterlockedCompareExchange16(
     _Inout_ _Interlocked_operand_ short volatile *Destination,
     _In_ short ExChange,
     _In_ short Comperand
+    );
+
+short
+InterlockedCompareExchange(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long ExChange,
+    _In_ long Comperand
     );
 
 int64_t
@@ -340,4 +359,12 @@ BOOLEAN
 CxPlatInternalEventWaitWithTimeout(
     _Inout_ CXPLAT_EVENT* Event,
     _In_ uint32_t TimeoutMs
+    );
+
+void
+CxPlatToeplitzHashComputeAddr(
+    _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
+    _In_ const QUIC_ADDR* Addr,
+    _Inout_ uint32_t* Key,
+    _Out_ uint32_t* Offset
     );

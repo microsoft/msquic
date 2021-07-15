@@ -11,8 +11,8 @@
 #pragma warning(disable:4214)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:28931) // Unused Assignment
 
-#include <precomp.h> // from 'core' dir
-#include <msquichelper.h>
+#include "precomp.h" // from 'core' dir
+#include "msquichelper.h"
 
 #include "packet_writer.h"
 
@@ -161,7 +161,8 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
             Binding,
             &LocalAddress,
             &ServerAddress,
-            SendData)));
+            SendData,
+            (uint16_t)CxPlatProcCurrentNumber())));
     }
 }
 
@@ -291,7 +292,8 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &LocalAddress,
             &ServerAddress,
-            SendData)));
+            SendData,
+            (uint16_t)CxPlatProcCurrentNumber())));
     }
 }
 

@@ -35,8 +35,10 @@ Environment:
 
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
+#pragma warning(disable:28251)
 #pragma warning(disable:28252)
 #pragma warning(disable:28253)
+#pragma warning(disable:28301)
 #pragma warning(disable:5105) // The conformant preprocessor along with the newest SDK throws this warning for a macro.
 #include <windows.h>
 #include <winsock2.h>
@@ -44,12 +46,12 @@ Environment:
 #include <bcrypt.h>
 #include <stdlib.h>
 #include <winternl.h>
+#include "msquic_winuser.h"
 #ifdef _M_X64
+#pragma warning(disable:28251) // Inconsistent annotation for function
 #include <intrin.h>
 #endif
-#include <msquic_winuser.h>
 #pragma warning(pop)
-
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4324)  // 'CXPLAT_POOL': structure was padded due to alignment specifier
 
@@ -80,48 +82,6 @@ extern "C" {
     (ALIGN_DOWN(((ULONG)(length) + sizeof(type) - 1), type))
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
-
-//
-// Library Initialization
-//
-
-//
-// Called in DLLMain or DriverEntry.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatSystemLoad(
-    void
-    );
-
-//
-// Called in DLLMain or DriverUnload.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatSystemUnload(
-    void
-    );
-
-//
-// Initializes the PAL library. Calls to this and
-// CxPlatformUninitialize must be serialized and cannot overlap.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatInitialize(
-    void
-    );
-
-//
-// Uninitializes the PAL library. Calls to this and
-// CxPlatformInitialize must be serialized and cannot overlap.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatUninitialize(
-    void
-    );
 
 //
 // Static Analysis Interfaces
@@ -292,6 +252,10 @@ typedef struct CXPLAT_POOL_ENTRY {
     uint32_t SpecialFlag;
 } CXPLAT_POOL_ENTRY;
 #define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
 #endif
 
 inline
@@ -330,9 +294,11 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if QUIC_DISABLE_MEM_POOL
-    return CxPlatAlloc(Pool->Size);
-#else
+#if DEBUG
+    if (CxPlatGetAllocFailDenominator()) {
+        return CxPlatAlloc(Pool->Size, Pool->Tag);
+    }
+#endif
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
@@ -343,7 +309,6 @@ CxPlatPoolAlloc(
     }
 #endif
     return Entry;
-#endif
 }
 
 inline
@@ -353,12 +318,11 @@ CxPlatPoolFree(
     _In_ void* Entry
     )
 {
-#if QUIC_DISABLE_MEM_POOL
-    UNREFERENCED_PARAMETER(Pool);
-    CxPlatFree(Entry);
-    return;
-#else
 #if DEBUG
+    if (CxPlatGetAllocFailDenominator()) {
+        CxPlatFree(Entry, Pool->Tag);
+        return;
+    }
     CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
     ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
@@ -367,7 +331,6 @@ CxPlatPoolFree(
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }
-#endif
 }
 
 #define CxPlatZeroMemory RtlZeroMemory
@@ -554,29 +517,16 @@ typedef HANDLE CXPLAT_EVENT;
 //
 
 //
-// This is an undocumented API that is used to query the current timer
-// resolution.
-//
-__kernel_entry
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtQueryTimerResolution(
-    _Out_ PULONG MaximumTime,
-    _Out_ PULONG MinimumTime,
-    _Out_ PULONG CurrentTime
-    );
-
-//
 // Returns the worst-case system timer resolution (in us).
 //
 inline
 uint64_t
 CxPlatGetTimerResolution()
 {
-    ULONG MaximumTime, MinimumTime, CurrentTime;
-    NtQueryTimerResolution(&MaximumTime, &MinimumTime, &CurrentTime);
-    return NS100_TO_US(MaximumTime);
+    DWORD Adjustment, Increment;
+    BOOL AdjustmentDisabled;
+    GetSystemTimeAdjustment(&Adjustment, &Increment, &AdjustmentDisabled);
+    return NS100_TO_US(Increment);
 }
 
 //
@@ -735,8 +685,13 @@ extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
+#ifdef QUIC_UWP_BUILD
+DWORD CxPlatProcMaxCount();
+DWORD CxPlatProcActiveCount();
+#else
 #define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
@@ -757,17 +712,18 @@ CxPlatProcCurrentNumber(
 //
 // This is the undocumented interface for setting a thread's name. This is
 // essentially what SetThreadDescription does, but that is not available in
-// older versions of Windows.
+// older versions of Windows. These API's are suffixed _PRIVATE in order
+// to not colide with the built in windows definitions, which are not gated
+// behind any preprocessor macros
 //
 #if !defined(QUIC_UWP_BUILD)
-#define ThreadNameInformation ((THREADINFOCLASS)38)
+#define ThreadNameInformationPrivate ((THREADINFOCLASS)38)
 
-typedef struct _THREAD_NAME_INFORMATION {
+typedef struct _THREAD_NAME_INFORMATION_PRIVATE {
     UNICODE_STRING ThreadName;
-} THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
+} THREAD_NAME_INFORMATION_PRIVATE, *PTHREAD_NAME_INFORMATION_PRIVATE;
 
 __kernel_entry
-NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationThread(
@@ -888,11 +844,11 @@ CxPlatThreadCreate(
 #if defined(QUIC_UWP_BUILD)
         SetThreadDescription(*Thread, WideName);
 #else
-        THREAD_NAME_INFORMATION ThreadNameInfo;
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, WideName);
         NtSetInformationThread(
             *Thread,
-            ThreadNameInformation,
+            ThreadNameInformationPrivate,
             &ThreadNameInfo,
             sizeof(ThreadNameInfo));
 #endif

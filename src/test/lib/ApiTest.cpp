@@ -479,25 +479,20 @@ DummyConnectionCallback(
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
 static
-_Function_class_(QUIC_CONNECTION_CALLBACK)
 QUIC_STATUS
-QUIC_API
 AutoShutdownConnectionCallback(
-    HQUIC Connection,
+    MsQuicConnection* Connection,
     void* Context,
     QUIC_CONNECTION_EVENT* Event
     )
 {
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
         if (Context != nullptr) {
-            if (!CxPlatEventWaitWithTimeout(*(CXPLAT_EVENT*)Context, 1000)) {
+            if (!((CxPlatEvent*)Context)->WaitTimeout(1000)) {
                 TEST_FAILURE("Peer never signaled connected event");
             }
         }
-        MsQuic->ConnectionShutdown(
-            Connection,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
-            0);
+        Connection->Shutdown(0);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -951,89 +946,47 @@ void QuicTestValidateConnection()
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
-        CXPLAT_EVENT Event;
-        CxPlatEventInitialize(&Event, FALSE, FALSE);
+        CxPlatEvent Event;
         MyListener.Context = &Event;
 
         {
             //
             // Validate that the resumption ticket call fails in the listener.
             //
-            ConnectionScope Connection;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->ConnectionOpen(
-                    Registration,
-                    AutoShutdownConnectionCallback,
-                    nullptr,
-                    &Connection.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->ConnectionStart(
-                    Connection.Handle,
-                    ClientConfiguration,
-                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                    QUIC_LOCALHOST_FOR_AF(
-                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                    ServerLocalAddr.GetPort()));
-
-            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
-
-            MsQuic->ConnectionClose(Connection.Handle);
+            {
+            MsQuicConnection Connection(Registration, CleanUpManual, AutoShutdownConnectionCallback);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_TRUE(Event.WaitTimeout(1000));
+            }
 
             //
             // Ensure sending a resumption ticket fails even when connected
             // because resumption is not enabled.
             //
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->ConnectionOpen(
-                    Registration,
-                    AutoShutdownConnectionCallback,
-                    &Event,
-                    &Connection.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->ConnectionStart(
-                    Connection.Handle,
-                    ClientConfiguration,
-                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                    QUIC_LOCALHOST_FOR_AF(
-                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                    ServerLocalAddr.GetPort()));
-
-            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
-
-            MsQuic->ConnectionClose(Connection.Handle);
+            {
+            MsQuicConnection Connection(Registration, CleanUpManual, AutoShutdownConnectionCallback, &Event);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_TRUE(Event.WaitTimeout(1000));
+            }
 
             //
             // Enable resumption but ensure failure because the connection
             // isn't in connected state yet.
             //
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->ConnectionOpen(
-                    Registration,
-                    AutoShutdownConnectionCallback,
-                    nullptr,
-                    &Connection.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->ConnectionStart(
-                    Connection.Handle,
-                    ClientConfiguration,
-                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                    QUIC_LOCALHOST_FOR_AF(
-                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                    ServerLocalAddr.GetPort()));
-
-            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
+            {
+            MsQuicConnection Connection(Registration, CleanUpManual, AutoShutdownConnectionCallback);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_TRUE(Event.WaitTimeout(1000));
 
             //
             // TODO: add test case to validate ConnectionSendResumptionTicket:
             // * succeeds when resumption is enabled and once connected.
             //
+            }
         }
-
-        CxPlatEventUninitialize(Event);
     }
 #endif
 }
@@ -1095,7 +1048,9 @@ DummyStreamCallback(
     switch (Event->Type) {
 
     case QUIC_STREAM_EVENT_RECEIVE:
-        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        if (Event->RECEIVE.TotalBufferLength != 0) {
+            TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE with data should never be called!");
+        }
         break;
 
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
@@ -1122,7 +1077,9 @@ ShutdownStreamCallback(
     switch (Event->Type) {
 
     case QUIC_STREAM_EVENT_RECEIVE:
-        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        if (Event->RECEIVE.TotalBufferLength != 0) {
+            TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE with data should never be called!");
+        }
         break;
 
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
@@ -1662,22 +1619,16 @@ QuicTestDesiredVersionSettings()
     // Test setting and getting the desired versions on Connection
     //
     {
-        ConnectionScope Connection;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->ConnectionOpen(
-                Registration,
-                DummyConnectionCallback,
-                nullptr,
-                &Connection.Handle));
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
         //
-        // Test invalid versions are failed on Connetion
+        // Test invalid versions are failed on Connection
         //
         InputSettings.SetDesiredVersionsList(InvalidDesiredVersions, ARRAYSIZE(InvalidDesiredVersions));
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Connection.Handle,
+            Connection.SetParam(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(InputSettings),
@@ -1689,8 +1640,7 @@ QuicTestDesiredVersionSettings()
         InputSettings.SetDesiredVersionsList(DesiredVersions, ARRAYSIZE(DesiredVersions));
 
         TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                Connection.Handle,
+            Connection.SetParam(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(InputSettings),
@@ -1698,8 +1648,7 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_STATUS(
             QUIC_STATUS_BUFFER_TOO_SMALL,
-            MsQuic->GetParam(
-                Connection.Handle,
+            Connection.GetParam(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 &BufferLength,
@@ -1708,8 +1657,7 @@ QuicTestDesiredVersionSettings()
         TEST_EQUAL(BufferLength, sizeof(Buffer));
 
         TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                Connection.Handle,
+            Connection.GetParam(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 &BufferLength,
@@ -1871,4 +1819,70 @@ QuicTestDesiredVersionSettings()
             TEST_EQUAL(OutputSettings->DesiredVersionsList[i], CxPlatByteSwapUint32(DesiredVersions[i]));
         }
     }
+}
+
+void
+QuicTestValidateParamApi()
+{
+    //
+    // Test backwards compatibility.
+    //
+    uint16_t LoadBalancingMode, LoadBalancingMode2;
+    uint32_t BufferSize = sizeof(LoadBalancingMode);
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_CONFIGURATION,
+            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            &BufferSize,
+            (void*)&LoadBalancingMode));
+
+    BufferSize = sizeof(LoadBalancingMode);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            2, // Special case to test backwards compatiblity
+            &BufferSize,
+            (void*)&LoadBalancingMode));
+
+    BufferSize = sizeof(LoadBalancingMode2);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            &BufferSize,
+            (void*)&LoadBalancingMode2));
+
+    TEST_EQUAL(LoadBalancingMode, LoadBalancingMode2);
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_CONFIGURATION,
+            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            BufferSize,
+            (void*)&LoadBalancingMode));
+
+    BufferSize = sizeof(LoadBalancingMode);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            2, // Special case to test backwards compatiblity
+            BufferSize,
+            (void*)&LoadBalancingMode));
+
+    BufferSize = sizeof(LoadBalancingMode2);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            BufferSize,
+            (void*)&LoadBalancingMode2));
 }

@@ -1,6 +1,6 @@
 # Building MsQuic
 
-The full MsQuic build system relies on [CMake](https://cmake.org/) (3.16 or better), [.NET Core](https://dotnet.microsoft.com/download/dotnet-core) (Core 3.1 or 5.0 SDK) and [Powershell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (7.0 or better) on all platforms.
+The MsQuic build system relies on [CMake](https://cmake.org/) (3.16 or better), [.NET Core](https://dotnet.microsoft.com/download/dotnet-core) (Core 3.1 or 5.0 SDK) and [Powershell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (7.0 or better) on all platforms.
 
 > **Note** - clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.
@@ -33,7 +33,7 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 ## Install on Linux
 
-You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
+You can find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
 ```PowerShell
 # Download the Microsoft repository GPG keys
@@ -61,7 +61,7 @@ pwsh
 powershell : Depends: libicu55 but it is not installable
 ```
 
-Then you will need to run the following first (as a work around):
+Then you will need to run the following first (as a workaround):
 
 ```
 sudo apt-get remove libicu57
@@ -86,7 +86,7 @@ Then you will need to manually run "pwsh" to continue.
 
 ## Install Dependencies
 
-In order to installed the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
+In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
 
  * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
 
@@ -98,7 +98,7 @@ For the very first time you build, it's recommend to make sure you have all the 
 ./scripts/prepare-machine.ps1 -Configuration Dev
 ```
 
-Note at minimum CMake 3.16 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
+Note at minimum CMake 3.16 is required. Instructions for installing the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
 
 ### Additional Requirements on Windows
 
@@ -115,6 +115,12 @@ To build the code, you just need to run `build.ps1` in the `scripts` folder:
 ./scripts/build.ps1
 ```
 
+Note that `schannel` TLS provider requires the latest Windows versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
+
+```
+./scripts/build.ps1 -Tls openssl
+```
+
 The script has a lot of additional configuration options, but the default should be fine for most.
 
 ### Config options
@@ -123,7 +129,10 @@ The script has a lot of additional configuration options, but the default should
 
 `-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
 
-`-Tls <stub/schannel/openssl/mitls>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
+`-Static` Compiles msquic as a monolithic statically linkable library.
+Supported only by Windows currently.
+
+`-Tls <schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
 
 `-Clean` Forces a clean build of everything.
 
@@ -131,7 +140,7 @@ For more info, take a look at the [build.ps1](../scripts/build.ps1) script.
 
 ## Build Output
 
-By default the build output should go to in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders, and then sub folders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
+By default the build output will go in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders with subfolders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
 
 # Building with CMake
 
@@ -158,13 +167,25 @@ sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
 ```
 
+On RHEL 8, you'll need to manually install CMake to get the latest version.
+Download the x86_64 Linux installation script from cmake.org, and run the following
+`sudo sh cmake.sh --prefix=/usr/local/ --exclude-subdir`
+to install CMake.
+
+RHEL 8 also requires the following:
+
+```
+sudo dnf install openssl-devel
+sudo dnf install libatomic
+```
+
 ### macOS
 The build needs CMake and compiler.
 
 ```
 brew install cmake
 ```
-Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in App Store or from command line  
+Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in App Store or from command line
 ```
 xcode-select --install
 ```
@@ -183,7 +204,7 @@ cmake -g 'Visual Studio 16 2019' -A x64 ..
 
 ```
 mkdir build && cd build
-cmake -g 'Linux Makefiles' ..
+cmake -G 'Unix Makefiles' ..
 ```
 
 ## Running a Build

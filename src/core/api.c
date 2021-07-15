@@ -118,7 +118,14 @@ MsQuicConnectionClose(
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
         QuicConnCloseHandle(Connection);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
 
     } else {
 
@@ -233,14 +240,14 @@ Error:
         "[ api] Exit");
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ _Pre_defensive_ HQUIC ConfigHandle,
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
     )
@@ -250,8 +257,6 @@ MsQuicConnectionStart(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
-
-    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -393,8 +398,6 @@ MsQuicConnectionSetConfiguration(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
 
-    CXPLAT_PASSIVE_CODE();
-
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
@@ -488,8 +491,6 @@ MsQuicConnectionSendResumptionTicket(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
     uint8_t* ResumptionDataCopy = NULL;
-
-    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -698,7 +699,14 @@ MsQuicStreamClose(
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
         QuicStreamClose(Stream);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
 
     } else {
 
@@ -752,7 +760,8 @@ Error:
 }
 #pragma warning(pop)
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
+_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
 QUIC_STATUS
 QUIC_API
 MsQuicStreamStart(
@@ -790,13 +799,7 @@ MsQuicStreamStart(
         goto Exit;
     }
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
-        //
-        // Execute this blocking API call inline if called on the worker thread.
-        //
-        Status = QuicStreamStart(Stream, Flags, FALSE);
-
-    } else if (Flags & QUIC_STREAM_START_FLAG_ASYNC) {
+    if (Flags & QUIC_STREAM_START_FLAG_ASYNC) {
 
         QUIC_OPERATION* Oper =
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
@@ -826,7 +829,25 @@ MsQuicStreamStart(
         QuicConnQueueOper(Connection, Oper);
         Status = QUIC_STATUS_PENDING;
 
+    } else if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+        CXPLAT_PASSIVE_CODE();
+
+        //
+        // Execute this blocking API call inline if called on the worker thread.
+        //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        Status = QuicStreamStart(Stream, Flags, FALSE);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+
     } else {
+
+        CXPLAT_PASSIVE_CODE();
 
         QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
@@ -926,9 +947,7 @@ MsQuicStreamShutdown(
     Connection = Stream->Connection;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
@@ -1259,6 +1278,8 @@ Exit:
     return Status;
 }
 
+#define QUIC_PARAM_GENERATOR(Level, Value) (((Level + 1) & 0x3F) << 26 | (Value & 0x3FFFFFF))
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1274,6 +1295,25 @@ MsQuicSetParam(
     )
 {
     CXPLAT_PASSIVE_CODE();
+
+    if ((Param & 0xFC000000) != 0) {
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
 
     if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1326,7 +1366,14 @@ MsQuicSetParam(
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
         Status = QuicLibrarySetParam(Handle, Level, Param, BufferLength, Buffer);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
         goto Error;
     }
 
@@ -1385,6 +1432,25 @@ MsQuicGetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
+    if ((Param & 0xFC000000) != 0) {
+        //
+        // Has level embedded parameter. Validate matches passed in level.
+        //
+        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
+        if (ParamContainedLevel != Level) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Param level does not match param value");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
+        //
+        // Missing level embedded parameter. Inject level into parameter.
+        //
+        Param = QUIC_PARAM_GENERATOR(Level, Param);
+    }
+
     if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
         BufferLength == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1437,7 +1503,14 @@ MsQuicGetParam(
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
         Status = QuicLibraryGetParam(Handle, Level, Param, BufferLength, Buffer);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
         goto Error;
     }
 

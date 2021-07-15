@@ -21,11 +21,11 @@ Abstract:
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // For disabling encryption
 
-#include <quic_platform.h>
-#include <quic_trace.h>
-#include <msquic.hpp>
-#include <msquichelper.h>
-#include <quic_hashtable.h>
+#include "quic_platform.h"
+#include "quic_trace.h"
+#include "msquic.hpp"
+#include "msquichelper.h"
+#include "quic_hashtable.h"
 #include "PerfBase.h"
 #include "Tcp.h"
 
@@ -316,3 +316,33 @@ public:
         CxPlatPoolFree(&Pool, Obj);
     }
 };
+
+inline
+void
+QuicPrintConnectionStatistics(
+    _In_ const QUIC_API_TABLE* ApiTable,
+    _In_ HQUIC Connection
+    )
+{
+    QUIC_STATISTICS Statistics;
+    uint32_t StatsSize = sizeof(Statistics);
+    if (QUIC_SUCCEEDED(
+        ApiTable->GetParam(
+            Connection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_STATISTICS,
+            &StatsSize,
+            &Statistics))) {
+        WriteOutput(
+            "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
+            Connection,
+            (unsigned long long)Statistics.Send.TotalPackets,
+            (unsigned long long)Statistics.Send.SuspectedLostPackets,
+            (unsigned long long)Statistics.Send.SpuriousLostPackets,
+            (unsigned long long)Statistics.Recv.TotalPackets,
+            (unsigned long long)Statistics.Recv.ReorderedPackets,
+            (unsigned long long)Statistics.Recv.DroppedPackets,
+            (unsigned long long)Statistics.Recv.DuplicatePackets,
+            (unsigned long long)Statistics.Recv.DecryptionFailures);
+    }
+}

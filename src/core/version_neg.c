@@ -172,7 +172,7 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
 
 QUIC_STATUS
 QuicVersionNegotiationExtParseClientVerNegInfo(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
@@ -283,20 +283,20 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
         ConnClientCompatibleVersionList,
         "[conn][%p] Client VNI Compatible Version List: %!VNL!",
         Connection,
-        CLOG_BYTEARRAY(ClientVNI->CompatibleVersionCount * sizeof(uint32_t), ClientVNI->CompatibleVersions));
+        CASTED_CLOG_BYTEARRAY(ClientVNI->CompatibleVersionCount * sizeof(uint32_t), ClientVNI->CompatibleVersions));
 
     QuicTraceEvent(
         ConnClientReceivedVersionList,
         "[conn][%p] Client VNI Received Version List: %!VNL!",
         Connection,
-        CLOG_BYTEARRAY(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t), ClientVNI->RecvNegotiationVersions));
+        CASTED_CLOG_BYTEARRAY(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t), ClientVNI->RecvNegotiationVersions));
 
     return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
 QuicVersionNegotiationExtParseServerVerNegInfo(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
@@ -366,7 +366,7 @@ QuicVersionNegotiationExtParseServerVerNegInfo(
         ConnServerSupportedVersionList,
         "[conn][%p] Server VNI Supported Version List: %!VNL!",
         Connection,
-        CLOG_BYTEARRAY(ServerVNI->SupportedVersionCount * sizeof(uint32_t), ServerVNI->SupportedVersions));
+        CASTED_CLOG_BYTEARRAY(ServerVNI->SupportedVersionCount * sizeof(uint32_t), ServerVNI->SupportedVersions));
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -429,7 +429,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             ConnServerSupportedVersionList,
             "[conn][%p] Server VNI Supported Version List: %!VNL!",
             Connection,
-            CLOG_BYTEARRAY(DesiredVersionsListLength * sizeof(uint32_t), VNIBuf));
+            CASTED_CLOG_BYTEARRAY(DesiredVersionsListLength * sizeof(uint32_t), VNIBuf));
     } else {
         //
         // Generate Client VNI
@@ -509,7 +509,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             ConnClientCompatibleVersionList,
             "[conn][%p] Client VNI Compatible Version List: %!VNL!",
             Connection,
-            CLOG_BYTEARRAY(
+            CASTED_CLOG_BYTEARRAY(
                 CompatibilityListByteLength == 0 ?
                     MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t):
                     CompatibilityListByteLength,
@@ -519,7 +519,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             ConnClientReceivedVersionList,
             "[conn][%p] Client VNI Received Version List: %!VNL!",
             Connection,
-            CLOG_BYTEARRAY(
+            CASTED_CLOG_BYTEARRAY(
                 Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t),
                 Connection->ReceivedNegotiationVersions));
         }

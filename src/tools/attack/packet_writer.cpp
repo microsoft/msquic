@@ -11,8 +11,8 @@
 #pragma warning(disable:4214)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:28931) // Unused Assignment
 
-#include <precomp.h> // from 'core' dir
-#include <msquichelper.h>
+#include "precomp.h" // from 'core' dir
+#include "msquichelper.h"
 
 #include "packet_writer.h"
 
@@ -24,7 +24,6 @@ struct TlsContext
     CXPLAT_TLS* Ptr;
     CXPLAT_SEC_CONFIG* SecConfig;
     CXPLAT_TLS_PROCESS_STATE State;
-    CXPLAT_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
 
     TlsContext(_In_z_ const char* Alpn, _In_z_ const char* Sni) :
@@ -32,7 +31,6 @@ struct TlsContext
 
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
-        CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
         CxPlatZeroMemory(&State, sizeof(State));
         State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
@@ -44,7 +42,6 @@ struct TlsContext
             NULL, NULL, NULL, NULL
         };
         CXPLAT_TLS_CALLBACKS TlsCallbacks = {
-            OnProcessComplete,
             OnRecvQuicTP,
             NULL
         };
@@ -98,7 +95,6 @@ struct TlsContext
         if (SecConfig) {
             CxPlatTlsSecConfigDelete(SecConfig);
         }
-        CxPlatEventUninitialize(ProcessCompleteEvent);
         CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             QuicPacketKeyFree(State.ReadKeys[i]);
@@ -128,8 +124,6 @@ private:
         _In_ uint32_t * BufferLength
         )
     {
-        CxPlatEventReset(ProcessCompleteEvent);
-
         auto Result =
             CxPlatTlsProcessData(
                 Ptr,
@@ -137,10 +131,6 @@ private:
                 Buffer,
                 BufferLength,
                 &State);
-        if (Result & CXPLAT_TLS_RESULT_PENDING) {
-            CxPlatEventWaitForever(ProcessCompleteEvent);
-            Result = CxPlatTlsProcessDataComplete(Ptr, BufferLength);
-        }
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
@@ -204,14 +194,6 @@ public:
     }
 
 private:
-
-    static void
-    OnProcessComplete(
-        _In_ QUIC_CONNECTION* Connection
-        )
-    {
-        CxPlatEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
-    }
 
     static BOOLEAN
     OnRecvQuicTP(

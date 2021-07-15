@@ -32,19 +32,19 @@ QuicSentPacketMetadataReleaseFrames(
 #pragma warning(push)
 #pragma warning(disable:6001)
         case QUIC_FRAME_RESET_STREAM:
-            QuicStreamRelease(Metadata->Frames[i].RESET_STREAM.Stream, QUIC_STREAM_REF_SEND_PACKET);
+            QuicStreamSentMetadataDecrement(Metadata->Frames[i].RESET_STREAM.Stream);
             break;
         case QUIC_FRAME_MAX_STREAM_DATA:
-            QuicStreamRelease(Metadata->Frames[i].MAX_STREAM_DATA.Stream, QUIC_STREAM_REF_SEND_PACKET);
+            QuicStreamSentMetadataDecrement(Metadata->Frames[i].MAX_STREAM_DATA.Stream);
             break;
         case QUIC_FRAME_STREAM_DATA_BLOCKED:
-            QuicStreamRelease(Metadata->Frames[i].STREAM_DATA_BLOCKED.Stream, QUIC_STREAM_REF_SEND_PACKET);
+            QuicStreamSentMetadataDecrement(Metadata->Frames[i].STREAM_DATA_BLOCKED.Stream);
             break;
         case QUIC_FRAME_STOP_SENDING:
-            QuicStreamRelease(Metadata->Frames[i].STOP_SENDING.Stream, QUIC_STREAM_REF_SEND_PACKET);
+            QuicStreamSentMetadataDecrement(Metadata->Frames[i].STOP_SENDING.Stream);
             break;
         case QUIC_FRAME_STREAM:
-            QuicStreamRelease(Metadata->Frames[i].STREAM.Stream, QUIC_STREAM_REF_SEND_PACKET);
+            QuicStreamSentMetadataDecrement(Metadata->Frames[i].STREAM.Stream);
             break;
 #pragma warning(pop)
         default:

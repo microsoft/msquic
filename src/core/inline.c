@@ -20,7 +20,7 @@ Abstract:
 #include "inline.c.clog.h"
 #endif
 
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicCidNewDestination(
     _In_ uint8_t Length,
     _In_reads_(Length)
@@ -51,7 +51,7 @@ QuicCidNewRandomSource(
         const void* Prefix
     );
 
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicCidNewRandomDestination(
     );
 
@@ -191,6 +191,18 @@ BOOLEAN
 QuicStreamRelease(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSentMetadataDecrement(
+    _In_ QUIC_STREAM* Stream
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSentMetadataIncrement(
+    _In_ QUIC_STREAM* Stream
     );
 
 QUIC_ENCRYPT_LEVEL
@@ -627,7 +639,7 @@ QuicConnGetSourceCidFromBuf(
         const uint8_t* CidBuffer
     );
 
-QUIC_CID_CXPLAT_LIST_ENTRY*
+QUIC_CID_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
@@ -657,4 +669,17 @@ QuicConfigurationRelease(
 BOOLEAN
 QuicErrorIsProtocolError(
     _In_ QUIC_VAR_INT ErrorCode
+    );
+
+uint16_t
+QuicConnGetMaxMtuForPath(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicMtuDiscoveryCheckSearchCompleteTimeout(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint64_t TimeNow
     );

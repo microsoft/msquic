@@ -224,12 +224,6 @@ typedef struct QUIC_BINDING {
     QUIC_LOOKUP Lookup;
 
     //
-    // Used for generating stateless reset hashes.
-    //
-    CXPLAT_HASH* ResetTokenHash;
-    CXPLAT_DISPATCH_LOCK ResetTokenLock;
-
-    //
     // Stateless operation tracking structures.
     //
     CXPLAT_DISPATCH_LOCK StatelessOperLock;
@@ -290,6 +284,26 @@ QuicBindingTraceRundown(
     );
 
 //
+// Queries the local IP address of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingGetLocalAddress(
+    _In_ QUIC_BINDING* Binding,
+    _Out_ QUIC_ADDR* Address
+    );
+
+//
+// Queries the remote IP address of the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingGetRemoteAddress(
+    _In_ QUIC_BINDING* Binding,
+    _Out_ QUIC_ADDR* Address
+    );
+
+//
 // Looks up the listener based on the ALPN list. Optionally, outputs the
 // first ALPN that matches.
 //
@@ -298,6 +312,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
+    _In_opt_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
@@ -430,20 +445,8 @@ QuicBindingSend(
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
-    );
-
-//
-// Generates a stateless reset token for the given connection ID.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicBindingGenerateStatelessResetToken(
-    _In_ QUIC_BINDING* Binding,
-    _In_reads_(MsQuicLib.CidTotalLength)
-        const uint8_t* const CID,
-    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
-        uint8_t* ResetToken
+    _In_ uint32_t DatagramsToSend,
+    _In_ uint16_t IdealProcessor
     );
 
 //

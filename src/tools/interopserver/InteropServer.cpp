@@ -23,8 +23,6 @@ const QUIC_BUFFER SupportedALPNs[] = {
     { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
 
-extern "C" void QuicTraceRundown(void) { }
-
 void
 PrintUsage()
 {
@@ -52,8 +50,8 @@ main(
     )
 {
     if (argc < 2 ||
-        GetValue(argc, argv, "help") ||
-        GetValue(argc, argv, "?")) {
+        GetFlag(argc, argv, "help") ||
+        GetFlag(argc, argv, "?")) {
         PrintUsage();
         return -1;
     }
@@ -102,6 +100,8 @@ main(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
+    Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
         Settings.VersionNegotiationExtEnabled = TRUE;
         Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
@@ -125,7 +125,7 @@ main(
 
     {
         HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr, SslKeyLogFileParam);
-        if (!GetValue(argc, argv, "noexit")) {
+        if (!GetFlag(argc, argv, "noexit")) {
             printf("Press Enter to exit.\n\n");
             getchar();
         } else {

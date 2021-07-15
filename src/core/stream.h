@@ -51,6 +51,8 @@ typedef struct QUIC_CONNECTION QUIC_CONNECTION;
     QUIC_SEND_FLAG_BUFFERED \
 )
 
+#define QUIC_STREAM_PRIORITY_DEFAULT 0x7FFF // Medium priority by default
+
 //
 // Tracks the data queued up for sending by an application.
 //
@@ -111,6 +113,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
+        BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
 
         BOOLEAN SendOpen                : 1;    // Send a STREAM frame immediately on start.
         BOOLEAN SendOpenAcked           : 1;    // A STREAM frame has been acknowledged.
@@ -197,6 +200,12 @@ typedef struct QUIC_STREAM {
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
 #endif
 
+    //
+    // Number of outstanding sent metadata items currently being tracked for
+    // this stream.
+    //
+    uint32_t OutstandingSentMetadata;
+
     union {
         //
         // The entry in the connection's hashtable of streams.
@@ -250,11 +259,6 @@ typedef struct QUIC_STREAM {
     //
     // Send State
     //
-
-    //
-    // The error code sent in either RESET_STREAM or STOP_SENDING.
-    //
-    QUIC_VAR_INT SendCloseErrorCode;
 
     //
     // API calls to StreamSend queue the send request here and then queue the
@@ -331,9 +335,20 @@ typedef struct QUIC_STREAM {
     #define RECOV_WINDOW_OPEN(S) ((S)->RecoveryNextOffset < (S)->RecoveryEndOffset)
 
     //
+    // The error code for why the send path was shutdown.
+    //
+    QUIC_VAR_INT SendShutdownErrorCode;
+
+    //
     // The ACK ranges greater than 'UnAckedOffset', with holes between them.
     //
     QUIC_RANGE SparseAckRanges;
+
+    //
+    // The relative priority between the different streams that determines the
+    // order that queued data will be sent out.
+    //
+    uint16_t SendPriority;
 
     //
     // Recv State
@@ -375,6 +390,11 @@ typedef struct QUIC_STREAM {
     // The length of the pending receive call to the app.
     //
     uint64_t RecvPendingLength;
+
+    //
+    // The error code for why the receive path was shutdown.
+    //
+    QUIC_VAR_INT RecvShutdownErrorCode;
 
     //
     // The handler for the API client's callbacks.
@@ -637,6 +657,40 @@ QuicStreamRelease(
     return FALSE;
 }
 #pragma warning(pop)
+
+//
+// Increments the sent metadata counter.
+// No synchronization necessary as it's always called on the worker thread.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicStreamSentMetadataIncrement(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    if (++Stream->OutstandingSentMetadata == 1) {
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    }
+    CXPLAT_DBG_ASSERT(Stream->OutstandingSentMetadata != 0);
+}
+
+//
+// Decrements the sent metadata counter.
+// No synchronization necessary as it's always called on the worker thread.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicStreamSentMetadataDecrement(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->OutstandingSentMetadata != 0);
+    if (--Stream->OutstandingSentMetadata == 0) {
+        QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    }
+}
 
 //
 // Send Functions

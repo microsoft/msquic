@@ -17,7 +17,13 @@ Supported Environments:
 
 #pragma once
 
+#include <stddef.h>
+
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
+
+#define CXPLAT_MAX(a,b) (((a) > (b)) ? (a) : (b))
+
+#define CXPLAT_MIN(a,b) (((a) < (b)) ? (a) : (b))
 
 //
 // Time unit conversion.
@@ -132,7 +138,8 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_TLS_TMP_TP                '44cQ' // Qc44 - QUIC Platform TLS Temporary TP storage
 #define QUIC_POOL_PCP                       '54cQ' // Qc45 - QUIC PCP
 #define QUIC_POOL_DATAPATH_ADDRESSES        '64cQ' // Qc46 - QUIC Datapath Addresses
-#define QUIC_POOL_TLS_TICKET_KEY            '74cQ' // Qc21 - QUIC Platform TLS ticket key
+#define QUIC_POOL_TLS_TICKET_KEY            '74cQ' // Qc47 - QUIC Platform TLS ticket key
+#define QUIC_POOL_TLS_CIPHER_SUITE_STRING   '84cQ' // Qc48 - QUIC TLS cipher suite string
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -147,22 +154,80 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 
 #ifdef _KERNEL_MODE
 #define CX_PLATFORM_TYPE 1
-#include <quic_platform_winkernel.h>
+#include "quic_platform_winkernel.h"
 #elif _WIN32
 #define CX_PLATFORM_TYPE 2
-#include <quic_platform_winuser.h>
+#include "quic_platform_winuser.h"
 #elif CX_PLATFORM_LINUX
 #define CX_PLATFORM_TYPE 3
 #define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
-#include <quic_platform_posix.h>
+#include "quic_platform_posix.h"
 #elif CX_PLATFORM_DARWIN
 #define CX_PLATFORM_TYPE 4
 #define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
-#include <quic_platform_posix.h>
+#include "quic_platform_posix.h"
 #else
 #define CX_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"
 #endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+//
+// Library Initialization
+//
+
+//
+// Called in main, DLLMain or DriverEntry.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSystemLoad(
+    void
+    );
+
+//
+// Called in main (exit), DLLMain or DriverUnload.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSystemUnload(
+    void
+    );
+
+//
+// Initializes the PAL library. Calls to this and
+// CxPlatformUninitialize must be serialized and cannot overlap.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatInitialize(
+    void
+    );
+
+//
+// Uninitializes the PAL library. Calls to this and
+// CxPlatformInitialize must be serialized and cannot overlap.
+//
+PAGEDX
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUninitialize(
+    void
+    );
+
+#if defined(__cplusplus)
+}
+#endif
+
+//
+// List Abstraction
+//
 
 #define QuicListEntryValidate(Entry) \
     CXPLAT_DBG_ASSERT( \
@@ -322,6 +387,24 @@ CxPlatListPopEntry(
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
 
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    );
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
+#endif
+
+#ifdef DEBUG
+#define CxPlatIsRandomMemoryFailureEnabled() (CxPlatGetAllocFailDenominator() != 0)
+#else
+#define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
+#endif
+
+
 //
 // Test Interface for loading a self-signed certificate.
 //
@@ -344,7 +427,8 @@ typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
 typedef enum CXPLAT_TEST_CERT_TYPE {
     CXPLAT_TEST_CERT_VALID_SERVER,
     CXPLAT_TEST_CERT_VALID_CLIENT,
-    CXPLAT_TEST_CERT_EXPIRED_SERVER
+    CXPLAT_TEST_CERT_EXPIRED_SERVER,
+    CXPLAT_TEST_CERT_EXPIRED_CLIENT,
 } CXPLAT_TEST_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

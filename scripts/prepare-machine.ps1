@@ -22,6 +22,9 @@ on the provided configuration.
 .PARAMETER TestCertificates
     Generate test certificates. Only supported for Windows test configuration.
 
+.PARAMETER SignCode
+    Generate a code signing certificate for kernel driver tests.
+
 .EXAMPLE
     prepare-machine.ps1 -Configuration Build
 
@@ -51,7 +54,10 @@ param (
     [switch]$FailOnError,
 
     [Parameter(Mandatory = $false)]
-    [switch]$TestCertificates
+    [switch]$TestCertificates,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SignCode
 )
 
 #Requires -RunAsAdministrator
@@ -91,15 +97,10 @@ if ($InitSubmodules) {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
         git submodule update
-    } elseif ($Tls -eq "mitls") {
-        Write-Host "Initializing everest submodule"
-        git submodule init submodules/everest
-        git submodule update
     }
 
     if ($Kernel) {
-        # Remove OpenSSL and Everest
-        git rm submodules/everest
+        # Remove OpenSSL
         git rm submodules/openssl
     }
 
@@ -107,12 +108,6 @@ if ($InitSubmodules) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
         git submodule update
-
-        if ($Kernel) {
-            Write-Host "Initializing wil submodule"
-            git submodule init submodules/wil
-            git submodule update
-        }
     }
 }
 
@@ -180,9 +175,18 @@ if ($IsWindows) {
     }
 
     if ($Configuration -eq "Test") {
+        $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
+        if ($SignCode -and !(Test-Path c:\CodeSign.pfx)) {
+            $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
+            $CodeSignCertPath = Join-Path $Env:TEMP "CodeSignRoot.cer"
+            Export-Certificate -Type CERT -Cert $CodeSignCert -FilePath $CodeSignCertPath
+            CertUtil.exe -addstore Root $CodeSignCertPath
+            Export-PfxCertificate -Cert $CodeSignCert -Password $PfxPassword -FilePath c:\CodeSign.pfx
+            Remove-Item $CodeSignCertPath
+            Remove-Item $CodeSignCert.PSPath
+        }
         if ($TestCertificates) {
             # Install test certificates on windows
-            $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
             $NewRoot = $false
             Write-Host "Searching for MsQuicTestRoot certificate..."
             $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
@@ -237,6 +241,19 @@ if ($IsWindows) {
             }else {
                 Write-Host "Found existing MsQuicTestClient certificate!"
             }
+            Write-Host "Searching for MsQuicTestExpiredClient certificate..."
+            $ExpiredClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredClient"}
+            if (!$ExpiredClientCert) {
+                Write-Host "MsQuicTestExpiredClient not found! Creating new MsQuicTestExpiredClient certificate..."
+                $ExpiredClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredClient" -FriendlyName MsQuicTestExpiredClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
+                $TempExpiredClientPath = Join-Path $Env:TEMP "MsQuicTestClientExpiredCert.pfx"
+                Export-PfxCertificate -Cert $ExpiredClientCert -Password $PfxPassword -FilePath $TempExpiredClientPath
+                Import-PfxCertificate -FilePath $TempExpiredClientPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
+                Remove-Item $TempExpiredClientPath
+                Write-Host "New MsQuicTestExpiredClient certificate installed!"
+            }else {
+                Write-Host "Found existing MsQuicTestExpiredClient certificate!"
+            }
             if ($NewRoot) {
                 Write-Host "Deleting MsQuicTestRoot from MY store..."
                 Remove-Item $rootCert.PSPath
@@ -272,6 +289,9 @@ if ($IsWindows) {
             sudo apt-get install -y liblttng-ust-dev
             # only used for the codecheck CI run:
             sudo apt-get install -y cppcheck clang-tidy
+            # used for packaging
+            sudo apt-get install -y ruby ruby-dev rpm
+            sudo gem install fpm
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.12

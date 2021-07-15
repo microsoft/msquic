@@ -53,11 +53,34 @@ QuicStreamRecvShutdown(
         goto Exit;
     }
 
-    Stream->SendCloseErrorCode = ErrorCode;
-    Stream->Flags.SentStopSending = TRUE;
+    if (Stream->Flags.SentStopSending) {
+        //
+        // We've already aborted locally. Just ignore any additional shutdowns.
+        //
+        goto Exit;
+    }
+
+    //
+    // Disable all future receive events.
+    //
     Stream->Flags.ReceiveEnabled = FALSE;
     Stream->Flags.ReceiveDataPending = FALSE;
     Stream->Flags.ReceiveCallPending = FALSE;
+
+    if (Stream->RecvMaxLength != UINT64_MAX) {
+        //
+        // The peer has already gracefully closed, but we just haven't drained
+        // the receives to that point. Ignore this abort from the app and jump
+        // right to the closed state.
+        //
+        Stream->Flags.RemoteCloseFin = TRUE;
+        Stream->Flags.RemoteCloseAcked = TRUE;
+        Silent = TRUE; // To indicate we try to shutdown complete.
+        goto Exit;
+    }
+
+    Stream->RecvShutdownErrorCode = ErrorCode;
+    Stream->Flags.SentStopSending = TRUE;
 
     //
     // Queue up a stop sending frame to be sent.
@@ -218,6 +241,8 @@ QuicStreamProcessResetFrame(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+
+        QuicStreamTryCompleteShutdown(Stream);
     }
 }
 
@@ -494,7 +519,7 @@ QuicStreamRecv(
             // MAX_STREAM_DATA.
             //
             Stream->SendWindow =
-                (uint32_t)min(Stream->MaxAllowedSendOffset - Stream->UnAckedOffset, UINT32_MAX);
+                (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset - Stream->UnAckedOffset, UINT32_MAX);
 
             QuicSendBufferStreamAdjust(Stream);
 
@@ -685,6 +710,7 @@ QuicStreamRecvFlush(
 
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
+        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
 
         QUIC_BUFFER RecvBuffers[2];
         QUIC_STREAM_EVENT Event = {0};
@@ -748,6 +774,15 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags);
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
+
+        if (Stream->Flags.SentStopSending || Stream->Flags.RemoteCloseFin) {
+            //
+            // The app has aborted their receive path. No need to process any
+            // more.
+            //
+            break;
+        }
+
         if (Status == QUIC_STATUS_PENDING) {
             if (Stream->Flags.ReceiveCallPending) {
                 //
@@ -765,6 +800,7 @@ QuicStreamRecvFlush(
         }
 
         if (Status == QUIC_STATUS_CONTINUE) {
+            CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.
@@ -845,6 +881,7 @@ QuicStreamReceiveComplete(
     }
 
     if (BufferLength == Stream->RecvPendingLength) {
+        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         //
         // All data was drained from the callback, so additional callbacks can
         // continue to be delivered.
@@ -924,11 +961,13 @@ QuicStreamRecvSetEnabledState(
 {
     if (Stream->Flags.RemoteNotAllowed ||
         Stream->Flags.RemoteCloseFin ||
-        Stream->Flags.RemoteCloseReset) {
+        Stream->Flags.RemoteCloseReset ||
+        Stream->Flags.SentStopSending) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
     if (Stream->Flags.ReceiveEnabled != NewRecvEnabled) {
+        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         Stream->Flags.ReceiveEnabled = NewRecvEnabled;
 
         if (Stream->Flags.Started && NewRecvEnabled) {

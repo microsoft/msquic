@@ -6,7 +6,7 @@ One of the tools in the MsQuic repo is `quicinteropserver` ([source](../src/tool
 
 The tool is automatically built with the rest of the repo. See complete build instructions [here](BUILD.md).
 
-There are a few additional things to note beyond the default build instructions. Currently, 0-RTT is only supported on Windows, when using the miTLS TLS library. To build for miTLS, you must use the `-Tls mitls` option when calling `build.ps`. If 0-RTT is not required/needed, then `-Tls schannel` should be fine to use on Windows, and `-Tls openssl` for Linux.
+There are a few additional things to note beyond the default build instructions. Currently, 0-RTT is only supported on Windows, when using the OpenSSL TLS library. To build for OpenSSL, you must use the `-Tls openssl` option when calling `build.ps`. If 0-RTT is not required/needed, then `-Tls schannel` should be fine to use on Windows, and `-Tls openssl` for Linux.
 
 Once built, you can find the `quicinteropserver` in (assuming PowerShell is used to build):
 
@@ -14,10 +14,10 @@ Once built, you can find the `quicinteropserver` in (assuming PowerShell is used
 ./artifacts/bin/{platform}/{arch}_{config}_{tls}
 ```
 
-For example, if you build with `build.ps1 -Config Release -Tls mitls` on Windows, the output would be in:
+For example, if you build with `build.ps1 -Config Release -Tls openssl` on Windows, the output would be in:
 
 ```
-./artifacts/bin/windows/x64_release_mitls
+./artifacts/bin/windows/x64_release_openssl
 ```
 
 The directory contains all the build artifacts, including the base MsQuic library (`msquic.dll` or `libmsquic.so`).

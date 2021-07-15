@@ -11,9 +11,7 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#include <msquichelper.h>
-
-extern "C" void QuicTraceRundown(void) { }
+#include "msquichelper.h"
 
 #define IO_SIZE (128 * 1024)
 

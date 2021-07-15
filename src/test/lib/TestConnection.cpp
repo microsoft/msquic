@@ -22,8 +22,9 @@ TestConnection::TestConnection(
     IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), ExpectedCustomValidationResult(false),
+    CustomValidationResultSet(false), ExpectedResumed(false),
+    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -49,8 +50,9 @@ TestConnection::TestConnection(
     IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), ExpectedCustomValidationResult(false),
+    CustomValidationResultSet(false), ExpectedResumed(false),
+    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -224,7 +226,7 @@ TestConnection::ForceKeyUpdate()
                 0,
                 nullptr);
 
-    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 3);
+    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 10);
 
     return Status;
 }
@@ -253,7 +255,7 @@ TestConnection::ForceCidUpdate()
                 0,
                 nullptr);
 
-    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 3);
+    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 10);
 
     return Status;
 }
@@ -770,7 +772,7 @@ TestConnection::HandleConnectionEvent(
                     TestIgnoreConnectionTimeout,
                     "[test] Ignoring timeout unexpected status because of random loss");
             } else {
-                TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+                TEST_FAILURE("Unexpected transport Close Error, 0x%x", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
             }
         }
         CxPlatEventSet(EventConnectionComplete);
@@ -841,6 +843,10 @@ TestConnection::HandleConnectionEvent(
         }
         break;
 
+    case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
+        // Use This
+        break;
+
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         ResumptionTicket =
             (QUIC_BUFFER*)
@@ -863,8 +869,11 @@ TestConnection::HandleConnectionEvent(
         if (AsyncCustomValidation) {
             return QUIC_STATUS_PENDING;
         }
-        if (!ExpectedCustomValidationResult) {
+        if (CustomValidationResultSet && !ExpectedCustomValidationResult) {
             return QUIC_STATUS_INTERNAL_ERROR;
+        }
+        if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != ExpectedClientCertValidationResult) {
+            TEST_FAILURE("Unexpected Certificate Validation Status, 0x%x", Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
         }
         break;
 

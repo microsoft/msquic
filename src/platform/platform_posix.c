@@ -15,7 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 #include "quic_platform.h"
-#include "quic_platform_dispatch.h"
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
 #include <sys/syscall.h>
@@ -31,13 +30,13 @@ Environment:
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-CX_PLATFORM_DISPATCH* PlatDispatch = NULL;
-#else
+CX_PLATFORM CxPlatform = { NULL };
 int RandomFd; // Used for reading random numbers.
-#endif
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so";
+
+uint32_t CxPlatProcessorCount;
 
 uint64_t CxPlatTotalMemory;
 
@@ -67,6 +66,16 @@ CxPlatSystemLoad(
     void
     )
 {
+    #if defined(CX_PLATFORM_DARWIN)
+    //
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
+    //
+    CxPlatProcessorCount = 1;
+#else
+    CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+
     //
     // Following code is modified from coreclr.
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
@@ -131,6 +140,11 @@ CxPlatSystemLoad(
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
 }
 
 void
@@ -145,14 +159,10 @@ CxPlatInitialize(
     void
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    CXPLAT_FRE_ASSERT(PlatDispatch != NULL);
-#else
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         return (QUIC_STATUS)errno;
     }
-#endif
 
     CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
 
@@ -164,9 +174,7 @@ CxPlatUninitialize(
     void
     )
 {
-#ifndef CX_PLATFORM_DISPATCH_TABLE
     close(RandomFd);
-#endif
 }
 
 void*
@@ -176,16 +184,14 @@ CxPlatAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Alloc(ByteCount);
-#else
-#ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
-#else
+#ifdef DEBUG
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+#endif
     return malloc(ByteCount);
-#endif // QUIC_RANDOM_ALLOC_FAIL
-#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 void
@@ -195,11 +201,7 @@ CxPlatFree(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->Free(Mem);
-#else
     free(Mem);
-#endif
 }
 
 void
@@ -416,62 +418,16 @@ CxPlatSleep(
 }
 
 uint32_t
-CxPlatProcMaxCount(
-    void
-    )
-{
-#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
-    //
-    // arm64 macOS has no way to get the current proc, so act like a single core.
-    //
-    return 1;
-#else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-}
-
-uint32_t
-CxPlatProcActiveCount(
-    void
-    )
-{
-#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
-    //
-    // arm64 macOS has no way to get the current proc, so act like a single core.
-    //
-    return 1;
-#else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-}
-
-uint32_t
 CxPlatProcCurrentNumber(
     void
     )
 {
 #if defined(CX_PLATFORM_LINUX)
-    return (uint32_t)sched_getcpu();
-#elif defined(CX_PLATFORM_DARWIN) && !defined(__arm64__)
-    int cpuinfo[4];
-    asm("cpuid"
-            : "=a" (cpuinfo[0]),
-            "=b" (cpuinfo[1]),
-            "=c" (cpuinfo[2]),
-            "=d" (cpuinfo[3])
-            : "a"(1));
+    return (uint32_t)sched_getcpu() % CxPlatProcessorCount;
+#elif defined(CX_PLATFORM_DARWIN)
     //
-    // Check flag to see if current core is part of cpuid. If not, assume
-    // core 0. Not all supported platforms (Specifically M1 under Rosetta)
-    // support this flag.
-    //
-    if ((cpuinfo[3] & (1 << 9)) != 0) {
-        return (uint32_t)cpuinfo[1] >> 24;
-    }
-    return 0;
-#else
-    //
-    // arm64 macOS has no way to get the current proc, so just hardcode 0.
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 0;
 #endif // CX_PLATFORM_DARWIN
@@ -483,14 +439,10 @@ CxPlatRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Random(BufferLen, Buffer);
-#else
     if (read(RandomFd, Buffer, BufferLen) == -1) {
         return (QUIC_STATUS)errno;
     }
     return QUIC_STATUS_SUCCESS;
-#endif
 }
 
 void
@@ -534,6 +486,24 @@ CxPlatConvertFromMappedV6(
     }
 }
 
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+    CxPlatform.AllocCounter = 0;
+}
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
+#endif
+
 #if defined(CX_PLATFORM_LINUX)
 
 QUIC_STATUS
@@ -559,7 +529,7 @@ CxPlatThreadCreate(
         cpu_set_t CpuSet;
         CPU_ZERO(&CpuSet);
         CPU_SET(Config->IdealProcessor, &CpuSet);
-        if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
+        if (pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -574,7 +544,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+        if (pthread_attr_setschedparam(&Attr, &Params)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
@@ -627,7 +597,7 @@ CxPlatThreadCreate(
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
-            if (!pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
+            if (pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",

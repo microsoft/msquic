@@ -15,7 +15,7 @@ TODO:
 --*/
 
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
-#include <msquichelper.h>
+#include "msquichelper.h"
 
 const QUIC_REGISTRATION_CONFIG RegConfig = { "ip", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 const QUIC_BUFFER Alpn = { sizeof("ip") - 1, (uint8_t*)"ip" };
@@ -25,8 +25,6 @@ const uint64_t IdleTimeoutMs = 2000;
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 HQUIC Configuration;
-
-extern "C" void QuicTraceRundown(void) { }
 
 void
 PrintUsage()
