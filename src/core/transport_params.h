@@ -180,10 +180,10 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     uint8_t RetrySourceConnectionIDLength;
 
     //
-    // Pointer to the Version Negotiation transport parameter opaque blob.
+    // Pointer to the version_information transport parameter opaque blob.
     //
-    const uint8_t* VersionNegotiationInfo;
-    QUIC_VAR_INT VersionNegotiationInfoLength;
+    const uint8_t* VersionInfo;
+    QUIC_VAR_INT VersionInfoLength;
 
 } QUIC_TRANSPORT_PARAMETERS;
 

@@ -589,6 +589,12 @@ typedef struct QUIC_CONNECTION {
     uint32_t PreviousQuicVersion;
 
     //
+    // Initially-attempted QUIC version.
+    // Only populated during compatible version negotiation.
+    //
+    uint32_t InitialQuicVersion;
+
+    //
     // The size of the keep alive padding.
     //
     uint16_t KeepAlivePadding;

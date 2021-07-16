@@ -2253,14 +2253,14 @@ QuicConnGenerateLocalTransportParameters(
     }
 
     if (Connection->Settings.VersionNegotiationExtEnabled) {
-        uint32_t VersionNegotiationInfoLength = 0;
-        LocalTP->VersionNegotiationInfo =
-            QuicVersionNegotiationExtEncodeVersionNegotiationInfo(Connection, &VersionNegotiationInfoLength);
-        if (LocalTP->VersionNegotiationInfo != NULL) {
+        uint32_t VersionInfoLength = 0;
+        LocalTP->VersionInfo =
+            QuicVersionNegotiationExtEncodeVersionInfo(Connection, &VersionInfoLength);
+        if (LocalTP->VersionInfo != NULL) {
             LocalTP->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
-            LocalTP->VersionNegotiationInfoLength = VersionNegotiationInfoLength;
+            LocalTP->VersionInfoLength = VersionInfoLength;
         } else {
-            LocalTP->VersionNegotiationInfoLength = 0;
+            LocalTP->VersionInfoLength = 0;
         }
     }
 
@@ -2566,8 +2566,8 @@ QuicConnProcessPeerVersionNegotiationTP(
         Status =
             QuicVersionNegotiationExtParseVersionInfo(
                 Connection,
-                Connection->PeerTransportParams.VersionNegotiationInfo,
-                (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
+                Connection->PeerTransportParams.VersionInfo,
+                (uint16_t)Connection->PeerTransportParams.VersionInfoLength,
                 FALSE,
                 &ClientVI);
         if (QUIC_FAILED(Status)) {
@@ -2626,8 +2626,8 @@ QuicConnProcessPeerVersionNegotiationTP(
         Status =
             QuicVersionNegotiationExtParseVersionInfo(
                 Connection,
-                Connection->PeerTransportParams.VersionNegotiationInfo,
-                (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
+                Connection->PeerTransportParams.VersionInfo,
+                (uint16_t)Connection->PeerTransportParams.VersionInfoLength,
                 TRUE,
                 &ServerVI);
         if (QUIC_FAILED(Status)) {
@@ -2674,7 +2674,6 @@ QuicConnProcessPeerVersionNegotiationTP(
                 QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                 return QUIC_STATUS_PROTOCOL_ERROR;
             }
-            uint32_t ClientChosenVersion = 0;
             for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
                 if (Connection->PreviousQuicVersion == ServerVI.OtherVersions[i]) {
                     QuicTraceLogConnError(
@@ -2685,12 +2684,20 @@ QuicConnProcessPeerVersionNegotiationTP(
                     QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
+            }
+            uint32_t ClientChosenVersion = 0;
+            BOOLEAN InitialVersionFound = FALSE;
+            for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
                 if (ClientChosenVersion == 0 &&
                     QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.OtherVersions[i])) {
                     ClientChosenVersion = ServerVI.OtherVersions[i];
                 }
+                if (Connection->InitialQuicVersion == ServerVI.OtherVersions[i]) {
+                    InitialVersionFound = TRUE;
+                }
             }
-            if (ClientChosenVersion == 0 || ClientChosenVersion != ServerVI.ChosenVersion) {
+            if (ClientChosenVersion == 0 || ClientChosenVersion != ServerVI.ChosenVersion ||
+                (Connection->InitialQuicVersion != 0 && !InitialVersionFound)) {
                 QuicTraceLogConnError(
                     ClientChosenVersionMismatchServerChosenVersion,
                     Connection,
@@ -3424,6 +3431,7 @@ QuicConnRecvHeader(
                 // to proceed to TP processing. The TP processing must validate
                 // this new version is the same as in the ChosenVersion field.
                 //
+                Connection->InitialQuicVersion = Connection->Stats.QuicVersion;
                 Connection->State.CompatibleVersionNegotiation = TRUE;
                 Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
                 QuicConnOnQuicVersionSet(Connection);

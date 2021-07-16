@@ -102,10 +102,11 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
     Connection.Settings.IsSet.DesiredVersionsList = TRUE;
 
     ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
+    Connection.Stats.QuicVersion = QUIC_VERSION_1_H;
 
     uint32_t VersionInfoLength = 0;
     const uint8_t* VersionInfo =
-        QuicVersionNegotiationExtEncodeVersionNegotiationInfo(&Connection, &VersionInfoLength);
+        QuicVersionNegotiationExtEncodeVersionInfo(&Connection, &VersionInfoLength);
 
     ASSERT_NE(VersionInfo, nullptr);
     ASSERT_NE(VersionInfoLength, 0ul);
@@ -119,4 +120,10 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
             (uint16_t)VersionInfoLength,
             FALSE,
             &ParsedVI));
+
+    ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Stats.QuicVersion);
+    ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(DesiredVersions));
+    ASSERT_TRUE(memcmp(DesiredVersions, ParsedVI.OtherVersions, sizeof(DesiredVersions)) == 0);
+
+    CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
 }
