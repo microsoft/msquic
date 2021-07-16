@@ -110,7 +110,7 @@ QuicSendCanSendFlagsNow(
             CxPlatListIsEmpty(&Send->SendStreams)) {
             return TRUE;
         }
-        if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
+        if ((!Connection->State.Started && QuicConnIsClient(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
         }

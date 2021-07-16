@@ -289,7 +289,7 @@ QuicPacketBuilderPrepare(
         Builder->DatagramLength = 0;
         Builder->MinimumDatagramLength = 0;
 
-        if (IsTailLossProbe && !QuicConnIsServer(Connection)) {
+        if (IsTailLossProbe && QuicConnIsClient(Connection)) {
             if (NewPacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
                 //
                 // Short header (1-RTT) packets need to be padded enough to
