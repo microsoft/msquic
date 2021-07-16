@@ -153,7 +153,7 @@ namespace Microsoft.Quic
     public unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
         [NativeTypeName("const char *")]
-        public sbyte* AppName;
+        public byte* AppName;
 
         public QUIC_EXECUTION_PROFILE ExecutionProfile;
     }
@@ -172,28 +172,28 @@ namespace Microsoft.Quic
         public fixed byte ShaHash[20];
 
         [NativeTypeName("char [128]")]
-        public fixed sbyte StoreName[128];
+        public fixed byte StoreName[128];
     }
 
     public unsafe partial struct QUIC_CERTIFICATE_FILE
     {
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyFile;
+        public byte* PrivateKeyFile;
 
         [NativeTypeName("const char *")]
-        public sbyte* CertificateFile;
+        public byte* CertificateFile;
     }
 
     public unsafe partial struct QUIC_CERTIFICATE_FILE_PROTECTED
     {
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyFile;
+        public byte* PrivateKeyFile;
 
         [NativeTypeName("const char *")]
-        public sbyte* CertificateFile;
+        public byte* CertificateFile;
 
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyPassword;
+        public byte* PrivateKeyPassword;
     }
 
     public unsafe partial struct QUIC_CERTIFICATE_PKCS12
@@ -205,7 +205,7 @@ namespace Microsoft.Quic
         public uint Asn1BlobLength;
 
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyPassword;
+        public byte* PrivateKeyPassword;
     }
 
     public unsafe partial struct QUIC_CREDENTIAL_CONFIG
@@ -218,12 +218,12 @@ namespace Microsoft.Quic
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
-        public sbyte* Principal;
+        public byte* Principal;
 
         public void* Reserved;
 
         [NativeTypeName("QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void>* AsyncHandler;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
 
         public QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
 
@@ -371,7 +371,7 @@ namespace Microsoft.Quic
         public byte* NegotiatedAlpn;
 
         [NativeTypeName("const char *")]
-        public sbyte* ServerName;
+        public byte* ServerName;
     }
 
     public enum QUIC_TLS_PROTOCOL_VERSION
@@ -2060,7 +2060,7 @@ namespace Microsoft.Quic
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CREDENTIAL_CONFIG*, int> ConfigurationLoadCredential;
 
         [NativeTypeName("QUIC_LISTENER_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_LISTENER_EVENT*, int>*, void*, QUIC_HANDLE**, int> ListenerOpen;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_LISTENER_EVENT*, int>, void*, QUIC_HANDLE**, int> ListenerOpen;
 
         [NativeTypeName("QUIC_LISTENER_CLOSE_FN")]
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerClose;
@@ -2072,7 +2072,7 @@ namespace Microsoft.Quic
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerStop;
 
         [NativeTypeName("QUIC_CONNECTION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>*, void*, QUIC_HANDLE**, int> ConnectionOpen;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpen;
 
         [NativeTypeName("QUIC_CONNECTION_CLOSE_FN")]
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConnectionClose;
@@ -2081,7 +2081,7 @@ namespace Microsoft.Quic
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> ConnectionShutdown;
 
         [NativeTypeName("QUIC_CONNECTION_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, ushort, sbyte*, ushort, int> ConnectionStart;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, ushort, byte*, ushort, int> ConnectionStart;
 
         [NativeTypeName("QUIC_CONNECTION_SET_CONFIGURATION_FN")]
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, int> ConnectionSetConfiguration;
@@ -2090,7 +2090,7 @@ namespace Microsoft.Quic
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_SEND_RESUMPTION_FLAGS, ushort, byte*, int> ConnectionSendResumptionTicket;
 
         [NativeTypeName("QUIC_STREAM_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>*, void*, QUIC_HANDLE**, int> StreamOpen;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>, void*, QUIC_HANDLE**, int> StreamOpen;
 
         [NativeTypeName("QUIC_STREAM_CLOSE_FN")]
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> StreamClose;
