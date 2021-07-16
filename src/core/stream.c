@@ -372,7 +372,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",
