@@ -13258,6 +13258,18 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
+      },
+      {
+        "UniquenessHash": "d228f1d4-3747-2ceb-0fc7-986db4a0c698",
+        "TraceID": "CompatibleVersionNegotiationNotCompatible"
+      },
+      {
+        "UniquenessHash": "f0c46ad1-71b6-5434-44f2-2bb549ffdbf1",
+        "TraceID": "CompatibleVersionNegotiationOriginalVersionNotFound"
+      },
+      {
+        "UniquenessHash": "13fbb0ef-abe5-4b6d-808c-9baed9531070",
+        "TraceID": "CompatibleVersionUpgradeComplete"
       }
     ]
   }

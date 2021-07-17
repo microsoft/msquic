@@ -96,17 +96,19 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
 {
     uint32_t DesiredVersions[] = {QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H};
 
-    QUIC_CONNECTION Connection {};
-    Connection.Settings.DesiredVersionsList = DesiredVersions;
-    Connection.Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
-    Connection.Settings.IsSet.DesiredVersionsList = TRUE;
+    struct { QUIC_HANDLE Handle;
+        QUIC_CONNECTION Connection;
+    } Connection {};
+    Connection.Connection.Settings.DesiredVersionsList = DesiredVersions;
+    Connection.Connection.Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+    Connection.Connection.Settings.IsSet.DesiredVersionsList = TRUE;
 
     ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
-    Connection.Stats.QuicVersion = QUIC_VERSION_1_H;
+    Connection.Connection.Stats.QuicVersion = QUIC_VERSION_1_H;
 
     uint32_t VersionInfoLength = 0;
     const uint8_t* VersionInfo =
-        QuicVersionNegotiationExtEncodeVersionInfo(&Connection, &VersionInfoLength);
+        QuicVersionNegotiationExtEncodeVersionInfo((QUIC_CONNECTION*)&Connection, &VersionInfoLength);
 
     ASSERT_NE(VersionInfo, nullptr);
     ASSERT_NE(VersionInfoLength, 0ul);
@@ -115,13 +117,13 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicVersionNegotiationExtParseVersionInfo(
-            &Connection,
+            (QUIC_CONNECTION*)&Connection,
             VersionInfo,
             (uint16_t)VersionInfoLength,
             FALSE,
             &ParsedVI));
 
-    ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Stats.QuicVersion);
+    ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Connection.Stats.QuicVersion);
     ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(DesiredVersions));
     ASSERT_TRUE(memcmp(DesiredVersions, ParsedVI.OtherVersions, sizeof(DesiredVersions)) == 0);
 
