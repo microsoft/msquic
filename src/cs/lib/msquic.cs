@@ -9,6 +9,11 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
 {
+    public unsafe partial struct QUIC_BUFFER
+    {
+        public Span<byte> Span => new(Buffer, (int)Length);
+    }
+
     public partial class MsQuic
     {
         public static unsafe QUIC_API_TABLE* Open()
@@ -56,6 +61,15 @@ namespace Microsoft.Quic
                 return status > 0;
             }
         }
+
+        public static readonly int QUIC_STATUS_SUCCESS = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_STATUS_SUCCESS : MsQuic_Posix.QUIC_STATUS_SUCCESS;
+        public static readonly int QUIC_STATUS_ABORTED = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_STATUS_ABORTED : MsQuic_Posix.QUIC_STATUS_ABORTED;
+        public static readonly int QUIC_STATUS_PENDING = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_STATUS_PENDING : MsQuic_Posix.QUIC_STATUS_PENDING;
+        public static readonly int QUIC_STATUS_CONTINUE = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_STATUS_CONTINUE : MsQuic_Posix.QUIC_STATUS_CONTINUE;
+
+        public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
+        public const int QUIC_ADDRESS_FAMILY_INET = 2;
+        public const int QUIC_ADDRESS_FAMILY_INET6 = 23;
     }
 
     /// <summary>Defines the type of a member as it was used in the native signature.</summary>

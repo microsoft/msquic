@@ -9,12 +9,18 @@ namespace QuicChatLib
     public unsafe class Listener : IDisposable
     {
         private readonly Registration registration;
+        private readonly ServerConfiguration configuration;
+        private readonly IDataReceiver receiver;
+        private readonly IServerHandler serverHandler;
         private readonly QUIC_HANDLE* handle;
-        private readonly IntPtr gcHandle;
+        private readonly GCHandle gcHandle;
         private bool running;
 
-        public Listener(Registration registration)
+        public Listener(IDataReceiver receiver, IServerHandler serverHandler, Registration registration, ServerConfiguration configuration)
         {
+            this.receiver = receiver;
+            this.serverHandler = serverHandler;
+            this.configuration = configuration;
             this.registration = registration;
             QUIC_HANDLE* handle = null;
             GCHandle gcHandle = GCHandle.Alloc(this);
@@ -24,7 +30,7 @@ namespace QuicChatLib
                 gcHandle.Free();
                 MsQuic.ThrowIfFailure(status);
             }
-            this.gcHandle = (IntPtr)gcHandle;
+            this.gcHandle = gcHandle;
             this.handle = handle;
         }
 
@@ -33,8 +39,9 @@ namespace QuicChatLib
             switch (evnt.Type)
             {
                 case QUIC_LISTENER_EVENT_TYPE.QUIC_LISTENER_EVENT_NEW_CONNECTION:
-                    // TODO handle certificates
-                    ref var conn = ref evnt.NEW_CONNECTION;
+                    ServerConnection serverConn = new ServerConnection(receiver, serverHandler, registration, evnt.NEW_CONNECTION.Connection);
+                    registration.Table.ConnectionSetConfiguration(evnt.NEW_CONNECTION.Connection, configuration.Handle);
+                    // TODO load connection
                     break;
             }
             return 0;
@@ -54,33 +61,28 @@ namespace QuicChatLib
             {
                 Stop();
                 registration.Table.ListenerClose(handle);
-                GCHandle.FromIntPtr(gcHandle).Free();
+                gcHandle.Free();
             }
 
         }
 
-        public void Start(ReadOnlySpan<char> alpn)
+        public void Start()
         {
             if (running)
             {
                 return;
             }
 
-            if (alpn.Length > 255)
+            fixed (byte* alpn = Constants.Alpn)
             {
-                throw new ArgumentException(nameof(alpn), "ALPN too long");
-            }
-            int len = Encoding.UTF8.GetMaxByteCount(alpn.Length);
-            byte* rawAlpn = stackalloc byte[len];
-            Span<byte> rawAlpnSpan = new Span<byte>(rawAlpn, len);
-            int actualLen = Encoding.UTF8.GetBytes(alpn, rawAlpnSpan);
-            QUIC_BUFFER buffer;
-            buffer.Buffer = rawAlpn;
-            buffer.Length = (uint)actualLen;
+                QUIC_BUFFER buffer = new();
+                buffer.Buffer = alpn;
+                buffer.Length = (uint)Constants.Alpn.Length;
 
-            int status = registration.Table.ListenerStart(handle, &buffer, 1, null);
-            MsQuic.ThrowIfFailure(status);
-            running = true;
+                int status = registration.Table.ListenerStart(handle, &buffer, 1, null);
+                MsQuic.ThrowIfFailure(status);
+                running = true;
+            }            
         }
 
         public void Stop()

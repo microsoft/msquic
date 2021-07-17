@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "chat", "chat", "{4CC6C4A5-F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuicChatLib", "chat\QuicChatLib\QuicChatLib.csproj", "{077E849A-38B6-466F-A684-71F2F3B8A319}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleChat", "chat\ConsoleChat\ConsoleChat.csproj", "{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,8 +62,21 @@ Global
 		{077E849A-38B6-466F-A684-71F2F3B8A319}.Release|x64.Build.0 = Release|Any CPU
 		{077E849A-38B6-466F-A684-71F2F3B8A319}.Release|x86.ActiveCfg = Release|Any CPU
 		{077E849A-38B6-466F-A684-71F2F3B8A319}.Release|x86.Build.0 = Release|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Debug|x64.Build.0 = Debug|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Debug|x86.Build.0 = Debug|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Release|x64.ActiveCfg = Release|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Release|x64.Build.0 = Release|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Release|x86.ActiveCfg = Release|Any CPU
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{077E849A-38B6-466F-A684-71F2F3B8A319} = {4CC6C4A5-F59C-44CC-A50D-92B4358A1B6B}
+		{F19152D1-D5F6-4ECA-B56F-B0FBB392DF7B} = {4CC6C4A5-F59C-44CC-A50D-92B4358A1B6B}
 	EndGlobalSection
 EndGlobal

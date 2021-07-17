@@ -9,14 +9,18 @@ using Microsoft.Quic;
 
 namespace QuicChatLib
 {
-    internal unsafe class ServerConnection
+    internal unsafe class ServerConnection : IConnection
     {
         private readonly Registration registration;
         private readonly QUIC_HANDLE* connHandle;
         private readonly GCHandle gcHandle;
+        private readonly IDataReceiver receiver;
+        private readonly IServerHandler serverHandler;
 
-        internal ServerConnection(Registration registration, QUIC_HANDLE* connHandle)
+        internal ServerConnection(IDataReceiver receiver, IServerHandler serverHandler, Registration registration, QUIC_HANDLE* connHandle)
         {
+            this.serverHandler = serverHandler;
+            this.receiver = receiver;
             this.registration = registration;
             this.connHandle = connHandle;
             gcHandle = GCHandle.Alloc(this);
@@ -28,13 +32,25 @@ namespace QuicChatLib
         {
             switch (evnt.Type)
             {
+                case QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+                    {
+                        var stream = new Stream(receiver, registration, this, evnt.PEER_STREAM_STARTED.Stream);
+                        if (!serverHandler.AddStream(stream))
+                        {
+                            stream.Reject();
+                            return MsQuic.QUIC_STATUS_ABORTED;
+                        }
+                        break;
+                    }
+
                 case QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-                {
-                    // Post shutdown event to our queue
-                    break;
-                }
+                    {
+                        gcHandle.Free();
+                        registration.Table.ConnectionClose(connHandle);
+                        break;
+                    }
             }
-            return 0;
+            return MsQuic.QUIC_STATUS_SUCCESS;
         }
 
         [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
@@ -43,6 +59,11 @@ namespace QuicChatLib
             var @this = (ServerConnection)GCHandle.FromIntPtr((IntPtr)context).Target!;
             return @this.HandleCallback(ref *evnt);
 
+        }
+
+        public void Shutdown()
+        {
+            registration.Table.ConnectionShutdown(connHandle, QUIC_CONNECTION_SHUTDOWN_FLAGS.QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
     }
 }
