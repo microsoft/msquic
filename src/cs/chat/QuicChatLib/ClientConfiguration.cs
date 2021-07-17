@@ -28,6 +28,8 @@ namespace QuicChatLib
                 settings.IsSetFlags = 0;
                 settings.PeerBidiStreamCount = 1;
                 settings.IsSet.PeerBidiStreamCount = 1;
+                settings.KeepAliveIntervalMs = 100;
+                settings.IsSet.KeepAliveIntervalMs = 1;
 
                 QUIC_HANDLE* handle = null;
 

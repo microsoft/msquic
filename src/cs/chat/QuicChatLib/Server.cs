@@ -26,6 +26,7 @@ namespace QuicChatLib
             configuration = new(registration, thumbprint);
             listener = new(this, this, registration, configuration);
             runTask = RunLoop(tokenSource.Token);
+            listener.Start();
         }
 
         private async Task RunLoop(CancellationToken token)
@@ -49,6 +50,7 @@ namespace QuicChatLib
                 {
                     unsafe
                     {
+                        Console.WriteLine(Encoding.UTF8.GetString(newData.Buffer.Value.Span));
                         lock (streamLock)
                         {
                             if (streams.Count == 1 && streams[0] == newData.Stream) continue;
@@ -101,7 +103,14 @@ namespace QuicChatLib
             }
             await allStreamsCleanedUp.WaitAsync();
             tokenSource.Cancel();
-            await runTask;
+            try
+            {
+                await runTask;
+            }
+            catch (OperationCanceledException)
+            {
+
+            }
             listener.Dispose();
             configuration.Dispose();
             registration.Dispose();

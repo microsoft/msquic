@@ -93,14 +93,14 @@ namespace Microsoft.Quic
     [StructLayout(LayoutKind.Sequential)]
     public struct QuicAddrIn
     {
-        internal ushort sin_family;
-        internal ushort sin_port;
-        internal byte sin_addr0;
-        internal byte sin_addr1;
-        internal byte sin_addr2;
-        internal byte sin_addr3;
+        public ushort sin_family;
+        public ushort sin_port;
+        public byte sin_addr0;
+        public byte sin_addr1;
+        public byte sin_addr2;
+        public byte sin_addr3;
 
-        internal byte[] Address
+        public byte[] Address
         {
             get
             {
@@ -112,28 +112,28 @@ namespace Microsoft.Quic
     [StructLayout(LayoutKind.Sequential)]
     public struct QuicAddrIn6
     {
-        internal ushort _family;
-        internal ushort _port;
-        internal uint _flowinfo;
-        internal byte _addr0;
-        internal byte _addr1;
-        internal byte _addr2;
-        internal byte _addr3;
-        internal byte _addr4;
-        internal byte _addr5;
-        internal byte _addr6;
-        internal byte _addr7;
-        internal byte _addr8;
-        internal byte _addr9;
-        internal byte _addr10;
-        internal byte _addr11;
-        internal byte _addr12;
-        internal byte _addr13;
-        internal byte _addr14;
-        internal byte _addr15;
-        internal uint _scope_id;
+        public ushort _family;
+        public ushort _port;
+        public uint _flowinfo;
+        public byte _addr0;
+        public byte _addr1;
+        public byte _addr2;
+        public byte _addr3;
+        public byte _addr4;
+        public byte _addr5;
+        public byte _addr6;
+        public byte _addr7;
+        public byte _addr8;
+        public byte _addr9;
+        public byte _addr10;
+        public byte _addr11;
+        public byte _addr12;
+        public byte _addr13;
+        public byte _addr14;
+        public byte _addr15;
+        public uint _scope_id;
 
-        internal byte[] Address
+        public byte[] Address
         {
             get
             {
@@ -150,10 +150,10 @@ namespace Microsoft.Quic
     public struct QuicAddr
     {
         [FieldOffset(0)]
-        internal QuicAddrIn Ipv4;
+        public QuicAddrIn Ipv4;
         [FieldOffset(0)]
-        internal QuicAddrIn6 Ipv6;
+        public QuicAddrIn6 Ipv6;
         [FieldOffset(0)]
-        internal ushort si_family;
+        public ushort si_family;
     }
 }

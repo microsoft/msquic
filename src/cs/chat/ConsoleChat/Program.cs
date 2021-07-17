@@ -26,19 +26,22 @@ namespace ConsoleChat
             }
 
             await using Server server = new("F59720999270C8DB5DC8A43B958CC5DC33991E95");
-            Console.ReadLine();
+            
             ;
 
-            //await using Client client = new();
-            //if (await client.Start("localhost", default))
-            //{
-
-            //}
-            //else
-            //{
-            //    Console.WriteLine("Client failed to connect");
-            //}
-            //;
+            await using Client client = new();
+            client.Name = "Thad";
+            if (await client.Start("localhost", default))
+            {
+                //var name = Console.ReadLine();
+                client.Send("Hello!");
+            }
+            else
+            {
+                Console.WriteLine("Client failed to connect");
+            }
+            ;
+            Console.ReadLine();
         }
     }
 }

@@ -58,9 +58,15 @@ namespace QuicChatLib
             }
 
             int byteCount = Encoding.UTF8.GetByteCount(msg);
-            byteCount += Encoding.UTF8.GetByteCount(Name) + 2;
+            byteCount += Encoding.UTF8.GetByteCount(Name) + 2 + 3;
             StreamSendData* sendData = StreamSendData.GetStreamData(byteCount, 1);
             var dataSpan = sendData->Buffer->Span;
+            byteCount -= 3;
+            dataSpan[0] = (byte)DataReceiveTag.Chat;
+            dataSpan[2] = (byte)(byteCount & 0xF);
+            dataSpan[1] = (byte)((byteCount >> 8) & 0xF);
+            dataSpan = dataSpan.Slice(3);
+
             var added = Encoding.UTF8.GetBytes(Name, dataSpan);
             dataSpan = dataSpan.Slice(added);
             added = Encoding.UTF8.GetBytes(": ", dataSpan);

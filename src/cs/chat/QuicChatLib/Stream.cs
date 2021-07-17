@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Quic;
 
 namespace QuicChatLib
@@ -150,11 +151,12 @@ namespace QuicChatLib
 
         public void Shutdown()
         {
-            registration.Table.StreamShutdown(streamHandle, QUIC_STREAM_SHUTDOWN_FLAGS.QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE, 0);
+            registration.Table.StreamShutdown(streamHandle, QUIC_STREAM_SHUTDOWN_FLAGS.QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE | QUIC_STREAM_SHUTDOWN_FLAGS.QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         }
 
         public void Close()
         {
+            connection.Shutdown();
             registration.Table.StreamClose(streamHandle);
             gcHandle.Free();
         }
@@ -168,6 +170,7 @@ namespace QuicChatLib
 
         private int HandleCallback(ref QUIC_STREAM_EVENT evnt)
         {
+            Console.WriteLine(evnt.Type);
             switch (evnt.Type)
             {
                 case QUIC_STREAM_EVENT_TYPE.QUIC_STREAM_EVENT_RECEIVE:
@@ -183,7 +186,6 @@ namespace QuicChatLib
                         Buffer = null,
                         Tag = (DataReceiveTag)(-1)
                     });
-                    connection.Shutdown();
                     break;
             }
             return 0;

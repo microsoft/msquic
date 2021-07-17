@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -79,7 +80,12 @@ namespace QuicChatLib
                 buffer.Buffer = alpn;
                 buffer.Length = (uint)Constants.Alpn.Length;
 
-                int status = registration.Table.ListenerStart(handle, &buffer, 1, null);
+                QuicAddr addr = new();
+                addr.Ipv4.sin_family = 0;
+                addr.Ipv4.sin_port = (ushort)IPAddress.HostToNetworkOrder((short)Constants.Port);
+                
+
+                int status = registration.Table.ListenerStart(handle, &buffer, 1, &addr);
                 MsQuic.ThrowIfFailure(status);
                 running = true;
             }            

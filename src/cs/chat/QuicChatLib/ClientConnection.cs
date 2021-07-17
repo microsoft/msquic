@@ -48,7 +48,7 @@ namespace QuicChatLib
                 int actualLen = Encoding.UTF8.GetBytes(serverName, rawNameSpan);
                 rawName[actualLen] = 0;
 
-                int status = registration.Table.ConnectionStart(connHandle, configuration.Handle, MsQuic.QUIC_ADDRESS_FAMILY_UNSPEC, rawName, Constants.Port);
+                int status = registration.Table.ConnectionStart(connHandle, configuration.Handle, MsQuic.QUIC_ADDRESS_FAMILY_INET, rawName, Constants.Port);
                 MsQuic.ThrowIfFailure(status);
             }
             NonAsyncCall();
@@ -58,6 +58,7 @@ namespace QuicChatLib
 
         private int HandleCallback(ref QUIC_CONNECTION_EVENT evnt)
         {
+            Console.WriteLine(evnt.Type);
             switch (evnt.Type)
             {
                 case QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_CONNECTED:
