@@ -9,6 +9,7 @@ repository = "https://github.com/microsoft/msquic/"
 license = "MIT"
 categories = ["network-programming", "asynchronous"]
 keywords = ["quic", "network", "secure"]
+build = "src/build.rs"
 
 [dependencies]
 libc = "0.2.0"

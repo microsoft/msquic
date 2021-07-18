@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 extern crate libc;
 
@@ -48,6 +50,17 @@ pub struct Settings {
     pub keep_alive_interval_ms: u32,
     pub peer_bidi_stream_count: u16,
     pub peer_unidi_stream_count: u16,
+    pub retry_memory_limit: u16,
+    pub load_balancing_mode: u16,
+    pub other_flags: u8,
+    pub desired_version_list: *const libc::c_void,
+    pub desired_version_list_length: u32,
+    pub minimum_mtu: u16,
+    pub maximum_mtu: u16,
+    pub mtu_discovery_search_complete_timeout_us: u64,
+    pub mtu_discovery_missing_probe_count: u8,
+    pub max_binding_stateless_operations: u16,
+    pub stateless_operation_expiration_ms: u16,
 }
 
 #[repr(C)]
@@ -105,7 +118,7 @@ struct ApiTable {
 }
 
 #[cfg(target_os="windows")]
-#[link(name = "msquic")]
+#[link(name = "msquic")] // TODO - support kind = "static"
 extern {
     fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u64;
     fn MsQuicClose(api: *const ApiTable);
@@ -174,6 +187,17 @@ impl Settings {
             keep_alive_interval_ms: 0,
             peer_bidi_stream_count: 0,
             peer_unidi_stream_count: 0,
+            retry_memory_limit: 0,
+            load_balancing_mode: 0,
+            other_flags: 0,
+            desired_version_list: std::ptr::null(),
+            desired_version_list_length: 0,
+            minimum_mtu: 0,
+            maximum_mtu: 0,
+            mtu_discovery_search_complete_timeout_us: 0,
+            mtu_discovery_missing_probe_count: 0,
+            max_binding_stateless_operations: 0,
+            stateless_operation_expiration_ms: 0,
         }
     }
     pub fn set_peer_bidi_stream_count(&mut self, value: u16) {
@@ -189,8 +213,8 @@ impl Settings {
 impl CredentialConfig {
     pub fn new_client() -> CredentialConfig {
         CredentialConfig {
-            cred_type: 0,   // _CREDENTIAL_TYPE_NONE
-            cred_flags: 1,  // _CREDENTIAL_FLAG_CLIENT
+            cred_type: 0,   // QUIC_CREDENTIAL_TYPE_NONE
+            cred_flags: 1,  // QUIC_CREDENTIAL_FLAG_CLIENT
             certificate: std::ptr::null(),
             principle: std::ptr::null(),
             reserved: std::ptr::null(),
@@ -300,6 +324,20 @@ impl Drop for Connection {
     fn drop(&mut self) {
         unsafe { ((*self.table).connection_close)(self.handle) };
     }
+}
+
+#[test] // TODO - Figure out how to get the DLL load path working properly.
+fn test_module() {
+    let api = Api::new();
+    let registration = Registration::new(&api, std::ptr::null());
+
+    let alpn = Buffer::from_str("h3");
+    let mut settings = Settings::new();
+    settings.set_peer_bidi_stream_count(100);
+    settings.set_peer_unidi_stream_count(3);
+    let configuration = Configuration::new(&registration, &alpn, &settings);
+    let cred_config = CredentialConfig::new_client();
+    configuration.load_credential(&cred_config);
 }
 
 }
