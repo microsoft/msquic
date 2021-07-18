@@ -5,13 +5,19 @@ extern crate libc;
 
 pub mod msquic {
 
+use libc::c_void;
+use std::ptr;
+
 pub struct Status { }
 
 impl Status {
+    /// Determines if a MsQuic status is considered a succes, which includes
+    /// both "no error" and "pending" status codes.
     pub fn succeeded(status: u64) -> bool {
         (status as i64) >= 0
     }
 
+    /// Determines if a MsQuic status is considered a failure.
     pub fn failed(status: u64) -> bool {
         (status as i64) < 0
     }
@@ -53,7 +59,7 @@ pub struct Settings {
     pub retry_memory_limit: u16,
     pub load_balancing_mode: u16,
     pub other_flags: u8,
-    pub desired_version_list: *const libc::c_void,
+    pub desired_version_list: *const c_void,
     pub desired_version_list_length: u32,
     pub minimum_mtu: u16,
     pub maximum_mtu: u16,
@@ -67,11 +73,11 @@ pub struct Settings {
 pub struct CredentialConfig {
     pub cred_type: u32,
     pub cred_flags: u32,
-    pub certificate: *const libc::c_void,
-    pub principle: *const libc::c_void,
-    reserved: *const libc::c_void,
-    pub async_handler: *const libc::c_void,
-    pub allowed_cipher_suites: *const libc::c_void,
+    pub certificate: *const c_void,
+    pub principle: *const c_void,
+    reserved: *const c_void,
+    pub async_handler: *const c_void,
+    pub allowed_cipher_suites: *const c_void,
 }
 
 #[repr(C)]
@@ -86,35 +92,35 @@ pub struct StreamEvent {
 
 #[repr(C)]
 struct ApiTable {
-    set_context : extern fn(handle: *const libc::c_void, context: *const libc::c_void),
-    get_context : extern fn(handle: *const libc::c_void) -> *mut libc::c_void,
-    set_callback_handler : extern fn(handle: *const libc::c_void, handler: *const libc::c_void, context: *const libc::c_void),
-    set_param : *mut libc::c_void,
-    get_param : *mut libc::c_void,
-    registration_open : extern fn(config: *const RegistrationConfig, registration: &*const libc::c_void) -> u64,
-    registration_close : extern fn(registration: *const libc::c_void),
-    registration_shutdown : extern fn(registration: *const libc::c_void),
-    configuration_open : extern fn(registration: *const libc::c_void, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const libc::c_void, configuration: &*const libc::c_void) -> u64,
-    configuration_close : extern fn(configuration: *const libc::c_void),
-    configuration_load_credential : extern fn(configuration: *const libc::c_void, cred_config: *const CredentialConfig) -> u64,
-    listener_open : *mut libc::c_void,
-    listener_close : extern fn(listener: *const libc::c_void),
-    listener_start : *mut libc::c_void,
-    listener_stop : *mut libc::c_void,
-    connection_open : extern fn(registration: *const libc::c_void, handler: extern fn(connection: *mut libc::c_void, context: *mut libc::c_void, event: &ConnectionEvent), context: *const libc::c_void, connection: &*const libc::c_void) -> u64,
-    connection_close : extern fn(connection: *const libc::c_void),
-    connection_shutdown : *mut libc::c_void,
-    connection_start : extern fn(connection: *const libc::c_void, configuration: *const libc::c_void, family: u16, server_name: *const u8, server_port: u16) -> u64,
-    connection_set_configuration : *mut libc::c_void,
-    connection_send_resumption_ticket : *mut libc::c_void,
-    stream_open : *mut libc::c_void,
-    stream_close : extern fn(stream: *const libc::c_void),
-    stream_start : *mut libc::c_void,
-    stream_shutdown : *mut libc::c_void,
-    stream_send : *mut libc::c_void,
-    stream_receive_complete : *mut libc::c_void,
-    stream_receive_set_enabled : *mut libc::c_void,
-    datagram_send : *mut libc::c_void,
+    set_context : extern fn(handle: *const c_void, context: *const c_void),
+    get_context : extern fn(handle: *const c_void) -> *mut c_void,
+    set_callback_handler : extern fn(handle: *const c_void, handler: *const c_void, context: *const c_void),
+    set_param : *mut c_void,
+    get_param : *mut c_void,
+    registration_open : extern fn(config: *const RegistrationConfig, registration: &*const c_void) -> u64,
+    registration_close : extern fn(registration: *const c_void),
+    registration_shutdown : extern fn(registration: *const c_void),
+    configuration_open : extern fn(registration: *const c_void, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u64,
+    configuration_close : extern fn(configuration: *const c_void),
+    configuration_load_credential : extern fn(configuration: *const c_void, cred_config: *const CredentialConfig) -> u64,
+    listener_open : *mut c_void,
+    listener_close : extern fn(listener: *const c_void),
+    listener_start : *mut c_void,
+    listener_stop : *mut c_void,
+    connection_open : extern fn(registration: *const c_void, handler: extern fn(connection: *mut c_void, context: *mut c_void, event: &ConnectionEvent), context: *const c_void, connection: &*const c_void) -> u64,
+    connection_close : extern fn(connection: *const c_void),
+    connection_shutdown : *mut c_void,
+    connection_start : extern fn(connection: *const c_void, configuration: *const c_void, family: u16, server_name: *const u8, server_port: u16) -> u64,
+    connection_set_configuration : *mut c_void,
+    connection_send_resumption_ticket : *mut c_void,
+    stream_open : *mut c_void,
+    stream_close : extern fn(stream: *const c_void),
+    stream_start : *mut c_void,
+    stream_shutdown : *mut c_void,
+    stream_send : *mut c_void,
+    stream_receive_complete : *mut c_void,
+    stream_receive_set_enabled : *mut c_void,
+    datagram_send : *mut c_void,
 }
 
 #[cfg(target_os="windows")]
@@ -137,17 +143,17 @@ pub struct Api {
 
 pub struct Registration {
     table: *const ApiTable,
-    handle: *const libc::c_void,
+    handle: *const c_void,
 }
 
 pub struct Configuration {
     table: *const ApiTable,
-    handle: *const libc::c_void,
+    handle: *const c_void,
 }
 
 pub struct Connection {
     table: *const ApiTable,
-    handle: *const libc::c_void,
+    handle: *const c_void,
 }
 
 impl Buffer {
@@ -190,7 +196,7 @@ impl Settings {
             retry_memory_limit: 0,
             load_balancing_mode: 0,
             other_flags: 0,
-            desired_version_list: std::ptr::null(),
+            desired_version_list: ptr::null(),
             desired_version_list_length: 0,
             minimum_mtu: 0,
             maximum_mtu: 0,
@@ -215,18 +221,18 @@ impl CredentialConfig {
         CredentialConfig {
             cred_type: 0,   // QUIC_CREDENTIAL_TYPE_NONE
             cred_flags: 1,  // QUIC_CREDENTIAL_FLAG_CLIENT
-            certificate: std::ptr::null(),
-            principle: std::ptr::null(),
-            reserved: std::ptr::null(),
-            async_handler: std::ptr::null(),
-            allowed_cipher_suites: std::ptr::null(),
+            certificate: ptr::null(),
+            principle: ptr::null(),
+            reserved: ptr::null(),
+            async_handler: ptr::null(),
+            allowed_cipher_suites: ptr::null(),
         }
     }
 }
 
 impl Api {
     pub fn new() -> Api {
-        let new_table: *const ApiTable = std::ptr::null();
+        let new_table: *const ApiTable = ptr::null();
         let status = unsafe { MsQuicOpenVersion(1, &new_table) };
         if Status::failed(status) {
             panic!("MsQuicOpenVersion failure 0x{:x}", status);
@@ -245,7 +251,7 @@ impl Drop for Api {
 
 impl Registration {
     pub fn new(api: &Api, config: *const RegistrationConfig) -> Registration {
-        let new_registration: *const libc::c_void = std::ptr::null();
+        let new_registration: *const c_void = ptr::null();
         let status = unsafe { ((*api.table).registration_open)(config, &new_registration) };
         if Status::failed(status) {
             panic!("RegistrationOpen failure 0x{:x}", status);
@@ -269,10 +275,10 @@ impl Drop for Registration {
 
 impl Configuration {
     pub fn new(registration: &Registration, alpn: &Buffer, settings: *const Settings) -> Configuration {
-        let context: *const libc::c_void = std::ptr::null();
-        let new_configuration: *const libc::c_void = std::ptr::null();
+        let context: *const c_void = ptr::null();
+        let new_configuration: *const c_void = ptr::null();
         let mut settings_size: u32 = 0;
-        if settings != std::ptr::null() {
+        if settings != ptr::null() {
             settings_size = 128
         }
         let status = unsafe { ((*registration.table).configuration_open)(registration.handle, *&alpn, 1, settings, settings_size, context, &new_configuration) };
@@ -300,8 +306,8 @@ impl Drop for Configuration {
 }
 
 impl Connection {
-    pub fn new(registration: &Registration, handler: extern fn(connection: *mut libc::c_void, context: *mut libc::c_void, event: &ConnectionEvent), context: *const libc::c_void) -> Connection {
-        let new_connection: *const libc::c_void = std::ptr::null();
+    pub fn new(registration: &Registration, handler: extern fn(connection: *mut c_void, context: *mut c_void, event: &ConnectionEvent), context: *const c_void) -> Connection {
+        let new_connection: *const c_void = ptr::null();
         let status = unsafe { ((*registration.table).connection_open)(registration.handle, handler, context, &new_connection) };
         if Status::failed(status) {
             panic!("ConnectionOpen failure 0x{:x}", status);
@@ -326,10 +332,15 @@ impl Drop for Connection {
     }
 }
 
-#[test] // TODO - Figure out how to get the DLL load path working properly.
+#[allow(dead_code)] // Used in test code
+extern fn test_conn_callback(_connection: *mut c_void, _context: *mut c_void, _event: &ConnectionEvent) {
+    //println!("conn_callback {}", event.event_type);
+}
+
+#[test]
 fn test_module() {
     let api = Api::new();
-    let registration = Registration::new(&api, std::ptr::null());
+    let registration = Registration::new(&api, ptr::null());
 
     let alpn = Buffer::from_str("h3");
     let mut settings = Settings::new();
@@ -338,6 +349,12 @@ fn test_module() {
     let configuration = Configuration::new(&registration, &alpn, &settings);
     let cred_config = CredentialConfig::new_client();
     configuration.load_credential(&cred_config);
+
+    let _connection = Connection::new(&registration, test_conn_callback, ptr::null());
+    //connection.start(&configuration, "google.com", 443);
+
+    //let duration = std::time::Duration::from_millis(1000);
+    //std::thread::sleep(duration);
 }
 
 }
