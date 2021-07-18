@@ -1,0 +1,14 @@
+[package]
+name = "msquic"
+version = "1.5.0"
+edition = "2018"
+authors = ["Microsoft"]
+description = "Microsoft implementation of the IETF QUIC protocol"
+readme = "README.md"
+repository = "https://github.com/microsoft/msquic/"
+license = "MIT"
+categories = ["network-programming", "asynchronous"]
+keywords = ["quic", "network", "secure"]
+
+[dependencies]
+libc = "0.2.0"
