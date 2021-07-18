@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "1.5.0-alpha2"
+version = "1.5.0-alpha3"
 edition = "2018"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
@@ -19,6 +19,7 @@ include = [
     "/submodules/CMakeLists.txt",
     "/submodules/openssl/*.*",
     "/submodules/openssl/apps",
+    "/submodules/openssl/config",
     "/submodules/openssl/Configure",
     "/submodules/openssl/Configurations",
     "/submodules/openssl/crypto",
