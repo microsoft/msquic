@@ -204,9 +204,9 @@ QuicVersionNegotiationExtParseVersionInfo(
         QuicTraceLogConnError(
             ServerVersionInfoDecodeFailed3,
             Connection,
-            "Version info contains partial Other Version (%hu bytes vs. %llu bytes)",
+            "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
             (unsigned)(BufferLength - Offset),
-            (BufferLength - Offset) / sizeof(uint32_t));
+            (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
