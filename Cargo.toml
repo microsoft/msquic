@@ -11,7 +11,7 @@ categories = ["network-programming", "asynchronous"]
 keywords = ["quic", "network", "secure"]
 build = "src/build.rs"
 include = [
-    "/*.md",
+    "*/*.md",
     "/*.toml",
     "/LICENSE",
     "/submodules/openssl",
@@ -23,6 +23,9 @@ include = [
     "/src/platform",
     "/THIRD-PARTY-NOTICES",
 ]
+
+[build-dependencies]
+cmake = "0.1"
 
 [dependencies]
 libc = "0.2.0"
