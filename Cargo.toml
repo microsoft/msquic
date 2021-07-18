@@ -10,6 +10,19 @@ license = "MIT"
 categories = ["network-programming", "asynchronous"]
 keywords = ["quic", "network", "secure"]
 build = "src/build.rs"
+include = [
+    "/*.md",
+    "/*.toml",
+    "/LICENSE",
+    "/submodules/openssl",
+    "/src/*.rs",
+    "/src/bin",
+    "/src/core",
+    "/src/inc",
+    "/src/manifest",
+    "/src/platform",
+    "/THIRD-PARTY-NOTICES",
+]
 
 [dependencies]
 libc = "0.2.0"
