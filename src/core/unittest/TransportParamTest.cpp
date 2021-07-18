@@ -136,9 +136,9 @@ TEST(TransportParamTest, VersionNegotiationExtension)
 {
     QUIC_TRANSPORT_PARAMETERS OriginalTP;
     CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
-    uint8_t VNInfo[21];
-    OriginalTP.VersionInfo = VNInfo;
-    OriginalTP.VersionInfoLength = sizeof(VNInfo);
+    uint8_t VerInfo[21];
+    OriginalTP.VersionInfo = VerInfo;
+    OriginalTP.VersionInfoLength = sizeof(VerInfo);
     OriginalTP.Flags = QUIC_TP_FLAG_VERSION_NEGOTIATION;
 
     EncodeDecodeAndCompare(&OriginalTP);

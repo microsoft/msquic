@@ -1283,10 +1283,6 @@
                 name="Connection"
                 />
             <data
-                inType="win:AnsiString"
-                name="Source"
-                />
-            <data
                 inType="win:UInt8"
                 name="VnlLength"
                 />
@@ -3256,15 +3252,15 @@
             />
         <string
             id="Etw.ConnVNEOtherVersionList"
-            value="[conn][%1] %2 VI Other Versions List: %4"
+            value="[conn][%1] VerInfo Other Versions List: %3"
             />
         <string
             id="Etw.ConnClientReceivedVersionList"
-            value="[conn][%1] Client VNI Received Version List: %3"
+            value="[conn][%1] Client VI Received Version List: %3"
             />
         <string
             id="Etw.ConnServerSupportedVersionList"
-            value="[conn][%1] Server VNI Supported Version List: %3"
+            value="[conn][%1] Server VI Supported Version List: %3"
             />
         <string
             id="Etw.StreamCreated"

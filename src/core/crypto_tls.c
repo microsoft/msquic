@@ -60,10 +60,10 @@ typedef enum eSniNameType {
 //
 // Extensions
 //
-#define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
-#define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD  // N/A
-#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB  // Blob
-#define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF02DE1AULL  // varint
+#define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32              // varint
+#define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD          // N/A
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB        // Blob
+#define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF02DE1AULL   // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -1103,7 +1103,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPVersionNegotiationExt,
             Connection,
-            "TP: Version Negotiation Extension (%llu bytes)",
+            "TP: Version Negotiation Extension (%u bytes)",
             TransportParams->VersionInfoLength);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) {

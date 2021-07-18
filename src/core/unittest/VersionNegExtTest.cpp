@@ -38,7 +38,6 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
             NoOpConnection,
             ValidVI,
             3,
-            FALSE,
             &ParsedVI));
 
     // Not enough room for Others Versions List
@@ -48,7 +47,6 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
             NoOpConnection,
             ValidVI,
             4,
-            FALSE,
             &ParsedVI));
 
     // Partial Other Versions List
@@ -58,7 +56,6 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
             NoOpConnection,
             ValidVI,
             5,
-            FALSE,
             &ParsedVI));
 
     // Partial Other Versions List
@@ -68,7 +65,6 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
             NoOpConnection,
             ValidVI,
             6,
-            FALSE,
             &ParsedVI));
 
     // Partial Other Versions List
@@ -78,7 +74,6 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
             NoOpConnection,
             ValidVI,
             11,
-            FALSE,
             &ParsedVI));
 
     // Partial Other Versions List
@@ -88,7 +83,6 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
             NoOpConnection,
             ValidVI,
             15,
-            FALSE,
             &ParsedVI));
 }
 
@@ -96,36 +90,48 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
 {
     uint32_t DesiredVersions[] = {QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H};
 
-    struct { QUIC_HANDLE Handle;
-        QUIC_CONNECTION Connection;
-    } Connection {};
-    Connection.Connection.Settings.DesiredVersionsList = DesiredVersions;
-    Connection.Connection.Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
-    Connection.Connection.Settings.IsSet.DesiredVersionsList = TRUE;
+    for (auto Type : {QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT}) {
+        struct { QUIC_HANDLE Handle;
+            QUIC_CONNECTION Connection;
+        } Connection {};
+        if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
+            MsQuicLib.Settings.DesiredVersionsList = DesiredVersions;
+            MsQuicLib.Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+            MsQuicLib.Settings.IsSet.DesiredVersionsList = TRUE;
+        } else {
+            Connection.Connection.Settings.DesiredVersionsList = DesiredVersions;
+            Connection.Connection.Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+            Connection.Connection.Settings.IsSet.DesiredVersionsList = TRUE;
+        }
 
-    ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
-    Connection.Connection.Stats.QuicVersion = QUIC_VERSION_1_H;
+        ((QUIC_HANDLE*)&Connection)->Type = Type;
+        Connection.Connection.Stats.QuicVersion = QUIC_VERSION_1_H;
 
-    uint32_t VersionInfoLength = 0;
-    const uint8_t* VersionInfo =
-        QuicVersionNegotiationExtEncodeVersionInfo((QUIC_CONNECTION*)&Connection, &VersionInfoLength);
+        uint32_t VersionInfoLength = 0;
+        const uint8_t* VersionInfo =
+            QuicVersionNegotiationExtEncodeVersionInfo((QUIC_CONNECTION*)&Connection, &VersionInfoLength);
 
-    ASSERT_NE(VersionInfo, nullptr);
-    ASSERT_NE(VersionInfoLength, 0ul);
+        ASSERT_NE(VersionInfo, nullptr);
+        ASSERT_NE(VersionInfoLength, 0ul);
 
-    QUIC_VERSION_INFORMATION_V1 ParsedVI;
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        QuicVersionNegotiationExtParseVersionInfo(
-            (QUIC_CONNECTION*)&Connection,
-            VersionInfo,
-            (uint16_t)VersionInfoLength,
-            FALSE,
-            &ParsedVI));
+        QUIC_VERSION_INFORMATION_V1 ParsedVI;
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtParseVersionInfo(
+                (QUIC_CONNECTION*)&Connection,
+                VersionInfo,
+                (uint16_t)VersionInfoLength,
+                &ParsedVI));
 
-    ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Connection.Stats.QuicVersion);
-    ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(DesiredVersions));
-    ASSERT_TRUE(memcmp(DesiredVersions, ParsedVI.OtherVersions, sizeof(DesiredVersions)) == 0);
+        ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Connection.Stats.QuicVersion);
+        ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(DesiredVersions));
+        ASSERT_TRUE(memcmp(DesiredVersions, ParsedVI.OtherVersions, sizeof(DesiredVersions)) == 0);
 
-    CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
+        CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
+        if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
+            MsQuicLib.Settings.DesiredVersionsList = NULL;
+            MsQuicLib.Settings.DesiredVersionsListLength = 0;
+            MsQuicLib.Settings.IsSet.DesiredVersionsList = FALSE;
+        }
+    }
 }

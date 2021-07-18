@@ -382,10 +382,6 @@ QuicConnFree(
         Connection->HandshakeTP = NULL;
     }
     QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
-    if (Connection->ReceivedNegotiationVersions != NULL) {
-        CXPLAT_FREE(Connection->ReceivedNegotiationVersions, QUIC_POOL_RECVD_VER_LIST);
-        Connection->ReceivedNegotiationVersionsLength = 0;
-    }
     QuicSettingsCleanup(&Connection->Settings);
     if (Connection->State.Started && !Connection->State.Connected) {
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
@@ -2568,7 +2564,6 @@ QuicConnProcessPeerVersionNegotiationTP(
                 Connection,
                 Connection->PeerTransportParams.VersionInfo,
                 (uint16_t)Connection->PeerTransportParams.VersionInfoLength,
-                FALSE,
                 &ClientVI);
         if (QUIC_FAILED(Status)) {
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
@@ -2628,7 +2623,6 @@ QuicConnProcessPeerVersionNegotiationTP(
                 Connection,
                 Connection->PeerTransportParams.VersionInfo,
                 (uint16_t)Connection->PeerTransportParams.VersionInfoLength,
-                TRUE,
                 &ServerVI);
         if (QUIC_FAILED(Status)) {
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
@@ -2780,13 +2774,13 @@ QuicConnProcessPeerTransportParameters(
             Status = QuicConnProcessPeerVersionNegotiationTP(Connection);
             if (QUIC_FAILED(Status)) {
                 //
-                // If the Version Info failed to parse, indicate the failure up the stack
-                // to perform Incompatible Version Negotiation or so the connection can be closed.
+                // If the Version Info failed to parse, indicate the failure up the stack to perform
+                // Incompatible Version Negotiation or so the connection can be closed.
                 //
                 goto Error;
             }
         }
-        if (!QuicConnIsServer(Connection) && Connection->Settings.VersionNegotiationExtEnabled &&
+        if (QuicConnIsClient(Connection) && Connection->Settings.VersionNegotiationExtEnabled &&
             (Connection->State.CompatibleVerNegotiationAttempted || Connection->PreviousQuicVersion != 0) &&
             !(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION)) {
             //
@@ -3171,28 +3165,6 @@ QuicConnRecvVerNeg(
     }
 
     Connection->PreviousQuicVersion = Connection->Stats.QuicVersion;
-    uint32_t* ReceivedNegotiationVersions =
-        (uint32_t*)CXPLAT_ALLOC_NONPAGED(ServerVersionListLength * sizeof(uint32_t), QUIC_POOL_RECVD_VER_LIST);
-    if (ReceivedNegotiationVersions == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Received version list",
-            ServerVersionListLength * sizeof(uint32_t));
-        QuicConnCloseLocally(
-            Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
-            NULL);
-        return;
-    }
-    CxPlatCopyMemory(
-        ReceivedNegotiationVersions,
-        ServerVersionList,
-        ServerVersionListLength * sizeof(uint32_t));
-    Connection->ReceivedNegotiationVersions = ReceivedNegotiationVersions;
-    Connection->ReceivedNegotiationVersionsLength = ServerVersionListLength;
-
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
     QuicConnRestart(Connection, TRUE);

@@ -76,18 +76,19 @@ QuicVersionNegotiationExtParseVersionInfo(
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
-    _In_ BOOLEAN IsServer,
     _Out_ QUIC_VERSION_INFORMATION_V1* VersionInfo
     );
 
 //
-// Encodes Version Negotiation Information into the opaque blob used by the
-// extension.
+// Encodes Version Information into the opaque blob used by the extension.
 //
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
 _Success_(return != NULL)
+_Ret_writes_bytes_(*VerInfoLength)
 const uint8_t*
 QuicVersionNegotiationExtEncodeVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
-    _Out_ uint32_t* VNInfoLength
+    _Out_ uint32_t* VerInfoLength
     );

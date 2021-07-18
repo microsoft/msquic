@@ -2860,7 +2860,7 @@
     },
     "EncodeTPVersionNegotiationExt": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Version Negotiation Extension (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Version Negotiation Extension (%u bytes)",
       "UniqueId": "EncodeTPVersionNegotiationExt",
       "splitArgs": [
         {
@@ -2868,7 +2868,7 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -7820,121 +7820,25 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
-    "VersionInfoDecodeFailed1": {
+    "ConnVNEOtherVersionList": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s version info too short to contain Chosen Version (%hu bytes)",
-      "UniqueId": "VersionInfoDecodeFailed1",
+      "TraceString": "[conn][%p] VerInfo Other Versions List: %!VNL!",
+      "UniqueId": "ConnVNEOtherVersionList",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
+          "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "s",
+          "DefinationEncoding": "!VNL!",
           "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
         }
       ],
-      "macroName": "QuicTraceLogConnError"
-    },
-    "VersionInfoDecodeFailed2": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s version info too short to contain any Other Versions (%hu bytes)",
-      "UniqueId": "VersionInfoDecodeFailed2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnError"
-    },
-    "ServerVersionInfoDecodeFailed3": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s version info contains partial Other Version (%hu bytes vs. %llu bytes)",
-      "UniqueId": "ServerVersionInfoDecodeFailed3",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg5"
-        }
-      ],
-      "macroName": "QuicTraceLogConnError"
-    },
-    "ServerVersionInfoDecodeFailed4": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s version info parsed less than full buffer (%hu bytes vs. %hu bytes",
-      "UniqueId": "ServerVersionInfoDecodeFailed4",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg5"
-        }
-      ],
-      "macroName": "QuicTraceLogConnError"
-    },
-    "ServerVersionInfoDecoded": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s VI Decoded: Chosen Ver:%x Other Ver Count:%llu",
-      "UniqueId": "ServerVersionInfoDecoded",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg5"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
+      "macroName": "QuicTraceEvent"
     },
     "ServerVersionNegotiationInfoEncoded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Server VNI Encoded: Chosen Ver:%x Other Ver Count:%u",
+      "TraceString": "[conn][%p] Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
       "UniqueId": "ServerVersionNegotiationInfoEncoded",
       "splitArgs": [
         {
@@ -7951,6 +7855,82 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "ServerVersionInfoDecoded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] VerInfo Decoded: Chosen Ver:%x Other Ver Count:%llu",
+      "UniqueId": "ServerVersionInfoDecoded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "ServerVersionInfoDecodeFailed4": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version info parsed less than full buffer (%hu bytes vs. %hu bytes",
+      "UniqueId": "ServerVersionInfoDecodeFailed4",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionInfoDecodeFailed3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version info contains partial Other Version (%hu bytes vs. %llu bytes)",
+      "UniqueId": "ServerVersionInfoDecodeFailed3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "VersionInfoDecodeFailed2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version info too short to contain any Other Versions (%hu bytes)",
+      "UniqueId": "VersionInfoDecodeFailed2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     },
     "ClientVersionNegotiationInfoEncoded": {
       "ModuleProperites": {},
@@ -7980,25 +7960,21 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "ConnVNEOtherVersionList": {
+    "VersionInfoDecodeFailed1": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s VI Other Versions List: %!VNL!",
-      "UniqueId": "ConnVNEOtherVersionList",
+      "TraceString": "[conn][%p] Version info too short to contain Chosen Version (%hu bytes)",
+      "UniqueId": "VersionInfoDecodeFailed1",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
+          "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "s",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "!VNL!",
-          "MacroVariableName": "arg4"
         }
       ],
-      "macroName": "QuicTraceEvent"
+      "macroName": "QuicTraceLogConnError"
     },
     "IndicateIdealProcChanged": {
       "ModuleProperites": {},
@@ -11428,10 +11404,6 @@
         "TraceID": "EncodeTPDisable1RttEncryption"
       },
       {
-        "UniquenessHash": "15129032-c44e-6ae1-1d5b-be620a2b9bdd",
-        "TraceID": "EncodeTPVersionNegotiationExt"
-      },
-      {
         "UniquenessHash": "2bcc548f-81c8-bf14-8378-f2c540783112",
         "TraceID": "EncodeTPMinAckDelay"
       },
@@ -12572,36 +12544,8 @@
         "TraceID": "ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong"
       },
       {
-        "UniquenessHash": "c6d87f8f-4d33-ae2b-fcbd-d0b6e78983ef",
-        "TraceID": "VersionInfoDecodeFailed1"
-      },
-      {
-        "UniquenessHash": "c2f064f6-71da-2427-2ef1-08cf9aab4383",
-        "TraceID": "VersionInfoDecodeFailed2"
-      },
-      {
-        "UniquenessHash": "83e8d139-9f04-8332-c4f8-8a3761250cd7",
-        "TraceID": "ServerVersionInfoDecodeFailed3"
-      },
-      {
-        "UniquenessHash": "480078f5-500f-8ca6-d4b1-303dfcc1bd23",
-        "TraceID": "ServerVersionInfoDecodeFailed4"
-      },
-      {
-        "UniquenessHash": "7325b8a8-9276-234c-8a0f-6ba3e7178afe",
-        "TraceID": "ServerVersionInfoDecoded"
-      },
-      {
-        "UniquenessHash": "1d923bfa-cf8d-a334-7e1c-386bdbb40dd3",
-        "TraceID": "ServerVersionNegotiationInfoEncoded"
-      },
-      {
         "UniquenessHash": "60fdd608-9cdd-99aa-464d-8589a3b832ac",
         "TraceID": "ClientVersionNegotiationInfoEncoded"
-      },
-      {
-        "UniquenessHash": "6bc9ff45-687f-b5d8-b16a-00bc145ec05e",
-        "TraceID": "ConnVNEOtherVersionList"
       },
       {
         "UniquenessHash": "572f7bb6-23fa-8f9a-25cd-2098fb307a5c",
@@ -13270,6 +13214,42 @@
       {
         "UniquenessHash": "13fbb0ef-abe5-4b6d-808c-9baed9531070",
         "TraceID": "CompatibleVersionUpgradeComplete"
+      },
+      {
+        "UniquenessHash": "2222c403-3ef4-09ef-5b3c-aca16af3616d",
+        "TraceID": "VersionInfoDecodeFailed1"
+      },
+      {
+        "UniquenessHash": "3e7b261f-8077-d6f3-18ee-188f5cfe6b6b",
+        "TraceID": "VersionInfoDecodeFailed2"
+      },
+      {
+        "UniquenessHash": "4ae5addf-1849-a595-a1a5-e9fb697b58cf",
+        "TraceID": "ServerVersionInfoDecodeFailed3"
+      },
+      {
+        "UniquenessHash": "341c77aa-d452-791a-d880-186dca98a7be",
+        "TraceID": "ServerVersionInfoDecodeFailed4"
+      },
+      {
+        "UniquenessHash": "e71c767b-82a9-be02-5f7d-c0e215e06cc2",
+        "TraceID": "ServerVersionInfoDecoded"
+      },
+      {
+        "UniquenessHash": "3754eaa4-3328-7113-f87a-c5d55a54db2c",
+        "TraceID": "ServerVersionNegotiationInfoEncoded"
+      },
+      {
+        "UniquenessHash": "42a4017b-0e70-eb13-7d54-8665729dbcad",
+        "TraceID": "ClientVersionInfoEncoded"
+      },
+      {
+        "UniquenessHash": "d94a73fc-1f40-d653-9753-35f107a8db2a",
+        "TraceID": "ConnVNEOtherVersionList"
+      },
+      {
+        "UniquenessHash": "efc12508-e546-ff7a-e943-829ad204f871",
+        "TraceID": "EncodeTPVersionNegotiationExt"
       }
     ]
   }

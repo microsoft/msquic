@@ -139,6 +139,7 @@ namespace QuicTrace.DataModel
         ConnOutFlowStreamStats,
         ConnPacketStats,
         ConnServerResumeTicket,
+        ConnVNEOtherVersionList,
 
         StreamCreated = 6144,
         StreamDestroyed,
