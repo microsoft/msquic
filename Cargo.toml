@@ -13,7 +13,7 @@ build = "src/build.rs"
 include = [
     "*/*.md",
     "/*.toml",
-    "/CMakeList.txt",
+    "/CMakeLists.txt",
     "/LICENSE",
     "/submodules/openssl",
     "/src/*.rs",
