@@ -150,7 +150,8 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     if (Buffer == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    uint32_t Offset = 0;
+    uint32_t Offset = sizeof(uint32_t);
+    CxPlatCopyMemory(Buffer, &OriginalVersion, sizeof(uint32_t));
     for (uint32_t i = 0; i < DesiredVersionsLength; ++i) {
         for (uint32_t j = 0; j < ARRAYSIZE(CompatibleVersionsMap); ++j) {
             if (CompatibleVersionsMap[j].OriginalVersion == OriginalVersion &&
@@ -164,8 +165,6 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
             }
         }
     }
-    CxPlatCopyMemory(Buffer + Offset, &OriginalVersion, sizeof(uint32_t));
-    Offset += sizeof(uint32_t);
     CXPLAT_DBG_ASSERT(Offset <= *BufferLength);
     return QUIC_STATUS_SUCCESS;
 }

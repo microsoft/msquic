@@ -88,7 +88,7 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
 
 TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
 {
-    uint32_t DesiredVersions[] = {QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H};
+    uint32_t DesiredVersions[] = {QUIC_VERSION_1, QUIC_VERSION_MS_1};
 
     for (auto Type : {QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT}) {
         struct { QUIC_HANDLE Handle;
@@ -105,7 +105,7 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
         }
 
         ((QUIC_HANDLE*)&Connection)->Type = Type;
-        Connection.Connection.Stats.QuicVersion = QUIC_VERSION_1_H;
+        Connection.Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
         uint32_t VersionInfoLength = 0;
         const uint8_t* VersionInfo =
