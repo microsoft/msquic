@@ -14,6 +14,12 @@ namespace Microsoft.Quic
         public Span<byte> Span => new(Buffer, (int)Length);
     }
 
+    public unsafe struct QuicApiTable
+    {
+        private readonly QuicApiTable* apiTable;
+
+    }
+
     public partial class MsQuic
     {
         public static unsafe QUIC_API_TABLE* Open()
