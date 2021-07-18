@@ -421,7 +421,7 @@ QuicConnShutdown(
 {
     uint32_t CloseFlags = QUIC_CLOSE_APPLICATION;
     if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT ||
-        (!Connection->State.Started && !QuicConnIsServer(Connection))) {
+        (!Connection->State.Started && QuicConnIsClient(Connection))) {
         CloseFlags |= QUIC_CLOSE_SILENT;
     }
 
@@ -1501,7 +1501,7 @@ QuicConnTryClose(
         // Peer closed first.
         //
 
-        if (!Connection->State.Connected && !QuicConnIsServer(Connection)) {
+        if (!Connection->State.Connected && QuicConnIsClient(Connection)) {
             //
             // If the server terminates a connection attempt, close immediately
             // without going through the draining period.
@@ -1562,7 +1562,7 @@ QuicConnTryClose(
         // Peer acknowledged our local close.
         //
 
-        if (!QuicConnIsServer(Connection)) {
+        if (QuicConnIsClient(Connection)) {
             //
             // Client side can immediately clean up once its close frame was
             // acknowledged because we will close the socket during clean up,
@@ -1756,7 +1756,7 @@ QuicConnStart(
 {
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
-    CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
+    CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
         if (ServerName != NULL) {
@@ -2376,7 +2376,7 @@ QuicConnSetConfiguration(
         sizeof(Configuration->Settings),
         &Configuration->Settings);
 
-    if (!QuicConnIsServer(Connection)) {
+    if (QuicConnIsClient(Connection)) {
 
         if (Connection->Stats.QuicVersion == 0) {
             //
@@ -2481,7 +2481,7 @@ QuicConnValidateTransportParameterCIDs(
         return FALSE;
     }
 
-    if (!QuicConnIsServer(Connection)) {
+    if (QuicConnIsClient(Connection)) {
         if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID)) {
             QuicTraceEvent(
                 ConnError,
@@ -2800,7 +2800,7 @@ QuicConnProcessPeerTransportParameters(
 
         if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
             CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-            CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
+            CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
             QUIC_CID_LIST_ENTRY* DestCid =
                 CXPLAT_CONTAINING_RECORD(
                     Connection->DestCids.Flink,
@@ -3016,7 +3016,7 @@ QuicConnUpdateDestCid(
     _In_ const CXPLAT_RECV_PACKET* const Packet
     )
 {
-    CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
+    CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
     CXPLAT_DBG_ASSERT(!Connection->State.Connected);
 
     if (CxPlatListIsEmpty(&Connection->DestCids)) {
@@ -3148,7 +3148,7 @@ QuicConnRecvVerNeg(
         // supported version.
         //
         if (SupportedVersion == 0 &&
-            ((!QuicConnIsServer(Connection) && QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVersion)) ||
+            ((QuicConnIsClient(Connection) && QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVersion)) ||
             (QuicConnIsServer(Connection) && QuicVersionNegotiationExtIsVersionServerSupported(ServerVersion)))) {
             SupportedVersion = ServerVersion;
         }
@@ -3462,7 +3462,7 @@ QuicConnRecvHeader(
 
     if (!Packet->IsShortHeader) {
         if (Packet->Invariant->LONG_HDR.Version != Connection->Stats.QuicVersion) {
-            if (!QuicConnIsServer(Connection) &&
+            if (QuicConnIsClient(Connection) &&
                 !Connection->State.CompatibleVerNegotiationAttempted &&
                 QuicVersionNegotiationExtIsVersionCompatible(Connection, Packet->Invariant->LONG_HDR.Version)) {
                 //
@@ -3797,7 +3797,7 @@ QuicConnRecvDecryptAndAuthenticate(
     //
     BOOLEAN CanCheckForStatelessReset = FALSE;
     uint8_t PacketResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
-    if (!QuicConnIsServer(Connection) &&
+    if (QuicConnIsClient(Connection) &&
         Packet->IsShortHeader &&
         Packet->HeaderLength + Packet->PayloadLength >= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
         CanCheckForStatelessReset = TRUE;
@@ -3981,7 +3981,7 @@ QuicConnRecvDecryptAndAuthenticate(
         switch (Packet->LH->Type) {
         case QUIC_INITIAL:
             if (!Connection->State.Connected &&
-                !QuicConnIsServer(Connection) &&
+                QuicConnIsClient(Connection) &&
                 !QuicConnUpdateDestCid(Connection, Packet)) {
                 //
                 // Client side needs to respond to the server's new source
@@ -4068,7 +4068,7 @@ QuicConnRecvFrames(
     uint16_t PayloadLength = Packet->PayloadLength;
     uint64_t RecvTime = CxPlatTimeUs64();
 
-    if (!QuicConnIsServer(Connection) &&
+    if (QuicConnIsClient(Connection) &&
         !Connection->State.GotFirstServerResponse) {
         Connection->State.GotFirstServerResponse = TRUE;
     }
@@ -6578,7 +6578,7 @@ QuicConnApplyNewSettings(
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
         QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
 
-        if (!QuicConnIsServer(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
+        if (QuicConnIsClient(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
             Connection->Stats.QuicVersion = Connection->Settings.DesiredVersionsList[0];
             QuicConnOnQuicVersionSet(Connection);
             //
