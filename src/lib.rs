@@ -3,8 +3,6 @@
 
 extern crate libc;
 
-pub mod msquic {
-
 use libc::c_void;
 use std::ptr;
 
@@ -355,6 +353,4 @@ fn test_module() {
 
     //let duration = std::time::Duration::from_millis(1000);
     //std::thread::sleep(duration);
-}
-
 }
