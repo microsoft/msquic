@@ -121,15 +121,7 @@ struct ApiTable {
     datagram_send : *mut c_void,
 }
 
-#[cfg(target_os="windows")]
 #[link(name = "msquic")] // TODO - support kind = "static"
-extern {
-    fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u64;
-    fn MsQuicClose(api: *const ApiTable);
-}
-
-#[cfg(target_os="linux")]
-#[link(name = "libmsquic")]
 extern {
     fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u64;
     fn MsQuicClose(api: *const ApiTable);
