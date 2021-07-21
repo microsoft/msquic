@@ -567,20 +567,29 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
             # add checks to ignore here:
+            -altera-struct-pack-align
             -android-cloexec-fopen
+            -android-cloexec-socket
             -bugprone-macro-parentheses
+            -bugprone-narrowing-conversions
+            -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -cert-dcl37-c
+            -cert-dcl51-cpp
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
+            -concurrency-mt-unsafe
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
+            -cppcoreguidelines-narrowing-conversions
             -google-readability-todo
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
+            -readability-function-cognitive-complexity
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
@@ -600,6 +609,7 @@ if(QUIC_CODE_CHECK)
             --suppress=varFuncNullUB
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
+            --suppress=knownConditionTrueFalse
             --enable=warning,style,performance,portability -D__linux__)
     else()
         message(STATUS "cppcheck not found")
