@@ -2,7 +2,7 @@
   "profiles": {
     "MsQuicTool": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\thhous\\Documents\\GitHub\\msquic\\artifacts\\bin\\windows\\x64_Debug_schannel\\msquic.dll",
+      "commandLineArgs": "C:\\Users\\thhous\\Documents\\GitHub\\msquic\\artifacts\\bin\\windows\\x64_Release_schannel\\msquic.dll",
       "nativeDebugging": true
     }
   }
