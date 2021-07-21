@@ -488,6 +488,22 @@ if(QUIC_TLS STREQUAL "openssl")
                 set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config)
             endif()
             list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
+        elseif(ANDROID)
+            message(STATUS "${ANDROID_ABI}")
+            if(ANDROID_ABI STREQUAL "arm64-v8a")
+                set(OPENSSL_BUILD_TYPE android-arm64)
+            elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+                set(OPENSSL_BUILD_TYPE android-arm)
+            elseif(ANDROID_ABI STREQUAL "x86")
+                set(OPENSSL_BUILD_TYPE android-x86)
+            elseif(ANDROID_ABI STREQUAL "x86_64")
+                set(OPENSSL_BUILD_TYPE android-x86_64)
+            else()
+                message(FATAL_ERROR "Unknown android abi type")
+            endif()
+            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
+                ${OPENSSL_BUILD_TYPE}
+                -D__ANDROID_API__=29)
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
@@ -567,20 +583,29 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
             # add checks to ignore here:
+            -altera-struct-pack-align
             -android-cloexec-fopen
+            -android-cloexec-socket
             -bugprone-macro-parentheses
+            -bugprone-narrowing-conversions
+            -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -cert-dcl37-c
+            -cert-dcl51-cpp
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
+            -concurrency-mt-unsafe
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
+            -cppcoreguidelines-narrowing-conversions
             -google-readability-todo
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
+            -readability-function-cognitive-complexity
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
@@ -600,6 +625,7 @@ if(QUIC_CODE_CHECK)
             --suppress=varFuncNullUB
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
+            --suppress=knownConditionTrueFalse
             --enable=warning,style,performance,portability -D__linux__)
     else()
         message(STATUS "cppcheck not found")
