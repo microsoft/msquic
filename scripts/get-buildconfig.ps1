@@ -44,8 +44,13 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ($Platform -eq "android" -and $Arch -eq "") {
-    $Arch = "arm64"
+if ($Platform -eq "android") {
+    if (!$IsLinux) {
+        Write-Error "Can only build android on linux"
+    }
+    if ($Arch -eq "") {
+        $Arch = "arm64"
+    }
 }
 
 if ("" -eq $Arch) {

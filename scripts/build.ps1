@@ -250,10 +250,6 @@ function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
 
-if ($Platform -eq "android") {
-    $DisableLogs = $true
-}
-
 # Executes cmake with the given arguments.
 function CMake-Execute([String]$Arguments) {
     Log "cmake $($Arguments)"
@@ -351,6 +347,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
     if ($Platform -eq "android") {
+        $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -358,7 +355,7 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $NDK = $env:ANDROID_NDK_HOME
+                $NDK = $env:ANDROID_NDK_HOME
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=$NDK"
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=$NdkToolchainFile"
