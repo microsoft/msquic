@@ -1283,7 +1283,7 @@ QuicSendFlush(
         }
 
 #if DEBUG
-        CXPLAT_DBG_ASSERT(++DeadlockDetection < 100);
+        CXPLAT_DBG_ASSERT(++DeadlockDetection < 1000);
         UNREFERENCED_PARAMETER(PrevPrevSendFlags); // Used in debugging only
         PrevPrevSendFlags = PrevSendFlags;
         PrevSendFlags = SendFlags;
