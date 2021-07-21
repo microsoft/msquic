@@ -26,7 +26,7 @@ if(QUIC_ENABLE_LOGGING)
     endif()
 endif()
 
-if (NOT MSVC AND NOT APPLE)
+if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
     find_library(ATOMIC NAMES atomic libatomic.so.1)
     if (ATOMIC)
         message(STATUS "Found libatomic: ${ATOMIC}")
