@@ -721,6 +721,7 @@ CxPlatCurThreadID(
     return syscall(SYS_gettid);
 
 #elif defined(CX_PLATFORM_DARWIN)
+    // cppcheck-suppress duplicateExpression
     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
     uint64_t Tid;
     int Res = pthread_threadid_np(NULL, &Tid);
