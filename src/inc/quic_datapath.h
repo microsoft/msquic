@@ -381,6 +381,54 @@ CxPlatDataPathResolveAddress(
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     );
+    
+//
+// Values from RFC 2863
+//
+typedef enum CXPLAT_OPERATION_STATUS {
+    CXPLAT_OPERATION_STATUS_UP = 1,
+    CXPLAT_OPERATION_STATUS_DOWN,
+    CXPLAT_OPERATION_STATUS_TESTING,
+    CXPLAT_OPERATION_STATUS_UNKNOWN,
+    CXPLAT_OPERATION_STATUS_DORMANT,
+    CXPLAT_OPERATION_STATUS_NOT_PRESENT,
+    CXPLAT_OPERATION_STATUS_LOWER_LAYER_DOWN
+} CXPLAT_OPERATION_STATUS;
+
+#define CXPLAT_IF_TYPE_SOFTWARE_LOOPBACK    24
+
+typedef struct CXPLAT_ADAPTER_ADDRESS {
+    QUIC_ADDR Address;
+    uint32_t InterfaceIndex;
+    uint16_t InterfaceType;
+    CXPLAT_OPERATION_STATUS OperationStatus;
+} CXPLAT_ADAPTER_ADDRESS;
+
+//
+// Gets info on the list of local IP addresses.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+CxPlatDataPathGetLocalAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
+        CXPLAT_ADAPTER_ADDRESS** Addresses,
+    _Out_ uint32_t* AddressesCount
+    );
+
+//
+// Gets the list of Gateway server addresses.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+CxPlatDataPathGetGatewayAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    );
 
 //
 // The following APIs are specific to a single UDP or TCP socket abstraction.

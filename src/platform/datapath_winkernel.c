@@ -1056,6 +1056,22 @@ CxPlatDataPathIsPaddingPreferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
+CxPlatDataPathGetLocalAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
+        CXPLAT_ADAPTER_ADDRESS** Addresses,
+    _Out_ uint32_t* AddressesCount
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    *Addresses = NULL;
+    *AddressesCount = 0;
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
 CxPlatDataPathGetGatewayAddresses(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))

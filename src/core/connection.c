@@ -5937,6 +5937,28 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_LOCAL_INTERFACE:
+
+        if (BufferLength != sizeof(uint32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QuicConnIsServer(Connection) || Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->State.RemoteAddressSet = TRUE;
+        CxPlatCopyMemory(&Connection->Paths[0].RemoteAddress, Buffer, sizeof(QUIC_ADDR));
+        //
+        // Don't log new Remote address added here because it is logged when
+        // the connection is started.
+        //
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     //
     // Private
     //
