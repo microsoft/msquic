@@ -88,34 +88,20 @@ file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release)
 
 # Configure steps for debug and release variants
 add_custom_command(
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-    OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug
-    COMMENT "OpenSSL debug configure"
-)
-add_custom_command(
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-    OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release
-    COMMENT "OpenSSL release configure"
+    WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
+    OUTPUT $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
+    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<$<CONFIG:Debug>:--prefix=${OPENSSL_DIR}/debug> $<$<NOT:$<CONFIG:Debug>>:--prefix=${OPENSSL_DIR}/release>
+
+    COMMENT "OpenSSL configure"
 )
 
 # Compile/install commands for debug and release variants
 add_custom_command(
-    OUTPUT ${LIBSSL_DEBUG_PATH}
-    BYPRODUCTS ${LIBCRYPTO_DEBUG_PATH}
-    DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
+    OUTPUT $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+    DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
+    WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
     COMMAND ${OPENSSL_RUN_COMMAND} install_dev
-    COMMENT "OpenSSL debug build"
-)
-add_custom_command(
-    OUTPUT ${LIBSSL_PATH}
-    BYPRODUCTS ${LIBCRYPTO_PATH}
-    DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-    COMMAND ${OPENSSL_RUN_COMMAND} install_dev
-    COMMENT "OpenSSL release build"
+    COMMENT "OpenSSL build"
 )
 
 # Named target depending on the final lib artifacts produced by custom commands
@@ -129,7 +115,8 @@ set_property(TARGET OpenSSL_Target PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers
 
 # Target to export to parent project
 add_library(OpenSSLQuic INTERFACE)
-add_dependencies(OpenSSLQuic OpenSSL_Target)
+add_dependencies(OpenSSLQuic
+    OpenSSL_Target)
 target_include_directories(
     OpenSSLQuic
     INTERFACE
@@ -144,5 +131,6 @@ target_link_libraries(
     $<$<NOT:$<CONFIG:Debug>>:${LIBSSL_PATH}>
     $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
 )
-add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
 
+# Target to export to parent project
+add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)

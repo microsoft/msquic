@@ -177,7 +177,7 @@ if ($IsWindows) {
             New-Item -Path .\build -ItemType Directory -Force
             try {
                 Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "build\jom.zip"
-                
+
             } catch {
                 Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "build\jom.zip"
             }
