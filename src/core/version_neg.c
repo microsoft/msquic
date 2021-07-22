@@ -226,7 +226,7 @@ QuicVersionNegotiationExtParseVersionInfo(
     QuicTraceLogConnInfo(
         ServerVersionInfoDecoded,
         Connection,
-        "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%llu",
+        "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
         VersionInfo->ChosenVersion,
         VersionInfo->OtherVersionsCount);
 
@@ -316,7 +316,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
                 NULL, &CompatibilityListByteLength);
             VILen += CompatibilityListByteLength;
         } else {
-            CXPLAT_DBG_ASSERT(MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t) > MsQuicLib.DefaultCompatibilityListLength);
+            CXPLAT_DBG_ASSERT(MsQuicLib.DefaultCompatibilityListLength * (uint32_t)sizeof(uint32_t) > MsQuicLib.DefaultCompatibilityListLength);
             VILen +=
                 MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t);
         }

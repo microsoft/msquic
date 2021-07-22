@@ -7954,7 +7954,7 @@
     },
     "ServerVersionInfoDecoded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] VerInfo Decoded: Chosen Ver:%x Other Ver Count:%llu",
+      "TraceString": "[conn][%p] VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
       "UniqueId": "ServerVersionInfoDecoded",
       "splitArgs": [
         {
@@ -7966,7 +7966,7 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg4"
         }
       ],
@@ -12628,10 +12628,6 @@
         "TraceID": "ServerVersionInfoDecodeFailed4"
       },
       {
-        "UniquenessHash": "e71c767b-82a9-be02-5f7d-c0e215e06cc2",
-        "TraceID": "ServerVersionInfoDecoded"
-      },
-      {
         "UniquenessHash": "3754eaa4-3328-7113-f87a-c5d55a54db2c",
         "TraceID": "ServerVersionNegotiationInfoEncoded"
       },
@@ -13302,6 +13298,10 @@
       {
         "UniquenessHash": "f6f8ff1e-981f-8f41-67d4-9e051d0b6093",
         "TraceID": "ServerVersionInfoDecodeFailed3"
+      },
+      {
+        "UniquenessHash": "7d006393-c91d-c1ce-5dca-284c81136b96",
+        "TraceID": "ServerVersionInfoDecoded"
       }
     ]
   }

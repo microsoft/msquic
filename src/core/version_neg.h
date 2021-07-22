@@ -16,24 +16,9 @@ Abstract:
 //
 extern const uint32_t DefaultSupportedVersionsList[3];
 
-typedef struct QUIC_CLIENT_VER_NEG_INFO {
-    uint32_t CurrentVersion;
-    uint32_t PreviousVersion;
-    QUIC_VAR_INT RecvNegotiationVerCount;
-    const uint32_t* RecvNegotiationVersions;
-    QUIC_VAR_INT CompatibleVersionCount;
-    const uint32_t* CompatibleVersions;
-} QUIC_CLIENT_VER_NEG_INFO;
-
-typedef struct QUIC_SERVER_VER_NEG_INFO {
-    uint32_t NegotiatedVersion;
-    QUIC_VAR_INT SupportedVersionCount;
-    const uint32_t* SupportedVersions;
-} QUIC_SERVER_VER_NEG_INFO;
-
 typedef struct QUIC_VERSION_INFORMATION_V1 {
     uint32_t ChosenVersion;
-    QUIC_VAR_INT OtherVersionsCount;
+    uint32_t OtherVersionsCount;
     const uint32_t* OtherVersions;
 } QUIC_VERSION_INFORMATION_V1;
 
