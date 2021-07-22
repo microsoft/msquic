@@ -164,8 +164,9 @@ if ($IsWindows) {
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
+            $env:PATH = "${env:PATH};$NasmPath"
             [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH};$NasmPath"
+            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
 
@@ -184,8 +185,9 @@ if ($IsWindows) {
             Expand-Archive -Path "build\jom.zip" -DestinationPath $JomPath -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$JomPath"
+            $env:PATH = "${env:PATH};$JomPath"
             [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH};$JomPath"
+            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
     }
