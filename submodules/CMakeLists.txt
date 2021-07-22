@@ -11,8 +11,8 @@ cmake_minimum_required(VERSION 3.16)
 # This file is intended to be included in the parent msquic project via FetchContent
 project(OpenSSLQuic)
 
-option(QUIC_BUILD_DIR "QUIC build directory" ${CMAKE_CURRENT_BINARY_DIR})
-option(OPENSSL_DIR "OpenSSL build directory" ${QUIC_BUILD_DIR}/openssl)
+set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "QUIC build directory")
+set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl CACHE STRING "OpenSSL build directory")
 
 set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -51,6 +51,17 @@ else()
     endif()
 endif()
 
+find_program(JOM_EXE jom)
+if (JOM_EXE)
+    set(OPENSSL_EXTRA_CONFIGURE_ARGS /FS)
+    include(ProcessorCount)
+    ProcessorCount(NPROCS)
+    set(OPENSSL_RUN_COMMAND "${JOM_EXE}" -j${NPROCS})
+else()
+    set(OPENSSL_EXTRA_CONFIGURE_ARGS)
+    set(OPENSSL_RUN_COMMAND nmake)
+endif()
+
 set(OPENSSL_CONFIG_FLAGS
     enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
 
@@ -63,7 +74,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
-    no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
+    no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH} ${OPENSSL_EXTRA_CONFIGURE_ARGS})
 
 if (QUIC_UWP_BUILD)
     list(APPEND OPENSSL_CONFIG_FLAGS no-async)
@@ -77,34 +88,20 @@ file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release)
 
 # Configure steps for debug and release variants
 add_custom_command(
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-    OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug
-    COMMENT "OpenSSL debug configure"
-)
-add_custom_command(
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-    OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release
-    COMMENT "OpenSSL release configure"
+    WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
+    OUTPUT $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
+    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<$<CONFIG:Debug>:--prefix=${OPENSSL_DIR}/debug> $<$<NOT:$<CONFIG:Debug>>:--prefix=${OPENSSL_DIR}/release>
+
+    COMMENT "OpenSSL configure"
 )
 
 # Compile/install commands for debug and release variants
 add_custom_command(
-    OUTPUT ${LIBSSL_DEBUG_PATH}
-    BYPRODUCTS ${LIBCRYPTO_DEBUG_PATH}
-    DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-    COMMAND nmake install_dev
-    COMMENT "OpenSSL debug build"
-)
-add_custom_command(
-    OUTPUT ${LIBSSL_PATH}
-    BYPRODUCTS ${LIBCRYPTO_PATH}
-    DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-    WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-    COMMAND nmake install_dev
-    COMMENT "OpenSSL release build"
+    OUTPUT $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+    DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
+    WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
+    COMMAND ${OPENSSL_RUN_COMMAND} install_dev
+    COMMENT "OpenSSL build"
 )
 
 # Named target depending on the final lib artifacts produced by custom commands
@@ -118,7 +115,8 @@ set_property(TARGET OpenSSL_Target PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers
 
 # Target to export to parent project
 add_library(OpenSSLQuic INTERFACE)
-add_dependencies(OpenSSLQuic OpenSSL_Target)
+add_dependencies(OpenSSLQuic
+    OpenSSL_Target)
 target_include_directories(
     OpenSSLQuic
     INTERFACE
@@ -133,5 +131,5 @@ target_link_libraries(
     $<$<NOT:$<CONFIG:Debug>>:${LIBSSL_PATH}>
     $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
 )
-add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
 
+add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)

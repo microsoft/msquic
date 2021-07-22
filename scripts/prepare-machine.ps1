@@ -164,8 +164,30 @@ if ($IsWindows) {
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
+            $env:PATH = "${env:PATH};$NasmPath"
             [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH};$NasmPath"
+            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
+            Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
+        }
+
+        $JomVersion = "1_1_3"
+        $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
+        $JomExe = Join-Path $JomPath "jom.exe"
+        if (!(Test-Path $JomExe)) {
+            New-Item -Path .\build -ItemType Directory -Force
+            try {
+                Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "build\jom.zip"
+
+            } catch {
+                Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "build\jom.zip"
+            }
+            New-Item -Path $JomPath -ItemType Directory -Force
+            Expand-Archive -Path "build\jom.zip" -DestinationPath $JomPath -Force
+            $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
+            $CurrentSystemPath = "$CurrentSystemPath;$JomPath"
+            $env:PATH = "${env:PATH};$JomPath"
+            [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
     }
