@@ -11,8 +11,8 @@ cmake_minimum_required(VERSION 3.16)
 # This file is intended to be included in the parent msquic project via FetchContent
 project(OpenSSLQuic)
 
-option(QUIC_BUILD_DIR "QUIC build directory" ${CMAKE_CURRENT_BINARY_DIR})
-option(OPENSSL_DIR "OpenSSL build directory" ${QUIC_BUILD_DIR}/openssl)
+set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "QUIC build directory")
+set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl CACHE STRING "OpenSSL build directory")
 
 set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
