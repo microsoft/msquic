@@ -132,5 +132,4 @@ target_link_libraries(
     $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
 )
 
-# Target to export to parent project
 add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
