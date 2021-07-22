@@ -164,7 +164,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
         }                                                                       \
     } while (0)    
 #else
-#define QUIC_CID_SET_PATH(Cid, Path) UNREFERENCED_PARAMETER(Cid)
+#define QUIC_CID_SET_PATH(Conn, Cid, Path) UNREFERENCED_PARAMETER(Cid)
 #define QUIC_CID_CLEAR_PATH(Cid) UNREFERENCED_PARAMETER(Cid)
 #define QUIC_CID_VALIDATE_NULL(Conn, Cid) UNREFERENCED_PARAMETER(Cid)
 #endif
