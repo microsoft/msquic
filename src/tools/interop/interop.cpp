@@ -378,6 +378,8 @@ public:
             Settings.DesiredVersionsList = DesiredVersions;
             Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
             Settings.IsSet.DesiredVersionsList = TRUE;
+            Settings.VersionNegotiationExtEnabled = TRUE;
+            Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
@@ -391,6 +393,8 @@ public:
             Settings.DesiredVersionsList = DesiredVersions;
             Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
             Settings.IsSet.DesiredVersionsList = TRUE;
+            Settings.VersionNegotiationExtEnabled = TRUE;
+            Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
