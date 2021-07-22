@@ -51,6 +51,17 @@ else()
     endif()
 endif()
 
+find_program(JOM_EXE jom)
+if (JOM_EXE)
+    set(OPENSSL_EXTRA_CONFIGURE_ARGS /FS)
+    include(ProcessorCount)
+    ProcessorCount(NPROCS)
+    set(OPENSSL_RUN_COMMAND "${JOM_EXE}" -j${NPROCS})
+else()
+    set(OPENSSL_EXTRA_CONFIGURE_ARGS)
+    set(OPENSSL_RUN_COMMAND nmake)
+endif()
+
 set(OPENSSL_CONFIG_FLAGS
     enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
 
@@ -63,7 +74,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
-    no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
+    no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH} ${OPENSSL_EXTRA_CONFIGURE_ARGS})
 
 if (QUIC_UWP_BUILD)
     list(APPEND OPENSSL_CONFIG_FLAGS no-async)
@@ -95,7 +106,7 @@ add_custom_command(
     BYPRODUCTS ${LIBCRYPTO_DEBUG_PATH}
     DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
     WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-    COMMAND nmake install_dev
+    COMMAND ${OPENSSL_RUN_COMMAND} install_dev
     COMMENT "OpenSSL debug build"
 )
 add_custom_command(
@@ -103,7 +114,7 @@ add_custom_command(
     BYPRODUCTS ${LIBCRYPTO_PATH}
     DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
     WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-    COMMAND nmake install_dev
+    COMMAND ${OPENSSL_RUN_COMMAND} install_dev
     COMMENT "OpenSSL release build"
 )
 
