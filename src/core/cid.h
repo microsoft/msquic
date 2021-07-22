@@ -146,13 +146,27 @@ typedef struct QUIC_CID_LIST_ENTRY {
 } QUIC_CID_LIST_ENTRY;
 
 #if DEBUG
-#define QUIC_CID_SET_PATH(Cid, Path) CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL); Cid->AssignedPath = Path
+#define QUIC_CID_SET_PATH(Conn, Cid, Path)                                      \
+    do {                                                                        \
+        CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL); Cid->AssignedPath = Path; \
+        for (uint8_t PathIdx = Conn->PathsCount - 1; PathIdx > 0; PathIdx--) {  \
+            if (Path != &Conn->Paths[PathIdx])                                  \
+                CXPLAT_DBG_ASSERT(Conn->Paths[PathIdx].DestCid != Cid);         \
+            }                                                                   \
+        }                                                                       \
+    while (0)
 #define QUIC_CID_CLEAR_PATH(Cid) Cid->AssignedPath = NULL
-#define QUIC_CID_VALIDATE_NULL(Cid) CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL)
+#define QUIC_CID_VALIDATE_NULL(Conn, Cid)                                       \
+    do {                                                                        \
+        CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL);                           \
+        for (uint8_t PathIdx = Conn->PathsCount - 1; PathIdx > 0; PathIdx--) {  \
+            CXPLAT_DBG_ASSERT(Conn->Paths[PathIdx].DestCid != Cid);             \
+        }                                                                       \
+    } while (0)    
 #else
 #define QUIC_CID_SET_PATH(Cid, Path) UNREFERENCED_PARAMETER(Cid)
 #define QUIC_CID_CLEAR_PATH(Cid) UNREFERENCED_PARAMETER(Cid)
-#define QUIC_CID_VALIDATE_NULL(Cid) UNREFERENCED_PARAMETER(Cid)
+#define QUIC_CID_VALIDATE_NULL(Conn, Cid) UNREFERENCED_PARAMETER(Cid)
 #endif
 
 typedef struct QUIC_CID_HASH_ENTRY {

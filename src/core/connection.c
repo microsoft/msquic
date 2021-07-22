@@ -202,7 +202,7 @@ QuicConnAlloc(
         if (Path->DestCid == NULL) {
             goto Error;
         }
-        QUIC_CID_SET_PATH(Path->DestCid, Path);
+        QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
         Path->DestCid->CID.UsedLocally = TRUE;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
         QuicTraceEvent(
@@ -241,7 +241,7 @@ QuicConnAlloc(
         if (Path->DestCid == NULL) {
             goto Error;
         }
-        QUIC_CID_SET_PATH(Path->DestCid, Path);
+        QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
         Path->DestCid->CID.UsedLocally = TRUE;
         Connection->DestCidCount++;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
@@ -1022,10 +1022,12 @@ QuicConnRetireCurrentDestCid(
         return FALSE;
     }
 
+    QUIC_CID_LIST_ENTRY* OldDestCid = Path->DestCid;
     QUIC_CID_CLEAR_PATH(Path->DestCid);
     QuicConnRetireCid(Connection, Path->DestCid);
     Path->DestCid = NewDestCid;
-    QUIC_CID_SET_PATH(Path->DestCid, Path);
+    QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
+    QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
     Path->DestCid->CID.UsedLocally = TRUE;
 
     return TRUE;
@@ -1076,7 +1078,7 @@ QuicConnReplaceRetiredCids(
             continue;
         }
 
-        QUIC_CID_VALIDATE_NULL(Path->DestCid); // Previously cleared on retire.
+        QUIC_CID_VALIDATE_NULL(Connection, Path->DestCid); // Previously cleared on retire.
         QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
         if (NewDestCid == NULL) {
             if (Path->IsActive) {
@@ -1098,7 +1100,7 @@ QuicConnReplaceRetiredCids(
         }
 
         Path->DestCid = NewDestCid;
-        QUIC_CID_SET_PATH(NewDestCid, Path);
+        QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
         Path->DestCid->CID.UsedLocally = TRUE;
         Path->InitiatedCidUpdate = TRUE;
         QuicPathValidate(Path);
@@ -3012,7 +3014,7 @@ QuicConnUpdateDestCid(
             }
 
             Connection->Paths[0].DestCid = DestCid;
-            QUIC_CID_SET_PATH(DestCid, &Connection->Paths[0]);
+            QUIC_CID_SET_PATH(Connection, DestCid, &Connection->Paths[0]);
             DestCid->CID.UsedLocally = TRUE;
             CxPlatListInsertHead(&Connection->DestCids, &DestCid->Link);
         }
@@ -4933,7 +4935,7 @@ QuicConnRecvPostProcessing(
                     (*Path)->GotValidPacket = FALSE; // Don't have a new CID to use!!!
                     return;
                 }
-                QUIC_CID_SET_PATH((*Path)->DestCid, (*Path));
+                QUIC_CID_SET_PATH(Connection, (*Path)->DestCid, (*Path));
                 (*Path)->DestCid->CID.UsedLocally = TRUE;
             }
 
