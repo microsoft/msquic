@@ -583,7 +583,7 @@ QuicLossDetectionOnPacketAcknowledged(
 #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
                 CXPLAT_DBG_ASSERT(DatagramPath == NULL || DatagramPath->DestCid != DestCid);
-                CXPLAT_DBG_ASSERT(Path != NULL || Path->DestCid != DestCid);
+                CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
                 UNREFERENCED_PARAMETER(DatagramPath);
                 QUIC_CID_VALIDATE_NULL(Connection, DestCid);
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
