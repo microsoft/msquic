@@ -336,6 +336,16 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+TEST_P(WithBool, RejectConnection) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectionRejection", GetParam());
+    if (TestingKernelMode) {
+        uint8_t Param = (uint8_t)GetParam();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_REJECTION, Param));
+    } else {
+        QuicTestConnectionRejection(GetParam());
+    }
+}
+
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, LocalPathChanges) {
