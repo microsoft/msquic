@@ -37,6 +37,11 @@ Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
 clog --installDirectory (Join-Path $OutputDir common)
 
 foreach ($File in $Files) {
+    $FileToCheck = [System.IO.Path]::GetFileName($File) + ".clog.h"
+    $FileContents = (Get-Content -path $File -Raw)
+    if ($null -eq $FileContents -or  !$FileContents.Contains($FileToCheck)) {
+        continue
+    }
     clog -p windows --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
     clog -p windows_kernel --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
     clog -p stubs --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
