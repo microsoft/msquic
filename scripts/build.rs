@@ -11,6 +11,7 @@ fn main() {
                  .define("QUIC_BUILD_TOOLS", "off")
                  .define("QUIC_BUILD_PERF", "off")
                  .define("QUIC_SOURCE_LINK", "off")
+                 .define("QUIC_ENABLE_LOGGING", "on")
                  .define("QUIC_TLS", "openssl")
                  .define("QUIC_OUTPUT_DIR", "../lib")
                  .build();
