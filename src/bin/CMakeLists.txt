@@ -11,11 +11,11 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings)
+    target_link_libraries(msquic PRIVATE core platform inc warnings logging)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
 else()
     add_library(msquic_static STATIC static/empty.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc)
+    target_link_libraries(msquic_static PRIVATE core platform inc logging)
     target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
@@ -243,14 +243,6 @@ install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest}
 
 if(BUILD_SHARED_LIBS)
     install(EXPORT msquic DESTINATION ${msquic_dest})
-endif()
-
-if(WIN32)
-    add_library(msquic.lttng INTERFACE)
-elseif(QUIC_ENABLE_LOGGING)
-    add_library(msquic.lttng SHARED $<TARGET_OBJECTS:platform.clog.provider> $<TARGET_OBJECTS:core.clog.provider>)
-    target_link_libraries(msquic.lttng inc)
-    install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
 endif()
 
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)
