@@ -24,15 +24,29 @@ $Files.Sort([SimpleStringComparer]::new())
 $Sidecar = Join-Path $SrcDir "manifest" "clog.sidecar"
 $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
 
-$OutputDir = Join-Path $RootDir "build" "tmp"
+$TmpOutputDir = Join-Path $RootDir "build" "tmp"
+
+$OutputDir = Join-Path $RootDir "src" "generated"
+if (Test-Path $OutputDir) {
+    Remove-Item $OutputDir -Recurse -Force
+}
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
 
+clog --installDirectory (Join-Path $OutputDir common)
+
 foreach ($File in $Files) {
-    clog -p windows --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p windows_kernel --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p stubs --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p linux --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p macos --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
+    clog -p windows --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
+    clog -p windows_kernel --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
+    clog -p stubs --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
+    clog -p linux --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory (Join-Path $OutputDir linux)
+    clog -p macos --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
+}
+
+# Perform fixups
+$GenFiles = Get-ChildItem -Path "$OutputDir\*" -Recurse -File
+$ToRemovePath = "$OutputDir\linux\"
+foreach ($File in $GenFiles) {
+    ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File
 }
