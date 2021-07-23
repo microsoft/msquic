@@ -1886,3 +1886,71 @@ QuicTestValidateParamApi()
             BufferSize,
             (void*)&LoadBalancingMode2));
 }
+
+static
+QUIC_STATUS
+QUIC_API
+RejectConnCallback(
+    _In_ MsQuicConnection* /* Connection */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+) noexcept {
+    if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+        ((CxPlatEvent*)Context)->Set();
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_LISTENER_CALLBACK)
+QUIC_STATUS
+QUIC_API
+RejectListenerCallback(
+    _In_ HQUIC /* Listener */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+) noexcept {
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        bool* RejectByClosing = (bool*)Context;
+        if (*RejectByClosing) {
+            MsQuic->ConnectionClose(Event->NEW_CONNECTION.Connection);
+            return QUIC_STATUS_SUCCESS;
+        } else {
+            return QUIC_STATUS_ABORTED;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestConnectionRejection(
+    bool RejectByClosing
+    )
+{
+    CxPlatEvent ShutdownEvent;
+    MsQuicRegistration Registration { true };
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    MsQuicListener Listener{ Registration, RejectListenerCallback, &RejectByClosing };
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration, CleanUpManual, RejectConnCallback, &ShutdownEvent);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+
+    TEST_TRUE(ShutdownEvent.WaitTimeout(2000));
+}
