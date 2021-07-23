@@ -143,7 +143,7 @@ param (
     [switch]$Clean = $false,
 
     [Parameter(Mandatory = $false)]
-    [int32]$Parallel = -1,
+    [int32]$Parallel = -2,
 
     [Parameter(Mandatory = $false)]
     [switch]$DynamicCRT = $false,
@@ -190,6 +190,14 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ($Parallel -lt -1) {
+    if ($IsWindows) {
+        $Parallel = -1
+    } else {
+        $Parallel = 0
+    }
+}
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
