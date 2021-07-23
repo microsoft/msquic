@@ -565,6 +565,7 @@ if(QUIC_CODE_CHECK)
 endif()
 
 add_subdirectory(src/inc)
+add_subdirectory(src/generated)
 
 # Product code
 add_subdirectory(src/core)

@@ -16,7 +16,7 @@ target_include_directories(msquicplatformtest PRIVATE ${PROJECT_SOURCE_DIR}/src/
 
 set_property(TARGET msquicplatformtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
 
-target_link_libraries(msquicplatformtest msquic platform inc gtest warnings)
+target_link_libraries(msquicplatformtest msquic platform inc gtest warnings logging)
 
 add_test(NAME msquicplatformtest
          COMMAND msquicplatformtest

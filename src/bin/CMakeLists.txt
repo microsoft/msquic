@@ -11,11 +11,11 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings)
+    target_link_libraries(msquic PRIVATE core platform inc warnings logging)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
 else()
     add_library(msquic_static STATIC static/empty.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc)
+    target_link_libraries(msquic_static PRIVATE core platform inc logging)
     target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 

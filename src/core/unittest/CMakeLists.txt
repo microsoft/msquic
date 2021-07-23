@@ -20,7 +20,7 @@ target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
 
-target_link_libraries(msquiccoretest msquic core platform inc gtest warnings)
+target_link_libraries(msquiccoretest msquic core platform inc gtest warnings logging)
 
 add_test(NAME msquiccoretest
          COMMAND msquiccoretest
