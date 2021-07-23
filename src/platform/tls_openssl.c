@@ -2028,7 +2028,7 @@ CxPlatTlsParamGet(
             const uint8_t* NegotiatedAlpn;
             unsigned int NegotiatedAlpnLen = 0;
             SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLen);
-            if (NegotiatedAlpnLen <= 0) {
+            if (NegotiatedAlpnLen == 0) {
                 QuicTraceEvent(
                     TlsError,
                     "[ tls][%p] ERROR, %s.",

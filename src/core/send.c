@@ -110,7 +110,7 @@ QuicSendCanSendFlagsNow(
             CxPlatListIsEmpty(&Send->SendStreams)) {
             return TRUE;
         }
-        if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
+        if ((!Connection->State.Started && QuicConnIsClient(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
         }
@@ -1283,7 +1283,7 @@ QuicSendFlush(
         }
 
 #if DEBUG
-        CXPLAT_DBG_ASSERT(++DeadlockDetection < 100);
+        CXPLAT_DBG_ASSERT(++DeadlockDetection < 1000);
         UNREFERENCED_PARAMETER(PrevPrevSendFlags); // Used in debugging only
         PrevPrevSendFlags = PrevSendFlags;
         PrevSendFlags = SendFlags;

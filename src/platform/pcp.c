@@ -261,7 +261,7 @@ CxPlatPcpProcessDatagram(
         return;
     }
 
-    CXPLAT_PCP_EVENT Event;
+    CXPLAT_PCP_EVENT Event = {0};
     CxPlatCopyMemory(Event.FAILURE.Nonce, Response->MAP.MappingNonce, CXPLAT_PCP_NONCE_LENGTH);
     QUIC_ADDR InternalAddress;
     CxPlatCopyMemory(&InternalAddress, &Datagram->Tuple->LocalAddress, sizeof(QUIC_ADDR));
