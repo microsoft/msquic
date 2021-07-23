@@ -341,8 +341,7 @@ TEST_P(WithBool, RejectConnection) {
     if (TestingKernelMode) {
         uint8_t Param = (uint8_t)GetParam();
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_REJECTION, Param));
-    }
-    else {
+    } else {
         QuicTestConnectionRejection(GetParam());
     }
 }
