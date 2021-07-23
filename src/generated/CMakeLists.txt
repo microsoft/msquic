@@ -23,4 +23,6 @@ if(QUIC_ENABLE_LOGGING)
 
         install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
     endif()
+else()
+    add_library(logging INTERFACE)
 endif()
