@@ -14,6 +14,11 @@ fn main() {
                  .define("QUIC_TLS", "openssl")
                  .define("QUIC_OUTPUT_DIR", "../lib")
                  .build();
-    let lib_path = Path::join(Path::new(&dst), Path::new("lib"));
-    println!("cargo:rustc-link-search=native={}", lib_path.display());
+    if cfg!(windows) {
+        let lib_path = Path::join(Path::new(&dst), Path::new("lib"));
+        println!("cargo:rustc-link-search=native={}", lib_path.display());
+    } else {
+        let lib_path = Path::join(Path::new(&dst), Path::new("msquic/lib"));
+        println!("cargo:rustc-link-search=native={}", lib_path.display());
+    }
 }
