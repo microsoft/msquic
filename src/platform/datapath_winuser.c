@@ -2032,7 +2032,7 @@ Error:
                 Socket);
             if (Socket->ProcsOutstanding != 0) {
 
-                CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+                CancelIo((HANDLE)SocketProc->Socket);
                 closesocket(SocketProc->Socket);
 
                 //
@@ -2297,7 +2297,7 @@ Error:
                 "[data][%p] Destroyed",
                 Socket);
             if (Socket->ProcsOutstanding != 0) {
-                CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+                CancelIo((HANDLE)SocketProc->Socket);
                 closesocket(SocketProc->Socket);
 
                 //
@@ -2388,7 +2388,11 @@ CxPlatSocketDelete(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-        CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+        if (Socket->Type == CXPLAT_SOCKET_UDP) {
+            CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+        } else {
+            CancelIo((HANDLE)SocketProc->Socket);
+        }
         if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
@@ -2420,7 +2424,11 @@ QUIC_DISABLED_BY_FUZZER_END;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-            CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+            if (Socket->Type == CXPLAT_SOCKET_UDP) {
+                CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+            } else {
+                CancelIo((HANDLE)SocketProc->Socket);
+            }
             closesocket(SocketProc->Socket);
 
 QUIC_DISABLED_BY_FUZZER_END;
