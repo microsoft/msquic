@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-extern crate libc;
-
 use libc::c_void;
 use std::ptr;
 
 /// Represents an opaque handle to a MsQuic object.
-pub type Handle = libc::c_void;
+pub type Handle = *const libc::c_void;
 
 /// Represents an unsigned 62-bit integer.
 #[allow(non_camel_case_types)]
@@ -185,7 +183,7 @@ pub struct Settings {
     pub retry_memory_limit: u16,
     pub load_balancing_mode: u16,
     pub other_flags: u8,
-    pub desired_version_list: *const c_void,
+    pub desired_version_list: *const u32,
     pub desired_version_list_length: u32,
     pub minimum_mtu: u16,
     pub maximum_mtu: u16,
@@ -253,7 +251,7 @@ pub struct ConnectionEventShutdownComplete {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ConnectionEventPeerStreamStarted {
-    pub stream: *const Handle,
+    pub stream: Handle,
     pub flags: StreamOpenFlags,
 }
 
@@ -284,36 +282,40 @@ pub struct ConnectionEvent {
     pub payload: ConnectionEventPayload,
 }
 
+pub type ConnectionEventHandler = extern fn(connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64;
+
 #[repr(C)]
 pub struct StreamEvent {
     pub event_type: u32,
 }
 
+pub type StreamEventHandler = extern fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u64;
+
 #[repr(C)]
 struct ApiTable {
-    set_context : extern fn(handle: *const Handle, context: *const c_void),
-    get_context : extern fn(handle: *const Handle) -> *mut c_void,
-    set_callback_handler : extern fn(handle: *const Handle, handler: *const c_void, context: *const c_void),
+    set_context : extern fn(handle: Handle, context: *const c_void),
+    get_context : extern fn(handle: Handle) -> *mut c_void,
+    set_callback_handler : extern fn(handle: Handle, handler: *const c_void, context: *const c_void),
     set_param : *mut c_void,
     get_param : *mut c_void,
-    registration_open : extern fn(config: *const RegistrationConfig, registration: &*const Handle) -> u64,
-    registration_close : extern fn(registration: *const Handle),
-    registration_shutdown : extern fn(registration: *const Handle),
-    configuration_open : extern fn(registration: *const Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u64,
-    configuration_close : extern fn(configuration: *const Handle),
-    configuration_load_credential : extern fn(configuration: *const Handle, cred_config: *const CredentialConfig) -> u64,
+    registration_open : extern fn(config: *const RegistrationConfig, registration: &Handle) -> u64,
+    registration_close : extern fn(registration: Handle),
+    registration_shutdown : extern fn(registration: Handle),
+    configuration_open : extern fn(registration: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u64,
+    configuration_close : extern fn(configuration: Handle),
+    configuration_load_credential : extern fn(configuration: Handle, cred_config: *const CredentialConfig) -> u64,
     listener_open : *mut c_void,
-    listener_close : extern fn(listener: *const Handle),
+    listener_close : extern fn(listener: Handle),
     listener_start : *mut c_void,
     listener_stop : *mut c_void,
-    connection_open : extern fn(registration: *const Handle, handler: extern fn(connection: *mut Handle, context: *mut c_void, event: &ConnectionEvent), context: *const c_void, connection: &*const Handle) -> u64,
-    connection_close : extern fn(connection: *const Handle),
+    connection_open : extern fn(registration: Handle, handler: ConnectionEventHandler, context: *const c_void, connection: &Handle) -> u64,
+    connection_close : extern fn(connection: Handle),
     connection_shutdown : *mut c_void,
-    connection_start : extern fn(connection: *const Handle, configuration: *const Handle, family: u16, server_name: *const u8, server_port: u16) -> u64,
+    connection_start : extern fn(connection: Handle, configuration: Handle, family: u16, server_name: *const u8, server_port: u16) -> u64,
     connection_set_configuration : *mut c_void,
     connection_send_resumption_ticket : *mut c_void,
     stream_open : *mut c_void,
-    stream_close : extern fn(stream: *const Handle),
+    stream_close : extern fn(stream: Handle),
     stream_start : *mut c_void,
     stream_shutdown : *mut c_void,
     stream_send : *mut c_void,
@@ -334,17 +336,17 @@ pub struct Api {
 
 pub struct Registration {
     table: *const ApiTable,
-    handle: *const Handle,
+    handle: Handle,
 }
 
 pub struct Configuration {
     table: *const ApiTable,
-    handle: *const Handle,
+    handle: Handle,
 }
 
 pub struct Connection {
     table: *const ApiTable,
-    handle: *const Handle,
+    handle: Handle,
 }
 
 impl Buffer {
@@ -435,7 +437,7 @@ impl Api {
         }
     }
 
-    pub fn set_callback_handler(&self, handle: *const Handle, handler: *const c_void, context: *const c_void) {
+    pub fn set_callback_handler(&self, handle: Handle, handler: *const c_void, context: *const c_void) {
         unsafe { ((*self.table).set_callback_handler)(handle, handler, context) }
     }
 }
@@ -448,7 +450,7 @@ impl Drop for Api {
 
 impl Registration {
     pub fn new(api: &Api, config: *const RegistrationConfig) -> Registration {
-        let new_registration: *const Handle = ptr::null();
+        let new_registration: Handle = ptr::null();
         let status = unsafe { ((*api.table).registration_open)(config, &new_registration) };
         if Status::failed(status) {
             panic!("RegistrationOpen failure 0x{:x}", status);
@@ -473,7 +475,7 @@ impl Drop for Registration {
 impl Configuration {
     pub fn new(registration: &Registration, alpn: &Buffer, settings: *const Settings) -> Configuration {
         let context: *const c_void = ptr::null();
-        let new_configuration: *const Handle = ptr::null();
+        let new_configuration: Handle = ptr::null();
         let mut settings_size: u32 = 0;
         if settings != ptr::null() {
             settings_size = ::std::mem::size_of::<Settings>() as u32;
@@ -503,8 +505,8 @@ impl Drop for Configuration {
 }
 
 impl Connection {
-    pub fn new(registration: &Registration, handler: extern fn(connection: *mut Handle, context: *mut c_void, event: &ConnectionEvent), context: *const c_void) -> Connection {
-        let new_connection: *const Handle = ptr::null();
+    pub fn new(registration: &Registration, handler: ConnectionEventHandler, context: *const c_void) -> Connection {
+        let new_connection: Handle = ptr::null();
         let status = unsafe { ((*registration.table).connection_open)(registration.handle, handler, context, &new_connection) };
         if Status::failed(status) {
             panic!("ConnectionOpen failure 0x{:x}", status);
@@ -530,7 +532,7 @@ impl Drop for Connection {
 }
 
 #[allow(dead_code)] // Used in test code
-extern fn test_conn_callback(_connection: *mut Handle, context: *mut c_void, event: &ConnectionEvent) {
+extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64 {
     let api = unsafe {&*(context as *const Api) };
     match event.event_type {
         CONNECTION_EVENT_CONNECTED => println!("Connected!"),
@@ -543,9 +545,11 @@ extern fn test_conn_callback(_connection: *mut Handle, context: *mut c_void, eve
         },
         _ => println!("Other callback {}", event.event_type),
     }
+    0
 }
 
-extern fn test_stream_callback(_stream: *mut Handle, _context: *mut c_void, _event: &StreamEvent) {
+extern fn test_stream_callback(_stream: Handle, _context: *mut c_void, _event: &StreamEvent) -> u64 {
+    0
 }
 
 #[test]
