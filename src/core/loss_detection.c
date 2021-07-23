@@ -474,7 +474,8 @@ void
 QuicLossDetectionOnPacketAcknowledged(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet,
+    _In_opt_ QUIC_PATH* DatagramPath
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -581,6 +582,9 @@ QuicLossDetectionOnPacketAcknowledged(
             if (DestCid != NULL) {
 #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+                CXPLAT_DBG_ASSERT(DatagramPath == NULL || DatagramPath->DestCid != DestCid);
+                CXPLAT_DBG_ASSERT(Path != NULL || Path->DestCid != DestCid);
+                UNREFERENCED_PARAMETER(DatagramPath);
                 QUIC_CID_VALIDATE_NULL(Connection, DestCid);
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
@@ -1090,7 +1094,7 @@ QuicLossDetectionDiscardPackets(
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
-            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
+            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, NULL);
 
             Packet = NextPacket;
 
@@ -1137,7 +1141,7 @@ QuicLossDetectionDiscardPackets(
                 AckedRetransmittableBytes += Packet->PacketLength;
             }
 
-            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
+            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, NULL);
 
             Packet = NextPacket;
 
@@ -1402,7 +1406,7 @@ QuicLossDetectionProcessAckBlocks(
 
         SmallestRtt = CXPLAT_MIN(SmallestRtt, PacketRtt);
 
-        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
+        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, Path);
     }
 
     QuicLossValidate(LossDetection);
