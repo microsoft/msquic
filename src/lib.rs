@@ -748,6 +748,11 @@ pub struct Connection {
     handle: Handle,
 }
 
+pub struct Stream {
+    table: *const ApiTable,
+    handle: Handle,
+}
+
 impl Buffer {
     pub fn from_str(data: &str) -> Buffer {
         Buffer {
@@ -930,6 +935,33 @@ impl Drop for Connection {
     }
 }
 
+impl Stream {
+    pub fn new(connection: &Connection, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void) -> Stream {
+        let new_stream: Handle = ptr::null();
+        let status = unsafe { ((*connection.table).stream_open)(connection.handle, flags, handler, context, &new_stream) };
+        if Status::failed(status) {
+            panic!("StreamOpen failure 0x{:x}", status);
+        }
+        Stream {
+            table: connection.table,
+            handle: new_stream,
+        }
+    }
+
+    pub fn start(&self, flags: StreamStartFlags) {
+        let status = unsafe { ((*self.table).stream_start)(self.handle, flags) };
+        if Status::failed(status) {
+            panic!("StreamStart failure 0x{:x}", status);
+        }
+    }
+}
+
+impl Drop for Stream {
+    fn drop(&mut self) {
+        unsafe { ((*self.table).stream_close)(self.handle) };
+    }
+}
+
 #[allow(dead_code)] // Used in test code
 extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64 {
     let api = unsafe {&*(context as *const Api) };
@@ -947,6 +979,7 @@ extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &
     0
 }
 
+#[allow(dead_code)] // Used in test code
 extern fn test_stream_callback(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u64 {
     let api = unsafe {&*(context as *const Api) };
     match event.event_type {

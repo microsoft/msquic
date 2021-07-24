@@ -190,7 +190,6 @@ Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in
 xcode-select --install
 ```
 
-
 ## Generating Build Files
 
 ### Windows
@@ -211,4 +210,20 @@ cmake -G 'Unix Makefiles' ..
 
 ```
 cmake --build .
+```
+
+# Building for Rust
+
+> **Rust support is currently experimental, and not officially supported.**
+
+To build MsQuic for Rust, you still must install the dependencies listed above for the various platforms. Then simply run:
+
+```cmd
+cargo build
+```
+
+To run the tests:
+
+```
+cargo test
 ```
