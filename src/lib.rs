@@ -3,6 +3,8 @@
 
 use libc::c_void;
 use std::ptr;
+use std::os::raw::c_char;
+use std::option::Option;
 
 /// Represents an opaque handle to a MsQuic object.
 pub type Handle = *const libc::c_void;
@@ -13,6 +15,70 @@ pub type u62 = u64;
 
 /// Represents a C-style bool.
 pub type BOOLEAN = ::std::os::raw::c_uchar;
+
+pub type AddressFamily = u16;
+pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = 0;
+pub const ADDRESS_FAMILY_INET: AddressFamily = 2;
+pub const ADDRESS_FAMILY_INET6: AddressFamily = 23;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct sockaddr {
+    pub family: AddressFamily,
+    pub data: [u8; 14usize],
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct sockaddr_in {
+    pub family: AddressFamily,
+    pub port: u16,
+    pub addr: u32,
+    pub zero: [u8; 8usize],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct sockaddr_in6 {
+    pub family: AddressFamily,
+    pub port: u16,
+    pub flow_info: u32,
+    pub addr: [u8; 16usize],
+    pub scope_id: u32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union Addr {
+    pub ip: sockaddr,
+    pub ipv4: sockaddr_in,
+    pub ipv6: sockaddr_in6,
+}
+
+pub struct Status { }
+
+impl Status {
+    /// Determines if a MsQuic status is considered a succes, which includes
+    /// both "no error" and "pending" status codes.
+    #[cfg(target_os="windows")]
+    pub fn succeeded(status: u64) -> bool {
+        (status as i64) >= 0
+    }
+    #[cfg(not(target_os="windows"))]
+    pub fn succeeded(status: u64) -> bool {
+        (status as i64) <= 0
+    }
+
+    /// Determines if a MsQuic status is considered a failure.
+    #[cfg(target_os="windows")]
+    pub fn failed(status: u64) -> bool {
+        (status as i64) < 0
+    }
+    #[cfg(not(target_os="windows"))]
+    pub fn failed(status: u64) -> bool {
+        (status as i64) > 0
+    }
+}
 
 pub type ExecutionProfile = u32;
 pub const EXECUTION_PROFILE_LOW_LATENCY: ExecutionProfile = 0;
@@ -121,32 +187,88 @@ pub const DATAGRAM_SEND_ACKNOWLEDGED: DatagramSendState = 3;
 pub const DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS: DatagramSendState = 4;
 pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
 
-pub struct Status { }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct RegistrationConfig {
+    pub app_name: *const c_char,
+    pub execution_profile: ExecutionProfile
+}
 
-impl Status {
-    /// Determines if a MsQuic status is considered a succes, which includes
-    /// both "no error" and "pending" status codes.
-    #[cfg(target_os="windows")]
-    pub fn succeeded(status: u64) -> bool {
-        (status as i64) >= 0
-    }
-    #[cfg(not(target_os="windows"))]
-    pub fn succeeded(status: u64) -> bool {
-        (status as i64) <= 0
-    }
+pub type CredentialLoadComplete = extern fn(configuration: Handle, context: *const c_void, status: u64);
 
-    /// Determines if a MsQuic status is considered a failure.
-    #[cfg(target_os="windows")]
-    pub fn failed(status: u64) -> bool {
-        (status as i64) < 0
-    }
-    #[cfg(not(target_os="windows"))]
-    pub fn failed(status: u64) -> bool {
-        (status as i64) > 0
-    }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct CertificateHash {
+    pub sha_hash: [u8; 20usize],
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CertificateHashStore {
+    pub flags: CertificateHashStoreFlags,
+    pub sha_hash: [u8; 20usize],
+    pub store_name: [c_char; 128usize],
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct CertificateFile {
+    pub private_key_file: *const c_char,
+    pub certificate_file: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct CertificateFileProtected {
+    pub private_key_file: *const c_char,
+    pub certificate_file: *const c_char,
+    pub private_key_password: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct CertificatePkcs12 {
+    pub ans1_blob: *const u8,
+    pub ans1_blob_length: u32,
+    pub private_key_password: *const c_char,
+}
+
+pub type Certificate = c_void;
+pub type CertificateChain = c_void;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union CertificateUnion {
+    pub hash: *const CertificateHash,
+    pub hash_store: *const CertificateHashStore,
+    pub context: *const Certificate,
+    pub file: *const CertificateFile,
+    pub file_protected: *const CertificateFileProtected,
+    pub pkcs12: *const CertificatePkcs12,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CredentialConfig {
+    pub cred_type: CredentialType,
+    pub cred_flags: CredentialFlags,
+    pub certificate: CertificateUnion,
+    pub principle: *const c_char,
+    reserved: *const c_void,
+    pub async_handler: Option<CredentialLoadComplete>,
+    pub allowed_cipher_suites: AllowedCipherSuiteFlags,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct TicketKeyConfig {
+    pub id: [u8; 16usize],
+    pub material: [u8; 64usize],
+    pub material_length: u8,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct Buffer {
     pub length: u32,
     pub buffer: *mut u8,
@@ -154,12 +276,173 @@ pub struct Buffer {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct RegistrationConfig {
-    pub app_name: *const u8,
-    pub execution_profile: ExecutionProfile
+pub struct NewConnectionInfo {
+    pub quic_version: u32,
+    pub local_address: *const Addr,
+    pub remote_address: *const Addr,
+    pub crypto_buffer_length: u32,
+    pub client_alpn_list_length: u16,
+    pub server_name_length: u16,
+    pub negotiated_alpn_length: u8,
+    pub crypto_buffer: *const u8,
+    pub client_alpn_list: *const u8,
+    pub negotiated_alpn: *const u8,
+    pub server_name: *const c_char,
+}
+
+pub type TlsProtocolVersion = u32;
+pub const TLS_PROTOCOL_UNKNOWN: TlsProtocolVersion = 0;
+pub const TLS_PROTOCOL_1_3: TlsProtocolVersion = 12288;
+
+pub type CipherAlgorithm = u32;
+pub const CIPHER_ALGORITHM_NONE: CipherAlgorithm = 0;
+pub const CIPHER_ALGORITHM_AES_128: CipherAlgorithm = 26126;
+pub const CIPHER_ALGORITHM_AES_256: CipherAlgorithm = 26128;
+pub const CIPHER_ALGORITHM_CHACHA20: CipherAlgorithm = 26130;
+
+pub type HashAlgorithm = u32;
+pub const HASH_ALGORITHM_NONE: HashAlgorithm = 0;
+pub const HASH_ALGORITHM_SHA_256: HashAlgorithm = 32780;
+pub const HASH_ALGORITHM_SHA_384: HashAlgorithm = 32781;
+
+pub type KeyExchangeAlgorithm = u32;
+pub const KEY_EXCHANGE_ALGORITHM_NONE: KeyExchangeAlgorithm = 0;
+
+pub type CipherSuite = u32;
+pub const CIPHER_SUITE_TLS_AES_128_GCM_SHA256: CipherSuite = 4865;
+pub const CIPHER_SUITE_TLS_AES_256_GCM_SHA384: CipherSuite = 4866;
+pub const CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256: CipherSuite = 4867;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HandshakeInfo {
+    pub tls_protocol_version: TlsProtocolVersion,
+    pub cipher_algorithm: CipherAlgorithm,
+    pub cipher_strength: i32,
+    pub hash: HashAlgorithm,
+    pub hash_strength: i32,
+    pub key_exchange_algorithm: KeyExchangeAlgorithm,
+    pub key_exchange_strength: i32,
+    pub cipher_suite: CipherSuite,
+}
+
+/*#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS__bindgen_ty_1 {
+    pub Start: u64,
+    pub InitialFlightEnd: u64,
+    pub HandshakeFlightEnd: u64,
 }
 
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS__bindgen_ty_2 {
+    pub ClientFlight1Bytes: u32,
+    pub ServerFlight1Bytes: u32,
+    pub ClientFlight2Bytes: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS__bindgen_ty_3 {
+    pub PathMtu: u16,
+    pub TotalPackets: u64,
+    pub RetransmittablePackets: u64,
+    pub SuspectedLostPackets: u64,
+    pub SpuriousLostPackets: u64,
+    pub TotalBytes: u64,
+    pub TotalStreamBytes: u64,
+    pub CongestionCount: u32,
+    pub PersistentCongestionCount: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS__bindgen_ty_4 {
+    pub TotalPackets: u64,
+    pub ReorderedPackets: u64,
+    pub DroppedPackets: u64,
+    pub DuplicatePackets: u64,
+    pub TotalBytes: u64,
+    pub TotalStreamBytes: u64,
+    pub DecryptionFailures: u64,
+    pub ValidAckFrames: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS__bindgen_ty_5 {
+    pub KeyUpdateCount: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS {
+    pub CorrelationId: u64,
+    pub _bitfield_align_1: [u8; 0],
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub Rtt: u32,
+    pub MinRtt: u32,
+    pub MaxRtt: u32,
+    pub Timing: QUIC_STATISTICS__bindgen_ty_1,
+    pub Handshake: QUIC_STATISTICS__bindgen_ty_2,
+    pub Send: QUIC_STATISTICS__bindgen_ty_3,
+    pub Recv: QUIC_STATISTICS__bindgen_ty_4,
+    pub Misc: QUIC_STATISTICS__bindgen_ty_5,
+}*/
+
+/*#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_LISTENER_STATISTICS__bindgen_ty_1__bindgen_ty_1 {
+    pub DroppedPackets: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_LISTENER_STATISTICS__bindgen_ty_1 {
+    pub Recv: QUIC_LISTENER_STATISTICS__bindgen_ty_1__bindgen_ty_1,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_LISTENER_STATISTICS {
+    pub TotalAcceptedConnections: u64,
+    pub TotalRejectedConnections: u64,
+    pub Binding: QUIC_LISTENER_STATISTICS__bindgen_ty_1,
+}*/
+
+pub type PerformanceCounter = u32;
+pub const PERF_COUNTER_CONN_CREATED: PerformanceCounter = 0;
+pub const PERF_COUNTER_CONN_HANDSHAKE_FAIL: PerformanceCounter = 1;
+pub const PERF_COUNTER_CONN_APP_REJECT: PerformanceCounter = 2;
+pub const PERF_COUNTER_CONN_RESUMED: PerformanceCounter = 3;
+pub const PERF_COUNTER_CONN_ACTIVE: PerformanceCounter = 4;
+pub const PERF_COUNTER_CONN_CONNECTED: PerformanceCounter = 5;
+pub const PERF_COUNTER_CONN_PROTOCOL_ERRORS: PerformanceCounter = 6;
+pub const PERF_COUNTER_CONN_NO_ALPN: PerformanceCounter = 7;
+pub const PERF_COUNTER_STRM_ACTIVE: PerformanceCounter = 8;
+pub const PERF_COUNTER_PKTS_SUSPECTED_LOST: PerformanceCounter = 9;
+pub const PERF_COUNTER_PKTS_DROPPED: PerformanceCounter = 10;
+pub const PERF_COUNTER_PKTS_DECRYPTION_FAIL: PerformanceCounter = 11;
+pub const PERF_COUNTER_UDP_RECV: PerformanceCounter = 12;
+pub const PERF_COUNTER_UDP_SEND: PerformanceCounter = 13;
+pub const PERF_COUNTER_UDP_RECV_BYTES: PerformanceCounter = 14;
+pub const PERF_COUNTER_UDP_SEND_BYTES: PerformanceCounter = 15;
+pub const PERF_COUNTER_UDP_RECV_EVENTS: PerformanceCounter = 16;
+pub const PERF_COUNTER_UDP_SEND_CALLS: PerformanceCounter = 17;
+pub const PERF_COUNTER_APP_SEND_BYTES: PerformanceCounter = 18;
+pub const PERF_COUNTER_APP_RECV_BYTES: PerformanceCounter = 19;
+pub const PERF_COUNTER_CONN_QUEUE_DEPTH: PerformanceCounter = 20;
+pub const PERF_COUNTER_CONN_OPER_QUEUE_DEPTH: PerformanceCounter = 21;
+pub const PERF_COUNTER_CONN_OPER_QUEUED: PerformanceCounter = 22;
+pub const PERF_COUNTER_CONN_OPER_COMPLETED: PerformanceCounter = 23;
+pub const PERF_COUNTER_WORK_OPER_QUEUE_DEPTH: PerformanceCounter = 24;
+pub const PERF_COUNTER_WORK_OPER_QUEUED: PerformanceCounter = 25;
+pub const PERF_COUNTER_WORK_OPER_COMPLETED: PerformanceCounter = 26;
+pub const PERF_COUNTER_MAX: PerformanceCounter = 27;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
 pub struct Settings {
     pub is_set_flags: u64,
     pub max_bytes_per_key: u64,
@@ -193,16 +476,88 @@ pub struct Settings {
     pub stateless_operation_expiration_ms: u16,
 }
 
+pub type ParameterLevel = u32;
+pub const PARAM_LEVEL_GLOBAL: ParameterLevel = 0;
+pub const PARAM_LEVEL_REGISTRATION: ParameterLevel = 1;
+pub const PARAM_LEVEL_CONFIGURATION: ParameterLevel = 2;
+pub const PARAM_LEVEL_LISTENER: ParameterLevel = 3;
+pub const PARAM_LEVEL_CONNECTION: ParameterLevel = 4;
+pub const PARAM_LEVEL_TLS: ParameterLevel = 5;
+pub const PARAM_LEVEL_STREAM: ParameterLevel = 6;
+
+pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 67108864;
+pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 67108865;
+pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 67108866;
+pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 67108867;
+pub const PARAM_GLOBAL_SETTINGS: u32 = 67108868;
+pub const PARAM_GLOBAL_VERSION: u32 = 67108869;
+
+pub const PARAM_REGISTRATION_CID_PREFIX: u32 = 134217728;
+
+pub const PARAM_CONFIGURATION_SETTINGS: u32 = 201326592;
+pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 201326593;
+
+pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 268435456;
+pub const PARAM_LISTENER_STATS: u32 = 268435457;
+
+pub const PARAM_CONN_QUIC_VERSION: u32 = 335544320;
+pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 335544321;
+pub const PARAM_CONN_REMOTE_ADDRESS: u32 = 335544322;
+pub const PARAM_CONN_IDEAL_PROCESSOR: u32 = 335544323;
+pub const PARAM_CONN_SETTINGS: u32 = 335544324;
+pub const PARAM_CONN_STATISTICS: u32 = 335544325;
+pub const PARAM_CONN_STATISTICS_PLAT: u32 = 335544326;
+pub const PARAM_CONN_SHARE_UDP_BINDING: u32 = 335544327;
+pub const PARAM_CONN_LOCAL_BIDI_STREAM_COUNT: u32 = 335544328;
+pub const PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT: u32 = 335544329;
+pub const PARAM_CONN_MAX_STREAM_IDS: u32 = 335544330;
+pub const PARAM_CONN_CLOSE_REASON_PHRASE: u32 = 335544331;
+pub const PARAM_CONN_STREAM_SCHEDULING_SCHEME: u32 = 335544332;
+pub const PARAM_CONN_DATAGRAM_RECEIVE_ENABLED: u32 = 335544333;
+pub const PARAM_CONN_DATAGRAM_SEND_ENABLED: u32 = 335544334;
+pub const PARAM_CONN_RESUMPTION_TICKET: u32 = 335544336;
+pub const PARAM_CONN_PEER_CERTIFICATE_VALID: u32 = 335544337;
+
+pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 402653184;
+pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 402653185;
+
 #[repr(C)]
-pub struct CredentialConfig {
-    pub cred_type: CredentialType,
-    pub cred_flags: CredentialFlags,
-    pub certificate: *const c_void,
-    pub principle: *const u8,
-    reserved: *const c_void,
-    pub async_handler: *const c_void,
-    pub allowed_cipher_suites: AllowedCipherSuiteFlags,
+#[derive(Debug, Copy, Clone)]
+pub struct SchannelContextAttributeW {
+    pub attribute: u32,
+    pub buffer: *mut c_void,
 }
+pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 419430400;
+
+pub const PARAM_STREAM_ID: u32 = 469762048;
+pub const PARAM_STREAM_0RTT_LENGTH: u32 = 469762049;
+pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 469762050;
+pub const PARAM_STREAM_PRIORITY: u32 = 469762051;
+
+pub type ListenerEventType = u32;
+pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ListenerEventNewConnection {
+    pub info: *const NewConnectionInfo,
+    pub connection: Handle,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union ListenerEventPayload {
+    pub new_connection: ListenerEventNewConnection,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct ListenerEvent {
+    pub event_type: ListenerEventType,
+    pub payload: ListenerEventPayload,
+}
+
+pub type ListenerEventHandler = extern fn(listener: Handle, context: *mut c_void, event: &ListenerEvent) -> u64;
 
 pub type ConnectionEventType = u32;
 pub const CONNECTION_EVENT_CONNECTED: ConnectionEventType = 0;
@@ -284,9 +639,53 @@ pub struct ConnectionEvent {
 
 pub type ConnectionEventHandler = extern fn(connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64;
 
+pub type StreamEventType = u32;
+pub const STREAM_EVENT_START_COMPLETE: StreamEventType = 0;
+pub const STREAM_EVENT_RECEIVE: StreamEventType = 1;
+pub const STREAM_EVENT_SEND_COMPLETE: StreamEventType = 2;
+pub const STREAM_EVENT_PEER_SEND_SHUTDOWN: StreamEventType = 3;
+pub const STREAM_EVENT_PEER_SEND_ABORTED: StreamEventType = 4;
+pub const STREAM_EVENT_PEER_RECEIVE_ABORTED: StreamEventType = 5;
+pub const STREAM_EVENT_SEND_SHUTDOWN_COMPLETE: StreamEventType = 6;
+pub const STREAM_EVENT_SHUTDOWN_COMPLETE: StreamEventType = 7;
+pub const STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE: StreamEventType = 8;
+pub const STREAM_EVENT_PEER_ACCEPTED: StreamEventType = 9;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventStartComplete {
+    pub status: u64,
+    pub id: u62,
+    pub bit_flags: u8,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventReceive {
+    pub absolute_offset: u64,
+    pub total_buffer_length: u64,
+    pub buffer: *const Buffer,
+    pub buffer_count: u32,
+    pub flags: ReceiveFlags,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union StreamEventPayload {
+    pub start_complete: StreamEventStartComplete,
+    pub receive: StreamEventReceive,
+    //pub send_complete: StreamEventSendComplete,
+    //pub peer_send_aborted: StreamEventPeerSendAborted,
+    //pub peer_receive_aborted: StreamEventPeerReceiveAborted,
+    //pub send_shutdown_complete: StreamEventSendShutdownComplete,
+    //pub shutdown_complete: StreamEventShutdownComplete,
+    //pub ideal_send_buffer_size: StreamEventIdealSendBufferSize,
+}
+
 #[repr(C)]
 pub struct StreamEvent {
-    pub event_type: u32,
+    pub event_type: StreamEventType,
+    pub payload: StreamEventPayload,
 }
 
 pub type StreamEventHandler = extern fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u64;
@@ -296,32 +695,32 @@ struct ApiTable {
     set_context : extern fn(handle: Handle, context: *const c_void),
     get_context : extern fn(handle: Handle) -> *mut c_void,
     set_callback_handler : extern fn(handle: Handle, handler: *const c_void, context: *const c_void),
-    set_param : *mut c_void,
-    get_param : *mut c_void,
+    set_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: u32, buffer: *const c_void) -> u64,
+    get_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: *mut u32, buffer: *const c_void) -> u64,
     registration_open : extern fn(config: *const RegistrationConfig, registration: &Handle) -> u64,
     registration_close : extern fn(registration: Handle),
     registration_shutdown : extern fn(registration: Handle),
     configuration_open : extern fn(registration: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u64,
     configuration_close : extern fn(configuration: Handle),
     configuration_load_credential : extern fn(configuration: Handle, cred_config: *const CredentialConfig) -> u64,
-    listener_open : *mut c_void,
+    listener_open : extern fn(registration: Handle, handler: ListenerEventHandler, context: *const c_void, listener: &Handle) -> u64,
     listener_close : extern fn(listener: Handle),
-    listener_start : *mut c_void,
-    listener_stop : *mut c_void,
+    listener_start : extern fn(listener: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, local_address: *const Addr) -> u64,
+    listener_stop : extern fn(listener: Handle),
     connection_open : extern fn(registration: Handle, handler: ConnectionEventHandler, context: *const c_void, connection: &Handle) -> u64,
     connection_close : extern fn(connection: Handle),
-    connection_shutdown : *mut c_void,
-    connection_start : extern fn(connection: Handle, configuration: Handle, family: u16, server_name: *const u8, server_port: u16) -> u64,
-    connection_set_configuration : *mut c_void,
-    connection_send_resumption_ticket : *mut c_void,
-    stream_open : *mut c_void,
+    connection_shutdown : extern fn(connection: Handle, flags: ConnectionShutdownFlags, error_code: u62),
+    connection_start : extern fn(connection: Handle, configuration: Handle, family: AddressFamily, server_name: *const u8, server_port: u16) -> u64,
+    connection_set_configuration : extern fn(connection: Handle, configuration: Handle) -> u64,
+    connection_send_resumption_ticket : extern fn(connection: Handle, flags: SendResumptionFlags, data_length: u16, resumption_data: *const u8) -> u64,
+    stream_open : extern fn(connection: Handle, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void, stream: &Handle) -> u64,
     stream_close : extern fn(stream: Handle),
-    stream_start : *mut c_void,
-    stream_shutdown : *mut c_void,
-    stream_send : *mut c_void,
-    stream_receive_complete : *mut c_void,
-    stream_receive_set_enabled : *mut c_void,
-    datagram_send : *mut c_void,
+    stream_start : extern fn(stream: Handle, flags: StreamStartFlags) -> u64,
+    stream_shutdown : extern fn(stream: Handle, flags: StreamShutdownFlags, error_code: u62) -> u64,
+    stream_send : extern fn(stream: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u64,
+    stream_receive_complete : extern fn(stream: Handle, buffer_length: u64) -> u64,
+    stream_receive_set_enabled : extern fn(stream: Handle, is_enabled: BOOLEAN) -> u64,
+    datagram_send : extern fn(connection: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u64,
 }
 
 #[link(name = "msquic")]
@@ -416,10 +815,10 @@ impl CredentialConfig {
         CredentialConfig {
             cred_type: CREDENTIAL_FLAG_NONE,
             cred_flags: CREDENTIAL_FLAG_CLIENT,
-            certificate: ptr::null(),
+            certificate: CertificateUnion { context: ptr::null() },
             principle: ptr::null(),
             reserved: ptr::null(),
-            async_handler: ptr::null(),
+            async_handler: None,
             allowed_cipher_suites: 0,
         }
     }
@@ -535,7 +934,7 @@ impl Drop for Connection {
 extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64 {
     let api = unsafe {&*(context as *const Api) };
     match event.event_type {
-        CONNECTION_EVENT_CONNECTED => println!("Connected!"),
+        CONNECTION_EVENT_CONNECTED => println!("Connected"),
         CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT => println!("Transport shutdown 0x{:x}", unsafe {event.payload.shutdown_initiated_by_transport.status}),
         CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER => println!("App shutdown {}", unsafe {event.payload.shutdown_initiated_by_peer.error_code}),
         CONNECTION_EVENT_SHUTDOWN_COMPLETE => println!("Shutdown complete"),
@@ -548,7 +947,24 @@ extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &
     0
 }
 
-extern fn test_stream_callback(_stream: Handle, _context: *mut c_void, _event: &StreamEvent) -> u64 {
+extern fn test_stream_callback(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u64 {
+    let api = unsafe {&*(context as *const Api) };
+    match event.event_type {
+        STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {event.payload.start_complete.status}),
+        STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {event.payload.receive.total_buffer_length}),
+        STREAM_EVENT_SEND_COMPLETE => println!("Send complete"),
+        STREAM_EVENT_PEER_SEND_SHUTDOWN => println!("Peer send shutdown"),
+        STREAM_EVENT_PEER_SEND_ABORTED => println!("Peer send aborted"),
+        STREAM_EVENT_PEER_RECEIVE_ABORTED => println!("Peer receive aborted"),
+        STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
+        STREAM_EVENT_SHUTDOWN_COMPLETE => {
+            println!("Shutdown complete");
+            unsafe { ((*api.table).stream_close)(stream) };
+        },
+        STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
+        STREAM_EVENT_PEER_ACCEPTED => println!("Peer accepted"),
+        _ => println!("Other callback {}", event.event_type),
+    }
     0
 }
 
