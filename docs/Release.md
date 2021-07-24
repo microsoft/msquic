@@ -173,6 +173,10 @@ The QUIC specifications now offically RFC. Both the v1 and draft-29 versions are
 - Use root level certificate verification callback in OpenSSL (#1818).
 - Ignore Duplicate Stream Read Shutdowns (#1822).
 - Constrain processor index to processor count on posix (#1824).
+- Build speed and build dependency improvements (#1845) (#1839).
+- Initial support for Android binaries (#1835).
+- Update version negotiation to draft v4 (#1826).
+- Fix issues where datapaths and sockets might be used incorrectly (#1843) (#1837).
 - Various documentation improvements and additions.
 
 Official (v1) RFC and draft-29 are supported by this release.
