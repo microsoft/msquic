@@ -31,6 +31,7 @@ include = [
     "/submodules/openssl/ssl",
     "/submodules/openssl/util",
     "/submodules/openssl/VMS",
+    "/scripts/build.rs",
     "/src/*.rs",
     "/src/bin",
     "/src/core",
