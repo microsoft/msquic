@@ -36,6 +36,7 @@ include = [
     "/src/bin",
     "/src/core",
     "/src/inc",
+    "/src/generated",
     "/src/manifest",
     "/src/platform",
     "/THIRD-PARTY-NOTICES",
