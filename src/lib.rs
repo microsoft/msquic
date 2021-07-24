@@ -61,22 +61,22 @@ impl Status {
     /// Determines if a MsQuic status is considered a succes, which includes
     /// both "no error" and "pending" status codes.
     #[cfg(target_os="windows")]
-    pub fn succeeded(status: u64) -> bool {
-        (status as i64) >= 0
+    pub fn succeeded(status: u32) -> bool {
+        (status as i32) >= 0
     }
     #[cfg(not(target_os="windows"))]
-    pub fn succeeded(status: u64) -> bool {
-        (status as i64) <= 0
+    pub fn succeeded(status: u32) -> bool {
+        (status as i32) <= 0
     }
 
     /// Determines if a MsQuic status is considered a failure.
     #[cfg(target_os="windows")]
-    pub fn failed(status: u64) -> bool {
-        (status as i64) < 0
+    pub fn failed(status: u32) -> bool {
+        (status as i32) < 0
     }
     #[cfg(not(target_os="windows"))]
-    pub fn failed(status: u64) -> bool {
-        (status as i64) > 0
+    pub fn failed(status: u32) -> bool {
+        (status as i32) > 0
     }
 }
 
@@ -557,7 +557,7 @@ pub struct ListenerEvent {
     pub payload: ListenerEventPayload,
 }
 
-pub type ListenerEventHandler = extern fn(listener: Handle, context: *mut c_void, event: &ListenerEvent) -> u64;
+pub type ListenerEventHandler = extern fn(listener: Handle, context: *mut c_void, event: &ListenerEvent) -> u32;
 
 pub type ConnectionEventType = u32;
 pub const CONNECTION_EVENT_CONNECTED: ConnectionEventType = 0;
@@ -637,7 +637,7 @@ pub struct ConnectionEvent {
     pub payload: ConnectionEventPayload,
 }
 
-pub type ConnectionEventHandler = extern fn(connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64;
+pub type ConnectionEventHandler = extern fn(connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u32;
 
 pub type StreamEventType = u32;
 pub const STREAM_EVENT_START_COMPLETE: StreamEventType = 0;
@@ -688,44 +688,44 @@ pub struct StreamEvent {
     pub payload: StreamEventPayload,
 }
 
-pub type StreamEventHandler = extern fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u64;
+pub type StreamEventHandler = extern fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u32;
 
 #[repr(C)]
 struct ApiTable {
     set_context : extern fn(handle: Handle, context: *const c_void),
     get_context : extern fn(handle: Handle) -> *mut c_void,
     set_callback_handler : extern fn(handle: Handle, handler: *const c_void, context: *const c_void),
-    set_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: u32, buffer: *const c_void) -> u64,
-    get_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: *mut u32, buffer: *const c_void) -> u64,
-    registration_open : extern fn(config: *const RegistrationConfig, registration: &Handle) -> u64,
+    set_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: u32, buffer: *const c_void) -> u32,
+    get_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: *mut u32, buffer: *const c_void) -> u32,
+    registration_open : extern fn(config: *const RegistrationConfig, registration: &Handle) -> u32,
     registration_close : extern fn(registration: Handle),
     registration_shutdown : extern fn(registration: Handle),
-    configuration_open : extern fn(registration: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u64,
+    configuration_open : extern fn(registration: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u32,
     configuration_close : extern fn(configuration: Handle),
-    configuration_load_credential : extern fn(configuration: Handle, cred_config: *const CredentialConfig) -> u64,
-    listener_open : extern fn(registration: Handle, handler: ListenerEventHandler, context: *const c_void, listener: &Handle) -> u64,
+    configuration_load_credential : extern fn(configuration: Handle, cred_config: *const CredentialConfig) -> u32,
+    listener_open : extern fn(registration: Handle, handler: ListenerEventHandler, context: *const c_void, listener: &Handle) -> u32,
     listener_close : extern fn(listener: Handle),
-    listener_start : extern fn(listener: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, local_address: *const Addr) -> u64,
+    listener_start : extern fn(listener: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, local_address: *const Addr) -> u32,
     listener_stop : extern fn(listener: Handle),
-    connection_open : extern fn(registration: Handle, handler: ConnectionEventHandler, context: *const c_void, connection: &Handle) -> u64,
+    connection_open : extern fn(registration: Handle, handler: ConnectionEventHandler, context: *const c_void, connection: &Handle) -> u32,
     connection_close : extern fn(connection: Handle),
     connection_shutdown : extern fn(connection: Handle, flags: ConnectionShutdownFlags, error_code: u62),
-    connection_start : extern fn(connection: Handle, configuration: Handle, family: AddressFamily, server_name: *const u8, server_port: u16) -> u64,
-    connection_set_configuration : extern fn(connection: Handle, configuration: Handle) -> u64,
-    connection_send_resumption_ticket : extern fn(connection: Handle, flags: SendResumptionFlags, data_length: u16, resumption_data: *const u8) -> u64,
-    stream_open : extern fn(connection: Handle, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void, stream: &Handle) -> u64,
+    connection_start : extern fn(connection: Handle, configuration: Handle, family: AddressFamily, server_name: *const u8, server_port: u16) -> u32,
+    connection_set_configuration : extern fn(connection: Handle, configuration: Handle) -> u32,
+    connection_send_resumption_ticket : extern fn(connection: Handle, flags: SendResumptionFlags, data_length: u16, resumption_data: *const u8) -> u32,
+    stream_open : extern fn(connection: Handle, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void, stream: &Handle) -> u32,
     stream_close : extern fn(stream: Handle),
-    stream_start : extern fn(stream: Handle, flags: StreamStartFlags) -> u64,
-    stream_shutdown : extern fn(stream: Handle, flags: StreamShutdownFlags, error_code: u62) -> u64,
-    stream_send : extern fn(stream: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u64,
-    stream_receive_complete : extern fn(stream: Handle, buffer_length: u64) -> u64,
-    stream_receive_set_enabled : extern fn(stream: Handle, is_enabled: BOOLEAN) -> u64,
-    datagram_send : extern fn(connection: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u64,
+    stream_start : extern fn(stream: Handle, flags: StreamStartFlags) -> u32,
+    stream_shutdown : extern fn(stream: Handle, flags: StreamShutdownFlags, error_code: u62) -> u32,
+    stream_send : extern fn(stream: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u32,
+    stream_receive_complete : extern fn(stream: Handle, buffer_length: u64) -> u32,
+    stream_receive_set_enabled : extern fn(stream: Handle, is_enabled: BOOLEAN) -> u32,
+    datagram_send : extern fn(connection: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u32,
 }
 
 #[link(name = "msquic")]
 extern {
-    fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u64;
+    fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u32;
     fn MsQuicClose(api: *const ApiTable);
 }
 
@@ -963,7 +963,7 @@ impl Drop for Stream {
 }
 
 #[allow(dead_code)] // Used in test code
-extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u64 {
+extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u32 {
     let api = unsafe {&*(context as *const Api) };
     match event.event_type {
         CONNECTION_EVENT_CONNECTED => println!("Connected"),
@@ -980,7 +980,7 @@ extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &
 }
 
 #[allow(dead_code)] // Used in test code
-extern fn test_stream_callback(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u64 {
+extern fn test_stream_callback(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u32 {
     let api = unsafe {&*(context as *const Api) };
     match event.event_type {
         STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {event.payload.start_complete.status}),
