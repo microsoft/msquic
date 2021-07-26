@@ -15,13 +15,13 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
     }
 }
 
+$RootDir = Split-Path $PSScriptRoot -Parent
+$SrcDir = Join-Path $RootDir "src"
+
 $OutputDir = Join-Path $RootDir "src" "generated"
 if (Test-Path $OutputDir) {
     Remove-Item $OutputDir -Recurse -Force
 }
-
-$RootDir = Split-Path $PSScriptRoot -Parent
-$SrcDir = Join-Path $RootDir "src"
 
 $Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File)
 $Files.Sort([SimpleStringComparer]::new())
