@@ -1827,7 +1827,7 @@ QuicConnStart(
             Connection->State.ShareBinding,
             FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
-            Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0,
+            Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
             &Path->RemoteAddress,
             &Path->Binding);
     if (QUIC_FAILED(Status)) {
