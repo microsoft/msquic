@@ -2540,7 +2540,11 @@ CxPlatSocketDelete(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-        CancelIo((HANDLE)SocketProc->Socket);
+        if (Socket->Type == CXPLAT_SOCKET_UDP) {
+            CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+        } else {
+            CancelIo((HANDLE)SocketProc->Socket);
+        }
         if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
@@ -2572,7 +2576,11 @@ QUIC_DISABLED_BY_FUZZER_END;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-            CancelIo((HANDLE)SocketProc->Socket);
+            if (Socket->Type == CXPLAT_SOCKET_UDP) {
+                CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+            } else {
+                CancelIo((HANDLE)SocketProc->Socket);
+            }
             closesocket(SocketProc->Socket);
 
 QUIC_DISABLED_BY_FUZZER_END;

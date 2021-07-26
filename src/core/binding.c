@@ -62,7 +62,7 @@ QuicBindingInitialize(
         goto Error;
     }
 
-    Binding->RefCount = 1;
+    Binding->RefCount = 0; // No refs until it's added to the library's list
     Binding->Exclusive = !ShareBinding;
     Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;

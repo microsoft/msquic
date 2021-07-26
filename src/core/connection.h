@@ -27,7 +27,7 @@ typedef struct QUIC_LISTENER QUIC_LISTENER;
 // Note - Keep quictypes.h's copy up to date.
 //
 typedef union QUIC_CONNECTION_STATE {
-    uint32_t Flags;
+    uint64_t Flags;
     struct {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
         BOOLEAN Initialized     : 1;    // Initialized successfully. Used for Debugging.
@@ -148,21 +148,32 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // Indicates that an app close from a non worker thread is in progress.
-        // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
+        // When true, this indicates that reordering shouldn't elict an
+        // immediate acknowledgement.
         //
-        BOOLEAN AppCloseInProgress: 1;
+        BOOLEAN IgnoreReordering : 1;
+
+        //
+        // When true, this indicates that the connection is currently executing
+        // an API call inline (from a reentrant call on a callback).
+        //
+        BOOLEAN InlineApiExecution : 1;
+
+        //
+        // True when a server attempts Compatible Version Negotiation
+        BOOLEAN CompatibleVerNegotiationAttempted : 1;
+
+        //
+        // True once a client connection has completed a compatible version
+        // negotiation, and false otherwise. Used to prevent packets with invalid
+        // version fields from being accepted.
+        //
+        BOOLEAN CompatibleVerNegotiationCompleted : 1;
 
         //
         // When true, this indicates the app has set the local interface index.
         //
         BOOLEAN LocalInterfaceSet : 1;
-
-        //
-        // When true, this indicates that reordering shouldn't elict an
-        // immediate acknowledgement.
-        //
-        BOOLEAN IgnoreReordering : 1;
 
 #ifdef CxPlatVerifierEnabledByAddr
         //
@@ -172,6 +183,8 @@ typedef union QUIC_CONNECTION_STATE {
 #endif
     };
 } QUIC_CONNECTION_STATE;
+
+CXPLAT_STATIC_ASSERT(sizeof(QUIC_CONNECTION_STATE) == sizeof(uint64_t), "Ensure correct size/type");
 
 //
 // Different references on a connection.
@@ -574,15 +587,15 @@ typedef struct QUIC_CONNECTION {
 #endif
 
     //
-    // Received version negotiation list from a previous connection attempt.
-    //
-    const uint32_t* ReceivedNegotiationVersions;
-    uint32_t ReceivedNegotiationVersionsLength;
-
-    //
-    // Previously-attempted QUIC version.
+    // Previously-attempted QUIC version, after Incompatible Version Negotiation.
     //
     uint32_t PreviousQuicVersion;
+
+    //
+    // Initially-attempted QUIC version.
+    // Only populated during compatible version negotiation.
+    //
+    uint32_t OriginalQuicVersion;
 
     //
     // The size of the keep alive padding.
@@ -632,6 +645,18 @@ QuicConnIsServer(
     )
 {
     return ((QUIC_HANDLE*)Connection)->Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER;
+}
+
+//
+// Helper to determine if a connection is client side.
+//
+inline
+BOOLEAN
+QuicConnIsClient(
+    _In_ const QUIC_CONNECTION * const Connection
+    )
+{
+    return ((QUIC_HANDLE*)Connection)->Type == QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
 }
 
 //

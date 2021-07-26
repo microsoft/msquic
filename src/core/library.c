@@ -1631,6 +1631,7 @@ NewBinding:
                 &NewLocalAddress,
                 NULL);
     }
+
     if (Binding != NULL) {
         if (!PortUnspecified && !Binding->Exclusive) {
             //
@@ -1650,6 +1651,7 @@ NewBinding:
                 "[ lib] Now in use.");
             MsQuicLib.InUse = TRUE;
         }
+        (*NewBinding)->RefCount++;
         CxPlatListInsertTail(&MsQuicLib.Bindings, &(*NewBinding)->Link);
     }
 
@@ -1667,7 +1669,6 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 *NewBinding,
                 "Binding ephemeral port reuse encountered");
-            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
 
@@ -1690,7 +1691,6 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
-            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
@@ -1703,7 +1703,6 @@ NewBinding:
             Status = QUIC_STATUS_ADDRESS_IN_USE;
 
         } else {
-            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = Binding;
             Status = QUIC_STATUS_SUCCESS;

@@ -251,6 +251,10 @@
 #define _Ret_range_(...)
 #endif
 
+#ifndef _Ret_writes_bytes_
+#define _Ret_writes_bytes_(...)
+#endif
+
 #ifndef _Printf_format_string_
 #define _Printf_format_string_
 #endif

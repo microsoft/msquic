@@ -317,6 +317,9 @@ QuicStreamClose(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     )
 {
+    CXPLAT_DBG_ASSERT(!Stream->Flags.HandleClosed);
+    Stream->Flags.HandleClosed = TRUE;
+
     if (!Stream->Flags.ShutdownComplete) {
 
         if (Stream->Flags.Started) {
@@ -352,7 +355,6 @@ QuicStreamClose(
             }
     }
 
-    Stream->Flags.HandleClosed = TRUE;
     Stream->ClientCallbackHandler = NULL;
 
     QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
@@ -370,7 +372,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",
@@ -388,6 +390,19 @@ QuicStreamIndicateEvent(
 {
     QUIC_STATUS Status;
     if (Stream->ClientCallbackHandler != NULL) {
+        //
+        // MsQuic shouldn't indicate reentrancy to the app when at all
+        // possible. The general exception to this rule is when the connection
+        // or stream is being closed because the API MUST block until all work
+        // is completed, so we have to execute the event callbacks inline. There
+        // is also one additional exception for start complete when StreamStart
+        // is called synchronously on an MsQuic thread.
+        //
+        CXPLAT_DBG_ASSERT(
+            !Stream->Connection->State.InlineApiExecution ||
+            Stream->Connection->State.HandleClosed ||
+            Stream->Flags.HandleClosed ||
+            Event->Type == QUIC_STREAM_EVENT_START_COMPLETE);
         Status =
             Stream->ClientCallbackHandler(
                 (HQUIC)Stream,

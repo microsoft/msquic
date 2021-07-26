@@ -16,12 +16,12 @@ Environment:
 #define __APPLE_USE_RFC_3542 1
 // See netinet6/in6.h:46 for an explanation
 #include "platform_internal.h"
-#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/event.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/event.h>
 #include <sys/time.h>
-#include <fcntl.h>
+#include <sys/types.h>
 #ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
@@ -959,7 +959,7 @@ CxPlatSocketContextInitialize(
             SocketContext->SocketFd,
             F_SETFL,
             Flags);
-    if (Flags < 0) {
+    if (Result < 0) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,

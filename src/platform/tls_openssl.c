@@ -190,10 +190,12 @@ CxPlatTlsVerifyCertificate(
 static
 int
 CxPlatTlsCertificateVerifyCallback(
-    int preverify_ok,
-    X509_STORE_CTX *x509_ctx
+    X509_STORE_CTX *x509_ctx,
+    void* param
     )
 {
+    UNREFERENCED_PARAMETER(param);
+    int CertificateVerified = 0;
     int status = TRUE;
     QUIC_BUFFER PortableCertificate = { 0, 0 };
     QUIC_BUFFER PortableChain = { 0, 0 };
@@ -202,11 +204,27 @@ CxPlatTlsCertificateVerifyCallback(
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
-        preverify_ok = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
+        if (Cert == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "No certificate passed");
+            X509_STORE_CTX_set_error(x509_ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
+            return FALSE;
+        }
+
+        CertificateVerified = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
+
+        if (!CertificateVerified) {
+            X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+        }
+    } else {
+        CertificateVerified = X509_verify_cert(x509_ctx);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
-        !preverify_ok) {
+        !CertificateVerified) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -224,6 +242,7 @@ CxPlatTlsCertificateVerifyCallback(
                     "[ tls][%p] ERROR, %s.",
                     TlsContext->Connection,
                     "Failed to serialize certificate context");
+                X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_OUT_OF_MEM);
                 return FALSE;
             }
         }
@@ -1129,7 +1148,8 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, CxPlatTlsCertificateVerifyCallback);
+        SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
+        SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
         SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
 
         //
@@ -2008,7 +2028,7 @@ CxPlatTlsParamGet(
             const uint8_t* NegotiatedAlpn;
             unsigned int NegotiatedAlpnLen = 0;
             SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLen);
-            if (NegotiatedAlpnLen <= 0) {
+            if (NegotiatedAlpnLen == 0) {
                 QuicTraceEvent(
                     TlsError,
                     "[ tls][%p] ERROR, %s.",
