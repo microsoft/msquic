@@ -14,9 +14,13 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
         return $this.CompareInfo.Compare($x, $y, [Globalization.CompareOptions]::OrdinalIgnoreCase)
     }
 }
-
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
+
+$OutputDir = Join-Path $RootDir "src" "generated"
+if (Test-Path $OutputDir) {
+    Remove-Item $OutputDir -Recurse -Force
+}
 
 $Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File)
 $Files.Sort([SimpleStringComparer]::new())
@@ -26,10 +30,6 @@ $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
 
 $TmpOutputDir = Join-Path $RootDir "build" "tmp"
 
-$OutputDir = Join-Path $RootDir "src" "generated"
-if (Test-Path $OutputDir) {
-    Remove-Item $OutputDir -Recurse -Force
-}
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
@@ -54,4 +54,8 @@ $GenFiles = Get-ChildItem -Path "$OutputDir\*" -Recurse -File
 $ToRemovePath = "$OutputDir\linux\"
 foreach ($File in $GenFiles) {
     ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File
+}
+foreach ($File in $GenFiles) {
+    $Content = Get-Content -path $File | Where-Object {$_ -notmatch "// CLOG generated "}
+    $Content | Set-Content -Path $File
 }
