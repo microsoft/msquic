@@ -586,6 +586,7 @@ QuicLossDetectionOnPacketAcknowledged(
                 CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
                 UNREFERENCED_PARAMETER(DatagramPath);
                 QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+                DestCid->Freed = TRUE;
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;

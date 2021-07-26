@@ -140,6 +140,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
 #ifdef DEBUG
     QUIC_PATH* AssignedPath;
+    BOOLEAN Freed;
 #endif
     QUIC_CID CID;
 
@@ -162,7 +163,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
         for (uint8_t PathIdx = Conn->PathsCount - 1; PathIdx > 0; PathIdx--) {  \
             CXPLAT_DBG_ASSERT(Conn->Paths[PathIdx].DestCid != Cid);             \
         }                                                                       \
-    } while (0)    
+    } while (0)
 #else
 #define QUIC_CID_SET_PATH(Conn, Cid, Path) UNREFERENCED_PARAMETER(Cid)
 #define QUIC_CID_CLEAR_PATH(Cid) UNREFERENCED_PARAMETER(Cid)
@@ -252,6 +253,9 @@ QuicCidNewRandomDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
+#if DEBUG
+        Entry->Freed = FALSE;
+#endif
         QUIC_CID_CLEAR_PATH(Entry);
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH;
@@ -281,6 +285,9 @@ QuicCidNewDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
+#if DEBUG
+        Entry->Freed = FALSE;
+#endif
         QUIC_CID_CLEAR_PATH(Entry);
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;
