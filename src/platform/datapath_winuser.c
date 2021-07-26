@@ -1749,7 +1749,7 @@ QUIC_DISABLED_BY_FUZZER_START;
         }
 
         if (Config->InterfaceIndex != 0) {
-            Option = (int)htonl(Config->InterfaceIndex);
+            Option = (int)Config->InterfaceIndex;
             Result =
                 setsockopt(
                     SocketProc->Socket,
@@ -1768,6 +1768,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
+            Option = (int)htonl(Config->InterfaceIndex);
             Result =
                 setsockopt(
                     SocketProc->Socket,

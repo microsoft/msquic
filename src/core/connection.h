@@ -154,6 +154,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN AppCloseInProgress: 1;
 
         //
+        // When true, this indicates the app has set the local interface index.
+        //
+        BOOLEAN LocalInterfaceSet : 1;
+
+        //
         // When true, this indicates that reordering shouldn't elict an
         // immediate acknowledgement.
         //

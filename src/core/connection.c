@@ -1824,6 +1824,7 @@ QuicConnStart(
             Connection->State.ShareBinding,
             FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
+            Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0,
             &Path->RemoteAddress,
             &Path->Binding);
     if (QUIC_FAILED(Status)) {
@@ -5661,6 +5662,7 @@ QuicConnParamSet(
                     Connection->State.ShareBinding,
                     FALSE,
                     LocalAddress,
+                    0,
                     &Connection->Paths[0].RemoteAddress,
                     &Connection->Paths[0].Binding);
             if (QUIC_FAILED(Status)) {
@@ -5949,12 +5951,14 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->State.RemoteAddressSet = TRUE;
-        CxPlatCopyMemory(&Connection->Paths[0].RemoteAddress, Buffer, sizeof(QUIC_ADDR));
-        //
-        // Don't log new Remote address added here because it is logged when
-        // the connection is started.
-        //
+        Connection->State.LocalInterfaceSet = TRUE;
+        Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id = *(uint32_t*)Buffer;
+
+        QuicTraceLogConnInfo(
+            LocalInterfaceSet,
+            Connection,
+            "Local interface set to %u",
+            Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

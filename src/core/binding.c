@@ -42,6 +42,7 @@ QuicBindingInitialize(
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const uint32_t LocalInterface,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
     )
@@ -124,7 +125,7 @@ QuicBindingInitialize(
         UdpConfig.LocalAddress = LocalAddress != NULL ? &LocalAddressCopy : NULL;
         UdpConfig.RemoteAddress = RemoteAddress != NULL ? &RemoteAddressCopy : NULL;
         UdpConfig.Flags = ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
-        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.InterfaceIndex = LocalInterface;
         UdpConfig.CallbackContext = Binding;
 
         Status =
@@ -138,7 +139,7 @@ QuicBindingInitialize(
         UdpConfig.LocalAddress = LocalAddress;
         UdpConfig.RemoteAddress = RemoteAddress;
         UdpConfig.Flags = ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
-        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.InterfaceIndex = LocalInterface;
         UdpConfig.CallbackContext = Binding;
 
         Status =

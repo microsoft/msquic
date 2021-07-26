@@ -180,6 +180,11 @@ QuicTestClientSharedLocalPort(
     _In_ int Family
     );
 
+void
+QuicTestInterfaceBinding(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //

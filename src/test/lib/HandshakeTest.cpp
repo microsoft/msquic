@@ -2678,7 +2678,7 @@ QuicTestClientSharedLocalPort(
 
 bool
 GetTestInterfaceIndices(
-    _In_ int Family,
+    _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _Out_ uint32_t& LoopbackInterfaceIndex,
     _Out_ uint32_t& OtherInterfaceIndex
     )
@@ -2686,15 +2686,9 @@ GetTestInterfaceIndices(
     CXPLAT_ADAPTER_ADDRESS* Addresses = nullptr;
     uint32_t AddressesCount = 0;
     if (CxPlatDataPathGetLocalAddresses(nullptr, &Addresses, &AddressesCount) == QUIC_STATUS_NOT_SUPPORTED) {
-        //
-        // Not currently supported by this platform.
-        //
-        return;
+        return false; // Not currently supported by this platform.
     }
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-    uint32_t LoopbackInterfaceIndex = UINT32_MAX;
-    uint32_t OtherInterfaceIndex = UINT32_MAX;
     for (uint32_t i = 0; i < AddressesCount; ++i) {
         if (Addresses[i].OperationStatus == CXPLAT_OPERATION_STATUS_UP &&
             QuicAddrGetFamily(&Addresses[i].Address) == QuicAddrFamily) {
@@ -2708,7 +2702,7 @@ GetTestInterfaceIndices(
             }
         }
     }
-    
+
     CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
 
     return LoopbackInterfaceIndex != UINT32_MAX && OtherInterfaceIndex != UINT32_MAX;
@@ -2725,7 +2719,7 @@ QuicTestInterfaceBinding(
     if (!GetTestInterfaceIndices(QuicAddrFamily, LoopbackInterfaceIndex, OtherInterfaceIndex)) {
         return; // Not supported
     }
-    
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -2739,20 +2733,19 @@ QuicTestInterfaceBinding(
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-    
+
     MsQuicConnection Connection1(Registration);
     TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection1.SetLocalInterface(LoopbackInterfaceIndex));
     TEST_QUIC_SUCCEEDED(Connection1.StartLocalhost(ClientConfiguration, ServerLocalAddr));
     TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection1.HandshakeComplete);
-    
+
     MsQuicConnection Connection2(Registration);
     TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection2.SetLocalInterface(OtherInterfaceIndex));
     TEST_QUIC_SUCCEEDED(Connection2.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-    TEST_TRUE(!Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
