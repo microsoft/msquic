@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "loss_detection.c.clog.h"
-

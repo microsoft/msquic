@@ -255,4 +255,3 @@ tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAppDataLengthEnc
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_TicketTest.cpp.clog.h.c"
 #endif
-

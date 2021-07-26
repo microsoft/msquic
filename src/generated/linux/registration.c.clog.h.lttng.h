@@ -163,4 +163,3 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationRundown,
         ctf_string(arg3, arg3)
     )
 )
-

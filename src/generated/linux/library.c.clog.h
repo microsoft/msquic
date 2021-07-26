@@ -771,4 +771,3 @@ tracepoint(CLOG_LIBRARY_C, PerfCountersRundown , arg2_len, arg2);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_library.c.clog.h.c"
 #endif
-

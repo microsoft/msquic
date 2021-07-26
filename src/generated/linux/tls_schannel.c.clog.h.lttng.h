@@ -502,4 +502,3 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsErrorStatus,
         ctf_string(arg4, arg4)
     )
 )
-

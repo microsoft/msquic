@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "TestHelpers.h.clog.h"
-

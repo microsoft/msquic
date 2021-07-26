@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "packet_builder.c.clog.h"
-

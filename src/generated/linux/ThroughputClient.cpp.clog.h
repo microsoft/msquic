@@ -82,4 +82,3 @@ tracepoint(CLOG_THROUGHPUTCLIENT_CPP, PerfRpsComplete );\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_ThroughputClient.cpp.clog.h.c"
 #endif
-

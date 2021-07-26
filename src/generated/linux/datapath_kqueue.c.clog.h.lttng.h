@@ -264,4 +264,3 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathSend,
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
     )
 )
-

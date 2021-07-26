@@ -763,4 +763,3 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_l
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_datapath_kqueue.c.clog.h.c"
 #endif
-

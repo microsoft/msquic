@@ -94,4 +94,3 @@ tracepoint(CLOG_OPERATION_H, ConnExecOper , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_operation.h.clog.h.c"
 #endif
-

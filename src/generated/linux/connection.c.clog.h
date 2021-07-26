@@ -4012,4 +4012,3 @@ tracepoint(CLOG_CONNECTION_C, ConnLocalAddrRemoved , arg2, arg3_len, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_connection.c.clog.h.c"
 #endif
-

@@ -1540,4 +1540,3 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, ConnError,
         ctf_string(arg3, arg3)
     )
 )
-

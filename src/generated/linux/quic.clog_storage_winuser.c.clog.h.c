@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "storage_winuser.c.clog.h"
-

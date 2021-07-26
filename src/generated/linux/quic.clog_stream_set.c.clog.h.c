@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "stream_set.c.clog.h"
-

@@ -48,4 +48,3 @@ tracepoint(CLOG_DRIVER_C, LibraryErrorStatus , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_driver.c.clog.h.c"
 #endif
-

@@ -383,4 +383,3 @@ tracepoint(CLOG_PACKET_C, BindingDropPacketEx , arg2, arg3, arg4_len, arg4, arg5
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_packet.c.clog.h.c"
 #endif
-

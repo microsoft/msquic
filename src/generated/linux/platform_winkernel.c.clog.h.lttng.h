@@ -119,4 +119,3 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, LibraryAssert,
         ctf_string(arg4, arg4)
     )
 )
-

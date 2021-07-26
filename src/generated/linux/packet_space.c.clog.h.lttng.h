@@ -21,4 +21,3 @@ TRACEPOINT_EVENT(CLOG_PACKET_SPACE_C, AllocFailure,
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
-

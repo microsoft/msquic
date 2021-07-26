@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "settings.c.clog.h"
-

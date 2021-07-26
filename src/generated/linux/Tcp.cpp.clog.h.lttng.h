@@ -339,4 +339,3 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppClose,
         ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
-

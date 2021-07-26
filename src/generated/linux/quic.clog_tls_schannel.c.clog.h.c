@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "tls_schannel.c.clog.h"
-

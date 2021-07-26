@@ -213,4 +213,3 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryAssert,
         ctf_string(arg4, arg4)
     )
 )
-

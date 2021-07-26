@@ -175,4 +175,3 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupCidRemoved,
         ctf_integer_hex(uint64_t, arg3, arg3)
     )
 )
-

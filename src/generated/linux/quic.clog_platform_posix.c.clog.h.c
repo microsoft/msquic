@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "platform_posix.c.clog.h"
-

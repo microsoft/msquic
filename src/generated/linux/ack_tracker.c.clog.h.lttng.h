@@ -25,4 +25,3 @@ TRACEPOINT_EVENT(CLOG_ACK_TRACKER_C, PacketRxMarkedForAck,
         ctf_integer(unsigned char, arg4, arg4)
     )
 )
-

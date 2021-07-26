@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "quic_gtest.cpp.clog.h"
-

@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "version_neg.c.clog.h"
-

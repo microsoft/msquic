@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "datapath_kqueue.c.clog.h"
-

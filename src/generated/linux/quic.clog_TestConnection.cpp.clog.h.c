@@ -5,4 +5,3 @@
 #define TRACEPOINT_DEFINE
 #endif
 #include "TestConnection.cpp.clog.h"
-

@@ -67,4 +67,3 @@ TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecOper,
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
-
