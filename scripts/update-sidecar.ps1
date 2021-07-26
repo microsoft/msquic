@@ -60,7 +60,3 @@ foreach ($File in $GenFiles) {
     $Content = Get-Content -path $File | Where-Object {$_ -notmatch "// CLOG generated "}
     $Content | Set-Content -Path $File
 }
-foreach ($File in $GenFiles) {
-    $Content = Get-Content -path $File | Where-Object {$_ -notmatch "// CLOG generated "}
-    $Content | Set-Content -Path $File
-}
