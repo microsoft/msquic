@@ -20,7 +20,7 @@ $SrcDir = Join-Path $RootDir "src"
 
 $OutputDir = Join-Path $RootDir "src" "generated"
 if (Test-Path $OutputDir) {
-    Remove-Item $OutputDir -Recurse -Force
+    Remove-Item $OutputDir -Recurse -Force -Exclude 'CMakeLists.txt'
 }
 
 $Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File)
@@ -55,4 +55,8 @@ $GenFiles = Get-ChildItem -Path "$OutputDir\*" -Recurse -File
 $ToRemovePath = "$OutputDir\linux\"
 foreach ($File in $GenFiles) {
     ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File
+}
+foreach ($File in $GenFiles) {
+    $Content = Get-Content -path $File | Where-Object {$_ -notmatch "// CLOG generated "}
+    $Content | Set-Content -Path $File
 }
