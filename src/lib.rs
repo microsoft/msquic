@@ -3,7 +3,6 @@
 
 use libc::c_void;
 use std::ptr;
-use std::os::raw::c_char;
 use std::option::Option;
 
 /// Represents an opaque handle to a MsQuic object.
@@ -190,7 +189,7 @@ pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct RegistrationConfig {
-    pub app_name: *const c_char,
+    pub app_name: *const i8,
     pub execution_profile: ExecutionProfile
 }
 
@@ -207,22 +206,22 @@ pub struct CertificateHash {
 pub struct CertificateHashStore {
     pub flags: CertificateHashStoreFlags,
     pub sha_hash: [u8; 20usize],
-    pub store_name: [c_char; 128usize],
+    pub store_name: [i8; 128usize],
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CertificateFile {
-    pub private_key_file: *const c_char,
-    pub certificate_file: *const c_char,
+    pub private_key_file: *const i8,
+    pub certificate_file: *const i8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CertificateFileProtected {
-    pub private_key_file: *const c_char,
-    pub certificate_file: *const c_char,
-    pub private_key_password: *const c_char,
+    pub private_key_file: *const i8,
+    pub certificate_file: *const i8,
+    pub private_key_password: *const i8,
 }
 
 #[repr(C)]
@@ -230,7 +229,7 @@ pub struct CertificateFileProtected {
 pub struct CertificatePkcs12 {
     pub ans1_blob: *const u8,
     pub ans1_blob_length: u32,
-    pub private_key_password: *const c_char,
+    pub private_key_password: *const i8,
 }
 
 pub type Certificate = c_void;
@@ -253,7 +252,7 @@ pub struct CredentialConfig {
     pub cred_type: CredentialType,
     pub cred_flags: CredentialFlags,
     pub certificate: CertificateUnion,
-    pub principle: *const c_char,
+    pub principle: *const i8,
     reserved: *const c_void,
     pub async_handler: Option<CredentialLoadComplete>,
     pub allowed_cipher_suites: AllowedCipherSuiteFlags,
@@ -287,7 +286,7 @@ pub struct NewConnectionInfo {
     pub crypto_buffer: *const u8,
     pub client_alpn_list: *const u8,
     pub negotiated_alpn: *const u8,
-    pub server_name: *const c_char,
+    pub server_name: *const i8,
 }
 
 pub type TlsProtocolVersion = u32;
@@ -710,7 +709,7 @@ struct ApiTable {
     connection_open : extern fn(registration: Handle, handler: ConnectionEventHandler, context: *const c_void, connection: &Handle) -> u32,
     connection_close : extern fn(connection: Handle),
     connection_shutdown : extern fn(connection: Handle, flags: ConnectionShutdownFlags, error_code: u62),
-    connection_start : extern fn(connection: Handle, configuration: Handle, family: AddressFamily, server_name: *const u8, server_port: u16) -> u32,
+    connection_start : extern fn(connection: Handle, configuration: Handle, family: AddressFamily, server_name: *const i8, server_port: u16) -> u32,
     connection_set_configuration : extern fn(connection: Handle, configuration: Handle) -> u32,
     connection_send_resumption_ticket : extern fn(connection: Handle, flags: SendResumptionFlags, data_length: u16, resumption_data: *const u8) -> u32,
     stream_open : extern fn(connection: Handle, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void, stream: &Handle) -> u32,
@@ -922,7 +921,8 @@ impl Connection {
     }
 
     pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) {
-        let status = unsafe { ((*self.table).connection_start)(self.handle, configuration.handle, 0, server_name.as_ptr(), server_port) };
+        let server_name_safe = std::ffi::CString::new(server_name).unwrap();
+        let status = unsafe { ((*self.table).connection_start)(self.handle, configuration.handle, 0, server_name_safe.as_ptr(), server_port) };
         if Status::failed(status) {
             panic!("ConnectionStart failure 0x{:x}", status);
         }
