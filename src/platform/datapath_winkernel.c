@@ -1598,7 +1598,7 @@ CxPlatSocketCreateUdp(
     CxPlatEventReset(Binding->WskCompletionEvent);
 
     if (Config->InterfaceIndex != 0) {
-        Option = (int)RtlUlongByteSwap(Config->InterfaceIndex);
+        Option = (int)Config->InterfaceIndex;
         Status =
             CxPlatDataPathSetControlSocket(
                 Binding,
@@ -1616,6 +1616,7 @@ CxPlatSocketCreateUdp(
                 "Set IPV6_UNICAST_IF");
             goto Error;
         }
+        Option = (int)RtlUlongByteSwap(Config->InterfaceIndex);
         Status =
             CxPlatDataPathSetControlSocket(
                 Binding,
