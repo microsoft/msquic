@@ -15,6 +15,11 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
     }
 }
 
+$OutputDir = Join-Path $RootDir "src" "generated"
+if (Test-Path $OutputDir) {
+    Remove-Item $OutputDir -Recurse -Force
+}
+
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
@@ -26,10 +31,6 @@ $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
 
 $TmpOutputDir = Join-Path $RootDir "build" "tmp"
 
-$OutputDir = Join-Path $RootDir "src" "generated"
-if (Test-Path $OutputDir) {
-    Remove-Item $OutputDir -Recurse -Force
-}
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
