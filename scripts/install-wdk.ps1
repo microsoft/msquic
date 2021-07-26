@@ -176,6 +176,8 @@ $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2128854"
 $FilePath = "C:\Program Files (x86)\Windows Kits\10\Vsix\VS2019\WDK.vsix"
 $VSver = "2019"
 
+$argumentList = ("/features", "+", "/quiet")
+
 # `winsdksetup.exe /features + /quiet` installs all features without showing the GUI
 Install-Binary -Url $winSdkUrl -Name "winsdksetup.exe" -ArgumentList $argumentList
 
