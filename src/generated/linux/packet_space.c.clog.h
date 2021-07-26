@@ -48,4 +48,3 @@ tracepoint(CLOG_PACKET_SPACE_C, AllocFailure , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_packet_space.c.clog.h.c"
 #endif
-

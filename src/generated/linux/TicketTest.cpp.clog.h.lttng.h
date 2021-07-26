@@ -228,4 +228,3 @@ TRACEPOINT_EVENT(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAppDataLen
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
-

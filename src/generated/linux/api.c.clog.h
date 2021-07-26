@@ -1115,4 +1115,3 @@ tracepoint(CLOG_API_C, ConnError , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_api.c.clog.h.c"
 #endif
-

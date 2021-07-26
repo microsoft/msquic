@@ -446,4 +446,3 @@ tracepoint(CLOG_SELFSIGN_OPENSSL_C, LibraryError , arg2);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_selfsign_openssl.c.clog.h.c"
 #endif
-

@@ -48,4 +48,3 @@ tracepoint(CLOG_MSQUICPCW_C, LibraryErrorStatus , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_msquicpcw.c.clog.h.c"
 #endif
-

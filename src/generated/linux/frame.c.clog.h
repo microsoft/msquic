@@ -1429,4 +1429,3 @@ tracepoint(CLOG_FRAME_C, ConnError , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_frame.c.clog.h.c"
 #endif
-

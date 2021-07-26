@@ -8,4 +8,3 @@ extern "C" {
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_VersionNegExtTest.cpp.clog.h.c"
 #endif
-

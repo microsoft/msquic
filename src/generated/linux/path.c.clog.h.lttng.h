@@ -98,4 +98,3 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathActive,
         ctf_integer(unsigned char, arg4, arg4)
     )
 )
-
