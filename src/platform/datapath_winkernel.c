@@ -1064,9 +1064,72 @@ CxPlatDataPathGetLocalAddresses(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    *Addresses = NULL;
-    *AddressesCount = 0;
-    return QUIC_STATUS_NOT_SUPPORTED;
+
+    MIB_IPINTERFACE_TABLE* InterfaceTable = NULL;
+    MIB_UNICASTIPADDRESS_TABLE* AddressTable = NULL;
+
+    QUIC_STATUS Status = GetIpInterfaceTable(AF_UNSPEC, &InterfaceTable);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetIpInterfaceTable");
+        goto Error;
+    }
+
+    Status = GetUnicastIpAddressTable(AF_UNSPEC, &AddressTable);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetUnicastIpAddressTable");
+        goto Error;
+    }
+
+    *Addresses = CXPLAT_ALLOC_NONPAGED(AddressTable->NumEntries * sizeof(CXPLAT_ADAPTER_ADDRESS), QUIC_POOL_DATAPATH_ADDRESSES);
+    if (*Addresses == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Addresses",
+            AddressTable->NumEntries * sizeof(CXPLAT_ADAPTER_ADDRESS));
+        goto Error;
+    }
+    *AddressesCount = (uint32_t)AddressTable->NumEntries;
+
+#pragma warning(push) // MIB tables aren't correctly annotated for SAL.
+#pragma warning(disable:6385)
+#pragma warning(disable:6386)
+    for (ULONG i = 0; i < AddressTable->NumEntries; ++i) {
+        MIB_IPINTERFACE_ROW* Interface = NULL;
+        for (ULONG j = 0; j < InterfaceTable->NumEntries; ++j) {
+            if (InterfaceTable->Table[j].InterfaceIndex == AddressTable->Table[i].InterfaceIndex) {
+                Interface = &InterfaceTable->Table[j];
+                break;
+            }
+        }
+
+        memcpy(&(*Addresses)[i].Address, &AddressTable->Table[i].Address, sizeof(QUIC_ADDR));
+        (*Addresses)[i].InterfaceIndex = (uint32_t)AddressTable->Table[i].InterfaceIndex;
+        (*Addresses)[i].InterfaceType = (uint16_t)AddressTable->Table[i].InterfaceLuid.Info.IfType;
+        (*Addresses)[i].OperationStatus = Interface && Interface->Connected ? CXPLAT_OPERATION_STATUS_UP : CXPLAT_OPERATION_STATUS_DOWN;
+    }
+#pragma warning(pop)
+
+Error:
+
+    if (AddressTable) {
+        FreeMibTable(InterfaceTable);
+    }
+
+    if (InterfaceTable) {
+        FreeMibTable(InterfaceTable);
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
