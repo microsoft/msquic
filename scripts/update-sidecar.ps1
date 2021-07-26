@@ -14,6 +14,7 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
         return $this.CompareInfo.Compare($x, $y, [Globalization.CompareOptions]::OrdinalIgnoreCase)
     }
 }
+
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
