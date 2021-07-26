@@ -241,4 +241,3 @@ TRACEPOINT_EVENT(CLOG_CONTROL_CPP, LibraryError,
         ctf_string(arg2, arg2)
     )
 )
-

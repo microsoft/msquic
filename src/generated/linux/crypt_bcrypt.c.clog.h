@@ -405,4 +405,3 @@ tracepoint(CLOG_CRYPT_BCRYPT_C, AllocFailure , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_crypt_bcrypt.c.clog.h.c"
 #endif
-

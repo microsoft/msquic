@@ -2294,4 +2294,3 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_datapath_winuser.c.clog.h.c"
 #endif
-

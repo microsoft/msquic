@@ -521,4 +521,3 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, PerfCountersRundown,
         ctf_sequence(char, arg2, arg2, unsigned int, arg2_len)
     )
 )
-

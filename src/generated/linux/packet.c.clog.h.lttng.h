@@ -446,4 +446,3 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacketEx,
         ctf_string(arg6, arg6)
     )
 )
-

@@ -54,7 +54,7 @@ foreach ($File in $Files) {
 $GenFiles = Get-ChildItem -Path "$OutputDir\*" -Recurse -File
 $ToRemovePath = "$OutputDir\linux\"
 foreach ($File in $GenFiles) {
-    ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File
+    ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File -NoNewline
 }
 foreach ($File in $GenFiles) {
     $Content = Get-Content -path $File | Where-Object {$_ -notmatch "// CLOG generated "}

@@ -245,4 +245,3 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnSourceCidRemoved,
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
     )
 )
-

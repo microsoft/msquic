@@ -432,4 +432,3 @@ tracepoint(CLOG_WORKER_C, AllocFailure , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_worker.c.clog.h.c"
 #endif
-

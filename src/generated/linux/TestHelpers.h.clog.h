@@ -398,4 +398,3 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookReplaceCreateSend , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_TestHelpers.h.clog.h.c"
 #endif
-

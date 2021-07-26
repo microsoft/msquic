@@ -584,4 +584,3 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryErrorStatus,
         ctf_string(arg3, arg3)
     )
 )
-

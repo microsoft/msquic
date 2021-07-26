@@ -79,4 +79,3 @@ tracepoint(CLOG_INTEROP_CPP, InteropTestStop , arg2, arg3, arg4, arg5, arg6);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_interop.cpp.clog.h.c"
 #endif
-

@@ -484,4 +484,3 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamError,
         ctf_string(arg3, arg3)
     )
 )
-
