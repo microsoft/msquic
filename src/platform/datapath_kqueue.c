@@ -1438,7 +1438,7 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsServerSocket = RemoteAddress == NULL;
+    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     int32_t SuccessfulStartReceives = -1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
