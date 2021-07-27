@@ -18,7 +18,7 @@ try {
 
     Write-Host "Installing jom"
     Get-File -Url "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -FileName "jom.zip"
-    Expand-Archive -Path "C:\Downloads\jom.zip" -DestinationPath "C:\ExtraTools" -Force
+    Expand-Archive -Path "C:\Downloads\jom.zip" -DestinationPath "C:\ExtraTools\jom" -Force
     Write-Host "Installed jom"
 
     Write-Host "Installing nasm"
@@ -26,7 +26,7 @@ try {
     Expand-Archive -Path "C:\Downloads\nasm.zip" -DestinationPath "C:\ExtraTools" -Force
     Write-Host "Installed nasm"
 
-    Update-Path -PathNodes @("C:\ExtraTools;C:\Program Files\CMake;C:\Strawberry;")
+    Update-Path -PathNodes @("C:\ExtraTools\jom;C:\ExtraTools\nasm-$NasmVersion\;C:\Program Files\CMake\bin;C:\Strawberry\bin;")
 
     Write-Host "Installing CMake"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
