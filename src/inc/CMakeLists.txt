@@ -15,7 +15,7 @@ target_compile_features(inc INTERFACE cxx_std_17)
 target_compile_features(inc INTERFACE c_std_11)
 
 if (HAS_GUARDCF)
-    target_link_libraries(inc INTERFACE /guard:cf)
+    target_link_libraries(inc INTERFACE /guard:cf /DYNAMICBASE)
 endif()
 
 if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
