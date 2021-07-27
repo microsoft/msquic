@@ -26,7 +26,8 @@ try {
     Expand-Archive -Path "C:\Downloads\nasm.zip" -DestinationPath "C:\ExtraTools" -Force
     Write-Host "Installed nasm"
 
-    Update-Path -PathNodes @("C:\ExtraTools\jom;C:\ExtraTools\nasm-$NasmVersion\;C:\Program Files\CMake\bin;$env:PERL\perl\bin;")
+    Update-Path -PathNodes @("C:\ExtraTools\jom;C:\ExtraTools\nasm-$NasmVersion\;C:\Program Files\CMake\bin;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin")
+    Add-EnvironmentVariable -Name "PERL" -value ""
 
     Write-Host "Installing CMake"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
