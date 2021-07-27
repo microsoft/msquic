@@ -1203,4 +1203,3 @@ tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathSend , arg2, arg3, arg4, arg5, arg
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_datapath_winkernel.c.clog.h.c"
 #endif
-

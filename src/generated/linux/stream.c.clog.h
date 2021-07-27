@@ -318,4 +318,3 @@ tracepoint(CLOG_STREAM_C, StreamRundown , arg2, arg3, arg4, arg5);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_stream.c.clog.h.c"
 #endif
-

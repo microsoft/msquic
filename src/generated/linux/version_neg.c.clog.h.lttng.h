@@ -235,4 +235,3 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, AllocFailure,
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
-

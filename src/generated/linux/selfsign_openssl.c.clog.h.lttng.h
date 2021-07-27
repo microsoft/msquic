@@ -17,4 +17,3 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_OPENSSL_C, LibraryError,
         ctf_string(arg2, arg2)
     )
 )
-

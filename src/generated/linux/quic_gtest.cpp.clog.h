@@ -140,4 +140,3 @@ tracepoint(CLOG_QUIC_GTEST_CPP, TestLogFailure , arg2, arg3, arg4);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_quic_gtest.cpp.clog.h.c"
 #endif
-

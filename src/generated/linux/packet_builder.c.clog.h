@@ -220,4 +220,3 @@ tracepoint(CLOG_PACKET_BUILDER_C, ConnPacketSent , arg2, arg3, arg4, arg5);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_packet_builder.c.clog.h.c"
 #endif
-

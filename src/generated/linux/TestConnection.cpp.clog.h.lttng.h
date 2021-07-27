@@ -14,4 +14,3 @@ TRACEPOINT_EVENT(CLOG_TESTCONNECTION_CPP, TestIgnoreConnectionTimeout,
     TP_FIELDS(
     )
 )
-

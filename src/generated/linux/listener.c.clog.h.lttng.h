@@ -294,4 +294,3 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ConnError,
         ctf_string(arg3, arg3)
     )
 )
-

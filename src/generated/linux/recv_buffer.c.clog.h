@@ -70,4 +70,3 @@ tracepoint(CLOG_RECV_BUFFER_C, AllocFailure , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_recv_buffer.c.clog.h.c"
 #endif
-

@@ -105,4 +105,3 @@ TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestLogFailure,
         ctf_string(arg4, arg4)
     )
 )
-

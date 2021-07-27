@@ -90,4 +90,3 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryAssert,
         ctf_string(arg4, arg4)
     )
 )
-
