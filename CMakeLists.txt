@@ -189,7 +189,19 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+
     set(QUIC_COMMON_FLAGS "")
+
+    check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+    if(HAS_SPECTRE)
+        list(APPEND QUIC_COMMON_FLAGS /Qspectre)
+    endif()
+
+    check_c_compiler_flag(/guard:cf HAS_GUARDCF)
+    if(HAS_GUARDCF)
+        list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()

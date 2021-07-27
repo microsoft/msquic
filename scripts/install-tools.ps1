@@ -28,6 +28,7 @@ try {
 
     Update-Path -PathNodes @("C:\ExtraTools\jom;C:\ExtraTools\nasm-$NasmVersion\;C:\Program Files\CMake\bin;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin")
     
+    # Removing PERL variable
     Remove-Item -Path "HKLM:\System\CurrentControlSet\Control\Session Manager\Environment\PERL"
     [System.Environment]::SetEnvironmentVariable("PERL", "", [EnvironmentVariableTarget]::Machine)
 

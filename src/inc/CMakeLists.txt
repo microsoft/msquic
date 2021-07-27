@@ -14,6 +14,10 @@ target_include_directories(inc INTERFACE ${QUIC_INCLUDE_DIR})
 target_compile_features(inc INTERFACE cxx_std_17)
 target_compile_features(inc INTERFACE c_std_11)
 
+if (HAS_GUARDCF)
+    target_link_libraries(inc INTERFACE /guard:cf)
+endif()
+
 if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
     target_link_libraries(inc INTERFACE -fsanitize=address,leak,undefined)
 endif()
