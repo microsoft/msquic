@@ -30,7 +30,6 @@ try {
     
     Remove-Item -Path "HKLM:\System\CurrentControlSet\Control\Session Manager\Environment\PERL"
     [System.Environment]::SetEnvironmentVariable("PERL", "", [EnvironmentVariableTarget]::Machine)
-    &setx.exe /m "PERL" ""
 
     Write-Host "Installing CMake"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
