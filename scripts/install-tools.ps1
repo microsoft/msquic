@@ -10,6 +10,7 @@ elseif (Test-Path "C:\win-installer-helper.psm1")
 
 $JomVersion = "1_1_3"
 $NasmVersion = "2.15.05"
+$ProgressPreference = 'SilentlyContinue'
 
 Start-Setup
 
@@ -25,7 +26,7 @@ try {
     Expand-Archive -Path "C:\Downloads\nasm.zip" -DestinationPath "C:\ExtraTools" -Force
     Write-Host "Installed nasm"
 
-    Update-Path -PathNodes @("C:\ExtraTools;")
+    Update-Path -PathNodes @("C:\ExtraTools;C:\Program Files\CMake;C:\Strawberry;")
 
     Write-Host "Installing CMake"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
