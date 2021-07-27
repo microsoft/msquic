@@ -192,6 +192,8 @@ if (WIN32)
 
     set(QUIC_COMMON_FLAGS "")
 
+    include(CheckCCompilerFlag)
+
     check_c_compiler_flag(/Qspectre HAS_SPECTRE)
     if(HAS_SPECTRE)
         list(APPEND QUIC_COMMON_FLAGS /Qspectre)
@@ -623,6 +625,16 @@ if(QUIC_BUILD_TEST)
 
     set_property(TARGET gtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
     set_property(TARGET gtest_main PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+
+    if (HAS_SPECTRE)
+        target_compile_options(gtest PRIVATE /Qspectre)
+        target_compile_options(gtest_main PRIVATE /Qspectre)
+    endif()
+
+    if (HAS_GUARDCF)
+        target_compile_options(gtest PRIVATE /guard:cf)
+        target_compile_options(gtest_main PRIVATE /guard:cf)
+    endif()
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)

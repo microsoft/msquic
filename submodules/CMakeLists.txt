@@ -51,14 +51,24 @@ else()
     endif()
 endif()
 
+set(OPENSSL_EXTRA_CONFIGURE_ARGS "")
+
+if(HAS_SPECTRE)
+    list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /Qspectre)
+endif()
+
+if(HAS_GUARDCF)
+    list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
+endif()
+
 find_program(JOM_EXE jom)
 if (JOM_EXE)
-    set(OPENSSL_EXTRA_CONFIGURE_ARGS /FS)
+    list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /FS)
     include(ProcessorCount)
     ProcessorCount(NPROCS)
     set(OPENSSL_RUN_COMMAND "${JOM_EXE}" -j${NPROCS})
 else()
-    set(OPENSSL_EXTRA_CONFIGURE_ARGS)
+    
     set(OPENSSL_RUN_COMMAND nmake)
 endif()
 
