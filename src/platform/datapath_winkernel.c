@@ -1122,7 +1122,7 @@ CxPlatDataPathGetLocalAddresses(
 Error:
 
     if (AddressTable) {
-        FreeMibTable(InterfaceTable);
+        FreeMibTable(AddressTable);
     }
 
     if (InterfaceTable) {
