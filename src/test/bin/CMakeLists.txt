@@ -14,6 +14,11 @@ set_property(TARGET msquictest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
 
 target_link_libraries(msquictest msquic testlib platform inc gtest logging)
 
+# At least /W3 must be used on all windows builds to pass compliance
+if(MSVC)
+    target_compile_options(msquictest PRIVATE /W3)
+endif()
+
 add_test(NAME msquictest
          COMMAND msquictest
          WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})
