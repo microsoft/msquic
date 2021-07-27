@@ -27,7 +27,10 @@ try {
     Write-Host "Installed nasm"
 
     Update-Path -PathNodes @("C:\ExtraTools\jom;C:\ExtraTools\nasm-$NasmVersion\;C:\Program Files\CMake\bin;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin")
-    Add-EnvironmentVariable -Name "PERL" -value ""
+    
+    Remove-Item -Path "HKLM:\System\CurrentControlSet\Control\Session Manager\Environment\PERL"
+    [System.Environment]::SetEnvironmentVariable("PERL", "", [EnvironmentVariableTarget]::Machine)
+    &setx.exe /m "PERL" ""
 
     Write-Host "Installing CMake"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
