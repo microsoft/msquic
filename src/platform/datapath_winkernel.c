@@ -1650,16 +1650,6 @@ CxPlatSocketCreateUdp(
         }
     }
 
-    IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
-    IoSetCompletionRoutine(
-        &Binding->Irp,
-        CxPlatDataPathIoCompletion,
-        &Binding->WskCompletionEvent,
-        TRUE,
-        TRUE,
-        TRUE);
-    CxPlatEventReset(Binding->WskCompletionEvent);
-
     if (Config->InterfaceIndex != 0) {
         Option = (int)Config->InterfaceIndex;
         Status =
@@ -1698,6 +1688,16 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
     }
+
+    IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
+    IoSetCompletionRoutine(
+        &Binding->Irp,
+        CxPlatDataPathIoCompletion,
+        &Binding->WskCompletionEvent,
+        TRUE,
+        TRUE,
+        TRUE);
+    CxPlatEventReset(Binding->WskCompletionEvent);
 
     Status =
         Binding->DgrmSocket->Dispatch->

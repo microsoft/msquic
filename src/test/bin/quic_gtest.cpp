@@ -522,8 +522,7 @@ TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
 TEST_P(WithFamilyArgs, InterfaceBinding) {
     TestLoggerT<ParamType> Logger("QuicTestInterfaceBinding", GetParam());
     if (TestingKernelMode) {
-        // Temporarily disabled as it generates a crash.
-        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
         QuicTestInterfaceBinding(GetParam().Family);
     }
