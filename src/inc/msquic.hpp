@@ -804,6 +804,17 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    SetLocalInterface(_In_ uint32_t Index) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_INTERFACE,
+                sizeof(Index),
+                &Index);
+    }
+
+    QUIC_STATUS
     SetShareUdpBinding(_In_ bool ShareBinding = true) noexcept {
         BOOLEAN Value = ShareBinding ? TRUE : FALSE;
         return

@@ -621,22 +621,22 @@ typedef enum QUIC_PARAM_LEVEL {
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
 //
-#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x10000000   // QUIC_ADDR
-#define QUIC_PARAM_LISTENER_STATS                       0x10000001   // QUIC_LISTENER_STATISTICS
+#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x10000000  // QUIC_ADDR
+#define QUIC_PARAM_LISTENER_STATS                       0x10000001  // QUIC_LISTENER_STATISTICS
 
 //
 // Parameters for QUIC_PARAM_LEVEL_CONNECTION.
 //
-#define QUIC_PARAM_CONN_QUIC_VERSION                    0x14000000 // uint32_t
-#define QUIC_PARAM_CONN_LOCAL_ADDRESS                   0x14000001 // QUIC_ADDR
-#define QUIC_PARAM_CONN_REMOTE_ADDRESS                  0x14000002 // QUIC_ADDR
-#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 0x14000003 // uint16_t
-#define QUIC_PARAM_CONN_SETTINGS                        0x14000004 // QUIC_SETTINGS
-#define QUIC_PARAM_CONN_STATISTICS                      0x14000005 // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_STATISTICS_PLAT                 0x14000006 // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               0x14000007 // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         0x14000008 // uint16_t
-#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        0x14000009 // uint16_t
+#define QUIC_PARAM_CONN_QUIC_VERSION                    0x14000000  // uint32_t
+#define QUIC_PARAM_CONN_LOCAL_ADDRESS                   0x14000001  // QUIC_ADDR
+#define QUIC_PARAM_CONN_REMOTE_ADDRESS                  0x14000002  // QUIC_ADDR
+#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 0x14000003  // uint16_t
+#define QUIC_PARAM_CONN_SETTINGS                        0x14000004  // QUIC_SETTINGS
+#define QUIC_PARAM_CONN_STATISTICS                      0x14000005  // QUIC_STATISTICS
+#define QUIC_PARAM_CONN_STATISTICS_PLAT                 0x14000006  // QUIC_STATISTICS
+#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               0x14000007  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         0x14000008  // uint16_t
+#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        0x14000009  // uint16_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  0x1400000A  // uint64_t[4]
 #define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             0x1400000B  // char[]
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        0x1400000C  // QUIC_STREAM_SCHEDULING_SCHEME
@@ -647,6 +647,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #endif
 #define QUIC_PARAM_CONN_RESUMPTION_TICKET               0x14000010  // uint8_t[]
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x14000011  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x14000012  // uint32_t
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.
@@ -656,7 +657,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
     unsigned long Attribute;
     void* Buffer;
 } QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W;
-#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W     0x19000000   // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
+#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W     0x19000000  // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
 #endif
 #define QUIC_PARAM_TLS_HANDSHAKE_INFO                   0x18000000  // QUIC_HANDSHAKE_INFO
 #define QUIC_PARAM_TLS_NEGOTIATED_ALPN                  0x18000001  // uint8_t[] (max 255 bytes)
@@ -664,10 +665,10 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
 //
 // Parameters for QUIC_PARAM_LEVEL_STREAM.
 //
-#define QUIC_PARAM_STREAM_ID                            0x1C000000   // QUIC_UINT62
-#define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x1C000001   // uint64_t
-#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x1C000002   // uint64_t - bytes
-#define QUIC_PARAM_STREAM_PRIORITY                      0x1C000003   // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+#define QUIC_PARAM_STREAM_ID                            0x1C000000  // QUIC_UINT62
+#define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x1C000001  // uint64_t
+#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x1C000002  // uint64_t - bytes
+#define QUIC_PARAM_STREAM_PRIORITY                      0x1C000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

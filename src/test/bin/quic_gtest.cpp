@@ -519,6 +519,15 @@ TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
 }
 #endif
 
+TEST_P(WithFamilyArgs, InterfaceBinding) {
+    TestLoggerT<ParamType> Logger("QuicTestInterfaceBinding", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
+    } else {
+        QuicTestInterfaceBinding(GetParam().Family);
+    }
+}
+
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
     if (TestingKernelMode) {
