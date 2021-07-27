@@ -962,7 +962,7 @@ QuicConnGetUnusedDestCid(
                 Entry,
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
-        if (!DestCid->CID.UsedLocally) {
+        if (!DestCid->CID.UsedLocally && !DestCid->CID.Retired) {
             return DestCid;
         }
     }
