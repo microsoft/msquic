@@ -1994,6 +1994,8 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         SecStatus,
                         "query cert validation result");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    break;
                 }
             }
 
