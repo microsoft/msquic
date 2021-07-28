@@ -156,6 +156,9 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.LibrarySendRetryStateUpdated:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibrarySendRetryStateUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadByte());
+                case QuicEventId.LibraryVersion:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryVersionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt());
 
                 case QuicEventId.WorkerCreated:
                     return new QuicWorkerCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUShort(), data.ReadPointer());

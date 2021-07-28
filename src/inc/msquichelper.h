@@ -15,9 +15,9 @@ Environment:
 
 #pragma once
 
-#include <quic_platform.h>
-#include <msquic.h>
-#include <msquicp.h>
+#include "quic_platform.h"
+#include "msquic.h"
+#include "msquicp.h"
 #include <stdio.h>
 #include <stdlib.h>
 

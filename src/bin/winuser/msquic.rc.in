@@ -1,0 +1,12 @@
+//
+//    Copyright (c) Microsoft Corporation.
+//    Licensed under the MIT License.
+//
+
+#include <windows.h>
+
+#define VER_FILETYPE                VFT_DLL
+#define VER_FILESUBTYPE             VFT2_UNKNOWN
+#define VER_ORIGINALFILENAME_STR    "@QUIC_LIBRARY_NAME@.dll"
+
+#include "msquic.ver"

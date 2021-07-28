@@ -586,12 +586,6 @@ QuicPacketKeyCreate(
 #define SecStatusToQuicStatus(x) (QUIC_STATUS)(x)
 
 #ifdef _KERNEL_MODE
-#define NtStatusToQuicStatus(x) (x)
-#else
-#define NtStatusToQuicStatus(x) HRESULT_FROM_WIN32(RtlNtStatusToDosError(x))
-#endif
-
-#ifdef _KERNEL_MODE
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -922,6 +916,10 @@ CxPlatTlsSecConfigCreate(
 
     if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
         return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {

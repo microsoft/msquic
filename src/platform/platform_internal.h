@@ -19,8 +19,8 @@
 #include "quic_versions.h"
 #include "quic_trace.h"
 
-#include <msquic.h>
-#include <msquicp.h>
+#include "msquic.h"
+#include "msquicp.h"
 
 #ifdef QUIC_FUZZER
 #include "msquic_fuzz.h"
@@ -40,8 +40,6 @@
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
 typedef struct CX_PLATFORM {
-
-    PDRIVER_OBJECT DriverObject;
 
     //
     // Random number algorithm loaded for DISPATCH_LEVEL usage.
@@ -138,27 +136,9 @@ typedef struct CX_PLATFORM {
 extern CX_PLATFORM CxPlatform;
 
 //
-// Internal flags used with CxPlatSocketCreateUdp
-//
-#define CXPLAT_SOCKET_FLAG_PCP  0x00000001
-
-//
 // PCP Receive Callback
 //
 CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
-
-//
-// Gets the list of Gateway server addresses.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-CxPlatDataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    );
 
 #if _WIN32 // Some Windows Helpers
 

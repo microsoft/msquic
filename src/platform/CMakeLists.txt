@@ -36,19 +36,13 @@ else()
     message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
-# Allow CLOG to preprocess all the source files.
-add_clog_library(platform.clog DYNAMIC ${SOURCES})
-if(QUIC_ENABLE_LOGGING)
-    set_property(TARGET platform.clog.provider PROPERTY FOLDER "helpers")
-endif()
-
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC platform.clog inc)
+target_link_libraries(platform PUBLIC inc)
 
 target_link_libraries(platform PRIVATE warnings)
 
-set_property(TARGET platform PROPERTY FOLDER "libraries")
+set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 

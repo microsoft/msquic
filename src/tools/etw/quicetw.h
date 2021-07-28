@@ -5,8 +5,8 @@
 
 --*/
 
-#include <quic_platform.h>
-#include <msquic.h>
+#include "quic_platform.h"
+#include "msquic.h"
 #include <evntrace.h>
 #include <evntcons.h>
 #include <tdh.h>
@@ -337,7 +337,7 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnOutFlowStreamStats,
     EventId_QuicConnPacketStats,
     EventId_QuicConnServerResumeTicket,
-    EventId_QuicConnClientCompatibleVersionList,
+    EventId_QuicConnVNEOtherVersionList,
     EventId_QuicConnClientReceivedVersionList,
     EventId_QuicConnServerSupportedVersionList,
 

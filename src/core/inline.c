@@ -95,6 +95,11 @@ QuicConnIsServer(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
+BOOLEAN
+QuicConnIsClient(
+    _In_ const QUIC_CONNECTION * const Connection
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTransportError(

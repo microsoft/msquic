@@ -56,7 +56,7 @@ QuicPathRemove(
 
 #if DEBUG
     if (Path->DestCid) {
-        QUIC_CID_SET_PATH(Path->DestCid, NULL);
+        QUIC_CID_CLEAR_PATH(Path->DestCid);
     }
 #endif
 
@@ -195,9 +195,27 @@ QuicConnGetPathForDatagram(
 
     if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
         //
-        // Already tracking the maximum number of paths.
+        // See if any old paths share the same remote address, and is just a rebind.
+        // If so, remove the old paths.
+        // NB: Traversing the array backwards is simpler and more efficient here due
+        // to the array shifting that happens in QuicPathRemove.
         //
-        return NULL;
+        for (uint8_t i = Connection->PathsCount - 1; i > 0; i--) {
+            if (!Connection->Paths[i].IsActive
+                && QuicAddrGetFamily(&Datagram->Tuple->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].RemoteAddress)
+                && QuicAddrCompareIp(&Datagram->Tuple->RemoteAddress, &Connection->Paths[i].RemoteAddress)
+                && QuicAddrCompare(&Datagram->Tuple->LocalAddress, &Connection->Paths[i].LocalAddress)) {
+                QuicPathRemove(Connection, i);
+            }
+        }
+
+        if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
+            //
+            // Already tracking the maximum number of paths, and can't free
+            // any more.
+            //
+            return NULL;
+        }
     }
 
     if (Connection->PathsCount > 1) {

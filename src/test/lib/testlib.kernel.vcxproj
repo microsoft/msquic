@@ -43,6 +43,7 @@
     <ClCompile Include="EventTest.cpp" />
     <ClCompile Include="HandshakeTest.cpp" />
     <ClCompile Include="MtuTest.cpp" />
+    <ClCompile Include="PathTest.cpp" />
     <ClCompile Include="QuicDrill.cpp" />
     <ClCompile Include="TestConnection.cpp" />
     <ClCompile Include="TestListener.cpp" />
@@ -84,6 +85,9 @@
     <TargetName>testlib</TargetName>
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ExternalIncludePath />
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

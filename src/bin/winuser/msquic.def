@@ -1,6 +1,0 @@
-LIBRARY msquic
-
-EXPORTS
-    MsQuicOpen
-    MsQuicOpenVersion
-    MsQuicClose

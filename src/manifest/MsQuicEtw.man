@@ -588,6 +588,24 @@
                 name="PerfCounters"
                 />
           </template>
+          <template tid="tid_LIBRARY_VERSION">
+            <data
+                inType="win:UInt32"
+                name="Major"
+                />
+            <data
+                inType="win:UInt32"
+                name="Minor"
+                />
+            <data
+                inType="win:UInt32"
+                name="Patch"
+                />
+            <data
+                inType="win:UInt32"
+                name="Build"
+                />
+          </template>
           <template tid="tid_API_ENTER">
             <data
                 inType="win:UInt32"
@@ -1867,6 +1885,15 @@
               template="tid_BOOL"
               value="16"
               />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryVersion)"
+              opcode="Global"
+              symbol="QuicLibraryVersion"
+              template="tid_LIBRARY_VERSION"
+              value="17"
+              />
           <!-- 1024 - 2047 | Registration Events -->
           <event
               keywords="ut:Registration ut:LowVolume"
@@ -2641,9 +2668,9 @@
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.ConnClientCompatibleVersionList)"
+              message="$(string.Etw.ConnVNEOtherVersionList)"
               opcode="Connection"
-              symbol="QuicConnClientCompatibleVersionList"
+              symbol="QuicConnVNEOtherVersionList"
               template="tid_CONN_VNL"
               value="5176"
               />
@@ -3224,16 +3251,16 @@
             value="[conn][%1] Queueing send flush, reason=%2"
             />
         <string
-            id="Etw.ConnClientCompatibleVersionList"
-            value="[conn][%1] Client VNI Compatible Version List: %3"
+            id="Etw.ConnVNEOtherVersionList"
+            value="[conn][%1] VerInfo Other Versions List: %3"
             />
         <string
             id="Etw.ConnClientReceivedVersionList"
-            value="[conn][%1] Client VNI Received Version List: %3"
+            value="[conn][%1] Client VI Received Version List: %3"
             />
         <string
             id="Etw.ConnServerSupportedVersionList"
-            value="[conn][%1] Server VNI Supported Version List: %3"
+            value="[conn][%1] Server VI Supported Version List: %3"
             />
         <string
             id="Etw.StreamCreated"
@@ -3522,6 +3549,10 @@
         <string
             id="Etw.LibrarySendRetryStateUpdated"
             value="[ lib] New SendRetryEnabled state, %1"
+            />
+        <string
+            id="Etw.LibraryVersion"
+            value="[ lib] Version %1.%2.%3.%4"
             />
         <!-- Map/enum strings -->
         <string

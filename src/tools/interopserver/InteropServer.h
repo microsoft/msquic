@@ -7,7 +7,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#include <msquichelper.h>
+#include "msquichelper.h"
 
 extern const QUIC_API_TABLE* MsQuic;
 extern HQUIC Configuration;

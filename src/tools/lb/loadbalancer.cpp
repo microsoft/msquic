@@ -14,9 +14,9 @@ Abstract:
 #include <unordered_map>
 #include <mutex>
 
-#include <quic_datapath.h>
-#include <quic_toeplitz.h>
-#include <msquichelper.h>
+#include "quic_datapath.h"
+#include "quic_toeplitz.h"
+#include "msquichelper.h"
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
@@ -29,10 +29,18 @@ struct LbInterface {
     QUIC_ADDR LocalAddress;
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic) : IsPublic(IsPublic) {
+        CXPLAT_UDP_CONFIG UdpConfig;
+        UdpConfig.LocalAddress = nullptr;
+        UdpConfig.RemoteAddress = nullptr;
+        UdpConfig.Flags = 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = this;
         if (IsPublic) {
-            CxPlatSocketCreateUdp(Datapath, Address, nullptr, this, 0, &Socket);
+            UdpConfig.LocalAddress = Address;
+            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
         } else {
-            CxPlatSocketCreateUdp(Datapath, nullptr, Address, this, 0, &Socket);
+            UdpConfig.RemoteAddress = Address;
+            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
         }
         if (!Socket) {
             printf("CxPlatSocketCreateUdp failed.\n");
@@ -166,8 +174,8 @@ int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv)
 {
-    const char* PublicAddress;
-    const char* PrivateAddresses;
+    const char* PublicAddress = "";
+    const char* PrivateAddresses = "";
     if (!TryGetValue(argc, argv, "pub", &PublicAddress) ||
         !TryGetValue(argc, argv, "priv", &PrivateAddresses)) {
         printf("Usage: quiclb -pub:<address> -priv:<address>,<address>\n");

@@ -129,6 +129,9 @@ The script has a lot of additional configuration options, but the default should
 
 `-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
 
+`-Static` Compiles msquic as a monolithic statically linkable library.
+Supported only by Windows currently.
+
 `-Tls <schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
 
 `-Clean` Forces a clean build of everything.
@@ -201,7 +204,7 @@ cmake -g 'Visual Studio 16 2019' -A x64 ..
 
 ```
 mkdir build && cd build
-cmake -g 'Linux Makefiles' ..
+cmake -G 'Unix Makefiles' ..
 ```
 
 ## Running a Build

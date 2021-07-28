@@ -57,6 +57,12 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     CXPLAT_POOL PacketSpacePool;
 
     //
+    // Used for generating stateless reset hashes.
+    //
+    CXPLAT_HASH* ResetTokenHash;
+    CXPLAT_LOCK ResetTokenLock;
+
+    //
     // Per-processor performance counters.
     //
     int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
@@ -98,6 +104,11 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN CurrentStatelessRetryKey;
 
     //
+    // Current binary version.
+    //
+    uint32_t Version[4];
+
+    //
     // Configurable (app & registry) settings.
     //
     QUIC_SETTINGS Settings;
@@ -113,9 +124,14 @@ typedef struct QUIC_LIBRARY {
     CXPLAT_DISPATCH_LOCK DatapathLock;
 
     //
-    // Total outstanding references on the library.
+    // Total outstanding references from calls to MsQuicLoadLibrary.
     //
-    uint32_t RefCount;
+    volatile short LoadRefCount;
+
+    //
+    // Total outstanding references from calls to MsQuicOpen.
+    //
+    uint16_t OpenRefCount;
 
     //
     // Number of processors currently being used.
@@ -480,6 +496,7 @@ QuicLibraryGetBinding(
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const uint32_t LocalInterface,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
     );
@@ -560,4 +577,16 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLibraryOnHandshakeConnectionRemoved(
     void
+    );
+
+//
+// Generates a stateless reset token for the given connection ID.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGenerateStatelessResetToken(
+    _In_reads_(MsQuicLib.CidTotalLength)
+        const uint8_t* const CID,
+    _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
+        uint8_t* ResetToken
     );

@@ -351,6 +351,7 @@ CxPlatDataPathUninitialize(
 #define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
 #define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
 #define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
+#define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
 
 //
 // Queries the currently supported features of the datapath.
@@ -380,10 +381,69 @@ CxPlatDataPathResolveAddress(
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     );
+    
+//
+// Values from RFC 2863
+//
+typedef enum CXPLAT_OPERATION_STATUS {
+    CXPLAT_OPERATION_STATUS_UP = 1,
+    CXPLAT_OPERATION_STATUS_DOWN,
+    CXPLAT_OPERATION_STATUS_TESTING,
+    CXPLAT_OPERATION_STATUS_UNKNOWN,
+    CXPLAT_OPERATION_STATUS_DORMANT,
+    CXPLAT_OPERATION_STATUS_NOT_PRESENT,
+    CXPLAT_OPERATION_STATUS_LOWER_LAYER_DOWN
+} CXPLAT_OPERATION_STATUS;
+
+#define CXPLAT_IF_TYPE_SOFTWARE_LOOPBACK    24
+
+typedef struct CXPLAT_ADAPTER_ADDRESS {
+    QUIC_ADDR Address;
+    uint32_t InterfaceIndex;
+    uint16_t InterfaceType;
+    CXPLAT_OPERATION_STATUS OperationStatus;
+} CXPLAT_ADAPTER_ADDRESS;
+
+//
+// Gets info on the list of local IP addresses.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+CxPlatDataPathGetLocalAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
+        CXPLAT_ADAPTER_ADDRESS** Addresses,
+    _Out_ uint32_t* AddressesCount
+    );
+
+//
+// Gets the list of Gateway server addresses.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+CxPlatDataPathGetGatewayAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    );
 
 //
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
+
+#define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
+#define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
+
+typedef struct CXPLAT_UDP_CONFIG {
+    const QUIC_ADDR* LocalAddress;  // optional
+    const QUIC_ADDR* RemoteAddress; // optional
+    uint32_t Flags;                 // CXPLAT_SOCKET_FLAG_*
+    uint32_t InterfaceIndex;        // 0 means any/all
+    void* CallbackContext;          // optional
+} CXPLAT_UDP_CONFIG;
 
 //
 // Creates a UDP socket for the given (optional) local address and/or (optional)
@@ -394,10 +454,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* CallbackContext,
-    _In_ uint32_t InternalFlags,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** Socket
     );
 

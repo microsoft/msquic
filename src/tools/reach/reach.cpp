@@ -13,8 +13,8 @@
 #include <mutex>
 #include <algorithm>
 
-#include <quic_datapath.h>
-#include <msquichelper.h>
+#include "quic_datapath.h"
+#include "msquichelper.h"
 
 uint16_t Port = 443;
 const char* ServerName = "localhost";

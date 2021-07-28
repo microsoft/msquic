@@ -10,13 +10,16 @@ This script provides helpers for building msquic.
     The CPU architecture to build for.
 
 .PARAMETER Platform
-    Specify which platform to build for
+    Specify which platform to build for.
+
+.PARAMETER Static
+    Specify a static library is preferred (shared is the default).
 
 .PARAMETER Tls
     The TLS library to use.
 
 .PARAMETER ToolchainFile
-    Toolchain file to use (if cross)
+    Toolchain file to use (if cross).
 
 .PARAMETER DisableLogs
     Disables log collection.
@@ -84,6 +87,9 @@ This script provides helpers for building msquic.
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
+.PARAMETER LibraryName
+    Renames the library to whatever is passed in
+
 .EXAMPLE
     build.ps1
 
@@ -102,8 +108,11 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos", "android")] # For future expansion
     [string]$Platform = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
@@ -134,7 +143,7 @@ param (
     [switch]$Clean = $false,
 
     [Parameter(Mandatory = $false)]
-    [int32]$Parallel = -1,
+    [int32]$Parallel = -2,
 
     [Parameter(Mandatory = $false)]
     [switch]$DynamicCRT = $false,
@@ -173,11 +182,22 @@ param (
     [switch]$UseSystemOpenSSLCrypto = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$LibraryName = "msquic"
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ($Parallel -lt -1) {
+    if ($IsWindows) {
+        $Parallel = -1
+    } else {
+        $Parallel = 0
+    }
+}
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
@@ -196,6 +216,11 @@ if ($Generator -eq "") {
 
 if (!$IsWindows -And $Platform -eq "uwp") {
     Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
+    exit
+}
+
+if (!$IsWindows -And $Static) {
+    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
     exit
 }
 
@@ -270,6 +295,9 @@ function CMake-Generate {
     } else {
         $Arguments += " $Generator"
     }
+    if($Static) {
+        $Arguments += " -DQUIC_BUILD_SHARED=off"
+    }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
     if (!$DisableLogs) {
@@ -326,6 +354,21 @@ function CMake-Generate {
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
+    if ($Platform -eq "android") {
+        $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        switch ($Arch) {
+            "x86"   { $Arguments += " -DANDROID_ABI=x86"}
+            "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
+            "arm"   { $Arguments += " -DANDROID_ABI=armeabi-v7a" }
+            "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
+        }
+        $Arguments += " -DANDROID_PLATFORM=android-29"
+        $NDK = $env:ANDROID_NDK_HOME
+        $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
+        $Arguments += " -DANDROID_NDK=$NDK"
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=$NdkToolchainFile"
+    }
+    $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
@@ -356,7 +399,7 @@ function CMake-Build {
     CMake-Execute $Arguments
 
     if ($IsWindows) {
-        Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
+        Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
