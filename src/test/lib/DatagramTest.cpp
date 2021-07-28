@@ -37,7 +37,7 @@ ListenerAcceptConnection(
 
 void
 QuicTestDatagramNegotiation(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ bool DatagramReceiveEnabled
     )
 {
@@ -135,10 +135,7 @@ QuicTestDatagramNegotiation(
     }
 }
 
-void
-QuicTestDatagramSend(
-    _In_ int Family
-    )
+void QuicTestDatagramSend(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -164,7 +161,7 @@ QuicTestDatagramSend(
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));

@@ -60,10 +60,7 @@ ClientCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
-QuicTestLocalPathChanges(
-    _In_ int Family
-    )
+void QuicTestLocalPathChanges(_In_ const QUIC_TEST_ARGS* Args)
 {
     PathTestContext Context;
     CxPlatEvent PeerStreamsChanged;
@@ -81,7 +78,7 @@ QuicTestLocalPathChanges(
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));

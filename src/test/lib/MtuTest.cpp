@@ -40,8 +40,7 @@ static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _
     return QUIC_STATUS_SUCCESS;
 }
 
-void
-QuicTestMtuSettings()
+void QuicTestMtuSettings(_In_ const QUIC_TEST_ARGS*)
 {
     {
         //
@@ -227,18 +226,12 @@ QuicTestMtuSettings()
     }
 }
 
-void
-QuicTestMtuDiscovery(
-    _In_ int Family,
-    _In_ BOOLEAN DropClientProbePackets,
-    _In_ BOOLEAN DropServerProbePackets,
-    _In_ BOOLEAN RaiseMinimumMtu
-    )
+void QuicTestMtuDiscovery(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
-    const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
+    const uint16_t MinimumMtu = Args->MtuDiscovery.RaiseMinimumMtu ? 1360 : 1248;
     const uint16_t MaximumMtu = 1500;
 
     MsQuicAlpn Alpn("MsQuicTest");
@@ -255,17 +248,17 @@ QuicTestMtuDiscovery(
     MtuTestContext Context;
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     MtuDropHelper ServerDropper(
-        DropServerProbePackets ? MinimumMtu : 0,
+        Args->MtuDiscovery.DropServerProbePackets ? MinimumMtu : 0,
         ServerLocalAddr.GetPort(),
-        DropClientProbePackets ? MinimumMtu : 0);
-    uint16_t ServerExpectedMtu = DropServerProbePackets ? MinimumMtu : MaximumMtu;
-    uint16_t ClientExpectedMtu = DropClientProbePackets ? MinimumMtu : MaximumMtu;
+        Args->MtuDiscovery.DropClientProbePackets ? MinimumMtu : 0);
+    uint16_t ServerExpectedMtu = Args->MtuDiscovery.DropServerProbePackets ? MinimumMtu : MaximumMtu;
+    uint16_t ClientExpectedMtu = Args->MtuDiscovery.DropClientProbePackets ? MinimumMtu : MaximumMtu;
 
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());

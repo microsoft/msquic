@@ -322,7 +322,7 @@ NewPingConnection(
 
 void
 QuicTestConnectAndPing(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ uint64_t Length,
     _In_ uint32_t ConnectionCount,
     _In_ uint32_t StreamCount,
@@ -903,7 +903,7 @@ QuicAbortiveListenerHandler(
 
 void
 QuicAbortiveTransfers(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
     )
 {
@@ -1384,7 +1384,7 @@ QuicRecvResumeListenerHandler(
 
 void
 QuicTestReceiveResume(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ int SendBytes,
     _In_ int ConsumeBytes,
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
@@ -1625,7 +1625,7 @@ QuicTestReceiveResume(
 
 void
 QuicTestReceiveResumeNoData(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     )
 {
@@ -1943,10 +1943,7 @@ QuicAckDelayListenerHandler(
     }
 }
 
-void
-QuicTestAckSendDelay(
-    _In_ int Family
-    )
+void QuicTestAckSendDelay(_In_ const QUIC_TEST_ARGS* Args)
 {
     const uint32_t TimeoutMs = 3000;
     const uint32_t AckDelayMs = 1000;
@@ -1968,7 +1965,7 @@ QuicTestAckSendDelay(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
 
     {
@@ -2065,7 +2062,7 @@ QuicTestAckSendDelay(
 }
 
 struct AbortRecvTestContext {
-    QUIC_ABORT_RECEIVE_TYPE Type;
+    QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE Type;
     CxPlatEvent ServerStreamRecv;
     CxPlatEvent ServerStreamShutdown;
     MsQuicStream* ServerStream {nullptr};
@@ -2112,7 +2109,7 @@ AbortRecvConnCallback(
 
 void
 QuicTestAbortReceive(
-    _In_ QUIC_ABORT_RECEIVE_TYPE Type
+    _In_ QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE Type
     )
 {
     MsQuicRegistration Registration;

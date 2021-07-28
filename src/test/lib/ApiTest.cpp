@@ -16,7 +16,7 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
-void QuicTestValidateApi()
+void QuicTestValidateApi(_In_ const QUIC_TEST_ARGS*)
 {
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -25,7 +25,7 @@ void QuicTestValidateApi()
     MsQuicClose(nullptr);
 }
 
-void QuicTestValidateRegistration()
+void QuicTestValidateRegistration(_In_ const QUIC_TEST_ARGS*)
 {
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -34,7 +34,7 @@ void QuicTestValidateRegistration()
     MsQuic->RegistrationClose(nullptr);
 }
 
-void QuicTestValidateConfiguration()
+void QuicTestValidateConfiguration(_In_ const QUIC_TEST_ARGS*)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -328,7 +328,7 @@ DummyListenerCallback(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-void QuicTestValidateListener()
+void QuicTestValidateListener(_In_ const QUIC_TEST_ARGS*)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -559,7 +559,7 @@ ListenerFailSendResumeCallback(
 }
 #endif
 
-void QuicTestValidateConnection()
+void QuicTestValidateConnection(_In_ const QUIC_TEST_ARGS*)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1118,8 +1118,10 @@ AllowSendCompleteStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-void QuicTestValidateStream(bool Connect)
+void QuicTestValidateStream(_In_ const QUIC_TEST_ARGS* Args)
 {
+    bool Connect = Args->Bool;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1557,7 +1559,7 @@ public:
 };
 
 void
-QuicTestGetPerfCounters()
+QuicTestGetPerfCounters(_In_ const QUIC_TEST_ARGS*)
 {
     //
     // Test getting the correct size.
@@ -1601,8 +1603,7 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
 
-void
-QuicTestDesiredVersionSettings()
+void QuicTestDesiredVersionSettings(_In_ const QUIC_TEST_ARGS*)
 {
     const uint32_t DesiredVersions[] = {0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a};
     const uint32_t InvalidDesiredVersions[] = {0x00000001, 0x00000002};
@@ -1821,8 +1822,7 @@ QuicTestDesiredVersionSettings()
     }
 }
 
-void
-QuicTestValidateParamApi()
+void QuicTestValidateParamApi(_In_ const QUIC_TEST_ARGS*)
 {
     //
     // Test backwards compatibility.
@@ -1910,11 +1910,10 @@ RejectListenerCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
-QuicTestConnectionRejection(
-    bool RejectByClosing
-    )
+void QuicTestConnectionRejection(_In_ const QUIC_TEST_ARGS* Args)
 {
+    bool RejectByClosing = Args->Bool;
+
     CxPlatEvent ShutdownEvent;
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());

@@ -118,7 +118,7 @@ ListenerAcceptConnection(
 
 void
 QuicTestConnect(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
@@ -328,7 +328,7 @@ struct RebindContext {
 
 void
 QuicTestNatPortRebind(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ uint16_t KeepAlivePaddingSize
     )
 {
@@ -377,7 +377,7 @@ QuicTestNatPortRebind(
 
 void
 QuicTestNatAddrRebind(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ uint16_t KeepAlivePaddingSize
     )
 {
@@ -424,10 +424,7 @@ QuicTestNatAddrRebind(
     Connection.Shutdown(1);
 }
 
-void
-QuicTestPathValidationTimeout(
-    _In_ int Family
-    )
+void QuicTestPathValidationTimeout(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -448,7 +445,7 @@ QuicTestPathValidationTimeout(
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -503,10 +500,7 @@ QuicTestPathValidationTimeout(
     }
 }
 
-void
-QuicTestChangeMaxStreamID(
-    _In_ int Family
-    )
+void QuicTestChangeMaxStreamID(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -527,7 +521,7 @@ QuicTestChangeMaxStreamID(
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -762,10 +756,7 @@ QuicTestCustomCertificateValidation(
     }
 }
 
-void
-QuicTestConnectUnreachable(
-    _In_ int Family
-    )
+void QuicTestConnectUnreachable(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -783,7 +774,7 @@ QuicTestConnectUnreachable(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
         TestConnection Client(Registration);
         TEST_TRUE(Client.IsValid());
@@ -804,10 +795,7 @@ QuicTestConnectUnreachable(
     }
 }
 
-void
-QuicTestVersionNegotiation(
-    _In_ int Family
-    )
+void QuicTestVersionNegotiation(_In_ const QUIC_TEST_ARGS* Args)
 {
     const uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
@@ -835,7 +823,7 @@ QuicTestVersionNegotiation(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -880,10 +868,7 @@ struct ClearForcedRetryScope {
     }
 };
 
-void
-QuicTestVersionNegotiationRetry(
-    _In_ int Family
-    )
+void QuicTestVersionNegotiationRetry(_In_ const QUIC_TEST_ARGS* Args)
 {
     const uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
@@ -923,7 +908,7 @@ QuicTestVersionNegotiationRetry(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -957,7 +942,7 @@ QuicTestVersionNegotiationRetry(
 
 void
 QuicTestCompatibleVersionNegotiation(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ bool DisableVNEClient,
     _In_ bool DisableVNEServer
     )
@@ -1049,10 +1034,7 @@ QuicTestCompatibleVersionNegotiation(
     }
 }
 
-void
-QuicTestCompatibleVersionNegotiationRetry(
-    _In_ int Family
-    )
+void QuicTestCompatibleVersionNegotiationRetry(_In_ const QUIC_TEST_ARGS* Args)
 {
     const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
@@ -1105,7 +1087,7 @@ QuicTestCompatibleVersionNegotiationRetry(
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -1148,7 +1130,7 @@ QuicTestCompatibleVersionNegotiationRetry(
 
 void
 QuicTestCompatibleVersionNegotiationDefaultServer(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ bool DisableVNEClient,
     _In_ bool DisableVNEServer
     )
@@ -1240,7 +1222,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
 void
 QuicTestCompatibleVersionNegotiationDefaultClient(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ bool DisableVNEClient,
     _In_ bool DisableVNEServer
     )
@@ -1328,10 +1310,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     }
 }
 
-void
-QuicTestIncompatibleVersionNegotiation(
-    _In_ int Family
-    )
+void QuicTestIncompatibleVersionNegotiation(_In_ const QUIC_TEST_ARGS* Args)
 {
     const uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H };
     const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
@@ -1372,7 +1351,7 @@ QuicTestIncompatibleVersionNegotiation(
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -1420,7 +1399,7 @@ RunFailedVersionNegotiation(
     _In_ const uint32_t ClientVersionsLength,
     _In_ const uint32_t ServerVersionsLength,
     _In_ QUIC_STATUS ExpectedConnectionError,
-    _In_ int Family
+    _In_ uint32_t Family
     )
 {
     MsQuicSettings ClientSettings;
@@ -1494,10 +1473,7 @@ RunFailedVersionNegotiation(
     }
 }
 
-void
-QuicTestFailedVersionNegotiation(
-    _In_ int Family
-    )
+void QuicTestFailedVersionNegotiation(_In_ const QUIC_TEST_ARGS* Args)
 {
     const uint32_t NoCommonClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
     const uint32_t NoCommonServerVersions[] = { QUIC_VERSION_1_MS_H };
@@ -1508,7 +1484,7 @@ QuicTestFailedVersionNegotiation(
         ARRAYSIZE(NoCommonClientVersions),
         ARRAYSIZE(NoCommonServerVersions),
         QUIC_STATUS_VER_NEG_ERROR,
-        Family);
+        Args->Family);
 
     const uint32_t OriginalInVNClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
     const uint32_t OriginalInVNServerVersions[] = { 0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a };
@@ -1519,13 +1495,10 @@ QuicTestFailedVersionNegotiation(
         ARRAYSIZE(OriginalInVNClientVersions),
         ARRAYSIZE(OriginalInVNServerVersions),
         QUIC_STATUS_CONNECTION_TIMEOUT,
-        Family);
+        Args->Family);
 }
 
-void
-QuicTestConnectBadAlpn(
-    _In_ int Family
-    )
+void QuicTestConnectBadAlpn(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1547,7 +1520,7 @@ QuicTestConnectBadAlpn(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -1580,10 +1553,7 @@ QuicTestConnectBadAlpn(
     }
 }
 
-void
-QuicTestConnectBadSni(
-    _In_ int Family
-    )
+void QuicTestConnectBadSni(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1617,14 +1587,14 @@ QuicTestConnectBadSni(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
 
-                QuicAddr RemoteAddr(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6, true);
+                QuicAddr RemoteAddr(Args->Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6, true);
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_REFUSED);
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
-                        Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6,
+                        Args->Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6,
                         "badlocalhost",
                         ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
@@ -1659,10 +1629,7 @@ ListenerRejectConnection(
     return true;
 }
 
-void
-QuicTestConnectServerRejected(
-    _In_ int Family
-    )
+void QuicTestConnectServerRejected(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1685,7 +1652,7 @@ QuicTestConnectServerRejected(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -1709,7 +1676,7 @@ QuicTestConnectServerRejected(
 
 void
 QuicTestKeyUpdateRandomLoss(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ uint8_t RandomLossPercentage
     )
 {
@@ -1834,7 +1801,7 @@ QuicTestKeyUpdateRandomLoss(
 
 void
 QuicTestKeyUpdate(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ uint16_t Iterations,
     _In_ uint16_t KeyUpdateBytes,
     _In_ bool UseKeyUpdateBytes,
@@ -1975,7 +1942,7 @@ QuicTestKeyUpdate(
 
 void
 QuicTestCidUpdate(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ uint16_t Iterations
     )
 {
@@ -2077,7 +2044,7 @@ QuicTestCidUpdate(
 
 void
 QuicTestConnectClientCertificate(
-    _In_ int Family,
+    _In_ uint32_t Family,
     _In_ bool UseClientCertificate
     )
 {
@@ -2556,10 +2523,7 @@ struct LoadBalancedServer {
     }
 };
 
-void
-QuicTestLoadBalancedHandshake(
-    _In_ int Family
-    )
+void QuicTestLoadBalancedHandshake(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -2567,7 +2531,7 @@ QuicTestLoadBalancedHandshake(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     LoadBalancedServer Listeners(Registration, QuicAddrFamily, MsQuicConnection::SendResumptionCallback, 3);
     TEST_QUIC_SUCCEEDED(Listeners.GetInitStatus());
 
@@ -2708,12 +2672,9 @@ GetTestInterfaceIndices(
     return LoopbackInterfaceIndex != UINT32_MAX && OtherInterfaceIndex != UINT32_MAX;
 }
 
-void
-QuicTestInterfaceBinding(
-    _In_ int Family
-    )
+void QuicTestInterfaceBinding(_In_ const QUIC_TEST_ARGS* Args)
 {
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     uint32_t LoopbackInterfaceIndex = UINT32_MAX;
     uint32_t OtherInterfaceIndex = UINT32_MAX;
     if (!GetTestInterfaceIndices(QuicAddrFamily, LoopbackInterfaceIndex, OtherInterfaceIndex)) {

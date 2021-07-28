@@ -509,7 +509,7 @@ QuicTestValidateConnectionEvents3(
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
 }
 
-void QuicTestValidateConnectionEvents(uint32_t Test)
+void QuicTestValidateConnectionEvents(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
@@ -532,7 +532,7 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
         QuicTestValidateConnectionEvents3
     };
 
-    Tests[Test](Registration, Listener, ServerLocalAddr);
+    Tests[Args->Number](Registration, Listener, ServerLocalAddr);
 
     } // Listener Scope
 }
@@ -1293,7 +1293,7 @@ QuicTestValidateStreamEvents7(
     } // Connections scope
 }
 
-void QuicTestValidateStreamEvents(uint32_t Test)
+void QuicTestValidateStreamEvents(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
@@ -1320,7 +1320,7 @@ void QuicTestValidateStreamEvents(uint32_t Test)
         QuicTestValidateStreamEvents7
     };
 
-    Tests[Test](Registration, Listener, ServerLocalAddr);
+    Tests[Args->Number](Registration, Listener, ServerLocalAddr);
 
     } // Listener Scope
 }
