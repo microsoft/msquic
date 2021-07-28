@@ -45,6 +45,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A |
 | PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A |
 | PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
+| PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -178,5 +179,18 @@ The QUIC specifications now offically RFC. Both the v1 and draft-29 versions are
 - Update version negotiation to draft v4 (#1826).
 - Fix issues where datapaths and sockets might be used incorrectly (#1843) (#1837).
 - Various documentation improvements and additions.
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.6 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.6](https://github.com/microsoft/msquic/releases/tag/v1.6.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
+
+- Support ConnectionClose calls in NEW_CONNECTION Event (#1849).
+- Some Linux packaging fixes (#1852) and build fixes (#1855).
+- Support Setting Local Interface Index (#1804) on Windows.
+- Fix issue with no certificate validation set on client certificate (#1728).
 
 Official (v1) RFC and draft-29 are supported by this release.
