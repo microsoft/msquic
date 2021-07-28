@@ -1976,8 +1976,9 @@ CxPlatTlsWriteDataToSchannel(
                 }
             }
             SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
-                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+            if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
                 //
                 // Collect the client cert validation result
                 //
@@ -1993,11 +1994,6 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         SecStatus,
                         "query cert validation result");
-
-                    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
-                        Result |= CXPLAT_TLS_RESULT_ERROR;
-                        break;
-                    }
                 }
             }
 
