@@ -330,7 +330,9 @@ QuicConnFree(
                 CxPlatListRemoveHead(&Connection->DestCids),
                 QUIC_CID_LIST_ENTRY,
                 Link);
+#if DEBUG
         CID->Freed = TRUE;
+#endif
         CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
     }
     if (Connection->State.Registered) {
@@ -1002,7 +1004,9 @@ QuicConnRetireCurrentDestCid(
     _In_ QUIC_PATH* Path
     )
 {
+#if DEBUG
     CXPLAT_DBG_ASSERT(!Path->DestCid->Freed);
+#endif
     if (Path->DestCid->CID.Length == 0) {
         QuicTraceLogConnVerbose(
             ZeroLengthCidRetire,
@@ -3062,7 +3066,9 @@ QuicConnUpdateDestCid(
             // so we must allocate a new one and free the old one.
             //
             CxPlatListEntryRemove(&DestCid->Link);
+#if DEBUG
             DestCid->Freed = TRUE;
+#endif
             CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             DestCid =
                 QuicCidNewDestination(
