@@ -300,7 +300,7 @@ QuicCryptoInitializeTls(
     TlsConfig.Connection = Connection;
     TlsConfig.ResumptionTicketBuffer = Crypto->ResumptionTicket;
     TlsConfig.ResumptionTicketLength = Crypto->ResumptionTicketLength;
-    if (!QuicConnIsServer(Connection)) {
+    if (QuicConnIsClient(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
 #ifdef CXPLAT_TLS_SECRETS_SUPPORT
@@ -356,7 +356,7 @@ QuicCryptoReset(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
-    CXPLAT_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
+    CXPLAT_DBG_ASSERT(QuicConnIsClient(QuicCryptoGetConnection(Crypto)));
     CXPLAT_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
 
     Crypto->MaxSentLength = 0;
@@ -1275,7 +1275,7 @@ QuicConnReceiveTP(
     _In_reads_(TPLength) const uint8_t* TPBuffer
     )
 {
-    CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
+    CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
 
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
@@ -1328,7 +1328,7 @@ QuicCryptoProcessTlsCompletion(
             Connection,
             "0-RTT rejected");
         CXPLAT_TEL_ASSERT(Crypto->TlsState.EarlyDataState != CXPLAT_TLS_EARLY_DATA_ACCEPTED);
-        if (!QuicConnIsServer(Connection)) {
+        if (QuicConnIsClient(Connection)) {
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_0_RTT);
             QuicLossDetectionOnZeroRttRejected(&Connection->LossDetection);
         } else {
@@ -1346,7 +1346,7 @@ QuicCryptoProcessTlsCompletion(
         _Analysis_assume_(Crypto->TlsState.WriteKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKeys[Crypto->TlsState.WriteKey] != NULL);
         if (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_HANDSHAKE &&
-            !QuicConnIsServer(Connection)) {
+            QuicConnIsClient(Connection)) {
             //
             // Per spec, client MUST discard Initial keys when it starts
             // encrypting packets with handshake keys.
@@ -1354,7 +1354,7 @@ QuicCryptoProcessTlsCompletion(
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
         }
         if (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT) {
-            if (!QuicConnIsServer(Connection)) {
+            if (QuicConnIsClient(Connection)) {
                 //
                 // The client has the 1-RTT keys so we can get rid of 0-RTT
                 // keys.
@@ -1469,7 +1469,7 @@ QuicCryptoProcessTlsCompletion(
         // ClientRandom
         //
         if (Connection->TlsSecrets != NULL &&
-            !QuicConnIsServer(Connection) &&
+            QuicConnIsClient(Connection) &&
             Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
             Crypto->TlsState.BufferLength > 0) {
             QUIC_NEW_CONNECTION_INFO Info = { 0 };
@@ -1530,7 +1530,7 @@ QuicCryptoProcessTlsCompletion(
         QuicConnGenerateNewSourceCids(Connection, FALSE);
 
         CXPLAT_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
-        if (!QuicConnIsServer(Connection)) {
+        if (QuicConnIsClient(Connection)) {
             //
             // Currently, NegotiatedAlpn points into TLS state memory, which
             // doesn't live as long as the connection. Update it to point to the
@@ -1614,7 +1614,6 @@ QuicCryptoCustomCertValidationComplete(
     _In_ BOOLEAN Result
     )
 {
-    CXPLAT_TEL_ASSERT(Crypto->CertValidationPending);
     if (!Crypto->CertValidationPending) {
         return;
     }

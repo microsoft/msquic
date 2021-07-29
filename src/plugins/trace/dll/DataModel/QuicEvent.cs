@@ -48,6 +48,7 @@ namespace QuicTrace.DataModel
         ApiWaitOperation,
         PerfCountersRundown,
         LibrarySendRetryStateUpdated,
+        LibraryVersion,
 
         RegistrationCreated = 1024,
         RegistrationDestroyed,
@@ -138,6 +139,7 @@ namespace QuicTrace.DataModel
         ConnOutFlowStreamStats,
         ConnPacketStats,
         ConnServerResumeTicket,
+        ConnVNEOtherVersionList,
 
         StreamCreated = 6144,
         StreamDestroyed,

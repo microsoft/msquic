@@ -102,10 +102,12 @@ Note at minimum CMake 3.16 is required. Instructions for installing the newest v
 
 ### Additional Requirements on Windows
 
-  * [CMake](https://cmake.org/)
+  * [CMake](https://cmake.org/) (available in "Developer Command Prompt for VS 2019" when "C++ CMake tools for Windows" are installed)
   * [Perl](https://www.perl.org/get.html) optional (required for OpenSSL build)
-  * [Visual Studio 2019](https://www.visualstudio.com/vs/) or higher
-  * Latest [Windows Insider](https://insider.windows.com/en-us/) builds
+  * [Visual Studio 2019](https://www.visualstudio.com/vs/) (or Build Tools for Visual Studio 2019) with
+    - C++ CMake tools for Windows
+    - MSVC v142 - VS 2019 C++ (_Arch_) build tools
+  * Latest [Windows Insider](https://insider.windows.com/en-us/) builds (required for SChannel build)
 
 ## Running a Build
 
@@ -128,6 +130,9 @@ The script has a lot of additional configuration options, but the default should
 `-Config <Debug/Release>` Allows for building in debug or release mode. **Debug** is the default configuration.
 
 `-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
+
+`-Static` Compiles msquic as a monolithic statically linkable library.
+Supported only by Windows currently.
 
 `-Tls <schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
 
@@ -192,6 +197,7 @@ xcode-select --install
 
 ### Windows
 
+Ensure the corresponding "MSVC v142 - VS 2019 C++ (_Arch_) build tools" are installed for the target arch, e.g. selecting "Desktop development with C++" only includes x64/x86 but not ARM64 by default.
 ```
 mkdir build && cd build
 cmake -g 'Visual Studio 16 2019' -A x64 ..
@@ -201,7 +207,7 @@ cmake -g 'Visual Studio 16 2019' -A x64 ..
 
 ```
 mkdir build && cd build
-cmake -g 'Linux Makefiles' ..
+cmake -G 'Unix Makefiles' ..
 ```
 
 ## Running a Build

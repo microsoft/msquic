@@ -36,13 +36,19 @@ void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
 void QuicTestDesiredVersionSettings();
+void QuicTestValidateParamApi();
+
+//
+// Rejection Tests
+//
+void QuicTestConnectionRejection(bool RejectByClosing);
 
 //
 // Event Validation Tests
 //
 
-void QuicTestValidateConnectionEvents();
-void QuicTestValidateStreamEvents();
+void QuicTestValidateConnectionEvents(uint32_t Test);
+void QuicTestValidateStreamEvents(uint32_t Test);
 
 //
 // Basic Functionality Tests
@@ -69,6 +75,14 @@ QuicTestMtuDiscovery(
     _In_ BOOLEAN DropClientProbePackets,
     _In_ BOOLEAN DropServerProbePackets,
     _In_ BOOLEAN RaiseMinimumMtu
+    );
+
+//
+// Path tests
+//
+void
+QuicTestLocalPathChanges(
+    _In_ int Family
     );
 
 //
@@ -166,6 +180,16 @@ QuicTestLoadBalancedHandshake(
     _In_ int Family
     );
 
+void
+QuicTestClientSharedLocalPort(
+    _In_ int Family
+    );
+
+void
+QuicTestInterfaceBinding(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -216,12 +240,14 @@ QuicTestConnectExpiredClientCertificate(
 
 void
 QuicTestNatPortRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     );
 
 void
 QuicTestNatAddrRebind(
-    _In_ int Family
+    _In_ int Family,
+    _In_ uint16_t KeepAlivePaddingSize
     );
 
 void
@@ -374,6 +400,14 @@ QuicTestSlowReceive(
 
 void
 QuicTestNthAllocFail(
+    );
+
+void
+QuicTestStreamPriority(
+    );
+
+void
+QuicTestStreamDifferentAbortErrors(
     );
 
 //
@@ -595,9 +629,11 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS \
     QUIC_CTL_CODE(25, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #define IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS \
     QUIC_CTL_CODE(26, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #define IOCTL_QUIC_RUN_VERSION_NEGOTIATION \
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -708,13 +744,18 @@ typedef struct {
     QUIC_CTL_CODE(40, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
+typedef struct {
+    int Family;
+    uint16_t Padding;
+} QUIC_RUN_REBIND_PARAMS;
+
 #define IOCTL_QUIC_RUN_NAT_PORT_REBIND \
     QUIC_CTL_CODE(41, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_RUN_REBIND_PARAMS
 
 #define IOCTL_QUIC_RUN_NAT_ADDR_REBIND \
     QUIC_CTL_CODE(42, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_RUN_REBIND_PARAMS
 
 #define IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID \
     QUIC_CTL_CODE(43, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -853,4 +894,30 @@ typedef struct {
     QUIC_CTL_CODE(69, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 69
+#define IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT \
+    QUIC_CTL_CODE(70, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_VALIDATE_PARAM_API \
+    QUIC_CTL_CODE(71, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_PRIORITY \
+    QUIC_CTL_CODE(72, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES \
+    QUIC_CTL_CODE(73, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS \
+    QUIC_CTL_CODE(74, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CONNECTION_REJECTION \
+    QUIC_CTL_CODE(75, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // bool - RejectByClosing
+
+#define IOCTL_QUIC_RUN_INTERFACE_BINDING \
+    QUIC_CTL_CODE(76, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 76

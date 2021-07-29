@@ -468,6 +468,8 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_LOAD_BALANCING_MODE            "LoadBalancingMode"
 #define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY         "MaxWorkerQueueDelayMs"
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS       "MaxStatelessOperations"
+#define QUIC_SETTING_MAX_BINDING_STATELESS_OPERATIONS "MaxBindingStatelessOperations"
+#define QUIC_SETTING_STATELESS_OPERATION_EXPIRATION "StatelessOperationExpirationMs"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN       "MaxOperationsPerDrain"
 
 #define QUIC_SETTING_SEND_BUFFERING_DEFAULT         "SendBufferingDefault"

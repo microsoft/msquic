@@ -11,35 +11,41 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t IsSetFlags;
         struct {
-            uint64_t MaxBytesPerKey                 : 1;
-            uint64_t HandshakeIdleTimeoutMs         : 1;
-            uint64_t IdleTimeoutMs                  : 1;
-            uint64_t TlsClientMaxSendBuffer         : 1;
-            uint64_t TlsServerMaxSendBuffer         : 1;
-            uint64_t StreamRecvWindowDefault        : 1;
-            uint64_t StreamRecvBufferDefault        : 1;
-            uint64_t ConnFlowControlWindow          : 1;
-            uint64_t MaxWorkerQueueDelayUs          : 1;
-            uint64_t MaxStatelessOperations         : 1;
-            uint64_t InitialWindowPackets           : 1;
-            uint64_t SendIdleTimeoutMs              : 1;
-            uint64_t InitialRttMs                   : 1;
-            uint64_t MaxAckDelayMs                  : 1;
-            uint64_t DisconnectTimeoutMs            : 1;
-            uint64_t KeepAliveIntervalMs            : 1;
-            uint64_t PeerBidiStreamCount            : 1;
-            uint64_t PeerUnidiStreamCount           : 1;
-            uint64_t RetryMemoryLimit               : 1;
-            uint64_t LoadBalancingMode              : 1;
-            uint64_t MaxOperationsPerDrain          : 1;
-            uint64_t SendBufferingEnabled           : 1;
-            uint64_t PacingEnabled                  : 1;
-            uint64_t MigrationEnabled               : 1;
-            uint64_t DatagramReceiveEnabled         : 1;
-            uint64_t ServerResumptionLevel          : 1;
-            uint64_t DesiredVersionsList            : 1;
-            uint64_t VersionNegotiationExtEnabled   : 1;
-            uint64_t RESERVED                       : 36;
+            uint64_t MaxBytesPerKey                         : 1;
+            uint64_t HandshakeIdleTimeoutMs                 : 1;
+            uint64_t IdleTimeoutMs                          : 1;
+            uint64_t TlsClientMaxSendBuffer                 : 1;
+            uint64_t TlsServerMaxSendBuffer                 : 1;
+            uint64_t StreamRecvWindowDefault                : 1;
+            uint64_t StreamRecvBufferDefault                : 1;
+            uint64_t ConnFlowControlWindow                  : 1;
+            uint64_t MaxWorkerQueueDelayUs                  : 1;
+            uint64_t MaxStatelessOperations                 : 1;
+            uint64_t InitialWindowPackets                   : 1;
+            uint64_t SendIdleTimeoutMs                      : 1;
+            uint64_t InitialRttMs                           : 1;
+            uint64_t MaxAckDelayMs                          : 1;
+            uint64_t DisconnectTimeoutMs                    : 1;
+            uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t PeerBidiStreamCount                    : 1;
+            uint64_t PeerUnidiStreamCount                   : 1;
+            uint64_t RetryMemoryLimit                       : 1;
+            uint64_t LoadBalancingMode                      : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t SendBufferingEnabled                   : 1;
+            uint64_t PacingEnabled                          : 1;
+            uint64_t MigrationEnabled                       : 1;
+            uint64_t DatagramReceiveEnabled                 : 1;
+            uint64_t ServerResumptionLevel                  : 1;
+            uint64_t DesiredVersionsList                    : 1;
+            uint64_t VersionNegotiationExtEnabled           : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t RESERVED                               : 30;
         } IsSet;
     };
 
@@ -61,18 +67,24 @@ typedef struct QUIC_SETTINGS {
     uint32_t KeepAliveIntervalMs;
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint16_t RetryMemoryLimit;
-    uint16_t LoadBalancingMode;
+    uint16_t RetryMemoryLimit;                  // Global only
+    uint16_t LoadBalancingMode;                 // Global only
     uint8_t MaxOperationsPerDrain;
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
-    uint8_t ServerResumptionLevel           : 2;
+    uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t VersionNegotiationExtEnabled    : 1;
     uint8_t RESERVED                        : 1;
     const uint32_t* DesiredVersionsList;
     uint32_t DesiredVersionsListLength;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t MtuDiscoveryMissingProbeCount;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
 
 } QUIC_SETTINGS;
 ```
@@ -139,7 +151,7 @@ The maximum queue delay (in microseconds) allowed for a worker thread. This affe
 
 `MaxStatelessOperations`
 
-The maximum number of stateless operations that may be queued at any one time.
+The maximum number of stateless operations that may be queued on a worker at any one time.
 
 **Default value:** 16
 
@@ -256,6 +268,42 @@ Only takes effect if Version Negotiation Extension is enabled. Must be set to `N
 Number of QUIC protocol versions in the DesiredVersionsList. Must be set to 0 unless `VersionNegotiationExtEnabled` is `TRUE`.
 
 **Default value:** 0
+
+`MinimumMtu`
+
+The minimum MTU supported by a connection. This will be used as the starting MTU.
+
+**Default value:** 1248
+
+`MaximumMtu`
+
+The maximum MTU supported by a connection. This will be the maximum probed value.
+
+**Default value:** 1500
+
+`MtuDiscoverySearchCompleteTimeoutUs`
+
+The time in microseconds to wait before reattempting MTU probing if max was not reached.
+
+**Default value:** 600000000
+
+`MtuDiscoveryMissingProbeCount`
+
+The number of MTU probes to retry before exiting MTU probing.
+
+**Default value:** 3
+
+`MaxBindingStatelessOperations`
+
+The maximum number of stateless operations that may be queued on a binding at any one time.
+
+**Default value:** 100
+
+`StatelessOperationExpirationMs`
+
+The time limit between operations for the same endpoint, in milliseconds.
+
+**Default value:** 100
 
 # Remarks
 

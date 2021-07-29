@@ -37,12 +37,13 @@ Environment:
 
 #ifdef _WIN32
 #include <wincrypt.h>
-#include <msquic.h>
+#include "msquic.h"
 
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
-    _In_ const char* SNI
+    _In_ const char* SNI,
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
     )
 {
     // Convert SNI to wide
@@ -78,11 +79,26 @@ CxPlatTlsVerifyCertificate(
         goto Exit;
     }
 
+    uint32_t CertFlags = 0;
+    if (CredFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT) {
+        CertFlags |= CERT_CHAIN_REVOCATION_CHECK_END_CERT;
+    }
+    if (CredFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN) {
+        CertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN;
+    }
+    if (CredFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
+        CertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
+    }
+
+    uint32_t IgnoreFlags =
+        CredFlags & (QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE | QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK);
+
     Result =
         CxPlatCertValidateChain(
             CertContext,
             SNI,
-            0);
+            CertFlags,
+            IgnoreFlags);
 
 Exit:
 
@@ -351,11 +367,13 @@ CxPlatTlsExtractPrivateKey(
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
-    _In_ const char* SNI
+    _In_ const char* SNI,
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
     )
 {
     UNREFERENCED_PARAMETER(X509Cert);
     UNREFERENCED_PARAMETER(SNI);
+    UNREFERENCED_PARAMETER(CredFlags);
     return 0;
 }
 #endif

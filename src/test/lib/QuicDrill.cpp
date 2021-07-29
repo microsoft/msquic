@@ -21,7 +21,7 @@ Future:
 #endif
 
 extern "C" {
-#include <quic_datapath.h>
+#include "quic_datapath.h"
 }
 
 void
@@ -164,14 +164,18 @@ struct DrillSender {
             ServerAddress.Ipv6.sin6_port = NetworkPort;
         }
 
+        CXPLAT_UDP_CONFIG UdpConfig;
+        UdpConfig.LocalAddress = nullptr;
+        UdpConfig.RemoteAddress = &ServerAddress;
+        UdpConfig.Flags = 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = this;
+        UdpConfig.IdealProcessor = 0;
+
         Status =
             CxPlatSocketCreateUdp(
                 Datapath,
-                nullptr,
-                &ServerAddress,
-                this,
-                0,
-                (uint16_t)CxPlatProcCurrentNumber(),
+                &UdpConfig,
                 &Binding);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);

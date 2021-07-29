@@ -11,8 +11,8 @@
 #pragma warning(disable:4214)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:28931) // Unused Assignment
 
-#include <precomp.h> // from 'core' dir
-#include <msquichelper.h>
+#include "precomp.h" // from 'core' dir
+#include "msquichelper.h"
 
 #include "packet_writer.h"
 
@@ -300,14 +300,17 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     CXPLAT_SOCKET* Binding;
+    CXPLAT_UDP_CONFIG UdpConfig;
+    UdpConfig.LocalAddress = nullptr;
+    UdpConfig.RemoteAddress = &ServerAddress;
+    UdpConfig.Flags = 0;
+    UdpConfig.InterfaceIndex = 0;
+    UdpConfig.CallbackContext = nullptr;
+    UdpConfig.IdealProcessor = 0;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(
             Datapath,
-            nullptr,
-            &ServerAddress,
-            nullptr,
-            0,
-            (uint16_t)CxPlatProcCurrentNumber(),
+            &UdpConfig,
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);

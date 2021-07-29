@@ -41,9 +41,11 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | -- | -- | -- | -- | -- | -- |
 | LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Server 2022 | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
 | TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | TBD | Feb 10 2021 | TBD | TBD |
-| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A |N/A |
-| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A |N/A |
-| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A |N/A |
+| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A | N/A |
+| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A |
+| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A |
+| PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
+| PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -149,3 +151,46 @@ The QUIC specifications are being actively looked at by the RFC editor. Both the
 - Refactored POSIX error codes (breaking change for POSIX, #1645).
 
 The QUIC specifications now offically RFC. Both the v1 and draft-29 versions are still supported by this release.
+
+## MsQuic v1.5 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.5](https://github.com/microsoft/msquic/releases/tag/v1.5.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
+
+- Windows Kernel client certificate support (#1652).
+- Added load balancer app (#1696) and automated testing (#1707).
+- Fixed a bug for QUIC_SETTING size validation logic (#1724).
+- Added support for local UDP port sharing (Linux only) (#1751).
+- Switched Param Id's to not be overlapping (#1758).
+- Refactored library load (#1748) and added static linking support (Windows only) (#1446).
+- Fixed bug around handshake idle timeout (#1780).
+- Added support for stream prioritization (#1778).
+- Fixed bug when shutting connection down during the handshake (#1797).
+- Improved testing around path changes and few minor bug fixes (#1783, #1801).
+- Improved event callback reentrancy to reduce app complexity (#1802).
+- Fixed bug related to sharing abort code for stream send/recv shutdown (#1809).
+- Fixed bug related to queuing 0-RTT during the handshake (but after start) (#1817).
+- Use root level certificate verification callback in OpenSSL (#1818).
+- Ignore Duplicate Stream Read Shutdowns (#1822).
+- Constrain processor index to processor count on posix (#1824).
+- Build speed and build dependency improvements (#1845) (#1839).
+- Initial support for Android binaries (#1835).
+- Update version negotiation to draft v4 (#1826).
+- Fix issues where datapaths and sockets might be used incorrectly (#1843) (#1837).
+- Various documentation improvements and additions.
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.6 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.6](https://github.com/microsoft/msquic/releases/tag/v1.6.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
+
+- Support ConnectionClose calls in NEW_CONNECTION Event (#1849).
+- Some Linux packaging fixes (#1852) and build fixes (#1855).
+- Support Setting Local Interface Index (#1804) on Windows.
+- Fix issue with no certificate validation set on client certificate (#1728).
+
+Official (v1) RFC and draft-29 are supported by this release.

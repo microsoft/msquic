@@ -199,7 +199,7 @@ QuicStreamSendShutdown(
         }
 
         Stream->Flags.LocalCloseReset = TRUE;
-        Stream->SendCloseErrorCode = ErrorCode;
+        Stream->SendShutdownErrorCode = ErrorCode;
 
         if (!Silent) {
             //
@@ -596,7 +596,10 @@ QuicStreamSendFlush(
     }
 
     if (Start) {
-        (void)QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC, FALSE);
+        (void)QuicStreamStart(
+            Stream,
+            QUIC_STREAM_START_FLAG_IMMEDIATE | QUIC_STREAM_START_FLAG_ASYNC,
+            FALSE);
     }
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
@@ -1045,7 +1048,7 @@ QuicStreamSendWrite(
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_SEND_ABORT) {
 
-        QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendCloseErrorCode, Stream->MaxSentLength };
+        QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength };
 
         if (QuicResetStreamFrameEncode(
                 &Frame,
@@ -1064,7 +1067,7 @@ QuicStreamSendWrite(
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_RECV_ABORT) {
 
-        QUIC_STOP_SENDING_EX Frame = { Stream->ID, Stream->SendCloseErrorCode };
+        QUIC_STOP_SENDING_EX Frame = { Stream->ID, Stream->RecvShutdownErrorCode };
 
         if (QuicStopSendingFrameEncode(
                 &Frame,

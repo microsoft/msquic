@@ -57,6 +57,7 @@ QuicStreamInitialize(
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
+    Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
     CxPlatRefInitialize(&Stream->RefCount);
     QuicRangeInitialize(
@@ -91,19 +92,6 @@ QuicStreamInitialize(
             Stream->Flags.HandleSendShutdown = TRUE;
         }
     }
-
-#if 1 // Special case code to force bugcheck or failure. Will be removed when no longer needed.
-    CXPLAT_FRE_ASSERT(Connection->Settings.StreamRecvBufferDefault != 0x80000000U);
-    if (Connection->Settings.StreamRecvBufferDefault == 0x40000000U) {
-        QuicTraceEvent(
-            StreamError,
-            "[strm][%p] ERROR, %s.",
-            Stream,
-            "Unsupported receive buffer size");
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Exit;
-    }
-#endif
 
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
@@ -329,6 +317,9 @@ QuicStreamClose(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     )
 {
+    CXPLAT_DBG_ASSERT(!Stream->Flags.HandleClosed);
+    Stream->Flags.HandleClosed = TRUE;
+
     if (!Stream->Flags.ShutdownComplete) {
 
         if (Stream->Flags.Started) {
@@ -364,7 +355,6 @@ QuicStreamClose(
             }
     }
 
-    Stream->Flags.HandleClosed = TRUE;
     Stream->ClientCallbackHandler = NULL;
 
     QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
@@ -382,7 +372,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",
@@ -400,6 +390,19 @@ QuicStreamIndicateEvent(
 {
     QUIC_STATUS Status;
     if (Stream->ClientCallbackHandler != NULL) {
+        //
+        // MsQuic shouldn't indicate reentrancy to the app when at all
+        // possible. The general exception to this rule is when the connection
+        // or stream is being closed because the API MUST block until all work
+        // is completed, so we have to execute the event callbacks inline. There
+        // is also one additional exception for start complete when StreamStart
+        // is called synchronously on an MsQuic thread.
+        //
+        CXPLAT_DBG_ASSERT(
+            !Stream->Connection->State.InlineApiExecution ||
+            Stream->Connection->State.HandleClosed ||
+            Stream->Flags.HandleClosed ||
+            Event->Type == QUIC_STREAM_EVENT_START_COMPLETE);
         Status =
             Stream->ClientCallbackHandler(
                 (HQUIC)Stream,
@@ -551,11 +554,49 @@ QuicStreamParamSet(
         const void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Stream);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_INVALID_PARAMETER;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_STREAM_ID:
+    case QUIC_PARAM_STREAM_0RTT_LENGTH:
+    case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+
+    case QUIC_PARAM_STREAM_PRIORITY: {
+
+        if (BufferLength != sizeof(Stream->SendPriority)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Stream->SendPriority != *(uint16_t*)Buffer) {
+            Stream->SendPriority = *(uint16_t*)Buffer;
+
+            QuicTraceLogStreamInfo(
+                UpdatePriority,
+                Stream,
+                "New send priority = %hu",
+                Stream->SendPriority);
+
+            if (Stream->Flags.Started && Stream->SendFlags != 0) {
+                //
+                // Update the stream's place in the send queue if necessary.
+                //
+                QuicSendUpdateStreamPriority(&Stream->Connection->Send, Stream);
+            }
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
 }
 
 QUIC_STATUS
@@ -569,8 +610,7 @@ QuicStreamParamGet(
 {
     QUIC_STATUS Status;
 
-    switch (Param)
-    {
+    switch (Param) {
     case QUIC_PARAM_STREAM_ID:
 
         if (*BufferLength < sizeof(Stream->ID)) {
@@ -636,6 +676,25 @@ QuicStreamParamGet(
         *BufferLength = sizeof(uint64_t);
         *(uint64_t*)Buffer =
             Stream->Connection->SendBuffer.IdealBytes;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_STREAM_PRIORITY:
+
+        if (*BufferLength < sizeof(Stream->SendPriority)) {
+            *BufferLength = sizeof(Stream->SendPriority);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(Stream->SendPriority);
+        *(uint16_t*)Buffer = Stream->SendPriority;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

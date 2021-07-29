@@ -106,7 +106,11 @@ QuicSendCanSendFlagsNow(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
-        if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
+        if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL &&
+            CxPlatListIsEmpty(&Send->SendStreams)) {
+            return TRUE;
+        }
+        if ((!Connection->State.Started && QuicConnIsClient(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
         }
@@ -150,7 +154,19 @@ QuicSendQueueFlushForStream(
         // Not previously queued, so add the stream to the end of the queue.
         //
         CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
-        CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
+        CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
+        while (Entry != &Send->SendStreams) {
+            //
+            // Search back to front for the right place (based on priority) to
+            // insert the stream.
+            //
+            if (Stream->SendPriority <=
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink)->SendPriority) {
+                break;
+            }
+            Entry = Entry->Blink;
+        }
+        CxPlatListInsertHead(Entry, &Stream->SendLink); // Insert after current Entry
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
@@ -170,6 +186,31 @@ QuicSendQueueFlushForStream(
         Stream->Flags.SendDelayed = FALSE;
         QuicSendQueueFlush(Send, REASON_STREAM_FLAGS);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendUpdateStreamPriority(
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->SendLink.Flink != NULL);
+    CxPlatListEntryRemove(&Stream->SendLink);
+
+    CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
+    while (Entry != &Send->SendStreams) {
+        //
+        // Search back to front for the right place (based on priority) to
+        // insert the stream.
+        //
+        if (Stream->SendPriority <=
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink)->SendPriority) {
+            break;
+        }
+        Entry = Entry->Blink;
+    }
+    CxPlatListInsertHead(Entry, &Stream->SendLink); // Insert after current Entry
 }
 
 #if DEBUG
@@ -694,8 +735,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
                 CXPLAT_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
-                QuicBindingGenerateStatelessResetToken(
-                    Builder->Path->Binding,
+                QuicLibraryGenerateStatelessResetToken(
                     SourceCid->CID.Data,
                     Frame.Buffer + SourceCid->CID.Length);
 
@@ -819,7 +859,15 @@ QuicSendWriteFrames(
         if (Builder->DatagramLength < AvailableBufferLength) {
             Builder->Datagram->Buffer[Builder->DatagramLength++] = QUIC_FRAME_PING;
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PING;
-            Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+            if (Connection->KeepAlivePadding) {
+                Builder->MinimumDatagramLength =
+                    Builder->DatagramLength + Connection->KeepAlivePadding + Builder->EncryptionOverhead;
+                if (Builder->MinimumDatagramLength > (uint16_t)Builder->Datagram->Length) {
+                    Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+                }
+            } else {
+                Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+            }
             if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PING, TRUE)) {
                 return TRUE;
             }
@@ -889,10 +937,23 @@ QuicSendGetNextStream(
 
             if (Connection->State.UseRoundRobinStreamScheduling) {
                 //
-                // Move the stream to the end of the queue.
+                // Move the stream after any streams of the same priority. Start
+                // with the "next" entry in the list and keep going until the
+                // next entry's priority is less. Then move the stream before
+                // that entry.
                 //
-                CxPlatListEntryRemove(&Stream->SendLink);
-                CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
+                CXPLAT_LIST_ENTRY* LastEntry = Stream->SendLink.Flink;
+                while (Stream->SendLink.Flink != &Send->SendStreams) {
+                    if (Stream->SendPriority >
+                        CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink)->SendPriority) {
+                        break;
+                    }
+                    LastEntry = LastEntry->Flink;
+                }
+                if (LastEntry->Blink != &Stream->SendLink) {
+                    CxPlatListEntryRemove(&Stream->SendLink);
+                    CxPlatListInsertTail(LastEntry, &Stream->SendLink);
+                }
 
                 *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
 
@@ -1033,8 +1094,6 @@ QuicSendFlush(
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
     }
-
-    CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
     QUIC_STREAM* Stream = NULL;
@@ -1224,7 +1283,7 @@ QuicSendFlush(
         }
 
 #if DEBUG
-        CXPLAT_DBG_ASSERT(++DeadlockDetection < 100);
+        CXPLAT_DBG_ASSERT(++DeadlockDetection < 1000);
         UNREFERENCED_PARAMETER(PrevPrevSendFlags); // Used in debugging only
         PrevPrevSendFlags = PrevSendFlags;
         PrevSendFlags = SendFlags;

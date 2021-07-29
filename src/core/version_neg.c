@@ -150,7 +150,8 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     if (Buffer == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    uint32_t Offset = 0;
+    uint32_t Offset = sizeof(uint32_t);
+    CxPlatCopyMemory(Buffer, &OriginalVersion, sizeof(uint32_t));
     for (uint32_t i = 0; i < DesiredVersionsLength; ++i) {
         for (uint32_t j = 0; j < ARRAYSIZE(CompatibleVersionsMap); ++j) {
             if (CompatibleVersionsMap[j].OriginalVersion == OriginalVersion &&
@@ -164,225 +165,95 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
             }
         }
     }
-    CxPlatCopyMemory(Buffer + Offset, &OriginalVersion, sizeof(uint32_t));
-    Offset += sizeof(uint32_t);
     CXPLAT_DBG_ASSERT(Offset <= *BufferLength);
     return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
-QuicVersionNegotiationExtParseClientVerNegInfo(
+QuicVersionNegotiationExtParseVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
-    _Out_ QUIC_CLIENT_VER_NEG_INFO* ClientVNI
+    _Out_ QUIC_VERSION_INFORMATION_V1* VersionInfo
     )
 {
     uint16_t Offset = 0;
     if (BufferLength < sizeof(uint32_t)) {
         QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed1,
+            VersionInfoDecodeFailed1,
             Connection,
-            "Client version negotiation info too short to contain Current Version (%hu bytes)",
+            "Version info too short to contain Chosen Version (%hu bytes)",
             BufferLength);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    CxPlatCopyMemory(&ClientVNI->CurrentVersion, Buffer, sizeof(ClientVNI->CurrentVersion));
+    CxPlatCopyMemory(&VersionInfo->ChosenVersion, Buffer, sizeof(VersionInfo->ChosenVersion));
     Offset += sizeof(uint32_t);
 
     if ((unsigned)(BufferLength - Offset) < sizeof(uint32_t)) {
         QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed2,
+            VersionInfoDecodeFailed2,
             Connection,
-            "Client version negotiation info too short to contain Previous Version (%hu bytes)",
+            "Version info too short to contain any Other Versions (%hu bytes)",
             BufferLength);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CxPlatCopyMemory(&ClientVNI->PreviousVersion, Buffer + Offset, sizeof(ClientVNI->PreviousVersion));
-    Offset += sizeof(uint32_t);
-
-    if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &ClientVNI->RecvNegotiationVerCount)) {
+    if ((BufferLength - Offset) % sizeof(uint32_t) > 0) {
         QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed3,
+            ServerVersionInfoDecodeFailed3,
             Connection,
-            "Client version negotiation info too short to contain Recv Negotiation Version count (%hu bytes)",
-            BufferLength);
+            "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
+            (unsigned)(BufferLength - Offset),
+            (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t) >= (uint64_t)BufferLength - Offset) {
-        QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed4,
-            Connection,
-            "Client version negotiation info too short to contain Recv Negotiation Version list (%hu bytes vs. %llu bytes)",
-            BufferLength,
-            ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t));
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (ClientVNI->RecvNegotiationVerCount > 0) {
-        ClientVNI->RecvNegotiationVersions = (uint32_t*)(Buffer + Offset);
-        Offset += (uint16_t)(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t));
-    } else {
-        ClientVNI->RecvNegotiationVersions = NULL;
-    }
-
-    if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &ClientVNI->CompatibleVersionCount)) {
-        QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed5,
-            Connection,
-            "Client version negotiation info too short to contain Compatible Version count (%hu bytes)",
-            BufferLength);
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (ClientVNI->CompatibleVersionCount * sizeof(uint32_t) > (uint64_t)BufferLength - Offset) {
-        QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed6,
-            Connection,
-            "Client version negotiation info too short to contain Compatible Version list (%hu bytes vs. %llu bytes)",
-            BufferLength,
-            ClientVNI->CompatibleVersionCount * sizeof(uint32_t));
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (ClientVNI->CompatibleVersionCount > 0) {
-        ClientVNI->CompatibleVersions = (uint32_t*)(Buffer + Offset);
-        Offset += (uint16_t)(ClientVNI->CompatibleVersionCount * sizeof(uint32_t));
-    } else {
-        ClientVNI->CompatibleVersions = NULL;
-        QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed7,
-            Connection,
-            "Client version negotiation info has empty Compatible Version list");
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    VersionInfo->OtherVersionsCount = (BufferLength - Offset) / sizeof(uint32_t);
+    VersionInfo->OtherVersions = (uint32_t*)(Buffer + Offset);
+    Offset += (uint16_t)(VersionInfo->OtherVersionsCount * sizeof(uint32_t));
 
     if (Offset != BufferLength) {
         QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed8,
+            ServerVersionInfoDecodeFailed4,
             Connection,
-            "Client version negotiation info parsed less than full buffer (%hu bytes vs. %hu bytes",
+            "Version info parsed less than full buffer (%hu bytes vs. %hu bytes",
             Offset,
             BufferLength);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     QuicTraceLogConnInfo(
-        ClientVersionNegotiationInfoDecoded,
+        ServerVersionInfoDecoded,
         Connection,
-        "Client VNI Decoded: Current Ver:%x Prev Ver:%x Recv Ver Count:%llu Compat Ver Count:%llu",
-        ClientVNI->CurrentVersion,
-        ClientVNI->PreviousVersion,
-        ClientVNI->RecvNegotiationVerCount,
-        ClientVNI->CompatibleVersionCount);
+        "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
+        VersionInfo->ChosenVersion,
+        VersionInfo->OtherVersionsCount);
 
     QuicTraceEvent(
-        ConnClientCompatibleVersionList,
-        "[conn][%p] Client VNI Compatible Version List: %!VNL!",
+        ConnVNEOtherVersionList,
+        "[conn][%p] VerInfo Other Versions List: %!VNL!",
         Connection,
-        CASTED_CLOG_BYTEARRAY(ClientVNI->CompatibleVersionCount * sizeof(uint32_t), ClientVNI->CompatibleVersions));
-
-    QuicTraceEvent(
-        ConnClientReceivedVersionList,
-        "[conn][%p] Client VNI Received Version List: %!VNL!",
-        Connection,
-        CASTED_CLOG_BYTEARRAY(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t), ClientVNI->RecvNegotiationVersions));
+        CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions));
 
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
-QuicVersionNegotiationExtParseServerVerNegInfo(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* const Buffer,
-    _In_ uint16_t BufferLength,
-    _Out_ QUIC_SERVER_VER_NEG_INFO* ServerVNI
-    )
-{
-    uint16_t Offset = 0;
-    if (BufferLength < sizeof(uint32_t)) {
-        QuicTraceLogConnError(
-            ServerVersionNegotiationInfoDecodeFailed1,
-            Connection,
-            "Server version negotiation info too short to contain Negotiated Version (%hu bytes)",
-            BufferLength);
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-    CxPlatCopyMemory(&ServerVNI->NegotiatedVersion, Buffer, sizeof(ServerVNI->NegotiatedVersion));
-    Offset += sizeof(uint32_t);
-
-    if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &ServerVNI->SupportedVersionCount)) {
-        QuicTraceLogConnError(
-            ServerVersionNegotiationInfoDecodeFailed2,
-            Connection,
-            "Server version negotiation info too short to contain Supported Version count (%hu bytes)",
-            BufferLength);
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (ServerVNI->SupportedVersionCount * sizeof(uint32_t) > (uint64_t)BufferLength - Offset) {
-        QuicTraceLogConnError(
-            ServerVersionNegotiationInfoDecodeFailed3,
-            Connection,
-            "Server version negotiation info too short to contain Supported Versions list (%hu bytes vs. %llu bytes)",
-            BufferLength,
-            ServerVNI->SupportedVersionCount * sizeof(uint32_t));
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (ServerVNI->SupportedVersionCount > 0) {
-        ServerVNI->SupportedVersions = (uint32_t*)(Buffer + Offset);
-        Offset += (uint16_t)(ServerVNI->SupportedVersionCount * sizeof(uint32_t));
-    } else {
-        ServerVNI->SupportedVersions = NULL;
-        QuicTraceLogConnError(
-            ServerVersionNegotiationInfoDecodeFailed4,
-            Connection,
-            "Server version negotiation info has empty Supported Versions list");
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-    if (Offset != BufferLength) {
-        QuicTraceLogConnError(
-            ServerVersionNegotiationInfoDecodeFailed5,
-            Connection,
-            "Server version negotiation info parsed less than full buffer (%hu bytes vs. %hu bytes",
-            Offset,
-            BufferLength);
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    QuicTraceLogConnInfo(
-        ServerVersionNegotiationInfoDecoded,
-        Connection,
-        "Server VNI Decoded: Negotiated Ver:%x Supported Ver Count:%llu",
-        ServerVNI->NegotiatedVersion,
-        ServerVNI->SupportedVersionCount);
-
-    QuicTraceEvent(
-        ConnServerSupportedVersionList,
-        "[conn][%p] Server VNI Supported Version List: %!VNL!",
-        Connection,
-        CASTED_CLOG_BYTEARRAY(ServerVNI->SupportedVersionCount * sizeof(uint32_t), ServerVNI->SupportedVersions));
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
 _Success_(return != NULL)
+_Ret_writes_bytes_(*VerInfoLength)
 const uint8_t*
-QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
+QuicVersionNegotiationExtEncodeVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
-    _Out_ uint32_t* VNInfoLength
+    _Out_ uint32_t* VerInfoLength
     )
 {
-    uint32_t VNILen = 0;
-    uint8_t* VNIBuf = NULL;
-    uint8_t* VersionNegotiationInfo = NULL;
-    *VNInfoLength = 0;
+    uint32_t VILen = 0;
+    uint8_t* VIBuf = NULL;
+    uint8_t* VersionInfo = NULL;
+    *VerInfoLength = 0;
     if (QuicConnIsServer(Connection)) {
         const uint32_t* DesiredVersionsList = NULL;
         uint32_t DesiredVersionsListLength = 0;
@@ -394,135 +265,113 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             DesiredVersionsListLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
         //
-        // Generate Server VNI.
+        // Generate Server Version Info.
         //
-        VNILen = sizeof(uint32_t) + QuicVarIntSize(DesiredVersionsListLength) +
-            (DesiredVersionsListLength * sizeof(uint32_t));
+        VILen = sizeof(uint32_t) + (DesiredVersionsListLength * sizeof(uint32_t));
+        CXPLAT_DBG_ASSERT((DesiredVersionsListLength * sizeof(uint32_t)) + sizeof(uint32_t) > DesiredVersionsListLength + sizeof(uint32_t));
 
-        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_NEG_INFO);
-        if (VersionNegotiationInfo == NULL) {
+        VersionInfo = CXPLAT_ALLOC_NONPAGED(VILen, QUIC_POOL_VERSION_INFO);
+        if (VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "Server Version Negotiation Info",
-                VNILen);
+                "Server Version Info",
+                VILen);
             return NULL;
         }
-        VNIBuf = VersionNegotiationInfo;
+        VIBuf = VersionInfo;
 
-        CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
-        VNIBuf += sizeof(Connection->Stats.QuicVersion);
-        VNIBuf = QuicVarIntEncode(DesiredVersionsListLength, VNIBuf);
+        CXPLAT_DBG_ASSERT(VILen >= sizeof(uint32_t));
+        CxPlatCopyMemory(VIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
+        VIBuf += sizeof(Connection->Stats.QuicVersion);
+        CXPLAT_DBG_ASSERT(VILen - sizeof(uint32_t) == DesiredVersionsListLength * sizeof(uint32_t));
         CxPlatCopyMemory(
-            VNIBuf,
+            VIBuf,
             DesiredVersionsList,
             DesiredVersionsListLength * sizeof(uint32_t));
 
         QuicTraceLogConnInfo(
             ServerVersionNegotiationInfoEncoded,
             Connection,
-            "Server VNI Encoded: Negotiated Ver:%x Supported Ver Count:%u",
+            "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
             DesiredVersionsListLength);
 
         QuicTraceEvent(
-            ConnServerSupportedVersionList,
-            "[conn][%p] Server VNI Supported Version List: %!VNL!",
+            ConnVNEOtherVersionList,
+            "[conn][%p] VerInfo Other Versions List: %!VNL!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(DesiredVersionsListLength * sizeof(uint32_t), VNIBuf));
+            CASTED_CLOG_BYTEARRAY(DesiredVersionsListLength * sizeof(uint32_t), VIBuf));
     } else {
         //
-        // Generate Client VNI
+        // Generate Client Version Info.
         //
         uint32_t CompatibilityListByteLength = 0;
-        VNILen = sizeof(Connection->Stats.QuicVersion) + sizeof(Connection->PreviousQuicVersion);
+        VILen = sizeof(Connection->Stats.QuicVersion);
         if (Connection->Settings.IsSet.DesiredVersionsList) {
             QuicVersionNegotiationExtGenerateCompatibleVersionsList(
                 Connection->Stats.QuicVersion,
                 Connection->Settings.DesiredVersionsList,
                 Connection->Settings.DesiredVersionsListLength,
                 NULL, &CompatibilityListByteLength);
-            VNILen += QuicVarIntSize(CompatibilityListByteLength / sizeof(uint32_t)) + CompatibilityListByteLength;
+            VILen += CompatibilityListByteLength;
         } else {
-            VNILen +=
-                QuicVarIntSize(MsQuicLib.DefaultCompatibilityListLength) +
-                (MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t));
+            CXPLAT_DBG_ASSERT(MsQuicLib.DefaultCompatibilityListLength * (uint32_t)sizeof(uint32_t) > MsQuicLib.DefaultCompatibilityListLength);
+            VILen +=
+                MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t);
         }
-        VNILen +=
-            QuicVarIntSize(Connection->ReceivedNegotiationVersionsLength) +
-            (Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
 
-        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_NEG_INFO);
-        if (VersionNegotiationInfo == NULL) {
+        VersionInfo = CXPLAT_ALLOC_NONPAGED(VILen, QUIC_POOL_VERSION_INFO);
+        if (VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "Client Version Negotiation Info",
-                VNILen);
+                "Client Version Info",
+                VILen);
             return NULL;
         }
-        VNIBuf = VersionNegotiationInfo;
+        VIBuf = VersionInfo;
 
-        _Analysis_assume_(VNILen >= sizeof(uint32_t) + sizeof(uint32_t));
-        CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
-        VNIBuf += sizeof(Connection->Stats.QuicVersion);
-        CxPlatCopyMemory(VNIBuf, &Connection->PreviousQuicVersion, sizeof(Connection->PreviousQuicVersion));
-        VNIBuf += sizeof(Connection->PreviousQuicVersion);
-        VNIBuf = QuicVarIntEncode(Connection->ReceivedNegotiationVersionsLength, VNIBuf);
-        if (Connection->ReceivedNegotiationVersionsLength > 0) {
-            CxPlatCopyMemory(
-                VNIBuf,
-                Connection->ReceivedNegotiationVersions,
-                Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
-            VNIBuf += (Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
-        }
+        CXPLAT_DBG_ASSERT(VILen >= sizeof(uint32_t));
+        CxPlatCopyMemory(VIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
+        VIBuf += sizeof(Connection->Stats.QuicVersion);
         if (Connection->Settings.IsSet.DesiredVersionsList) {
-            VNIBuf = QuicVarIntEncode(CompatibilityListByteLength / sizeof(uint32_t), VNIBuf);
-            uint32_t RemainingBuffer = VNILen - (uint32_t)(VNIBuf - VersionNegotiationInfo);
+            uint32_t RemainingBuffer = VILen - (uint32_t)(VIBuf - VersionInfo);
             CXPLAT_DBG_ASSERT(RemainingBuffer == CompatibilityListByteLength);
             QuicVersionNegotiationExtGenerateCompatibleVersionsList(
                 Connection->Stats.QuicVersion,
                 Connection->Settings.DesiredVersionsList,
                 Connection->Settings.DesiredVersionsListLength,
-                VNIBuf,
+                VIBuf,
                 &RemainingBuffer);
-            CXPLAT_DBG_ASSERT(VNILen == (uint32_t)(VNIBuf - VersionNegotiationInfo) + RemainingBuffer);
+            CXPLAT_DBG_ASSERT(VILen == (uint32_t)(VIBuf - VersionInfo) + RemainingBuffer);
         } else {
-            VNIBuf = QuicVarIntEncode(MsQuicLib.DefaultCompatibilityListLength, VNIBuf);
+            CXPLAT_DBG_ASSERT(VILen - sizeof(uint32_t) == MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t));
             CxPlatCopyMemory(
-                VNIBuf,
+                VIBuf,
                 MsQuicLib.DefaultCompatibilityList,
                 MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t));
         }
         QuicTraceLogConnInfo(
-            ClientVersionNegotiationInfoEncoded,
+            ClientVersionInfoEncoded,
             Connection,
-            "Client VNI Encoded: Current Ver:%x Prev Ver:%x Recv Ver Count:%u Compat Ver Count:%u",
+            "Client VI Encoded: Current Ver:%x Prev Ver:%x Compat Ver Count:%u",
             Connection->Stats.QuicVersion,
             Connection->PreviousQuicVersion,
-            Connection->ReceivedNegotiationVersionsLength,
             CompatibilityListByteLength == 0 ?
                 MsQuicLib.DefaultCompatibilityListLength :
                 (uint32_t)(CompatibilityListByteLength / sizeof(uint32_t)));
 
         QuicTraceEvent(
-            ConnClientCompatibleVersionList,
-            "[conn][%p] Client VNI Compatible Version List: %!VNL!",
+            ConnVNEOtherVersionList,
+            "[conn][%p] VerInfo Other Versions List: %!VNL!",
             Connection,
             CASTED_CLOG_BYTEARRAY(
                 CompatibilityListByteLength == 0 ?
                     MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t):
                     CompatibilityListByteLength,
-                VNIBuf));
-
-        QuicTraceEvent(
-            ConnClientReceivedVersionList,
-            "[conn][%p] Client VNI Received Version List: %!VNL!",
-            Connection,
-            CASTED_CLOG_BYTEARRAY(
-                Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t),
-                Connection->ReceivedNegotiationVersions));
+                VIBuf));
         }
-    *VNInfoLength = VNILen;
-    return VersionNegotiationInfo;
+    *VerInfoLength = VILen;
+    return VersionInfo;
 }

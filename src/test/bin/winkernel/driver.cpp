@@ -9,8 +9,8 @@ Abstract:
 
 --*/
 
-#include <quic_platform.h>
-#include <MsQuicTests.h>
+#include "quic_platform.h"
+#include "MsQuicTests.h"
 #include <new.h>
 
 #include "quic_trace.h"
@@ -101,7 +101,7 @@ Return Value:
     WDFDRIVER Driver;
     BOOLEAN PlatformInitialized = FALSE;
 
-    CxPlatSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad();
 
     Status = CxPlatInitialize();
     if (!NT_SUCCESS(Status)) {

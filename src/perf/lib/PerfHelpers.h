@@ -21,11 +21,11 @@ Abstract:
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // For disabling encryption
 
-#include <quic_platform.h>
-#include <quic_trace.h>
-#include <msquic.hpp>
-#include <msquichelper.h>
-#include <quic_hashtable.h>
+#include "quic_platform.h"
+#include "quic_trace.h"
+#include "msquic.hpp"
+#include "msquichelper.h"
+#include "quic_hashtable.h"
 #include "PerfBase.h"
 #include "Tcp.h"
 

@@ -10,14 +10,11 @@ set(SOURCES
     ThroughputClient.cpp
 )
 
-# Allow CLOG to preprocess all the source files.
-add_clog_library(perflib.clog STATIC ${SOURCES} PerfHelpers.h)
+add_library(perflib STATIC ${SOURCES})
 
-add_library(perflib ${SOURCES})
+set_property(TARGET perflib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}perf")
 
-set_property(TARGET perflib PROPERTY FOLDER "perf")
-
-target_link_libraries(perflib PUBLIC perflib.clog)
+target_link_libraries(perflib PUBLIC)
 
 target_link_libraries(perflib PRIVATE inc warnings)
 

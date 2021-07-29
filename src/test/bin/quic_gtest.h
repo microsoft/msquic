@@ -7,9 +7,9 @@
 
 #define QUIC_TEST_APIS 1
 
-#include <quic_platform.h>
-#include <MsQuicTests.h>
-#include <msquichelper.h>
+#include "quic_platform.h"
+#include "MsQuicTests.h"
+#include "msquichelper.h"
 #include "quic_trace.h"
 #include "quic_driver_helpers.h"
 #undef min // gtest headers conflict with previous definitions of min/max.
@@ -627,4 +627,65 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
 
 class WithDrillInitialPacketTokenArgs: public testing::Test,
     public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
+};
+
+struct ValidateConnectionEventArgs {
+    uint32_t Test;
+    static ::std::vector<ValidateConnectionEventArgs> Generate() {
+        ::std::vector<ValidateConnectionEventArgs> list;
+#ifndef QUIC_DISABLE_0RTT_TESTS
+        for (uint32_t Test = 0; Test < 3; ++Test)
+#else
+        for (uint32_t Test = 0; Test < 2; ++Test)
+#endif
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& args) {
+    return o << args.Test;
+}
+
+class WithValidateConnectionEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateConnectionEventArgs> {
+};
+
+struct ValidateStreamEventArgs {
+    uint32_t Test;
+    static ::std::vector<ValidateStreamEventArgs> Generate() {
+        ::std::vector<ValidateStreamEventArgs> list;
+        for (uint32_t Test = 0; Test < 7; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateStreamEventArgs& args) {
+    return o << args.Test;
+}
+
+class WithValidateStreamEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateStreamEventArgs> {
+};
+
+struct RebindPaddingArgs {
+    int Family;
+    uint16_t Padding;
+    static ::std::vector<RebindPaddingArgs> Generate() {
+        ::std::vector<RebindPaddingArgs> list;
+        for (int Family : { 4, 6 })
+        for (uint16_t Padding = 1; Padding < 50; ++Padding)
+            list.push_back({ Family, Padding });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << args.Padding;
+}
+
+class WithRebindPaddingArgs : public testing::Test,
+    public testing::WithParamInterface<RebindPaddingArgs> {
 };

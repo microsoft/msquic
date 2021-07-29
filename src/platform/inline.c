@@ -115,6 +115,18 @@ InterlockedDecrement(
     _Inout_ _Interlocked_operand_ long volatile *Addend
     );
 
+long
+InterlockedAnd(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    );
+
+long
+InterlockedOr(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value
+    );
+
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -126,6 +138,13 @@ InterlockedCompareExchange16(
     _Inout_ _Interlocked_operand_ short volatile *Destination,
     _In_ short ExChange,
     _In_ short Comperand
+    );
+
+short
+InterlockedCompareExchange(
+    _Inout_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long ExChange,
+    _In_ long Comperand
     );
 
 int64_t

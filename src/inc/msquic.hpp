@@ -21,6 +21,7 @@ Supported Platforms:
 #pragma once
 
 #include "msquic.h"
+#include "msquicp.h"
 #ifdef _KERNEL_MODE
 #include <new.h>
 #else
@@ -379,6 +380,7 @@ public:
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
+    MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -641,6 +643,9 @@ struct MsQuicConnection {
     MsQuicConnectionCallback* Callback;
     void* Context;
     QUIC_STATUS InitStatus;
+    // TODO - All the rest of this is not always necessary. Move to a separate class.
+    QUIC_STATUS TransportShutdownStatus {0};
+    QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
     uint32_t ResumptionTicketLength {0};
@@ -766,6 +771,28 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    GetLocalAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    GetRemoteAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
     SetLocalAddr(_In_ const QuicAddr& Addr) noexcept {
         return
             MsQuic->SetParam(
@@ -774,6 +801,29 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 sizeof(Addr.SockAddr),
                 &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    SetLocalInterface(_In_ uint32_t Index) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_INTERFACE,
+                sizeof(Index),
+                &Index);
+    }
+
+    QUIC_STATUS
+    SetShareUdpBinding(_In_ bool ShareBinding = true) noexcept {
+        BOOLEAN Value = ShareBinding ? TRUE : FALSE;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Value),
+                &Value);
     }
 
     QUIC_STATUS
@@ -822,6 +872,17 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_STATISTICS,
                 &Size,
                 Statistics);
+    }
+
+    QUIC_STATUS
+    SetKeepAlivePadding(_In_ uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_KEEP_ALIVE_PADDING,
+                sizeof(Value),
+                &Value);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -888,6 +949,20 @@ private:
             pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
 #ifdef CX_PLATFORM_TYPE
             pThis->HandshakeCompleteEvent.Set();
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT) {
+            pThis->TransportShutdownStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
+#ifdef CX_PLATFORM_TYPE
+            if (!pThis->HandshakeComplete) {
+                pThis->HandshakeCompleteEvent.Set();
+            }
+#endif // CX_PLATFORM_TYPE
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER) {
+            pThis->AppShutdownErrorCode = Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode;
+#ifdef CX_PLATFORM_TYPE
+            if (!pThis->HandshakeComplete) {
+                pThis->HandshakeCompleteEvent.Set();
+            }
 #endif // CX_PLATFORM_TYPE
         } else if (Event->Type == QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED && !pThis->ResumptionTicket) {
             pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
@@ -1063,6 +1138,47 @@ struct MsQuicStream {
         _In_ bool IsEnabled = true
         ) noexcept {
         return MsQuic->StreamReceiveSetEnabled(Handle, IsEnabled ? TRUE : FALSE);
+    }
+
+    QUIC_STATUS
+    GetID(_Out_ QUIC_UINT62* ID) const noexcept {
+        uint32_t Size = sizeof(*ID);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_ID,
+                &Size,
+                ID);
+    }
+
+    QUIC_UINT62 ID() const noexcept {
+        QUIC_UINT62 ID;
+        GetID(&ID);
+        return ID;
+    }
+
+    QUIC_STATUS
+    SetPriority(_In_ uint16_t Priority) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_PRIORITY,
+                sizeof(Priority),
+                &Priority);
+    }
+
+    QUIC_STATUS
+    GetPriority(_Out_ uint16_t* Priority) const noexcept {
+        uint32_t Size = sizeof(*Priority);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_STREAM,
+                QUIC_PARAM_STREAM_PRIORITY,
+                &Size,
+                Priority);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }

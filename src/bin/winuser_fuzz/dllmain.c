@@ -105,13 +105,11 @@ DllMain(
 #else
         UNREFERENCED_PARAMETER(Instance);
 #endif
-        CxPlatSystemLoad();
         MsQuicLibraryLoad();
         break;
 
     case DLL_PROCESS_DETACH:
         MsQuicLibraryUnload();
-        CxPlatSystemUnload();
         break;
     }
 

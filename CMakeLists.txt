@@ -1,7 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-cmake_minimum_required(VERSION 3.16)
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+    cmake_minimum_required(VERSION 3.20)
+else()
+    cmake_minimum_required(VERSION 3.16)
+endif()
 
 # Disable in-source builds to prevent source tree corruption.
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
@@ -113,6 +117,7 @@ endif()
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_BUILD_PERF "Builds the perf code" ON)
+option(QUIC_BUILD_SHARED "Builds msquic as a dynamic library" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
@@ -122,11 +127,14 @@ option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
-option(QUIC_CI "CI Specific build optimizations" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
+set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
+set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
+
+set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -211,6 +219,8 @@ if(QUIC_TELEMETRY_ASSERTS)
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")
+    message(STATUS "Enabling Schannel configuration tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_SCHANNEL_FLAGS=1)
     message(STATUS "Enabling UDP Send Queuing")
     list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
     message(STATUS "Disabling PFX tests")
@@ -224,6 +234,8 @@ if(QUIC_TLS STREQUAL "schannel")
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
+    message(STATUS "Enabling OpenSsl configuration tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
     message(STATUS "Disabling client certificate tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
     message(STATUS "Disabling deferred certificate tests")
@@ -248,14 +260,17 @@ if(WIN32)
     add_custom_target(MsQuicEtw_HeaderBuild
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-    set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "helpers")
+    set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     add_library(MsQuicEtw_Header INTERFACE)
     target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
     add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
 
     add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
-    set_property(TARGET MsQuicEtw_Resource PROPERTY FOLDER "helpers")
+    set_property(TARGET MsQuicEtw_Resource PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
+
+    message(STATUS "Disabling (client) shared port support")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
@@ -263,11 +278,9 @@ if(WIN32)
 
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE windows)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
     else()
         message(STATUS "Disabling tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -315,7 +328,7 @@ if(WIN32)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
-else()
+else() #!WIN32
     # Custom build flags.
 
     if (QUIC_OPTIMIZE_LOCAL AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
@@ -323,8 +336,8 @@ else()
     endif()
     set(CMAKE_C_FLAGS_DEBUG "-Og -ggdb3")
     set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Ofast ${MARCH} -ggdb3 -DNDEBUG")
-    set(CMAKE_C_FLAGS_RELEASE "-Ofast ${MARCH} -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 ${MARCH} -ggdb3 -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELEASE "-O3 ${MARCH} -DNDEBUG")
     set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
     set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
@@ -334,8 +347,12 @@ else()
     if (CX_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_DARWIN)
         list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
+        message(STATUS "Disabling (client) shared port support")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
     else()
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
+        message(STATUS "Enabling shared ephemeral port work around")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
     endif()
 
     if (QUIC_DISABLE_POSIX_GSO)
@@ -349,24 +366,17 @@ else()
 
     if(QUIC_ENABLE_LOGGING)
         if (APPLE)
-            message(STATUS "Configuring for macos tracing")
-            # macos will print all logs to stdout. If that is wanted, uncomment, and comment the line below.
-            # set(CMAKE_CLOG_CONFIG_PROFILE macos)
-            # set(CMAKE_CLOG_CONFIG_PROFILE stubs)
-            # for now, stubs clog is broken, so disable logging completely on macos
             set (QUIC_ENABLE_LOGGING OFF)
-            message(STATUS "Disablign all tracing on macos")
-            set(CMAKE_CLOG_CONFIG_PROFILE stubs)
+            message(STATUS "Disabling all tracing on macos")
             list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
         else()
             message(STATUS "Configuring for LTTng tracing")
-            set(CMAKE_CLOG_CONFIG_PROFILE linux)
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+            set (QUIC_LTTNG_PLATFORM linux)
             include(FindLTTngUST)
         endif()
     else()
         message(STATUS "Disabling tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -384,58 +394,21 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     if (WIN32)
-
-        set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
-        set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set(LIBSSL_PATH ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set(LIBCRYPTO_PATH ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-        add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_property(TARGET OpenSSL_Crypto PROPERTY FOLDER "libraries")
-        set_target_properties(OpenSSL_Crypto PROPERTIES
-            IMPORTED_LOCATION_DEBUG ${LIBCRYPTO_DEBUG_PATH}
-            IMPORTED_LOCATION_RELEASE ${LIBCRYPTO_PATH}
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
-            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
-
-        add_library(OpenSSL_SSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL_SSL PROPERTY FOLDER "libraries")
-        set_target_properties(OpenSSL_SSL PROPERTIES
-            IMPORTED_LOCATION_DEBUG ${LIBSSL_DEBUG_PATH}
-            IMPORTED_LOCATION_RELEASE ${LIBSSL_PATH}
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
-            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
-
         add_library(OpenSSL INTERFACE)
 
-        target_include_directories(OpenSSL INTERFACE
-            $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-            $<$<NOT:$<CONFIG:Debug>>:${OPENSSL_DIR}/release/include>)
+        include(FetchContent)
 
-        if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${LIBCRYPTO_PATH})
-            message(STATUS "Found existing OpenSSL Release cache, skipping openssl build")
-            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_SSL)
-        elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${LIBCRYPTO_DEBUG_PATH})
-            message(STATUS "Found existing OpenSSL Debug cache, skipping openssl build")
-            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_SSL)
-        else()
-            include(FetchContent)
+        FetchContent_Declare(
+            OpenSSLQuic
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
+            CMAKE_ARGS "-DQUIC_BUILD_DIR=${QUIC_BUILD_DIR}"
+        )
+        FetchContent_MakeAvailable(OpenSSLQuic)
 
-            FetchContent_Declare(
-                OpenSSLQuic
-                SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
-                CMAKE_ARGS "-DQUIC_BUILD_DIR=${QUIC_BUILD_DIR}"
-            )
-            FetchContent_MakeAvailable(OpenSSLQuic)
-
-            target_link_libraries(OpenSSL
-                INTERFACE
-                OpenSSLQuic::OpenSSLQuic
-            )
-        endif()
+        target_link_libraries(OpenSSL
+            INTERFACE
+            OpenSSLQuic::OpenSSLQuic
+        )
     else()
         # Configure and build OpenSSL.
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
@@ -472,6 +445,22 @@ if(QUIC_TLS STREQUAL "openssl")
                 set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config)
             endif()
             list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
+        elseif(ANDROID)
+            message(STATUS "${ANDROID_ABI}")
+            if(ANDROID_ABI STREQUAL "arm64-v8a")
+                set(OPENSSL_BUILD_TYPE android-arm64)
+            elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+                set(OPENSSL_BUILD_TYPE android-arm)
+            elseif(ANDROID_ABI STREQUAL "x86")
+                set(OPENSSL_BUILD_TYPE android-x86)
+            elseif(ANDROID_ABI STREQUAL "x86_64")
+                set(OPENSSL_BUILD_TYPE android-x86_64)
+            else()
+                message(FATAL_ERROR "Unknown android abi type")
+            endif()
+            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
+                ${OPENSSL_BUILD_TYPE}
+                -D__ANDROID_API__=29)
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
@@ -524,47 +513,35 @@ if(QUIC_TLS STREQUAL "openssl")
     endif()
 endif()
 
-if (QUIC_ENABLE_LOGGING)
-    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
-
-    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
-    include(${CMAKE_CLOG_GENERATE_FILE})
-
-    function(add_clog_library)
-        CLOG_GENERATE_TARGET(${ARGV})
-        target_link_libraries(${ARGV0} PRIVATE inc)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "helpers")
-    endfunction()
-else()
-    function(add_clog_library)
-        add_library(${ARGV0} INTERFACE)
-    endfunction()
-endif()
-
 if(QUIC_CODE_CHECK)
     find_program(CLANGTIDY NAMES clang-tidy)
     if(CLANGTIDY)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
             # add checks to ignore here:
+            -altera-struct-pack-align
             -android-cloexec-fopen
+            -android-cloexec-socket
             -bugprone-macro-parentheses
+            -bugprone-narrowing-conversions
+            -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -cert-dcl37-c
+            -cert-dcl51-cpp
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
+            -concurrency-mt-unsafe
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
+            -cppcoreguidelines-narrowing-conversions
             -google-readability-todo
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
+            -readability-function-cognitive-complexity
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
@@ -584,6 +561,7 @@ if(QUIC_CODE_CHECK)
             --suppress=varFuncNullUB
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
+            --suppress=knownConditionTrueFalse
             --enable=warning,style,performance,portability -D__linux__)
     else()
         message(STATUS "cppcheck not found")
@@ -591,6 +569,7 @@ if(QUIC_CODE_CHECK)
 endif()
 
 add_subdirectory(src/inc)
+add_subdirectory(src/generated)
 
 # Product code
 add_subdirectory(src/core)
@@ -610,21 +589,28 @@ endif()
 
 # Test code
 if(QUIC_BUILD_TEST)
-    # Build the googletest framework.
-    set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
-    set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
-    if(WIN32)
-        option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
-    endif()
+    include(FetchContent)
 
     enable_testing()
-    add_subdirectory(submodules/googletest)
+
+    # Build the googletest framework.
+
+    # Enforce static builds for test artifacts
+    set(PREV_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS} CACHE INTERNAL "")
+    set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+    FetchContent_Declare(
+        googletest
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/googletest
+        CMAKE_ARGS "-DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
+    )
+    FetchContent_MakeAvailable(googletest)
+    set(BUILD_SHARED_LIBS ${PREV_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
 
-    set_property(TARGET gtest PROPERTY FOLDER "tests")
-    set_property(TARGET gtest_main PROPERTY FOLDER "tests")
+    set_property(TARGET gtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+    set_property(TARGET gtest_main PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)

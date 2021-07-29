@@ -124,7 +124,7 @@ DriverEntry(
     WDFDRIVER Driver;
     BOOLEAN PlatformInitialized = FALSE;
 
-    CxPlatSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad();
 
     Status = CxPlatInitialize();
     if (!NT_SUCCESS(Status)) {

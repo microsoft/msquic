@@ -134,7 +134,15 @@ QuicMainStart(
         }
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        Status = CxPlatSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, 0, 0, &Binding);
+        CXPLAT_UDP_CONFIG UdpConfig;
+        UdpConfig.LocalAddress = &LocalAddress.SockAddr;
+        UdpConfig.RemoteAddress = nullptr;
+        UdpConfig.Flags = 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = StopEvent;
+        UdpConfig.IdealProcessor = 0;
+
+        Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Binding);
         if (QUIC_FAILED(Status)) {
             CxPlatDataPathUninitialize(Datapath);
             Datapath = nullptr;

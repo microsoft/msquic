@@ -30,7 +30,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos", "")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos", "android", "")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -43,6 +43,15 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ($Platform -eq "android") {
+    if (!$IsLinux) {
+        Write-Error "Can only build android on linux"
+    }
+    if ($Arch -eq "") {
+        $Arch = "arm64"
+    }
+}
 
 if ("" -eq $Arch) {
     if ($IsMacOS) {
