@@ -65,4 +65,3 @@ function(CLOG_GENERATE_TARGET)
 
     # message(STATUS "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 endfunction()
-

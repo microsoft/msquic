@@ -368,4 +368,3 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppClose , arg2);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_Tcp.cpp.clog.h.c"
 #endif
-

@@ -233,4 +233,3 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookReplaceCreateSend,
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
-

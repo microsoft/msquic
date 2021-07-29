@@ -46,4 +46,3 @@ tracepoint(CLOG_STORAGE_WINUSER_C, StorageOpenKey , arg2);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_storage_winuser.c.clog.h.c"
 #endif
-

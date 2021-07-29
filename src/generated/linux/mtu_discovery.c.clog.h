@@ -211,4 +211,3 @@ tracepoint(CLOG_MTU_DISCOVERY_C, MtuIncorrectSize , arg1, arg3, arg4, arg5);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_mtu_discovery.c.clog.h.c"
 #endif
-

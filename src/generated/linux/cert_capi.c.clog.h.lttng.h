@@ -141,4 +141,3 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, LibraryError,
         ctf_string(arg2, arg2)
     )
 )
-

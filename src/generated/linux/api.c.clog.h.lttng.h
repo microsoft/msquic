@@ -160,4 +160,3 @@ TRACEPOINT_EVENT(CLOG_API_C, ConnError,
         ctf_string(arg3, arg3)
     )
 )
-

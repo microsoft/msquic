@@ -167,4 +167,3 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnPacketSent,
         ctf_integer(unsigned short, arg5, arg5)
     )
 )
-

@@ -523,4 +523,3 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryAssert , arg2, arg3, arg4);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_platform_winuser.c.clog.h.c"
 #endif
-

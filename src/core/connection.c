@@ -1829,6 +1829,7 @@ QuicConnStart(
             Connection->State.ShareBinding,
             FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
+            Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
             &Path->RemoteAddress,
             &Path->Binding);
     if (QUIC_FAILED(Status)) {
@@ -5721,6 +5722,7 @@ QuicConnParamSet(
                     Connection->State.ShareBinding,
                     FALSE,
                     LocalAddress,
+                    0,
                     &Connection->Paths[0].RemoteAddress,
                     &Connection->Paths[0].Binding);
             if (QUIC_FAILED(Status)) {
@@ -5994,6 +5996,30 @@ QuicConnParamSet(
         }
 
         QuicCryptoCustomCertValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_LOCAL_INTERFACE:
+
+        if (BufferLength != sizeof(uint32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QuicConnIsServer(Connection) || Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->State.LocalInterfaceSet = TRUE;
+        Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id = *(uint32_t*)Buffer;
+
+        QuicTraceLogConnInfo(
+            LocalInterfaceSet,
+            Connection,
+            "Local interface set to %u",
+            Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id);
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 

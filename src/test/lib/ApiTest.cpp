@@ -1886,3 +1886,62 @@ QuicTestValidateParamApi()
             BufferSize,
             (void*)&LoadBalancingMode2));
 }
+
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_LISTENER_CALLBACK)
+QUIC_STATUS
+QUIC_API
+RejectListenerCallback(
+    _In_ HQUIC /* Listener */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+) noexcept {
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        auto ShutdownEvent = (CxPlatEvent*)Context;
+        if (ShutdownEvent) {
+            MsQuic->ConnectionClose(Event->NEW_CONNECTION.Connection);
+            ShutdownEvent->Set();
+            return QUIC_STATUS_SUCCESS;
+        } else {
+            return QUIC_STATUS_ABORTED;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestConnectionRejection(
+    bool RejectByClosing
+    )
+{
+    CxPlatEvent ShutdownEvent;
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    MsQuicListener Listener(Registration, RejectListenerCallback, RejectByClosing ? &ShutdownEvent : nullptr);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+
+    if (RejectByClosing) {
+        TEST_TRUE(ShutdownEvent.WaitTimeout(TestWaitTimeout));
+    } else {
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        TEST_FALSE(Connection.HandshakeComplete);
+        TEST_EQUAL(Connection.TransportShutdownStatus, QUIC_STATUS_CONNECTION_REFUSED);
+    }
+}

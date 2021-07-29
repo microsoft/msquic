@@ -251,4 +251,3 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ConnQueueSendFlush,
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
-

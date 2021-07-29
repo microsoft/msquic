@@ -109,4 +109,3 @@ TRACEPOINT_EVENT(CLOG_CONGESTION_CONTROL_C, ConnSpuriousCongestion,
         ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
-

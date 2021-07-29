@@ -140,19 +140,6 @@ extern CX_PLATFORM CxPlatform;
 //
 CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
 
-//
-// Gets the list of Gateway server addresses.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-CxPlatDataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    );
-
 #if _WIN32 // Some Windows Helpers
 
 //

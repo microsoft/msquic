@@ -194,4 +194,3 @@ tracepoint(CLOG_LOOKUP_C, LookupCidRemoved , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_lookup.c.clog.h.c"
 #endif
-

@@ -588,4 +588,3 @@ tracepoint(CLOG_BINDING_C, BindingExecOper , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_binding.c.clog.h.c"
 #endif
-

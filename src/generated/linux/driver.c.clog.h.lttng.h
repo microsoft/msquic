@@ -21,4 +21,3 @@ TRACEPOINT_EVENT(CLOG_DRIVER_C, LibraryErrorStatus,
         ctf_string(arg3, arg3)
     )
 )
-

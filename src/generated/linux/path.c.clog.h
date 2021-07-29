@@ -121,4 +121,3 @@ tracepoint(CLOG_PATH_C, PathActive , arg1, arg3, arg4);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_path.c.clog.h.c"
 #endif
-

@@ -1218,4 +1218,3 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, ConnErrorStatus,
         ctf_string(arg4, arg4)
     )
 )
-

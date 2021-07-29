@@ -867,6 +867,29 @@ tracepoint(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme , arg1, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_LocalInterfaceSet
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LocalInterfaceSet
+// [conn][%p] Local interface set to %u
+// QuicTraceLogConnInfo(
+            LocalInterfaceSet,
+            Connection,
+            "Local interface set to %u",
+            Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id);
+// arg1 = arg1 = Connection
+// arg3 = arg3 = Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LocalInterfaceSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_ApplySettings
 
 
@@ -3989,4 +4012,3 @@ tracepoint(CLOG_CONNECTION_C, ConnLocalAddrRemoved , arg2, arg3_len, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_connection.c.clog.h.c"
 #endif
-

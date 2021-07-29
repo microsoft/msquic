@@ -358,8 +358,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
 // QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "No gateway server addresses found");
-// arg2 = arg2 = "No gateway server addresses found"
+            "No local unicast addresses found");
+// arg2 = arg2 = "No local unicast addresses found"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
     TP_ARGS(
@@ -378,11 +378,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 // arg2 = arg2 = Socket
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCreated,
     TP_ARGS(
@@ -527,4 +527,3 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSend,
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
     )
 )
-
