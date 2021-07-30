@@ -1824,6 +1824,9 @@ QuicConnStart(
 #ifdef QUIC_COMPARTMENT_ID
             Configuration->CompartmentId,
 #endif
+#ifdef QUIC_OWNING_PROCESS
+            Configuration->OwningProcess,
+#endif
             Connection->State.ShareBinding,
             FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
@@ -5715,6 +5718,9 @@ QuicConnParamSet(
                 QuicLibraryGetBinding(
 #ifdef QUIC_COMPARTMENT_ID
                     Connection->Configuration->CompartmentId,
+#endif
+#ifdef QUIC_OWNING_PROCESS
+                    Connection->Configuration->OwningProcess,
 #endif
                     Connection->State.ShareBinding,
                     FALSE,

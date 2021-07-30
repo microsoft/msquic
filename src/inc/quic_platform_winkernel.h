@@ -849,6 +849,16 @@ CxPlatRandom(
     );
 
 //
+// Process object abstraction
+//
+
+#define QUIC_PROCESS PEPROCESS
+
+#define QuicProcessGetCurrentProcess() ((QUIC_PROCESS)PsGetCurrentProcess())
+#define QuicProcessAddRef(Process) if (Process != NULL) { ObReferenceObjectWithTag(Process, QUIC_POOL_PROCESS); }
+#define QuicProcessRelease(Process) if (Process != NULL) { ObDereferenceObjectWithTag(Process, QUIC_POOL_PROCESS); }
+
+//
 // Silo interfaces
 //
 

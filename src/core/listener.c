@@ -264,6 +264,9 @@ MsQuicListenerStart(
 #ifdef QUIC_COMPARTMENT_ID
             QuicCompartmentIdGetCurrent(),
 #endif
+#ifdef QUIC_OWNING_PROCESS
+            NULL,           // Owning process not support for listeners.
+#endif
             TRUE,           // Listeners always share the binding.
             TRUE,
             &BindingLocalAddress,

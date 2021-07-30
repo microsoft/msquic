@@ -443,6 +443,9 @@ typedef struct CXPLAT_UDP_CONFIG {
     uint32_t Flags;                 // CXPLAT_SOCKET_FLAG_*
     uint32_t InterfaceIndex;        // 0 means any/all
     void* CallbackContext;          // optional
+#ifdef QUIC_OWNING_PROCESS
+    QUIC_PROCESS OwningProcess;     // Client-only
+#endif
 } CXPLAT_UDP_CONFIG;
 
 //

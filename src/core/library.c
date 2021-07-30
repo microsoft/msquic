@@ -1479,6 +1479,9 @@ QuicLibraryGetBinding(
 #ifdef QUIC_COMPARTMENT_ID
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
 #endif
+#ifdef QUIC_OWNING_PROCESS
+    _In_opt_ QUIC_PROCESS OwningProcess,
+#endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR* LocalAddress,
@@ -1576,6 +1579,9 @@ NewBinding:
         QuicBindingInitialize(
 #ifdef QUIC_COMPARTMENT_ID
             CompartmentId,
+#endif
+#ifdef QUIC_OWNING_PROCESS
+            OwningProcess,
 #endif
             ShareBinding,
             ServerOwned,
