@@ -598,19 +598,25 @@ if(QUIC_BUILD_TEST)
     # Enforce static builds for test artifacts
     set(PREV_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS} CACHE INTERNAL "")
     set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+    set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
+    set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
+    if(WIN32 AND QUIC_STATIC_LINK_CRT)
+        option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
+    endif()
     FetchContent_Declare(
         googletest
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/googletest
-        CMAKE_ARGS "-DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
     )
     FetchContent_MakeAvailable(googletest)
     set(BUILD_SHARED_LIBS ${PREV_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
-    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
-
     set_property(TARGET gtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+
+    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+    set_property(TARGET gtest_main PROPERTY EXCLUDE_FROM_ALL ON)
+    set_property(TARGET gtest_main PROPERTY EXCLUDE_FROM_DEFAULT_BUILD ON)
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)
