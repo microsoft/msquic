@@ -1553,8 +1553,8 @@ SharedEphemeralRetry:
     if (Status != QUIC_STATUS_NOT_FOUND) {
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
         if (QUIC_FAILED(Status) && SharedEphemeralWorkAround) {
-            CXPLAT_DBG_ASSERT(LocalAddress);
-            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
             goto SharedEphemeralRetry;
         }
 #endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
@@ -1574,8 +1574,8 @@ NewBinding:
     if (QUIC_FAILED(Status)) {
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
         if (SharedEphemeralWorkAround) {
-            CXPLAT_DBG_ASSERT(LocalAddress);
-            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
             goto SharedEphemeralRetry;
         }
 #endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
@@ -1666,8 +1666,8 @@ NewBinding:
             // one.
             //
             SharedEphemeralWorkAround = TRUE;
-            LocalAddress = &NewLocalAddress;
-            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            ((CXPLAT_UDP_CONFIG*)UdpConfig)->LocalAddress = &NewLocalAddress;
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
             goto SharedEphemeralRetry;
 #else
             Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -1683,8 +1683,8 @@ NewBinding:
             *NewBinding = NULL;
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
             if (SharedEphemeralWorkAround) {
-                CXPLAT_DBG_ASSERT(LocalAddress);
-                QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+                CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+                QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
                 goto SharedEphemeralRetry;
             }
 #endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
