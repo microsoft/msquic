@@ -24,7 +24,7 @@ Abstract:
 typedef struct {
     QUIC_CERTIFICATE_HASH ServerCertHash;
     QUIC_CERTIFICATE_HASH ClientCertHash;
-} QUIC_RUN_CERTIFICATE_PARAMS;
+} QUIC_DRIVER_ARGS_SET_CERTIFICATE;
 #include "quic_driver_helpers.h"
 
 #endif
@@ -259,7 +259,7 @@ QuicKernelMain(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    QUIC_RUN_CERTIFICATE_PARAMS CertParams = { 0 };
+    QUIC_TEST_AGS_SET_CERTIFICATE CertParams = { 0 };
     CxPlatCopyMemory(
         &CertParams.ServerCertHash.ShaHash,
         (QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1),

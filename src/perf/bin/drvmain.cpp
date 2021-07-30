@@ -637,12 +637,12 @@ SecNetPerfCtlSetSecurityConfig(
 typedef struct {
     QUIC_CERTIFICATE_HASH ServerCertHash;
     QUIC_CERTIFICATE_HASH ClientCertHash;
-} QUIC_RUN_CERTIFICATE_PARAMS;
+} QUIC_DRIVER_ARGS_SET_CERTIFICATE;
 
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
-    sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
+    sizeof(QUIC_DRIVER_ARGS_SET_CERTIFICATE),
     SIZE_MAX,
     0,
     0,
@@ -655,7 +655,7 @@ typedef union {
         int Length;
         char Data;
     };
-    QUIC_RUN_CERTIFICATE_PARAMS CertParams;
+    QUIC_DRIVER_ARGS_SET_CERTIFICATE CertParams;
 } QUIC_IOCTL_PARAMS;
 
 CXPLAT_STATIC_ASSERT(

@@ -439,7 +439,7 @@ QuicDrillTestInitialCid(
     QuicDrillInitialPacketFailureTest(QuicAddrFamily, InitialDescriptor);
 }
 
-void QuicDrillTestInitialToken(_In_ const QUIC_TEST_ARGS* Args)
+void QuicTestDrillInitialToken(_In_ const QUIC_TEST_ARGS* Args)
 {
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint8_t GeneratedTokenLength = 20;

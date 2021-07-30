@@ -14,11 +14,22 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 
+#ifndef _KERNEL_MODE // Windows only
+#include <winioctl.h>
+#endif // _KERNEL_MODE
+
 #ifdef _WIN32
 
-//#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
-//#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
+#define QUIC_CTL_CODE(request, method, access) CTL_CODE(FILE_DEVICE_NETWORK, request, method, access)
+#define IoGetFunctionCodeFromCtlCode( ControlCode ) ((ControlCode >> 2) & 0x00000FFF)
 
+typedef struct {
+    QUIC_CERTIFICATE_HASH ServerCertHash;
+    QUIC_CERTIFICATE_HASH ClientCertHash;
+} QUIC_DRIVER_ARGS_SET_CERTIFICATE;
+
+#define IOCTL_QUIC_SET_CERT_PARAMS \
+    QUIC_CTL_CODE(0, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 class QuicDriverService {
     SC_HANDLE ScmHandle;
@@ -146,7 +157,7 @@ class QuicDriverClient {
 public:
     QuicDriverClient() : DeviceHandle(INVALID_HANDLE_VALUE) { }
     bool Initialize(
-        _In_ QUIC_RUN_CERTIFICATE_PARAMS* CertParams,
+        _In_ QUIC_DRIVER_ARGS_SET_CERTIFICATE* CertParams,
         _In_z_ const char* DriverName
         ) {
         uint32_t Error;
@@ -350,6 +361,8 @@ public:
 
 #else
 
+#define QUIC_CTL_CODE(request, method, access) (request)
+
 class QuicDriverService {
 public:
     bool Initialize(
@@ -367,7 +380,7 @@ public:
 class QuicDriverClient {
 public:
     bool Initialize(
-        _In_ QUIC_RUN_CERTIFICATE_PARAMS* CertParams,
+        _In_ QUIC_TEST_AGS_SET_CERTIFICATE* CertParams,
         _In_z_ const char* DriverName
     ) {
         UNREFERENCED_PARAMETER(CertParams);

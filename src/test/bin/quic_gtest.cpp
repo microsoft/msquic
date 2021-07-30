@@ -47,14 +47,13 @@ public:
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
             const char* DependentDriverNames;
-            QUIC_RUN_CERTIFICATE_PARAMS CertParams;
-            CxPlatZeroMemory(&CertParams, sizeof(CertParams));
+            QUIC_DRIVER_ARGS_SET_CERTIFICATE Args;
             CxPlatCopyMemory(
-                &CertParams.ServerCertHash.ShaHash,
+                &Args.ServerCertHash.ShaHash,
                 (QUIC_CERTIFICATE_HASH*)(SelfSignedCertParams + 1),
                 sizeof(QUIC_CERTIFICATE_HASH));
             CxPlatCopyMemory(
-                &CertParams.ClientCertHash.ShaHash,
+                &Args.ClientCertHash.ShaHash,
                 (QUIC_CERTIFICATE_HASH*)(ClientCertParams + 1),
                 sizeof(QUIC_CERTIFICATE_HASH));
             if (PrivateTestLibrary) {
@@ -66,7 +65,7 @@ public:
             }
             ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
-            ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
+            ASSERT_TRUE(DriverClient.Initialize(&Args, DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
@@ -166,370 +165,100 @@ struct TestLoggerT {
 
 const QUIC_TEST_ARGS NullArgs = {QUIC_TEST_TYPE_NULL, 0};
 
-#define QUIC_TEST(suite, name, ioctl) \
-    TEST(suite, name) { \
-        TestLogger Logger(#name); \
+//
+// Abstraction for calling a test with no special args.
+//
+#define QUIC_TEST_RUN(suite, test) \
+    TEST(suite, test) { \
+        TestLogger Logger(#test); \
         if (TestingKernelMode) { \
-            ASSERT_TRUE(DriverClient.Run(ioctl, NullArgs)); \
+            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_##test, NullArgs)); \
         } else { \
-            QuicTest##name(&NullArgs); \
+            QuicTest##test(&NullArgs); \
         } \
     }
 
-#define QUIC_TEST_P(suite, name, ioctl) \
+//
+// Abstraction for calling a test with specific args.
+//
+#define QUIC_TEST_RUN_P(suite, test) \
+    TEST_P(suite, test) { \
+        TestLoggerT<ParamType> Logger(#test, GetParam()); \
+        if (TestingKernelMode) { \
+            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_##test, GetParam())); \
+        } else { \
+            QuicTest##test(&GetParam()); \
+        } \
+    }
+
+//
+// Abstraction for calling a test with specific args and a different name.
+//
+#define QUIC_TEST_RUN_P2(suite, test, name) \
     TEST_P(suite, name) { \
-        TestLoggerT<ParamType> Logger(#name, GetParam()); \
+        TestLoggerT<ParamType> Logger(#test, GetParam()); \
         if (TestingKernelMode) { \
-            ASSERT_TRUE(DriverClient.Run(ioctl, GetParam())); \
+            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_##test, GetParam())); \
         } else { \
-            QuicTest##name(&GetParam()); \
+            QuicTest##test(&GetParam()); \
         } \
     }
 
-QUIC_TEST(ParameterValidation, ValidateApi, IOCTL_QUIC_RUN_VALIDATE_API)
-QUIC_TEST(ParameterValidation, ValidateRegistration, IOCTL_QUIC_RUN_VALIDATE_REGISTRATION)
-QUIC_TEST(ParameterValidation, GetPerfCounters, IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS)
-QUIC_TEST(ParameterValidation, ValidateConfiguration, IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION)
-QUIC_TEST(ParameterValidation, ValidateListener, IOCTL_QUIC_RUN_VALIDATE_LISTENER)
-QUIC_TEST(ParameterValidation, ValidateConnection, IOCTL_QUIC_RUN_VALIDATE_CONNECTION)
-QUIC_TEST_P(BooleanArgs, ValidateStream, IOCTL_QUIC_RUN_VALIDATE_STREAM)
-QUIC_TEST_P(ValidateConnectionEventArgs, ValidateConnectionEvents, IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS)
-QUIC_TEST_P(ValidateStreamEventArgs, ValidateStreamEvents, IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS)
-QUIC_TEST(ParameterValidation, DesiredVersionSettings, IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS)
-QUIC_TEST(ParameterValidation, ValidateParamApi, IOCTL_QUIC_RUN_VALIDATE_PARAM_API)
-QUIC_TEST_P(BooleanArgs, ConnectionRejection, IOCTL_QUIC_RUN_CONNECTION_REJECTION)
-QUIC_TEST(Basic, CreateListener, IOCTL_QUIC_RUN_CREATE_LISTENER)
-QUIC_TEST(Basic, StartListener, IOCTL_QUIC_RUN_START_LISTENER)
-QUIC_TEST(Basic, StartListenerMultiAlpns, IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN)
-QUIC_TEST(Basic, StartListenerImplicit, IOCTL_QUIC_RUN_START_LISTENER_IMPLICIT)
-QUIC_TEST(Basic, StartTwoListeners, IOCTL_QUIC_RUN_START_TWO_LISTENERS)
-QUIC_TEST(Basic, StartTwoListenersSameALPN, IOCTL_QUIC_RUN_START_TWO_LISTENERS_SAME_ALPN)
-QUIC_TEST_P(FamilyArgs, StartListenerExplicit, IOCTL_QUIC_RUN_START_LISTENER_EXPLICIT)
-QUIC_TEST(Basic, CreateConnection, IOCTL_QUIC_RUN_CREATE_CONNECTION)
+QUIC_TEST_RUN(ParameterValidation, ValidateApi)
+QUIC_TEST_RUN(ParameterValidation, ValidateRegistration)
+QUIC_TEST_RUN(ParameterValidation, GetPerfCounters)
+QUIC_TEST_RUN(ParameterValidation, ValidateConfiguration)
+QUIC_TEST_RUN(ParameterValidation, ValidateListener)
+QUIC_TEST_RUN(ParameterValidation, ValidateConnection)
+QUIC_TEST_RUN_P(BooleanArgs, ValidateStream)
+QUIC_TEST_RUN_P(ValidateConnectionEventArgs, ValidateConnectionEvents)
+QUIC_TEST_RUN_P(ValidateStreamEventArgs, ValidateStreamEvents)
+QUIC_TEST_RUN(ParameterValidation, DesiredVersionSettings)
+QUIC_TEST_RUN(ParameterValidation, ValidateParamApi)
+QUIC_TEST_RUN_P(BooleanArgs, ConnectionRejection)
+QUIC_TEST_RUN(Basic, CreateListener)
+QUIC_TEST_RUN(Basic, StartListener)
+QUIC_TEST_RUN(Basic, StartListenerMultiAlpns)
+QUIC_TEST_RUN(Basic, StartListenerImplicit)
+QUIC_TEST_RUN(Basic, StartTwoListeners)
+QUIC_TEST_RUN(Basic, StartTwoListenersSameALPN)
+QUIC_TEST_RUN_P(FamilyArgs, StartListenerExplicit)
+QUIC_TEST_RUN(Basic, CreateConnection)
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-QUIC_TEST_P(FamilyArgs, LocalPathChanges, IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES)
-QUIC_TEST(Mtu, MtuSettings, IOCTL_QUIC_RUN_MTU_SETTINGS)
-QUIC_TEST_P(MtuArgs, MtuDiscovery, IOCTL_QUIC_RUN_MTU_DISCOVERY)
+QUIC_TEST_RUN_P(FamilyArgs, LocalPathChanges)
+QUIC_TEST_RUN(Mtu, MtuSettings)
+QUIC_TEST_RUN_P(MtuArgs, MtuDiscovery)
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-TEST(Alpn, ValidAlpnLengths) {
-    TestLogger Logger("QuicTestValidAlpnLengths");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS));
-    } else {
-        QuicTestValidAlpnLengths();
-    }
-}
-
-TEST(Alpn, InvalidAlpnLengths) {
-    TestLogger Logger("QuicTestInvalidAlpnLengths");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS));
-    } else {
-        QuicTestInvalidAlpnLengths();
-    }
-}
-
-
-TEST_P(FamilyArgs, BindConnectionImplicit) {
-    TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT, GetParam()));
-    } else {
-        QuicTestBindConnectionImplicit(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, BindConnectionExplicit) {
-    TestLoggerT<ParamType> Logger("QuicTestBindConnectionExplicit", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT, GetParam()));
-    } else {
-        QuicTestBindConnectionExplicit(&GetParam());
-    }
-}
-
-TEST_P(WithHandshakeArgs1, Connect) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-Connect", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            (uint8_t)GetParam().MultipleALPNs,
-            0,  // AsyncConfiguration
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            GetParam().MultipleALPNs,
-            false,  // AsyncConfiguration
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            0);     // RandomLossPercentage
-    }
-}
-
+QUIC_TEST_RUN_P(FamilyArgs, AckSendDelay)
+QUIC_TEST_RUN_P(FamilyArgs, DrillInitialToken)
+QUIC_TEST_RUN_P(FamilyArgs, DatagramSend)
+QUIC_TEST_RUN(Alpn, ValidAlpnLengths);
+QUIC_TEST_RUN(Alpn, InvalidAlpnLengths);
+QUIC_TEST_RUN_P(FamilyArgs, BindConnectionImplicit)
+QUIC_TEST_RUN_P(FamilyArgs, BindConnectionExplicit)
+QUIC_TEST_RUN_P2(HandshakeArgs1, Connect, Connect);
 #ifndef QUIC_DISABLE_RESUMPTION
-TEST_P(WithHandshakeArgs1, Resume) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-Resume", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            (uint8_t)GetParam().MultipleALPNs,
-            0,  // AsyncConfiguration
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            GetParam().MultipleALPNs,
-            false,  // AsyncConfiguration
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            0);     // RandomLossPercentage
-    }
-}
-
-TEST_P(WithHandshakeArgs1, ResumeRejection) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejection", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            (uint8_t)GetParam().MultipleALPNs,
-            0,  // AsyncConfiguration
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            GetParam().MultipleALPNs,
-            false,  // AsyncConfiguration
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            0);     // RandomLossPercentage
-    }
-}
+QUIC_TEST_RUN_P2(HandshakeArgs1, Connect, Resume);
+QUIC_TEST_RUN_P2(HandshakeArgs1, Connect, ResumeRejection);
 #endif // QUIC_DISABLE_RESUMPTION
-
 #ifndef QUIC_DISABLE_SHARED_PORT_TESTS
-TEST_P(FamilyArgs, ClientSharedLocalPort) {
-    TestLoggerT<ParamType> Logger("QuicTestClientSharedLocalPort", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_SHARED_LOCAL_PORT, GetParam()));
-    } else {
-        QuicTestClientSharedLocalPort(&GetParam());
-    }
-}
+QUIC_TEST_RUN_P(FamilyArgs, ClientSharedLocalPort)
 #endif
-
-TEST_P(FamilyArgs, InterfaceBinding) {
-    TestLoggerT<ParamType> Logger("QuicTestInterfaceBinding", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam()));
-    } else {
-        QuicTestInterfaceBinding(&GetParam());
-    }
-}
-
-TEST_P(WithHandshakeArgs2, OldVersion) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            1,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // AsyncConfiguration
-            0,  // MultiPacketClientInitial
-            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs
-            false,  // AsyncConfiguration
-            false,  // MultiPacketClientInitial
-            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
-            0);     // RandomLossPercentage
-    }
-}
-
-TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-AsyncSecurityConfig", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            (uint8_t)GetParam().MultipleALPNs,
-            1,  // AsyncConfiguration
-            0,  // MultiPacketClientInitial
-            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            GetParam().MultipleALPNs,
-            true,   // AsyncConfiguration
-            false,  // MultiPacketClientInitial
-            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
-            0);     // RandomLossPercentage
-    }
-}
-
-TEST_P(FamilyArgs, VersionNegotiation) {
-    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam()));
-    } else {
-        QuicTestVersionNegotiation(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, VersionNegotiationRetry) {
-    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiationRetry", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY, GetParam()));
-    } else {
-        QuicTestVersionNegotiationRetry(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, CompatibleVersionNegotiationRetry) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationRetry", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY, GetParam()));
-    } else {
-        QuicTestCompatibleVersionNegotiationRetry(&GetParam());
-    }
-}
-
-TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_VERSION_NEGOTIATION_EXT Params = {
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION, Params));
-    } else {
-        QuicTestCompatibleVersionNegotiation(
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer);
-    }
-}
-
-TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationDefaultServer", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_VERSION_NEGOTIATION_EXT Params = {
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER, Params));
-    } else {
-        QuicTestCompatibleVersionNegotiationDefaultServer(
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer);
-    }
-}
-
-TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient) {
-    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationDefaultClient", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_VERSION_NEGOTIATION_EXT Params = {
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT, Params));
-    } else {
-        QuicTestCompatibleVersionNegotiationDefaultClient(
-            GetParam().Family,
-            GetParam().DisableVNEClient,
-            GetParam().DisableVNEServer);
-    }
-}
-
-TEST_P(FamilyArgs, IncompatibleVersionNegotiation) {
-    TestLoggerT<ParamType> Logger("IncompatibleVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION, GetParam()));
-    } else {
-        QuicTestIncompatibleVersionNegotiation(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, FailedVersionNegotiation) {
-    TestLoggerT<ParamType> Logger("FailedeVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION, GetParam()));
-    } else {
-        QuicTestFailedVersionNegotiation(&GetParam());
-    }
-}
-
-TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
-    TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CUSTOM_CERT_VALIDATION Params = {
-            GetParam().AcceptCert,
-            GetParam().AsyncValidation
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_ARGS_CUSTOM_CERT_VALIDATION, Params));
-    } else {
-        QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
-    }
-}
-
+QUIC_TEST_RUN_P(FamilyArgs, InterfaceBinding)
+QUIC_TEST_RUN_P2(HandshakeArgs2, Connect, OldVersion);
+QUIC_TEST_RUN_P2(HandshakeArgs3, Connect, AsyncSecurityConfig);
+QUIC_TEST_RUN_P(FamilyArgs, VersionNegotiation);
+QUIC_TEST_RUN_P(FamilyArgs, VersionNegotiationRetry);
+QUIC_TEST_RUN_P(FamilyArgs, CompatibleVersionNegotiationRetry);
+QUIC_TEST_RUN_P(VersionNegotiationExtArgs, CompatibleVersionNegotiation);
+QUIC_TEST_RUN_P(VersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer);
+QUIC_TEST_RUN_P(VersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient);
+QUIC_TEST_RUN_P(FamilyArgs, IncompatibleVersionNegotiation)
+QUIC_TEST_RUN_P(FamilyArgs, FailedVersionNegotiation)
+QUIC_TEST_RUN_P(CustomCertArgs, CustomCertificateValidation);
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT_CLIENT_CERT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().UseClientCertificate
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_ARGS_CONNECT_CLIENT_CERT, Params));
-    } else {
-        QuicTestConnectClientCertificate(GetParam().Family, GetParam().UseClientCertificate);
-    }
-}
+QUIC_TEST_RUN_P(ConnectClientCertArgs, ConnectClientCertificate);
 #endif
-
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_TEST_ARGS_CRED_VALIDATION Params;
@@ -557,14 +286,15 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
         //
         // Test cert context in user mode only.
         //
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_EXPIRED_SERVER,
-            CXPLAT_SELF_SIGN_CERT_USER,
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
+        ASSERT_TRUE(
+            CxPlatGetTestCertificate(
+                CXPLAT_TEST_CERT_EXPIRED_SERVER,
+                CXPLAT_SELF_SIGN_CERT_USER,
+                QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+                &Params.CredConfig,
+                &Params.CertHash,
+                &Params.CertHashStore,
+                (char*)Params.PrincipalString));
         QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
         CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
     }
@@ -696,827 +426,104 @@ TEST(CredValidation, ConnectValidClientCertificate) {
 #endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST_P(WithHandshakeArgs4, RandomLoss) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // AsyncConfiguration
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // AsyncConfiguration
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_DISABLED,
-            GetParam().RandomLossPercentage);
-    }
-}
+QUIC_TEST_RUN_P2(HandshakeArgs4, Connect, RandomLoss);
 #ifndef QUIC_DISABLE_RESUMPTION
-TEST_P(WithHandshakeArgs4, RandomLossResume) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResume", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // AsyncConfiguration
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // AsyncConfiguration
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().RandomLossPercentage);
-    }
-}
-TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().ServerStatelessRetry,
-            0,  // ClientUsesOldVersion
-            0,  // MultipleALPNs
-            0,  // AsyncConfiguration
-            (uint8_t)GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
-            false,  // MultipleALPNs,
-            false,  // AsyncConfiguration
-            GetParam().MultiPacketClientInitial,
-            QUIC_TEST_RESUMPTION_REJECTED,
-            GetParam().RandomLossPercentage);
-    }
-}
+QUIC_TEST_RUN_P2(HandshakeArgs4, Connect, RandomLossResume);
+QUIC_TEST_RUN_P2(HandshakeArgs4, Connect, RandomLossResumeRejection);
 #endif // QUIC_DISABLE_RESUMPTION
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-TEST_P(FamilyArgs, Unreachable) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam()));
-    } else {
-        QuicTestConnectUnreachable(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, BadALPN) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectBadAlpn", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_BAD_ALPN, GetParam()));
-    } else {
-        QuicTestConnectBadAlpn(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, BadSNI) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectBadSni", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_BAD_SNI, GetParam()));
-    } else {
-        QuicTestConnectBadSni(&GetParam());
-    }
-}
-
-TEST_P(FamilyArgs, ServerRejected) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectServerRejected", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED, GetParam()));
-    } else {
-        QuicTestConnectServerRejected(&GetParam());
-    }
-}
-
+QUIC_TEST_RUN_P(FamilyArgs, ConnectUnreachable)
+QUIC_TEST_RUN_P(FamilyArgs, ConnectBadAlpn)
+QUIC_TEST_RUN_P(FamilyArgs, ConnectBadSni)
+QUIC_TEST_RUN_P(FamilyArgs, ConnectServerRejected)
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST_P(FamilyArgs, RebindPort) {
-    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_REBIND Params = {
-            GetParam().Family,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
-    } else {
-        QuicTestNatPortRebind(GetParam().Family, 0);
-    }
-}
-
-/*TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
-    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_REBIND Params = {
-            GetParam().Family,
-            GetParam().Padding
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
-    } else {
-        QuicTestNatPortRebind(GetParam().Family, GetParam().Padding);
-    }
-}*/
-
-TEST_P(FamilyArgs, RebindAddr) {
-    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_REBIND Params = {
-            GetParam().Family,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
-    } else {
-        QuicTestNatAddrRebind(GetParam().Family, 0);
-    }
-}
-
-/*TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
-    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_REBIND Params = {
-            GetParam().Family,
-            GetParam().Padding
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
-    } else {
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
-    }
-}*/
-
-TEST_P(FamilyArgs, PathValidationTimeout) {
-    TestLoggerT<ParamType> Logger("QuicTestPathValidationTimeout", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT, GetParam()));
-    } else {
-        QuicTestPathValidationTimeout(&GetParam());
-    }
-}
+QUIC_TEST_RUN_P(RebindArgs, NatPortRebind);
+//QUIC_TEST_RUN_P(RebindPaddingArgs, NatPortRebind, RebindPortPadded);
+QUIC_TEST_RUN_P(RebindArgs, NatAddrRebind);
+//QUIC_TEST_RUN_P(RebindPaddingArgs, NatAddrRebind, RebindAddrPadded);
+QUIC_TEST_RUN_P(FamilyArgs, PathValidationTimeout)
 #endif
-
-TEST_P(FamilyArgs, ChangeMaxStreamIDs) {
-    TestLoggerT<ParamType> Logger("QuicTestChangeMaxStreamID", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID, GetParam()));
-    } else {
-        QuicTestChangeMaxStreamID(&GetParam());
-    }
-}
-
+QUIC_TEST_RUN_P(FamilyArgs, ChangeMaxStreamID)
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST_P(FamilyArgs, LoadBalanced) {
-    TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam()));
-    } else {
-        QuicTestLoadBalancedHandshake(&GetParam());
-    }
-}
+QUIC_TEST_RUN_P(FamilyArgs, LoadBalancedHandshake)
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-TEST_P(WithSendArgs1, Send) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT_AND_PING Params = {
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            0,  // ClientZeroRtt
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            (uint8_t)GetParam().UnidirectionalStreams,
-            (uint8_t)GetParam().ServerInitiatedStreams,
-            0   // FifoScheduling
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
-    } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            false,  // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            GetParam().UnidirectionalStreams,
-            GetParam().ServerInitiatedStreams,
-            false); // FifoScheduling
-    }
-}
-
-TEST_P(WithSendArgs2, SendLarge) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT_AND_PING Params = {
-            GetParam().Family,
-            100000000llu,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            (uint8_t)GetParam().UseZeroRtt,
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            1   // FifoScheduling
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
-    } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            100000000llu,
-            1,      // ConnectionCount
-            1,      // StreamCount
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            GetParam().UseZeroRtt,
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            true);  // FifoScheduling
-    }
-}
-
-TEST_P(WithSendArgs3, SendIntermittently) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT_AND_PING Params = {
-            GetParam().Family,
-            GetParam().Length,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            GetParam().BurstCount,
-            GetParam().BurstDelay,
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            0,  // ClientZeroRtt
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            0   // FifoScheduling
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
-    } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            1,  // ConnectionCount
-            1,  // StreamCount
-            GetParam().BurstCount,
-            GetParam().BurstDelay,
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            false,  // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            false); // FifoScheduling
-    }
-}
-
+QUIC_TEST_RUN_P2(SendArgs1, ConnectAndPing, Send);
+QUIC_TEST_RUN_P2(SendArgs2, ConnectAndPing, SendLarge);
+QUIC_TEST_RUN_P2(SendArgs3, ConnectAndPing, SendIntermittently);
 #ifndef QUIC_DISABLE_0RTT_TESTS
-
-TEST_P(WithSend0RttArgs1, Send0Rtt) {
-    TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT_AND_PING Params = {
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            1,  // ClientZeroRtt,
-            0,  // ServerRejectZeroRtt
-            (uint8_t)GetParam().UseSendBuffer,
-            (uint8_t)GetParam().UnidirectionalStreams,
-            0,  // ServerInitiatedStreams
-            0   // FifoScheduling
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
-    } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            GetParam().ConnectionCount,
-            GetParam().StreamCount,
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            true,   // ClientZeroRtt
-            false,  // ServerRejectZeroRtt
-            GetParam().UseSendBuffer,
-            GetParam().UnidirectionalStreams,
-            false,  // ServerInitiatedStreams
-            false); // FifoScheduling
-    }
-}
-
-TEST_P(WithSend0RttArgs2, Reject0Rtt) {
-    TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CONNECT_AND_PING Params = {
-            GetParam().Family,
-            GetParam().Length,
-            1,  // StreamCount
-            1,  // StreamBurstCount
-            1,  // StreamBurstCount
-            0,  // StreamBurstDelayMs
-            0,  // ServerStatelessRetry
-            0,  // ClientRebind
-            1,  // ClientZeroRtt,
-            1,  // ServerRejectZeroRtt
-            0,  // UseSendBuffer
-            0,  // UnidirectionalStreams
-            0,  // ServerInitiatedStreams
-            0   // FifoScheduling
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
-    } else {
-        QuicTestConnectAndPing(
-            GetParam().Family,
-            GetParam().Length,
-            1,      // StreamCount
-            1,      // StreamBurstCount
-            1,      // StreamBurstCount
-            0,      // StreamBurstDelayMs
-            false,  // ServerStatelessRetry
-            false,  // ClientRebind
-            true,   // ClientZeroRtt
-            true,   // ServerRejectZeroRtt
-            false,  // UseSendBuffer
-            false,  // UnidirectionalStreams
-            false,  // ServerInitiatedStreams
-            false); // FifoScheduling
-    }
-}
-
+QUIC_TEST_RUN_P2(Send0RttArgs1, ConnectAndPing, Send0Rtt);
+QUIC_TEST_RUN_P2(Send0RttArgs2, ConnectAndPing, Reject0Rtt);
 #endif // QUIC_DISABLE_0RTT_TESTS
-
-TEST_P(BooleanArgs, IdleTimeout) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectAndIdle", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_IDLE, GetParam()));
-    } else {
-        QuicTestConnectAndIdle(&GetParam());
-    }
-}
-
-TEST(Misc, ServerDisconnect) {
-    TestLogger Logger("QuicTestServerDisconnect");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SERVER_DISCONNECT));
-    } else {
-        QuicTestServerDisconnect();
-    }
-}
-
-TEST(Misc, ClientDisconnect) {
-    TestLogger Logger("QuicTestClientDisconnect");
-    if (TestingKernelMode) {
-        uint8_t Param = 0;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_DISCONNECT, Param));
-    } else {
-        QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
-    }
-}
-
-TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
-    TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_KEY_UPDATE Params = {
-            GetParam().Family,
-            (uint16_t)(GetParam().KeyUpdate == 0 ? 5 : 1),  // Iterations
-            0,                                              // KeyUpdateBytes
-            (uint8_t)(GetParam().KeyUpdate == 0),           // UseKeyUpdateBytes
-            (uint8_t)(GetParam().KeyUpdate & 1),            // ClientKeyUpdate
-            (uint8_t)(GetParam().KeyUpdate & 2)             // ServerKeyUpdate
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE, Params));
-    } else {
-        QuicTestKeyUpdate(
-            GetParam().Family,
-            GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
-            0,                                  // KeyUpdateBytes
-            GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
-            GetParam().KeyUpdate & 1,           // ClientKeyUpdate
-            GetParam().KeyUpdate & 2);          // ServerKeyUpdate
-    }
-}
-
+QUIC_TEST_RUN_P(BooleanArgs, ConnectAndIdle);
+QUIC_TEST_RUN(Misc, ServerDisconnect);
+QUIC_TEST_RUN(Misc, ClientDisconnect);
+QUIC_TEST_RUN_P(KeyUpdateArgs1, KeyUpdate)
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-TEST_P(WithKeyUpdateArgs2, RandomLoss) {
-    TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_KEY_UPDATE_RANDOM_LOSS Params = {
-            GetParam().Family,
-            GetParam().RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS, Params));
-    } else {
-        QuicTestKeyUpdateRandomLoss(
-            GetParam().Family,
-            GetParam().RandomLossPercentage);
-    }
-}
+QUIC_TEST_RUN_P(KeyUpdateArgs2, KeyUpdateRandomLoss)
 #endif
-
-TEST_P(WithAbortiveArgs, AbortiveShutdown) {
-    TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_ABORTIVE_SHUTDOWN Params = {
-            GetParam().Family,
-            GetParam().Flags
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN, Params));
-    } else {
-        QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
-    }
-}
-
-TEST_P(WithCidUpdateArgs, CidUpdate) {
-    TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_CID_UPDATE Params = {
-            GetParam().Family,
-            GetParam().Iterations
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CID_UPDATE, Params));
-    } else {
-        QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
-    }
-}
-
-TEST_P(WithReceiveResumeArgs, ReceiveResume) {
-    TestLoggerT<ParamType> Logger("QuicTestReceiveResume", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_RECEIVE_RESUME Params = {
-            GetParam().Family,
-            GetParam().SendBytes,
-            GetParam().ConsumeBytes,
-            GetParam().ShutdownType,
-            GetParam().PauseType,
-            (uint8_t)GetParam().PauseFirst
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME, Params));
-    } else {
-        QuicTestReceiveResume(
-            GetParam().Family,
-            GetParam().SendBytes,
-            GetParam().ConsumeBytes,
-            GetParam().ShutdownType,
-            GetParam().PauseType,
-            GetParam().PauseFirst);
-    }
-}
-
-TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
-    TestLoggerT<ParamType> Logger("QuicTestReceiveResumeNoData", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_RECEIVE_RESUME Params = {
-            GetParam().Family,
-            0,
-            0,
-            GetParam().ShutdownType,
-            ReturnConsumedBytes,
-            0
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME_NO_DATA, Params));
-    } else {
-        QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
-    }
-}
-
-TEST_P(FamilyArgs, AckSendDelay) {
-    TestLogger Logger("QuicTestAckSendDelay");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ACK_SEND_DELAY, GetParam()));
-    } else {
-        QuicTestAckSendDelay(&GetParam());
-    }
-}
-
-TEST(Misc, AbortPausedReceive) {
-    TestLogger Logger("AbortPausedReceive");
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_PAUSED;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
-    } else {
-        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PAUSED);
-    }
-}
-
-TEST(Misc, AbortPendingReceive) {
-    TestLogger Logger("AbortPendingReceive");
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_PENDING;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
-    } else {
-        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PENDING);
-    }
-}
-
-TEST(Misc, AbortIncompleteReceive) {
-    TestLogger Logger("AbortIncompleteReceive");
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_INCOMPLETE;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
-    } else {
-        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_INCOMPLETE);
-    }
-}
-
-TEST(Misc, SlowReceive) {
-    TestLogger Logger("SlowReceive");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SLOW_RECEIVE));
-    } else {
-        QuicTestSlowReceive();
-    }
-}
-
+QUIC_TEST_RUN_P(AbortiveArgs, AbortiveTransfers);
+QUIC_TEST_RUN_P(CidUpdateArgs, CidUpdate);
+QUIC_TEST_RUN_P(ReceiveResumeArgs, ReceiveResume);
+QUIC_TEST_RUN_P(ReceiveResumeNoDataArgs, ReceiveResumeNoData);
+QUIC_TEST_RUN_P(AbortReceiveArgs, AbortReceive);
+QUIC_TEST_RUN(Misc, SlowReceive);
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
-TEST(Misc, NthAllocFail) {
-    TestLogger Logger("NthAllocFail");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_ALLOC_FAIL));
-    } else {
-        QuicTestNthAllocFail();
-    }
-}
+QUIC_TEST_RUN(Misc, NthAllocFail);
 #endif
+QUIC_TEST_RUN(Misc, StreamPriority);
+QUIC_TEST_RUN(Misc, StreamDifferentAbortErrors);
+QUIC_TEST_RUN(Misc, DrillVarIntEncoder);
+QUIC_TEST_RUN_P(DrillInitialPacketCidArgs, DrillInitialCid);
+QUIC_TEST_RUN_P(DatagramNegotiationArgs, DatagramNegotiation);
 
-TEST(Misc, StreamPriority) {
-    TestLogger Logger("StreamPriority");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY));
-    } else {
-        QuicTestStreamPriority();
-    }
-}
+//
+// Test suites with parameters.
+//
 
-TEST(Misc, StreamDifferentAbortErrors) {
-    TestLogger Logger("StreamDifferentAbortErrors");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS));
-    } else {
-        QuicTestStreamDifferentAbortErrors();
-    }
-}
+#define QUIC_TEST_SUITE(suite, args) \
+    INSTANTIATE_TEST_SUITE_P(suite, args, testing::ValuesIn(args::Generate()))
 
-TEST(Drill, VarIntEncoder) {
-    TestLogger Logger("QuicDrillTestVarIntEncoder");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_ENCODE_VAR_INT));
-    } else {
-        QuicDrillTestVarIntEncoder();
-    }
-}
-
-TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
-    TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_DRILL_INITIAL_PACKET_CID Params = {
-            GetParam().Family,
-            (uint8_t)GetParam().SourceOrDest,
-            (uint8_t)GetParam().ActualCidLengthValid,
-            (uint8_t)GetParam().ShortCidLength,
-            (uint8_t)GetParam().CidLengthFieldValid
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID, Params));
-    } else {
-        QuicDrillTestInitialCid(
-            GetParam().Family,
-            GetParam().SourceOrDest,
-            GetParam().ActualCidLengthValid,
-            GetParam().ShortCidLength,
-            GetParam().CidLengthFieldValid);
-    }
-}
-
-TEST_P(FamilyArgs, DrillInitialPacketToken) {
-    TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN, GetParam()));
-    } else {
-        QuicDrillTestInitialToken(&GetParam());
-    }
-}
-
-TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
-    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
-    if (TestingKernelMode) {
-        QUIC_TEST_ARGS_DATAGRAM_NEGOTIATION Params = {
-            GetParam().Family,
-            GetParam().DatagramReceiveEnabled
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_ARGS_DATAGRAM_NEGOTIATION, Params));
-    } else {
-        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
-    }
-}
-
-TEST_P(FamilyArgs, DatagramSend) {
-    TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam()));
-    } else {
-        QuicTestDatagramSend(&GetParam());
-    }
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    BooleanArgs,
-    testing::ValuesIn(BooleanArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    FamilyArgs,
-    testing::ValuesIn(FamilyArgs::Generate()));
-
+QUIC_TEST_SUITE(ParameterValidation, BooleanArgs);
+QUIC_TEST_SUITE(Basic, FamilyArgs);
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Mtu,
-    MtuArgs,
-    testing::ValuesIn(MtuArgs::Generate()));
-
-/*INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithRebindPaddingArgs,
-    testing::ValuesIn(RebindPaddingArgs::Generate()));*/
-
+QUIC_TEST_SUITE(Mtu, MtuArgs);
+//QUIC_TEST_SUITE(Basic, RebindPaddingArgs);
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    ValidateConnectionEventArgs,
-    testing::ValuesIn(ValidateConnectionEventArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    ParameterValidation,
-    ValidateStreamEventArgs,
-    testing::ValuesIn(ValidateStreamEventArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithVersionNegotiationExtArgs,
-    testing::ValuesIn(VersionNegotiationExtArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs1,
-    testing::ValuesIn(HandshakeArgs1::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs2,
-    testing::ValuesIn(HandshakeArgs2::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs3,
-    testing::ValuesIn(HandshakeArgs3::Generate()));
-
+QUIC_TEST_SUITE(ParameterValidation, ValidateConnectionEventArgs);
+QUIC_TEST_SUITE(ParameterValidation, ValidateStreamEventArgs);
+QUIC_TEST_SUITE(Basic, VersionNegotiationExtArgs);
+QUIC_TEST_SUITE(Handshake, HandshakeArgs1);
+QUIC_TEST_SUITE(Handshake, HandshakeArgs2);
+QUIC_TEST_SUITE(Handshake, HandshakeArgs3);
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs4,
-    testing::ValuesIn(HandshakeArgs4::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs5,
-    testing::ValuesIn(HandshakeArgs5::Generate()));
-
+QUIC_TEST_SUITE(Handshake, HandshakeArgs4);
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+QUIC_TEST_SUITE(Handshake, CustomCertArgs);
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-
-INSTANTIATE_TEST_SUITE_P(
-    Handshake,
-    WithHandshakeArgs6,
-    testing::ValuesIn(HandshakeArgs6::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs1,
-    testing::ValuesIn(SendArgs1::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs2,
-    testing::ValuesIn(SendArgs2::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSendArgs3,
-    testing::ValuesIn(SendArgs3::Generate()));
-
+QUIC_TEST_SUITE(Handshake, ConnectClientCertArgs);
+#endif // QUIC_DISABLE_CLIENT_CERT_TESTS
+QUIC_TEST_SUITE(AppData, SendArgs1);
+QUIC_TEST_SUITE(AppData, SendArgs2);
+QUIC_TEST_SUITE(AppData, SendArgs3);
 #ifndef QUIC_DISABLE_0RTT_TESTS
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSend0RttArgs1,
-    testing::ValuesIn(Send0RttArgs1::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    AppData,
-    WithSend0RttArgs2,
-    testing::ValuesIn(Send0RttArgs2::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithKeyUpdateArgs1,
-    testing::ValuesIn(KeyUpdateArgs1::Generate()));
-
+QUIC_TEST_SUITE(AppData, Send0RttArgs1);
+QUIC_TEST_SUITE(AppData, Send0RttArgs2);
+#endif // QUIC_DISABLE_0RTT_TESTS
+QUIC_TEST_SUITE(Misc, KeyUpdateArgs1);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+QUIC_TEST_SUITE(Misc, KeyUpdateArgs2);
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+QUIC_TEST_SUITE(Misc, AbortiveArgs);
+QUIC_TEST_SUITE(Misc, CidUpdateArgs);
+QUIC_TEST_SUITE(Misc, ReceiveResumeArgs);
+QUIC_TEST_SUITE(Misc, ReceiveResumeNoDataArgs);
+QUIC_TEST_SUITE(Misc, DatagramNegotiationArgs);
+QUIC_TEST_SUITE(Drill, DrillInitialPacketCidArgs);
+QUIC_TEST_SUITE(Misc, AbortReceiveArgs);
 
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithKeyUpdateArgs2,
-    testing::ValuesIn(KeyUpdateArgs2::Generate()));
-
-#endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithAbortiveArgs,
-    testing::ValuesIn(AbortiveArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithCidUpdateArgs,
-    testing::ValuesIn(CidUpdateArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithReceiveResumeArgs,
-    testing::ValuesIn(ReceiveResumeArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithReceiveResumeNoDataArgs,
-    testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithDatagramNegotiationArgs,
-    testing::ValuesIn(DatagramNegotiationArgs::Generate()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Drill,
-    WithDrillInitialPacketCidArgs,
-    testing::ValuesIn(DrillInitialPacketCidArgs::Generate()));
+//
+// Main entry point.
+//
 
 int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
