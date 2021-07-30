@@ -170,7 +170,6 @@ else()
         DEPENDS ${QUIC_DEPS_FILE}
     )
     add_dependencies(msquic_linker_inputs msquic_static)
-    message(STATUS "${QUIC_DEPS_FILE}")
     set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # Run archiver tool (lib.exe) on our generated linker args
