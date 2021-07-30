@@ -258,20 +258,22 @@ MsQuicListenerStart(
         goto Error;
     }
 
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = &BindingLocalAddress;
+    UdpConfig.RemoteAddress = NULL;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_SHARE | CXPLAT_SOCKET_SERVER_OWNED; // Listeners always share the binding.
+    UdpConfig.InterfaceIndex = 0;
+#ifdef QUIC_COMPARTMENT_ID
+    UdpConfig.CompartmentId = QuicCompartmentIdGetCurrent();
+#endif
+#ifdef QUIC_OWNING_PROCESS
+    UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
+#endif
+
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
         QuicLibraryGetBinding(
-#ifdef QUIC_COMPARTMENT_ID
-            QuicCompartmentIdGetCurrent(),
-#endif
-#ifdef QUIC_OWNING_PROCESS
-            NULL,           // Owning process not support for listeners.
-#endif
-            TRUE,           // Listeners always share the binding.
-            TRUE,
-            &BindingLocalAddress,
-            0,
-            NULL,
+            &UdpConfig,
             &Listener->Binding);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(

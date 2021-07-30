@@ -1463,11 +1463,7 @@ CxPlatSocketCreateUdp(
             WSK_FLAG_DATAGRAM_SOCKET,
             Binding,
             &Datapath->WskDispatch,
-#ifdef QUIC_OWNING_PROCESS
             Config->OwningProcess,
-#else
-            NULL,
-#endif
             NULL,
             NULL,
             &Binding->Irp);

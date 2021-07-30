@@ -1476,24 +1476,16 @@ QuicLibraryLookupBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
-#ifdef QUIC_COMPARTMENT_ID
-    _In_ QUIC_COMPARTMENT_ID CompartmentId,
-#endif
-#ifdef QUIC_OWNING_PROCESS
-    _In_opt_ QUIC_PROCESS OwningProcess,
-#endif
-    _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_ const uint32_t LocalInterface,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
     _Out_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
-    BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
+    BOOLEAN PortUnspecified = UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
+    BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -1528,10 +1520,10 @@ SharedEphemeralRetry:
     Binding =
         QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
+            UdpConfig->CompartmentId,
 #endif
-            LocalAddress,
-            RemoteAddress);
+            UdpConfig->LocalAddress,
+            UdpConfig->RemoteAddress);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
             (ServerOwned != Binding->ServerOwned)) {
@@ -1577,17 +1569,7 @@ NewBinding:
 
     Status =
         QuicBindingInitialize(
-#ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
-#endif
-#ifdef QUIC_OWNING_PROCESS
-            OwningProcess,
-#endif
-            ShareBinding,
-            ServerOwned,
-            LocalAddress,
-            LocalInterface,
-            RemoteAddress,
+            UdpConfig,
             NewBinding);
     if (QUIC_FAILED(Status)) {
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
@@ -1619,10 +1601,10 @@ NewBinding:
         Binding =
             QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-                CompartmentId,
+                UdpConfig->CompartmentId,
 #endif
                 &NewLocalAddress,
-                RemoteAddress);
+                UdpConfig->RemoteAddress);
     } else {
         //
         // The datapath does not supports multiple connected sockets on the same
@@ -1632,7 +1614,7 @@ NewBinding:
         Binding =
             QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-                CompartmentId,
+                UdpConfig->CompartmentId,
 #endif
                 &NewLocalAddress,
                 NULL);

@@ -851,6 +851,7 @@ CxPlatRandom(
 //
 // Process object abstraction
 //
+#define QUIC_OWNING_PROCESS 1
 
 #define QUIC_PROCESS PEPROCESS
 

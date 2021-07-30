@@ -1816,22 +1816,24 @@ QuicConnStart(
         Connection,
         CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL;
+    UdpConfig.RemoteAddress = &Path->RemoteAddress;
+    UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
+#ifdef QUIC_COMPARTMENT_ID
+    UdpConfig.CompartmentId = Configuration->CompartmentId;
+#endif
+#ifdef QUIC_OWNING_PROCESS
+    UdpConfig.OwningProcess = Configuration->OwningProcess;
+#endif
+
     //
     // Get the binding for the current local & remote addresses.
     //
     Status =
         QuicLibraryGetBinding(
-#ifdef QUIC_COMPARTMENT_ID
-            Configuration->CompartmentId,
-#endif
-#ifdef QUIC_OWNING_PROCESS
-            Configuration->OwningProcess,
-#endif
-            Connection->State.ShareBinding,
-            FALSE,
-            Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
-            Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
-            &Path->RemoteAddress,
+            &UdpConfig,
             &Path->Binding);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -5714,19 +5716,21 @@ QuicConnParamSet(
 
             QUIC_BINDING* OldBinding = Connection->Paths[0].Binding;
 
-            Status =
-                QuicLibraryGetBinding(
+            CXPLAT_UDP_CONFIG UdpConfig = {0};
+            UdpConfig.LocalAddress = LocalAddress;
+            UdpConfig.RemoteAddress = &Connection->Paths[0].RemoteAddress;
+            UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+            UdpConfig.InterfaceIndex = 0;
 #ifdef QUIC_COMPARTMENT_ID
-                    Connection->Configuration->CompartmentId,
+            UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
 #endif
 #ifdef QUIC_OWNING_PROCESS
-                    Connection->Configuration->OwningProcess,
+            UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
-                    Connection->State.ShareBinding,
-                    FALSE,
-                    LocalAddress,
-                    0,
-                    &Connection->Paths[0].RemoteAddress,
+
+            Status =
+                QuicLibraryGetBinding(
+                    &UdpConfig,
                     &Connection->Paths[0].Binding);
             if (QUIC_FAILED(Status)) {
                 Connection->Paths[0].Binding = OldBinding;

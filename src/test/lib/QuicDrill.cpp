@@ -170,6 +170,9 @@ struct DrillSender {
         UdpConfig.Flags = 0;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
+#ifdef QUIC_OWNING_PROCESS
+        UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
+#endif
 
         Status =
             CxPlatSocketCreateUdp(
