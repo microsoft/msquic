@@ -164,7 +164,7 @@ struct DrillSender {
             ServerAddress.Ipv6.sin6_port = NetworkPort;
         }
 
-        CXPLAT_UDP_CONFIG UdpConfig;
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = &ServerAddress;
         UdpConfig.Flags = 0;
