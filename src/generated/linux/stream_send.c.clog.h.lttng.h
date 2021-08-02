@@ -406,4 +406,3 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, StreamSendState,
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
-

@@ -8,4 +8,3 @@ extern "C" {
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_sent_packet_metadata.c.clog.h.c"
 #endif
-

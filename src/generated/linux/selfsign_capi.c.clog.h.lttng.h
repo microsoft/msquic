@@ -173,4 +173,3 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, LibraryError,
         ctf_string(arg2, arg2)
     )
 )
-

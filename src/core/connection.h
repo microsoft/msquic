@@ -170,6 +170,11 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN CompatibleVerNegotiationCompleted : 1;
 
+        //
+        // When true, this indicates the app has set the local interface index.
+        //
+        BOOLEAN LocalInterfaceSet : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

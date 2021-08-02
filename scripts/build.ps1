@@ -282,12 +282,17 @@ function CMake-Generate {
     }
 
     if ($IsWindows) {
-        $Arguments += " $Generator -A "
-        switch ($Arch) {
-            "x86"   { $Arguments += "Win32" }
-            "x64"   { $Arguments += "x64" }
-            "arm"   { $Arguments += "arm" }
-            "arm64" { $Arguments += "arm64" }
+        if ($Generator.Contains("Visual Studio")) {
+            $Arguments += " $Generator -A "
+            switch ($Arch) {
+                "x86"   { $Arguments += "Win32" }
+                "x64"   { $Arguments += "x64" }
+                "arm"   { $Arguments += "arm" }
+                "arm64" { $Arguments += "arm64" }
+            }
+        } else {
+            Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
+            $Arguments += " $Generator"
         }
     } elseif ($IsMacOS) {
         $Arguments += " $Generator"

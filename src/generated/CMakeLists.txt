@@ -11,7 +11,7 @@ if(QUIC_ENABLE_LOGGING)
     else()
         target_include_directories(logging_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/common)
         target_include_directories(logging_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_LTTNG_PLATFORM})
-        target_link_libraries(logging_inc INTERFACE ${LTTNGUST_INCLUDE_DIRS})
+        target_include_directories(logging_inc INTERFACE ${LTTNGUST_INCLUDE_DIRS})
 
         FILE(GLOB LOGGING_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_LTTNG_PLATFORM}/*.c)
         add_library(logging STATIC ${LOGGING_FILES})

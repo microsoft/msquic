@@ -44,4 +44,3 @@ tracepoint(CLOG_TESTCONNECTION_CPP, TestIgnoreConnectionTimeout );\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_TestConnection.cpp.clog.h.c"
 #endif
-

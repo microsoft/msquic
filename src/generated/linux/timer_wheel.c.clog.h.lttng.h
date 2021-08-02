@@ -154,4 +154,3 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, AllocFailure,
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
-

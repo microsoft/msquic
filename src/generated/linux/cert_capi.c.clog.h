@@ -774,4 +774,3 @@ tracepoint(CLOG_CERT_CAPI_C, LibraryError , arg2);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_cert_capi.c.clog.h.c"
 #endif
-

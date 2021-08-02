@@ -60,4 +60,3 @@ TRACEPOINT_EVENT(CLOG_INTEROP_CPP, InteropTestStop,
         ctf_string(arg6, arg6)
     )
 )
-

@@ -505,4 +505,3 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnError,
         ctf_string(arg3, arg3)
     )
 )
-
