@@ -267,6 +267,7 @@ MsQuicListenerStart(
             TRUE,           // Listeners always share the binding.
             TRUE,
             &BindingLocalAddress,
+            0,
             NULL,
             &Listener->Binding);
     if (QUIC_FAILED(Status)) {

@@ -542,4 +542,3 @@ tracepoint(CLOG_CRYPT_OPENSSL_C, AllocFailure , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_crypt_openssl.c.clog.h.c"
 #endif
-

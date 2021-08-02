@@ -1106,6 +1106,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "LocalInterfaceSet": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Local interface set to %u",
+      "UniqueId": "LocalInterfaceSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "ApplySettings": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Applying new settings",
@@ -11042,6 +11058,10 @@
       {
         "UniquenessHash": "f433b4bc-afec-9da4-79cb-eb11596d42e4",
         "TraceID": "UpdateStreamSchedulingScheme"
+      },
+      {
+        "UniquenessHash": "39d13f61-96a0-c66a-a1f7-3174e5fa775e",
+        "TraceID": "LocalInterfaceSet"
       },
       {
         "UniquenessHash": "87c499a7-b21e-c2df-9d11-9176e9730676",

@@ -251,4 +251,3 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationRundown,
         ctf_integer_hex(uint64_t, arg3, arg3)
     )
 )
-

@@ -21,4 +21,3 @@ TRACEPOINT_EVENT(CLOG_STREAM_H, StreamOutFlowBlocked,
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
-

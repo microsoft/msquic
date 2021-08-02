@@ -250,4 +250,3 @@ tracepoint(CLOG_CONNECTION_H, ConnSourceCidRemoved , arg2, arg3, arg4_len, arg4)
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_connection.h.clog.h.c"
 #endif
-

@@ -694,4 +694,3 @@ tracepoint(CLOG_LOSS_DETECTION_C, ConnError , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_loss_detection.c.clog.h.c"
 #endif
-

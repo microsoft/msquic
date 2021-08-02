@@ -330,4 +330,3 @@ tracepoint(CLOG_VERSION_NEG_C, AllocFailure , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_version_neg.c.clog.h.c"
 #endif
-

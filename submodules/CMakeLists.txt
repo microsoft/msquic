@@ -51,14 +51,26 @@ else()
     endif()
 endif()
 
+set(OPENSSL_EXTRA_CONFIGURE_ARGS "")
+
+if(HAS_SPECTRE)
+    list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /Qspectre)
+endif()
+
+# guard:cf does not work on OpenSSL
+# https://github.com/openssl/openssl/issues/16147
+# if(HAS_GUARDCF)
+#     list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
+# endif()
+
 find_program(JOM_EXE jom)
 if (JOM_EXE)
-    set(OPENSSL_EXTRA_CONFIGURE_ARGS /FS)
+    list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /FS)
     include(ProcessorCount)
     ProcessorCount(NPROCS)
     set(OPENSSL_RUN_COMMAND "${JOM_EXE}" -j${NPROCS})
 else()
-    set(OPENSSL_EXTRA_CONFIGURE_ARGS)
+
     set(OPENSSL_RUN_COMMAND nmake)
 endif()
 
@@ -98,6 +110,7 @@ add_custom_command(
 # Compile/install commands for debug and release variants
 add_custom_command(
     OUTPUT $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+    OUTPUT $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
     DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
     WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
     COMMAND ${OPENSSL_RUN_COMMAND} install_dev
@@ -110,6 +123,8 @@ add_custom_target(
     DEPENDS
     $<$<CONFIG:Debug>:${LIBSSL_DEBUG_PATH}>
     $<$<NOT:$<CONFIG:Debug>>:${LIBSSL_PATH}>
+    $<$<CONFIG:Debug>:${LIBCRYPTO_DEBUG_PATH}>
+    $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
 )
 set_property(TARGET OpenSSL_Target PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 

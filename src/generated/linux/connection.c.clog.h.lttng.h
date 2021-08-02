@@ -808,6 +808,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LocalInterfaceSet
+// [conn][%p] Local interface set to %u
+// QuicTraceLogConnInfo(
+            LocalInterfaceSet,
+            Connection,
+            "Local interface set to %u",
+            Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id);
+// arg1 = arg1 = Connection
+// arg3 = arg3 = Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApplySettings
 // [conn][%p] Applying new settings
 // QuicTraceLogConnInfo(
@@ -2184,4 +2207,3 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
 )
-

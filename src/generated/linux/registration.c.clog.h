@@ -265,4 +265,3 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationRundown , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_registration.c.clog.h.c"
 #endif
-

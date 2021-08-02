@@ -326,4 +326,3 @@ tracepoint(CLOG_SEND_C, ConnQueueSendFlush , arg2, arg3);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_send.c.clog.h.c"
 #endif
-

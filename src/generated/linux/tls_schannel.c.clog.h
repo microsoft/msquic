@@ -1590,4 +1590,3 @@ tracepoint(CLOG_TLS_SCHANNEL_C, TlsErrorStatus , arg2, arg3, arg4);\
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_tls_schannel.c.clog.h.c"
 #endif
-

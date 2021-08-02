@@ -392,4 +392,3 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingExecOper,
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
-

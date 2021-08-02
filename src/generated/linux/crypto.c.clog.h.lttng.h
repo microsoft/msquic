@@ -589,4 +589,3 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnKeyPhaseChange,
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
-

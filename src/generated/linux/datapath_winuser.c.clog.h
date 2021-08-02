@@ -634,11 +634,97 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, AllocFailure , arg2, arg3);\
 // QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
+            "No local unicast addresses found");
+// arg2 = arg2 = "No local unicast addresses found"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Addresses",
+            Index * sizeof(CXPLAT_ADAPTER_ADDRESS));
+// arg2 = arg2 = "Addresses"
+// arg3 = arg3 = Index * sizeof(CXPLAT_ADAPTER_ADDRESS)
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "PIP_ADAPTER_ADDRESSES",
+                    AdapterAddressesSize);
+// arg2 = arg2 = "PIP_ADAPTER_ADDRESSES"
+// arg3 = arg3 = AdapterAddressesSize
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "GetAdaptersAddresses");
+// arg2 = arg2 = Error
+// arg3 = arg3 = "GetAdaptersAddresses"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
             "No gateway server addresses found");
 // arg2 = arg2 = "No gateway server addresses found"
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
 
 #endif
 
@@ -742,11 +828,11 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 // arg2 = arg2 = Socket
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
 ----------------------------------------------------------*/
 #define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
@@ -1061,6 +1147,54 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 // arg2 = arg2 = Socket
 // arg3 = arg3 = LastError
 // arg4 = arg4 = "CreateIoCompletionPort"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IPV6_UNICAST_IF");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = WsaError
+// arg4 = arg4 = "Set IPV6_UNICAST_IF"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IP_UNICAST_IF");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = WsaError
+// arg4 = arg4 = "Set IP_UNICAST_IF"
 ----------------------------------------------------------*/
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
@@ -2294,4 +2428,3 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_datapath_winuser.c.clog.h.c"
 #endif
-

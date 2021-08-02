@@ -172,4 +172,3 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuIncorrectSize,
         ctf_integer(unsigned int, arg5, arg5)
     )
 )
-

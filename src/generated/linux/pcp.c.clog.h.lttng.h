@@ -40,4 +40,3 @@ TRACEPOINT_EVENT(CLOG_PCP_C, LibraryError,
         ctf_string(arg2, arg2)
     )
 )
-

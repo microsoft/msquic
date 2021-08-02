@@ -17,4 +17,3 @@ TRACEPOINT_EVENT(CLOG_STORAGE_WINUSER_C, StorageOpenKey,
         ctf_string(arg2, arg2)
     )
 )
-

@@ -185,6 +185,11 @@ QuicTestClientSharedLocalPort(
     _In_ int Family
     );
 
+void
+QuicTestInterfaceBinding(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -911,4 +916,8 @@ typedef struct {
     QUIC_CTL_CODE(75, METHOD_BUFFERED, FILE_WRITE_DATA)
     // bool - RejectByClosing
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 75
+#define IOCTL_QUIC_RUN_INTERFACE_BINDING \
+    QUIC_CTL_CODE(76, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 76
