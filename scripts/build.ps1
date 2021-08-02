@@ -191,9 +191,6 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-Write-Host $env:PATH
-Write-Host $env:PERL
-
 if ($Parallel -lt -1) {
     if ($IsWindows) {
         $Parallel = -1
