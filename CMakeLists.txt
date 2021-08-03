@@ -190,6 +190,21 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
+
+    include(CheckCCompilerFlag)
+
+    if(NOT QUIC_ENABLE_SANITIZERS)
+        check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+    endif()
+    if(HAS_SPECTRE)
+        list(APPEND QUIC_COMMON_FLAGS /Qspectre)
+    endif()
+
+    check_c_compiler_flag(/guard:cf HAS_GUARDCF)
+    if(HAS_GUARDCF)
+        list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
@@ -598,19 +613,35 @@ if(QUIC_BUILD_TEST)
     # Enforce static builds for test artifacts
     set(PREV_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS} CACHE INTERNAL "")
     set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+    set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
+    set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
+    if(WIN32 AND QUIC_STATIC_LINK_CRT)
+        option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
+    endif()
     FetchContent_Declare(
         googletest
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/googletest
-        CMAKE_ARGS "-DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
     )
     FetchContent_MakeAvailable(googletest)
     set(BUILD_SHARED_LIBS ${PREV_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
-    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
-
     set_property(TARGET gtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+
+    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+    set_property(TARGET gtest_main PROPERTY EXCLUDE_FROM_ALL ON)
+    set_property(TARGET gtest_main PROPERTY EXCLUDE_FROM_DEFAULT_BUILD ON)
+
+    if (HAS_SPECTRE)
+        target_compile_options(gtest PRIVATE /Qspectre)
+        target_compile_options(gtest_main PRIVATE /Qspectre)
+    endif()
+
+    if (HAS_GUARDCF)
+        target_compile_options(gtest PRIVATE /guard:cf)
+        target_compile_options(gtest_main PRIVATE /guard:cf)
+    endif()
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)
