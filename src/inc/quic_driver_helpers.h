@@ -14,6 +14,11 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 
+typedef struct {
+    QUIC_CERTIFICATE_HASH ServerCertHash;
+    QUIC_CERTIFICATE_HASH ClientCertHash;
+} QUIC_DRIVER_ARGS_SET_CERTIFICATE;
+
 #ifdef _WIN32
 
 #ifndef _KERNEL_MODE
@@ -24,11 +29,6 @@ Abstract:
 #ifndef IoGetFunctionCodeFromCtlCode
 #define IoGetFunctionCodeFromCtlCode( ControlCode ) ((ControlCode >> 2) & 0x00000FFF)
 #endif
-
-typedef struct {
-    QUIC_CERTIFICATE_HASH ServerCertHash;
-    QUIC_CERTIFICATE_HASH ClientCertHash;
-} QUIC_DRIVER_ARGS_SET_CERTIFICATE;
 
 #define IOCTL_QUIC_SET_CERT_PARAMS \
     QUIC_CTL_CODE(0, METHOD_BUFFERED, FILE_WRITE_DATA)
