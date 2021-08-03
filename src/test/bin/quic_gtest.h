@@ -19,7 +19,6 @@
 #endif
 
 extern bool TestingKernelMode;
-extern std::vector<QUIC_CREDENTIAL_CONFIG> CertCleanup;
 
 std::ostream& operator << (std::ostream& o, const QUIC_TEST_ARGS& args) {
     switch (args.Type) {
@@ -499,7 +498,6 @@ bool GenerateCert(CXPLAT_TEST_CERT_TYPE Type, uint32_t CredType, _Out_ QUIC_TEST
             &Args->CredValidation.CertHash,
             &Args->CredValidation.CertHashStore,
             Args->CredValidation.PrincipalString)) {
-        //CertCleanup.push_back(Args->CredValidation.CredConfig);
         return true;
     } else {
         //printf("WARNING: Failed to find test cert!\n");

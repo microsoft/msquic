@@ -19,7 +19,6 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
-std::vector<QUIC_CREDENTIAL_CONFIG> CertCleanup;
 QUIC_TEST_FN QuicTests::List[256];
 uint32_t QuicTests::Count = 0;
 
@@ -94,9 +93,6 @@ public:
         } else {
             QuicTestUninitialize();
             delete MsQuic;
-        }
-        for (auto CertConfig : CertCleanup) {
-            CxPlatFreeSelfSignedCert(&CertConfig);
         }
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
