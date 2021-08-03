@@ -189,7 +189,6 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
-
     set(QUIC_COMMON_FLAGS "")
 
     include(CheckCCompilerFlag)
