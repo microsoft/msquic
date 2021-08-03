@@ -14,11 +14,11 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 
-#ifndef _KERNEL_MODE // Windows only
+#ifdef _WIN32
+
+#ifndef _KERNEL_MODE
 #include <winioctl.h>
 #endif // _KERNEL_MODE
-
-#ifdef _WIN32
 
 #define QUIC_CTL_CODE(request, method, access) CTL_CODE(FILE_DEVICE_NETWORK, request, method, access)
 #ifndef IoGetFunctionCodeFromCtlCode
