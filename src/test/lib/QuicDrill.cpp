@@ -387,7 +387,7 @@ void QuicTestDrillInitialCid(_In_ const QUIC_TEST_ARGS* Args)
             }
         }
     } else {
-        if (Args->Drill.ShortCidLength) {
+        if (Args->Drill.CidLengthFieldValid) {
             ActualCidLength = INVALID_CID_LENGTH_SHORT;
         } else {
             ActualCidLength = INVALID_CID_LENGTH_LONG;
