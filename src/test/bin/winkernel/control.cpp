@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#define QUIC_TEST_CREATE 1
+
 #include "quic_platform.h"
 #include "MsQuicTests.h"
 #include <new.h>
@@ -24,6 +26,8 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QUIC_CERTIFICATE_HASH SelfSignedCertHash;
 QUIC_CERTIFICATE_HASH ClientCertHash;
+QUIC_TEST_FN QuicTests::List[256];
+uint32_t QuicTests::Count = 0;
 
 #ifdef PRIVATE_LIBRARY
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE);
@@ -411,6 +415,43 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     if (IoControlCode == IOCTL_QUIC_SET_CERT_PARAMS) {
+        QUIC_DRIVER_ARGS_SET_CERTIFICATE* Params = nullptr;
+        Status =
+            WdfRequestRetrieveInputBuffer(
+                Request,
+                sizeof(QUIC_DRIVER_ARGS_SET_CERTIFICATE),
+                (void**)&Params,
+                nullptr);
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "WdfRequestRetrieveInputBuffer failed");
+            goto Error;
+        } else if (Params == nullptr) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
+            Status = STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+        ServerSelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
+        ServerSelfSignedCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfigClientAuth.Flags =
+            QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+            QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        ServerSelfSignedCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
+        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCertCredConfig.CertificateHash = &ClientCertHash;
+        RtlCopyMemory(&ClientCertHash.ShaHash, &Params->ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }
 
@@ -436,30 +477,27 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     QUIC_TEST_ARGS* Params = nullptr;
-    if (QUIC_IOCTL_BUFFER_SIZES[FunctionCode] != 0) {
-        Status =
-            WdfRequestRetrieveInputBuffer(
-                Request,
-                sizeof(QUIC_TEST_ARGS),
-                (void**)&Params,
-                nullptr);
-        if (!NT_SUCCESS(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "WdfRequestRetrieveInputBuffer failed");
-            goto Error;
-        } else if (Params == nullptr) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
-            Status = STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
+    Status =
+        WdfRequestRetrieveInputBuffer(
+            Request,
+            sizeof(QUIC_TEST_ARGS),
+            (void**)&Params,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfRequestRetrieveInputBuffer failed");
+        goto Error;
+    } else if (Params == nullptr) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
+        Status = STATUS_INVALID_PARAMETER;
+        goto Error;
     }
-
     CXPLAT_FRE_ASSERT(Params != nullptr);
 
     QuicTraceLogInfo(

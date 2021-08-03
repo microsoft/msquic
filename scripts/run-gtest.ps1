@@ -549,7 +549,7 @@ function GetTestCases {
         for ($i = 0; $i -lt $Lines.Length; $i++) {
             if (!($Lines[$i].StartsWith(" "))) {
                 $CurTestGroup = $Lines[$i]
-            } else {
+            } elseif (!($Lines[$i].Contains("UninstantiatedParameterizedTestSuite"))) {
                 $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
             }
         }

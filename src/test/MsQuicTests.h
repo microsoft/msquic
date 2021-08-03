@@ -58,11 +58,15 @@ typedef QUIC_TEST *QUIC_TEST_FN;
         QuicTests(QUIC_TEST_FN test) { List[Count++] = test; } \
     }
 
+#if QUIC_TEST_CREATE
 #define QUIC_TEST_NEW(test) \
     QUIC_TEST QuicTest##test; \
     const uint32_t IOCTL_QUIC_##test = \
         QUIC_CTL_CODE(__LINE__ - QUIC_CTL_START, METHOD_BUFFERED, FILE_WRITE_DATA); \
     QuicTests Add##test(QuicTest##test)
+#else
+#define QUIC_TEST_NEW(test)
+#endif
 
 #define QUIC_TEST_END() \
     const uint32_t QUIC_CTL_COUNT = __LINE__ - 1 - QUIC_CTL_START; \
@@ -247,8 +251,8 @@ typedef struct {
 
 typedef struct {
     uint32_t Family;
-    int SendBytes;
-    int ConsumeBytes;
+    uint32_t SendBytes;
+    uint32_t ConsumeBytes;
     QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType;
     QUIC_RECEIVE_RESUME_TYPE PauseType;
     uint8_t PauseFirst;
@@ -356,6 +360,6 @@ typedef struct QUIC_TEST_ARGS {
     QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE AbortReceive;
     QUIC_TEST_ARGS_KEY_UPDATE_RANDOM_LOSS KeyUpdateRandomLoss;
     QUIC_TEST_ARGS_MTU_DISCOVERY MtuDiscovery;
-    QUIC_TEST_ARGS_REBIND RebindParams;
+    QUIC_TEST_ARGS_REBIND Rebind;
     };
 } QUIC_TEST_ARGS;

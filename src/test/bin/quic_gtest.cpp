@@ -5,6 +5,8 @@
 
 --*/
 
+#define QUIC_TEST_CREATE 1
+
 #include "quic_gtest.h"
 #ifdef QUIC_CLOG
 #include "quic_gtest.cpp.clog.h"
@@ -17,6 +19,9 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
+std::vector<QUIC_CREDENTIAL_CONFIG> CertCleanup;
+QUIC_TEST_FN QuicTests::List[256];
+uint32_t QuicTests::Count = 0;
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
@@ -24,8 +29,7 @@ class QuicTestEnvironment : public ::testing::Environment {
     const QUIC_CREDENTIAL_CONFIG* ClientCertParams;
 public:
     void SetUp() override {
-        CxPlatSystemLoad();
-        ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
+        printf("SetUp()\n");
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
                 TestingKernelMode ?
@@ -90,6 +94,9 @@ public:
         } else {
             QuicTestUninitialize();
             delete MsQuic;
+        }
+        for (auto CertConfig : CertCleanup) {
+            CxPlatFreeSelfSignedCert(&CertConfig);
         }
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
@@ -260,171 +267,11 @@ QUIC_TEST_RUN_P(CustomCertArgs, CustomCertificateValidation);
 QUIC_TEST_RUN_P(ConnectClientCertArgs, ConnectClientCertificate);
 #endif
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
-TEST(CredValidation, ConnectExpiredServerCertificate) {
-    QUIC_TEST_ARGS_CRED_VALIDATION Params;
-    for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_EXPIRED_SERVER,
-            TestingKernelMode ?
-                CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER,
-            CredType,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
-        } else {
-            QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
-        }
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-
-
-    if (!TestingKernelMode) {
-        //
-        // Test cert context in user mode only.
-        //
-        ASSERT_TRUE(
-            CxPlatGetTestCertificate(
-                CXPLAT_TEST_CERT_EXPIRED_SERVER,
-                CXPLAT_SELF_SIGN_CERT_USER,
-                QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-                &Params.CredConfig,
-                &Params.CertHash,
-                &Params.CertHashStore,
-                (char*)Params.PrincipalString));
-        QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-}
-
-TEST(CredValidation, ConnectValidServerCertificate) {
-    QUIC_TEST_ARGS_CRED_VALIDATION Params;
-    for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_VALID_SERVER,
-            TestingKernelMode ?
-                CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER,
-            CredType,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_SERVER_CERT, Params));
-        } else {
-            QuicTestConnectValidServerCertificate(&Params.CredConfig);
-        }
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-
-    if (!TestingKernelMode) {
-        //
-        // Test cert context in user mode only.
-        //
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_VALID_SERVER,
-            CXPLAT_SELF_SIGN_CERT_USER,
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        QuicTestConnectValidServerCertificate(&Params.CredConfig);
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-}
-
-TEST(CredValidation, ConnectExpiredClientCertificate) {
-    QUIC_TEST_ARGS_CRED_VALIDATION Params;
-    for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_EXPIRED_CLIENT,
-            TestingKernelMode ?
-                CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER,
-            CredType,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        Params.CredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-
-        if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT, Params));
-        } else {
-            QuicTestConnectExpiredClientCertificate(&Params.CredConfig);
-        }
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-
-    if (!TestingKernelMode) {
-        //
-        // Test cert context in user mode only.
-        //
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_EXPIRED_CLIENT,
-            CXPLAT_SELF_SIGN_CERT_USER,
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        Params.CredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        QuicTestConnectExpiredClientCertificate(&Params.CredConfig);
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-}
-
-TEST(CredValidation, ConnectValidClientCertificate) {
-    QUIC_TEST_ARGS_CRED_VALIDATION Params;
-    for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_VALID_CLIENT,
-            TestingKernelMode ?
-                CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER,
-            CredType,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        Params.CredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-
-        if (TestingKernelMode) {
-            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_CLIENT_CERT, Params));
-        } else {
-            QuicTestConnectValidClientCertificate(&Params.CredConfig);
-        }
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-
-    if (!TestingKernelMode) {
-        //
-        // Test cert context in user mode only.
-        //
-        ASSERT_TRUE(CxPlatGetTestCertificate(
-            CXPLAT_TEST_CERT_VALID_CLIENT,
-            CXPLAT_SELF_SIGN_CERT_USER,
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-            &Params.CredConfig,
-            &Params.CertHash,
-            &Params.CertHashStore,
-            (char*)Params.PrincipalString));
-        Params.CredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        QuicTestConnectValidClientCertificate(&Params.CredConfig);
-        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
-    }
-}
+QUIC_TEST_RUN_P(ExpiredServerCredValidationArgs, ConnectExpiredServerCertificate);
+QUIC_TEST_RUN_P(ValidServerCredValidationArgs, ConnectValidServerCertificate);
+QUIC_TEST_RUN_P(ExpiredClientCredValidationArgs, ConnectExpiredClientCertificate);
+QUIC_TEST_RUN_P(ValidClientCredValidationArgs, ConnectValidClientCertificate);
 #endif // QUIC_TEST_FAILING_TEST_CERTIFICATES
-
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 QUIC_TEST_RUN_P2(HandshakeArgs4, Connect, RandomLoss);
 #ifndef QUIC_DISABLE_RESUMPTION
@@ -520,12 +367,19 @@ QUIC_TEST_SUITE(Misc, ReceiveResumeNoDataArgs);
 QUIC_TEST_SUITE(Misc, DatagramNegotiationArgs);
 QUIC_TEST_SUITE(Drill, DrillInitialPacketCidArgs);
 QUIC_TEST_SUITE(Misc, AbortReceiveArgs);
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
+QUIC_TEST_SUITE(CredValidation, ExpiredServerCredValidationArgs);
+QUIC_TEST_SUITE(CredValidation, ValidServerCredValidationArgs);
+QUIC_TEST_SUITE(CredValidation, ValidClientCredValidationArgs);
+QUIC_TEST_SUITE(CredValidation, ExpiredClientCredValidationArgs);
+#endif
 
 //
 // Main entry point.
 //
 
 int main(int argc, char** argv) {
+    printf("main()\n");
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
             TestingKernelMode = true;
@@ -534,6 +388,8 @@ int main(int argc, char** argv) {
             }
         }
     }
+    CxPlatSystemLoad();
+    CxPlatInitialize();
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

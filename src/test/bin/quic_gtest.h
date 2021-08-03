@@ -19,6 +19,7 @@
 #endif
 
 extern bool TestingKernelMode;
+extern std::vector<QUIC_CREDENTIAL_CONFIG> CertCleanup;
 
 std::ostream& operator << (std::ostream& o, const QUIC_TEST_ARGS& args) {
     switch (args.Type) {
@@ -395,8 +396,8 @@ struct ReceiveResumeArgs : public testing::Test, public testing::WithParamInterf
     static ::std::vector<QUIC_TEST_ARGS> Generate() {
         ::std::vector<QUIC_TEST_ARGS> list;
         for (uint32_t Family : { 4, 6 })
-        for (int SendBytes : { 100 })
-        for (int ConsumeBytes : { 0, 1, 99 })
+        for (uint32_t SendBytes : { 100 })
+        for (uint32_t ConsumeBytes : { 0, 1, 99 })
         for (QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType : { NoShutdown, GracefulShutdown, AbortShutdown })
         for (QUIC_RECEIVE_RESUME_TYPE PauseType : { ReturnConsumedBytes, ReturnStatusPending, ReturnStatusContinue })
         for (bool PauseFirst : { false, true }) {
@@ -455,7 +456,7 @@ struct RebindArgs : public testing::Test, public testing::WithParamInterface<QUI
         ::std::vector<QUIC_TEST_ARGS> list;
         for (uint32_t Family : { 4, 6 }) {
             QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_REBIND};
-            Args.RebindParams = {Family, 0};
+            Args.Rebind = {Family, 0};
             list.push_back(Args);
         }
         return list;
@@ -468,7 +469,7 @@ struct RebindPaddingArgs : public testing::Test, public testing::WithParamInterf
         for (uint32_t Family : { 4, 6 })
         for (uint16_t Padding = 1; Padding < 50; ++Padding) {
             QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_REBIND};
-            Args.RebindParams = {Family, Padding};
+            Args.Rebind = {Family, Padding};
             list.push_back(Args);
         }
         return list;
@@ -487,14 +488,96 @@ struct AbortReceiveArgs : public testing::Test, public testing::WithParamInterfa
     }
 };
 
-struct CredValidationArgs : public testing::Test, public testing::WithParamInterface<QUIC_TEST_ARGS> {
+bool GenerateCert(CXPLAT_TEST_CERT_TYPE Type, uint32_t CredType, _Out_ QUIC_TEST_ARGS* Args) {
+    if (CxPlatGetTestCertificate(
+            Type,
+            TestingKernelMode ?
+                CXPLAT_SELF_SIGN_CERT_MACHINE :
+                CXPLAT_SELF_SIGN_CERT_USER,
+            CredType,
+            &Args->CredValidation.CredConfig,
+            &Args->CredValidation.CertHash,
+            &Args->CredValidation.CertHashStore,
+            Args->CredValidation.PrincipalString)) {
+        //CertCleanup.push_back(Args->CredValidation.CredConfig);
+        return true;
+    } else {
+        //printf("WARNING: Failed to find test cert!\n");
+    }
+    return false;
+}
+
+struct ExpiredServerCredValidationArgs : public testing::Test, public testing::WithParamInterface<QUIC_TEST_ARGS> {
     static ::std::vector<QUIC_TEST_ARGS> Generate() {
         ::std::vector<QUIC_TEST_ARGS> list;
-        for (uint32_t Family : { 4, 6 })
-        for (uint16_t Padding = 1; Padding < 50; ++Padding) {
-            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_REBIND};
-            Args.CredValidation = {Family, Padding};
-            list.push_back(Args);
+        for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_EXPIRED_SERVER, CredType, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        if (!TestingKernelMode) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_EXPIRED_SERVER, QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        return list;
+    }
+};
+
+struct ValidServerCredValidationArgs : public testing::Test, public testing::WithParamInterface<QUIC_TEST_ARGS> {
+    static ::std::vector<QUIC_TEST_ARGS> Generate() {
+        ::std::vector<QUIC_TEST_ARGS> list;
+        for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_VALID_SERVER, CredType, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        if (!TestingKernelMode) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_VALID_SERVER, QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        return list;
+    }
+};
+
+struct ExpiredClientCredValidationArgs : public testing::Test, public testing::WithParamInterface<QUIC_TEST_ARGS> {
+    static ::std::vector<QUIC_TEST_ARGS> Generate() {
+        ::std::vector<QUIC_TEST_ARGS> list;
+        for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_EXPIRED_CLIENT, CredType, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        if (!TestingKernelMode) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_EXPIRED_CLIENT, QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        return list;
+    }
+};
+
+struct ValidClientCredValidationArgs : public testing::Test, public testing::WithParamInterface<QUIC_TEST_ARGS> {
+    static ::std::vector<QUIC_TEST_ARGS> Generate() {
+        ::std::vector<QUIC_TEST_ARGS> list;
+        for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_VALID_CLIENT, CredType, &Args)) {
+                list.push_back(Args);
+            }
+        }
+        if (!TestingKernelMode) {
+            QUIC_TEST_ARGS Args {QUIC_TEST_TYPE_CRED_VALIDATION};
+            if (GenerateCert(CXPLAT_TEST_CERT_VALID_CLIENT, QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT, &Args)) {
+                list.push_back(Args);
+            }
         }
         return list;
     }

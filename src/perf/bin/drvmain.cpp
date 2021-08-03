@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "PerfHelpers.h"
+#include "quic_driver_helpers.h"
 #include "PerfIoctls.h"
 #include <new.h>
 
@@ -634,14 +635,8 @@ SecNetPerfCtlSetSecurityConfig(
     return QUIC_STATUS_SUCCESS;
 }
 
-typedef struct {
-    QUIC_CERTIFICATE_HASH ServerCertHash;
-    QUIC_CERTIFICATE_HASH ClientCertHash;
-} QUIC_DRIVER_ARGS_SET_CERTIFICATE;
-
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
-    0,
     sizeof(QUIC_DRIVER_ARGS_SET_CERTIFICATE),
     SIZE_MAX,
     0,

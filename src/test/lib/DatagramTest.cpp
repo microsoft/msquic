@@ -35,11 +35,7 @@ ListenerAcceptConnection(
     return true;
 }
 
-void
-QuicTestDatagramNegotiation(
-    _In_ uint32_t Family,
-    _In_ bool DatagramReceiveEnabled
-    )
+void QuicTestDatagramNegotiation(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -53,7 +49,7 @@ QuicTestDatagramNegotiation(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    Settings.SetDatagramReceiveEnabled(DatagramReceiveEnabled);
+    Settings.SetDatagramReceiveEnabled(Args->DatagramNegotiation.DatagramReceiveEnabled);
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -64,7 +60,7 @@ QuicTestDatagramNegotiation(
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->DatagramNegotiation.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -100,7 +96,7 @@ QuicTestDatagramNegotiation(
                 }
                 TEST_TRUE(Client.GetIsConnected());
 
-                TEST_EQUAL(DatagramReceiveEnabled, Client.GetDatagramSendEnabled());
+                TEST_EQUAL((bool)Args->DatagramNegotiation.DatagramReceiveEnabled, Client.GetDatagramSendEnabled());
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 if (!Server->WaitForConnectionComplete()) {
@@ -112,7 +108,7 @@ QuicTestDatagramNegotiation(
 
                 CxPlatSleep(100); // Necessary?
 
-                if (DatagramReceiveEnabled) {
+                if (Args->DatagramNegotiation.DatagramReceiveEnabled) {
                     TEST_EQUAL(1, Client.GetDatagramsSent());
                 } else {
                     TEST_EQUAL(1, Client.GetDatagramsCanceled());

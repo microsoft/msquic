@@ -24,9 +24,7 @@ extern "C" {
 #include "quic_datapath.h"
 }
 
-void
-QuicDrillTestVarIntEncoder(
-    )
+void QuicTestDrillVarIntEncoder(_In_ const QUIC_TEST_ARGS*)
 {
     auto output = QuicDrillEncodeQuicVarInt(0);
     TEST_EQUAL(output[0], 0);
@@ -225,7 +223,7 @@ struct DrillSender {
 };
 
 bool
-QuicDrillInitialPacketFailureTest(
+QuicTestDrillInitialPacketFailure(
     _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _In_ const DrillInitialPacketDescriptor& InitialPacketDescriptor
     )
@@ -340,14 +338,7 @@ QuicDrillInitialPacketFailureTest(
 #define INVALID_CID_LENGTH_SHORT 7
 #define INVALID_CID_LENGTH_LONG 21
 
-void
-QuicDrillTestInitialCid(
-    _In_ uint32_t Family,
-    _In_ bool Source, // or Dest
-    _In_ bool ValidActualLength, // or invalid
-    _In_ bool Short, // or long
-    _In_ bool ValidLengthField // or invalid
-    )
+void QuicTestDrillInitialCid(_In_ const QUIC_TEST_ARGS* Args)
 {
 /**
  * SourceCid valid length, but longer than valid length field indicates.
@@ -367,21 +358,21 @@ QuicDrillTestInitialCid(
     uint8_t ActualCidLength;
     uint8_t CidLengthField;
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->Drill.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     DrillInitialPacketDescriptor InitialDescriptor;
 
     // Calculate the test parameters
-    if (ValidActualLength) {
-        if (Short) {
+    if (Args->Drill.ActualCidLengthValid) {
+        if (Args->Drill.ShortCidLength) {
             ActualCidLength = VALID_CID_LENGTH_SHORT;
         } else {
             ActualCidLength = VALID_CID_LENGTH_LONG;
         }
 
-        if (ValidLengthField) {
+        if (Args->Drill.CidLengthFieldValid) {
             // When both lengths are valid, we want to make the field different
             // than the actual length so they don't agree.
-            if (!Short) {
+            if (!Args->Drill.ShortCidLength) {
                 CidLengthField = VALID_CID_LENGTH_SHORT;
             } else {
                 CidLengthField = VALID_CID_LENGTH_LONG;
@@ -389,23 +380,23 @@ QuicDrillTestInitialCid(
         } else {
             // When the length field is invalid, but the actual length valid,
             // we want to make the length field very invalid.
-            if (!Short) {
+            if (!Args->Drill.ShortCidLength) {
                 CidLengthField = INVALID_CID_LENGTH_SHORT;
             } else {
                 CidLengthField = INVALID_CID_LENGTH_LONG;
             }
         }
     } else {
-        if (Short) {
+        if (Args->Drill.ShortCidLength) {
             ActualCidLength = INVALID_CID_LENGTH_SHORT;
         } else {
             ActualCidLength = INVALID_CID_LENGTH_LONG;
         }
 
-        if (ValidLengthField) {
+        if (Args->Drill.ActualCidLengthValid) {
             // When the actual length is invalid, but the length field valid,
             // make the field the closest valid value.
-            if (Short) {
+            if (Args->Drill.ShortCidLength) {
                 CidLengthField = VALID_CID_LENGTH_SHORT;
             } else {
                 CidLengthField = VALID_CID_LENGTH_LONG;
@@ -413,7 +404,7 @@ QuicDrillTestInitialCid(
         } else {
             // When both length field and actual length are invalid, make the
             // values agree.
-            if (Short) {
+            if (Args->Drill.ShortCidLength) {
                 CidLengthField = INVALID_CID_LENGTH_SHORT;
             } else {
                 CidLengthField = INVALID_CID_LENGTH_LONG;
@@ -426,7 +417,7 @@ QuicDrillTestInitialCid(
         TestCid.push_back(0xff - (uint8_t) value); // Make this Cid look different from the default one.
     }
 
-    if (Source) {
+    if (Args->Drill.SourceOrDest) {
         InitialDescriptor.SourceCid.clear();
         InitialDescriptor.SourceCid.insert(InitialDescriptor.SourceCid.begin(), TestCid.begin(), TestCid.end());
         InitialDescriptor.SourceCidLen = &CidLengthField;
@@ -436,7 +427,7 @@ QuicDrillTestInitialCid(
         InitialDescriptor.DestCidLen = &CidLengthField;
     }
 
-    QuicDrillInitialPacketFailureTest(QuicAddrFamily, InitialDescriptor);
+    QuicTestDrillInitialPacketFailure(QuicAddrFamily, InitialDescriptor);
 }
 
 void QuicTestDrillInitialToken(_In_ const QUIC_TEST_ARGS* Args)
@@ -455,7 +446,7 @@ void QuicTestDrillInitialToken(_In_ const QUIC_TEST_ARGS* Args)
         TokenLen = GeneratedTokenLength + 1;
         InitialDescriptor.TokenLen = &TokenLen;
 
-        if (!QuicDrillInitialPacketFailureTest(QuicAddrFamily, InitialDescriptor)) {
+        if (!QuicTestDrillInitialPacketFailure(QuicAddrFamily, InitialDescriptor)) {
             return;
         }
     }
@@ -470,7 +461,7 @@ void QuicTestDrillInitialToken(_In_ const QUIC_TEST_ARGS* Args)
         TokenLen = GeneratedTokenLength - 1;
         InitialDescriptor.TokenLen = &TokenLen;
 
-        if (!QuicDrillInitialPacketFailureTest(QuicAddrFamily, InitialDescriptor)) {
+        if (!QuicTestDrillInitialPacketFailure(QuicAddrFamily, InitialDescriptor)) {
             return;
         }
     }
@@ -482,7 +473,7 @@ void QuicTestDrillInitialToken(_In_ const QUIC_TEST_ARGS* Args)
         TokenLen = 1;
         InitialDescriptor.TokenLen = &TokenLen;
 
-        if (!QuicDrillInitialPacketFailureTest(QuicAddrFamily, InitialDescriptor)) {
+        if (!QuicTestDrillInitialPacketFailure(QuicAddrFamily, InitialDescriptor)) {
             return;
         }
     }

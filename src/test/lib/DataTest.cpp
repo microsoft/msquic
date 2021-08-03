@@ -320,32 +320,16 @@ NewPingConnection(
     return Connection;
 }
 
-void
-QuicTestConnectAndPing(
-    _In_ uint32_t Family,
-    _In_ uint64_t Length,
-    _In_ uint32_t ConnectionCount,
-    _In_ uint32_t StreamCount,
-    _In_ uint32_t StreamBurstCount,
-    _In_ uint32_t StreamBurstDelayMs,
-    _In_ bool ServerStatelessRetry,
-    _In_ bool /* ClientRebind */, // TODO - Use this
-    _In_ bool ClientZeroRtt,
-    _In_ bool ServerRejectZeroRtt,
-    _In_ bool UseSendBuffer,
-    _In_ bool UnidirectionalStreams,
-    _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoScheduling
-    )
+void QuicTestConnectAndPing(_In_ const QUIC_TEST_ARGS* Args)
 {
-    const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
-    const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    const uint32_t TimeoutMs = EstimateTimeoutMs(Args->ConnectAndPing.Length) * Args->ConnectAndPing.StreamBurstCount;
+    const uint16_t TotalStreamCount = (uint16_t)(Args->ConnectAndPing.StreamCount * Args->ConnectAndPing.StreamBurstCount);
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->ConnectAndPing.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
-    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
-    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
+    PingStats ServerStats(Args->ConnectAndPing.Length, Args->ConnectAndPing.ConnectionCount, TotalStreamCount, Args->ConnectAndPing.FifoScheduling, Args->ConnectAndPing.UnidirectionalStreams, Args->ConnectAndPing.ServerInitiatedStreams, Args->ConnectAndPing.ClientZeroRtt && !Args->ConnectAndPing.ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
+    PingStats ClientStats(Args->ConnectAndPing.Length, Args->ConnectAndPing.ConnectionCount, TotalStreamCount, Args->ConnectAndPing.FifoScheduling, Args->ConnectAndPing.UnidirectionalStreams, Args->ConnectAndPing.ServerInitiatedStreams, Args->ConnectAndPing.ClientZeroRtt && !Args->ConnectAndPing.ServerRejectZeroRtt);
 
-    if (ServerRejectZeroRtt) {
+    if (Args->ConnectAndPing.ServerRejectZeroRtt) {
         //
         // TODO: Validate new connections don't do 0-RTT
         //
@@ -357,14 +341,14 @@ QuicTestConnectAndPing(
     MsQuicAlpn Alpn("MsQuicTest");
 
     MsQuicSettings Settings;
-    if (ClientZeroRtt) {
+    if (Args->ConnectAndPing.ClientZeroRtt) {
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
     }
-    if (!ServerInitiatedStreams) {
+    if (!Args->ConnectAndPing.ServerInitiatedStreams) {
         Settings.SetPeerBidiStreamCount(TotalStreamCount);
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
-    Settings.SetSendBufferingEnabled(UseSendBuffer);
+    Settings.SetSendBufferingEnabled(Args->ConnectAndPing.UseSendBuffer);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -378,7 +362,7 @@ QuicTestConnectAndPing(
     BadKey.MaterialLength = 64;
     BadKey.Material[0] = 0xFF;
 
-    if (ServerRejectZeroRtt) {
+    if (Args->ConnectAndPing.ServerRejectZeroRtt) {
         TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
     }
 
@@ -386,7 +370,7 @@ QuicTestConnectAndPing(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    if (ClientZeroRtt) {
+    if (Args->ConnectAndPing.ClientZeroRtt) {
         QuicTestPrimeResumption(
             Registration,
             ServerConfiguration,
@@ -397,10 +381,10 @@ QuicTestConnectAndPing(
         }
     }
 
-    StatelessRetryHelper RetryHelper(ServerStatelessRetry);
+    StatelessRetryHelper RetryHelper(Args->ConnectAndPing.ServerStatelessRetry);
 
     {
-        if (ServerRejectZeroRtt) {
+        if (Args->ConnectAndPing.ServerRejectZeroRtt) {
             TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
         }
         TestListener Listener(
@@ -416,7 +400,7 @@ QuicTestConnectAndPing(
 
         Listener.Context = &ServerStats;
 
-        TestConnection** ConnAlloc = new(std::nothrow) TestConnection*[ConnectionCount];
+        TestConnection** ConnAlloc = new(std::nothrow) TestConnection*[Args->ConnectAndPing.ConnectionCount];
         if (ConnAlloc == nullptr) {
             return;
         }
@@ -428,24 +412,24 @@ QuicTestConnectAndPing(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
-                    UseSendBuffer);
+                    Args->ConnectAndPing.UseSendBuffer);
             if (Connections.get()[i] == nullptr) {
                 return;
             }
         }
 
         QuicAddr LocalAddr;
-        for (uint32_t j = 0; j < StreamBurstCount; ++j) {
+        for (uint32_t j = 0; j < Args->ConnectAndPing.StreamBurstCount; ++j) {
             if (j != 0) {
-                CxPlatSleep(StreamBurstDelayMs);
+                CxPlatSleep(Args->ConnectAndPing.StreamBurstDelayMs);
             }
 
             for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
-                if (!ServerInitiatedStreams &&
+                if (!Args->ConnectAndPing.ServerInitiatedStreams &&
                     !SendPingBurst(
                         Connections.get()[i],
-                        StreamCount,
-                        Length)) {
+                        Args->ConnectAndPing.StreamCount,
+                        Args->ConnectAndPing.Length)) {
                     return;
                 }
 
@@ -460,7 +444,7 @@ QuicTestConnectAndPing(
                         Connections.get()[i]->Start(
                             ClientConfiguration,
                             QuicAddrFamily,
-                            ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
+                            Args->ConnectAndPing.ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
                     if (i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
@@ -481,10 +465,7 @@ QuicTestConnectAndPing(
     }
 }
 
-void
-QuicTestServerDisconnect(
-    void
-    )
+void QuicTestServerDisconnect(_In_ const QUIC_TEST_ARGS*)
 {
     PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
@@ -588,11 +569,10 @@ ListenerAcceptConnectionAndStreams(
     return true;
 }
 
-void
-QuicTestClientDisconnect(
-    bool StopListenerFirst
-    )
+void QuicTestClientDisconnect(_In_ const QUIC_TEST_ARGS*)
 {
+    const bool StopListenerFirst = false; // TODO - Add support
+
     //
     // If the listener is stopped at the same time the server side of the
     // connection is silently closed, then the UDP binding will also be cleaned
@@ -901,11 +881,7 @@ QuicAbortiveListenerHandler(
     }
 }
 
-void
-QuicAbortiveTransfers(
-    _In_ uint32_t Family,
-    _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
-    )
+void QuicTestAbortiveTransfers(_In_ const QUIC_TEST_ARGS* Args)
 {
     uint32_t TimeoutMs = 500;
 
@@ -930,11 +906,12 @@ QuicAbortiveTransfers(
     */
 
     bool WaitForConnected = true;
+    auto Flags = Args->AbortiveShutdown.Flags;
     uint32_t ExpectedError = Flags.IntValue;
 
     uint16_t StreamCount = 1;
     int SendLength = 100;
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->AbortiveShutdown.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
     QuicBufferScope Buffer(SendLength);
     QUIC_STREAM_SHUTDOWN_FLAGS ShutdownFlags;
@@ -1382,15 +1359,7 @@ QuicRecvResumeListenerHandler(
     }
 }
 
-void
-QuicTestReceiveResume(
-    _In_ uint32_t Family,
-    _In_ int SendBytes,
-    _In_ int ConsumeBytes,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType,
-    _In_ QUIC_RECEIVE_RESUME_TYPE PauseType,
-    _In_ bool PauseFirst
-    )
+void QuicTestReceiveResume(_In_ const QUIC_TEST_ARGS* Args)
 {
     uint32_t TimeoutMs = 500;
 
@@ -1406,12 +1375,12 @@ QuicTestReceiveResume(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    uint32_t SendSize = SendBytes;
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    uint32_t SendSize = Args->ReceiveResume.SendBytes;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->ReceiveResume.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
     QuicBufferScope Buffer(SendSize);
-    RecvResumeTestContext ServerContext(ServerConfiguration, true, ShutdownType, PauseType), ClientContext(nullptr, false, ShutdownType, PauseType);
-    ServerContext.ConsumeBufferAmount = ConsumeBytes;
+    RecvResumeTestContext ServerContext(ServerConfiguration, true, Args->ReceiveResume.ShutdownType, Args->ReceiveResume.PauseType), ClientContext(nullptr, false, Args->ReceiveResume.ShutdownType, Args->ReceiveResume.PauseType);
+    ServerContext.ConsumeBufferAmount = Args->ReceiveResume.ConsumeBytes;
 
     {
         //
@@ -1498,7 +1467,7 @@ QuicTestReceiveResume(
             return;
         }
 
-        if (PauseFirst) {
+        if (Args->ReceiveResume.PauseFirst) {
             Status =
                 MsQuic->StreamReceiveSetEnabled(
                     ServerContext.Stream.Handle,
@@ -1521,7 +1490,7 @@ QuicTestReceiveResume(
             return;
         }
 
-        if (PauseFirst) {
+        if (Args->ReceiveResume.PauseFirst) {
             Status =
                 MsQuic->StreamReceiveSetEnabled(
                     ServerContext.Stream.Handle,
@@ -1544,25 +1513,25 @@ QuicTestReceiveResume(
         // Calculate next amount of buffer to consume, except for
         // STATUS_CONTINUE cases (because that always consumes all buffer).
         //
-        if (PauseType != ReturnStatusContinue) {
+        if (Args->ReceiveResume.PauseType != ReturnStatusContinue) {
             ServerContext.ConsumeBufferAmount = SendSize - ServerContext.ConsumeBufferAmount;
         }
 
-        if (ShutdownType) {
+        if (Args->ReceiveResume.ShutdownType) {
             Status =
                 MsQuic->StreamShutdown(
                     ClientContext.Stream.Handle,
-                    (ShutdownType == GracefulShutdown) ?
+                    (Args->ReceiveResume.ShutdownType == GracefulShutdown) ?
                         QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL : QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
-                    ConsumeBytes + SendBytes);
+                    Args->ReceiveResume.ConsumeBytes + Args->ReceiveResume.SendBytes);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE("MsQuic->StreamShutdown failed, 0x%x", Status);
                 return;
             }
         }
 
-        if (PauseType == ReturnStatusPending) {
-            if (ShutdownType == AbortShutdown) {
+        if (Args->ReceiveResume.PauseType == ReturnStatusPending) {
+            if (Args->ReceiveResume.ShutdownType == AbortShutdown) {
                 //
                 // Wait for the shutdown to be received to test if the buffer has been freed.
                 //
@@ -1578,16 +1547,16 @@ QuicTestReceiveResume(
             Status =
                 MsQuic->StreamReceiveComplete(
                     ServerContext.Stream.Handle,
-                    SendBytes);
+                    Args->ReceiveResume.SendBytes);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE(
                     "MsQuic->StreamReceiveComplete %d failed, 0x%x",
-                    SendBytes,
+                    Args->ReceiveResume.SendBytes,
                     Status);
                 return;
             }
             ServerContext.AvailableBuffer = ServerContext.ConsumeBufferAmount;
-        } else if (PauseType == ReturnConsumedBytes) {
+        } else if (Args->ReceiveResume.PauseType == ReturnConsumedBytes) {
             //
             // Resume receive callbacks.
             //
@@ -1623,11 +1592,7 @@ QuicTestReceiveResume(
     }
 }
 
-void
-QuicTestReceiveResumeNoData(
-    _In_ uint32_t Family,
-    _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
-    )
+void QuicTestReceiveResumeNoData(_In_ const QUIC_TEST_ARGS* Args)
 {
     uint32_t TimeoutMs = 500;
 
@@ -1643,9 +1608,9 @@ QuicTestReceiveResumeNoData(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Args->ReceiveResume.Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
-    RecvResumeTestContext ServerContext(ServerConfiguration, true, ShutdownType, ReturnConsumedBytes), ClientContext(nullptr, false, ShutdownType, ReturnConsumedBytes);
+    RecvResumeTestContext ServerContext(ServerConfiguration, true, Args->ReceiveResume.ShutdownType, ReturnConsumedBytes), ClientContext(nullptr, false, Args->ReceiveResume.ShutdownType, ReturnConsumedBytes);
     ServerContext.ShutdownOnly = true;
 
     {
@@ -1745,7 +1710,7 @@ QuicTestReceiveResumeNoData(
         Status =
             MsQuic->StreamShutdown(
                 ClientContext.Stream.Handle,
-                (ShutdownType == GracefulShutdown) ?
+                (Args->ReceiveResume.ShutdownType == GracefulShutdown) ?
                     QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL : QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
                 QUIC_STATUS_SUCCESS);
         if (QUIC_FAILED(Status)) {
@@ -1753,7 +1718,7 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
-        if (ShutdownType == GracefulShutdown) {
+        if (Args->ReceiveResume.ShutdownType == GracefulShutdown) {
             if (CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server got shutdown event when it shouldn't have!");
                 return;
@@ -2107,10 +2072,7 @@ AbortRecvConnCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
-QuicTestAbortReceive(
-    _In_ QUIC_TEST_ARGS_ABORT_RECEIVE_TYPE Type
-    )
+void QuicTestAbortReceive(_In_ const QUIC_TEST_ARGS* Args)
 {
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -2121,7 +2083,7 @@ QuicTestAbortReceive(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    AbortRecvTestContext RecvContext { Type };
+    AbortRecvTestContext RecvContext { Args->AbortReceive };
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AbortRecvConnCallback, &RecvContext);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
@@ -2137,7 +2099,7 @@ QuicTestAbortReceive(
 
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
-    if (Type == QUIC_ABORT_RECEIVE_INCOMPLETE) {
+    if (Args->AbortReceive == QUIC_ABORT_RECEIVE_INCOMPLETE) {
         TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
     } else {
         TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
@@ -2176,10 +2138,7 @@ struct SlowRecvTestContext {
     }
 };
 
-void
-QuicTestSlowReceive(
-    void
-    )
+void QuicTestSlowReceive(_In_ const QUIC_TEST_ARGS*)
 {
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -2284,9 +2243,7 @@ struct AllocFailScope {
     } \
 }
 
-void
-QuicTestNthAllocFail(
-    )
+void QuicTestNthAllocFail(_In_ const QUIC_TEST_ARGS*)
 {
     AllocFailScope Scope{};
 
@@ -2361,9 +2318,7 @@ struct StreamPriorityTestContext {
     }
 };
 
-void
-QuicTestStreamPriority(
-    )
+void QuicTestStreamPriority(_In_ const QUIC_TEST_ARGS*)
 {
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -2438,9 +2393,7 @@ struct StreamDifferentAbortErrors {
     }
 };
 
-void
-QuicTestStreamDifferentAbortErrors(
-    )
+void QuicTestStreamDifferentAbortErrors(_In_ const QUIC_TEST_ARGS*)
 {
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
