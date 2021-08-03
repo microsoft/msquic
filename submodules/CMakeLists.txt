@@ -57,9 +57,11 @@ if(HAS_SPECTRE)
     list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /Qspectre)
 endif()
 
-#if(HAS_GUARDCF)
-#    list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
-#endif()
+# guard:cf does not work on OpenSSL
+# https://github.com/openssl/openssl/issues/16147
+# if(HAS_GUARDCF)
+#     list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
+# endif()
 
 find_program(JOM_EXE jom)
 if (JOM_EXE)

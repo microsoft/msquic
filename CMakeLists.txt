@@ -194,7 +194,9 @@ if (WIN32)
 
     include(CheckCCompilerFlag)
 
-    check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+    if(NOT QUIC_ENABLE_SANITIZERS)
+        check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+    endif()
     if(HAS_SPECTRE)
         list(APPEND QUIC_COMMON_FLAGS /Qspectre)
     endif()
