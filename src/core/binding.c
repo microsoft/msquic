@@ -101,6 +101,7 @@ QuicBindingInitialize(
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    CXPLAT_UDP_CONFIG HookUdpConfig = *UdpConfig;
     if (Hooks != NULL) {
         QUIC_ADDR RemoteAddressCopy;
         if (UdpConfig->RemoteAddress != NULL) {
@@ -114,12 +115,14 @@ QuicBindingInitialize(
             UdpConfig->RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
             UdpConfig->LocalAddress != NULL ? &LocalAddressCopy : NULL);
 
-        ((CXPLAT_UDP_CONFIG*)UdpConfig)->CallbackContext = Binding;
+        HookUdpConfig.LocalAddress = (UdpConfig->LocalAddress != NULL) ? &LocalAddressCopy : NULL;
+        HookUdpConfig.RemoteAddress = (UdpConfig->RemoteAddress != NULL) ? &RemoteAddressCopy : NULL;
+        HookUdpConfig.CallbackContext = Binding;
 
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
-                UdpConfig,
+                &HookUdpConfig,
                 &Binding->Socket);
     } else {
 #endif
