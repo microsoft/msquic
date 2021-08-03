@@ -50,13 +50,24 @@ LogTestFailure(
 typedef void (QUIC_TEST)(_In_ const struct QUIC_TEST_ARGS* Args);
 typedef QUIC_TEST *QUIC_TEST_FN;
 
+struct QuicTests { \
+    static QUIC_TEST_FN List[256];
+    static uint32_t Count;
+    QuicTests(QUIC_TEST_FN test) { List[Count++] = test; }
+};
+
+#ifdef _KERNEL_MODE
+#if QUIC_TEST_CREATE
 #define QUIC_TEST_START() \
-    const uint32_t QUIC_CTL_START = __LINE__; \
-    struct QuicTests { \
-        static QUIC_TEST_FN List[256]; \
-        static uint32_t Count; \
-        QuicTests(QUIC_TEST_FN test) { List[Count++] = test; } \
-    }
+    extern uint32_t QUIC_CTL_COUNT; \
+    void InitializeIoctls() { \
+    const uint32_t QUIC_CTL_START = __LINE__
+#else
+#define QUIC_TEST_START()
+#endif
+#else
+#define QUIC_TEST_START() const uint32_t QUIC_CTL_START = __LINE__
+#endif
 
 #if QUIC_TEST_CREATE
 #define QUIC_TEST_NEW(test) \
@@ -68,15 +79,33 @@ typedef QUIC_TEST *QUIC_TEST_FN;
 #define QUIC_TEST_NEW(test)
 #endif
 
+#ifdef _KERNEL_MODE
+#if QUIC_TEST_CREATE
+#define QUIC_TEST_END() \
+    const uint32_t QUIC_CTL_COUNT_LOCAL = __LINE__ - 1 - QUIC_CTL_START; \
+    CXPLAT_STATIC_ASSERT(QUIC_CTL_COUNT_LOCAL <= ARRAYSIZE(QuicTests::List), "Allocate more space for QuicTests!"); \
+    QUIC_CTL_COUNT = QUIC_CTL_COUNT_LOCAL; \
+    }
+#else
+#define QUIC_TEST_END()
+#endif
+#else
 #define QUIC_TEST_END() \
     const uint32_t QUIC_CTL_COUNT = __LINE__ - 1 - QUIC_CTL_START; \
     CXPLAT_STATIC_ASSERT(QUIC_CTL_COUNT <= ARRAYSIZE(QuicTests::List), "Allocate more space for QuicTests!")
+#endif
+
+#define CERTIFICATE_MAX_IOCTL 5
 
 //
 // Declares all the test functions.
 //   DO NOT ADD EMPTY NEW LINES!
 //
 QUIC_TEST_START();
+QUIC_TEST_NEW(ConnectExpiredServerCertificate);
+QUIC_TEST_NEW(ConnectValidServerCertificate);
+QUIC_TEST_NEW(ConnectValidClientCertificate);
+QUIC_TEST_NEW(ConnectExpiredClientCertificate);
 QUIC_TEST_NEW(ValidateApi);
 QUIC_TEST_NEW(ValidateRegistration);
 QUIC_TEST_NEW(ValidateConfiguration);
@@ -122,10 +151,6 @@ QUIC_TEST_NEW(ConnectUnreachable);
 QUIC_TEST_NEW(ConnectBadAlpn);
 QUIC_TEST_NEW(ConnectBadSni);
 QUIC_TEST_NEW(ConnectServerRejected);
-QUIC_TEST_NEW(ConnectExpiredServerCertificate);
-QUIC_TEST_NEW(ConnectValidServerCertificate);
-QUIC_TEST_NEW(ConnectValidClientCertificate);
-QUIC_TEST_NEW(ConnectExpiredClientCertificate);
 QUIC_TEST_NEW(NatPortRebind);
 QUIC_TEST_NEW(NatAddrRebind);
 QUIC_TEST_NEW(PathValidationTimeout);

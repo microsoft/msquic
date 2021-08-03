@@ -28,6 +28,7 @@ QUIC_CERTIFICATE_HASH SelfSignedCertHash;
 QUIC_CERTIFICATE_HASH ClientCertHash;
 QUIC_TEST_FN QuicTests::List[256];
 uint32_t QuicTests::Count = 0;
+uint32_t QUIC_CTL_COUNT;
 
 #ifdef PRIVATE_LIBRARY
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE);
@@ -83,6 +84,10 @@ QuicTestCtlInitialize(
     QUIC_DEVICE_EXTENSION* DeviceContext;
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
+
+    if (QuicTests::Count == 0) {
+        InitializeIoctls();
+    }
 
     MsQuic = new (std::nothrow) MsQuicApi();
     if (!MsQuic) {
@@ -515,10 +520,7 @@ QuicTestCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    if (IoControlCode == IOCTL_QUIC_ConnectExpiredServerCertificate ||
-        IoControlCode == IOCTL_QUIC_ConnectValidServerCertificate ||
-        IoControlCode == IOCTL_QUIC_ConnectValidClientCertificate ||
-        IoControlCode == IOCTL_QUIC_ConnectExpiredClientCertificate) {
+    if (FunctionCode < CERTIFICATE_MAX_IOCTL) {
         switch (Params->CredValidation.CredConfig.Type) {
         case QUIC_CREDENTIAL_TYPE_NONE:
             Params->CredValidation.CredConfig.Principal = (const char*)Params->CredValidation.PrincipalString;
