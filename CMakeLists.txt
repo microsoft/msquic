@@ -208,8 +208,13 @@ if (WIN32)
     endif()
 
     # Require /Qspectre and /guard:cf in CI builds
-    if((QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS) AND (NOT HAS_SPECTRE OR NOT HAS_GUARDCF))
-        message(FATAL_ERROR "/Qspectre and /guard:cf must exist for CI builds")
+    if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+        if(NOT HAS_GUARDCF)
+            message(FATAL_ERROR "/guard:cf must exist for CI builds")
+        endif()
+        if(NOT HAS_SPECTRE AND NOT QUIC_ENABLE_SANITIZERS AND NOT QUIC_UWP_BUILD)
+            message(FATAL_ERROR "/Qspectre must exist for CI builds")
+        endif()
     endif()
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -224,12 +229,20 @@ else()
         check_c_source_compiles(
             "
             #include <netinet/udp.h>
-            #include <sys/socket.h>
-            int main() {int a = UDP_SEGMENT; int b = SO_ATTACH_REUSEPORT_CBPF; return a | b; }
+            int main() { return UDP_SEGMENT; }
             "
-            HAS_REQUIRED_INCLUDES)
-        if (NOT HAS_REQUIRED_INCLUDES)
-            message(FATAL_ERROR "UDP_SEGMENT and SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+            HAS_UDP_SEGMENT)
+        if (NOT HAS_UDP_SEGMENT)
+            message(FATAL_ERROR "UDP_SEGMENT must exist for CI builds")
+        endif()
+        check_c_source_compiles(
+            "
+            #include <sys/socket.h>
+            int main() { return SO_ATTACH_REUSEPORT_CBPF; }
+            "
+            HAS_SO_ATTACH_REUSEPORT_CBPF)
+        if (NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+            message(FATAL_ERROR "SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
         endif()
     endif()
 
