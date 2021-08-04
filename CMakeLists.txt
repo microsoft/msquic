@@ -223,9 +223,8 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
 
-    # Check for GSO and RSS support in CI
-    if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS AND CX_PLATFORM STREQUAL "linux")
-        include(CheckCCompilerFlag)
+    if (CX_PLATFORM STREQUAL "linux)
+    include(CheckCCompilerFlag)
         check_c_source_compiles(
             "
             #include <netinet/udp.h>
@@ -233,8 +232,9 @@ else()
             "
             HAS_UDP_SEGMENT)
         if (NOT HAS_UDP_SEGMENT)
-            message(FATAL_ERROR "UDP_SEGMENT must exist for CI builds")
+            message(STATUS "UDP_SEGMENT is missing. Send performance will be reduced")
         endif()
+
         check_c_source_compiles(
             "
             #include <sys/socket.h>
@@ -242,10 +242,20 @@ else()
             "
             HAS_SO_ATTACH_REUSEPORT_CBPF)
         if (NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
-            message(FATAL_ERROR "SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+            message(STATUS "HAS_SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
+        endif()
+
+        # Error if flags are missing in CI
+        if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+            if (NOT HAS_UDP_SEGMENT)
+                message(FATAL_ERROR "UDP_SEGMENT must exist for CI builds")
+            endif()
+
+            if (NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+                message(FATAL_ERROR "SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+            endif()
         endif()
     endif()
-
 
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
