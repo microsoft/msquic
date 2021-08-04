@@ -127,6 +127,8 @@ option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
+option(QUIC_CI "CI Specific build" OFF)
+option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
@@ -205,11 +207,73 @@ if (WIN32)
         list(APPEND QUIC_COMMON_FLAGS /guard:cf)
     endif()
 
+    # Require /Qspectre and /guard:cf in CI builds
+    if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+        if(NOT HAS_GUARDCF)
+            message(FATAL_ERROR "/guard:cf must exist for CI builds")
+        endif()
+        if(NOT HAS_SPECTRE AND NOT QUIC_ENABLE_SANITIZERS AND NOT QUIC_UWP_BUILD)
+            message(FATAL_ERROR "/Qspectre must exist for CI builds")
+        endif()
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
+
+    if (CX_PLATFORM STREQUAL "linux")
+        include(CheckCCompilerFlag)
+        check_c_source_compiles(
+            "
+            #include <netinet/udp.h>
+            int main() { return UDP_SEGMENT; }
+            "
+            HAS_UDP_SEGMENT)
+        if (NOT HAS_UDP_SEGMENT)
+            message(STATUS "UDP_SEGMENT is missing. Send performance will be reduced")
+        endif()
+
+        check_c_source_compiles(
+            "
+            #include <sys/socket.h>
+            int main() { return SO_ATTACH_REUSEPORT_CBPF; }
+            "
+            HAS_SO_ATTACH_REUSEPORT_CBPF)
+        if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+            message(STATUS "SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
+        endif()
+
+        # Error if flags are missing in CI
+        if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+            if (NOT HAS_UDP_SEGMENT)
+                message(FATAL_ERROR "UDP_SEGMENT must exist for CI builds")
+            endif()
+
+            if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+                message(FATAL_ERROR "SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+            endif()
+        endif()
+
+        # Check to see if lttng will work
+        if(QUIC_ENABLE_LOGGING)
+            check_c_source_compiles(
+                "
+                #include <lttng/ust-config.h>
+                #ifdef LTTNG_UST_HAVE_SDT_INTEGRATION
+                #error \"SDT is enabled\"
+                #endif
+                int main() { return 0; }
+                "
+                HAS_LTTNG_WITHOUT_SDT)
+            if(NOT HAS_LTTNG_WITHOUT_SDT)
+                message(WARNING "LTTng with SDT integration does not work. Disabling logging")
+                set(QUIC_ENABLE_LOGGING OFF)
+            endif()
+        endif()
+    endif()
+
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
