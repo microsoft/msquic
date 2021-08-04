@@ -17,13 +17,13 @@ $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 
 # All direct subfolders are OS's
-$Platforms = (Get-ChildItem -Path $ArtifactsBinDir | Select-Object -ExpandProperty FullName)
+$Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
 $WindowsBuilds = @()
 $AllBuilds = @()
 
 foreach ($Platform in $Platforms) {
-    $PlatBuilds = (Get-ChildItem -Path $Platform | Select-Object -ExpandProperty FullName)
+    $PlatBuilds = Get-ChildItem -Path $Platform.FullName
     foreach ($PlatBuild in $PlatBuilds) {
         $AllBuilds += $PlatBuild
         if ($Platform.Name -eq "windows") {
@@ -34,7 +34,7 @@ foreach ($Platform in $Platforms) {
 
 foreach ($Build in $AllBuilds) {
     $BuildBaseName = $Build.Name
-    $Platform = Split-Path -Path (Split-Path -Path $Build -Parent) -Leaf
+    $Platform = Split-Path -Path (Split-Path -Path $Build.FullName -Parent) -Leaf
 
     if ($Platform -eq "winkernel") {
         continue
