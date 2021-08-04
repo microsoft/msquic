@@ -45,7 +45,7 @@ foreach ($Build in $AllBuilds) {
 
     $DistDir = Join-Path $BaseArtifactsDir "dist"
 
-    $TempDir = Join-Path $BaseArtifactsDir "temp" "zip" $Platform
+    $TempDir = Join-Path $BaseArtifactsDir "temp/zip/$Platform"
     $TempDir = Join-Path $TempDir $BuildBaseName
 
     # Initialize directories needed for building.
@@ -59,7 +59,7 @@ foreach ($Build in $AllBuilds) {
 
     New-Item -Path $TempDir -ItemType Directory -Force | Out-Null
 
-    $HeaderDir = Join-Path $RootDir "src" "inc"
+    $HeaderDir = Join-Path $RootDir "src/inc"
 
     # Find Headers
 
