@@ -17,13 +17,13 @@ $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 
 # All direct subfolders are OS's
-$Platforms = Get-ChildItem -Path $ArtifactsBinDir
+$Platforms = (Get-ChildItem -Path $ArtifactsBinDir | Select-Object -ExpandProperty FullName)
 
 $WindowsBuilds = @()
 $AllBuilds = @()
 
 foreach ($Platform in $Platforms) {
-    $PlatBuilds = Get-ChildItem -Path $Platform
+    $PlatBuilds = (Get-ChildItem -Path $Platform | Select-Object -ExpandProperty FullName)
     foreach ($PlatBuild in $PlatBuilds) {
         $AllBuilds += $PlatBuild
         if ($Platform.Name -eq "windows") {
