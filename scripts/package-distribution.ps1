@@ -127,7 +127,7 @@ foreach ($Build in $AllBuilds) {
 
     # Copy License
     Copy-Item -Path (Join-Path $RootDir "LICENSE") -Destination $TempDir
-    if (!$BuildBaseName.Contains("Schannel", [StringComparison]::InvariantCultureIgnoreCase)) {
+    if (!$BuildBaseName -like "*schannel*") {
         # Only need license, no 3rd party code
         Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $TempDir
     }
@@ -135,7 +135,7 @@ foreach ($Build in $AllBuilds) {
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
 
     # For now, package only x64 Release binaries
-    if ($Platform -eq "linux" -and $BuildBaseName.Contains("x64_Release")) {
+    if ($Platform -eq "linux" -and $BuildBaseName -like "*x64_Release*") {
         Write-Output "Packaging $Build"
         scripts/make-packages.sh  --output $DistDir
     }
