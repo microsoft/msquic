@@ -346,7 +346,9 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
-        $Arguments += " -DQUIC_CI_CONFIG=$Config"
+        if ($Platform -eq "android" -or $ToolchainFile -ne "") {
+            $Arguments += " -DQUIC_SKIP_CI_CHECKS=ON"
+        }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }

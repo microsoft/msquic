@@ -127,6 +127,8 @@ option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
+option(QUIC_CI "CI Specific build" OFF)
+option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
@@ -205,11 +207,33 @@ if (WIN32)
         list(APPEND QUIC_COMMON_FLAGS /guard:cf)
     endif()
 
+    # Require /Qspectre and /guard:cf in CI builds
+    if((QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS) AND (NOT HAS_SPECTRE OR NOT HAS_GUARDCF))
+        message(FATAL_ERROR "/Qspectre and /guard:cf must exist for CI builds")
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
+
+    # Check for GSO and RSS support in CI
+    if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS AND CX_PLATFORM STREQUAL "linux")
+        include(CheckCCompilerFlag)
+        check_c_source_compiles(
+            "
+            #include <netinet/udp.h>
+            #include <sys/socket.h>
+            int main() {int a = UDP_SEGMENT; int b = SO_ATTACH_REUSEPORT_CBPF; return a | b; }
+            "
+            HAS_REQUIRED_INCLUDES)
+        if (NOT HAS_REQUIRED_INCLUDES)
+            message(FATAL_ERROR "UDP_SEGMENT and SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+        endif()
+    endif()
+
+
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
