@@ -223,8 +223,8 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
 
-    if (CX_PLATFORM STREQUAL "linux)
-    include(CheckCCompilerFlag)
+    if (CX_PLATFORM STREQUAL "linux")
+        include(CheckCCompilerFlag)
         check_c_source_compiles(
             "
             #include <netinet/udp.h>
@@ -241,8 +241,8 @@ else()
             int main() { return SO_ATTACH_REUSEPORT_CBPF; }
             "
             HAS_SO_ATTACH_REUSEPORT_CBPF)
-        if (NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
-            message(STATUS "HAS_SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
+        if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+            message(STATUS "SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
         endif()
 
         # Error if flags are missing in CI
@@ -251,8 +251,25 @@ else()
                 message(FATAL_ERROR "UDP_SEGMENT must exist for CI builds")
             endif()
 
-            if (NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+            if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
                 message(FATAL_ERROR "SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+            endif()
+        endif()
+
+        # Check to see if lttng will work
+        if(QUIC_ENABLE_LOGGING)
+            check_c_source_compiles(
+                "
+                #include <lttng/ust-config.h>
+                #ifdef LTTNG_UST_HAVE_SDT_INTEGRATION
+                #error \"SDT is enabled\"
+                #endif
+                int main() { return 0; }
+                "
+                HAS_LTTNG_WITHOUT_SDT)
+            if(NOT HAS_LTTNG_WITHOUT_SDT)
+                message(WARNING "LTTng with SDT integration does not work. Disabling logging")
+                set(QUIC_ENABLE_LOGGING OFF)
             endif()
         endif()
     endif()
