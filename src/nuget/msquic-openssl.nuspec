@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
-    <id>msquic</id>
+    <id>msquic-openssl</id>
     <version>1.7.0</version>
-    <title>MsQuic</title>
+    <title>MsQuic (OpenSSL)</title>
     <authors>Microsoft</authors>
     <owners>Microsoft</owners>
-    <license type="expression">MIT</license>
+    <license type="expression">MIT AND Apache-2.0</license>
     <projectUrl>https://github.com/microsoft/msquic</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>MsQuic</description>
     <summary>MsQuic</summary>
-    <tags>native quic</tags>
+    <tags>native quic openssl</tags>
   </metadata>
 </package>

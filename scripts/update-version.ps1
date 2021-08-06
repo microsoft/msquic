@@ -27,7 +27,8 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
 $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
-$NuspecFilePath = Join-Path $RootDir "src" "nuget" "msquic.nuspec"
+$NuspecOpenSSLFilePath = Join-Path $RootDir "src" "nuget" "msquic-openssl.nuspec"
+$NuspecSchannelFilePath = Join-Path $RootDir "src" "nuget" "msquic-schannel.nuspec"
 
 # Get the current version number from the msquic.ver file.
 $VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
@@ -61,6 +62,9 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 (Get-Content $QnsFilePath) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $QnsFilePath
-(Get-Content $NuspecFilePath) `
+(Get-Content $NuspecOpenSSLFilePath) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
-    Out-File $NuspecFilePath
+    Out-File $NuspecOpenSSLFilePath
+(Get-Content $NuspecSchannelFilePath) `
+    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
+    Out-File $NuspecSchannelFilePath

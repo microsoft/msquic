@@ -30,17 +30,17 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $PlatformDir = Join-Path $BaseArtifactsDir "bin/windows"
 
-$TempDir = Join-Path $BaseArtifactsDir "temp/nuget"
+$PackagingDir = Join-Path $BaseArtifactsDir "temp/nuget"
 
-if ((Test-Path $TempDir)) {
-    Remove-Item -Path "$TempDir/*" -Recurse -Force
+if ((Test-Path $PackagingDir)) {
+    Remove-Item -Path "$PackagingDir/*" -Recurse -Force
 }
 
 # Arm is ignored, as there are no shipping arm devices
 $Architectures = "x64","x86","arm64"
 
 # Copy artifacts to correct folders
-$NativeDir = Join-Path $TempDir "build/native"
+$NativeDir = Join-Path $PackagingDir "build/native"
 
 foreach ($Arch in $Architectures) {
     $BuildPath = Join-Path $PlatformDir "$($Arch)_$($Config)_$($Tls)"
@@ -75,11 +75,17 @@ foreach ($Header in $Headers) {
     Copy-Item -LiteralPath $Header -Destination $CopyToFolder -Force
 }
 
+Copy-Item (Join-Path $RootDir LICENSE) $PackagingDir
+if ($Tls -like "openssl") {
+    # Only need license, no 3rd party code
+    Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $PackagingDir
+}
+
 $NugetSourceFolder = Join-Path $RootDir "src/nuget"
 
-Copy-Item (Join-Path $NugetSourceFolder msquic.nuspec) $TempDir
-Copy-Item (Join-Path $NugetSourceFolder msquic.targets) $NativeDir
+Copy-Item (Join-Path $NugetSourceFolder "msquic-$Tls.nuspec") $PackagingDir
+Copy-Item (Join-Path $NugetSourceFolder "msquic-$Tls.targets") $NativeDir
 
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 
-nuget.exe pack (Join-Path $TempDir msquic.nuspec) -OutputDirectory $DistDir
+nuget.exe pack (Join-Path $PackagingDir "msquic-$Tls.nuspec") -OutputDirectory $DistDir
