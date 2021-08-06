@@ -203,9 +203,9 @@ QuicStreamStart(
     )
 {
     QUIC_STATUS Status;
-    BOOLEAN ClosedLocally;
 
-    if (QuicConnIsClosedLocation(Stream->Connection, &ClosedLocally) ||
+    BOOLEAN ClosedLocally = Stream->Connection->State.ClosedLocally;
+    if ((ClosedLocally || Stream->Connection->State.ClosedRemotely) ||
         Stream->Flags.Started) {
         Status =
             (ClosedLocally || Stream->Flags.Started) ?

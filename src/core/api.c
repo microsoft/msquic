@@ -602,7 +602,6 @@ MsQuicStreamOpen(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
-    BOOLEAN ClosedLocally;
 
     QuicTraceEvent(
         ApiEnter,
@@ -632,7 +631,8 @@ MsQuicStreamOpen(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (QuicConnIsClosedLocation(Connection, &ClosedLocally)) {
+    BOOLEAN ClosedLocally = Connection->State.ClosedLocally;
+    if (ClosedLocally || Connection->State.ClosedRemotely) {
         Status =
             ClosedLocally ?
             QUIC_STATUS_INVALID_STATE :

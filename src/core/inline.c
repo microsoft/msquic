@@ -91,12 +91,6 @@ QuicConnIsClosed(
     );
 
 BOOLEAN
-QuicConnIsClosedLocation(
-    _In_ const QUIC_CONNECTION * const Connection,
-    _Out_ BOOLEAN ClosedLocally
-    );
-
-BOOLEAN
 QuicConnIsServer(
     _In_ const QUIC_CONNECTION * const Connection
     );

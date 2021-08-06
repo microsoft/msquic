@@ -672,21 +672,6 @@ QuicConnIsClosed(
 }
 
 //
-// Helper for checking if a connection is currently closed with a local close
-// check.
-//
-inline
-BOOLEAN
-QuicConnIsClosedLocation(
-    _In_ const QUIC_CONNECTION * const Connection,
-    _Out_ BOOLEAN ClosedLocally
-    )
-{
-    ClosedLocally = Connection->State.ClosedLocally;
-    return QuicConnIsClosed(Connection);
-}
-
-//
 // Returns the earliest expiration time across all timers for the connection.
 //
 inline
