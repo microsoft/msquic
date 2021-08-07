@@ -127,7 +127,7 @@ foreach ($Build in $AllBuilds) {
 
     # Copy License
     Copy-Item -Path (Join-Path $RootDir "LICENSE") -Destination $TempDir
-    if (!$BuildBaseName -like "*schannel*") {
+    if (!($BuildBaseName -like "*schannel*")) {
         # Only need license, no 3rd party code
         Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $TempDir
     }
