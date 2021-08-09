@@ -25,6 +25,9 @@ $AllBuilds = @()
 foreach ($Platform in $Platforms) {
     $PlatBuilds = Get-ChildItem -Path $Platform.FullName
     foreach ($PlatBuild in $PlatBuilds) {
+        if (!(Test-Path $PlatBuild -PathType Container)) {
+            continue;
+        }
         $AllBuilds += $PlatBuild
         if ($Platform.Name -eq "windows") {
             $WindowsBuilds += $PlatBuild
