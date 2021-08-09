@@ -138,12 +138,6 @@ set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
-# FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
-if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
-    message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
-    set(QUIC_ENABLE_LOGGING OFF)
-endif()
-
 if (QUIC_PDBALTPATH AND MSVC)
 #    Disabled in all cases because generation is broken.
 #    file(READ ${CMAKE_CURRENT_LIST_DIR}/cmake/PdbAltPath.txt PDBALTPATH)
@@ -485,7 +479,7 @@ if(QUIC_TLS STREQUAL "openssl")
 
     target_link_libraries(OpenSSL
         INTERFACE
-        OpenSSLQuic::OpenSSLQuic
+        OpenSSLQuic
     )
 endif()
 
