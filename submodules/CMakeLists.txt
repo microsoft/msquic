@@ -5,15 +5,17 @@ cmake_minimum_required(VERSION 3.16)
 
 # This is a helper project to build OpenSSL as part of the CMake "superbuild"
 # pattern, which sidesteps issues managing a dependency graph within a single
-# CMake project and enables smoother developer workflows. Currently, this only
-# supports the Win32 platform
+# CMake project and enables smoother developer workflows.
 
 # This file is intended to be included in the parent msquic project via FetchContent
 project(OpenSSLQuic)
 
-set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "QUIC build directory")
-set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl CACHE STRING "OpenSSL build directory")
+set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+
+# Here for testing, as caching this variable might be broken
+message(STATUS ${QUIC_USE_SYSTEM_LIBCRYPTO})
 
 set(OPENSSL_CONFIG_FLAGS
             enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
