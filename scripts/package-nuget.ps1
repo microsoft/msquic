@@ -38,6 +38,22 @@ function Get-GitHash {
     return $CurrentCommitHash
 }
 
+function Get-GitRemote {
+    param ($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $RepoRemote = $null
+    try {
+        $RepoRemote = git config --get remote.origin.url
+    } catch {
+        Write-LogAndDebug "Failed to get commit repo from git"
+        $RepoRemote = "https://github.com/microsoft/msquic.git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $RepoRemote
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -104,5 +120,6 @@ Copy-Item (Join-Path $NugetSourceFolder "msquic-$Tls.targets") $NativeDir
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+$RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-nuget.exe pack (Join-Path $PackagingDir "msquic-$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash
+nuget.exe pack (Join-Path $PackagingDir "msquic-$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote
