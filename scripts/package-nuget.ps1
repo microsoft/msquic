@@ -23,6 +23,21 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+function Get-GitHash {
+    param ($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $CurrentCommitHash = $null
+    try {
+        $CurrentCommitHash = git rev-parse HEAD
+    } catch {
+        Write-LogAndDebug "Failed to get commit hash from git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $CurrentCommitHash
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -88,4 +103,6 @@ Copy-Item (Join-Path $NugetSourceFolder "msquic-$Tls.targets") $NativeDir
 
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 
-nuget.exe pack (Join-Path $PackagingDir "msquic-$Tls.nuspec") -OutputDirectory $DistDir
+$CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+
+nuget.exe pack (Join-Path $PackagingDir "msquic-$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash

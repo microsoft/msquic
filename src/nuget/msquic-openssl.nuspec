@@ -11,6 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>MsQuic</description>
     <summary>MsQuic</summary>
+    <repository type="git" url="https://github.com/microsoft/msquic.git" commit="$CommitHash$" />
     <tags>native quic openssl</tags>
   </metadata>
 </package>
