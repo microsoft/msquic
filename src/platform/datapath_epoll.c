@@ -54,9 +54,6 @@ cxplat_sendmmsg_shim(
 #define CXPLAT_SENDMMSG cxplat_sendmmsg_shim
 #endif
 
-#define CXPLAT_MAX_BATCH_SEND 1
-#define CXPLAT_MAX_BATCH_RECEIVE 43
-
 //
 // The maximum single buffer size for sending coalesced payloads.
 //
@@ -67,6 +64,17 @@ cxplat_sendmmsg_shim(
 #undef UDP_SEGMENT
 #endif
 #endif
+
+//
+// If we have UDP segmentation support, use a single batch. Without UDP
+// segmentation, increase batch size to gain back some performance
+//
+#ifdef UDP_SEGMENT
+#define CXPLAT_MAX_BATCH_SEND 1
+#else
+#define CXPLAT_MAX_BATCH_SEND 43
+#endif
+#define CXPLAT_MAX_BATCH_RECEIVE 43
 
 //
 // A receive block to receive a UDP packet over the sockets.
