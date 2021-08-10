@@ -11,7 +11,7 @@ add_library(msquic SHARED ${SOURCES})
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
-target_link_libraries(msquic PRIVATE core platform inc warnings)
+target_link_libraries(msquic PRIVATE core platform inc warnings logging)
 
 if(WIN32)
     if(QUIC_UWP_BUILD)
@@ -42,11 +42,3 @@ configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
 
 install(EXPORT msquic DESTINATION ${msquic_dest})
-
-if(WIN32)
-    add_library(msquic.lttng INTERFACE)
-elseif(QUIC_ENABLE_LOGGING)
-    add_library(msquic.lttng SHARED $<TARGET_OBJECTS:platform.clog.provider> $<TARGET_OBJECTS:core.clog.provider>)
-    target_link_libraries(msquic.lttng inc)
-    install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
-endif()
