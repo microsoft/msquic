@@ -62,10 +62,8 @@ else()
                 set_property(
                     GLOBAL
                     APPEND
-                    APPEND_STRING
                     PROPERTY QUIC_STATIC_LIBS
-                    # # NOTE: Leading space here matters! (input files to the MSVC linker are space separated)
-                    " ${CURRENT_TARGET}"
+                    \"${CURRENT_TARGET}\"
                 )
             endif()
             return()
@@ -84,14 +82,12 @@ else()
         if(${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
             get_target_property(OUTPUT_DIR ${CURRENT_TARGET} ARCHIVE_OUTPUT_DIRECTORY)
             if(OUTPUT_DIR)
-                # NOTE: Leading space here matters! (input files to the MSVC linker are space separated)
-                set(STATIC_LIB " ${OUTPUT_DIR}/${TARGET_OUTPUT}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+                set(STATIC_LIB "${OUTPUT_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${TARGET_OUTPUT}${CMAKE_STATIC_LIBRARY_SUFFIX}")
                 set_property(
                     GLOBAL
                     APPEND
-                    APPEND_STRING
                     PROPERTY QUIC_STATIC_LIBS
-                    ${STATIC_LIB}
+                    \"${STATIC_LIB}\"
                 )
             endif()
         endif()
@@ -117,56 +113,112 @@ else()
 
     flatten_link_dependencies(msquic_static)
 
-    get_property(DEPS GLOBAL PROPERTY QUIC_STATIC_LIBS)
+    get_property(DEPS_LIST GLOBAL PROPERTY QUIC_STATIC_LIBS)
+    set(DEPS_STRING "")
+    foreach(line ${DEPS_LIST})
+        set(DEPS_STRING "${DEPS_STRING}${line} ")
+    endforeach(line)
+
     # Uncomment to analyze which dependencies were traversed
-    # message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
+    # message(STATUS "DEPS: ${DEPS_LIST}, ${QUIC_BUILD_DIR}")
 
-    set(NODEFAULTS "")
-    foreach(EXCLUDE ${EXCLUDE_LIST})
-        string(APPEND NODEFAULTS "/NODEFAULTLIB:${EXCLUDE}${CMAKE_STATIC_LIBRARY_SUFFIX} ")
-    endforeach()
+    if(APPLE)
+        # Emit all linker inputs at build time to resolve generator expressions
+        set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
+        file(
+            GENERATE
+            OUTPUT ${QUIC_DEPS_FILE}
+            CONTENT "${DEPS_STRING}"
+        )
+        add_custom_target(
+            msquic_linker_inputs
+            DEPENDS ${QUIC_DEPS_FILE}
+        )
+        add_dependencies(msquic_linker_inputs msquic_static)
+        set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-    # Exclude libraries for the corresponding msvcrts
-    # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
-    string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
-    # Uncomment to inspect which libraries will have referenced symbols ignored
-    # message(STATUS "NODEFAULTS: ${NODEFAULTS}")
+        # Run archiver tool
+        add_custom_target(
+            msquic_lib
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+            COMMAND libtool -static -o \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmsquic.a\" @${QUIC_DEPS_FILE}
+            DEPENDS ${QUIC_DEPS_FILE}
+        )
+    elseif(WIN32)
+        set(NODEFAULTS "")
+        foreach(EXCLUDE ${EXCLUDE_LIST})
+            string(APPEND NODEFAULTS "/NODEFAULTLIB:${EXCLUDE}${CMAKE_STATIC_LIBRARY_SUFFIX} ")
+        endforeach()
 
-    # Emit all linker inputs at build time to resolve generator expressions
-    set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
-    file(
-        GENERATE
-        OUTPUT ${QUIC_DEPS_FILE}
-        CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib\" ${DEPS} ${NODEFAULTS}"
-    )
-    add_custom_target(
-        msquic_linker_inputs
-        DEPENDS ${QUIC_DEPS_FILE}
-    )
-    add_dependencies(msquic_linker_inputs msquic_static)
-    set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+        # Exclude libraries for the corresponding msvcrts
+        # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
+        string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
+        # Uncomment to inspect which libraries will have referenced symbols ignored
+        # message(STATUS "NODEFAULTS: ${NODEFAULTS}")
 
-    # Run archiver tool (lib.exe) on our generated linker args
-    add_custom_target(
-        msquic_lib
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-        COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
-        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
-        DEPENDS ${QUIC_DEPS_FILE}
-    )
+        # Emit all linker inputs at build time to resolve generator expressions
+        set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
+        file(
+            GENERATE
+            OUTPUT ${QUIC_DEPS_FILE}
+            CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib\" ${DEPS_STRING} ${NODEFAULTS}"
+        )
+        add_custom_target(
+            msquic_linker_inputs
+            DEPENDS ${QUIC_DEPS_FILE}
+        )
+        add_dependencies(msquic_linker_inputs msquic_static)
+        set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+        # Run archiver tool (lib.exe) on our generated linker args
+        add_custom_target(
+            msquic_lib
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+            COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
+            DEPENDS ${QUIC_DEPS_FILE}
+        )
+    else()
+        # Emit all linker inputs at build time to resolve generator expressions
+        set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
+        set(DEPS_LINES "")
+        foreach(line ${DEPS_LIST})
+            message(STATUS ${line})
+            set(DEPS_LINES "${DEPS_LINES}addlib ${line}\n")
+        endforeach(line)
+        file(
+            GENERATE
+            OUTPUT ${QUIC_DEPS_FILE}
+            CONTENT "create \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmsquic.a\"\n${DEPS_LINES}save\nend\n"
+        )
+        add_custom_target(
+            msquic_linker_inputs
+            DEPENDS ${QUIC_DEPS_FILE}
+        )
+        add_dependencies(msquic_linker_inputs msquic_static)
+        set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+        # Run archiver tool
+        add_custom_target(
+            msquic_lib
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+            COMMAND ${CMAKE_AR} -M < ${QUIC_DEPS_FILE}
+            DEPENDS ${QUIC_DEPS_FILE}
+        )
+    endif()
     add_dependencies(msquic_lib msquic_linker_inputs)
     set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # Provide interface library to link the monolithic library
     # NOTE: It is important that this interface library NOT link directly to
     # msquic_static or the linker flags will inadvertently bring in symbols
-    # that are already linked as part of msquic.lib. Users can link to
+    # that are already linked as part of libmsquic.a. Users can link to
     # msquic_static directly if they don't need the monolithic library.
     add_library(msquic INTERFACE)
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
     target_link_libraries(msquic
         INTERFACE
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
         inc
     )
     add_dependencies(msquic msquic_lib)
