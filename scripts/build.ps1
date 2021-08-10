@@ -119,7 +119,7 @@ param (
     [switch]$Clean = $false,
 
     [Parameter(Mandatory = $false)]
-    [int32]$Parallel = -1,
+    [int32]$Parallel = -2,
 
     [Parameter(Mandatory = $false)]
     [switch]$DynamicCRT = $false,
@@ -154,6 +154,14 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ($Parallel -lt -1) {
+    if ($IsWindows) {
+        $Parallel = -1
+    } else {
+        $Parallel = 0
+    }
+}
 
 if ($Generator -eq "") {
     if ($IsWindows) {
