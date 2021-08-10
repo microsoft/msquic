@@ -6,7 +6,10 @@ RUN     apt-get update -y \
             cmake \
             liblttng-ust-dev \
             && apt-get clean
+RUN     ls .
 COPY    . /src
+RUN     ls /src
+RUN     ls /src/submodules
 
 FROM    source as build
 WORKDIR /src/Debug
