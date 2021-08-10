@@ -138,7 +138,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The number of messages of this buffer that have been sent.
     //
-    ssize_t SentMessagesCount;
+    size_t SentMessagesCount;
 
     //
     // The send segmentation size; zero if segmentation is not performed.
