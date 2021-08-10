@@ -473,6 +473,7 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     add_library(OpenSSL INTERFACE)
+    message(STATUS "Fetching for OpenSSL")
 
     include(FetchContent)
 
