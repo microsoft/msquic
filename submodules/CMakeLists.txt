@@ -149,6 +149,8 @@ if (WIN32)
         $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
     )
 
+    add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
+
 else()
 
     set(LIBSSL_PATH ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -264,5 +266,7 @@ else()
             ${LIBCRYPTO_PATH}
         )
     endif()
+
+    add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
 
 endif()
