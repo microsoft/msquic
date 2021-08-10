@@ -245,6 +245,18 @@ else()
             message(STATUS "SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
         endif()
 
+        check_c_source_compiles(
+            "
+            #define _GNU_SOURCE
+            #include <sys/socket.h>
+            #include <stddef.h>
+            int main() { return sendmmsg(0, NULL, 0, 0); }
+            "
+            HAS_SENDMMSG)
+        if(NOT HAS_SENDMMSG)
+            message(STATUS "sendmmsg is missing. Send performance will be reduced")
+        endif()
+
         # Error if flags are missing in CI
         if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
             if (NOT HAS_UDP_SEGMENT)
@@ -276,6 +288,9 @@ else()
 
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
+    if (HAS_SENDMMSG)
+        list(APPEND QUIC_COMMON_DEFINES HAS_SENDMMSG)
+    endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
