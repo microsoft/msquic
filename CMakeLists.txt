@@ -239,11 +239,9 @@ if(WIN32)
 
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE windows)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
     else()
         message(STATUS "Disabling tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -340,12 +338,11 @@ else()
 
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE linux)
         list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+        set (QUIC_LTTNG_PLATFORM linux)
         include(FindLTTngUST)
     else()
         message(STATUS "Disabling tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -522,27 +519,6 @@ if(QUIC_TLS STREQUAL "openssl")
     endif()
 endif()
 
-if (QUIC_ENABLE_LOGGING)
-    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
-
-    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
-    include(${CMAKE_CLOG_GENERATE_FILE})
-
-    function(add_clog_library)
-        CLOG_GENERATE_TARGET(${ARGV})
-        target_link_libraries(${ARGV0} PRIVATE inc)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "helpers")
-    endfunction()
-else()
-    function(add_clog_library)
-        add_library(${ARGV0} INTERFACE)
-    endfunction()
-endif()
-
 if(QUIC_TLS STREQUAL "mitls")
     # Build Everest.
     add_subdirectory(submodules/everest/msquic/msvc/kremlib)
@@ -601,6 +577,7 @@ if(QUIC_CODE_CHECK)
 endif()
 
 add_subdirectory(src/inc)
+add_subdirectory(src/generated)
 
 # Product code
 add_subdirectory(src/core)
