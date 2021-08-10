@@ -6,19 +6,14 @@ RUN     apt-get update -y \
             cmake \
             liblttng-ust-dev \
             && apt-get clean
-RUN     ls .
 COPY    . /src
-RUN     ls /src
-RUN     ls /src/submodules
 
 FROM    source as build
 WORKDIR /src/Debug
 RUN     chmod +x /src/scripts/install-powershell-docker.sh
 RUN     /src/scripts/install-powershell-docker.sh
 ENV     PATH="/root/.dotnet/tools:${PATH}"
-RUN     ls ../
-RUN     ls ../submodules
-RUN     cmake -DQUIC_BUILD_PERF=OFF \
+RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF \
             -DQUIC_ENABLE_LOGGING=on -DQUIC_TLS_SECRETS_SUPPORT=on \
             -DQUIC_DISABLE_POSIX_GSO=on ..
 RUN     cmake --build .

@@ -14,9 +14,6 @@ set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 
-message(STATUS ${CMAKE_CURRENT_BINARY_DIR})
-message(STATUS ${OPENSSL_DIR})
-
 set(OPENSSL_CONFIG_FLAGS
     enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
 
@@ -152,6 +149,8 @@ if (WIN32)
         $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
     )
 
+    add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
+
 else()
 
     set(LIBSSL_PATH ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -267,5 +266,7 @@ else()
             ${LIBCRYPTO_PATH}
         )
     endif()
+
+    add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
 
 endif()

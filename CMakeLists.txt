@@ -473,20 +473,19 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     add_library(OpenSSL INTERFACE)
-    message(STATUS "Fetching for OpenSSL")
 
     include(FetchContent)
 
     FetchContent_Declare(
-        OpenSSLQuicBuild
+        OpenSSLQuic
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
         CMAKE_ARGS "-DQUIC_USE_SYSTEM_LIBCRYPTO=${QUIC_USE_SYSTEM_LIBCRYPTO}"
     )
-    FetchContent_MakeAvailable(OpenSSLQuicBuild)
+    FetchContent_MakeAvailable(OpenSSLQuic)
 
     target_link_libraries(OpenSSL
         INTERFACE
-        OpenSSLQuic
+        OpenSSLQuic::OpenSSLQuic
     )
 endif()
 
