@@ -59,15 +59,9 @@ else()
     set(SOURCES ${SOURCES} cert_stub.c selfsign_stub.c tls_stub.c)
 endif()
 
-# Allow CLOG to preprocess all the source files.
-add_clog_library(platform.clog DYNAMIC ${SOURCES})
-if(QUIC_ENABLE_LOGGING)
-    set_property(TARGET platform.clog.provider PROPERTY FOLDER "helpers")
-endif()
-
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC platform.clog inc)
+target_link_libraries(platform PUBLIC inc)
 
 target_link_libraries(platform PRIVATE warnings)
 
