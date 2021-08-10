@@ -30,7 +30,11 @@ To convert the trace, you can use the following command:
 netsh.exe trace convert quic.etl
 ```
 
-> **Important** - If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. **TODO** - Provide instructions to get around this problem.
+If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. To solve thes issue, newer versions of Windows (11 and Server 2022) support a `manpath` flag that can be used to manually specify a manifest.
+
+```
+netsh.exe trace convert quic.etl manpath=path/to/manifest/MsQuicEtw.man
+```
 
 You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
