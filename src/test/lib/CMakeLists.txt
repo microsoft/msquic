@@ -16,19 +16,10 @@ set(SOURCES
     TestHelpers.h
 )
 
-# Allow CLOG to preprocess all the source files.
-add_clog_library(testlib.clog STATIC ${SOURCES})
-
 add_library(testlib ${SOURCES})
 
 target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_link_libraries(testlib PUBLIC testlib.clog)
-
 target_link_libraries(testlib PRIVATE inc warnings)
 
 set_property(TARGET testlib PROPERTY FOLDER "tests")
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_dependencies(platform MsQuicEtw)
-endif()
