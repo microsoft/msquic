@@ -212,7 +212,7 @@ else()
     # Provide interface library to link the monolithic library
     # NOTE: It is important that this interface library NOT link directly to
     # msquic_static or the linker flags will inadvertently bring in symbols
-    # that are already linked as part of libmsquic.a. Users can link to
+    # that are already linked as part of the static library. Users can link to
     # msquic_static directly if they don't need the monolithic library.
     add_library(msquic INTERFACE)
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
