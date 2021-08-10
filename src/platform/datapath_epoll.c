@@ -32,7 +32,7 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 #define CXPLAT_SENDMMSG sendmmsg
 #else
 static
-ssize_t
+int
 cxplat_sendmmsg_shim(
     int fd,
     struct mmsghdr* Messages,
@@ -44,7 +44,7 @@ cxplat_sendmmsg_shim(
     while (SuccessCount < MessageLen) {
         int Result = sendmsg(fd, &Messages[SuccessCount].msg_hdr, Flags);
         if (Result < 0) {
-            return SuccessCount == 0 ? Result : (ssize_t)SuccessCount;
+            return SuccessCount == 0 ? Result : (int)SuccessCount;
         }
         Messages[SuccessCount].msg_len = Result;
         SuccessCount++;
@@ -138,7 +138,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The number of messages of this buffer that have been sent.
     //
-    size_t SentMessagesCount;
+    ssize_t SentMessagesCount;
 
     //
     // The send segmentation size; zero if segmentation is not performed.
