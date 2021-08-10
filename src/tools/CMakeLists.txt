@@ -6,7 +6,7 @@ function(add_quic_tool)
     list(REMOVE_AT ARGV 0)
 
     add_executable(${targetname} ${ARGV})
-    target_link_libraries(${targetname} inc warnings msquic platform inc)
+    target_link_libraries(${targetname} inc warnings msquic platform inc logging)
     set_property(TARGET ${targetname} PROPERTY FOLDER "tools")
 endfunction()
 
