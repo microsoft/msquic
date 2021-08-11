@@ -4,6 +4,7 @@
 !src
 !cmake
 !submodules/openssl
+!submodules/CMakeLists.txt
 submodules/openssl/pyca-cryptography
 submodules/openssl/boringssl
 **/*.o

@@ -219,11 +219,6 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And $Static) {
-    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
-    exit
-}
-
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -304,7 +299,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
-    $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
+    $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -336,7 +331,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
     if ($ToolchainFile -ne "") {
-        $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
     }
     if ($SkipPdbAltPath) {
         $Arguments += " -DQUIC_PDBALTPATH=OFF"
@@ -372,8 +367,8 @@ function CMake-Generate {
         $Arguments += " -DANDROID_PLATFORM=android-29"
         $NDK = $env:ANDROID_NDK_HOME
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
-        $Arguments += " -DANDROID_NDK=$NDK"
-        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=$NdkToolchainFile"
+        $Arguments += " -DANDROID_NDK=""$NDK"""
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
     }
     $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
