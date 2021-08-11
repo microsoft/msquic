@@ -28,6 +28,31 @@ Environment:
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
+#ifdef HAS_SENDMMSG
+#define CXPLAT_SENDMMSG sendmmsg
+#else
+static
+int
+cxplat_sendmmsg_shim(
+    int fd,
+    struct mmsghdr* Messages,
+    unsigned int MessageLen,
+    int Flags
+    )
+{
+    unsigned int SuccessCount = 0;
+    while (SuccessCount < MessageLen) {
+        int Result = sendmsg(fd, &Messages[SuccessCount].msg_hdr, Flags);
+        if (Result < 0) {
+            return SuccessCount == 0 ? Result : (int)SuccessCount;
+        }
+        Messages[SuccessCount].msg_len = Result;
+        SuccessCount++;
+    }
+    return SuccessCount;
+}
+#define CXPLAT_SENDMMSG cxplat_sendmmsg_shim
+#endif
 
 //
 // The maximum single buffer size for sending coalesced payloads.
@@ -2573,7 +2598,7 @@ CxPlatSocketSendInternal(
     while (SendData->SentMessagesCount < TotalMessagesCount) {
 
         int SuccessfullySentMessages =
-            sendmmsg(
+            CXPLAT_SENDMMSG(
                 SocketContext->SocketFd,
                 Mhdrs + SendData->SentMessagesCount,
                 (unsigned int)(TotalMessagesCount - SendData->SentMessagesCount),
