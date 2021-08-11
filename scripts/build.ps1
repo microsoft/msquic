@@ -108,7 +108,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos", "android")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -219,9 +219,9 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And $Static) {
-    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
-    exit
+if ($Platform -eq "ios" -and !$Static) {
+    $Static = $true
+    Write-Host "iOS can only be built as static"
 }
 
 # Root directory of the project.
@@ -299,6 +299,9 @@ function CMake-Generate {
         }
     } else {
         $Arguments += " $Generator"
+    }
+    if ($Platform -eq "ios") {
+        $Arguments += " -DCMAKE_SYSTEM_NAME=iOS"
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
