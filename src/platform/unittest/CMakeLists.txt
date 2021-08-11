@@ -21,6 +21,11 @@ else()
     target_link_libraries(msquicplatformtest msquic platform inc gtest logging)
 endif()
 
+# At least /W3 must be used on all windows builds to pass compliance
+if(MSVC)
+    target_compile_options(msquicplatformtest PRIVATE /W3)
+endif()
+
 add_test(NAME msquicplatformtest
          COMMAND msquicplatformtest
          WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})
