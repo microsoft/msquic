@@ -388,15 +388,17 @@ function CMake-Generate {
 function CMake-Build {
     $Arguments = "--build ."
     if ($Parallel -gt 0) {
-        $Arguments += " --parallel $($Parallel)"
+       # $Arguments += " --parallel $($Parallel)"
     } elseif ($Parallel -eq 0) {
-        $Arguments += " --parallel"
+       # $Arguments += " --parallel"
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
     } else {
         $Arguments += " -- VERBOSE=1"
     }
+
+    Log $Arguments
 
     CMake-Execute $Arguments
 
