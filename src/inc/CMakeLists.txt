@@ -17,6 +17,10 @@ if (NOT MSVC)
     target_compile_features(inc INTERFACE c_std_11)
 endif()
 
+if (HAS_GUARDCF)
+    target_link_options(inc INTERFACE /guard:cf /DYNAMICBASE)
+endif()
+
 if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
     target_link_libraries(inc INTERFACE -fsanitize=address,leak,undefined)
 endif()
