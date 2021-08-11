@@ -565,7 +565,7 @@ QuicPacketBuilderFinalizeHeaderProtection(
 // off.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicPacketBuilderFinalize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ BOOLEAN FlushBatchedDatagrams
@@ -573,6 +573,7 @@ QuicPacketBuilderFinalize(
 {
     QUIC_CONNECTION* Connection = Builder->Connection;
     BOOLEAN FinalQuicPacket = FALSE;
+    BOOLEAN CanKeepSending = TRUE;
 
     if (Builder->Datagram == NULL ||
         Builder->Metadata->FrameCount == 0) {
@@ -583,13 +584,19 @@ QuicPacketBuilderFinalize(
         if (Builder->Datagram != NULL) {
             --Connection->Send.NextPacketNumber;
             Builder->DatagramLength -= Builder->HeaderLength;
+            Builder->HeaderLength = 0;
+            CanKeepSending = FALSE;
 
             if (Builder->DatagramLength == 0) {
                 QuicDataPathBindingFreeSendDatagram(Builder->SendContext, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
         }
-        FinalQuicPacket = FlushBatchedDatagrams;
+        if (Builder->Path->Allowance != UINT32_MAX) {
+            QuicConnAddOutFlowBlockedReason(
+                Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
+        }
+        FinalQuicPacket = FlushBatchedDatagrams && (Builder->TotalCountDatagrams != 0);
         goto Exit;
     }
 
@@ -875,6 +882,10 @@ Exit:
                 NULL);
         }
     }
+
+    QUIC_DBG_ASSERT(!FlushBatchedDatagrams || Builder->SendContext == NULL);
+
+    return CanKeepSending;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
