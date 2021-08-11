@@ -21,7 +21,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(msquictest platform)
 endif()
 
-target_link_libraries(msquictest msquic testlib platform inc gtest logging)
+target_link_libraries(msquictest inc gtest msquictest.clog logging)
 
 # At least /W3 must be used on all windows builds to pass compliance
 if(MSVC)

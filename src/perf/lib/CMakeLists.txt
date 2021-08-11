@@ -26,4 +26,3 @@ target_include_directories(perflib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 if(MSVC)
     target_compile_options(perflib PUBLIC /wd4459)
 endif()
-

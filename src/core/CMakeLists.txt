@@ -55,9 +55,6 @@ endif()
 
 # Allow CLOG to preprocess all the source files.
 add_clog_library(core.clog DYNAMIC ${SOURCES})
-if(QUIC_ENABLE_LOGGING)
-    set_property(TARGET core.clog.provider PROPERTY FOLDER "helpers")
-endif()
 
 add_library(core STATIC ${SOURCES})
 
