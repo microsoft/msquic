@@ -454,6 +454,7 @@ else() #!WIN32
         else()
             message(STATUS "Configuring for LTTng tracing")
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+            set(CMAKE_CLOG_CONFIG_PROFILE linux)
             set (QUIC_LTTNG_PLATFORM linux)
             include(FindLTTngUST)
         endif()
