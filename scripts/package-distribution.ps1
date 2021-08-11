@@ -23,8 +23,11 @@ $WindowsBuilds = @()
 $AllBuilds = @()
 
 foreach ($Platform in $Platforms) {
-    $PlatBuilds = Get-ChildItem -Path $Platform
+    $PlatBuilds = Get-ChildItem -Path $Platform.FullName
     foreach ($PlatBuild in $PlatBuilds) {
+        if (!(Test-Path $PlatBuild -PathType Container)) {
+            continue;
+        }
         $AllBuilds += $PlatBuild
         if ($Platform.Name -eq "windows") {
             $WindowsBuilds += $PlatBuild
@@ -34,7 +37,7 @@ foreach ($Platform in $Platforms) {
 
 foreach ($Build in $AllBuilds) {
     $BuildBaseName = $Build.Name
-    $Platform = Split-Path -Path (Split-Path -Path $Build -Parent) -Leaf
+    $Platform = Split-Path -Path (Split-Path -Path $Build.FullName -Parent) -Leaf
 
     if ($Platform -eq "winkernel") {
         continue
@@ -45,7 +48,7 @@ foreach ($Build in $AllBuilds) {
 
     $DistDir = Join-Path $BaseArtifactsDir "dist"
 
-    $TempDir = Join-Path $BaseArtifactsDir "temp" "zip" $Platform
+    $TempDir = Join-Path $BaseArtifactsDir "temp/zip/$Platform"
     $TempDir = Join-Path $TempDir $BuildBaseName
 
     # Initialize directories needed for building.
@@ -59,7 +62,7 @@ foreach ($Build in $AllBuilds) {
 
     New-Item -Path $TempDir -ItemType Directory -Force | Out-Null
 
-    $HeaderDir = Join-Path $RootDir "src" "inc"
+    $HeaderDir = Join-Path $RootDir "src/inc"
 
     # Find Headers
 
@@ -68,7 +71,7 @@ foreach ($Build in $AllBuilds) {
     if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
     } else {
-        $Headers += Join-Path $HeaderDir  "msquic_linux.h"
+        $Headers += Join-Path $HeaderDir  "msquic_posix.h"
         $Headers += Join-Path $HeaderDir  "quic_sal_stub.h"
     }
 
@@ -79,12 +82,15 @@ foreach ($Build in $AllBuilds) {
     if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
-    } else {
+    } elseif ($Platform -eq "linux") {
         $Binaries += Join-Path $ArtifactsDir "libmsquic.so"
         $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so"
         if (Test-Path $LttngBin) {
             $Binaries += $LttngBin
         }
+    } else {
+        # macos
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.dylib"
     }
 
     $Libraries = @()
@@ -124,10 +130,16 @@ foreach ($Build in $AllBuilds) {
 
     # Copy License
     Copy-Item -Path (Join-Path $RootDir "LICENSE") -Destination $TempDir
-    if (!$BuildBaseName.Contains("Schannel", [StringComparison]::InvariantCultureIgnoreCase)) {
+    if (!($BuildBaseName -like "*schannel*")) {
         # Only need license, no 3rd party code
         Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $TempDir
     }
     # Package zip archive
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
+
+    # For now, package only x64 Release binaries
+    if ($Platform -eq "linux" -and $BuildBaseName -like "*x64_Release*") {
+        Write-Output "Packaging $Build"
+        scripts/make-packages.sh  --output $DistDir
+    }
 }
