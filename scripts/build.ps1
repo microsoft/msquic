@@ -219,11 +219,6 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And $Static) {
-    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
-    exit
-}
-
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
