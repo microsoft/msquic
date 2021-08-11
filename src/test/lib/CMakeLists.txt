@@ -22,8 +22,6 @@ add_library(testlib STATIC ${SOURCES})
 
 target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_link_libraries(testlib PUBLIC)
-
 target_link_libraries(testlib PRIVATE inc warnings)
 
 set_property(TARGET testlib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
