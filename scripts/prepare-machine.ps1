@@ -70,10 +70,6 @@ $ProgressPreference = 'SilentlyContinue'
 $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
-# Well-known location for clog packages.
-$ClogVersion = "0.2.0"
-$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
-
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -109,32 +105,10 @@ if ($InitSubmodules) {
         git submodule init submodules/googletest
         git submodule update
     }
-}
 
-function Install-ClogTool {
-    param($ToolName)
-    New-Item -Path $NuGetPath -ItemType Directory -Force | Out-Null
-    $NuGetName = "$ToolName.$ClogVersion.nupkg"
-    $NuGetFile = Join-Path $NuGetPath $NuGetName
-    try {
-        if (!(Test-Path $NuGetFile)) {
-            Write-Host "Downloading $ClogDownloadUrl/$NuGetName"
-            Invoke-WebRequest -Uri "$ClogDownloadUrl/$NuGetName" -OutFile $NuGetFile
-        }
-        Write-Host "Installing: $NuGetName"
-        dotnet tool update --global --add-source $NuGetPath $ToolName
-    } catch {
-        if ($FailOnError) {
-            Write-Error $_
-        }
-        $err = $_
-        $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
-        $MessagesAtEnd.Add($err.ToString())
-    }
-}
-
-if (($Configuration -eq "Dev")) {
-    Install-ClogTool "Microsoft.Logging.CLOG"
+    Write-Host "Initializing CLOG submodule"
+    git submodule init submodules/clog
+    git submodule update
 }
 
 if ($IsWindows) {
@@ -332,8 +306,6 @@ if ($IsWindows) {
             Write-Host "[$(Get-Date)] Setting core dump pattern..."
             sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
             #sudo cat /proc/sys/kernel/core_pattern
-
-            Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.12
@@ -342,8 +314,6 @@ if ($IsWindows) {
             sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
-
-            Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
     }
 }

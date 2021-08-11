@@ -125,8 +125,9 @@ function Log-Start {
             if ($Stream) {
                 lttng list | Write-Debug
                 babeltrace -i lttng-live net://localhost | Write-Debug
-                Write-Host "Now decoding LTTng events in realtime...`n"
-                $args = "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                $myHostName = hostname
+                Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
+                $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
                 Write-Host $args
                 Invoke-Expression $args
             }

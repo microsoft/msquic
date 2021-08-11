@@ -357,9 +357,11 @@ if(WIN32)
 
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE windows)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
     else()
         message(STATUS "Disabling tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -447,6 +449,7 @@ else() #!WIN32
         if (APPLE)
             set (QUIC_ENABLE_LOGGING OFF)
             message(STATUS "Disabling all tracing on macos")
+            set(CMAKE_CLOG_CONFIG_PROFILE stubs)
             list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
         else()
             message(STATUS "Configuring for LTTng tracing")
@@ -456,6 +459,7 @@ else() #!WIN32
         endif()
     else()
         message(STATUS "Disabling tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -487,6 +491,30 @@ if(QUIC_TLS STREQUAL "openssl")
         INTERFACE
         OpenSSLQuic::OpenSSLQuic
     )
+endif()
+
+if (QUIC_ENABLE_LOGGING)
+    add_subdirectory(submodules/clog)
+
+    LIST(APPEND CMAKE_PROGRAM_PATH  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts")
+    set(CLOG_EXE  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/clog")
+
+    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
+    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
+    set(CLOG_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog/defaults)
+    set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog/defaults/CLog.cmake)
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
+    include(${CMAKE_CLOG_GENERATE_FILE})
+
+    function(add_clog_library)
+        CLOG_GENERATE_TARGET(${ARGV})
+        target_link_libraries(${ARGV0} PRIVATE inc)
+        set_property(TARGET ${ARGV0} PROPERTY FOLDER "helpers")
+    endfunction()
+else()
+    function(add_clog_library)
+        add_library(${ARGV0} INTERFACE)
+    endfunction()
 endif()
 
 if(QUIC_CODE_CHECK)

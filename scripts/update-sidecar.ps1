@@ -1,9 +1,17 @@
 <#
 
 .SYNOPSIS
-This regenerates the CLOG sidecar file.
+This updates/regenerates the CLOG sidecar file.
+
+.PARAMETER Clean
+    Deletes the old sidecar file first.
 
 #>
+
+param (
+    [Parameter(Mandatory = $false)]
+    [switch]$Clean = $false
+)
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
@@ -18,45 +26,27 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
-$OutputDir = Join-Path $RootDir "src" "generated"
-if (Test-Path $OutputDir) {
-    Remove-Item $OutputDir -Recurse -Force -Exclude 'CMakeLists.txt'
-}
-
-$Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File)
+$Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -Exclude *quic_trace.h,*quicetw.h,*trace.c -File)
 $Files.Sort([SimpleStringComparer]::new())
 
 $Sidecar = Join-Path $SrcDir "manifest" "clog.sidecar"
 $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
 
-$TmpOutputDir = Join-Path $RootDir "build" "tmp"
-
+$OutputDir = Join-Path $RootDir "build" "tmp"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
+if ($Clean) {
+    Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
+}
 
-clog --installDirectory (Join-Path $OutputDir common)
-
+$allFiles = ""
 foreach ($File in $Files) {
-    $FileToCheck = [System.IO.Path]::GetFileName($File) + ".clog.h"
-    $FileContents = (Get-Content -path $File -Raw)
-    if ($null -eq $FileContents -or  !$FileContents.Contains($FileToCheck)) {
-        continue
-    }
-    clog -p windows --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
-    clog -p windows_kernel --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
-    clog -p stubs --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
-    clog -p linux --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory (Join-Path $OutputDir linux)
-    clog -p macos --dynamicTracepointProvider --scopePrefix "quic.clog" -s $Sidecar -c $ConfigFile -i $File --outputDirectory $TmpOutputDir
+    Write-Debug "Add file: $File"
+    $allFiles = $allFiles + " " + $File
 }
 
-# Perform fixups
-$GenFiles = Get-ChildItem -Path "$OutputDir\*" -Recurse -File
-$ToRemovePath = "$OutputDir\linux\"
-foreach ($File in $GenFiles) {
-    ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File -NoNewline
-}
-foreach ($File in $GenFiles) {
-    $Content = Get-Content -path $File | Where-Object {$_ -notmatch "// CLOG generated "}
-    $Content | Set-Content -Path $File
-}
+Invoke-Expression "clog -p windows --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p windows_kernel --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p stubs --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p linux --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p macos --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"

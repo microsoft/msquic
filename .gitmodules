@@ -5,3 +5,6 @@
 	path = submodules/openssl
 	url = https://github.com/quictls/openssl.git
 	branch = OpenSSL_1_1_1k+quic
+[submodule "submodules/clog"]
+	path = submodules/clog
+	url = https://github.com/microsoft/CLOG.git
