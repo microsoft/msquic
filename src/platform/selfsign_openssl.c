@@ -26,6 +26,9 @@ Abstract:
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 #ifdef QUIC_CLOG
 #include "selfsign_openssl.c.clog.h"
 #endif
@@ -476,6 +479,9 @@ CxPlatFreeSelfSignedCert(
 #ifdef _WIN32
     DeleteFileA(Params->CertFilepath);
     DeleteFileA(Params->PrivateKeyFilepath);
+#elif TARGET_OS_IOS
+    UNREFERENCED_PARAMETER(CredConfig);
+    UNREFERENCED_PARAMETER(Params);
 #else
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
