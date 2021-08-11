@@ -184,6 +184,21 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
+
+    include(CheckCCompilerFlag)
+
+    if(NOT QUIC_ENABLE_SANITIZERS)
+        check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+    endif()
+    if(HAS_SPECTRE)
+        list(APPEND QUIC_COMMON_FLAGS /Qspectre)
+    endif()
+
+    check_c_compiler_flag(/guard:cf HAS_GUARDCF)
+    if(HAS_GUARDCF)
+        list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
@@ -609,6 +624,16 @@ if(QUIC_BUILD_TEST)
 
     set_property(TARGET gtest PROPERTY FOLDER "tests")
     set_property(TARGET gtest_main PROPERTY FOLDER "tests")
+
+    if (HAS_SPECTRE)
+        target_compile_options(gtest PRIVATE /Qspectre)
+        target_compile_options(gtest_main PRIVATE /Qspectre)
+    endif()
+
+    if (HAS_GUARDCF)
+        target_compile_options(gtest PRIVATE /guard:cf)
+        target_compile_options(gtest_main PRIVATE /guard:cf)
+    endif()
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)
