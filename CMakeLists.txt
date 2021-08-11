@@ -185,18 +185,22 @@ if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
 
-    include(CheckCCompilerFlag)
+    if (NOT(QUIC_TLS STREQUAL "mitls"))
 
-    if(NOT QUIC_ENABLE_SANITIZERS)
-        check_c_compiler_flag(/Qspectre HAS_SPECTRE)
-    endif()
-    if(HAS_SPECTRE)
-        list(APPEND QUIC_COMMON_FLAGS /Qspectre)
-    endif()
+        include(CheckCCompilerFlag)
 
-    check_c_compiler_flag(/guard:cf HAS_GUARDCF)
-    if(HAS_GUARDCF)
-        list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+        if(NOT QUIC_ENABLE_SANITIZERS)
+            check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+        endif()
+        if(HAS_SPECTRE)
+            list(APPEND QUIC_COMMON_FLAGS /Qspectre)
+        endif()
+
+        check_c_compiler_flag(/guard:cf HAS_GUARDCF)
+        if(HAS_GUARDCF)
+            list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+        endif()
+
     endif()
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
