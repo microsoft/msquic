@@ -1,3 +1,11 @@
+<#
+
+.SYNOPSIS
+    This script generates C# bindings using ClangSharpPInvokeGenerator.
+    Due to bugs in the tool, this is currently not an automated process
+
+#>
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 

@@ -1,3 +1,10 @@
+<#
+
+.SYNOPSIS
+    This script runs .NET tests using previously built MsQuic binaries
+
+#>
+
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
