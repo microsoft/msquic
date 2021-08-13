@@ -5,6 +5,10 @@ use libc::c_void;
 use std::ptr;
 use std::option::Option;
 
+//
+// The following starts the C interop layer of MsQuic API.
+//
+
 /// Represents an opaque handle to a MsQuic object.
 pub type Handle = *const libc::c_void;
 
@@ -15,11 +19,13 @@ pub type u62 = u64;
 /// Represents a C-style bool.
 pub type BOOLEAN = ::std::os::raw::c_uchar;
 
+/// Represents the family of IP address.
 pub type AddressFamily = u16;
 pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = 0;
 pub const ADDRESS_FAMILY_INET: AddressFamily = 2;
 pub const ADDRESS_FAMILY_INET6: AddressFamily = 23;
 
+/// Represents a completely generic address payload.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct sockaddr {
@@ -27,6 +33,7 @@ pub struct sockaddr {
     pub data: [u8; 14usize],
 }
 
+/// Represents an IPv4 address payload.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct sockaddr_in {
@@ -36,6 +43,7 @@ pub struct sockaddr_in {
     pub zero: [u8; 8usize],
 }
 
+/// Represents an IPv6 address payload.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct sockaddr_in6 {
@@ -46,6 +54,7 @@ pub struct sockaddr_in6 {
     pub scope_id: u32,
 }
 
+/// Provides a generic representation of IPv4 or IPv6 addresses.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union Addr {
@@ -727,6 +736,10 @@ extern {
     fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u32;
     fn MsQuicClose(api: *const ApiTable);
 }
+
+//
+// The following starts the "nice" Rust API wrapper on the C interop layer.
+//
 
 pub struct Api {
     table: *const ApiTable,
