@@ -114,12 +114,14 @@ if ($Tls -like "openssl") {
 
 $NugetSourceFolder = Join-Path $RootDir "src/nuget"
 
-Copy-Item (Join-Path $NugetSourceFolder "msquic-$Tls.nuspec") $PackagingDir
-Copy-Item (Join-Path $NugetSourceFolder "msquic-$Tls.targets") $NativeDir
+Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") $PackagingDir
+Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.targets") $NativeDir
+
+Copy-Item (Join-Path $NugetSourceFolder "pkkgicon.png") $PackagingDir
 
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-nuget.exe pack (Join-Path $PackagingDir "msquic-$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote
+nuget.exe pack (Join-Path $PackagingDir "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote
