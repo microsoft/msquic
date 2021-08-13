@@ -83,6 +83,11 @@ namespace MsQuicTool
         private static unsafe int NativeCallback(QUIC_HANDLE* handle, void* context, QUIC_CONNECTION_EVENT* evnt)
         {
             Console.WriteLine(evnt->Type);
+            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED)
+            {
+                Console.WriteLine("Aborting Stream");
+                return MsQuic.QUIC_STATUS_ABORTED;
+            }
             if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT)
             {
                 Console.WriteLine(evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status.ToString("X8"));

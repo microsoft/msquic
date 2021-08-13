@@ -4,38 +4,36 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [ValidateSet("x86", "x64", "arm", "arm64", "universal")]
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl")]
     [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = ""
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
+
+$Tls = $BuildConfig.Tls
+$Arch = $BuildConfig.Arch
+$RootArtifactDir = $BuildConfig.ArtifactsDir
 
 if ($IsWindows) {
-    $Platform = "windows"
-} elseif ($IsLinux) {
-    $Platform = "linux"
+    $LibName = "msquic.dll"
 } elseif ($IsMacOS) {
-    $Platform = "macos"
+    $LibName = "libmsquic.dylib"
 } else {
-    Write-Error "Unsupported platform type!"
+    $LibName = "libmsquic.so"
 }
 
-# Relevant file paths used by this script.
+# Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
-$RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
 
-
+dotnet build (Join-Path $RootDir src cs)
+dotnet run --project (Join-Path $RootDir src cs tool) -- (Join-Path $RootArtifactDir $LibName)
