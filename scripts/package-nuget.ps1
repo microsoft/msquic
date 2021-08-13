@@ -117,7 +117,7 @@ $NugetSourceFolder = Join-Path $RootDir "src/nuget"
 Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") $PackagingDir
 Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.targets") $NativeDir
 
-Copy-Item (Join-Path $NugetSourceFolder "pkkgicon.png") $PackagingDir
+Copy-Item (Join-Path $NugetSourceFolder "pkgicon.png") $PackagingDir
 
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 
