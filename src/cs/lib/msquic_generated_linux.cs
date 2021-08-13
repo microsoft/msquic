@@ -8,17 +8,8 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
 {
-    public static unsafe partial class MsQuic_Posix
+    public static unsafe partial class MsQuic_Linux
     {
-        [NativeTypeName("#define ERROR_BASE 200000000")]
-        public const int ERROR_BASE = 200000000;
-
-        [NativeTypeName("#define TLS_ERROR_BASE 256 + ERROR_BASE")]
-        public const int TLS_ERROR_BASE = 256 + 200000000;
-
-        [NativeTypeName("#define CERT_ERROR_BASE 512 + ERROR_BASE")]
-        public const int CERT_ERROR_BASE = 512 + 200000000;
-
         [NativeTypeName("#define QUIC_STATUS_SUCCESS ((QUIC_STATUS)0)")]
         public const int QUIC_STATUS_SUCCESS = ((int)(0));
 
@@ -111,23 +102,5 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_STATUS_CERT_UNTRUSTED_ROOT QUIC_STATUS_CERT_ERROR(2)")]
         public const int QUIC_STATUS_CERT_UNTRUSTED_ROOT = ((int)(2) + 512 + 200000000);
-
-        [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION 0x00000080")]
-        public const int QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION = 0x00000080;
-
-        [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA 0x00000100")]
-        public const int QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA = 0x00000100;
-
-        [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_WRONG_USAGE 0x00000200")]
-        public const int QUIC_CERTIFICATE_FLAG_IGNORE_WRONG_USAGE = 0x00000200;
-
-        [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID 0x00001000")]
-        public const int QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID = 0x00001000;
-
-        [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_DATE_INVALID 0x00002000")]
-        public const int QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_DATE_INVALID = 0x00002000;
-
-        [NativeTypeName("#define QUIC_CERTIFICATE_FLAG_IGNORE_WEAK_SIGNATURE 0x00010000")]
-        public const int QUIC_CERTIFICATE_FLAG_IGNORE_WEAK_SIGNATURE = 0x00010000;
     }
 }

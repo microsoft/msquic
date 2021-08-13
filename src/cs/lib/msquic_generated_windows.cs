@@ -7,12 +7,6 @@ namespace Microsoft.Quic
 {
     public static partial class MsQuic_Windows
     {
-        [NativeTypeName("#define ERROR_QUIC_STREAM_LIMIT_REACHED _HRESULT_TYPEDEF_(0x80410008L)")]
-        public const int ERROR_QUIC_STREAM_LIMIT_REACHED = unchecked((int)(0x80410008));
-
-        [NativeTypeName("#define QUIC_TLS_ALERT_HRESULT_PREFIX _HRESULT_TYPEDEF_(0x80410100L)")]
-        public const int QUIC_TLS_ALERT_HRESULT_PREFIX = unchecked((int)(0x80410100));
-
         [NativeTypeName("#define QUIC_STATUS_SUCCESS S_OK")]
         public const int QUIC_STATUS_SUCCESS = ((int)(0));
 
