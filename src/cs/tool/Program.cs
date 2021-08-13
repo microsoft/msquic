@@ -90,7 +90,7 @@ namespace MsQuicTool
             }
             if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT)
             {
-                Console.WriteLine(evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status.ToString("X8"));
+                Console.WriteLine($"{evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status.ToString("X8")}: {QuicException.GetErrorCodeForStatus(evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status)}");
             }
             return MsQuic.QUIC_STATUS_SUCCESS;
         }

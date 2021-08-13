@@ -26,7 +26,7 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64", "")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "universal", "")]
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
