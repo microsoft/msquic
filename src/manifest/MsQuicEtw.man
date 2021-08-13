@@ -2668,9 +2668,9 @@
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.ConnClientCompatibleVersionList)"
+              message="$(string.Etw.ConnVNEOtherVersionList)"
               opcode="Connection"
-              symbol="QuicConnClientCompatibleVersionList"
+              symbol="QuicConnVNEOtherVersionList"
               template="tid_CONN_VNL"
               value="5176"
               />
@@ -3251,16 +3251,16 @@
             value="[conn][%1] Queueing send flush, reason=%2"
             />
         <string
-            id="Etw.ConnClientCompatibleVersionList"
-            value="[conn][%1] Client VNI Compatible Version List: %3"
+            id="Etw.ConnVNEOtherVersionList"
+            value="[conn][%1] VerInfo Other Versions List: %3"
             />
         <string
             id="Etw.ConnClientReceivedVersionList"
-            value="[conn][%1] Client VNI Received Version List: %3"
+            value="[conn][%1] Client VI Received Version List: %3"
             />
         <string
             id="Etw.ConnServerSupportedVersionList"
-            value="[conn][%1] Server VNI Supported Version List: %3"
+            value="[conn][%1] Server VI Supported Version List: %3"
             />
         <string
             id="Etw.StreamCreated"

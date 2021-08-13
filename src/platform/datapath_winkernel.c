@@ -1056,6 +1056,82 @@ CxPlatDataPathIsPaddingPreferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
+CxPlatDataPathGetLocalAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
+        CXPLAT_ADAPTER_ADDRESS** Addresses,
+    _Out_ uint32_t* AddressesCount
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+
+    MIB_IPINTERFACE_TABLE* InterfaceTable = NULL;
+    MIB_UNICASTIPADDRESS_TABLE* AddressTable = NULL;
+
+    QUIC_STATUS Status = GetIpInterfaceTable(AF_UNSPEC, &InterfaceTable);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetIpInterfaceTable");
+        goto Error;
+    }
+
+    Status = GetUnicastIpAddressTable(AF_UNSPEC, &AddressTable);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetUnicastIpAddressTable");
+        goto Error;
+    }
+
+    *Addresses = CXPLAT_ALLOC_NONPAGED(AddressTable->NumEntries * sizeof(CXPLAT_ADAPTER_ADDRESS), QUIC_POOL_DATAPATH_ADDRESSES);
+    if (*Addresses == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Addresses",
+            AddressTable->NumEntries * sizeof(CXPLAT_ADAPTER_ADDRESS));
+        goto Error;
+    }
+    *AddressesCount = (uint32_t)AddressTable->NumEntries;
+
+    for (ULONG i = 0; i < AddressTable->NumEntries; ++i) {
+        MIB_IPINTERFACE_ROW* Interface = NULL;
+        for (ULONG j = 0; j < InterfaceTable->NumEntries; ++j) {
+            if (InterfaceTable->Table[j].InterfaceIndex == AddressTable->Table[i].InterfaceIndex) {
+                Interface = &InterfaceTable->Table[j];
+                break;
+            }
+        }
+
+        CXPLAT_ADAPTER_ADDRESS* AdapterAddress = &(*Addresses)[i];
+        memcpy(&AdapterAddress->Address, &AddressTable->Table[i].Address, sizeof(QUIC_ADDR));
+        AdapterAddress->InterfaceIndex = (uint32_t)AddressTable->Table[i].InterfaceIndex;
+        AdapterAddress->InterfaceType = (uint16_t)AddressTable->Table[i].InterfaceLuid.Info.IfType;
+        AdapterAddress->OperationStatus = Interface && Interface->Connected ? CXPLAT_OPERATION_STATUS_UP : CXPLAT_OPERATION_STATUS_DOWN;
+    }
+
+Error:
+
+    if (AddressTable) {
+        FreeMibTable(AddressTable);
+    }
+
+    if (InterfaceTable) {
+        FreeMibTable(InterfaceTable);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
 CxPlatDataPathGetGatewayAddresses(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
@@ -1302,10 +1378,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* RecvCallbackContext,
-    _In_ uint32_t InternalFlags,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
@@ -1344,15 +1417,15 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 
     RtlZeroMemory(Binding, BindingSize);
     Binding->Datapath = Datapath;
-    Binding->ClientContext = RecvCallbackContext;
-    Binding->Connected = (RemoteAddress != NULL);
-    if (LocalAddress != NULL) {
-        CxPlatConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
+    Binding->ClientContext = Config->CallbackContext;
+    Binding->Connected = (Config->RemoteAddress != NULL);
+    if (Config->LocalAddress != NULL) {
+        CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
     } else {
         Binding->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
@@ -1360,7 +1433,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
         CxPlatRundownInitialize(&Binding->Rundown[i]);
     }
-    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
+    if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Binding->PcpBinding = TRUE;
     }
 
@@ -1387,7 +1460,7 @@ CxPlatSocketCreateUdp(
             WSK_FLAG_DATAGRAM_SOCKET,
             Binding,
             &Datapath->WskDispatch,
-            NULL,
+            Config->OwningProcess,
             NULL,
             NULL,
             &Binding->Irp);
@@ -1574,6 +1647,45 @@ CxPlatSocketCreateUdp(
         }
     }
 
+    if (Config->InterfaceIndex != 0) {
+        Option = (int)Config->InterfaceIndex;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_UNICAST_IF,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_UNICAST_IF");
+            goto Error;
+        }
+        Option = (int)RtlUlongByteSwap(Config->InterfaceIndex);
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_UNICAST_IF,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_UNICAST_IF");
+            goto Error;
+        }
+    }
+
     IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &Binding->Irp,
@@ -1616,9 +1728,9 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    if (RemoteAddress) {
+    if (Config->RemoteAddress) {
         SOCKADDR_INET MappedRemoteAddress = { 0 };
-        CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+        CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedRemoteAddress);
 
         Status =
             CxPlatDataPathSetControlSocket(
@@ -1685,14 +1797,14 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
 
-    if (RemoteAddress != NULL) {
-        Binding->RemoteAddress = *RemoteAddress;
+    if (Config->RemoteAddress != NULL) {
+        Binding->RemoteAddress = *Config->RemoteAddress;
     } else {
         Binding->RemoteAddress.Ipv4.sin_port = 0;
     }

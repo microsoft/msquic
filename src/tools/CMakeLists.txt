@@ -6,7 +6,13 @@ function(add_quic_tool)
     list(REMOVE_AT ARGV 0)
 
     add_executable(${targetname} ${ARGV})
-    target_link_libraries(${targetname} inc warnings msquic platform inc)
+    target_link_libraries(${targetname} inc warnings msquic inc logging)
+
+    if (BUILD_SHARED_LIBS)
+        target_link_libraries(${targetname} platform)
+    endif()
+
+    target_link_libraries(${targetname} inc logging)
 
     set_property(TARGET ${targetname} PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tools")
 endfunction()

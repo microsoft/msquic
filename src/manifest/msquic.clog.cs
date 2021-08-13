@@ -91,7 +91,6 @@ namespace msquic.clog_config
                 return "Empty";
             }
             UTF8Encoding utf8 = new UTF8Encoding(false, true);
-            utf8.DecoderFallback = new DecoderExceptionFallback();
             StringBuilder AlpnList = new StringBuilder(value.Length);
             uint i = 0;
             while (i < value.Length)

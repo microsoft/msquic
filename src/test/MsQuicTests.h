@@ -39,6 +39,11 @@ void QuicTestDesiredVersionSettings();
 void QuicTestValidateParamApi();
 
 //
+// Rejection Tests
+//
+void QuicTestConnectionRejection(bool RejectByClosing);
+
+//
 // Event Validation Tests
 //
 
@@ -177,6 +182,11 @@ QuicTestLoadBalancedHandshake(
 
 void
 QuicTestClientSharedLocalPort(
+    _In_ int Family
+    );
+
+void
+QuicTestInterfaceBinding(
     _In_ int Family
     );
 
@@ -902,4 +912,12 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS \
     QUIC_CTL_CODE(74, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 74
+#define IOCTL_QUIC_RUN_CONNECTION_REJECTION \
+    QUIC_CTL_CODE(75, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // bool - RejectByClosing
+
+#define IOCTL_QUIC_RUN_INTERFACE_BINDING \
+    QUIC_CTL_CODE(76, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 76

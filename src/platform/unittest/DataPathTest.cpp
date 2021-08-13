@@ -434,13 +434,16 @@ struct CxPlatSocket {
         _In_ uint32_t InternalFlags = 0
         ) noexcept
     {
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
+        UdpConfig.LocalAddress = LocalAddress;
+        UdpConfig.RemoteAddress = RemoteAddress;
+        UdpConfig.Flags = InternalFlags;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = CallbackContext;
         InitStatus =
             CxPlatSocketCreateUdp(
                 Datapath,
-                LocalAddress,
-                RemoteAddress,
-                CallbackContext,
-                InternalFlags,
+                &UdpConfig,
                 &Socket);
 #ifdef _WIN32
         if (InitStatus == HRESULT_FROM_WIN32(WSAEACCES)) {

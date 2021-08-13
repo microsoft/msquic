@@ -445,6 +445,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     0,
+    sizeof(UINT8),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -475,6 +477,7 @@ typedef union {
     QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
     uint32_t Test;
     QUIC_RUN_REBIND_PARAMS RebindParams;
+    UINT8 RejectByClosing;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1095,6 +1098,16 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS:
         QuicTestCtlRun(QuicTestStreamDifferentAbortErrors());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_REJECTION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestConnectionRejection(Params->RejectByClosing));
+        break;
+
+    case IOCTL_QUIC_RUN_INTERFACE_BINDING:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestInterfaceBinding(Params->Family));
         break;
 
     default:

@@ -519,7 +519,7 @@ QuicSettingsLoad(
         uint32_t Half;
         uint64_t Full;
         uint8_t Array[sizeof(uint64_t)];
-    } MultiValue;
+    } MultiValue = {0};
     uint32_t ValueLen;
 
     if (!Settings->IsSet.SendBufferingEnabled) {

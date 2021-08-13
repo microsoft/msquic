@@ -164,13 +164,20 @@ struct DrillSender {
             ServerAddress.Ipv6.sin6_port = NetworkPort;
         }
 
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
+        UdpConfig.LocalAddress = nullptr;
+        UdpConfig.RemoteAddress = &ServerAddress;
+        UdpConfig.Flags = 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = this;
+#ifdef QUIC_OWNING_PROCESS
+        UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
+#endif
+
         Status =
             CxPlatSocketCreateUdp(
                 Datapath,
-                nullptr,
-                &ServerAddress,
-                this,
-                0,
+                &UdpConfig,
                 &Binding);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);

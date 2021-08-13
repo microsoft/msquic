@@ -336,6 +336,16 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+TEST_P(WithBool, RejectConnection) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectionRejection", GetParam());
+    if (TestingKernelMode) {
+        uint8_t Param = (uint8_t)GetParam();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_REJECTION, Param));
+    } else {
+        QuicTestConnectionRejection(GetParam());
+    }
+}
+
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, LocalPathChanges) {
@@ -508,6 +518,15 @@ TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
     }
 }
 #endif
+
+TEST_P(WithFamilyArgs, InterfaceBinding) {
+    TestLoggerT<ParamType> Logger("QuicTestInterfaceBinding", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
+    } else {
+        QuicTestInterfaceBinding(GetParam().Family);
+    }
+}
 
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
@@ -985,7 +1004,7 @@ TEST_P(WithFamilyArgs, RebindPort) {
     }
 }
 
-/*TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
+TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -996,7 +1015,7 @@ TEST_P(WithFamilyArgs, RebindPort) {
     } else {
         QuicTestNatPortRebind(GetParam().Family, GetParam().Padding);
     }
-}*/
+}
 
 TEST_P(WithFamilyArgs, RebindAddr) {
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
@@ -1011,7 +1030,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
     }
 }
 
-/*TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
+TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1022,7 +1041,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
     } else {
         QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
     }
-}*/
+}
 
 TEST_P(WithFamilyArgs, PathValidationTimeout) {
     TestLoggerT<ParamType> Logger("QuicTestPathValidationTimeout", GetParam());
@@ -1553,10 +1572,10 @@ INSTANTIATE_TEST_SUITE_P(
     WithMtuArgs,
     ::testing::ValuesIn(MtuArgs::Generate()));
 
-/*INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithRebindPaddingArgs,
-    ::testing::ValuesIn(RebindPaddingArgs::Generate()));*/
+    ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 

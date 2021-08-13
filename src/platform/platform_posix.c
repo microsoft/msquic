@@ -591,7 +591,7 @@ CxPlatThreadCreate(
 
 #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
-#ifndef __GLIBC__
+#if !defined(__GLIBC__) && !defined(__ANDROID__)
     if (Status == QUIC_STATUS_SUCCESS) {
         if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
@@ -619,6 +619,7 @@ CxPlatSetCurrentThreadProcessorAffinity(
     _In_ uint16_t ProcessorIndex
     )
 {
+#ifndef __ANDROID__
     cpu_set_t CpuSet;
     pthread_t Thread = pthread_self();
     CPU_ZERO(&CpuSet);
@@ -632,6 +633,10 @@ CxPlatSetCurrentThreadProcessorAffinity(
     }
 
     return QUIC_STATUS_SUCCESS;
+#else
+    UNREFERENCED_PARAMETER(ProcessorIndex);
+    return QUIC_STATUS_SUCCESS;
+#endif
 }
 
 #elif defined(CX_PLATFORM_DARWIN)
@@ -721,6 +726,7 @@ CxPlatCurThreadID(
     return syscall(SYS_gettid);
 
 #elif defined(CX_PLATFORM_DARWIN)
+    // cppcheck-suppress duplicateExpression
     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
     uint64_t Tid;
     int Res = pthread_threadid_np(NULL, &Tid);
