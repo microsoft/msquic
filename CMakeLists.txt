@@ -127,6 +127,8 @@ option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
+option(QUIC_CI "CI Specific build" OFF)
+option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
@@ -160,8 +162,8 @@ if (QUIC_SOURCE_LINK AND MSVC)
         set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
         set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
         set(CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:${SOURCE_LINK_JSON}")
-        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:${SOURCE_LINK_JSON}")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
     else()
         message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
     endif()
@@ -190,13 +192,105 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
+
+    include(CheckCCompilerFlag)
+
+    if(NOT QUIC_ENABLE_SANITIZERS)
+        check_c_compiler_flag(/Qspectre HAS_SPECTRE)
+    endif()
+    if(HAS_SPECTRE)
+        list(APPEND QUIC_COMMON_FLAGS /Qspectre)
+    endif()
+
+    check_c_compiler_flag(/guard:cf HAS_GUARDCF)
+    if(HAS_GUARDCF)
+        list(APPEND QUIC_COMMON_FLAGS /guard:cf)
+    endif()
+
+    # Require /Qspectre and /guard:cf in CI builds
+    if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+        if(NOT HAS_GUARDCF)
+            message(FATAL_ERROR "/guard:cf must exist for CI builds")
+        endif()
+        if(NOT HAS_SPECTRE AND NOT QUIC_ENABLE_SANITIZERS AND NOT QUIC_UWP_BUILD)
+            message(FATAL_ERROR "/Qspectre must exist for CI builds")
+        endif()
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
+
+    if (CX_PLATFORM STREQUAL "linux")
+        include(CheckCCompilerFlag)
+        check_c_source_compiles(
+            "
+            #include <netinet/udp.h>
+            int main() { return UDP_SEGMENT; }
+            "
+            HAS_UDP_SEGMENT)
+        if (NOT HAS_UDP_SEGMENT)
+            message(STATUS "UDP_SEGMENT is missing. Send performance will be reduced")
+        endif()
+
+        check_c_source_compiles(
+            "
+            #include <sys/socket.h>
+            int main() { return SO_ATTACH_REUSEPORT_CBPF; }
+            "
+            HAS_SO_ATTACH_REUSEPORT_CBPF)
+        if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+            message(STATUS "SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
+        endif()
+
+        check_c_source_compiles(
+            "
+            #define _GNU_SOURCE
+            #include <sys/socket.h>
+            #include <stddef.h>
+            int main() { return sendmmsg(0, NULL, 0, 0); }
+            "
+            HAS_SENDMMSG)
+        if(NOT HAS_SENDMMSG)
+            message(STATUS "sendmmsg is missing. Send performance will be reduced")
+        endif()
+
+        # Error if flags are missing in CI
+        if(QUIC_CI AND NOT QUIC_SKIP_CI_CHECKS)
+            if (NOT HAS_UDP_SEGMENT)
+                message(FATAL_ERROR "UDP_SEGMENT must exist for CI builds")
+            endif()
+
+            if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
+                message(FATAL_ERROR "SO_ATTACH_REUSEPORT_CBPF must exist for CI builds")
+            endif()
+        endif()
+
+        # Check to see if lttng will work
+        if(QUIC_ENABLE_LOGGING)
+            check_c_source_compiles(
+                "
+                #include <lttng/ust-config.h>
+                #ifdef LTTNG_UST_HAVE_SDT_INTEGRATION
+                #error \"SDT is enabled\"
+                #endif
+                int main() { return 0; }
+                "
+                HAS_LTTNG_WITHOUT_SDT)
+            if(NOT HAS_LTTNG_WITHOUT_SDT)
+                message(WARNING "LTTng with SDT integration does not work. Disabling logging")
+                set(QUIC_ENABLE_LOGGING OFF)
+            endif()
+        endif()
+    endif()
+
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
+    if (HAS_SENDMMSG)
+        list(APPEND QUIC_COMMON_DEFINES HAS_SENDMMSG)
+    endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
@@ -242,13 +336,13 @@ if(QUIC_TLS STREQUAL "openssl")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_DEFERRED_CERT_TESTS)
 endif()
 
-if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
-    string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
-else()
-    string(TOLOWER ${CMAKE_GENERATOR_PLATFORM} SYSTEM_PROCESSOR)
-endif()
-
 if(WIN32)
+    if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
+        string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+    else()
+        string(TOLOWER ${CMAKE_GENERATOR_PLATFORM} SYSTEM_PROCESSOR)
+    endif()
+
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
 
@@ -309,7 +403,7 @@ if(WIN32)
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "/GENPROFILE:PDG")
             configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:PGD=${QUIC_OUTPUT_DIR}/msquic.pgd")
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
         else()
             message(STATUS "/GENPROFILE")
             set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
@@ -319,7 +413,7 @@ if(WIN32)
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "Using profile-guided optimization")
             configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:PGD=${QUIC_OUTPUT_DIR}/msquic.pgd")
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
         endif()
     endif()
 
@@ -393,124 +487,21 @@ else() #!WIN32
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
-    if (WIN32)
-        add_library(OpenSSL INTERFACE)
+    add_library(OpenSSL INTERFACE)
 
-        include(FetchContent)
+    include(FetchContent)
 
-        FetchContent_Declare(
-            OpenSSLQuic
-            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
-            CMAKE_ARGS "-DQUIC_BUILD_DIR=${QUIC_BUILD_DIR}"
-        )
-        FetchContent_MakeAvailable(OpenSSLQuic)
+    FetchContent_Declare(
+        OpenSSLQuic
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
+        CMAKE_ARGS "-DQUIC_USE_SYSTEM_LIBCRYPTO=${QUIC_USE_SYSTEM_LIBCRYPTO}"
+    )
+    FetchContent_MakeAvailable(OpenSSLQuic)
 
-        target_link_libraries(OpenSSL
-            INTERFACE
-            OpenSSLQuic::OpenSSLQuic
-        )
-    else()
-        # Configure and build OpenSSL.
-        set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
-        set(OPENSSL_CONFIG_FLAGS
-            enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-
-            #
-            # The following line is needed for the 3.0 branch.
-            #
-            # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
-
-            no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
-            no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
-            no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
-            no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-            no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
-            no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
-
-        if (QUIC_ENABLE_SANITIZERS)
-            list(APPEND OPENSSL_CONFIG_FLAGS enable-asan enable-ubsan)
-        endif()
-        if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
-            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
-                linux-armv4 -DL_ENDIAN
-                --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
-            list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
-        elseif(CX_PLATFORM STREQUAL "darwin")
-            # need to build with Apple's compiler
-            if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
-            elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
-            else()
-                set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config)
-            endif()
-            list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
-        elseif(ANDROID)
-            message(STATUS "${ANDROID_ABI}")
-            if(ANDROID_ABI STREQUAL "arm64-v8a")
-                set(OPENSSL_BUILD_TYPE android-arm64)
-            elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
-                set(OPENSSL_BUILD_TYPE android-arm)
-            elseif(ANDROID_ABI STREQUAL "x86")
-                set(OPENSSL_BUILD_TYPE android-x86)
-            elseif(ANDROID_ABI STREQUAL "x86_64")
-                set(OPENSSL_BUILD_TYPE android-x86_64)
-            else()
-                message(FATAL_ERROR "Unknown android abi type")
-            endif()
-            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
-                ${OPENSSL_BUILD_TYPE}
-                -D__ANDROID_API__=29)
-        else()
-            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
-                CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
-        endif()
-        add_custom_target(mkdir_openssl_build
-            COMMAND mkdir -p ${QUIC_BUILD_DIR}/submodules/openssl)
-        add_custom_command(
-            DEPENDS mkdir_openssl_build
-            WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-            OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
-                ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
-            COMMAND make -j$$(nproc)
-            COMMAND make install_dev)
-        add_custom_target(OpenSSL_Build
-            DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-        file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
-
-        add_library(OpenSSL STATIC IMPORTED)
-        set_target_properties(OpenSSL PROPERTIES
-            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
-
-        target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
-
-        if (QUIC_USE_SYSTEM_LIBCRYPTO)
-            include(FindOpenSSL)
-            if (OPENSSL_FOUND)
-                if (OPENSSL_VERSION VERSION_EQUAL 1.1.1)
-                    target_link_libraries(OpenSSL INTERFACE OpenSSL::Crypto)
-                else()
-                    message(FATAL_ERROR "OpenSSL 1.1.1 not found, found ${OPENSSL_VERSION}")
-                endif()
-            else()
-                message(FATAL_ERROR "System OpenSSL not found when requested")
-            endif()
-        else()
-            add_library(OpenSSL_Crypto STATIC IMPORTED)
-            set_target_properties(OpenSSL_Crypto PROPERTIES
-                IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                IMPORTED_LINK_INTERFACE_LANGUAGES "C")
-
-            add_dependencies(OpenSSL_Crypto OpenSSL_Build)
-            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
-        endif()
-        add_dependencies(OpenSSL OpenSSL_Build)
-    endif()
+    target_link_libraries(OpenSSL
+        INTERFACE
+        OpenSSLQuic::OpenSSLQuic
+    )
 endif()
 
 if(QUIC_CODE_CHECK)
@@ -598,19 +589,35 @@ if(QUIC_BUILD_TEST)
     # Enforce static builds for test artifacts
     set(PREV_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS} CACHE INTERNAL "")
     set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+    set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
+    set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
+    if(WIN32 AND QUIC_STATIC_LINK_CRT)
+        option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
+    endif()
     FetchContent_Declare(
         googletest
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/googletest
-        CMAKE_ARGS "-DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
     )
     FetchContent_MakeAvailable(googletest)
     set(BUILD_SHARED_LIBS ${PREV_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
-    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
-
     set_property(TARGET gtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+
+    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+    set_property(TARGET gtest_main PROPERTY EXCLUDE_FROM_ALL ON)
+    set_property(TARGET gtest_main PROPERTY EXCLUDE_FROM_DEFAULT_BUILD ON)
+
+    if (HAS_SPECTRE)
+        target_compile_options(gtest PRIVATE /Qspectre)
+        target_compile_options(gtest_main PRIVATE /Qspectre)
+    endif()
+
+    if (HAS_GUARDCF)
+        target_compile_options(gtest PRIVATE /guard:cf)
+        target_compile_options(gtest_main PRIVATE /guard:cf)
+    endif()
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)

@@ -46,6 +46,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A |
 | PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
 | PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
+| PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -192,5 +193,22 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Some Linux packaging fixes (#1852) and build fixes (#1855).
 - Support Setting Local Interface Index (#1804) on Windows.
 - Fix issue with no certificate validation set on client certificate (#1728).
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.7 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.7](https://github.com/microsoft/msquic/releases/tag/v1.7.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
+
+- Enable Spectre mitigations and CFG for windows user mode (#1854).
+- Add support for tracing owning process in kernel mode (#1865).
+- Release binaries are now signed (#1869) (#1879).
+- Return ABORTED rather than INVALID_STATE if stream opened or started after remote close (#1875).
+- Fix potential spin loop during send if there is not enough room to send (#1886).
+- Support building posix without sendmmsg (#1896).
+- Use larger batch size if send segmentation is not available in posix (#1897).
+- Fix library version being set in incorrect location (#1905).
 
 Official (v1) RFC and draft-29 are supported by this release.

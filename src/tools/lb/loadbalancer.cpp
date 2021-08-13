@@ -29,7 +29,7 @@ struct LbInterface {
     QUIC_ADDR LocalAddress;
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic) : IsPublic(IsPublic) {
-        CXPLAT_UDP_CONFIG UdpConfig;
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = nullptr;
         UdpConfig.Flags = 0;

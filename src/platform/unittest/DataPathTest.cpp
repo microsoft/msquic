@@ -434,7 +434,7 @@ struct CxPlatSocket {
         _In_ uint32_t InternalFlags = 0
         ) noexcept
     {
-        CXPLAT_UDP_CONFIG UdpConfig;
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = LocalAddress;
         UdpConfig.RemoteAddress = RemoteAddress;
         UdpConfig.Flags = InternalFlags;

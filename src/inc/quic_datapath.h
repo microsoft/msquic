@@ -436,13 +436,20 @@ CxPlatDataPathGetGatewayAddresses(
 
 #define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
 #define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
+#define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
 
 typedef struct CXPLAT_UDP_CONFIG {
-    const QUIC_ADDR* LocalAddress;  // optional
-    const QUIC_ADDR* RemoteAddress; // optional
-    uint32_t Flags;                 // CXPLAT_SOCKET_FLAG_*
-    uint32_t InterfaceIndex;        // 0 means any/all
-    void* CallbackContext;          // optional
+    const QUIC_ADDR* LocalAddress;      // optional
+    const QUIC_ADDR* RemoteAddress;     // optional
+    uint32_t Flags;                     // CXPLAT_SOCKET_FLAG_*
+    uint32_t InterfaceIndex;            // 0 means any/all
+    void* CallbackContext;              // optional
+#ifdef QUIC_COMPARTMENT_ID
+    QUIC_COMPARTMENT_ID CompartmentId;  // optional
+#endif
+#ifdef QUIC_OWNING_PROCESS
+    QUIC_PROCESS OwningProcess;         // Kernel client-only
+#endif
     uint16_t IdealProcessor;
 } CXPLAT_UDP_CONFIG;
 

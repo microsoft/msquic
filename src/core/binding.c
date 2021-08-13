@@ -36,15 +36,7 @@ CXPLAT_STATIC_ASSERT(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
-#ifdef QUIC_COMPARTMENT_ID
-    _In_ QUIC_COMPARTMENT_ID CompartmentId,
-#endif
-    _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_ const uint32_t LocalInterface,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_ uint16_t IdealProcessor,
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
     _Out_ QUIC_BINDING** NewBinding
     )
 {
@@ -64,9 +56,9 @@ QuicBindingInitialize(
     }
 
     Binding->RefCount = 0; // No refs until it's added to the library's list
-    Binding->Exclusive = !ShareBinding;
-    Binding->ServerOwned = ServerOwned;
-    Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
+    Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+    Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
@@ -88,12 +80,12 @@ QuicBindingInitialize(
         QUIC_VERSION_RESERVED;
 
 #ifdef QUIC_COMPARTMENT_ID
-    Binding->CompartmentId = CompartmentId;
+    Binding->CompartmentId = UdpConfig->CompartmentId;
 
     BOOLEAN RevertCompartmentId = FALSE;
     QUIC_COMPARTMENT_ID PrevCompartmentId = QuicCompartmentIdGetCurrent();
-    if (PrevCompartmentId != CompartmentId) {
-        Status = QuicCompartmentIdSetCurrent(CompartmentId);
+    if (PrevCompartmentId != UdpConfig->CompartmentId) {
+        Status = QuicCompartmentIdSetCurrent(UdpConfig->CompartmentId);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 BindingErrorStatus,
@@ -109,46 +101,37 @@ QuicBindingInitialize(
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    CXPLAT_UDP_CONFIG HookUdpConfig = *UdpConfig;
     if (Hooks != NULL) {
         QUIC_ADDR RemoteAddressCopy;
-        if (RemoteAddress != NULL) {
-            RemoteAddressCopy = *RemoteAddress;
+        if (UdpConfig->RemoteAddress != NULL) {
+            RemoteAddressCopy = *UdpConfig->RemoteAddress;
         }
         QUIC_ADDR LocalAddressCopy;
-        if (LocalAddress != NULL) {
-            LocalAddressCopy = *LocalAddress;
+        if (UdpConfig->LocalAddress != NULL) {
+            LocalAddressCopy = *UdpConfig->LocalAddress;
         }
         Hooks->Create(
-            RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
-            LocalAddress != NULL ? &LocalAddressCopy : NULL);
+            UdpConfig->RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
+            UdpConfig->LocalAddress != NULL ? &LocalAddressCopy : NULL);
 
-        CXPLAT_UDP_CONFIG UdpConfig;
-        UdpConfig.LocalAddress = LocalAddress != NULL ? &LocalAddressCopy : NULL;
-        UdpConfig.RemoteAddress = RemoteAddress != NULL ? &RemoteAddressCopy : NULL;
-        UdpConfig.Flags = ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
-        UdpConfig.InterfaceIndex = LocalInterface;
-        UdpConfig.CallbackContext = Binding;
-        UdpConfig.IdealProcessor = IdealProcessor;
+        HookUdpConfig.LocalAddress = (UdpConfig->LocalAddress != NULL) ? &LocalAddressCopy : NULL;
+        HookUdpConfig.RemoteAddress = (UdpConfig->RemoteAddress != NULL) ? &RemoteAddressCopy : NULL;
+        HookUdpConfig.CallbackContext = Binding;
 
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
-                &UdpConfig,
+                &HookUdpConfig,
                 &Binding->Socket);
     } else {
 #endif
-        CXPLAT_UDP_CONFIG UdpConfig;
-        UdpConfig.LocalAddress = LocalAddress;
-        UdpConfig.RemoteAddress = RemoteAddress;
-        UdpConfig.Flags = ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
-        UdpConfig.InterfaceIndex = LocalInterface;
-        UdpConfig.CallbackContext = Binding;
-        UdpConfig.IdealProcessor = IdealProcessor;
+        ((CXPLAT_UDP_CONFIG*)UdpConfig)->CallbackContext = Binding;
 
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
-                &UdpConfig,
+                UdpConfig,
                 &Binding->Socket);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }

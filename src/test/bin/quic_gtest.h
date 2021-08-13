@@ -675,7 +675,7 @@ struct RebindPaddingArgs {
     static ::std::vector<RebindPaddingArgs> Generate() {
         ::std::vector<RebindPaddingArgs> list;
         for (int Family : { 4, 6 })
-        for (uint16_t Padding = 1; Padding < 50; ++Padding)
+        for (uint16_t Padding = 1; Padding < 75; ++Padding)
             list.push_back({ Family, Padding });
         return list;
     }
