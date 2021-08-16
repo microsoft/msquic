@@ -214,7 +214,7 @@ namespace Microsoft.Quic
 
         public QUIC_CREDENTIAL_FLAGS Flags;
 
-        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:274:5)")]
+        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at src/inc/msquic.h:274:5)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
@@ -501,19 +501,19 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         public uint MaxRtt;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:386:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:386:5)")]
         public _Timing_e__Struct Timing;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:391:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:391:5)")]
         public _Handshake_e__Struct Handshake;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:396:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:396:5)")]
         public _Send_e__Struct Send;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:407:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:407:5)")]
         public _Recv_e__Struct Recv;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:417:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:417:5)")]
         public _Misc_e__Struct Misc;
 
         public partial struct _Timing_e__Struct
@@ -612,12 +612,12 @@ namespace Microsoft.Quic
         [NativeTypeName("uint64_t")]
         public ulong TotalRejectedConnections;
 
-        [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:427:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:427:5)")]
         public _Binding_e__Struct Binding;
 
         public partial struct _Binding_e__Struct
         {
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:428:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:428:9)")]
             public _Recv_e__Struct Recv;
 
             public partial struct _Recv_e__Struct
@@ -662,7 +662,7 @@ namespace Microsoft.Quic
 
     public unsafe partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:467:5)")]
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union at src/inc/msquic.h:467:5)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint64_t")]
@@ -876,7 +876,7 @@ namespace Microsoft.Quic
             public ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:469:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:469:9)")]
             public _IsSet_e__Struct IsSet;
 
             public partial struct _IsSet_e__Struct
@@ -1404,7 +1404,7 @@ namespace Microsoft.Quic
     {
         public QUIC_LISTENER_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:798:5)")]
+        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at src/inc/msquic.h:798:5)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
@@ -1419,7 +1419,7 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:799:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:799:9)")]
             public _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
             public unsafe partial struct _NEW_CONNECTION_e__Struct
@@ -1457,7 +1457,7 @@ namespace Microsoft.Quic
     {
         public QUIC_CONNECTION_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:893:5)")]
+        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at src/inc/msquic.h:893:5)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
@@ -1584,63 +1584,63 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:894:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:894:9)")]
             public _CONNECTED_e__Struct CONNECTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:901:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:901:9)")]
             public _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:904:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:904:9)")]
             public _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:907:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:907:9)")]
             public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:912:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:912:9)")]
             public _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:915:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:915:9)")]
             public _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:918:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:918:9)")]
             public _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:922:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:922:9)")]
             public _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:926:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:926:9)")]
             public _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:929:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:929:9)")]
             public _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:933:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:933:9)")]
             public _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:937:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:937:9)")]
             public _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:941:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:941:9)")]
             public _RESUMED_e__Struct RESUMED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:945:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:945:9)")]
             public _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:951:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:951:9)")]
             public _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
 
             public unsafe partial struct _CONNECTED_e__Struct
@@ -1826,7 +1826,7 @@ namespace Microsoft.Quic
     {
         public QUIC_STREAM_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1074:5)")]
+        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at src/inc/msquic.h:1074:5)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
@@ -1897,35 +1897,35 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1075:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1075:9)")]
             public _START_COMPLETE_e__Struct START_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1081:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1081:9)")]
             public _RECEIVE_e__Struct RECEIVE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1090:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1090:9)")]
             public _SEND_COMPLETE_e__Struct SEND_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1094:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1094:9)")]
             public _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1097:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1097:9)")]
             public _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1100:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1100:9)")]
             public _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1103:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1103:9)")]
             public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1106:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1106:9)")]
             public _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
 
             public partial struct _START_COMPLETE_e__Struct
