@@ -17,7 +17,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
-    [string]$Tls = "openssl"
+    [string]$Tls = "openssl",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ReleaseBuild = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -124,4 +127,19 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-nuget.exe pack (Join-Path $PackagingDir "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote
+$Version = "1.8.0"
+
+$BuildId = $env:BUILD_BUILDID
+if ($null -ne $BuildId) {
+    if ($ReleaseBuild) {
+        $Version += "+$BuildId"
+    } else {
+        $Version += "-ci.$BuildId"
+    }
+} else {
+    $Version += "-local"
+}
+
+Write-Host $Version
+
+nuget.exe pack (Join-Path $PackagingDir "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote -Version $Version

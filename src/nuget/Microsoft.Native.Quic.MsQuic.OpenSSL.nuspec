@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>Microsoft.Native.Quic.MsQuic.OpenSSL</id>
-    <version>1.8.0</version>
+    <version>0.0.0</version>
     <title>MsQuic (OpenSSL)</title>
     <authors>Microsoft</authors>
     <license type="expression">MIT AND Apache-2.0</license>
