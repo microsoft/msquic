@@ -62,12 +62,12 @@ const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFIL
 //
 // The protocol name used in the Application Layer Protocol Negotiation (ALPN).
 //
-const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
+const QUIC_BUFFER Alpn = { sizeof("h3") - 1, (uint8_t*)"h3" };
 
 //
 // The UDP port used by the server side of the protocol.
 //
-const uint16_t UdpPort = 4567;
+const uint16_t UdpPort = 443;
 
 //
 // The default idle timeout period (1 second) used for the protocol.
@@ -747,6 +747,11 @@ ClientLoadConfiguration(
     Settings.IdleTimeoutMs = IdleTimeoutMs;
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
+    Settings.IsSet.PeerBidiStreamCount = 1;
+                Settings.PeerBidiStreamCount = 1;
+                Settings.IsSet.PeerUnidiStreamCount = 1;
+                Settings.PeerUnidiStreamCount = 3;
+
     //
     // Configures a default client configuration, optionally disabling
     // server certificate validation.
@@ -764,8 +769,10 @@ ClientLoadConfiguration(
     // and settings.
     //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    //printf("%d\n", Alpn.Length);
     if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), NULL, &Configuration))) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
+
         return FALSE;
     }
 

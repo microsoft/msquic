@@ -28,7 +28,7 @@ else()
     #
     # Here, we exclude the inc interface target which includes various system
     # libraries we do not wish to archive for distribution.
-    set(EXCLUDE_LIST "inc")
+    set(EXCLUDE_LIST "inc" "-framework CoreFoundation" "-framework Security")
     set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "${EXCLUDE_LIST}")
     set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
     function(flatten_link_dependencies CURRENT_TARGET)
@@ -221,6 +221,9 @@ else()
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
         inc
     )
+    if (CX_PLATFORM STREQUAL "darwin")
+        target_link_libraries(msquic INTERFACE "-framework CoreFoundation" "-framework Security")
+    endif()
     add_dependencies(msquic msquic_lib)
 endif()
 
