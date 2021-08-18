@@ -142,8 +142,6 @@ CxPlatTlsVerifyCertificate(
         goto Exit;
     }
 
-    SecTrustSetNetworkFetchAllowed(TrustRef, true);
-
     Result = SecTrustEvaluateWithError(TrustRef, NULL);
 
 Exit:
