@@ -143,7 +143,7 @@ MsQuicGetPublicIPEx(
     const QUIC_BUFFER Alpn = { sizeof("ip") - 1, (uint8_t*)"ip" };
     const uint16_t UdpPort = 4444;
 
-    QUIC_SETTINGS Settings = {0};
+    QUIC_SETTINGS Settings{0};
     Settings.IdleTimeoutMs = 2000;
     Settings.IsSet.IdleTimeoutMs = TRUE;
     Settings.PeerUnidiStreamCount = 1;
