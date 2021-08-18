@@ -88,9 +88,9 @@ tracepoint(CLOG_DARWIN_OPENSSL_C, LibraryError , arg2);\
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CFStringCreateWithCStringNoCopy failed");
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CFStringCreateWithCStringNoCopy failed");
 // arg2 = arg2 = "CFStringCreateWithCStringNoCopy failed"
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
