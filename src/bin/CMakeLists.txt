@@ -28,7 +28,10 @@ else()
     #
     # Here, we exclude the inc interface target which includes various system
     # libraries we do not wish to archive for distribution.
-    set(EXCLUDE_LIST "inc" "-framework CoreFoundation" "-framework Security")
+    set(EXCLUDE_LIST "inc")
+    if (CX_PLATFORM STREQUAL "darwin")
+        list(APPEND EXCLUDE_LIST "-framework CoreFoundation" "-framework Security")
+    endif()
     set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "${EXCLUDE_LIST}")
     set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
     function(flatten_link_dependencies CURRENT_TARGET)
