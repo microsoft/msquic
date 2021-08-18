@@ -31,11 +31,6 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     uint16_t IdealProcessor;
 
     //
-    // The identifier of the platform thread.
-    //
-    CXPLAT_THREAD_ID ThreadID;
-
-    //
     // The average queue delay connections experience, in microseconds.
     //
     uint32_t AverageQueueDelay;
