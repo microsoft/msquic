@@ -150,6 +150,10 @@ Exit:
         CFRelease(TrustRef);
     }
 
+    if (RevocationPolicy != NULL) {
+        CFRelease(RevocationPolicy);
+    }
+
     if (SSLPolicy != NULL) {
         CFRelease(SSLPolicy);
     }
