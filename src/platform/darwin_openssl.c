@@ -34,7 +34,7 @@ Environment:
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
-    _In_ const char* SNI,
+    _In_opt_ const char* SNI,
     _In_ QUIC_CREDENTIAL_FLAGS CredFlags
     )
 {
@@ -82,13 +82,15 @@ CxPlatTlsVerifyCertificate(
         goto Exit;
     }
 
-    SNIString = CFStringCreateWithCStringNoCopy(NULL, SNI, kCFStringEncodingUTF8, kCFAllocatorNull);
-    if (SNIString == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CFStringCreateWithCStringNoCopy failed");
-        goto Exit;
+    if (SNI != NULL) {
+        SNIString = CFStringCreateWithCStringNoCopy(NULL, SNI, kCFStringEncodingUTF8, kCFAllocatorNull);
+        if (SNIString == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CFStringCreateWithCStringNoCopy failed");
+            goto Exit;
+        }
     }
 
     PolicyArray = CFArrayCreateMutable(NULL, 3, NULL);

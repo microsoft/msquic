@@ -38,7 +38,7 @@ Environment:
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
-    _In_ const char* SNI,
+    _In_opt_ const char* SNI,
     _In_ QUIC_CREDENTIAL_FLAGS CredFlags
     )
 {
