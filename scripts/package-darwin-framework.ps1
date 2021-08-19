@@ -8,7 +8,7 @@
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
-    [string]$Config = "Release",
+    [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("macos", "ios")]
@@ -45,7 +45,7 @@ if ([string]::IsNullOrWhitespace($ExtraArtifactDir)) {
     $ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
 }
 
-$FrameworkDir = Join-Path $ArtifactsDir "msquic.framework"
+$FrameworkDir = Join-Path $BaseArtifactsDir dist "$($Arch)_$($Config)_$($Tls)"  "msquic.framework"
 
 if ((Test-Path $FrameworkDir)) {
     Remove-Item -Path "$FrameworkDir/*" -Recurse -Force
@@ -83,6 +83,7 @@ $DestFile = Join-Path $FrameworkDir msquic
 if (Test-Path $DynamicFile) {
     Copy-Item -Path $DynamicFile -Destination $DestFile -Force
     install_name_tool -id "@rpath/msquic.framework/msquic" $DestFile
+    dsymutil $DestFile
 } elseif (Test-Path $StaticFile) {
     Copy-Item -LiteralPath $StaticFile -Destination $DestFile -Force
 } else {
