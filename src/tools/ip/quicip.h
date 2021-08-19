@@ -115,7 +115,8 @@ ClientConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         {
-            std::scoped_lock Lock{Context->DoneMutex};
+            Context->MsQuic->ConnectionClose(Context->Connection);
+            std::lock_guard Lock{Context->DoneMutex};
             Context->IsDone = true;
             Context->DoneEvent.notify_all();
         }
@@ -198,13 +199,7 @@ MsQuicGetPublicIPEx(
         Context.DoneEvent.wait_for(Lock, std::chrono::seconds(10), [&]{return Context.IsDone;});
     }
 
-    Context.MsQuic->ConnectionShutdown(Context.Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-
 Error:
-
-    if (Context.Connection) {
-        Context.MsQuic->ConnectionClose(Context.Connection);
-    }
 
     if (Context.Configuration) {
         Context.MsQuic->ConfigurationClose(Context.Configuration);
