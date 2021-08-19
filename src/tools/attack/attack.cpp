@@ -300,7 +300,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     CXPLAT_SOCKET* Binding;
-    CXPLAT_UDP_CONFIG UdpConfig;
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = nullptr;
     UdpConfig.RemoteAddress = &ServerAddress;
     UdpConfig.Flags = 0;

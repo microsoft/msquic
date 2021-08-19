@@ -17,7 +17,8 @@ TODO:
 #pragma once
 
 #include "msquic.h"
-#include "msquicp.h"
+#include <mutex>
+#include <condition_variable>
 
 #ifdef ENABLE_QUIC_PRINTF
 #include <stdio.h>
@@ -36,6 +37,9 @@ typedef struct QUIC_IP_LOOKUP {
     HQUIC Connection;
     QUIC_ADDR* LocalAdrress;
     QUIC_ADDR* PublicAddress;
+    std::mutex DoneMutex;
+    std::condition_variable DoneEvent;
+    bool IsDone {false};
 } QUIC_IP_LOOKUP;
 
 inline
@@ -91,7 +95,7 @@ inline
 QUIC_STATUS
 QUIC_API
 ClientConnectionCallback(
-    _In_ HQUIC Connection,
+    _In_ HQUIC /*Connection*/,
     _In_opt_ void* _Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
@@ -110,7 +114,12 @@ ClientConnectionCallback(
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        Context->MsQuic->ConnectionClose(Connection);
+        {
+            Context->MsQuic->ConnectionClose(Context->Connection);
+            std::lock_guard Lock{Context->DoneMutex};
+            Context->IsDone = true;
+            Context->DoneEvent.notify_all();
+        }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         Context->MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ClientStreamCallback, Context);
@@ -185,7 +194,10 @@ MsQuicGetPublicIPEx(
         goto Error;
     }
 
-    // TODO - Wait on connection shutdown
+    {
+        std::unique_lock Lock{Context.DoneMutex};
+        Context.DoneEvent.wait(Lock, [&]{return Context.IsDone;});
+    }
 
 Error:
 

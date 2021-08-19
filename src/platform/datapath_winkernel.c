@@ -1100,9 +1100,6 @@ CxPlatDataPathGetLocalAddresses(
     }
     *AddressesCount = (uint32_t)AddressTable->NumEntries;
 
-#pragma warning(push) // MIB tables aren't correctly annotated for SAL.
-#pragma warning(disable:6385)
-#pragma warning(disable:6386)
     for (ULONG i = 0; i < AddressTable->NumEntries; ++i) {
         MIB_IPINTERFACE_ROW* Interface = NULL;
         for (ULONG j = 0; j < InterfaceTable->NumEntries; ++j) {
@@ -1112,12 +1109,12 @@ CxPlatDataPathGetLocalAddresses(
             }
         }
 
-        memcpy(&(*Addresses)[i].Address, &AddressTable->Table[i].Address, sizeof(QUIC_ADDR));
-        (*Addresses)[i].InterfaceIndex = (uint32_t)AddressTable->Table[i].InterfaceIndex;
-        (*Addresses)[i].InterfaceType = (uint16_t)AddressTable->Table[i].InterfaceLuid.Info.IfType;
-        (*Addresses)[i].OperationStatus = Interface && Interface->Connected ? CXPLAT_OPERATION_STATUS_UP : CXPLAT_OPERATION_STATUS_DOWN;
+        CXPLAT_ADAPTER_ADDRESS* AdapterAddress = &(*Addresses)[i];
+        memcpy(&AdapterAddress->Address, &AddressTable->Table[i].Address, sizeof(QUIC_ADDR));
+        AdapterAddress->InterfaceIndex = (uint32_t)AddressTable->Table[i].InterfaceIndex;
+        AdapterAddress->InterfaceType = (uint16_t)AddressTable->Table[i].InterfaceLuid.Info.IfType;
+        AdapterAddress->OperationStatus = Interface && Interface->Connected ? CXPLAT_OPERATION_STATUS_UP : CXPLAT_OPERATION_STATUS_DOWN;
     }
-#pragma warning(pop)
 
 Error:
 
@@ -1463,7 +1460,7 @@ CxPlatSocketCreateUdp(
             WSK_FLAG_DATAGRAM_SOCKET,
             Binding,
             &Datapath->WskDispatch,
-            NULL,
+            Config->OwningProcess,
             NULL,
             NULL,
             &Binding->Irp);

@@ -204,9 +204,13 @@ QuicStreamStart(
 {
     QUIC_STATUS Status;
 
-    if (QuicConnIsClosed(Stream->Connection) ||
+    BOOLEAN ClosedLocally = Stream->Connection->State.ClosedLocally;
+    if ((ClosedLocally || Stream->Connection->State.ClosedRemotely) ||
         Stream->Flags.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status =
+            (ClosedLocally || Stream->Flags.Started) ?
+            QUIC_STATUS_INVALID_STATE :
+            QUIC_STATUS_ABORTED;
         goto Exit;
     }
 

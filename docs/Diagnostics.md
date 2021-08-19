@@ -30,7 +30,11 @@ To convert the trace, you can use the following command:
 netsh.exe trace convert quic.etl
 ```
 
-> **Important** - If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. **TODO** - Provide instructions to get around this problem.
+If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. To solve this issue, newer versions of Windows (11 and Server 2022) support a `manpath` flag that can be used to manually specify a manifest. This will likely always be needed for apps using MsQuic in user mode.
+
+```
+netsh.exe trace convert quic.etl manpath=path/to/manifest/MsQuicEtw.man
+```
 
 You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
@@ -69,6 +73,8 @@ You must replace `ETL_PATH` with the path of the output ETL file that you want t
 ## Linux
 
 On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging.
+
+Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. These can be installed by running `./scripts/prepare-machine.ps1 -Configuration Test`
 
 To start collecting a trace, you can use the following commands:
 

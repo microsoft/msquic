@@ -547,6 +547,72 @@ tracepoint(CLOG_DATAPATH_WINKERNEL_C, LibraryErrorStatus , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetIpInterfaceTable");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "GetIpInterfaceTable"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetUnicastIpAddressTable");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "GetUnicastIpAddressTable"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Addresses",
+            AddressTable->NumEntries * sizeof(CXPLAT_ADAPTER_ADDRESS));
+// arg2 = arg2 = "Addresses"
+// arg3 = arg3 = AddressTable->NumEntries * sizeof(CXPLAT_ADAPTER_ADDRESS)
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
