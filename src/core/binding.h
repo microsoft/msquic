@@ -187,12 +187,6 @@ typedef struct QUIC_BINDING {
     BOOLEAN Connected : 1;
 
     //
-    // Indicates that the binding is fully initialized. Not as part of the above
-    // bitfield as its accessed from multiple threads.
-    //
-    int16_t Initialized;
-
-    //
     // Number of (connection and listener) references to the binding.
     //
     uint32_t RefCount;

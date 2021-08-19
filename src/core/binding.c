@@ -166,7 +166,6 @@ QuicBindingInitialize(
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
-    InterlockedIncrement16(&Binding->Initialized);
 
 Error:
 
@@ -632,7 +631,7 @@ QuicBindingCreateStatelessOperation(
 
     CxPlatDispatchLockAcquire(&Binding->StatelessOperLock);
 
-    if (!Binding->Initialized) {
+    if (Binding->RefCount == 0) {
         goto Exit;
     }
 
