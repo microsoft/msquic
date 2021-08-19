@@ -8,7 +8,7 @@
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
-    [string]$Config = "Debug",
+    [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("macos", "ios")]
