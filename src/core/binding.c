@@ -166,10 +166,7 @@ QuicBindingInitialize(
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
-
-    CxPlatDispatchLockAcquire(&Binding->StatelessOperLock);
-    Binding->Initialized = TRUE;
-    CxPlatDispatchLockRelease(&Binding->StatelessOperLock);
+    InterlockedIncrement16(&Binding->Initialized);
 
 Error:
 
