@@ -72,6 +72,13 @@ QuicLossDetectionInitializeInternalState(
 {
     LossDetection->PacketsInFlight = 0;
     LossDetection->ProbeCount = 0;
+    LossDetection->TotalBytesSent = 0;
+    LossDetection->TotalBytesAcked = 0;
+    LossDetection->TotalBytesSentAtLastAck = 0;
+    LossDetection->TotalBytesAckedAtLastAck = 0;
+    LossDetection->LastAckedTime = 0;
+    LossDetection->LastAckedPacketSentTime = 0;
+    LossDetection->AdjustedLastAckedTime = 0;
 }
 
 #if DEBUG
@@ -445,8 +452,6 @@ QuicLossDetectionOnPacketSent(
         SentPacket->Flags.KeyType != QUIC_PACKET_KEY_0_RTT ||
         SentPacket->Flags.IsAckEliciting);
 
-    Connection->Stats.Send.TotalPackets++;
-    Connection->Stats.Send.TotalBytes += TempSentPacket->PacketLength;
     if (SentPacket->Flags.IsAckEliciting) {
 
         if (LossDetection->PacketsInFlight == 0) {
@@ -466,6 +471,23 @@ QuicLossDetectionOnPacketSent(
             &Connection->CongestionControl, SentPacket->PacketLength);
     }
 
+    Connection->Stats.Send.TotalPackets++;
+    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
+    Connection->Stats.Send.TotalBytes += TempSentPacket->PacketLength;
+    SentPacket->TotalBytesSentThen = Connection->Stats.Send.TotalBytes;
+
+    SentPacket->LastAckedPacketInfo.HasValue = FALSE;
+    if (LossDetection->LastAckedTime) {
+        SentPacket->LastAckedPacketInfo.HasValue = TRUE;
+
+        SentPacket->LastAckedPacketInfo.AckTime = LossDetection->LastAckedTime;
+        SentPacket->LastAckedPacketInfo.AdjustedAckTime = LossDetection->AdjustedLastAckedTime;
+        SentPacket->LastAckedPacketInfo.TotalBytesSent = LossDetection->TotalBytesSentAtLastAck;
+        SentPacket->LastAckedPacketInfo.TotalBytesAcked = LossDetection->TotalBytesAckedAtLastAck;
+    }
+
+    LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
+
     QuicLossValidate(LossDetection);
 }
 
@@ -474,7 +496,10 @@ void
 QuicLossDetectionOnPacketAcknowledged(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet,
+    _In_ BOOLEAN IsImplicit,
+    _In_ uint64_t AckTime,
+    _In_ uint64_t AckDelay
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -628,6 +653,15 @@ QuicLossDetectionOnPacketAcknowledged(
         if (ChangedMtu) {
             QuicDatagramOnSendStateChanged(&Connection->Datagram);
         }
+    }
+    
+    if (!IsImplicit) {
+        LossDetection->TotalBytesAcked += Packet->PacketLength;
+        LossDetection->TotalBytesSentAtLastAck = LossDetection->TotalBytesSent;
+        LossDetection->TotalBytesAckedAtLastAck = LossDetection->TotalBytesAcked;
+        LossDetection->LastAckedTime = AckTime;
+        LossDetection->LastAckedPacketSentTime = Packet->SentTime;
+        LossDetection->AdjustedLastAckedTime = AckTime - AckDelay;
     }
 
     QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);

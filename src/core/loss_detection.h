@@ -39,6 +39,14 @@ typedef struct QUIC_LOSS_DETECTION {
     QUIC_SENT_PACKET_METADATA** SentPacketsTail;
 
     uint32_t TimeOfLastPacketSent;
+    
+    uint64_t TotalBytesSent;
+    uint64_t TotalBytesAcked;
+    uint64_t TotalBytesSentAtLastAck;
+    uint64_t TotalBytesAckedAtLastAck;
+    uint32_t LastAckedTime;
+    uint32_t LastAckedPacketSentTime;
+    uint32_t AdjustedLastAckedTime;
 
     //
     // Lost packets. The purpose of this list is to remember packets a little
