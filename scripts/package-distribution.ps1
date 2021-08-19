@@ -25,7 +25,7 @@ $AllBuilds = @()
 foreach ($Platform in $Platforms) {
     $PlatBuilds = Get-ChildItem -Path $Platform.FullName
     foreach ($PlatBuild in $PlatBuilds) {
-        if (!(Test-Path $PlatBuild -PathType Container)) {
+        if (!(Test-Path $PlatBuild.FullName -PathType Container)) {
             continue;
         }
         $AllBuilds += $PlatBuild
