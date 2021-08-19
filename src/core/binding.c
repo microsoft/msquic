@@ -631,6 +631,10 @@ QuicBindingCreateStatelessOperation(
 
     CxPlatDispatchLockAcquire(&Binding->StatelessOperLock);
 
+    if (Binding->RefCount == 0) {
+        goto Exit;
+    }
+
     //
     // Age out all expired operation contexts.
     //
