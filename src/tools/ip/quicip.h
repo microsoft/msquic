@@ -196,7 +196,7 @@ MsQuicGetPublicIPEx(
 
     {
         std::unique_lock Lock{Context.DoneMutex};
-        Context.DoneEvent.wait_for(Lock, std::chrono::seconds(10), [&]{return Context.IsDone;});
+        Context.DoneEvent.wait(Lock, [&]{return Context.IsDone;});
     }
 
 Error:
