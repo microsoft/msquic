@@ -28,8 +28,7 @@ $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
 $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
-$MacosFrameworkFile = Join-Path $RootDir "distribution" "macos.plist"
-$iOSFrameworkFile = Join-Path $RootDir "distribution" "ios.plist"
+$FrameworkInfoFile = Join-Path $RootDir "distribution" "Info.plist"
 
 # Get the current version number from the msquic.ver file.
 $VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
@@ -69,6 +68,6 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 (Get-Content $MacosFrameworkFile) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $MacosFrameworkFile
-(Get-Content $iOSFrameworkFile) `
+(Get-Content $FrameworkInfoFile) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
-    Out-File $iOSFrameworkFile
+    Out-File $FrameworkInfoFile

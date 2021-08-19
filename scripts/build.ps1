@@ -291,17 +291,24 @@ function CMake-Generate {
             Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
             $Arguments += " $Generator"
         }
-    } elseif ($IsMacOS) {
-        $Arguments += " $Generator"
-        switch ($Arch) {
-            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
-            "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
-        }
     } else {
         $Arguments += " $Generator"
     }
     if ($Platform -eq "ios") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=iOS"
+        $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
+        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DDEPLOYMENT_TARGET=""13.0"" -DENABLE_ARC=0"
+        switch ($Arch) {
+            "x64"   { $Arguments += " -DPLATFORM=SIMULATOR64"}
+            "arm64" { $Arguments += " -DPLATFORM=OS64"}
+        }
+    }
+    if ($Platform -eq "macos") {
+        $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
+        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DENABLE_ARC=0 -DENABLE_BITCODE=0"
+        switch ($Arch) {
+            "x64"   { $Arguments += " -DPLATFORM=MAC -DDEPLOYMENT_TARGET=""10.14"""}
+            "arm64" { $Arguments += " -DPLATFORM=MAC_ARM64 -DDEPLOYMENT_TARGET=""11.0"""}
+        }
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"

@@ -14,7 +14,7 @@
     <string>FMWK</string>
     <key>CFBundleSupportedPlatforms</key>
     <array>
-        <string>iPhoneOS</string>
+        <string>InsertPlatformHere</string>
     </array>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>

@@ -74,7 +74,23 @@ foreach ($Header in $Headers) {
 Copy-Item -Path (Join-Path $RootDir "LICENSE") -Destination $FrameworkDir
 Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $FrameworkDir
 
-Copy-Item -LiteralPath (Join-Path $RootDir src distribution "$($Platform).plist") -Destination (Join-Path $FrameworkDir Info.plist) -Force
+$InfoFile = Join-Path $FrameworkDir Info.plist
+
+Copy-Item -LiteralPath (Join-Path $RootDir src distribution Info.plist) -Destination $InfoFile -Force
+
+if ($Platform -eq "ios") {
+    if ($Arch -eq "x64") {
+        $PlistPlatform = "iPhoneSimulator"
+    } else {
+        $PlistPlatform = "iPhoneOS"
+    }
+} else {
+    $PlistPlatform = "MacOSX"
+}
+
+(Get-Content $InfoFile) `
+    -replace "InsertPlatformHere", "$PlistPlatform" |`
+    Out-File $InfoFile
 
 $DynamicFile = Join-Path $ArtifactsDir libmsquic.dylib
 $StaticFile = Join-Path $ArtifactsDir libmsquic.a
