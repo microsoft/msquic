@@ -45,7 +45,7 @@ if ([string]::IsNullOrWhitespace($ExtraArtifactDir)) {
     $ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
 }
 
-$FrameworkDir = Join-Path $BaseArtifactsDir dist "$($Arch)_$($Config)_$($Tls)"  "msquic.framework"
+$FrameworkDir = Join-Path $BaseArtifactsDir frameworks $Platform "$($Arch)_$($Config)_$($Tls)"  "msquic.framework"
 
 if ((Test-Path $FrameworkDir)) {
     Remove-Item -Path "$FrameworkDir/*" -Recurse -Force
