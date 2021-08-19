@@ -296,7 +296,7 @@ function CMake-Generate {
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
-        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DDEPLOYMENT_TARGET=""13.0"" -DENABLE_ARC=0"
+        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DDEPLOYMENT_TARGET=""13.0"" -DENABLE_ARC=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=""13.0"""
         switch ($Arch) {
             "x64"   { $Arguments += " -DPLATFORM=SIMULATOR64"}
             "arm64" { $Arguments += " -DPLATFORM=OS64"}
@@ -306,8 +306,8 @@ function CMake-Generate {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
         $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DENABLE_ARC=0 -DENABLE_BITCODE=0"
         switch ($Arch) {
-            "x64"   { $Arguments += " -DPLATFORM=MAC -DDEPLOYMENT_TARGET=""10.14"""}
-            "arm64" { $Arguments += " -DPLATFORM=MAC_ARM64 -DDEPLOYMENT_TARGET=""11.0"""}
+            "x64"   { $Arguments += " -DPLATFORM=MAC -DDEPLOYMENT_TARGET=""10.14"" -DCMAKE_OSX_DEPLOYMENT_TARGET=""10.14"""}
+            "arm64" { $Arguments += " -DPLATFORM=MAC_ARM64 -DDEPLOYMENT_TARGET=""11.0"" -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
         }
     }
     if($Static) {
