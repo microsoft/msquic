@@ -187,6 +187,11 @@ typedef struct QUIC_BINDING {
     BOOLEAN Connected : 1;
 
     //
+    // Indicates that the binding is fully initialized.
+    //
+    BOOLEAN Initialized : 1;
+
+    //
     // Number of (connection and listener) references to the binding.
     //
     uint32_t RefCount;

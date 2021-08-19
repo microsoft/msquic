@@ -167,6 +167,10 @@ QuicBindingInitialize(
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
 
+    CxPlatDispatchLockAcquire(&Binding->StatelessOperLock);
+    Binding->Initialized = TRUE;
+    CxPlatDispatchLockRelease(&Binding->StatelessOperLock);
+
 Error:
 
     if (QUIC_FAILED(Status)) {
@@ -630,6 +634,10 @@ QuicBindingCreateStatelessOperation(
     QUIC_STATELESS_CONTEXT* StatelessCtx = NULL;
 
     CxPlatDispatchLockAcquire(&Binding->StatelessOperLock);
+
+    if (!Binding->Initialized) {
+        goto Exit;
+    }
 
     //
     // Age out all expired operation contexts.
