@@ -158,7 +158,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t TimeNow, // millisec
+    _In_ uint64_t TimeNow, // microsecond
     _In_ uint64_t LargestPacketNumberAcked,
     _In_ uint32_t NumRetransmittableBytes,
     _In_ uint32_t SmoothedRtt
