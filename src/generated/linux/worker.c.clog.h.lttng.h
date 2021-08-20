@@ -24,9 +24,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, IndicateIdealProcChanged,
 // Decoder Ring for AbandonOnLibShutdown
 // [conn][%p] Abandoning on shutdown
 // QuicTraceLogConnVerbose(
-                AbandonOnLibShutdown,
-                Connection,
-                "Abandoning on shutdown");
+                    AbandonOnLibShutdown,
+                    Connection,
+                    "Abandoning on shutdown");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
