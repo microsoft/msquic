@@ -324,7 +324,7 @@ CxPlatGetSelfSignedCert(
         KeyFileName = "msquicopensslserverkey";
 #else
         CertFileName = QuicTestServerCertFilename;
-        KeyFIle = QuicTestServerPrivateKeyFilename;
+        KeyFileName = QuicTestServerPrivateKeyFilename;
 #endif
     }
 
