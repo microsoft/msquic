@@ -202,25 +202,31 @@ CxPlatTlsCertificateVerifyCallback(
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    int ValidationResult = X509_V_OK;
 
-    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
-        if (Cert == NULL) {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "No certificate passed");
-            X509_STORE_CTX_set_error(x509_ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
-            return FALSE;
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+        if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
+            if (Cert == NULL) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "No certificate passed");
+                X509_STORE_CTX_set_error(x509_ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
+                return FALSE;
+            }
+
+            CertificateVerified = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
+
+            if (!CertificateVerified) {
+                X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+                ValidationResult = X509_V_ERR_CERT_REJECTED;
+            }
+        } else {
+            CertificateVerified = X509_verify_cert(x509_ctx);
+            ValidationResult = (CertificateVerified != 0) ? X509_STORE_CTX_get_error(x509_ctx) : X509_V_OK;
         }
-
-        CertificateVerified = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
-
-        if (!CertificateVerified) {
-            X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
-        }
-    } else {
-        CertificateVerified = X509_verify_cert(x509_ctx);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
@@ -277,7 +283,7 @@ CxPlatTlsCertificateVerifyCallback(
             (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE*)&PortableCertificate : (QUIC_CERTIFICATE*)Cert,
             (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)x509_ctx,
             0,
-            0)) {
+            ValidationResult)) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -831,15 +837,18 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
 #ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
     CredConfigFlags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
 #endif
+
+    if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
+        !(CredConfigFlags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED)) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
+    }
 
     if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) &&
         (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
@@ -890,9 +899,10 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
         // Windows parameters checked later
-    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE &&
-        !(CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
-        return QUIC_STATUS_INVALID_PARAMETER; // Required for server
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
+        if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Required for server
+        }
     } else {
         return QUIC_STATUS_NOT_SUPPORTED;
     }
@@ -1273,7 +1283,7 @@ CxPlatTlsSecConfigCreate(
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
-    } else {
+    } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         Status =
             CxPlatTlsExtractPrivateKey(
                 CredConfig,
@@ -1344,6 +1354,25 @@ CxPlatTlsSecConfigCreate(
             SSL_OP_NO_ANTI_REPLAY);
         SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
         SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
+
+        if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED ||
+            CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            SSL_CTX_set_cert_verify_callback(
+                SecurityConfig->SSLCtx,
+                CxPlatTlsCertificateVerifyCallback,
+                NULL);
+        }
+
+        if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            SSL_CTX_set_verify(
+                SecurityConfig->SSLCtx,
+                SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                NULL);
+
+            SSL_CTX_set_verify_depth(
+                SecurityConfig->SSLCtx,
+                CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+        }
 
         SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, CxPlatTlsAlpnSelectCallback, NULL);
 

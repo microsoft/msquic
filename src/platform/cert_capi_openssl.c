@@ -190,6 +190,26 @@ CxPlatTlsExtractPrivateKey(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
+/*
+    WCHAR AlgorithmGroup[6];
+    DWORD AlgorithmGroupLength = 0;
+    if (FAILED(Status =
+        NCryptGetProperty(
+            KeyHandle,
+            NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            (PBYTE)AlgorithmGroup,
+            sizeof(AlgorithmGroup),
+            &AlgorithmGroupLength, 0))) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NCryptGetProperty failed");
+        goto Exit;
+    }
+
+    if (wcscmp(AlgorithmGroup, NCRYPT_RSA_ALGORITHM_GROUP) == 0) {
+*/
 
     if (FAILED(
         Status =
