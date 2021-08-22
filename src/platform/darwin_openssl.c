@@ -31,13 +31,16 @@ Environment:
 #include "darwin_openssl.c.clog.h"
 #endif
 
+_Success_(return != FALSE)
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
     _In_opt_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
+    _Out_opt_ uint32_t* PlatformVerificationError
     )
 {
+    UNREFERENCED_PARAMETER(PlatformVerificationError);
     BOOLEAN Result = FALSE;
     unsigned char* OpenSSLCertBuffer = NULL;
     CFDataRef CfData = NULL;

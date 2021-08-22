@@ -35,11 +35,13 @@ Environment:
 #include <wincrypt.h>
 #include "msquic.h"
 
+_Success_(return != FALSE)
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
     _In_opt_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
+    _Out_opt_ uint32_t* PlatformVerificationError
     )
 {
     BOOLEAN Result = FALSE;
@@ -93,7 +95,8 @@ CxPlatTlsVerifyCertificate(
             CertContext,
             SNI,
             CertFlags,
-            IgnoreFlags);
+            IgnoreFlags,
+            PlatformVerificationError);
 
 Exit:
 

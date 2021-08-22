@@ -423,7 +423,7 @@ CxPlatGetSelfSignedCert(
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
             ClientCertificate ?
-                (char *)"opensslclient":
+                (char *)"MsQuicClient":
                 (char *)"localhost"))) {
         goto Error;
     }

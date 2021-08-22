@@ -152,6 +152,26 @@ typedef struct CXPLAT_TLS {
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
 static
+QUIC_STATUS
+CxPlatTlsMapPlatformErrorToQuicStatus(
+    _In_ int PlatformError
+    )
+{
+    switch (PlatformError) {
+    case X509_V_ERR_CERT_REJECTED:
+        return QUIC_STATUS_BAD_CERTIFICATE;
+    case X509_V_ERR_CERT_REVOKED:
+        return QUIC_STATUS_REVOKED_CERTIFICATE;
+    case X509_V_ERR_CERT_HAS_EXPIRED:
+        return QUIC_STATUS_CERT_EXPIRED;
+    case X509_V_ERR_CERT_UNTRUSTED:
+        return QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+    default:
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+}
+
+static
 int
 CxPlatTlsAlpnSelectCallback(
     _In_ SSL *Ssl,
@@ -180,11 +200,13 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
+_Success_(return != FALSE)
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
     _In_opt_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
+    _Out_opt_ uint32_t* PlatformVerificationError
     );
 
 static
@@ -203,9 +225,12 @@ CxPlatTlsCertificateVerifyCallback(
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     int ValidationResult = X509_V_OK;
+    BOOLEAN IsDeferredValidationOrClientAuth =
+        (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
     if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
-        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+        IsDeferredValidationOrClientAuth) {
         if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
             if (Cert == NULL) {
                 QuicTraceEvent(
@@ -217,19 +242,32 @@ CxPlatTlsCertificateVerifyCallback(
                 return FALSE;
             }
 
-            CertificateVerified = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
+            CertificateVerified =
+                CxPlatTlsVerifyCertificate(
+                    Cert,
+                    TlsContext->SNI,
+                    TlsContext->SecConfig->Flags,
+                    IsDeferredValidationOrClientAuth?
+                        (uint32_t*)&ValidationResult :
+                        NULL);
 
             if (!CertificateVerified) {
                 X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
-                ValidationResult = X509_V_ERR_CERT_REJECTED;
             }
         } else {
             CertificateVerified = X509_verify_cert(x509_ctx);
-            ValidationResult = (CertificateVerified != 0) ? X509_STORE_CTX_get_error(x509_ctx) : X509_V_OK;
+
+            if (IsDeferredValidationOrClientAuth &&
+                CertificateVerified <= 0) {
+                ValidationResult =
+                    (int)CxPlatTlsMapPlatformErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
+            }
         }
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+        !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION /*||
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION*/) &&
         !CertificateVerified) {
         QuicTraceEvent(
             TlsError,
