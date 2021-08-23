@@ -32,9 +32,8 @@ set(OPENSSL_CONFIG_FLAGS
 if (WIN32)
 
     if (DEFINED ENV{CommonProgramFiles})
-        message(STATUS "Setting dir to $ENV{CommonProgramFiles}\\SSL")
+        message(STATUS "Setting openssldir to $ENV{CommonProgramFiles}\\SSL")
         list(APPEND OPENSSL_CONFIG_FLAGS --openssldir=\"$ENV{CommonProgramFiles}\\SSL\")
-        message(STATUS "${OPENSSL_CONFIG_FLAGS}")
     endif()
 
     set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
