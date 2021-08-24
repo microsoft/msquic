@@ -212,7 +212,7 @@ else()
     # Configure steps for debug and release variants
     add_custom_command(
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-        OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/makefile
+        OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/Makefile
         COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
             ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
         COMMENT "OpenSSL configure"
@@ -225,7 +225,7 @@ else()
     add_custom_command(
         OUTPUT ${LIBSSL_PATH}
         OUTPUT ${LIBCRYPTO_PATH}
-        DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/makefile
+        DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/Makefile
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
         COMMAND make install_dev -j${NPROCS}
         COMMENT "OpenSSL build"
