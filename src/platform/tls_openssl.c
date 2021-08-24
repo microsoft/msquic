@@ -153,11 +153,11 @@ typedef struct CXPLAT_TLS {
 
 static
 QUIC_STATUS
-CxPlatTlsMapPlatformErrorToQuicStatus(
-    _In_ int PlatformError
+CxPlatTlsMapOpenSSLErrorToQuicStatus(
+    _In_ int OpenSSLError
     )
 {
-    switch (PlatformError) {
+    switch (OpenSSLError) {
     case X509_V_ERR_CERT_REJECTED:
         return QUIC_STATUS_BAD_CERTIFICATE;
     case X509_V_ERR_CERT_REVOKED:
@@ -260,14 +260,13 @@ CxPlatTlsCertificateVerifyCallback(
             if (IsDeferredValidationOrClientAuth &&
                 CertificateVerified <= 0) {
                 ValidationResult =
-                    (int)CxPlatTlsMapPlatformErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
+                    (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
             }
         }
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
-        !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION /*||
-        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION*/) &&
+        !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
         !CertificateVerified) {
         QuicTraceEvent(
             TlsError,

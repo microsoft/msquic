@@ -379,6 +379,10 @@ static const GUID CxPlatTlsClientCertPolicyGuid =
     { 0x9b, 0x53, 0xd1, 0x3e, 0xea, 0x4e, 0x9f, 0xb }
 };
 
+#ifndef TLS1_ALERT_CERTIFICATE_REQUIRED
+#define TLS1_ALERT_CERTIFICATE_REQUIRED 116
+#endif
+
 typedef struct CXPLAT_SEC_CONFIG {
 
     //
@@ -2490,6 +2494,13 @@ CxPlatTlsWriteDataToSchannel(
                     "TLS alert message received");
             }
             Result |= CXPLAT_TLS_RESULT_ERROR;
+        }
+        if (SecStatus == SEC_I_INCOMPLETE_CREDENTIALS &&
+            State->AlertCode == TLS1_ALERT_CLOSE_NOTIFY) {
+            //
+            // Work-around for Schannel sending the wrong TLS alert.
+            //
+            State->AlertCode = TLS1_ALERT_CERTIFICATE_REQUIRED;
         }
         *InBufferLength = 0;
         QuicTraceEvent(

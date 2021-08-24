@@ -2116,7 +2116,7 @@ QuicTestConnectClientCertificate(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 if (!UseClientCertificate) {
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_REQUIRED_CERTIFICATE);
                 }
 
                 TEST_QUIC_SUCCEEDED(

@@ -31,6 +31,15 @@ Environment:
 #include "darwin_openssl.c.clog.h"
 #endif
 
+static
+QUIC_STATUS
+CxPlatTlsMapTrustResultToQuicStatus(
+    _In_ OSStatus TrustResult
+    )
+{
+    return (QUIC_STATUS)TrustResult;
+}
+
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatTlsVerifyCertificate(
@@ -148,6 +157,14 @@ CxPlatTlsVerifyCertificate(
     }
 
     Result = SecTrustEvaluateWithError(TrustRef, NULL);
+
+    if (!Result) {
+        SecTrustResultType TrustResult;
+        Status = SecTrustGetTrustResult(TrustRef, &TrustResult);
+        if (PlatformVerificationError != NULL) {
+            *PlatformVerificationError = CxPlatTlsMapTrustResultToQuicStatus(Status);
+        }
+    }
 
 Exit:
 
