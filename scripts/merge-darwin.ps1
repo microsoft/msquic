@@ -20,8 +20,8 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
-    [string]$Tls = "",
+    [ValidateSet("openssl")]
+    [string]$Tls = "openssl",
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir,
@@ -35,10 +35,6 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 if (!$IsMacOS) {
     Write-Error "This script can only be ran on macOS"
-}
-
-if ("" -eq $Tls) {
-    $Tls = "openssl"
 }
 
 # Root directory of the project.

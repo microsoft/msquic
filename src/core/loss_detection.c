@@ -1153,7 +1153,7 @@ QuicLossDetectionDiscardPackets(
         const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
         if (QuicCongestionControlOnDataAcknowledged(
                 &Connection->CongestionControl,
-                US_TO_MS(TimeNow),
+                TimeNow,
                 LossDetection->LargestAck,
                 AckedRetransmittableBytes,
                 Path->SmoothedRtt)) {
@@ -1434,7 +1434,7 @@ QuicLossDetectionProcessAckBlocks(
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
         if (QuicCongestionControlOnDataAcknowledged(
                 &Connection->CongestionControl,
-                US_TO_MS(TimeNow),
+                TimeNow,
                 LossDetection->LargestAck,
                 AckedRetransmittableBytes,
                 Connection->Paths[0].SmoothedRtt)) {
