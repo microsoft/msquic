@@ -440,7 +440,7 @@ struct CxPlatSocket {
         UdpConfig.Flags = InternalFlags;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = CallbackContext;
-        UdpConfig.IdealProcessor = 0;
+        UdpConfig.IdealProcessor = ((uint16_t)CxPlatProcCurrentNumber());
         InitStatus =
             CxPlatSocketCreateUdp(
                 Datapath,

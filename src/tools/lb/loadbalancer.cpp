@@ -35,7 +35,7 @@ struct LbInterface {
         UdpConfig.Flags = 0;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
-        UdpConfig.IdealProcessor = 0;
+        UdpConfig.IdealProcessor = ((uint16_t)CxPlatProcCurrentNumber());
         if (IsPublic) {
             UdpConfig.LocalAddress = Address;
             CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);

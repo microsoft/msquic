@@ -183,7 +183,7 @@ CxPlatPcpInitialize(
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_PCP;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = PcpContext;
-    UdpConfig.IdealProcessor = 0;
+    UdpConfig.IdealProcessor = ((uint16_t)CxPlatProcCurrentNumber());
 
     for (uint32_t i = 0; i < GatewayAddressesCount; ++i) {
         QuicAddrSetPort(&GatewayAddresses[i], CXPLAT_PCP_PORT);

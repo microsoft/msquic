@@ -306,7 +306,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
     UdpConfig.Flags = 0;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
-    UdpConfig.IdealProcessor = 0;
+    UdpConfig.IdealProcessor = ((uint16_t)CxPlatProcCurrentNumber());
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(
             Datapath,
