@@ -164,10 +164,12 @@ CxPlatTlsMapOpenSSLErrorToQuicStatus(
         return QUIC_STATUS_REVOKED_CERTIFICATE;
     case X509_V_ERR_CERT_HAS_EXPIRED:
         return QUIC_STATUS_CERT_EXPIRED;
+    case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+        __fallthrough;
     case X509_V_ERR_CERT_UNTRUSTED:
         return QUIC_STATUS_CERT_UNTRUSTED_ROOT;
     default:
-        return QUIC_STATUS_INTERNAL_ERROR;
+        return QUIC_STATUS_TLS_ERROR;
     }
 }
 

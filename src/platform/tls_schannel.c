@@ -379,6 +379,10 @@ static const GUID CxPlatTlsClientCertPolicyGuid =
     { 0x9b, 0x53, 0xd1, 0x3e, 0xea, 0x4e, 0x9f, 0xb }
 };
 
+#ifndef TLS1_ALERT_CLOSE_NOTIFY
+#define TLS1_ALERT_CLOSE_NOTIFY 0
+#endif
+
 #ifndef TLS1_ALERT_CERTIFICATE_REQUIRED
 #define TLS1_ALERT_CERTIFICATE_REQUIRED 116
 #endif

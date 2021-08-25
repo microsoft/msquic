@@ -2138,7 +2138,7 @@ QuicTestConnectClientCertificate(
                         return;
                     }
                 } else {
-                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
+                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_REQUIRED_CERTIFICATE);
                 }
                 TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
             }
