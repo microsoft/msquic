@@ -115,7 +115,7 @@ if ($Tls -like "openssl") {
     Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $PackagingDir
 }
 
-$NugetSourceFolder = Join-Path $RootDir "src/nuget"
+$NugetSourceFolder = Join-Path $RootDir "src/distribution"
 
 Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") $PackagingDir
 Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.targets") $NativeDir

@@ -31,6 +31,11 @@ set(OPENSSL_CONFIG_FLAGS
 
 if (WIN32)
 
+    if (DEFINED ENV{CommonProgramFiles})
+        message(STATUS "Setting openssldir to $ENV{CommonProgramFiles}\\SSL")
+        list(APPEND OPENSSL_CONFIG_FLAGS --openssldir=\"$ENV{CommonProgramFiles}\\SSL\")
+    endif()
+
     set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
     set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
     set(LIBSSL_PATH ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -156,6 +161,27 @@ else()
     set(LIBSSL_PATH ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
     set(LIBCRYPTO_PATH ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+    # Figure out the default cert directory
+    execute_process(
+        COMMAND openssl version -d
+        RESULT_VARIABLE OPENSSL_VERSION_RESULT
+        OUTPUT_VARIABLE FULL_OPENSSL_CERT_DIR)
+
+    if (OPENSSL_VERSION_RESULT STREQUAL 0)
+        # PARSE OPENSSLDIR
+        string(REGEX MATCH "OPENSSLDIR:.*\"(.+)\"" OPENSSL_CERT_MATCH_VAR ${FULL_OPENSSL_CERT_DIR})
+        if (CMAKE_MATCH_COUNT EQUAL 1)
+            message(STATUS "Setting openssldir to ${CMAKE_MATCH_1}")
+            list(APPEND OPENSSL_CONFIG_FLAGS --openssldir=\"${CMAKE_MATCH_1}\")
+            set(CONFIGURED_OPENSSL_CERT_DIR TRUE)
+        endif()
+    endif()
+
+    if (NOT CONFIGURED_OPENSSL_CERT_DIR)
+        message(STATUS "Setting openssldir to default /usr/local/ssl")
+        list(APPEND OPENSSL_CONFIG_FLAGS --openssldir=/usr/local/ssl)
+    endif()
+
     list(APPEND OPENSSL_CONFIG_FLAGS --prefix=${OPENSSL_DIR})
 
     if (QUIC_ENABLE_SANITIZERS)
@@ -176,6 +202,14 @@ else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/openssl/config)
         endif()
         list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
+        if(SDK_NAME)
+            list(APPEND OPENSSL_CONFIG_FLAGS "-m${SDK_NAME}-version-min=${DEPLOYMENT_TARGET}")
+        else()
+            list(APPEND OPENSSL_CONFIG_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+        endif()
+        if (ENABLE_BITCODE)
+            list(APPEND OPENSSL_CONFIG_FLAGS -fembed-bitcode)
+        endif()
     elseif(ANDROID)
         message(STATUS "${ANDROID_ABI}")
         if(ANDROID_ABI STREQUAL "arm64-v8a")
@@ -204,7 +238,7 @@ else()
     # Configure steps for debug and release variants
     add_custom_command(
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-        OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/makefile
+        OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/Makefile
         COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
             ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
         COMMENT "OpenSSL configure"
@@ -217,7 +251,7 @@ else()
     add_custom_command(
         OUTPUT ${LIBSSL_PATH}
         OUTPUT ${LIBCRYPTO_PATH}
-        DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/makefile
+        DEPENDS ${QUIC_BUILD_DIR}/submodules/openssl/Makefile
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
         COMMAND make install_dev -j${NPROCS}
         COMMENT "OpenSSL build"
