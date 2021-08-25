@@ -34,10 +34,19 @@ Environment:
 static
 QUIC_STATUS
 CxPlatTlsMapTrustResultToQuicStatus(
-    _In_ OSStatus TrustResult
+    _In_ CFIndex ErrorResult
     )
 {
-    return (QUIC_STATUS)TrustResult;
+    switch (ErrorResult) {
+        case errSecCertificateRevoked:
+            return QUIC_STATUS_REVOKED_CERTIFICATE;
+        case errSecCertificateExpired:
+            return QUIC_STATUS_CERT_EXPIRED;
+        case errSecNotTrusted:
+            return QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+        default:
+            return QUIC_STATUS_TLS_ERROR;
+    }
 }
 
 _Success_(return != FALSE)
@@ -60,6 +69,7 @@ CxPlatTlsVerifyCertificate(
     CFStringRef SNIString = NULL;
     SecPolicyRef SSLPolicy = NULL;
     SecPolicyRef RevocationPolicy = NULL;
+    CFErrorRef ErrorRef = NULL;
     int OpenSSLCertLength = 0;
 
     OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
@@ -156,17 +166,21 @@ CxPlatTlsVerifyCertificate(
         goto Exit;
     }
 
-    Result = SecTrustEvaluateWithError(TrustRef, NULL);
+    Result = SecTrustEvaluateWithError(TrustRef, &ErrorRef);
 
     if (!Result) {
-        SecTrustResultType TrustResult;
-        Status = SecTrustGetTrustResult(TrustRef, &TrustResult);
         if (PlatformVerificationError != NULL) {
-            *PlatformVerificationError = CxPlatTlsMapTrustResultToQuicStatus(Status);
+            *PlatformVerificationError =
+                CxPlatTlsMapTrustResultToQuicStatus(
+                    CFErrorGetCode(ErrorRef));
         }
     }
 
 Exit:
+
+    if (ErrorRef != NULL) {
+        CFRelease(ErrorRef);
+    }
 
     if (TrustRef != NULL) {
         CFRelease(TrustRef);
