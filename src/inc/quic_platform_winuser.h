@@ -33,6 +33,11 @@ Environment:
 #define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
 #endif
 
+#ifdef QUIC_GAMECORE_BUILD
+#undef WINAPI_FAMILY
+#define WINAPI_FAMILY WINAPI_FAMILY_GAMES
+#endif
+
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
 #pragma warning(disable:28251)
@@ -396,12 +401,24 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence64
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease64
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence64
+
+#ifdef QUIC_GAMECORE_BUILD
+#define QuicReadLongPtrNoFence(p) ((LONG64)(*p))
+#else
 #define QuicReadLongPtrNoFence ReadNoFence64
+#endif
+
 #else
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
+
+#ifdef QUIC_GAMECORE_BUILD
+#define QuicReadLongPtrNoFence(p) ((LONG)(*p))
+#else
 #define QuicReadLongPtrNoFence ReadNoFence
+#endif
+
 #endif
 
 typedef LONG_PTR CXPLAT_REF_COUNT;
@@ -685,7 +702,7 @@ extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
-#ifdef QUIC_UWP_BUILD
+#if defined(QUIC_UWP_BUILD) || defined(QUIC_GAMECORE_BUILD)
 DWORD CxPlatProcMaxCount();
 DWORD CxPlatProcActiveCount();
 #else

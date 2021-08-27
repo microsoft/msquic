@@ -108,7 +108,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
+    [ValidateSet("gamecore", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -216,6 +216,16 @@ if ($Generator -eq "") {
 
 if (!$IsWindows -And $Platform -eq "uwp") {
     Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
+    exit
+}
+
+if (!$IsWindows -And $Platform -eq "gamecore") {
+    Write-Error "[$(Get-Date)] Cannot build gamecore on non windows platforms"
+    exit
+}
+
+if ($Arch -ne "x64" -And $Platform -eq "gamecore") {
+    Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
     exit
 }
 
@@ -342,6 +352,9 @@ function CMake-Generate {
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+    }
+    if ($Platform -eq "gamecore") {
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on"
     }
     if ($ToolchainFile -ne "") {
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
