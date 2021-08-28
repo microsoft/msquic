@@ -611,7 +611,7 @@ CxPlatGetAllocFailDenominator(
 }
 #endif
 
-#ifdef QUIC_UWP_BUILD
+#if defined(QUIC_UWP_BUILD) || defined(QUIC_GAMECORE_BUILD)
 DWORD
 CxPlatProcActiveCount(
     )
