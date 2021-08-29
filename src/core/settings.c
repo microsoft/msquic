@@ -901,7 +901,7 @@ QuicSettingsLoad(
         ValueLen = sizeof(Value);
         CxPlatStorageReadValue(
             Storage,
-            QUIC_SETTING_CONGESTION_CONTROLLER,
+            QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM,
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
