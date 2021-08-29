@@ -526,6 +526,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "InvalidCongestionControlAlgorithm": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Unknown congestion control algorithm: %u, fallback to Cubic",
+      "UniqueId": "InvalidCongestionControlAlgorithm",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "ConnPersistentCongestion": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Persistent congestion event",

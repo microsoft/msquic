@@ -70,6 +70,7 @@
     <ClCompile Include="timer_wheel.c" />
     <ClCompile Include="version_neg.c" />
     <ClCompile Include="worker.c" />
+    <ClCompile Include="congestion_control/cubic.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ack_tracker.h" />
@@ -107,6 +108,7 @@
     <ClInclude Include="transport_params.h" />
     <ClInclude Include="version_neg.h" />
     <ClInclude Include="worker.h" />
+    <ClCompile Include="congestion_control/cubic.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E862BE76-298B-4021-8105-A3E115FA2900}</ProjectGuid>

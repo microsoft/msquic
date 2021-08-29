@@ -4,83 +4,80 @@
     Licensed under the MIT License.
 
 --*/
-
 typedef struct QUIC_CONGESTION_CONTROL {
+    // Name of congestion control algorithm
+    const char* Name;
+    
+    BOOLEAN (*QuicCongestionControlCanSend)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc
+        );
 
-    //
-    // TRUE if we have had at least one congestion event.
-    // If TRUE, RecoverySentPacketNumber is valid.
-    //
-    BOOLEAN HasHadCongestionEvent : 1;
+    void (*QuicCongestionControlSetExemption)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ uint8_t NumPackets
+        );
 
-    //
-    // This flag indicates a congestion event occurred and CC is attempting
-    // to recover from it.
-    //
-    BOOLEAN IsInRecovery : 1;
+    void (*QuicCongestionControlInitialize)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ const QUIC_SETTINGS* Settings
+        );
 
-    //
-    // This flag indicates a persistent congestion event occurred and CC is
-    // attempting to recover from it.
-    //
-    BOOLEAN IsInPersistentCongestion : 1;
+    void (*QuicCongestionControlReset)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc
+        );
 
-    //
-    // TRUE if there has been at least one ACK.
-    //
-    BOOLEAN TimeOfLastAckValid : 1;
+    uint32_t (*QuicCongestionControlGetSendAllowance)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ uint64_t TimeSinceLastSend,
+        _In_ BOOLEAN TimeSinceLastSendValid
+        );
 
-    //
-    // The size of the initial congestion window, in packets.
-    //
-    uint32_t InitialWindowPackets;
+    void (*QuicCongestionControlOnDataSent)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ uint32_t NumRetransmittableBytes
+        );
 
-    //
-    // Minimum time without any sends before the congestion window is reset.
-    //
-    uint32_t SendIdleTimeoutMs;
+    BOOLEAN (*QuicCongestionControlOnDataInvalidated)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ uint32_t NumRetransmittableBytes
+        );
 
-    uint32_t CongestionWindow; // bytes
-    uint32_t PrevCongestionWindow; // bytes
-    uint32_t SlowStartThreshold; // bytes
-    uint32_t PrevSlowStartThreshold; // bytes
+    BOOLEAN (*QuicCongestionControlOnDataAcknowledged)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ uint64_t TimeNow, // microsecond
+        _In_ uint64_t LargestPacketNumberAcked,
+        _In_ uint32_t NumRetransmittableBytes,
+        _In_ uint32_t SmoothedRtt
+        );
 
-    //
-    // The number of bytes considered to be still in the network.
-    //
-    // The client of this module should send packets until BytesInFlight becomes
-    // larger than CongestionWindow (see QuicCongestionControlCanSend). This
-    // means BytesInFlight can become larger than CongestionWindow by up to one
-    // packet's worth of bytes, plus exemptions (see Exemptions variable).
-    //
-    uint32_t BytesInFlight;
-    uint32_t BytesInFlightMax;
+    void (*QuicCongestionControlOnDataLost)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ uint64_t LargestPacketNumberLost,
+        _In_ uint64_t LargestPacketNumberSent,
+        _In_ uint32_t NumRetransmittableBytes,
+        _In_ BOOLEAN PersistentCongestion
+        );
 
-    //
-    // A count of packets which can be sent ignoring CongestionWindow.
-    // The count is decremented as the packets are sent. BytesInFlight is still
-    // incremented for these packets. This is used to send probe packets for
-    // loss recovery.
-    //
-    uint8_t Exemptions;
+    void (*QuicCongestionControlOnSpuriousCongestionEvent)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc
+        );
 
-    uint64_t TimeOfLastAck; // millisec
-    uint64_t TimeOfCongAvoidStart; // millisec
-    uint32_t KCubic; // millisec
-    uint32_t PrevKCubic; // millisec
-    uint32_t WindowMax; // bytes
-    uint32_t PrevWindowMax; // bytes
-    uint32_t WindowLastMax; // bytes
-    uint32_t PrevWindowLastMax; // bytes
+    void (*QuicCongestionControlLogOutFlowStatus)(
+        _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+        );
 
-    //
-    // This variable tracks the largest packet that was outstanding at the time
-    // the last congestion event occurred. An ACK for any packet number greater
-    // than this indicates recovery is over.
-    //
-    uint64_t RecoverySentPacketNumber;
+    uint8_t (*QuicCongestionControlGetExemptions)(
+        _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+        );
 
+    uint32_t (*QuicCongestionControlGetBytesInFlightMax)(
+        _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+        );
+
+    uint64_t Ctx[104 / sizeof(uint64_t)];
 } QUIC_CONGESTION_CONTROL;
+
+#define QUIC_CONGESTION_CONTROL_CONTEXT_SIZE (RTL_FIELD_SIZE(QUIC_CONGESTION_CONTROL, Ctx))
 
 //
 // Returns TRUE if more bytes can be sent on the network.
@@ -92,7 +89,7 @@ QuicCongestionControlCanSend(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return Cc->BytesInFlight < Cc->CongestionWindow || Cc->Exemptions > 0;
+    return Cc->QuicCongestionControlCanSend(Cc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -103,7 +100,7 @@ QuicCongestionControlSetExemption(
     _In_ uint8_t NumPackets
     )
 {
-    Cc->Exemptions = NumPackets;
+    Cc->QuicCongestionControlSetExemption(Cc, NumPackets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -185,3 +182,27 @@ void
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint8_t
+QuicCongestionControlGetExemptions(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+inline
+void
+QuicCongestionControlLogOutFlowStatus(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    Cc->QuicCongestionControlLogOutFlowStatus(Cc);
+}
+
+inline
+uint32_t
+QuicCongestionControlGetBytesInFlightMax(
+    _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    return Cc->QuicCongestionControlGetBytesInFlightMax(Cc);
+}

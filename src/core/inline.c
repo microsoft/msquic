@@ -348,7 +348,7 @@ QuicAckTrackerGetPacketSpace(
 
 QUIC_CONNECTION*
 QuicCongestionControlGetConnection(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
 QUIC_CID_STR

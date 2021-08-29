@@ -47,6 +47,8 @@ set(SOURCES
     operation.h
     stream.h
     connection.h
+    cubic.h
+    cubic.c
 )
 
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

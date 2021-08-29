@@ -119,6 +119,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.StatelessOperationExpirationMs) {
         Settings->StatelessOperationExpirationMs = QUIC_STATELESS_OPERATION_EXPIRATION_MS;
     }
+    if (!Settings->IsSet.CongestionControlAlgorithm) {
+        Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -226,6 +229,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.StatelessOperationExpirationMs) {
         Destination->StatelessOperationExpirationMs = Source->StatelessOperationExpirationMs;
+    }
+    if (!Destination->IsSet.CongestionControlAlgorithm) {
+        Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
     }
 }
 
@@ -487,6 +493,13 @@ QuicSettingApply(
         if (Source->IsSet.StatelessOperationExpirationMs && (!Destination->IsSet.StatelessOperationExpirationMs || OverWrite)) {
             Destination->StatelessOperationExpirationMs = Source->StatelessOperationExpirationMs;
             Destination->IsSet.StatelessOperationExpirationMs = TRUE;
+        }
+    }
+    
+    if (SETTING_HAS_FIELD(NewSettingsSize, CongestionControlAlgorithm)) {
+        if (Source->IsSet.CongestionControlAlgorithm && (!Destination->IsSet.CongestionControlAlgorithm || OverWrite)) {
+            Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
+            Destination->IsSet.CongestionControlAlgorithm = TRUE;
         }
     }
 
@@ -883,6 +896,18 @@ QuicSettingsLoad(
             Settings->StatelessOperationExpirationMs = (uint16_t)Value;
         }
     }
+    if (!Settings->IsSet.CongestionControlAlgorithm) {
+        Value = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_CONGESTION_CONTROLLER,
+            (uint8_t*)&Value,
+            &ValueLen);
+        if (Value < QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
+            Settings->StatelessOperationExpirationMs = (uint16_t)Value;
+        }
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -928,6 +953,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,    "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
+    QuicTraceLogVerbose(CongestionControlAlgorithm,         "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1053,6 +1079,11 @@ QuicSettingsDumpNew(
         }
         if (Settings->IsSet.StatelessOperationExpirationMs) {
             QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
+        }
+    }
+    if (SETTING_HAS_FIELD(SettingsSize, CongestionControlAlgorithm)) {
+        if (Settings->IsSet.CongestionControlAlgorithm) {
+            QuicTraceLogVerbose(CongestionControlAlgorithm,             "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
         }
     }
 }

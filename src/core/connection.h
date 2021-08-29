@@ -729,7 +729,7 @@ inline
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicCongestionControlGetConnection(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
     return CXPLAT_CONTAINING_RECORD(Cc, QUIC_CONNECTION, CongestionControl);
@@ -771,22 +771,7 @@ QuicConnLogOutFlowStats(
         return;
     }
 
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-
-    QuicTraceEvent(
-        ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+    QuicCongestionControlLogOutFlowStatus(&Connection->CongestionControl);
 
     uint64_t FcAvailable, SendWindow;
     QuicStreamSetGetFlowControlSummary(
