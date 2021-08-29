@@ -206,8 +206,6 @@ CubicCongestionControlUpdateBlockedState(
     _In_ BOOLEAN PreviousCanSendState
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
-
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     QuicConnLogOutFlowStats(Connection);
     if (PreviousCanSendState != CubicCongestionControlCanSend(Cc)) {
@@ -600,7 +598,6 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     QuicConnLogCubic(Connection);
 }
 
-inline
 void
 CubicCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -628,7 +625,6 @@ CubicCongestionControlLogOutFlowStatus(
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
 }
 
-inline
 uint32_t
 CubicCongestionControlGetBytesInFlightMax(
     _In_ const struct QUIC_CONGESTION_CONTROL* Cc

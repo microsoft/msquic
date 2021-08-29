@@ -953,7 +953,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,    "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
-    QuicTraceLogVerbose(CongestionControlAlgorithm,         "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+    QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1083,7 +1083,7 @@ QuicSettingsDumpNew(
     }
     if (SETTING_HAS_FIELD(SettingsSize, CongestionControlAlgorithm)) {
         if (Settings->IsSet.CongestionControlAlgorithm) {
-            QuicTraceLogVerbose(CongestionControlAlgorithm,             "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+            QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
         }
     }
 }

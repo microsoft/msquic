@@ -181,19 +181,17 @@ CubicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
-inline
 void
 CubicCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
-inline
 uint32_t
 CubicCongestionControlGetBytesInFlightMax(
     _In_ const struct QUIC_CONGESTION_CONTROL* Cc
     );
 
-static QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
+static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .Name = "Cubic",
     .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
     .QuicCongestionControlSetExemption = CubicCongestionControlSetExemption,

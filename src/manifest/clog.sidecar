@@ -6784,6 +6784,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingCongestionControlAlgorithm": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] CongestionControlAlgorithm = %d",
+      "UniqueId": "SettingCongestionControlAlgorithm",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid version supplied to settings! 0x%x at position %d",
@@ -10976,6 +10988,10 @@
         "TraceID": "ApiEventNoHandler"
       },
       {
+        "UniquenessHash": "63fe9766-e06a-4634-bb9e-5d1ed6f99208",
+        "TraceID": "InvalidCongestionControlAlgorithm"
+      },
+      {
         "UniquenessHash": "9cc051a4-7fe8-2888-20cf-c5ada9208533",
         "TraceID": "NoReplacementCidForRetire"
       },
@@ -12378,6 +12394,10 @@
       {
         "UniquenessHash": "940f7585-40ed-60f4-0e01-fa5ef6bea02f",
         "TraceID": "SettingDumpStatelessOperExpirMs"
+      },
+      {
+        "UniquenessHash": "4611081a-84c0-42d4-b30b-d1f365986f4f",
+        "TraceID": "SettingCongestionControlAlgorithm"
       },
       {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",

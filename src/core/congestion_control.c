@@ -29,10 +29,11 @@ QuicCongestionControlInitialize(
     CXPLAT_DBG_ASSERT(Settings->CongestionControlAlgorithm < QUIC_CONGESTION_CONTROL_ALGORITHM_MAX);
 
     switch (Settings->CongestionControlAlgorithm) {
-        case QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC:
+        case QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC: {
             CubicCongestionControlInitialize(Cc, Settings);
             break;
-        default:
+        }
+        default: {
             QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
             QuicTraceLogConnWarning(
                 InvalidCongestionControlAlgorithm,
@@ -41,6 +42,7 @@ QuicCongestionControlInitialize(
                 Settings->CongestionControlAlgorithm);
             CubicCongestionControlInitialize(Cc, Settings);
             break;
+        }
     }
 }
 
