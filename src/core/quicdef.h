@@ -504,4 +504,4 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT    "MtuDiscoverySearchCompleteTimeoutUs"
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
 
-#define QUIC_SETTING_CONGESTION_CONTROLLER          "CongestionController"
+#define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
