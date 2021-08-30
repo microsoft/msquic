@@ -362,7 +362,6 @@ typedef enum QUIC_CONGESTION_CONTROL_ALGORITHM {
     QUIC_CONGESTION_CONTROL_ALGORITHM_MAX,
 } QUIC_CONGESTION_CONTROL_ALGORITHM;
 
-
 //
 // All the available information describing a handshake.
 //
