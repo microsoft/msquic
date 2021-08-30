@@ -532,6 +532,35 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnHandshakeComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnSourceCidRemoved
+// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
+// QuicTraceEvent(
+                ConnSourceCidRemoved,
+                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                Connection,
+                InitialSourceCid->CID.SequenceNumber,
+                CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
+// arg2 = arg2 = Connection
+// arg3 = arg3 = InitialSourceCid->CID.SequenceNumber
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data)
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnSourceCidRemoved,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned long long, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnNewPacketKeys
 // [conn][%p] New packet keys created successfully.
 // QuicTraceEvent(

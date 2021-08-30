@@ -4451,30 +4451,7 @@ QuicConnRecvPostProcessing(
                 "First usage of SrcCid: %s",
                 QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer);
             SourceCid->CID.UsedByPeer = TRUE;
-            if (SourceCid->CID.IsInitial) {
-                if (QuicConnIsServer(Connection) && SourceCid->Link.Next != NULL) {
-                    QUIC_CID_HASH_ENTRY* NextSourceCid =
-                        QUIC_CONTAINING_RECORD(
-                            SourceCid->Link.Next,
-                            QUIC_CID_HASH_ENTRY,
-                            Link);
-                    if (NextSourceCid->CID.IsInitial) {
-                        //
-                        // The client has started using our new initial CID. We
-                        // can discard the old (client chosen) one now.
-                        //
-                        SourceCid->Link.Next = NextSourceCid->Link.Next;
-                        QUIC_DBG_ASSERT(!NextSourceCid->CID.IsInLookupTable);
-                        QuicTraceEvent(
-                            ConnSourceCidRemoved,
-                            "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                            Connection,
-                            NextSourceCid->CID.SequenceNumber,
-                            CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
-                        QUIC_FREE(NextSourceCid, QUIC_POOL_CIDHASH);
-                    }
-                }
-            } else {
+            if (!SourceCid->CID.IsInitial) {
                 PeerUpdatedCid = TRUE;
             }
         }
