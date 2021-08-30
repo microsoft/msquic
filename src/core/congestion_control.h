@@ -189,6 +189,7 @@ QuicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicCongestionControlLogOutFlowStatus(
@@ -198,6 +199,7 @@ QuicCongestionControlLogOutFlowStatus(
     Cc->QuicCongestionControlLogOutFlowStatus(Cc);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
 QuicCongestionControlGetBytesInFlightMax(

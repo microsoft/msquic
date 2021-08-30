@@ -47,7 +47,6 @@ set(SOURCES
     operation.h
     stream.h
     connection.h
-    cubic.h
     cubic.c
 )
 

@@ -18,8 +18,6 @@ Future work:
 #include "congestion_control.c.clog.h"
 #endif
 
-#include "cubic.h"
-
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.
 //

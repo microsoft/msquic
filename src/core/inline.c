@@ -688,3 +688,28 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlLogOutFlowStatus(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCongestionControlGetBytesInFlightMax(
+    _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CubicCongestionControlCanSend(
+    _In_ QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlSetExemption(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ uint8_t NumPackets
+    );

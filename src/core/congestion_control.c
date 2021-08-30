@@ -17,8 +17,6 @@ Abstract:
 #include "congestion_control.c.clog.h"
 #endif
 
-#include "cubic.h"
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlInitialize(
