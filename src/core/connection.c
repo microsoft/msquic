@@ -2308,7 +2308,11 @@ QuicConnGenerateLocalTransportParameters(
             Connection->OrigDestCID = NULL;
 
             if (Connection->State.HandshakeUsedRetryPacket) {
-                CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
+                if (SourceCid->Link.Next == NULL) {
+                    if (!QuicConnGenerateNewSourceCid(Connection, FALSE)) {
+                        return QUIC_STATUS_INTERNAL_ERROR;
+                    }
+                }
                 const QUIC_CID_HASH_ENTRY* PrevSourceCid =
                     CXPLAT_CONTAINING_RECORD(
                         SourceCid->Link.Next,
