@@ -319,7 +319,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
-            0,  // AsyncConfiguration
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
             (uint8_t)GetParam().MultiPacketClientInitial,
             GetParam().SessionResumption,
             0   // RandomLossPercentage
@@ -331,7 +331,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
-            false,  // AsyncConfiguration
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             (QUIC_TEST_RESUMPTION_MODE)GetParam().SessionResumption,
             0);     // RandomLossPercentage
@@ -346,7 +346,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             (uint8_t)GetParam().ServerStatelessRetry,
             1,  // ClientUsesOldVersion
             0,  // MultipleALPNs
-            0,  // AsyncConfiguration
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
             0,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0   // RandomLossPercentage
@@ -358,7 +358,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs
-            false,  // AsyncConfiguration
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
             false,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0);     // RandomLossPercentage
@@ -373,7 +373,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
-            1,  // AsyncConfiguration
+            GetParam().DelayedAsyncConfig ? (uint8_t)QUIC_TEST_ASYNC_CONFIG_DELAYED : (uint8_t)QUIC_TEST_ASYNC_CONFIG_ENABLED,
             0,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0   // RandomLossPercentage
@@ -385,7 +385,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
-            true,   // AsyncConfiguration
+            GetParam().DelayedAsyncConfig ? QUIC_TEST_ASYNC_CONFIG_DELAYED : QUIC_TEST_ASYNC_CONFIG_ENABLED,
             false,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0);     // RandomLossPercentage
@@ -510,7 +510,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             0,  // MultipleALPNs
-            0,  // AsyncConfiguration
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
             (uint8_t)GetParam().MultiPacketClientInitial,
             GetParam().SessionResumption,
             GetParam().RandomLossPercentage
@@ -522,7 +522,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs,
-            false,  // AsyncConfiguration
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             (QUIC_TEST_RESUMPTION_MODE)GetParam().SessionResumption,
             GetParam().RandomLossPercentage);
