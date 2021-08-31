@@ -1517,6 +1517,30 @@ QuicCryptoProcessTlsCompletion(
                 "Handshake confirmed (server)");
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
             QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+
+            //
+            // Take this opportinuty to clean up the client chosen initial CID.
+            // It will be the second one in the list.
+            //
+            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
+            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
+            CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next->Next == NULL);
+            QUIC_CID_HASH_ENTRY* InitialSourceCid =
+                CXPLAT_CONTAINING_RECORD(
+                    Connection->SourceCids.Next->Next,
+                    QUIC_CID_HASH_ENTRY,
+                    Link);
+            CXPLAT_DBG_ASSERT(InitialSourceCid->CID.IsInitial);
+            Connection->SourceCids.Next->Next = Connection->SourceCids.Next->Next->Next;
+            CXPLAT_DBG_ASSERT(!InitialSourceCid->CID.IsInLookupTable);
+            QuicTraceEvent(
+                ConnSourceCidRemoved,
+                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                Connection,
+                InitialSourceCid->CID.SequenceNumber,
+                CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
+            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDHASH);
         }
 
         //
