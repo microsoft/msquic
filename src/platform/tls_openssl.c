@@ -231,7 +231,8 @@ CxPlatTlsCertificateVerifyCallback(
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
         TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
-    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT &&
+            !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) ||
         IsDeferredValidationOrClientAuth) {
         if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
             if (Cert == NULL) {
@@ -1377,7 +1378,9 @@ CxPlatTlsSecConfigCreate(
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+        if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+        }
 
         //
         // TODO - Support additional certificate validation parameters, such as
@@ -1403,14 +1406,17 @@ CxPlatTlsSecConfigCreate(
         }
 
         if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            int VerifyMode = SSL_VERIFY_PEER;
+            if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+                SSL_CTX_set_verify_depth(
+                    SecurityConfig->SSLCtx,
+                    CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+            }
             SSL_CTX_set_verify(
                 SecurityConfig->SSLCtx,
-                SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                VerifyMode,
                 NULL);
-
-            SSL_CTX_set_verify_depth(
-                SecurityConfig->SSLCtx,
-                CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
         }
 
         SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, CxPlatTlsAlpnSelectCallback, NULL);

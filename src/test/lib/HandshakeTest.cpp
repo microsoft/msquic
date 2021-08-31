@@ -2113,6 +2113,9 @@ QuicTestConnectClientCertificate(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+            if (!UseClientCertificate) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
+            }
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2133,15 +2136,12 @@ QuicTestConnectClientCertificate(
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
-                TEST_EQUAL(UseClientCertificate, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 if (UseClientCertificate) {
                     if (!Server->WaitForConnectionComplete()) {
                         return;
                     }
-                } else {
-                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_REQUIRED_CERTIFICATE);
                 }
                 TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
             }
