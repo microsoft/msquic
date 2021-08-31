@@ -159,11 +159,9 @@ protected:
         SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         ASSERT_NE(nullptr, SelfSignedCertParams);
         SelfSignedCertParamsFlags = SelfSignedCertParams->Flags;
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-#endif
 #ifndef QUIC_DISABLE_PFX_TESTS
         ASSERT_NE(nullptr, PfxPath);
         CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
@@ -184,10 +182,8 @@ protected:
     {
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
-#endif
 #ifndef QUIC_DISABLE_PFX_TESTS
         if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
             CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
@@ -1709,7 +1705,6 @@ TEST_F(TlsTest, LockPerfTest)
 #endif
 }
 
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
 TEST_F(TlsTest, ClientCertificateFailValidation)
 {
     CxPlatSecConfig ClientConfig;
@@ -1735,7 +1730,6 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
     DoHandshake(ServerContext, ClientContext);
 }
-#endif
 
 TEST_F(TlsTest, CipherSuiteSuccess1)
 {

@@ -58,7 +58,6 @@ CxPlatTlsVerifyCertificate(
     _Out_opt_ uint32_t* PlatformVerificationError
     )
 {
-    UNREFERENCED_PARAMETER(PlatformVerificationError);
     BOOLEAN Result = FALSE;
     unsigned char* OpenSSLCertBuffer = NULL;
     CFDataRef CfData = NULL;
