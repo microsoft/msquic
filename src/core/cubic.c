@@ -15,7 +15,7 @@ Future work:
 
 #include "precomp.h"
 #ifdef QUIC_CLOG
-#include "congestion_control.c.clog.h"
+#include "cubic.c.clog.h"
 #endif
 
 //

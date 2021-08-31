@@ -486,49 +486,9 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnCubic": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
-      "UniqueId": "ConnCubic",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "ConnCongestion": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Congestion event",
-      "UniqueId": "ConnCongestion",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "InvalidCongestionControlAlgorithm": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Unknown congestion control algorithm: %u, fallback to Cubic",
+      "TraceString": "[conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic",
       "UniqueId": "InvalidCongestionControlAlgorithm",
       "splitArgs": [
         {
@@ -536,47 +496,11 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "d",
           "MacroVariableName": "arg3"
-        },
+        }
       ],
       "macroName": "QuicTraceLogConnWarning"
-    },
-    "ConnPersistentCongestion": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Persistent congestion event",
-      "UniqueId": "ConnPersistentCongestion",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "ConnRecoveryExit": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Recovery complete",
-      "UniqueId": "ConnRecoveryExit",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "ConnSpuriousCongestion": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Spurious congestion event",
-      "UniqueId": "ConnSpuriousCongestion",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
     },
     "PacketRxStatelessReset": {
       "ModuleProperites": {},
@@ -2062,54 +1986,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnOutFlowStats": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
-      "UniqueId": "ConnOutFlowStats",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg7"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg8"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg9"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg10"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg11"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnOutFlowStreamStats": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
@@ -3361,6 +3237,130 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "ConnCubic": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
+      "UniqueId": "ConnCubic",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnCongestion": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Congestion event",
+      "UniqueId": "ConnCongestion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPersistentCongestion": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Persistent congestion event",
+      "UniqueId": "ConnPersistentCongestion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnRecoveryExit": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recovery complete",
+      "UniqueId": "ConnRecoveryExit",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnSpuriousCongestion": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Spurious congestion event",
+      "UniqueId": "ConnSpuriousCongestion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnOutFlowStats": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+      "UniqueId": "ConnOutFlowStats",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg11"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "DatagramSendStateChanged": {
       "ModuleProperites": {},
@@ -10920,24 +10920,8 @@
         "TraceID": "ConfigurationRundown"
       },
       {
-        "UniquenessHash": "e507ac6d-1899-3690-fceb-3231a0eedb86",
-        "TraceID": "ConnCubic"
-      },
-      {
-        "UniquenessHash": "49757e31-cd50-7e77-6853-034e81817918",
-        "TraceID": "ConnCongestion"
-      },
-      {
-        "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
-        "TraceID": "ConnPersistentCongestion"
-      },
-      {
-        "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
-        "TraceID": "ConnRecoveryExit"
-      },
-      {
-        "UniquenessHash": "262484c2-7385-f5dd-c3de-0bb48fe2ffea",
-        "TraceID": "ConnSpuriousCongestion"
+        "UniquenessHash": "5090daae-967d-139c-1f8f-c8c716d1391f",
+        "TraceID": "InvalidCongestionControlAlgorithm"
       },
       {
         "UniquenessHash": "74a3473b-5ac0-6376-652d-882aac50b01a",
@@ -10986,10 +10970,6 @@
       {
         "UniquenessHash": "c69c6d33-2838-013a-936c-7fbc085570b4",
         "TraceID": "ApiEventNoHandler"
-      },
-      {
-        "UniquenessHash": "63fe9766-e06a-4634-bb9e-5d1ed6f99208",
-        "TraceID": "InvalidCongestionControlAlgorithm"
       },
       {
         "UniquenessHash": "9cc051a4-7fe8-2888-20cf-c5ada9208533",
@@ -11324,10 +11304,6 @@
         "TraceID": "ConnLocalAddrRemoved"
       },
       {
-        "UniquenessHash": "9165bf3c-da91-8d88-41bc-6709ad299bed",
-        "TraceID": "ConnOutFlowStats"
-      },
-      {
         "UniquenessHash": "55425e95-f2a7-6b0d-41e9-82bdeb5d9082",
         "TraceID": "ConnOutFlowStreamStats"
       },
@@ -11626,6 +11602,30 @@
       {
         "UniquenessHash": "94dce213-922c-7a7e-d752-7af836a806ab",
         "TraceID": "DecodeTPMinAckDelay"
+      },
+      {
+        "UniquenessHash": "e507ac6d-1899-3690-fceb-3231a0eedb86",
+        "TraceID": "ConnCubic"
+      },
+      {
+        "UniquenessHash": "49757e31-cd50-7e77-6853-034e81817918",
+        "TraceID": "ConnCongestion"
+      },
+      {
+        "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
+        "TraceID": "ConnPersistentCongestion"
+      },
+      {
+        "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
+        "TraceID": "ConnRecoveryExit"
+      },
+      {
+        "UniquenessHash": "262484c2-7385-f5dd-c3de-0bb48fe2ffea",
+        "TraceID": "ConnSpuriousCongestion"
+      },
+      {
+        "UniquenessHash": "9165bf3c-da91-8d88-41bc-6709ad299bed",
+        "TraceID": "ConnOutFlowStats"
       },
       {
         "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
@@ -12396,7 +12396,7 @@
         "TraceID": "SettingDumpStatelessOperExpirMs"
       },
       {
-        "UniquenessHash": "4611081a-84c0-42d4-b30b-d1f365986f4f",
+        "UniquenessHash": "9f10ea4b-b3b0-32c3-daad-f248e6456e44",
         "TraceID": "SettingCongestionControlAlgorithm"
       },
       {
