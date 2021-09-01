@@ -158,7 +158,7 @@ typedef union QUIC_ADDR {
     struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
 
-#ifndef RTL_FIELD_SIZE(type, field)
+#ifndef RTL_FIELD_SIZE
 #define RTL_FIELD_SIZE(type, field)     (sizeof(((type *)0)->field))
 #endif
 
