@@ -190,20 +190,3 @@ uint32_t
 CubicCongestionControlGetBytesInFlightMax(
     _In_ const struct QUIC_CONGESTION_CONTROL* Cc
     );
-
-static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
-    .Name = "Cubic",
-    .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
-    .QuicCongestionControlSetExemption = CubicCongestionControlSetExemption,
-    .QuicCongestionControlInitialize = CubicCongestionControlInitialize,
-    .QuicCongestionControlReset = CubicCongestionControlReset,
-    .QuicCongestionControlGetSendAllowance = CubicCongestionControlGetSendAllowance,
-    .QuicCongestionControlOnDataSent = CubicCongestionControlOnDataSent,
-    .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
-    .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
-    .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
-    .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
-    .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
-    .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
-    .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
-};

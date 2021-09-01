@@ -24,6 +24,23 @@ Future work:
 #define TEN_TIMES_BETA_CUBIC 7
 #define TEN_TIMES_C_CUBIC 4
 
+static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
+    .Name = "Cubic",
+    .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
+    .QuicCongestionControlSetExemption = CubicCongestionControlSetExemption,
+    .QuicCongestionControlInitialize = CubicCongestionControlInitialize,
+    .QuicCongestionControlReset = CubicCongestionControlReset,
+    .QuicCongestionControlGetSendAllowance = CubicCongestionControlGetSendAllowance,
+    .QuicCongestionControlOnDataSent = CubicCongestionControlOnDataSent,
+    .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
+    .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
+    .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
+    .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
+    .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
+    .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
+    .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
+};
+
 //
 // Shifting nth root algorithm.
 //
