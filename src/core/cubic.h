@@ -117,12 +117,6 @@ CubicCongestionControlInitialize(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CubicCongestionControlFinalize(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
 CubicCongestionControlReset(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     );

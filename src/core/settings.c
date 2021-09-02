@@ -120,7 +120,7 @@ QuicSettingsSetDefault(
         Settings->StatelessOperationExpirationMs = QUIC_STATELESS_OPERATION_EXPIRATION_MS;
     }
     if (!Settings->IsSet.CongestionControlAlgorithm) {
-        Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+        Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
 }
 
@@ -905,7 +905,7 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
-            Settings->StatelessOperationExpirationMs = (uint16_t)Value;
+            Settings->StatelessOperationExpirationMs = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
         }
     }
 }
