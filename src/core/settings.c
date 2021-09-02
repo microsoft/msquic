@@ -897,7 +897,7 @@ QuicSettingsLoad(
         }
     }
     if (!Settings->IsSet.CongestionControlAlgorithm) {
-        Value = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+        Value = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
         ValueLen = sizeof(Value);
         CxPlatStorageReadValue(
             Storage,
@@ -905,7 +905,7 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
-            Settings->StatelessOperationExpirationMs = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
+            Settings->CongestionControlAlgorithm = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
         }
     }
 }
