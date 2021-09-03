@@ -77,7 +77,6 @@ extern "C" {
 #include "connection.h"
 #include "packet_builder.h"
 #include "listener.h"
-#include "cubic.h"
 
 #if defined(__cplusplus)
 }

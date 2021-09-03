@@ -18,6 +18,9 @@ Future work:
 #include "cubic.c.clog.h"
 #endif
 
+#include "cubic.h"
+#include "cubic_impl.h"
+
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.
 //
@@ -87,7 +90,7 @@ QuicConnLogCubic(
 {
     UNREFERENCED_PARAMETER(Connection);
 
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)(Connection->CongestionControl.Ctx);
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)(&Connection->CongestionControl.Ctx);
 
     QuicTraceEvent(
         ConnCubic,
@@ -108,7 +111,7 @@ CubicCongestionControlInitialize(
 {
     *Cc = QuicCongestionControlCubic;
 
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     Ctx->SlowStartThreshold = UINT32_MAX;
@@ -126,7 +129,7 @@ CubicCongestionControlReset(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     Ctx->SlowStartThreshold = UINT32_MAX;
@@ -147,7 +150,7 @@ CubicCongestionControlGetSendAllowance(
     _In_ BOOLEAN TimeSinceLastSendValid
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     uint32_t SendAllowance;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
@@ -237,7 +240,7 @@ CubicCongestionControlOnCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     QuicTraceEvent(
@@ -297,7 +300,7 @@ CubicCongestionControlOnPersistentCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     QuicTraceEvent(
@@ -323,7 +326,7 @@ CubicCongestionControlOnDataSent(
     _In_ uint32_t NumRetransmittableBytes
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
@@ -347,7 +350,7 @@ CubicCongestionControlOnDataInvalidated(
     _In_ uint32_t NumRetransmittableBytes
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
@@ -367,7 +370,7 @@ CubicCongestionControlOnDataAcknowledged(
     _In_ uint32_t SmoothedRtt
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     TimeNow = US_TO_MS(TimeNow);
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
@@ -544,7 +547,7 @@ CubicCongestionControlOnDataLost(
     _In_ BOOLEAN PersistentCongestion
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
@@ -577,7 +580,7 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)(Cc->Ctx);
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     if (!Ctx->IsInRecovery) {
         return;
@@ -612,7 +615,7 @@ CubicCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)(Cc->Ctx);
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     
@@ -639,7 +642,7 @@ CubicCongestionControlGetBytesInFlightMax(
     _In_ const struct QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)(Cc->Ctx);
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
     return Ctx->BytesInFlightMax;
 }
 
@@ -649,6 +652,6 @@ CubicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC_CONTEXT*)Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
     return Ctx->Exemptions;
 }

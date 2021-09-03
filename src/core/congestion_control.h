@@ -4,8 +4,23 @@
     Licensed under the MIT License.
 
 --*/
+
+#include "cubic.h"
+
+typedef union QUIC_CONGESTION_CONTROL_CONTEXT {
+    QUIC_CONGESTION_CONTROL_CUBIC CubicCtx;
+    
+    //
+    // Add new congestion control context here
+    //
+
+} QUIC_CONGESTION_CONTROL_CONTEXT;
+
 typedef struct QUIC_CONGESTION_CONTROL {
+
+    //
     // Name of congestion control algorithm
+    //
     const char* Name;
     
     BOOLEAN (*QuicCongestionControlCanSend)(
@@ -74,10 +89,14 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ const struct QUIC_CONGESTION_CONTROL* Cc
         );
 
-    uint64_t Ctx[104 / sizeof(uint64_t)];
+    QUIC_CONGESTION_CONTROL_CONTEXT Ctx;
 } QUIC_CONGESTION_CONTROL;
 
 #define QUIC_CONGESTION_CONTROL_CONTEXT_SIZE (RTL_FIELD_SIZE(QUIC_CONGESTION_CONTROL, Ctx))
+
+CXPLAT_STATIC_ASSERT(
+    sizeof(QUIC_CONGESTION_CONTROL_CUBIC) <= QUIC_CONGESTION_CONTROL_CONTEXT_SIZE,
+    "Context size for Cubic exceeds the expected size");
 
 //
 // Returns TRUE if more bytes can be sent on the network.

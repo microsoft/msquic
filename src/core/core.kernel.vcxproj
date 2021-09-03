@@ -43,6 +43,7 @@
     <ClCompile Include="connection.c" />
     <ClCompile Include="crypto.c" />
     <ClCompile Include="crypto_tls.c" />
+    <ClCompile Include="cubic_impl.c" />
     <ClCompile Include="datagram.c" />
     <ClCompile Include="frame.c" />
     <ClCompile Include="injection.c" />
@@ -70,7 +71,6 @@
     <ClCompile Include="timer_wheel.c" />
     <ClCompile Include="version_neg.c" />
     <ClCompile Include="worker.c" />
-    <ClCompile Include="cubic.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ack_tracker.h" />
@@ -81,6 +81,8 @@
     <ClInclude Include="congestion_control.h" />
     <ClInclude Include="connection.h" />
     <ClInclude Include="crypto.h" />
+    <ClCompile Include="cubic.h" />
+    <ClCompile Include="cubic_impl.h" />
     <ClInclude Include="datagram.h" />
     <ClInclude Include="frame.h" />
     <ClInclude Include="library.h" />
@@ -108,7 +110,6 @@
     <ClInclude Include="transport_params.h" />
     <ClInclude Include="version_neg.h" />
     <ClInclude Include="worker.h" />
-    <ClCompile Include="cubic.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E862BE76-298B-4021-8105-A3E115FA2900}</ProjectGuid>
