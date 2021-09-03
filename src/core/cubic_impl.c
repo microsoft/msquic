@@ -15,11 +15,10 @@ Future work:
 
 #include "precomp.h"
 #ifdef QUIC_CLOG
-#include "cubic.c.clog.h"
+#include "cubic_impl.c.clog.h"
 #endif
 
 #include "cubic.h"
-#include "cubic_impl.h"
 
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.

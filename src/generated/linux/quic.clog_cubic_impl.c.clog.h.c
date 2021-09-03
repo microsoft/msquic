@@ -4,4 +4,4 @@
 #else
 #define TRACEPOINT_DEFINE
 #endif
-#include "cubic.c.clog.h"
+#include "cubic_impl.c.clog.h"
