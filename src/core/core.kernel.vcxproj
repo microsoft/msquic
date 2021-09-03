@@ -81,8 +81,8 @@
     <ClInclude Include="congestion_control.h" />
     <ClInclude Include="connection.h" />
     <ClInclude Include="crypto.h" />
-    <ClCompile Include="cubic.h" />
-    <ClCompile Include="cubic_impl.h" />
+    <ClInclude Include="cubic.h" />
+    <ClInclude Include="cubic_impl.h" />
     <ClInclude Include="datagram.h" />
     <ClInclude Include="frame.h" />
     <ClInclude Include="library.h" />
