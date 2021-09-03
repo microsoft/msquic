@@ -4532,7 +4532,7 @@
     },
     "FrameLogDatagram": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   DATAGRAM Len:%hu",
+      "TraceString": "[%c][%cX][%llu]   DATAGRAM Len:%hu NoAck:%hhu",
       "UniqueId": "FrameLogDatagram",
       "splitArgs": [
         {
@@ -4550,6 +4550,10 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -11800,7 +11804,7 @@
         "TraceID": "FrameLogDatagramInvalid"
       },
       {
-        "UniquenessHash": "a23b67c8-c2da-dfbe-2c86-728785bcdfb3",
+        "UniquenessHash": "aa92716e-9da7-ea4e-6a59-34cdde3def9d",
         "TraceID": "FrameLogDatagram"
       },
       {

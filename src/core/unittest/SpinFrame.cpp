@@ -211,6 +211,8 @@ TEST(SpinFrame, SpinFrame1000000)
                 break;
             case QUIC_FRAME_DATAGRAM:
             case QUIC_FRAME_DATAGRAM_1:
+            case QUIC_FRAME_DATAGRAM_2:
+            case QUIC_FRAME_DATAGRAM_3:
                 if (QuicDatagramFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.DatagramFrame)) {
                     SuccessfulDecodes++;
                 } else {

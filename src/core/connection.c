@@ -4782,7 +4782,9 @@ QuicConnRecvFrames(
         }
 
         case QUIC_FRAME_DATAGRAM:
-        case QUIC_FRAME_DATAGRAM_1: {
+        case QUIC_FRAME_DATAGRAM_1:
+        case QUIC_FRAME_DATAGRAM_2:
+        case QUIC_FRAME_DATAGRAM_3: {
             if (!Connection->Settings.DatagramReceiveEnabled) {
                 QuicTraceEvent(
                     ConnError,
@@ -4798,7 +4800,8 @@ QuicConnRecvFrames(
                     FrameType,
                     PayloadLength,
                     Payload,
-                    &Offset)) {
+                    &Offset,
+                    &AckPacketImmediately)) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -4807,7 +4810,6 @@ QuicConnRecvFrames(
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
             }
-            AckPacketImmediately = TRUE;
             break;
         }
 

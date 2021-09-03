@@ -1421,30 +1421,34 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagramInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogDatagram
-// [%c][%cX][%llu]   DATAGRAM Len:%hu
+// [%c][%cX][%llu]   DATAGRAM Len:%hu NoAck:%hhu
 // QuicTraceLogVerbose(
             FrameLogDatagram,
-            "[%c][%cX][%llu]   DATAGRAM Len:%hu",
+            "[%c][%cX][%llu]   DATAGRAM Len:%hu NoAck:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            (uint16_t)Frame.Length);
+            (uint16_t)Frame.Length,
+            Frame.NoAck);
 // arg2 = arg2 = PtkConnPre(Connection)
 // arg3 = arg3 = PktRxPre(Rx)
 // arg4 = arg4 = PacketNumber
 // arg5 = arg5 = (uint16_t)Frame.Length
+// arg6 = arg6 = Frame.NoAck
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagram,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned short, arg5), 
+        unsigned short, arg5,
+        unsigned char, arg6), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
+        ctf_integer(unsigned char, arg6, arg6)
     )
 )
 

@@ -1122,13 +1122,15 @@ QuicDatagramFrameEncodeEx(
     _In_ uint64_t TotalLength,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
+    _In_ BOOLEAN NoAck,
     _Out_writes_to_(BufferLength, *Offset)
         uint8_t* Buffer
     )
 {
     QUIC_DATAGRAM_FRAME_TYPE Type = {{{
         TRUE,
-        0b0011000
+        NoAck,
+        0b001100
     }}};
 
     uint16_t RequiredLength =
@@ -1179,6 +1181,7 @@ QuicDatagramFrameDecode(
         CXPLAT_ANALYSIS_ASSERT(BufferLength >= *Offset);
         Frame->Length = BufferLength - *Offset;
     }
+    Frame->NoAck = Type.NO_ACK;
     Frame->Data = Buffer + *Offset;
     *Offset += (uint16_t)Frame->Length;
     return TRUE;
@@ -1816,7 +1819,9 @@ QuicFrameLog(
     }
 
     case QUIC_FRAME_DATAGRAM:
-    case QUIC_FRAME_DATAGRAM_1: {
+    case QUIC_FRAME_DATAGRAM_1:
+    case QUIC_FRAME_DATAGRAM_2:
+    case QUIC_FRAME_DATAGRAM_3: {
         QUIC_DATAGRAM_EX Frame;
         if (!QuicDatagramFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
             QuicTraceLogVerbose(
@@ -1829,11 +1834,12 @@ QuicFrameLog(
         }
         QuicTraceLogVerbose(
             FrameLogDatagram,
-            "[%c][%cX][%llu]   DATAGRAM Len:%hu",
+            "[%c][%cX][%llu]   DATAGRAM Len:%hu NoAck:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            (uint16_t)Frame.Length);
+            (uint16_t)Frame.Length,
+            Frame.NoAck);
         break;
     }
 

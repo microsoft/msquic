@@ -142,8 +142,10 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1dULL,
     QUIC_FRAME_HANDSHAKE_DONE       = 0x1eULL,
     /* 0x1f to 0x2f are unused currently */
-    QUIC_FRAME_DATAGRAM             = 0x30ULL, // to 0x31
+    QUIC_FRAME_DATAGRAM             = 0x30ULL, // to 0x33
     QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
+    QUIC_FRAME_DATAGRAM_2           = 0x32ULL,
+    QUIC_FRAME_DATAGRAM_3           = 0x33ULL,
     /* 0x32 to 0xad are unused currently */
     QUIC_FRAME_ACK_FREQUENCY        = 0xafULL,
 
@@ -157,7 +159,7 @@ CXPLAT_STATIC_ASSERT(
 
 #define QUIC_FRAME_IS_KNOWN(X) \
     (X <= QUIC_FRAME_HANDSHAKE_DONE || \
-     (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1) || \
+     (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_3) || \
      X == QUIC_FRAME_ACK_FREQUENCY \
     )
 
@@ -749,7 +751,8 @@ typedef struct _QUIC_DATAGRAM_FRAME_TYPE {
     union {
         struct {
             uint8_t LEN : 1;
-            uint8_t FrameType : 7; // Always 0b0011000
+            uint8_t NO_ACK : 1;
+            uint8_t FrameType : 6; // Always 0b001100
         };
         uint8_t Type;
     };
@@ -759,6 +762,7 @@ typedef struct _QUIC_DATAGRAM_FRAME_TYPE {
 typedef struct _QUIC_DATAGRAM_EX {
 
     BOOLEAN ExplicitLength;
+    BOOLEAN NoAck;
     QUIC_VAR_INT Length;
     _Field_size_bytes_(Length)
     const uint8_t* Data;
@@ -774,6 +778,7 @@ QuicDatagramFrameEncodeEx(
     _In_ uint64_t TotalLength,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
+    _In_ BOOLEAN NoAck,
     _Out_writes_to_(BufferLength, *Offset)
         uint8_t* Buffer
     );

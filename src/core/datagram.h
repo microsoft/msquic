@@ -93,6 +93,7 @@ QuicDatagramIndicateSendStateChange(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return != FALSE)
 BOOLEAN
 QuicDatagramProcessFrame(
     _In_ QUIC_DATAGRAM* Datagram,
@@ -101,5 +102,6 @@ QuicDatagramProcessFrame(
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
-    _Inout_ uint16_t* Offset
+    _Inout_ uint16_t* Offset,
+    _Inout_ BOOLEAN* AckPacketImmediately
     );

@@ -1315,27 +1315,29 @@ tracepoint(CLOG_FRAME_C, FrameLogDatagramInvalid , arg2, arg3, arg4);\
 
 
 
-#ifndef _clog_6_ARGS_TRACE_FrameLogDatagram
+#ifndef _clog_7_ARGS_TRACE_FrameLogDatagram
 
 
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogDatagram
-// [%c][%cX][%llu]   DATAGRAM Len:%hu
+// [%c][%cX][%llu]   DATAGRAM Len:%hu NoAck:%hhu
 // QuicTraceLogVerbose(
             FrameLogDatagram,
-            "[%c][%cX][%llu]   DATAGRAM Len:%hu",
+            "[%c][%cX][%llu]   DATAGRAM Len:%hu NoAck:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            (uint16_t)Frame.Length);
+            (uint16_t)Frame.Length,
+            Frame.NoAck);
 // arg2 = arg2 = PtkConnPre(Connection)
 // arg3 = arg3 = PktRxPre(Rx)
 // arg4 = arg4 = PacketNumber
 // arg5 = arg5 = (uint16_t)Frame.Length
+// arg6 = arg6 = Frame.NoAck
 ----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_FrameLogDatagram(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
-tracepoint(CLOG_FRAME_C, FrameLogDatagram , arg2, arg3, arg4, arg5);\
+#define _clog_7_ARGS_TRACE_FrameLogDatagram(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogDatagram , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 

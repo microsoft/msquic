@@ -487,6 +487,7 @@ QuicDatagramWriteFrame(
                 SendRequest->TotalLength,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
+                !!(SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_NO_ACK),
                 Builder->Datagram->Buffer);
         if (!HadRoomForDatagram) {
             //
@@ -535,6 +536,7 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return != FALSE)
 BOOLEAN
 QuicDatagramProcessFrame(
     _In_ QUIC_DATAGRAM* Datagram,
@@ -543,7 +545,8 @@ QuicDatagramProcessFrame(
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
-    _Inout_ uint16_t* Offset
+    _Inout_ uint16_t* Offset,
+    _Inout_ BOOLEAN* AckPacketImmediately
     )
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
@@ -575,6 +578,10 @@ QuicDatagramProcessFrame(
     (void)QuicConnIndicateEvent(Connection, &Event);
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, QuicBuffer.Length);
+
+    if (!Frame.NoAck) {
+        *AckPacketImmediately = TRUE;
+    }
 
     return TRUE;
 }
