@@ -231,8 +231,7 @@ CxPlatTlsCertificateVerifyCallback(
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
         TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
-    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT &&
-            !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) ||
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
         IsDeferredValidationOrClientAuth) {
         if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
             if (Cert == NULL) {
