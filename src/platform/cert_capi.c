@@ -804,7 +804,7 @@ CxPlatCertVerifyCertChainPolicy(
     HttpsPolicy.dwAuthType =
         (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? AUTHTYPE_SERVER : AUTHTYPE_CLIENT;
     HttpsPolicy.fdwChecks = 0;
-    HttpsPolicy.pwszServerName = (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? NULL : ServerName;
+    HttpsPolicy.pwszServerName = (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? ServerName : NULL;
 
     memset(&PolicyPara, 0, sizeof(PolicyPara));
     PolicyPara.cbSize = sizeof(PolicyPara);
@@ -892,9 +892,9 @@ CxPlatCertValidateChain(
     ChainPara.cbSize = sizeof(ChainPara);
     ChainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_OR;
     ChainPara.RequestedUsage.Usage.cUsageIdentifier =
-        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? ARRAYSIZE(ClientUsageOids) : ARRAYSIZE(ServerUsageOids);
+        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ?  ARRAYSIZE(ServerUsageOids) : ARRAYSIZE(ClientUsageOids);
     ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier =
-        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? (LPSTR*)ClientUsageOids : (LPSTR*)ServerUsageOids;
+        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? (LPSTR*)ServerUsageOids : (LPSTR*)ClientUsageOids;
 
     if (!CertGetCertificateChain(
             NULL,
