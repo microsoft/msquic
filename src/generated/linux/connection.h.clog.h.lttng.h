@@ -2,61 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnOutFlowStats
-// [conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u
-// QuicTraceEvent(
-        ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.Send.TotalBytes
-// arg4 = arg4 = Connection->CongestionControl.BytesInFlight
-// arg5 = arg5 = Connection->CongestionControl.BytesInFlightMax
-// arg6 = arg6 = Connection->CongestionControl.CongestionWindow
-// arg7 = arg7 = Connection->CongestionControl.SlowStartThreshold
-// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent
-// arg9 = arg9 = Connection->SendBuffer.IdealBytes
-// arg10 = arg10 = Connection->SendBuffer.PostedBytes
-// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowStats,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4,
-        unsigned int, arg5,
-        unsigned int, arg6,
-        unsigned int, arg7,
-        unsigned long long, arg8,
-        unsigned long long, arg9,
-        unsigned long long, arg10,
-        unsigned int, arg11), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
-        ctf_integer(unsigned int, arg5, arg5)
-        ctf_integer(unsigned int, arg6, arg6)
-        ctf_integer(unsigned int, arg7, arg7)
-        ctf_integer(uint64_t, arg8, arg8)
-        ctf_integer(uint64_t, arg9, arg9)
-        ctf_integer(uint64_t, arg10, arg10)
-        ctf_integer(unsigned int, arg11, arg11)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnOutFlowStreamStats
 // [conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu
 // QuicTraceEvent(

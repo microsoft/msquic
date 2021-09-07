@@ -158,6 +158,10 @@ typedef union QUIC_ADDR {
     struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
 
+#ifndef RTL_FIELD_SIZE
+#define RTL_FIELD_SIZE(type, field)     (sizeof(((type *)0)->field))
+#endif
+
 #define FIELD_OFFSET(type, field)       offsetof(type, field)
 
 #define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(struct sockaddr_in, sin_port)
