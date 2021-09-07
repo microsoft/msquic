@@ -520,7 +520,11 @@ protected:
         {
             auto Context = (TlsContext*)Connection;
             Context->ReceivedPeerCertificate = true;
-            if (Context->ExpectedErrorFlags != DeferredErrorFlags) {
+            //
+            // Only validate the error flags if non-zero. OpenSSL doesn't produce error flags
+            // so treat 0 flags as unsupported.
+            //
+            if (DeferredErrorFlags && Context->ExpectedErrorFlags != DeferredErrorFlags) {
                 std::cout << "Incorrect ErrorFlags: " << DeferredErrorFlags << "\n";
                 return FALSE;
             }
@@ -1268,7 +1272,6 @@ TEST_F(TlsTest, CertificateError)
     }
 }
 
-#ifndef QUIC_DISABLE_DEFERRED_CERT_TESTS
 TEST_F(TlsTest, DeferredCertificateValidationAllow)
 {
     CxPlatClientSecConfig ClientConfig(
@@ -1321,7 +1324,6 @@ TEST_F(TlsTest, DeferredCertificateValidationReject)
         ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
 }
-#endif // QUIC_DISABLE_DEFERRED_CERT_TESTS
 
 TEST_F(TlsTest, CustomCertificateValidationAllow)
 {

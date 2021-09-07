@@ -331,8 +331,6 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
-    message(STATUS "Disabling deferred certificate tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_DEFERRED_CERT_TESTS)
 endif()
 
 if(WIN32)
