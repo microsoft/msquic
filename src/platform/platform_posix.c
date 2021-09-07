@@ -18,6 +18,8 @@ Environment:
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
 #include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/sysinfo.h>
 #endif
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -159,14 +161,33 @@ CxPlatInitialize(
     void
     )
 {
+    QUIC_STATUS Status;
+
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
-        return (QUIC_STATUS)errno;
+        Status = (QUIC_STATUS)errno;
+        goto Exit;
     }
 
-    CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
+#ifdef CX_PLATFORM_LINUX
+    struct sysinfo MemInfo;
+    if (sysinfo(&MemInfo) != 0) {
+        Status = (QUIC_STATUS)errno;
+        goto Exit;
+    }
 
-    return QUIC_STATUS_SUCCESS;
+    CxPlatTotalMemory = MemInfo.totalram;
+    CxPlatTotalMemory += MemInfo.totalswap;
+    CxPlatTotalMemory *= MemInfo.mem_unit;
+#else
+    CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
+#endif
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+
+    return Status;
 }
 
 void
