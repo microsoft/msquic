@@ -78,6 +78,16 @@ CxPlatSystemLoad(
     CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
+
+    //
+    // N.B.
+    // Do not place any initialization code below this point.
+    //
+
     //
     // Following code is modified from coreclr.
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
@@ -143,10 +153,9 @@ CxPlatSystemLoad(
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
-#ifdef DEBUG
-    CxPlatform.AllocFailDenominator = 0;
-    CxPlatform.AllocCounter = 0;
-#endif
+    QuicTraceLogInfo(
+        PosixLoaded,
+        "[ dso] Loaded");
 }
 
 void
@@ -154,6 +163,9 @@ CxPlatSystemUnload(
     void
     )
 {
+    QuicTraceLogInfo(
+        PosixUnloaded,
+        "[ dso] Unloaded");
 }
 
 QUIC_STATUS
@@ -193,6 +205,11 @@ CxPlatInitialize(
     CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
 #endif
 
+    QuicTraceLogInfo(
+        PosixInitialized,
+        "[ dso] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+
     Status = QUIC_STATUS_SUCCESS;
 
 Exit:
@@ -206,6 +223,9 @@ CxPlatUninitialize(
     )
 {
     close(RandomFd);
+    QuicTraceLogInfo(
+        PosixUninitialized,
+        "[ dso] Uninitialized");
 }
 
 void*
