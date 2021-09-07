@@ -123,7 +123,7 @@ CxPlatTlsVerifyCertificate(
         goto Exit;
     }
 
-    SSLPolicy = SecPolicyCreateSSL(true, SNIString);
+    SSLPolicy = SecPolicyCreateSSL(TRUE, SNIString);
     if (SSLPolicy == NULL) {
         QuicTraceEvent(
             LibraryError,
