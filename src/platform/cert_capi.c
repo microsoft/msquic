@@ -892,7 +892,7 @@ CxPlatCertValidateChain(
     ChainPara.cbSize = sizeof(ChainPara);
     ChainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_OR;
     ChainPara.RequestedUsage.Usage.cUsageIdentifier =
-        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ?  ARRAYSIZE(ServerUsageOids) : ARRAYSIZE(ClientUsageOids);
+        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? ARRAYSIZE(ServerUsageOids) : ARRAYSIZE(ClientUsageOids);
     ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier =
         (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? (LPSTR*)ServerUsageOids : (LPSTR*)ClientUsageOids;
 
