@@ -7,10 +7,10 @@
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            errno,
-            "pthread_attr_init failed");
-// arg2 = arg2 = errno
-// arg3 = arg3 = "pthread_attr_init failed"
+            Status,
+            "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus,
     TP_ARGS(

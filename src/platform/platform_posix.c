@@ -18,8 +18,8 @@ Environment:
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
 #include <sys/syscall.h>
-#include <sys/types.h>
 #include <sys/sysinfo.h>
+#include <sys/types.h>
 #endif
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -166,6 +166,11 @@ CxPlatInitialize(
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         Status = (QUIC_STATUS)errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
         goto Exit;
     }
 
@@ -173,6 +178,11 @@ CxPlatInitialize(
     struct sysinfo MemInfo;
     if (sysinfo(&MemInfo) != 0) {
         Status = (QUIC_STATUS)errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "sysinfo() failed");
         goto Exit;
     }
 
