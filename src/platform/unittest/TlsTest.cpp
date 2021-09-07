@@ -159,11 +159,9 @@ protected:
         SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         ASSERT_NE(nullptr, SelfSignedCertParams);
         SelfSignedCertParamsFlags = SelfSignedCertParams->Flags;
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-#endif
 #ifndef QUIC_DISABLE_PFX_TESTS
         ASSERT_NE(nullptr, PfxPath);
         CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
@@ -184,10 +182,8 @@ protected:
     {
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
-#endif
 #ifndef QUIC_DISABLE_PFX_TESTS
         if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
             CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
@@ -524,7 +520,11 @@ protected:
         {
             auto Context = (TlsContext*)Connection;
             Context->ReceivedPeerCertificate = true;
-            if (Context->ExpectedErrorFlags != DeferredErrorFlags) {
+            //
+            // Only validate the error flags if non-zero. OpenSSL doesn't produce error flags
+            // so treat 0 flags as unsupported.
+            //
+            if (DeferredErrorFlags && Context->ExpectedErrorFlags != DeferredErrorFlags) {
                 std::cout << "Incorrect ErrorFlags: " << DeferredErrorFlags << "\n";
                 return FALSE;
             }
@@ -1272,7 +1272,6 @@ TEST_F(TlsTest, CertificateError)
     }
 }
 
-#ifndef QUIC_DISABLE_DEFERRED_CERT_TESTS
 TEST_F(TlsTest, DeferredCertificateValidationAllow)
 {
     CxPlatClientSecConfig ClientConfig(
@@ -1325,7 +1324,6 @@ TEST_F(TlsTest, DeferredCertificateValidationReject)
         ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
 }
-#endif // QUIC_DISABLE_DEFERRED_CERT_TESTS
 
 TEST_F(TlsTest, CustomCertificateValidationAllow)
 {
@@ -1709,7 +1707,6 @@ TEST_F(TlsTest, LockPerfTest)
 #endif
 }
 
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
 TEST_F(TlsTest, ClientCertificateFailValidation)
 {
     CxPlatSecConfig ClientConfig;
@@ -1735,7 +1732,6 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
     DoHandshake(ServerContext, ClientContext);
 }
-#endif
 
 TEST_F(TlsTest, CipherSuiteSuccess1)
 {
@@ -1908,7 +1904,7 @@ ValidateSecConfigStatusSchannel(
 
 TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 {
-    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION,
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP,
 #ifndef _WIN32
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK, QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE,
@@ -1916,7 +1912,7 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN,
 #endif
 #endif
-        (QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) }) {
+        }) {
 
         QUIC_STATUS Status;
 

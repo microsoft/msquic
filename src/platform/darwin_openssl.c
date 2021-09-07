@@ -31,11 +31,31 @@ Environment:
 #include "darwin_openssl.c.clog.h"
 #endif
 
+static
+QUIC_STATUS
+CxPlatTlsMapTrustResultToQuicStatus(
+    _In_ CFIndex ErrorResult
+    )
+{
+    switch (ErrorResult) {
+        case errSecCertificateRevoked:
+            return QUIC_STATUS_REVOKED_CERTIFICATE;
+        case errSecCertificateExpired:
+            return QUIC_STATUS_CERT_EXPIRED;
+        case errSecNotTrusted:
+            return QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+        default:
+            return QUIC_STATUS_TLS_ERROR;
+    }
+}
+
+_Success_(return != FALSE)
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
     _In_opt_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
+    _Out_opt_ uint32_t* PlatformVerificationError
     )
 {
     BOOLEAN Result = FALSE;
@@ -48,6 +68,7 @@ CxPlatTlsVerifyCertificate(
     CFStringRef SNIString = NULL;
     SecPolicyRef SSLPolicy = NULL;
     SecPolicyRef RevocationPolicy = NULL;
+    CFErrorRef ErrorRef = NULL;
     int OpenSSLCertLength = 0;
 
     OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
@@ -144,9 +165,21 @@ CxPlatTlsVerifyCertificate(
         goto Exit;
     }
 
-    Result = SecTrustEvaluateWithError(TrustRef, NULL);
+    Result = SecTrustEvaluateWithError(TrustRef, &ErrorRef);
+
+    if (!Result) {
+        if (PlatformVerificationError != NULL) {
+            *PlatformVerificationError =
+                CxPlatTlsMapTrustResultToQuicStatus(
+                    CFErrorGetCode(ErrorRef));
+        }
+    }
 
 Exit:
+
+    if (ErrorRef != NULL) {
+        CFRelease(ErrorRef);
+    }
 
     if (TrustRef != NULL) {
         CFRelease(TrustRef);

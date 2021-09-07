@@ -581,10 +581,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslProcessData , arg1, arg3);\
 // Decoder Ring for TlsError
 // [ tls][%p] ERROR, %s.
 // QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "No certificate passed");
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "No certificate passed");
 // arg2 = arg2 = TlsContext->Connection
 // arg3 = arg3 = "No certificate passed"
 ----------------------------------------------------------*/
@@ -1161,10 +1161,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_PrivateKey_file failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_PrivateKey_file failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "SSL_CTX_use_PrivateKey_file failed"
 ----------------------------------------------------------*/
@@ -1183,10 +1183,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate_chain_file failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate_chain_file failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "SSL_CTX_use_certificate_chain_file failed"
 ----------------------------------------------------------*/
@@ -1205,10 +1205,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "BIO_new failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "BIO_new failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "BIO_new failed"
 ----------------------------------------------------------*/
@@ -1227,10 +1227,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "d2i_PKCS12_bio failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "d2i_PKCS12_bio failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "d2i_PKCS12_bio failed"
 ----------------------------------------------------------*/
@@ -1249,10 +1249,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "PKCS12_parse failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "PKCS12_parse failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "PKCS12_parse failed"
 ----------------------------------------------------------*/
@@ -1271,10 +1271,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_PrivateKey_file failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_PrivateKey_file failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "SSL_CTX_use_PrivateKey_file failed"
 ----------------------------------------------------------*/
@@ -1293,10 +1293,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "SSL_CTX_use_certificate failed"
 ----------------------------------------------------------*/
@@ -1315,10 +1315,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_RSAPrivateKey_file failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_RSAPrivateKey_file failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "SSL_CTX_use_RSAPrivateKey_file failed"
 ----------------------------------------------------------*/
@@ -1337,10 +1337,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate failed");
 // arg2 = arg2 = ERR_get_error()
 // arg3 = arg3 = "SSL_CTX_use_certificate failed"
 ----------------------------------------------------------*/
