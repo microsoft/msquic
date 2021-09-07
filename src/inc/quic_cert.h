@@ -82,7 +82,7 @@ CxPlatCertValidateChain(
     _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t CertFlags,
-    _In_ uint32_t IgnoreFlags,
+    _In_ uint32_t CredFlags,
     _Out_opt_ uint32_t* ValidationError
     );
 

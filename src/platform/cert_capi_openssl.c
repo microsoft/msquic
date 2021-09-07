@@ -87,15 +87,12 @@ CxPlatTlsVerifyCertificate(
         CertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
     }
 
-    uint32_t IgnoreFlags =
-        CredFlags & (QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE | QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK);
-
     Result =
         CxPlatCertValidateChain(
             CertContext,
             SNI,
             CertFlags,
-            IgnoreFlags,
+            CredFlags,
             PlatformVerificationError);
 
 Exit:

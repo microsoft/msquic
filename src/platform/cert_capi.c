@@ -790,7 +790,7 @@ DWORD
 CxPlatCertVerifyCertChainPolicy(
     _In_ PCCERT_CHAIN_CONTEXT ChainContext,
     _In_opt_ PWSTR ServerName,
-    _In_ ULONG IgnoreFlags
+    _In_ uint32_t CredFlags
     )
 {
     DWORD Status = NO_ERROR;
@@ -801,9 +801,10 @@ CxPlatCertVerifyCertChainPolicy(
 
     memset(&HttpsPolicy, 0, sizeof(HTTPSPolicyCallbackData));
     HttpsPolicy.cbStruct = sizeof(HTTPSPolicyCallbackData);
-    HttpsPolicy.dwAuthType = AUTHTYPE_SERVER;
+    HttpsPolicy.dwAuthType =
+        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? AUTHTYPE_SERVER : AUTHTYPE_CLIENT;
     HttpsPolicy.fdwChecks = 0;
-    HttpsPolicy.pwszServerName = ServerName;
+    HttpsPolicy.pwszServerName = (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? NULL : ServerName;
 
     memset(&PolicyPara, 0, sizeof(PolicyPara));
     PolicyPara.cbSize = sizeof(PolicyPara);
@@ -826,10 +827,10 @@ CxPlatCertVerifyCertChainPolicy(
         goto Exit;
 
     } else if (PolicyStatus.dwError == CRYPT_E_NO_REVOCATION_CHECK &&
-        (IgnoreFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK)) {
+        (CredFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK)) {
         Status = NO_ERROR;
     } else if (PolicyStatus.dwError == CRYPT_E_REVOCATION_OFFLINE &&
-        (IgnoreFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        (CredFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
         Status = NO_ERROR;
     } else if (PolicyStatus.dwError != NO_ERROR) {
 
@@ -848,7 +849,7 @@ Exit:
         CertCapiVerifiedChain,
         "CertVerifyChain: %S 0x%x, result=0x%x",
         ServerName,
-        IgnoreFlags,
+        CredFlags,
         Status);
 
     return Status;
@@ -860,7 +861,7 @@ CxPlatCertValidateChain(
     _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
     _In_ uint32_t CertFlags,
-    _In_ uint32_t IgnoreFlags,
+    _In_ uint32_t CredFlags,
     _Out_opt_ uint32_t* ValidationError
     )
 {
@@ -873,10 +874,14 @@ CxPlatCertValidateChain(
 
     CERT_CHAIN_PARA ChainPara;
 
-    static const LPSTR UsageOids[] = {
+    static const LPSTR ServerUsageOids[] = {
         szOID_PKIX_KP_SERVER_AUTH,
         szOID_SERVER_GATED_CRYPTO,
         szOID_SGC_NETSCAPE
+    };
+
+    static const LPSTR ClientUsageOids[] =  {
+        szOID_PKIX_KP_CLIENT_AUTH
     };
 
     if (ValidationError != NULL) {
@@ -886,8 +891,10 @@ CxPlatCertValidateChain(
     memset(&ChainPara, 0, sizeof(ChainPara));
     ChainPara.cbSize = sizeof(ChainPara);
     ChainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_OR;
-    ChainPara.RequestedUsage.Usage.cUsageIdentifier = ARRAYSIZE(UsageOids);
-    ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier = (LPSTR*)UsageOids;
+    ChainPara.RequestedUsage.Usage.cUsageIdentifier =
+        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? ARRAYSIZE(ClientUsageOids) : ARRAYSIZE(ServerUsageOids);
+    ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier =
+        (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? (LPSTR*)ClientUsageOids : (LPSTR*)ServerUsageOids;
 
     if (!CertGetCertificateChain(
             NULL,
@@ -927,7 +934,7 @@ CxPlatCertValidateChain(
         CxPlatCertVerifyCertChainPolicy(
             ChainContext,
             ServerName,
-            IgnoreFlags);
+            CredFlags);
 
     Result = NO_ERROR == Error;
 
