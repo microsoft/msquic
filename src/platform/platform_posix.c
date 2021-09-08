@@ -81,6 +81,16 @@ CxPlatSystemLoad(
     CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
+
+    //
+    // N.B.
+    // Do not place any initialization code below this point.
+    //
+
     //
     // Following code is modified from coreclr.
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
@@ -146,10 +156,9 @@ CxPlatSystemLoad(
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
-#ifdef DEBUG
-    CxPlatform.AllocFailDenominator = 0;
-    CxPlatform.AllocCounter = 0;
-#endif
+    QuicTraceLogInfo(
+        PosixLoaded,
+        "[ dso] Loaded");
 }
 
 void
@@ -157,6 +166,9 @@ CxPlatSystemUnload(
     void
     )
 {
+    QuicTraceLogInfo(
+        PosixUnloaded,
+        "[ dso] Unloaded");
 }
 
 #ifndef SIZE_T_MAX
@@ -177,6 +189,11 @@ CxPlatInitialize(
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         Status = (QUIC_STATUS)errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
         goto Exit;
     }
 
@@ -218,6 +235,11 @@ Success:
 
     Status = QUIC_STATUS_SUCCESS;
 
+    QuicTraceLogInfo(
+        PosixInitialized,
+        "[ dso] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+
 Exit:
 
     printf("Total Memory %llu\n", (long long unsigned)CxPlatTotalMemory);
@@ -231,6 +253,9 @@ CxPlatUninitialize(
     )
 {
     close(RandomFd);
+    QuicTraceLogInfo(
+        PosixUninitialized,
+        "[ dso] Uninitialized");
 }
 
 void*

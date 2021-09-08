@@ -12,6 +12,10 @@
 #include "platform_posix.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogInfo
+#define _clog_MACRO_QuicTraceLogInfo  1
+#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -19,6 +23,107 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifndef _clog_2_ARGS_TRACE_PosixLoaded
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixLoaded
+// [ dso] Loaded
+// QuicTraceLogInfo(
+        PosixLoaded,
+        "[ dso] Loaded");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_PosixLoaded(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_PLATFORM_POSIX_C, PosixLoaded );\
+
+#endif
+
+
+
+
+#ifndef _clog_2_ARGS_TRACE_PosixUnloaded
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixUnloaded
+// [ dso] Unloaded
+// QuicTraceLogInfo(
+        PosixUnloaded,
+        "[ dso] Unloaded");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_PosixUnloaded(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_PLATFORM_POSIX_C, PosixUnloaded );\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_PosixInitialized
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixInitialized
+// [ dso] Initialized (AvailMem = %llu bytes)
+// QuicTraceLogInfo(
+        PosixInitialized,
+        "[ dso] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+// arg2 = arg2 = CxPlatTotalMemory
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_PosixInitialized(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PLATFORM_POSIX_C, PosixInitialized , arg2);\
+
+#endif
+
+
+
+
+#ifndef _clog_2_ARGS_TRACE_PosixUninitialized
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixUninitialized
+// [ dso] Uninitialized
+// QuicTraceLogInfo(
+        PosixUninitialized,
+        "[ dso] Uninitialized");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_PosixUninitialized(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_PLATFORM_POSIX_C, PosixUninitialized );\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
@@ -35,7 +140,6 @@ extern "C" {
 // arg3 = arg3 = "pthread_attr_init failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
