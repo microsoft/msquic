@@ -20,9 +20,9 @@ Environment:
 #endif
 
 #include "quic_platform.h"
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
@@ -371,6 +371,8 @@ FindCGroupPath(
     char *HierarchyRoot = NULL;
     char *CGroupPathRelativeToMount = NULL;
     size_t CommonPathPrefixLen;
+    size_t CGroupPathLength;
+    int PrintedLen;
 
     FindHierarchyMount(IsSubsystem, &HierarchyMount, &HierarchyRoot);
     if (HierarchyMount == NULL || HierarchyRoot == NULL) {
@@ -382,12 +384,12 @@ FindCGroupPath(
         goto Done;
     }
 
-    CGroupPath = (char*)malloc(strlen(HierarchyMount) + strlen(CGroupPathRelativeToMount) + 1);
+    CGroupPathLength = strlen(HierarchyMount) + strlen(CGroupPathRelativeToMount) + 1;
+    CGroupPath = (char*)malloc(CGroupPathLength);
     if (CGroupPath == NULL) {
         goto Done;
     }
 
-    strcpy(CGroupPath, HierarchyMount);
     //
     // For a host cgroup, we need to append the relative path.
     // The root and cgroup path can share a common prefix of the path that should not be appended.
@@ -418,10 +420,24 @@ FindCGroupPath(
         (CGroupPathRelativeToMount[CommonPathPrefixLen] == '/') ||
         (CGroupPathRelativeToMount[CommonPathPrefixLen] == '\0'));
 
-    strcat(CGroupPath, CGroupPathRelativeToMount + CommonPathPrefixLen);
+    PrintedLen =
+        snprintf(
+            CGroupPath,
+            CGroupPathLength,
+            "%s%s",
+            HierarchyMount,
+            CGroupPathRelativeToMount + CommonPathPrefixLen);
 
+    if (PrintedLen <= 0 || PrintedLen >= CGroupPathLength) {
+        //
+        // Failed to copy. Free and return nothing.
+        //
+        free(CGroupPath);
+        CGroupPath = NULL;
+    }
 
 Done:
+
     free(HierarchyMount);
     free(HierarchyRoot);
     free(CGroupPathRelativeToMount);
@@ -498,10 +514,9 @@ GetCGroupRestrictedMemoryLimit(
         return GetCGroupMemoryLimit(CGROUP1_MEMORY_LIMIT_FILENAME, MemLimit);
     } else if (CGroupVersion == 2) {
         return GetCGroupMemoryLimit(CGROUP2_MEMORY_LIMIT_FILENAME, MemLimit);
-    } else {
-        CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version");
-        return FALSE;
     }
+    CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version");
+    return FALSE;
 }
 
 static
