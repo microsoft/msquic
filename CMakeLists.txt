@@ -224,10 +224,13 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
 
+    include(CheckSymbolExists)
+    include(CheckFunctionExists)
+    check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
+    check_function_exists(sysconf HAS_SYSCONF)
+
     if (CX_PLATFORM STREQUAL "linux")
         include(CheckCCompilerFlag)
-        include(CheckSymbolExists)
-        include(CheckFunctionExists)
 
         check_c_source_compiles(
             "
@@ -289,12 +292,7 @@ else()
             endif()
         endif()
 
-        check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
-
-        check_function_exists(sysconf HAS_SYSCONF)
-
     elseif(CX_PLATFORM STREQUAL "darwin")
-        include(CheckFunctionExists)
         check_function_exists(sysctl HAS_SYSCTL)
     endif()
 

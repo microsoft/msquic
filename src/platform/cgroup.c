@@ -1,21 +1,26 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-
 /*++
 
-Module Name:
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
 
-    cgroup.cpp
+    Implementation uses from .NET with MIT license
 
 Abstract:
+
     Read the memory limit for the current process
+
+Environment:
+
+    Posix
+
 --*/
+
 #ifdef __FreeBSD__
 #define _WITH_GETLINE
 #endif
 
+#include "quic_platform.h"
 #include <stdint.h>
-#include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,7 +33,6 @@ Abstract:
 #include <sys/vfs.h>
 #endif
 #include <errno.h>
-#include "quic_platform.h"
 
 #ifndef SIZE_T_MAX
 #define SIZE_T_MAX (~(size_t)0)
@@ -39,15 +43,25 @@ Abstract:
 
 #define PROC_MOUNTINFO_FILENAME "/proc/self/mountinfo"
 #define PROC_CGROUP_FILENAME "/proc/self/cgroup"
-#define PROC_STATM_FILENAME "/proc/self/statm"
 #define CGROUP1_MEMORY_LIMIT_FILENAME "/memory.limit_in_bytes"
 #define CGROUP2_MEMORY_LIMIT_FILENAME "/memory.max"
-#define CGROUP_MEMORY_STAT_FILENAME "/memory.stat"
 
+static int CGroupVersion = 0;
+static char* CGroupMemoryPath = NULL;
+static const char* CGroupMemStatKeyNames[4];
+static size_t CGroupMemStatKeyLengths[4];
+static size_t CGroupMemStatNKeys = 0;
+
+//
 // Get memory size multiplier based on the passed in units (k = kilo, m = mega, g = giga)
-static uint64_t GetMemorySizeMultiplier(char units)
+//
+static
+uint64_t
+GetMemorySizeMultiplier(
+    _In_ char Units
+    )
 {
-    switch(units)
+    switch(Units)
     {
         case 'g':
         case 'G': return 1024 * 1024 * 1024;
@@ -62,53 +76,70 @@ static uint64_t GetMemorySizeMultiplier(char units)
 }
 
 static
+_Success_(return != FALSE)
 BOOLEAN
-ReadMemoryValueFromFile(const char* filename, uint64_t* val)
+ReadMemoryValueFromFile(
+    _In_z_ const char* Filename,
+    _Out_ uint64_t* MemValue)
 {
-    bool result = false;
-    char *line = NULL;
-    size_t lineLen = 0;
-    char* endptr = NULL;
-    uint64_t num = 0, multiplier;
+    BOOLEAN Result = FALSE;
+    char* Line = NULL;
+    size_t LineLen = 0;
+    char* EndPtr = NULL;
+    uint64_t Num = 0, Multiplier;
 
-    if (val == NULL)
-        return false;
+    if (MemValue == NULL) {
+        return FALSE;
+    }
 
-    FILE* file = fopen(filename, "r");
-    if (file == NULL)
-        goto done;
+    FILE* File = fopen(Filename, "r");
+    if (File == NULL) {
+        goto Done;
+    }
 
-    if (getline(&line, &lineLen, file) == -1)
-        goto done;
+    if (getline(&Line, &LineLen, File) == -1) {
+        goto Done;
+    }
 
     errno = 0;
-    num = strtoull(line, &endptr, 0);
-    if (errno != 0)
-        goto done;
+    Num = strtoull(Line, &EndPtr, 0);
+    if (errno != 0) {
+        goto Done;
+    }
 
-    multiplier = GetMemorySizeMultiplier(*endptr);
-    *val = num * multiplier;
-    result = true;
-    if (*val/multiplier != num)
-        result = false;
-done:
-    if (file)
-        fclose(file);
-    free(line);
-    return result;
+    Multiplier = GetMemorySizeMultiplier(*EndPtr);
+    *MemValue = Num * Multiplier;
+    Result = TRUE;
+    if (*MemValue/Multiplier != Num) {
+        Result = FALSE;
+    }
+
+Done:
+
+    if (File) {
+        fclose(File);
+    }
+    free(Line);
+    return Result;
 }
 
-static int CGroupVersion = 0;
-static char* CGroupMemoryPath = NULL;
-static const char* CGroupMemStatKeyNames[4];
-static size_t CGroupMemStatKeyLengths[4];
-static size_t CGroupMemStatNKeys = 0;
-
-static BOOLEAN CGroupIsCGroup1MemorySubsystem(const char *strTok){
+static
+_Success_(return != FALSE)
+BOOLEAN
+IsCGroup1MemorySubsystem(
+    _In_z_ const char *strTok
+    )
+{
     return strcmp("memory", strTok) == 0;
 }
 
-static int CGroupFindCGroupVersion() {
+static
+_Success_(return == 1 || return == 2)
+int
+FindCGroupVersion(
+    void
+    )
+{
     //
     // It is possible to have both cgroup v1 and v2 enabled on a system.
     // Most non-bleeding-edge Linux distributions fall in this group. We
@@ -135,204 +166,226 @@ static int CGroupFindCGroupVersion() {
     }
 }
 
-    static void FindHierarchyMount(BOOLEAN (*is_subsystem)(const char *), char** pmountpath, char** pmountroot)
-    {
-        char *line = NULL;
-        size_t lineLen = 0, maxLineLen = 0;
-        char *filesystemType = NULL;
-        char *options = NULL;
-        char *mountpath = NULL;
-        char *mountroot = NULL;
+static
+void
+FindHierarchyMount(
+    _In_ BOOLEAN (*IsSubsystem)(const char *),
+    _Out_ char** MountPathOut,
+    _Out_ char** MountRootOut
+    )
+{
+    char *Line = NULL;
+    size_t LineLen = 0, MaxLineLen = 0;
+    char *FilesystemType = NULL;
+    char *Options = NULL;
+    char *MountPath = NULL;
+    char *MountRoot = NULL;
 
-        FILE *mountinfofile = fopen(PROC_MOUNTINFO_FILENAME, "r");
-        if (mountinfofile == NULL)
-            goto done;
+    FILE *MountInfoFile = fopen(PROC_MOUNTINFO_FILENAME, "r");
+    if (MountInfoFile == NULL) {
+        goto Done;
+    }
 
-        while (getline(&line, &lineLen, mountinfofile) != -1)
-        {
-            if (filesystemType == NULL || lineLen > maxLineLen)
-            {
-                free(filesystemType);
-                filesystemType = NULL;
-                free(options);
-                options = NULL;
-                filesystemType = (char*)malloc(lineLen+1);
-                if (filesystemType == NULL)
-                    goto done;
-                options = (char*)malloc(lineLen+1);
-                if (options == NULL)
-                    goto done;
-                maxLineLen = lineLen;
+    while (getline(&Line, &LineLen, MountInfoFile) != -1) {
+        if (FilesystemType == NULL || LineLen > MaxLineLen) {
+            free(FilesystemType);
+            FilesystemType = NULL;
+            free(Options);
+            Options = NULL;
+            FilesystemType = (char*)malloc(LineLen+1);
+            if (FilesystemType == NULL) {
+                goto Done;
             }
-
-            char* separatorChar = strstr(line, " - ");
-
-            // See man page of proc to get format for /proc/self/mountinfo file
-            int sscanfRet = sscanf(separatorChar,
-                                   " - %s %*s %s",
-                                   filesystemType,
-                                   options);
-            if (sscanfRet != 2)
-            {
-                CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
-                goto done;
+            Options = (char*)malloc(LineLen+1);
+            if (Options == NULL) {
+                goto Done;
             }
+            MaxLineLen = LineLen;
+        }
 
-            if (strncmp(filesystemType, "cgroup", 6) == 0)
-            {
-                bool isSubsystemMatch = is_subsystem == NULL;
-                if (!isSubsystemMatch)
-                {
-                    char* context = NULL;
-                    char* strTok = strtok_r(options, ",", &context);
-                    while (!isSubsystemMatch && strTok != NULL)
-                    {
-                        isSubsystemMatch = is_subsystem(strTok);
-                        strTok = strtok_r(NULL, ",", &context);
+        char* SeparatorChar = strstr(Line, " - ");
+
+        //
+        // See man page of proc to get format for /proc/self/mountinfo file
+        //
+        int SscanfRet = sscanf(SeparatorChar,
+                                " - %s %*s %s",
+                                FilesystemType,
+                                Options);
+        if (SscanfRet != 2) {
+            CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
+            goto Done;
+        }
+
+        if (strncmp(FilesystemType, "cgroup", 6) == 0) {
+            BOOLEAN IsSubsystemMatch = IsSubsystem == NULL;
+            if (!IsSubsystemMatch) {
+                char* Context = NULL;
+                char* StrTok = strtok_r(Options, ",", &Context);
+                while (!IsSubsystemMatch && StrTok != NULL) {
+                    IsSubsystemMatch = IsSubsystem(StrTok);
+                    StrTok = strtok_r(NULL, ",", &Context);
+                }
+            }
+            if (IsSubsystemMatch) {
+                    MountPath = (char*)malloc(LineLen+1);
+                    if (MountPath == NULL) {
+                        goto Done;
                     }
-                }
-                if (isSubsystemMatch)
-                {
-                        mountpath = (char*)malloc(lineLen+1);
-                        if (mountpath == NULL)
-                            goto done;
-                        mountroot = (char*)malloc(lineLen+1);
-                        if (mountroot == NULL)
-                            goto done;
-
-                        sscanfRet = sscanf(line,
-                                           "%*s %*s %*s %s %s ",
-                                           mountroot,
-                                           mountpath);
-                        if (sscanfRet != 2) {
-                            CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
-                        }
-
-                        // assign the output arguments and clear the locals so we don't free them.
-                        *pmountpath = mountpath;
-                        *pmountroot = mountroot;
-                        mountpath = mountroot = NULL;
-                }
-            }
-        }
-    done:
-        free(mountpath);
-        free(mountroot);
-        free(filesystemType);
-        free(options);
-        free(line);
-        if (mountinfofile) {
-            fclose(mountinfofile);
-        }
-    }
-
-    static char* FindCGroupPathForSubsystem(BOOLEAN (*is_subsystem)(const char *))
-    {
-        char *line = NULL;
-        size_t lineLen = 0;
-        size_t maxLineLen = 0;
-        char *subsystem_list = NULL;
-        char *cgroup_path = NULL;
-        bool result = false;
-
-        FILE *cgroupfile = fopen(PROC_CGROUP_FILENAME, "r");
-        if (cgroupfile == NULL)
-            goto done;
-
-        while (!result && getline(&line, &lineLen, cgroupfile) != -1)
-        {
-            if (subsystem_list == NULL || lineLen > maxLineLen)
-            {
-                free(subsystem_list);
-                subsystem_list = NULL;
-                free(cgroup_path);
-                cgroup_path = NULL;
-                subsystem_list = (char*)malloc(lineLen+1);
-                if (subsystem_list == NULL)
-                    goto done;
-                cgroup_path = (char*)malloc(lineLen+1);
-                if (cgroup_path == NULL)
-                    goto done;
-                maxLineLen = lineLen;
-            }
-
-            if (CGroupVersion == 1)
-            {
-                // See man page of proc to get format for /proc/self/cgroup file
-                int sscanfRet = sscanf(line,
-                                       "%*[^:]:%[^:]:%s",
-                                       subsystem_list,
-                                       cgroup_path);
-                if (sscanfRet != 2)
-                {
-                    assert(!"Failed to parse cgroup info file contents with sscanf.");
-                    goto done;
-                }
-
-                char* context = NULL;
-                char* strTok = strtok_r(subsystem_list, ",", &context);
-                while (strTok != NULL)
-                {
-                    if (is_subsystem(strTok))
-                    {
-                        result = true;
-                        break;
+                    MountRoot = (char*)malloc(LineLen+1);
+                    if (MountRoot == NULL) {
+                        goto Done;
                     }
-                    strTok = strtok_r(NULL, ",", &context);
-                }
+
+                    SscanfRet = sscanf(Line,
+                                        "%*s %*s %*s %s %s ",
+                                        MountRoot,
+                                        MountPath);
+                    if (SscanfRet != 2) {
+                        CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
+                    }
+
+                    //
+                    // assign the output arguments and clear the locals so we don't free them.
+                    //
+                    *MountPathOut = MountPath;
+                    *MountRootOut = MountRoot;
+                    MountPath = MountRoot = NULL;
             }
-            else if (CGroupVersion == 2)
+        }
+    }
+
+Done:
+
+    free(MountPath);
+    free(MountRoot);
+    free(FilesystemType);
+    free(Options);
+    free(Line);
+    if (MountInfoFile) {
+        fclose(MountInfoFile);
+    }
+}
+
+static
+_Success_(return != NULL)
+char*
+FindCGroupPathForSubsystem(
+    _In_ BOOLEAN (*IsSubsystem)(const char *)
+    )
+{
+    char* Line = NULL;
+    size_t LineLen = 0;
+    size_t MaxLineLen = 0;
+    char* SubsystemList = NULL;
+    char* CGroupPath = NULL;
+    BOOLEAN Result = FALSE;
+
+    FILE *CGroupFile = fopen(PROC_CGROUP_FILENAME, "r");
+    if (CGroupFile == NULL) {
+        goto Done;
+    }
+
+    while (!Result && getline(&Line, &LineLen, CGroupFile) != -1) {
+        if (SubsystemList == NULL || LineLen > MaxLineLen) {
+            free(SubsystemList);
+            SubsystemList = NULL;
+            free(CGroupPath);
+            CGroupPath = NULL;
+            SubsystemList = (char*)malloc(LineLen+1);
+            if (SubsystemList == NULL) {
+                goto Done;
+            }
+            CGroupPath = (char*)malloc(LineLen+1);
+            if (CGroupPath == NULL) {
+                goto Done;
+            }
+            MaxLineLen = LineLen;
+        }
+
+        if (CGroupVersion == 1) {
+            //
+            // See man page of proc to get format for /proc/self/cgroup file
+            //
+            int SscanfRet = sscanf(Line,
+                                    "%*[^:]:%[^:]:%s",
+                                    SubsystemList,
+                                    CGroupPath);
+            if (SscanfRet != 2)
             {
-                // See https://www.kernel.org/doc/Documentation/cgroup-v2.txt
-                // Look for a "0::/some/path"
-                int sscanfRet = sscanf(line,
-                                       "0::%s",
-                                       cgroup_path);
-                if (sscanfRet == 1)
+                assert(!"Failed to parse cgroup info file contents with sscanf.");
+                goto Done;
+            }
+
+            char* Context = NULL;
+            char* StrTok = strtok_r(SubsystemList, ",", &Context);
+            while (StrTok != NULL)
+            {
+                if (IsSubsystem(StrTok))
                 {
-                    result = true;
+                    Result = TRUE;
+                    break;
                 }
+                StrTok = strtok_r(NULL, ",", &Context);
             }
-            else
-            {
-                assert(!"Unknown cgroup version in mountinfo.");
-                goto done;
+        } else if (CGroupVersion == 2) {
+            //
+            // See https://www.kernel.org/doc/Documentation/cgroup-v2.txt
+            // Look for a "0::/some/path"
+            //
+            int SscanfRet = sscanf(Line, "0::%s", CGroupPath);
+            if (SscanfRet == 1) {
+                Result = TRUE;
             }
+        } else {
+            CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version in mountinfo.");
+            goto Done;
         }
-    done:
-        free(subsystem_list);
-        if (!result)
-        {
-            free(cgroup_path);
-            cgroup_path = NULL;
-        }
-        free(line);
-        if (cgroupfile)
-            fclose(cgroupfile);
-        return cgroup_path;
     }
 
-static char* FindCGroupPath(BOOLEAN (*is_subsystem)(const char *)){
-    char *cgroup_path = NULL;
-    char *hierarchy_mount = NULL;
-    char *hierarchy_root = NULL;
-    char *cgroup_path_relative_to_mount = NULL;
-    size_t common_path_prefix_len;
+Done:
 
-    FindHierarchyMount(is_subsystem, &hierarchy_mount, &hierarchy_root);
-    if (hierarchy_mount == NULL || hierarchy_root == NULL)
-        goto done;
+    free(SubsystemList);
+    if (!Result) {
+        free(CGroupPath);
+        CGroupPath = NULL;
+    }
+    free(Line);
+    if (CGroupFile) {
+        fclose(CGroupFile);
+    }
+    return CGroupPath;
+}
 
-    cgroup_path_relative_to_mount = FindCGroupPathForSubsystem(is_subsystem);
-    if (cgroup_path_relative_to_mount == NULL)
-        goto done;
+static
+_Success_(return != NULL)
+char*
+FindCGroupPath(
+    _In_ BOOLEAN (*IsSubsystem)(const char *)
+    )
+{
+    char *CGroupPath = NULL;
+    char *HierarchyMount = NULL;
+    char *HierarchyRoot = NULL;
+    char *CGroupPathRelativeToMount = NULL;
+    size_t CommonPathPrefixLen;
 
-    cgroup_path = (char*)malloc(strlen(hierarchy_mount) + strlen(cgroup_path_relative_to_mount) + 1);
-    if (cgroup_path == NULL) {
+    FindHierarchyMount(IsSubsystem, &HierarchyMount, &HierarchyRoot);
+    if (HierarchyMount == NULL || HierarchyRoot == NULL) {
         goto done;
     }
 
-    strcpy(cgroup_path, hierarchy_mount);
+    CGroupPathRelativeToMount = FindCGroupPathForSubsystem(IsSubsystem);
+    if (CGroupPathRelativeToMount == NULL) {
+        goto done;
+    }
+
+    CGroupPath = (char*)malloc(strlen(HierarchyMount) + strlen(CGroupPathRelativeToMount) + 1);
+    if (CGroupPath == NULL) {
+        goto done;
+    }
+
+    strcpy(CGroupPath, HierarchyMount);
     //
     // For a host cgroup, we need to append the relative path.
     // The root and cgroup path can share a common prefix of the path that should not be appended.
@@ -350,41 +403,58 @@ static char* FindCGroupPath(BOOLEAN (*is_subsystem)(const char *)){
     // append do the cgroup_path:     /my_named_cgroup
     // final cgroup_path:             /sys/fs/cgroup/cpu/my_named_cgroup
     //
-    common_path_prefix_len = strlen(hierarchy_root);
-    if ((common_path_prefix_len == 1) || strncmp(hierarchy_root, cgroup_path_relative_to_mount, common_path_prefix_len) != 0)
-    {
-        common_path_prefix_len = 0;
+    CommonPathPrefixLen = strlen(HierarchyRoot);
+    if ((CommonPathPrefixLen == 1) ||
+        strncmp(
+            HierarchyRoot,
+            CGroupPathRelativeToMount,
+            CommonPathPrefixLen) != 0) {
+        CommonPathPrefixLen = 0;
     }
 
-    CXPLAT_DBG_ASSERT((cgroup_path_relative_to_mount[common_path_prefix_len] == '/') || (cgroup_path_relative_to_mount[common_path_prefix_len] == '\0'));
+    CXPLAT_DBG_ASSERT(
+        (CGroupPathRelativeToMount[CommonPathPrefixLen] == '/') ||
+        (CGroupPathRelativeToMount[CommonPathPrefixLen] == '\0'));
 
-    strcat(cgroup_path, cgroup_path_relative_to_mount + common_path_prefix_len);
+    strcat(CGroupPath, CGroupPathRelativeToMount + CommonPathPrefixLen);
 
 
 done:
-    free(hierarchy_mount);
-    free(hierarchy_root);
-    free(cgroup_path_relative_to_mount);
-    return cgroup_path;
+    free(HierarchyMount);
+    free(HierarchyRoot);
+    free(CGroupPathRelativeToMount);
+    return CGroupPath;
 }
 
-    static bool GetCGroupMemoryLimit(uint64_t *val, const char *filename)
-    {
-        if (CGroupMemoryPath == NULL)
-            return false;
-
-        char* mem_limit_filename = NULL;
-        if (asprintf(&mem_limit_filename, "%s%s", CGroupMemoryPath, filename) < 0)
-            return false;
-
-        bool result = ReadMemoryValueFromFile(mem_limit_filename, val);
-        free(mem_limit_filename);
-        return result;
+static
+_Success_(return != FALSE)
+BOOLEAN
+GetCGroupMemoryLimit(
+    _In_z_ const char *Filename,
+    _Out_ uint64_t *MemValue)
+{
+    if (CGroupMemoryPath == NULL) {
+        return FALSE;
     }
 
-static void CGroupInitialize() {
-    CGroupVersion = CGroupFindCGroupVersion();
-    CGroupMemoryPath = FindCGroupPath(CGroupVersion == 1 ? &CGroupIsCGroup1MemorySubsystem : NULL);
+    char* MemLimitFilename = NULL;
+    if (asprintf(&MemLimitFilename, "%s%s", CGroupMemoryPath, Filename) < 0) {
+        return FALSE;
+    }
+
+    BOOLEAN Result = ReadMemoryValueFromFile(MemLimitFilename, MemValue);
+    free(MemLimitFilename);
+    return Result;
+}
+
+static
+void
+CGroupInitialize(
+    void
+    )
+{
+    CGroupVersion = FindCGroupVersion();
+    CGroupMemoryPath = FindCGroupPath(CGroupVersion == 1 ? &IsCGroup1MemorySubsystem : NULL);
 
     if (CGroupVersion == 1) {
         CGroupMemStatNKeys = 4;
@@ -404,76 +474,114 @@ static void CGroupInitialize() {
     }
 }
 
-static void CGroupCleanup() {
+static
+void
+CGroupCleanup(
+    void
+    )
+{
     free(CGroupMemoryPath);
 }
 
-static BOOLEAN CGroupGetPhysicalMemoryLimit(_Out_ uint64_t* MemLimit) {
+static
+_Success_(return != FALSE)
+BOOLEAN
+GetCGroupRestrictedMemoryLimit(
+    _Out_ uint64_t* MemLimit
+    )
+{
     if (CGroupVersion == 0) {
         return FALSE;
     } else if (CGroupVersion == 1) {
-        return GetCGroupMemoryLimit(MemLimit, CGROUP1_MEMORY_LIMIT_FILENAME);
+        return GetCGroupMemoryLimit(CGROUP1_MEMORY_LIMIT_FILENAME, MemLimit);
     } else if (CGroupVersion == 2) {
-        return GetCGroupMemoryLimit(MemLimit, CGROUP2_MEMORY_LIMIT_FILENAME);
+        return GetCGroupMemoryLimit(CGROUP2_MEMORY_LIMIT_FILENAME, MemLimit);
     } else {
         CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version");
         return FALSE;
     }
 }
 
-void CGroupInitializeCGroup() {
-    CGroupInitialize();
-}
-
-void CGroupCleanupCGroup() {
-    CGroupCleanup();
-}
-
-size_t CGroupGetRestrictedPhysicalMemoryLimit()
+static
+uint64_t
+GetPhysicalMemoryLimit(
+    void
+    )
 {
-    uint64_t physical_memory_limit = 0;
+#if HAS_SYSCONF && HAS__SC_PHYS_PAGES
+    long Pages = sysconf(_SC_PHYS_PAGES);
+    long PageSize = sysconf(_SC_PAGE_SIZE);
+    if (Pages != -1 &&  PageSize != -1)
+    {
+        return Pages * PageSize;
+    }
+#elif HAS_SYSCTL
+    int MIB[3];
+    MIB[0] = CTL_HW;
+    MIB[1] = HW_MEMSIZE;
+    int64_t PhysicalMemory = 0;
+    size_t MemLength = sizeof(int64_t);
+    if (sysctl(MIB, 2, &PhysicalMemory, &MemLength, NULL, 0) == 0) {
+        return PhysicalMemory;
+    }
+#endif
+    return 0x40000000; // Hard coded at 1 GB if value unknown.
+}
 
-    if (!CGroupGetPhysicalMemoryLimit(&physical_memory_limit))
-         return 0;
+uint64_t
+CGroupGetMemoryLimit()
+{
+    uint64_t PhysicalMemoryLimit = 0;
+    uint64_t RestrictedMemoryLimit = 0;
 
+    CGroupInitialize();
+
+    PhysicalMemoryLimit = GetPhysicalMemoryLimit();
+
+    if (!GetCGroupRestrictedMemoryLimit(&RestrictedMemoryLimit)) {
+        goto Done;
+    }
+
+    //
     // If there's no memory limit specified on the container this
     // actually returns 0x7FFFFFFFFFFFF000 (2^63-1 rounded down to
     // 4k which is a common page size). So we know we are not
     // running in a memory restricted environment.
-    if (physical_memory_limit > 0x7FFFFFFF00000000)
-    {
-        return 0;
+    //
+    if (RestrictedMemoryLimit > 0x7FFFFFFF00000000) {
+        goto Done;
     }
 
-    struct rlimit curr_rlimit;
-    size_t rlimit_soft_limit = (size_t)RLIM_INFINITY;
-    if (getrlimit(RLIMIT_AS, &curr_rlimit) == 0)
-    {
-        rlimit_soft_limit = curr_rlimit.rlim_cur;
+    struct rlimit CurrRlimit;
+    size_t RlimitSoftLimit = (size_t)RLIM_INFINITY;
+    if (getrlimit(RLIMIT_AS, &CurrRlimit) == 0) {
+        RlimitSoftLimit = CurrRlimit.rlim_cur;
     }
-    physical_memory_limit = (physical_memory_limit < rlimit_soft_limit) ?
-                            physical_memory_limit : rlimit_soft_limit;
+    RestrictedMemoryLimit = (RestrictedMemoryLimit < RlimitSoftLimit) ?
+                             RestrictedMemoryLimit : RlimitSoftLimit;
 
+    //
     // Ensure that limit is not greater than real memory size
-    long pages = sysconf(_SC_PHYS_PAGES);
-    if (pages != -1)
-    {
-        long pageSize = sysconf(_SC_PAGE_SIZE);
-        if (pageSize != -1)
-        {
-            physical_memory_limit = (physical_memory_limit < (size_t)pages * pageSize)?
-                                    physical_memory_limit : (size_t)pages * pageSize;
-        }
-    }
+    //
+    PhysicalMemoryLimit = (RestrictedMemoryLimit < PhysicalMemoryLimit) ?
+                             RestrictedMemoryLimit : PhysicalMemoryLimit;
 
-    if (physical_memory_limit > SIZE_T_MAX)
+    if (PhysicalMemoryLimit > SIZE_T_MAX)
     {
+        //
         // It is observed in practice when the memory is unrestricted, Linux control
         // group returns a physical limit that is bigger than the address space
-        return SIZE_T_MAX;
+        //
+        PhysicalMemoryLimit = SIZE_T_MAX;
     }
-    else
-    {
-        return (size_t)physical_memory_limit;
+
+Done:
+
+    CGroupCleanup();
+
+    if (PhysicalMemoryLimit == 0) {
+        PhysicalMemoryLimit = 0x40000000; // Hard coded at 1 GB if value unknown.
     }
+
+    return PhysicalMemoryLimit;
 }
