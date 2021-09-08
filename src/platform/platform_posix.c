@@ -20,6 +20,9 @@ Environment:
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/sysinfo.h>
+#else
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #endif
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -198,7 +201,7 @@ CxPlatInitialize(
         mib[0] = CTL_HW;
         mib[1] = HW_MEMSIZE;
         int64_t physical_memory = 0;
-        size_t length = sizeof(INT64);
+        size_t length = sizeof(int64_t);
         int rc = sysctl(mib, 2, &physical_memory, &length, NULL, 0);
         assert(rc == 0);
 
