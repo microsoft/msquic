@@ -16,14 +16,6 @@ Environment:
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_trace.h"
-#ifdef CX_PLATFORM_LINUX
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <sys/sysinfo.h>
-#else
-#include <sys/sysctl.h>
-#include <sys/types.h>
-#endif
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <limits.h>
