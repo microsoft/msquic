@@ -295,7 +295,7 @@ else()
 
     elseif(CX_PLATFORM STREQUAL "darwin")
         include(CheckFunctionExists)
-        check_function_exists(sysctl HAVE_SYSCTL)
+        check_function_exists(sysctl HAS_SYSCTL)
     endif()
 
     set(QUIC_COMMON_FLAGS "")
@@ -309,8 +309,8 @@ else()
     if (HAS_SYSCONF)
          list(APPEND QUIC_COMMON_DEFINES HAS_SYSCONF)
     endif()
-    if (HAVE_SYSCTL)
-         list(APPEND QUIC_COMMON_DEFINES HAVE_SYSCTL)
+    if (HAS_SYSCTL)
+         list(APPEND QUIC_COMMON_DEFINES HAS_SYSCTL)
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers

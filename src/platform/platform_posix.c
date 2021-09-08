@@ -216,7 +216,7 @@ Success:
 
 Exit:
 
-    printf("Total Memory %lu\n", CxPlatTotalMemory);
+    printf("Total Memory %llu\n", (long long unsigned)CxPlatTotalMemory);
 
     return Status;
 }
