@@ -203,7 +203,7 @@ CxPlatInitialize(
         int64_t physical_memory = 0;
         size_t length = sizeof(int64_t);
         int rc = sysctl(mib, 2, &physical_memory, &length, NULL, 0);
-        assert(rc == 0);
+        CXPLAT_DBG_ASSERT(rc == 0);
 
         CxPlatTotalMemory = physical_memory;
         goto Success;
