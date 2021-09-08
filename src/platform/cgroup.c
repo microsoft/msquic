@@ -204,8 +204,9 @@ static int CGroupFindCGroupVersion() {
                                            "%*s %*s %*s %s %s ",
                                            mountroot,
                                            mountpath);
-                        if (sscanfRet != 2)
+                        if (sscanfRet != 2) {
                             CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
+                        }
 
                         // assign the output arguments and clear the locals so we don't free them.
                         *pmountpath = mountpath;
