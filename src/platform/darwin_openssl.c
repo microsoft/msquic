@@ -125,7 +125,7 @@ CxPlatTlsVerifyCertificate(
 
     SSLPolicy =
         SecPolicyCreateSSL(
-            (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? FALSE : TRUE,
+            (CredFlags & QUIC_CREDENTIAL_FLAG_CLIENT) ? TRUE : FALSE,
             SNIString);
     if (SSLPolicy == NULL) {
         QuicTraceEvent(
