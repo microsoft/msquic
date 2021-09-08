@@ -346,6 +346,11 @@ if ($IsWindows) {
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
     }
+} elseif ($IsMacOS) {
+    if ($Configuration -eq "Test") {
+        Write-Host "[$(Get-Date)] Setting core dump pattern..."
+        sudo sysctl -w kern.corefile=%e.%p.%t.core
+    }
 }
 
 foreach ($errMsg in $MessagesAtEnd) {
