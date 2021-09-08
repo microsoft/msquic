@@ -226,6 +226,9 @@ else()
 
     if (CX_PLATFORM STREQUAL "linux")
         include(CheckCCompilerFlag)
+        include(CheckSymbolExists)
+        include(CheckFunctionExists)
+
         check_c_source_compiles(
             "
             #include <netinet/udp.h>
@@ -285,12 +288,29 @@ else()
                 set(QUIC_ENABLE_LOGGING OFF)
             endif()
         endif()
+
+        check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
+
+        check_function_exists(sysconf HAS_SYSCONF)
+
+    elseif(CX_PLATFORM STREQUAL "darwin")
+        include(CheckFunctionExists)
+        check_function_exists(sysctl HAVE_SYSCTL)
     endif()
 
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     if (HAS_SENDMMSG)
         list(APPEND QUIC_COMMON_DEFINES HAS_SENDMMSG)
+    endif()
+    if (HAS__SC_PHYS_PAGES)
+         list(APPEND QUIC_COMMON_DEFINES HAS__SC_PHYS_PAGES)
+    endif()
+    if (HAS_SYSCONF)
+         list(APPEND QUIC_COMMON_DEFINES HAS_SYSCONF)
+    endif()
+    if (HAVE_SYSCTL)
+         list(APPEND QUIC_COMMON_DEFINES HAVE_SYSCTL)
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
@@ -331,6 +351,10 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
+    message(STATUS "Disabling client certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+    message(STATUS "Disabling deferred certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_DEFERRED_CERT_TESTS)
 endif()
 
 if(WIN32)

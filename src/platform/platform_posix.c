@@ -18,6 +18,8 @@ Environment:
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
 #include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/sysinfo.h>
 #endif
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -154,19 +156,69 @@ CxPlatSystemUnload(
 {
 }
 
+#ifndef SIZE_T_MAX
+#define SIZE_T_MAX (~(size_t)0)
+#endif
+
+void CGroupInitializeCGroup();
+void CGroupCleanupCGroup();
+size_t CGroupGetRestrictedPhysicalMemoryLimit();
+
 QUIC_STATUS
 CxPlatInitialize(
     void
     )
 {
+    QUIC_STATUS Status;
+
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
-        return (QUIC_STATUS)errno;
+        Status = (QUIC_STATUS)errno;
+        goto Exit;
     }
 
-    CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
+    CGroupInitializeCGroup();
+    size_t RestrictedLimit = CGroupGetRestrictedPhysicalMemoryLimit();
+    CGroupCleanupCGroup();
 
-    return QUIC_STATUS_SUCCESS;
+    if (RestrictedLimit != 0 && RestrictedLimit != SIZE_T_MAX) {
+        CxPlatTotalMemory = RestrictedLimit;
+    } else {
+        // Get the physical memory size
+#if HAS_SYSCONF && HAS__SC_PHYS_PAGES
+        long pages = sysconf(_SC_PHYS_PAGES);
+        long pageSize = sysconf(_SC_PAGE_SIZE);
+        if (pages != -1 &&  pageSize != -1)
+        {
+            CxPlatTotalMemory = pages * pageSize;
+            goto Success;
+        }
+#elif HAS_SYSCTL
+        int mib[3];
+        mib[0] = CTL_HW;
+        mib[1] = HW_MEMSIZE;
+        int64_t physical_memory = 0;
+        size_t length = sizeof(INT64);
+        int rc = sysctl(mib, 2, &physical_memory, &length, NULL, 0);
+        assert(rc == 0);
+
+        CxPlatTotalMemory = physical_memory;
+        goto Success;
+#endif // HAVE_SYSCTL
+    }
+
+    CxPlatTotalMemory = 0x40000000; // Hard coded at 1 GB if value unknown.
+    goto Success;
+
+Success:
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+
+    printf("Total Memory %lu\n", CxPlatTotalMemory);
+
+    return Status;
 }
 
 void
