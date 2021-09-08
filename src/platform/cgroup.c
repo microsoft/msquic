@@ -21,10 +21,10 @@ Environment:
 
 #include "quic_platform.h"
 #include <stdint.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/resource.h>
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/param.h>
@@ -69,10 +69,8 @@ GetMemorySizeMultiplier(
         case 'M': return 1024 * 1024;
         case 'k':
         case 'K': return 1024;
+        default: return 1; // No units multiplier
     }
-
-    // No units multiplier
-    return 1;
 }
 
 static
@@ -228,29 +226,33 @@ FindHierarchyMount(
                 }
             }
             if (IsSubsystemMatch) {
-                    MountPath = (char*)malloc(LineLen+1);
-                    if (MountPath == NULL) {
-                        goto Done;
-                    }
-                    MountRoot = (char*)malloc(LineLen+1);
-                    if (MountRoot == NULL) {
-                        goto Done;
-                    }
+                MountPath = (char*)malloc(LineLen+1);
+                if (MountPath == NULL) {
+                    goto Done;
+                }
+                MountRoot = (char*)malloc(LineLen+1);
+                if (MountRoot == NULL) {
+                    goto Done;
+                }
 
-                    SscanfRet = sscanf(Line,
-                                        "%*s %*s %*s %s %s ",
-                                        MountRoot,
-                                        MountPath);
-                    if (SscanfRet != 2) {
-                        CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
-                    }
+                SscanfRet =
+                    sscanf(
+                        Line,
+                        "%*s %*s %*s %s %s ",
+                        MountRoot,
+                        MountPath);
+                if (SscanfRet != 2) {
+                    CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
+                    goto Done;
+                }
 
-                    //
-                    // assign the output arguments and clear the locals so we don't free them.
-                    //
-                    *MountPathOut = MountPath;
-                    *MountRootOut = MountRoot;
-                    MountPath = MountRoot = NULL;
+                //
+                // assign the output arguments and clear the locals so we don't free them.
+                //
+                *MountPathOut = MountPath;
+                *MountRootOut = MountRoot;
+                MountPath = MountRoot = NULL;
+                break;
             }
         }
     }
@@ -372,17 +374,17 @@ FindCGroupPath(
 
     FindHierarchyMount(IsSubsystem, &HierarchyMount, &HierarchyRoot);
     if (HierarchyMount == NULL || HierarchyRoot == NULL) {
-        goto done;
+        goto Done;
     }
 
     CGroupPathRelativeToMount = FindCGroupPathForSubsystem(IsSubsystem);
     if (CGroupPathRelativeToMount == NULL) {
-        goto done;
+        goto Done;
     }
 
     CGroupPath = (char*)malloc(strlen(HierarchyMount) + strlen(CGroupPathRelativeToMount) + 1);
     if (CGroupPath == NULL) {
-        goto done;
+        goto Done;
     }
 
     strcpy(CGroupPath, HierarchyMount);
@@ -419,7 +421,7 @@ FindCGroupPath(
     strcat(CGroupPath, CGroupPathRelativeToMount + CommonPathPrefixLen);
 
 
-done:
+Done:
     free(HierarchyMount);
     free(HierarchyRoot);
     free(CGroupPathRelativeToMount);
