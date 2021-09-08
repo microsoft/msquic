@@ -428,7 +428,7 @@ FindCGroupPath(
             HierarchyMount,
             CGroupPathRelativeToMount + CommonPathPrefixLen);
 
-    if (PrintedLen <= 0 || PrintedLen >= CGroupPathLength) {
+    if (PrintedLen <= 0 || (size_t)PrintedLen >= CGroupPathLength) {
         //
         // Failed to copy. Free and return nothing.
         //
