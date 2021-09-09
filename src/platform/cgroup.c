@@ -20,8 +20,8 @@ Environment:
 #endif
 
 #include "quic_platform.h"
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -510,9 +510,11 @@ GetCGroupRestrictedMemoryLimit(
 {
     if (CGroupVersion == 0) {
         return FALSE;
-    } else if (CGroupVersion == 1) {
+    }
+    if (CGroupVersion == 1) {
         return GetCGroupMemoryLimit(CGROUP1_MEMORY_LIMIT_FILENAME, MemLimit);
-    } else if (CGroupVersion == 2) {
+    }
+    if (CGroupVersion == 2) {
         return GetCGroupMemoryLimit(CGROUP2_MEMORY_LIMIT_FILENAME, MemLimit);
     }
     CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version");
