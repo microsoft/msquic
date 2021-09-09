@@ -194,8 +194,6 @@ CxPlatInitialize(
 
 Exit:
 
-    printf("Total Memory %llu\n", (long long unsigned)CxPlatTotalMemory);
-
     return Status;
 }
 
