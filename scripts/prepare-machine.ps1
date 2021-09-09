@@ -345,6 +345,16 @@ if ($IsWindows) {
 
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
+        "OneBranch" {
+            sudo apt-add-repository ppa:lttng/stable-2.12
+            sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
+            sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
+            sudo apt-get update
+            sudo apt-get install -y cmake
+            sudo apt-get install -y build-essential
+            sudo apt-get install -y liblttng-ust-dev
+            sudo apt-get install -y lttng-tools
+        }
     }
 }
 
