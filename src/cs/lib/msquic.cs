@@ -5,6 +5,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
@@ -118,60 +119,34 @@ namespace Microsoft.Quic
         public string Name => _name;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct QuicAddrIn
+    [StructLayout(LayoutKind.Explicit)]
+    public struct QuicAddrFamilyAndLen
     {
+        [FieldOffset(0)]
         public ushort sin_family;
-        public ushort sin_port;
-        public byte sin_addr0;
-        public byte sin_addr1;
-        public byte sin_addr2;
-        public byte sin_addr3;
-
-        public byte[] Address
-        {
-            get
-            {
-                return new byte[] { sin_addr0, sin_addr1, sin_addr2, sin_addr3 };
-            }
-        }
+        [FieldOffset(0)]
+        public byte sin_len;
+        [FieldOffset(1)]
+        public byte sin_family_bsd;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct QuicAddrIn6
+    public unsafe struct QuicAddrIn
     {
-        public ushort _family;
-        public ushort _port;
-        public uint _flowinfo;
-        public byte _addr0;
-        public byte _addr1;
-        public byte _addr2;
-        public byte _addr3;
-        public byte _addr4;
-        public byte _addr5;
-        public byte _addr6;
-        public byte _addr7;
-        public byte _addr8;
-        public byte _addr9;
-        public byte _addr10;
-        public byte _addr11;
-        public byte _addr12;
-        public byte _addr13;
-        public byte _addr14;
-        public byte _addr15;
-        public uint _scope_id;
+        public QuicAddrFamilyAndLen sin_family;
+        public ushort sin_port;
+        public fixed byte sin_addr[4];
+    }
 
-        public byte[] Address
-        {
-            get
-            {
-                return new byte[] {
-                    _addr0, _addr1, _addr2, _addr3,
-                    _addr4, _addr5, _addr6, _addr7,
-                    _addr8, _addr9, _addr10, _addr11,
-                    _addr12, _addr13, _addr14, _addr15 };
-            }
-        }
+    // TODO: rename to C#-like
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct QuicAddrIn6
+    {
+        public QuicAddrFamilyAndLen sin6_family;
+        public ushort sin6_port;
+        public uint sin6_flowinfo;
+        public fixed byte sin6_addr[16];
+        public uint sin6_scope_id;
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -182,6 +157,33 @@ namespace Microsoft.Quic
         [FieldOffset(0)]
         public QuicAddrIn6 Ipv6;
         [FieldOffset(0)]
-        public ushort si_family;
+        public QuicAddrFamilyAndLen FamilyLen;
+
+        public int Family
+        {
+            get
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    return FamilyLen.sin_family_bsd;
+                }
+                else
+                {
+                    return FamilyLen.sin_family;
+                }
+            }
+            set
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    FamilyLen.sin_family_bsd = (byte)value;
+                }
+                else
+                {
+                    FamilyLen.sin_family = (ushort)value;
+                }
+            }
+        }
     }
+
 }
