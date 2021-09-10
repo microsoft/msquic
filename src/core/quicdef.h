@@ -457,6 +457,11 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DPLPMTUD_INCREMENT                     80
 
+//
+// The default congestion control algorithm
+//
+#define QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT   QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/
@@ -503,3 +508,5 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"
 #define QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT    "MtuDiscoverySearchCompleteTimeoutUs"
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
+
+#define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"

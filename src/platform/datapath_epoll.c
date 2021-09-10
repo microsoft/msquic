@@ -615,7 +615,7 @@ CxPlatProcessorContextInitialize(
         goto Exit;
     }
 
-    ThreadCreated = true;
+    ThreadCreated = TRUE;
 
 Exit:
 

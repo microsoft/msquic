@@ -16,7 +16,7 @@ To start collecting a trace, you can use the following command:
 netsh.exe trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl provider={ff15e657-4f26-570e-88ab-0796b258d11c} level=0x5 keywords=0xffffffff
 ```
 
-> **Note** - The command above collects **all** keywords (`0xffffffff`) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see [MsQuicEtw.man](..\src\manifest\MsQuicEtw.man) and see `<keywords>`.
+> **Note** - The command above collects **all** keywords (`0xffffffff`) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see [MsQuicEtw.man](../src/manifest/MsQuicEtw.man) and see `<keywords>`.
 
 And to stop log the trace session, you can use the following command:
 
