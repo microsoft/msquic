@@ -317,7 +317,7 @@ typedef struct _SecPkgContext_ConnectionInfo
 
 #define SCHANNEL_USE_BLACKLISTS
 
-#ifdef QUIC_RESTRICTED_BUILD
+#ifdef QUIC_GAMECORE_BUILD
 typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
