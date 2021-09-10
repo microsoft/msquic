@@ -22,7 +22,7 @@ Environment:
 #include <wincrypt.h>
 #include "msquic.h"
 
-#ifdef QUIC_GAMECORE_BUILD
+#ifdef QUIC_RESTRICTED_BUILD
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #endif

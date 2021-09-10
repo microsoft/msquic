@@ -13,6 +13,11 @@ Environment:
 
 --*/
 
+#ifdef QUIC_UWP_BUILD
+#undef WINAPI_FAMILY
+#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
+#endif
+
 #include "platform_internal.h"
 #include <security.h>
 #ifdef QUIC_CLOG
@@ -312,7 +317,7 @@ typedef struct _SecPkgContext_ConnectionInfo
 
 #define SCHANNEL_USE_BLACKLISTS
 
-#ifdef QUIC_GAMECORE_BUILD
+#ifdef QUIC_RESTRICTED_BUILD
 typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;

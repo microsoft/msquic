@@ -392,7 +392,7 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease64
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence64
 
-#ifdef QUIC_GAMECORE_BUILD
+#ifdef QUIC_RESTRICTED_BUILD
 #define QuicReadLongPtrNoFence(p) ((LONG64)(*p))
 #else
 #define QuicReadLongPtrNoFence ReadNoFence64
@@ -404,7 +404,7 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
 
-#ifdef QUIC_GAMECORE_BUILD
+#ifdef QUIC_RESTRICTED_BUILD
 #define QuicReadLongPtrNoFence(p) ((LONG)(*p))
 #else
 #define QuicReadLongPtrNoFence ReadNoFence
@@ -523,6 +523,18 @@ typedef HANDLE CXPLAT_EVENT;
 //
 // Time Measurement Interfaces
 //
+
+#ifdef QUIC_UWP_BUILD
+WINBASEAPI
+_Success_(return != FALSE)
+BOOL
+WINAPI
+GetSystemTimeAdjustment(
+    _Out_ PDWORD lpTimeAdjustment,
+    _Out_ PDWORD lpTimeIncrement,
+    _Out_ PBOOL lpTimeAdjustmentDisabled
+    );
+#endif
 
 //
 // Returns the worst-case system timer resolution (in us).
