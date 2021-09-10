@@ -50,10 +50,6 @@ QuicTestMtuSettings()
         MsQuicSettings CurrentSettings;
         TEST_QUIC_SUCCEEDED(CurrentSettings.GetGlobal());
 
-        #ifdef __APPLE__
-        CXPLAT_DBG_ASSERT(FALSE);
-        #endif
-
         MsQuicSettings NewSettings;
         QUIC_STATUS SetSuccess =
             NewSettings.
