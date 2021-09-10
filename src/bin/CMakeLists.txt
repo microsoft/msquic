@@ -234,7 +234,12 @@ set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
     if(QUIC_UWP_BUILD)
-        target_link_libraries(msquic PUBLIC OneCoreUAP)
+        target_link_libraries(msquic PUBLIC OneCore)
+    elseif(QUIC_GAMECORE_BUILD)
+        target_link_options(inc INTERFACE ${Console_LinkOptions})
+        target_compile_options(inc INTERFACE ${Console_ArchOptions})
+        target_link_directories(inc INTERFACE ${Console_EndpointLibRoot})
+        target_link_libraries(inc INTERFACE xgameplatform.lib)
     endif()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")

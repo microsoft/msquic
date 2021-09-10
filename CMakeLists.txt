@@ -364,11 +364,41 @@ if(WIN32)
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
 
     if (QUIC_UWP_BUILD)
-        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
+        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_RESTRICTED_BUILD)
+        set(CMAKE_CXX_STANDARD_LIBRARIES "")
+        set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "")
+        set(CMAKE_C_STANDARD_LIBRARIES "")
+        set(CMAKE_C_STANDARD_LIBRARIES_INIT "")
     endif()
 
     if (QUIC_GAMECORE_BUILD)
-        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_GAMES QUIC_GAMECORE_BUILD)
+        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_RESTRICTED_BUILD)
+        set(CMAKE_CXX_STANDARD_LIBRARIES "")
+        set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "")
+        set(CMAKE_C_STANDARD_LIBRARIES "")
+        set(CMAKE_C_STANDARD_LIBRARIES_INIT "")
+
+        set(UnsupportedLibs advapi32.lib comctl32.lib comsupp.lib dbghelp.lib gdi32.lib gdiplus.lib guardcfw.lib kernel32.lib mmc.lib msimg32.lib msvcole.lib msvcoled.lib mswsock.lib ntstrsafe.lib ole2.lib ole2autd.lib ole2auto.lib ole2d.lib ole2ui.lib ole2uid.lib ole32.lib oleacc.lib oleaut32.lib oledlg.lib oledlgd.lib oldnames.lib runtimeobject.lib shell32.lib shlwapi.lib strsafe.lib urlmon.lib user32.lib userenv.lib wlmole.lib wlmoled.lib onecore.lib)
+        set(Console_LinkOptions /DYNAMICBASE /NXCOMPAT)
+        foreach(arg ${UnsupportedLibs})
+            list(APPEND Console_LinkOptions "/NODEFAULTLIB:${arg}")
+        endforeach()
+
+        set(Console_ArchOptions /favor:AMD64)
+
+        if (QUIC_SCARLETT_BUILD)
+            list(APPEND Console_ArchOptions /arch:AVX2 /d2vzeroupper)
+            set(Console_ArchOptions_LTCG /d2:-vzeroupper)
+        else()
+            list(APPEND Console_ArchOptions /arch:AVX)
+        endif()
+
+        # Locate Software Development Kits
+        GET_FILENAME_COMPONENT(Console_SdkRoot "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\GDK;InstallPath]" ABSOLUTE CACHE)
+        set(XdkEditionTarget "211000")
+        set(DurangoXdkInstallPath "${Console_SdkRoot}/${XdkEditionTarget}")
+        set(Console_EndpointLibRoot "${DurangoXdkInstallPath}/GXDK/gameKit/Lib/amd64")
+
     endif()
 
     if(QUIC_ENABLE_LOGGING)
@@ -394,8 +424,8 @@ if(WIN32)
     # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 ${Console_ArchOptions_LTCG} /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 ${Console_ArchOptions_LTCG} /DEBUG /OPT:REF /OPT:ICF")
 
     # Configure PGO linker flags.
     set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/msquic.pgd")

@@ -28,7 +28,7 @@ Environment:
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 
-#ifdef QUIC_UWP_BUILD
+#if defined(QUIC_RESTRICTED_BUILD)
 #undef WINAPI_FAMILY
 #define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
 #endif
@@ -393,26 +393,18 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 #endif
 
 #if defined (_WIN64)
+
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence64
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease64
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence64
-
-#ifdef QUIC_GAMECORE_BUILD
-#define QuicReadLongPtrNoFence(p) ((LONG64)(*p))
-#else
 #define QuicReadLongPtrNoFence ReadNoFence64
-#endif
 
 #else
+
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
-
-#ifdef QUIC_GAMECORE_BUILD
-#define QuicReadLongPtrNoFence(p) ((LONG)(*p))
-#else
 #define QuicReadLongPtrNoFence ReadNoFence
-#endif
 
 #endif
 
@@ -697,7 +689,7 @@ extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
-#if defined(QUIC_UWP_BUILD) || defined(QUIC_GAMECORE_BUILD)
+#if defined(QUIC_RESTRICTED_BUILD)
 DWORD CxPlatProcMaxCount();
 DWORD CxPlatProcActiveCount();
 #else
@@ -728,7 +720,7 @@ CxPlatProcCurrentNumber(
 // to not colide with the built in windows definitions, which are not gated
 // behind any preprocessor macros
 //
-#if !defined(QUIC_UWP_BUILD)
+#if !defined(QUIC_RESTRICTED_BUILD)
 #define ThreadNameInformationPrivate ((THREADINFOCLASS)38)
 
 typedef struct _THREAD_NAME_INFORMATION_PRIVATE {
@@ -853,7 +845,7 @@ CxPlatThreadCreate(
             ARRAYSIZE(WideName) - 1,
             Config->Name,
             _TRUNCATE);
-#if defined(QUIC_UWP_BUILD)
+#if defined(QUIC_RESTRICTED_BUILD)
         SetThreadDescription(*Thread, WideName);
 #else
         THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
@@ -936,7 +928,7 @@ CxPlatUtf8ToWideChar(
 // Network Compartment ID interfaces
 //
 
-#ifndef QUIC_UWP_BUILD
+#if !defined(QUIC_RESTRICTED_BUILD)
 
 #define QUIC_COMPARTMENT_ID NET_IF_COMPARTMENT_ID
 
