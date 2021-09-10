@@ -9,7 +9,7 @@
 
 typedef union QUIC_CONGESTION_CONTROL_CONTEXT {
     QUIC_CONGESTION_CONTROL_CUBIC CubicCtx;
-    
+
     //
     // Add new congestion control context here
     //
@@ -22,7 +22,7 @@ typedef struct QUIC_CONGESTION_CONTROL {
     // Name of congestion control algorithm
     //
     const char* Name;
-    
+
     BOOLEAN (*QuicCongestionControlCanSend)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc
         );
@@ -38,7 +38,8 @@ typedef struct QUIC_CONGESTION_CONTROL {
         );
 
     void (*QuicCongestionControlReset)(
-        _In_ struct QUIC_CONGESTION_CONTROL* Cc
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ BOOLEAN FullReset
         );
 
     uint32_t (*QuicCongestionControlGetSendAllowance)(
@@ -132,7 +133,8 @@ QuicCongestionControlInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlReset(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN FullReset
     );
 
 //
