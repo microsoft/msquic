@@ -2279,6 +2279,7 @@ QuicTestConnectExpiredServerCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_EXPIRED_CERTIFICATE;
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2300,7 +2301,6 @@ QuicTestConnectExpiredServerCertificate(
                 TEST_EQUAL(false, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_EXPIRED_CERTIFICATE);
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
