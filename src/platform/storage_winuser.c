@@ -42,6 +42,19 @@ typedef struct CXPLAT_STORAGE {
 
 } CXPLAT_STORAGE;
 
+#ifdef QUIC_GAMECORE_BUILD
+WINADVAPI
+LSTATUS
+APIENTRY
+RegNotifyChangeKeyValue(
+    _In_ HKEY hKey,
+    _In_ BOOL bWatchSubtree,
+    _In_ DWORD dwNotifyFilter,
+    _In_opt_ HANDLE hEvent,
+    _In_ BOOL fAsynchronous
+    );
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(

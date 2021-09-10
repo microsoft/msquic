@@ -299,6 +299,7 @@ QuicAddrHash(
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
 inline
+_Success_(return != FALSE)
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
@@ -306,6 +307,12 @@ QuicAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
+#ifdef QUIC_RESTRICTED_BUILD
+    UNREFERENCED_PARAMETER(AddrStr);
+    UNREFERENCED_PARAMETER(Port);
+    UNREFERENCED_PARAMETER(Addr);
+    return FALSE;
+#else
     Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == NO_ERROR) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
@@ -315,6 +322,7 @@ QuicAddrFromString(
         return FALSE;
     }
     return TRUE;
+#endif
 }
 
 //
@@ -325,12 +333,18 @@ typedef struct QUIC_ADDR_STR {
 } QUIC_ADDR_STR;
 
 inline
+_Success_(return != FALSE)
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
     )
 {
+#ifdef QUIC_RESTRICTED_BUILD
+    UNREFERENCED_PARAMETER(AddrStr);
+    UNREFERENCED_PARAMETER(Addr);
+    return FALSE;
+#else
     LONG Status;
     ULONG AddrStrLen = ARRAYSIZE(AddrStr->Address);
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -350,6 +364,7 @@ QuicAddrToString(
                 &AddrStrLen);
     }
     return Status == NO_ERROR;
+#endif
 }
 
 #endif // _MSQUIC_WINUSER_

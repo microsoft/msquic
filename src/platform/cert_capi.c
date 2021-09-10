@@ -22,6 +22,12 @@ Environment:
 #include <wincrypt.h>
 #include "msquic.h"
 
+#ifdef QUIC_GAMECORE_BUILD
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
+#endif
+
 typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;
     BCRYPT_PSS_PADDING_INFO Pss;
@@ -577,7 +583,7 @@ CxPlatCertSelect(
     // Low byte of SignatureAlgorithms[] is the TLS SignatureAlgorithm:
     //  anonymous(0), rsa(1), dsa(2), ecdsa(3)
     //
-    
+
     PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
 
     if (CertCtx == NULL) {

@@ -311,6 +311,15 @@ typedef struct _SecPkgContext_ConnectionInfo
 #else
 
 #define SCHANNEL_USE_BLACKLISTS
+
+#ifdef QUIC_GAMECORE_BUILD
+typedef struct _UNICODE_STRING {
+    USHORT Length;
+    USHORT MaximumLength;
+    PWSTR Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+#endif
+
 #include <schannel.h>
 
 #ifndef SCH_CRED_DEFERRED_CRED_VALIDATION
@@ -2872,7 +2881,7 @@ QuicPacketKeyCreate(
     _Out_ QUIC_PACKET_KEY** Key
     )
 {
-    NTSTATUS Status;
+    QUIC_STATUS Status;
     CXPLAT_SECRET Secret;
 
     if (!CxPlatParseTrafficSecrets(TlsContext, TrafficSecrets, &Secret)) {
@@ -2887,7 +2896,7 @@ QuicPacketKeyCreate(
             SecretName,
             TRUE,
             Key);
-    if (!NT_SUCCESS(Status)) {
+    if (!QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             TlsErrorStatus,
             "[ tls][%p] ERROR, %u, %s.",
@@ -2899,5 +2908,5 @@ QuicPacketKeyCreate(
 
 Error:
 
-    return NT_SUCCESS(Status);
+    return QUIC_SUCCEEDED(Status);
 }

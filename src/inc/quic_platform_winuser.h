@@ -28,11 +28,6 @@ Environment:
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 
-#if defined(QUIC_RESTRICTED_BUILD)
-#undef WINAPI_FAMILY
-#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
-#endif
-
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
 #pragma warning(disable:28251)
@@ -45,7 +40,6 @@ Environment:
 #include <iphlpapi.h>
 #include <bcrypt.h>
 #include <stdlib.h>
-#include <winternl.h>
 #include "msquic_winuser.h"
 #ifdef _M_X64
 #pragma warning(disable:28251) // Inconsistent annotation for function
@@ -397,14 +391,24 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence64
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease64
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence64
+
+#ifdef QUIC_GAMECORE_BUILD
+#define QuicReadLongPtrNoFence(p) ((LONG64)(*p))
+#else
 #define QuicReadLongPtrNoFence ReadNoFence64
+#endif
 
 #else
 
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
+
+#ifdef QUIC_GAMECORE_BUILD
+#define QuicReadLongPtrNoFence(p) ((LONG)(*p))
+#else
 #define QuicReadLongPtrNoFence ReadNoFence
+#endif
 
 #endif
 
