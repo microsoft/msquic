@@ -450,6 +450,15 @@ function CMake-Build {
             }
         }
     }
+    # Package debug symbols on macos
+    if ($Platform -eq "macos") {
+        $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File
+        foreach ($Artifact in $BuiltArtifacts) {
+            if (Test-Path $Artifact) {
+                dsymutil $Artifact
+            }
+        }
+    }
 }
 
 ##############################################################
