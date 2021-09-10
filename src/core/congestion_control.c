@@ -47,10 +47,11 @@ QuicCongestionControlInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlReset(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN FullReset
     )
 {
-    Cc->QuicCongestionControlReset(Cc);
+    Cc->QuicCongestionControlReset(Cc, FullReset);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

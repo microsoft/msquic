@@ -125,7 +125,8 @@ CubicCongestionControlInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlReset(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN FullReset
     )
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
@@ -136,7 +137,9 @@ CubicCongestionControlReset(
     Ctx->HasHadCongestionEvent = FALSE;
     Ctx->CongestionWindow = Connection->Paths[0].Mtu * Ctx->InitialWindowPackets;
     Ctx->BytesInFlightMax = Ctx->CongestionWindow / 2;
-    Ctx->BytesInFlight = 0;
+    if (FullReset) {
+        Ctx->BytesInFlight = 0;
+    }
     QuicConnLogOutFlowStats(Connection);
     QuicConnLogCubic(Connection);
 }
@@ -617,7 +620,7 @@ CubicCongestionControlLogOutFlowStatus(
     QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    
+
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
 
