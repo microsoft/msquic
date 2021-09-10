@@ -224,8 +224,14 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
 
+    include(CheckSymbolExists)
+    include(CheckFunctionExists)
+    check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
+    check_function_exists(sysconf HAS_SYSCONF)
+
     if (CX_PLATFORM STREQUAL "linux")
         include(CheckCCompilerFlag)
+
         check_c_source_compiles(
             "
             #include <netinet/udp.h>
@@ -285,12 +291,24 @@ else()
                 set(QUIC_ENABLE_LOGGING OFF)
             endif()
         endif()
+
+    elseif(CX_PLATFORM STREQUAL "darwin")
+        check_function_exists(sysctl HAS_SYSCTL)
     endif()
 
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     if (HAS_SENDMMSG)
         list(APPEND QUIC_COMMON_DEFINES HAS_SENDMMSG)
+    endif()
+    if (HAS__SC_PHYS_PAGES)
+         list(APPEND QUIC_COMMON_DEFINES HAS__SC_PHYS_PAGES)
+    endif()
+    if (HAS_SYSCONF)
+         list(APPEND QUIC_COMMON_DEFINES HAS_SYSCONF)
+    endif()
+    if (HAS_SYSCTL)
+         list(APPEND QUIC_COMMON_DEFINES HAS_SYSCTL)
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
