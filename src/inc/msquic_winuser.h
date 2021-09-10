@@ -307,7 +307,7 @@ QuicAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-#ifdef QUIC_RESTRICTED_BUILD
+#ifdef QUIC_GAMECORE_BUILD
     UNREFERENCED_PARAMETER(AddrStr);
     UNREFERENCED_PARAMETER(Port);
     UNREFERENCED_PARAMETER(Addr);
@@ -340,7 +340,7 @@ QuicAddrToString(
     _Out_ QUIC_ADDR_STR* AddrStr
     )
 {
-#ifdef QUIC_RESTRICTED_BUILD
+#ifdef QUIC_GAMECORE_BUILD
     UNREFERENCED_PARAMETER(AddrStr);
     UNREFERENCED_PARAMETER(Addr);
     return FALSE;
