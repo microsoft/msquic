@@ -108,7 +108,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("gamecore", "gamecore-scarlett", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
+    [ValidateSet("gamecore-durango", "gamecore-scarlett", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -219,12 +219,12 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And ($Platform -eq "gamecore" -or $Platform -eq "gamecore-scarlett")) {
+if (!$IsWindows -And ($Platform -eq "gamecore-durango" -or $Platform -eq "gamecore-scarlett")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore on non windows platforms"
     exit
 }
 
-if ($Arch -ne "x64" -And ($Platform -eq "gamecore" -or $Platform -eq "gamecore-scarlett")) {
+if ($Arch -ne "x64" -And ($Platform -eq "gamecore-durango" -or $Platform -eq "gamecore-scarlett")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
     exit
 }
@@ -353,7 +353,7 @@ function CMake-Generate {
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
-    if ($Platform -eq "gamecore") {
+    if ($Platform -eq "gamecore-durango") {
         $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
     if ($Platform -eq "gamecore-scarlett") {
