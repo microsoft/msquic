@@ -221,9 +221,10 @@ Official (v1) RFC and draft-29 are supported by this release.
 [MsQuic v1.8](https://github.com/microsoft/msquic/releases/tag/v1.8.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
 
 - Update OpenSSL to v1.1.1l (#1936).
+- Add support for client certificates with OpenSSL (#1930).
 - Bug fix for race condition around stateless operations and binding initialization (#1928).
 - Bug fix for NULL pointer read in stateless retry scenario (#1951).
-- Buf gix for path changes incorrectly resetting CC's bytes in flight (#1976).
+- Bug gix for path changes incorrectly resetting CC's bytes in flight (#1976).
 - Refactor CC to support multiple algorithms (#1949).
 - Various fixes for packaging automation (#1915, #1916, #1921, #1939, #1961).
 - Improvements in memory calculations for posix platforms (#1928).
