@@ -133,6 +133,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_REVOKED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(44)       // 0xBEBC32C - Revoked Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)       // 0xBEBC32D - Expired Certificate
 #define QUIC_STATUS_UNKNOWN_CERTIFICATE     QUIC_STATUS_TLS_ALERT(46)       // 0xBEBC32E - Unknown Certificate
+#define QUIC_STATUS_REQUIRED_CERTIFICATE    QUIC_STATUS_TLS_ALERT(116)      // 0xBEBC374 - Required Certificate
 
 #define QUIC_STATUS_CERT_ERROR(Val)         ((QUIC_STATUS)Val + CERT_ERROR_BASE)
 
@@ -157,6 +158,10 @@ typedef union QUIC_ADDR {
     struct sockaddr_in Ipv4;
     struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
+
+#ifndef RTL_FIELD_SIZE
+#define RTL_FIELD_SIZE(type, field)     (sizeof(((type *)0)->field))
+#endif
 
 #define FIELD_OFFSET(type, field)       offsetof(type, field)
 

@@ -657,6 +657,24 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpStatelessOperExpirMs , arg2);\
 
 
 
+#ifndef _clog_3_ARGS_TRACE_SettingCongestionControlAlgorithm
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingCongestionControlAlgorithm
+// [sett] CongestionControlAlgorithm = %d
+// QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+// arg2 = arg2 = Settings->CongestionControlAlgorithm
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_SettingCongestionControlAlgorithm(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm , arg2);\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_SettingDumpSendBufferingEnabled
 
 
@@ -1246,6 +1264,23 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpStatelessOperExpirMs , arg2);\
 // arg2 = arg2 = Settings->StatelessOperationExpirationMs
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_SettingDumpStatelessOperExpirMs(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_SettingCongestionControlAlgorithm
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingCongestionControlAlgorithm
+// [sett] CongestionControlAlgorithm = %d
+// QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+// arg2 = arg2 = Settings->CongestionControlAlgorithm
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_SettingCongestionControlAlgorithm(uniqueId, encoded_arg_string, arg2)\
 
 #endif
 

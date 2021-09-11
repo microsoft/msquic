@@ -258,7 +258,8 @@ QuicSendBufferConnectionAdjust(
     }
 
     const uint64_t NewIdealBytes =
-        QuicGetNextIdealBytes(Connection->CongestionControl.BytesInFlightMax);
+        QuicGetNextIdealBytes(
+            QuicCongestionControlGetBytesInFlightMax(&Connection->CongestionControl));
 
     //
     // TODO: Currently, IdealBytes only grows and never shrinks. Add appropriate

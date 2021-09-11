@@ -495,10 +495,10 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
 // Decoder Ring for TlsError
 // [ tls][%p] ERROR, %s.
 // QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "No certificate passed");
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "No certificate passed");
 // arg2 = arg2 = TlsContext->Connection
 // arg3 = arg3 = "No certificate passed"
 ----------------------------------------------------------*/

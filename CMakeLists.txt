@@ -122,6 +122,7 @@ option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
+option(QUIC_GAMECORE_BUILD "Build for GameCore" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
@@ -223,8 +224,14 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
 
+    include(CheckSymbolExists)
+    include(CheckFunctionExists)
+    check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
+    check_function_exists(sysconf HAS_SYSCONF)
+
     if (CX_PLATFORM STREQUAL "linux")
         include(CheckCCompilerFlag)
+
         check_c_source_compiles(
             "
             #include <netinet/udp.h>
@@ -284,12 +291,24 @@ else()
                 set(QUIC_ENABLE_LOGGING OFF)
             endif()
         endif()
+
+    elseif(CX_PLATFORM STREQUAL "darwin")
+        check_function_exists(sysctl HAS_SYSCTL)
     endif()
 
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     if (HAS_SENDMMSG)
         list(APPEND QUIC_COMMON_DEFINES HAS_SENDMMSG)
+    endif()
+    if (HAS__SC_PHYS_PAGES)
+         list(APPEND QUIC_COMMON_DEFINES HAS__SC_PHYS_PAGES)
+    endif()
+    if (HAS_SYSCONF)
+         list(APPEND QUIC_COMMON_DEFINES HAS_SYSCONF)
+    endif()
+    if (HAS_SYSCTL)
+         list(APPEND QUIC_COMMON_DEFINES HAS_SYSCTL)
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
@@ -330,10 +349,6 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
-    message(STATUS "Disabling client certificate tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
-    message(STATUS "Disabling deferred certificate tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_DEFERRED_CERT_TESTS)
 endif()
 
 if(WIN32)
@@ -368,6 +383,10 @@ if(WIN32)
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
+    endif()
+
+    if (QUIC_GAMECORE_BUILD)
+        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_GAMES QUIC_GAMECORE_BUILD)
     endif()
 
     if(QUIC_ENABLE_LOGGING)

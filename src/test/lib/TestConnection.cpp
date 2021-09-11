@@ -772,7 +772,10 @@ TestConnection::HandleConnectionEvent(
                     TestIgnoreConnectionTimeout,
                     "[test] Ignoring timeout unexpected status because of random loss");
             } else {
-                TEST_FAILURE("Unexpected transport Close Error, 0x%x", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+                TEST_FAILURE(
+                    "Unexpected transport Close Error, expected=0x%x, actual=0x%x",
+                    ExpectedTransportCloseStatus,
+                    Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
             }
         }
         CxPlatEventSet(EventConnectionComplete);
@@ -782,7 +785,10 @@ TestConnection::HandleConnectionEvent(
         PeerClosed = true;
         PeerCloseErrorCode = Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode;
         if (Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode != ExpectedPeerCloseErrorCode) {
-            TEST_FAILURE("App Close Error, %llu", Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+            TEST_FAILURE(
+                "Unexpected App Close Error, expected=%llu, actual=%llu",
+                ExpectedPeerCloseErrorCode,
+                Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         }
         CxPlatEventSet(EventConnectionComplete);
         CxPlatEventSet(EventPeerClosed);
@@ -873,7 +879,10 @@ TestConnection::HandleConnectionEvent(
             return QUIC_STATUS_INTERNAL_ERROR;
         }
         if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != ExpectedClientCertValidationResult) {
-            TEST_FAILURE("Unexpected Certificate Validation Status, 0x%x", Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+            TEST_FAILURE(
+                "Unexpected Certificate Validation Status, expected=0x%x, actual=0x%x",
+                ExpectedClientCertValidationResult,
+                Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
         }
         break;
 

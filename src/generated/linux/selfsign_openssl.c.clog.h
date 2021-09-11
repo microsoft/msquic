@@ -330,26 +330,6 @@ tracepoint(CLOG_SELFSIGN_OPENSSL_C, LibraryError , arg2);\
 // QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "Client Certificate is not supported in OpenSSL");
-// arg2 = arg2 = "Client Certificate is not supported in OpenSSL"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
             "GetTempPathA failed");
 // arg2 = arg2 = "GetTempPathA failed"
 ----------------------------------------------------------*/
