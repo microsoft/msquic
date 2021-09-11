@@ -145,6 +145,11 @@ MsQuicConfigurationOpen(
     }
 #endif
 
+#ifdef QUIC_OWNING_PROCESS
+    Configuration->OwningProcess = QuicProcessGetCurrentProcess();
+    QuicProcessAddRef(Configuration->OwningProcess);
+#endif
+
     if (Registration->AppNameLength != 0) {
         char SpecificAppKey[UINT8_MAX + sizeof(QUIC_SETTING_APP_KEY)] = QUIC_SETTING_APP_KEY;
         CxPlatCopyMemory(
@@ -242,6 +247,10 @@ QuicConfigurationUninitialize(
 #ifdef QUIC_SILO
     CxPlatStorageClose(Configuration->Storage);
     QuicSiloRelease(Configuration->Silo);
+#endif
+
+#ifdef QUIC_OWNING_PROCESS
+    QuicProcessRelease(Configuration->OwningProcess);
 #endif
 
     QuicSettingsCleanup(&Configuration->Settings);

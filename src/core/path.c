@@ -78,30 +78,30 @@ QuicPathSetAllowance(
     _In_ uint32_t NewAllowance
     )
 {
-    BOOLEAN WasBlocked = Path->Allowance < QUIC_MIN_SEND_ALLOWANCE;
     Path->Allowance = NewAllowance;
+    BOOLEAN IsBlocked = Path->Allowance < QUIC_MIN_SEND_ALLOWANCE;
 
-    if (!Path->IsPeerValidated &&
-        (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) != WasBlocked) {
-        if (WasBlocked) {
-            QuicConnRemoveOutFlowBlockedReason(
-                Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
+    if (!Path->IsPeerValidated) {
+        if (!IsBlocked) {
+            if (QuicConnRemoveOutFlowBlockedReason(
+                    Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
 
-            if (Connection->Send.SendFlags != 0) {
+                if (Connection->Send.SendFlags != 0) {
+                    //
+                    // We were blocked by amplification protection (no allowance
+                    // left) and we have stuff to send, so flush the send now.
+                    //
+                    QuicSendQueueFlush(&Connection->Send, REASON_AMP_PROTECTION);
+                }
+
                 //
-                // We were blocked by amplification protection (no allowance
-                // left) and we have stuff to send, so flush the send now.
+                // Now that we are no longer blocked by amplification protection
+                // we need to re-enable the loss detection timers. This call may
+                // even cause the loss timer to fire immediately because packets
+                // were already lost, but we didn't know it.
                 //
-                QuicSendQueueFlush(&Connection->Send, REASON_AMP_PROTECTION);
+                QuicLossDetectionUpdateTimer(&Connection->LossDetection, TRUE);
             }
-
-            //
-            // Now that we are no longer blocked by amplification protection
-            // we need to re-enable the loss detection timers. This call may
-            // even cause the loss timer to fire immediately because packets
-            // were already lost, but we didn't know it.
-            //
-            QuicLossDetectionUpdateTimer(&Connection->LossDetection, TRUE);
 
         } else {
             QuicConnAddOutFlowBlockedReason(
@@ -283,6 +283,6 @@ QuicPathSetActive(
         UdpPortChangeOnly);
 
     if (!UdpPortChangeOnly) {
-        QuicCongestionControlReset(&Connection->CongestionControl);
+        QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
 }

@@ -20,8 +20,11 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
-    [string]$Tls = "",
+    [ValidateSet("openssl")]
+    [string]$Tls = "openssl",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir,
 
     [Parameter(Mandatory = $false)]
     [switch]$DeleteSource = $false
@@ -34,10 +37,6 @@ if (!$IsMacOS) {
     Write-Error "This script can only be ran on macOS"
 }
 
-if ("" -eq $Tls) {
-    $Tls = "openssl"
-}
-
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -46,9 +45,15 @@ $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 
 $ArtifactsDir = Join-Path $BaseArtifactsDir "bin" "macos"
 
-$X64ArtifactsDir = Join-Path $ArtifactsDir "x64_$($Config)_$($Tls)"
-$Arm64ArtifactsDir = Join-Path $ArtifactsDir "arm64_$($Config)_$($Tls)"
-$UniversalArtifactsDir = Join-Path $ArtifactsDir "universal_$($Config)_$($Tls)"
+if ([string]::IsNullOrWhitespace($ExtraArtifactDir)) {
+    $X64ArtifactsDir = Join-Path $ArtifactsDir "x64_$($Config)_$($Tls)"
+    $Arm64ArtifactsDir = Join-Path $ArtifactsDir "arm64_$($Config)_$($Tls)"
+    $UniversalArtifactsDir = Join-Path $ArtifactsDir "universal_$($Config)_$($Tls)"
+} else {
+    $X64ArtifactsDir = Join-Path $ArtifactsDir "x64_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+    $Arm64ArtifactsDir = Join-Path $ArtifactsDir "arm64_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+    $UniversalArtifactsDir = Join-Path $ArtifactsDir "universal_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+}
 
 New-Item $UniversalArtifactsDir -ItemType Directory -Force | Out-Null
 

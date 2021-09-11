@@ -124,12 +124,14 @@ struct HandshakeArgs3 {
     int Family;
     bool ServerStatelessRetry;
     bool MultipleALPNs;
+    bool DelayedAsyncConfig;
     static ::std::vector<HandshakeArgs3> Generate() {
         ::std::vector<HandshakeArgs3> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultipleALPNs : { false, true })
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs });
+        for (bool DelayedAsyncConfig : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, DelayedAsyncConfig });
         return list;
     }
 };
@@ -138,7 +140,8 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs3& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
-        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN");
+        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
+        (args.DelayedAsyncConfig ? "DelayedAsyncConfig" : "AsyncConfig");
 }
 
 class WithHandshakeArgs3 : public testing::Test,
@@ -675,7 +678,7 @@ struct RebindPaddingArgs {
     static ::std::vector<RebindPaddingArgs> Generate() {
         ::std::vector<RebindPaddingArgs> list;
         for (int Family : { 4, 6 })
-        for (uint16_t Padding = 1; Padding < 50; ++Padding)
+        for (uint16_t Padding = 1; Padding < 75; ++Padding)
             list.push_back({ Family, Padding });
         return list;
     }

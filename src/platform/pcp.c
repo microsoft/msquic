@@ -178,7 +178,7 @@ CxPlatPcpInitialize(
     PcpContext->ClientCallback = Handler;
     PcpContext->GatewayCount = GatewayAddressesCount;
 
-    CXPLAT_UDP_CONFIG UdpConfig;
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = NULL;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_PCP;
     UdpConfig.InterfaceIndex = 0;

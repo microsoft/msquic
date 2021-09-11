@@ -52,9 +52,9 @@ tracepoint(CLOG_WORKER_C, IndicateIdealProcChanged , arg1);\
 // Decoder Ring for AbandonOnLibShutdown
 // [conn][%p] Abandoning on shutdown
 // QuicTraceLogConnVerbose(
-                AbandonOnLibShutdown,
-                Connection,
-                "Abandoning on shutdown");
+                    AbandonOnLibShutdown,
+                    Connection,
+                    "Abandoning on shutdown");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_AbandonOnLibShutdown(uniqueId, arg1, encoded_arg_string)\

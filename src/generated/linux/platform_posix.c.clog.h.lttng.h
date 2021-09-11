@@ -2,15 +2,82 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PosixLoaded
+// [ dso] Loaded
+// QuicTraceLogInfo(
+        PosixLoaded,
+        "[ dso] Loaded");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixLoaded,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixUnloaded
+// [ dso] Unloaded
+// QuicTraceLogInfo(
+        PosixUnloaded,
+        "[ dso] Unloaded");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixUnloaded,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixInitialized
+// [ dso] Initialized (AvailMem = %llu bytes)
+// QuicTraceLogInfo(
+        PosixInitialized,
+        "[ dso] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+// arg2 = arg2 = CxPlatTotalMemory
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixInitialized,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PosixUninitialized
+// [ dso] Uninitialized
+// QuicTraceLogInfo(
+        PosixUninitialized,
+        "[ dso] Uninitialized");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixUninitialized,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            errno,
-            "pthread_attr_init failed");
-// arg2 = arg2 = errno
-// arg3 = arg3 = "pthread_attr_init failed"
+            Status,
+            "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus,
     TP_ARGS(

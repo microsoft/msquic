@@ -93,7 +93,8 @@ class CxPlatWatchdog {
     }
 public:
     CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        CXPLAT_THREAD_CONFIG Config = { 0 };
+        CXPLAT_THREAD_CONFIG Config;
+        memset(&Config, 0, sizeof(CXPLAT_THREAD_CONFIG));
         Config.Name = "cxplat_watchdog";
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;

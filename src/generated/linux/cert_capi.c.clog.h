@@ -384,9 +384,9 @@ tracepoint(CLOG_CERT_CAPI_C, LibraryError , arg2);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            GetLastError(),
+            Error,
             "CertGetCertificateChain failed");
-// arg2 = arg2 = GetLastError()
+// arg2 = arg2 = Error
 // arg3 = arg3 = "CertGetCertificateChain failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\

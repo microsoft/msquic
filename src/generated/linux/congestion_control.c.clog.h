@@ -12,120 +12,30 @@
 #include "congestion_control.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
-#ifndef _clog_MACRO_QuicTraceEvent
-#define _clog_MACRO_QuicTraceEvent  1
-#define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#ifndef _clog_MACRO_QuicTraceLogConnWarning
+#define _clog_MACRO_QuicTraceLogConnWarning  1
+#define QuicTraceLogConnWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_7_ARGS_TRACE_ConnCubic
+#ifndef _clog_4_ARGS_TRACE_InvalidCongestionControlAlgorithm
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCubic
-// [conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u
-// QuicTraceEvent(
-        ConnCubic,
-        "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
-        Connection,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->CongestionControl.KCubic,
-        Connection->CongestionControl.WindowMax,
-        Connection->CongestionControl.WindowLastMax);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->CongestionControl.SlowStartThreshold
-// arg4 = arg4 = Connection->CongestionControl.KCubic
-// arg5 = arg5 = Connection->CongestionControl.WindowMax
-// arg6 = arg6 = Connection->CongestionControl.WindowLastMax
+// Decoder Ring for InvalidCongestionControlAlgorithm
+// [conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic
+// QuicTraceLogConnWarning(
+                InvalidCongestionControlAlgorithm,
+                Connection,
+                "Unknown congestion control algorithm: %d, fallback to Cubic",
+                Settings->CongestionControlAlgorithm);
+// arg1 = arg1 = Connection
+// arg3 = arg3 = Settings->CongestionControlAlgorithm
 ----------------------------------------------------------*/
-#define _clog_7_ARGS_TRACE_ConnCubic(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
-tracepoint(CLOG_CONGESTION_CONTROL_C, ConnCubic , arg2, arg3, arg4, arg5, arg6);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnCongestion
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnCongestion
-// [conn][%p] Congestion event
-// QuicTraceEvent(
-        ConnCongestion,
-        "[conn][%p] Congestion event",
-        Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnCongestion(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONGESTION_CONTROL_C, ConnCongestion , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnPersistentCongestion
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPersistentCongestion
-// [conn][%p] Persistent congestion event
-// QuicTraceEvent(
-        ConnPersistentCongestion,
-        "[conn][%p] Persistent congestion event",
-        Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnPersistentCongestion(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONGESTION_CONTROL_C, ConnPersistentCongestion , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnRecoveryExit
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnRecoveryExit
-// [conn][%p] Recovery complete
-// QuicTraceEvent(
-                ConnRecoveryExit,
-                "[conn][%p] Recovery complete",
-                Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnRecoveryExit(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONGESTION_CONTROL_C, ConnRecoveryExit , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnSpuriousCongestion
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSpuriousCongestion
-// [conn][%p] Spurious congestion event
-// QuicTraceEvent(
-        ConnSpuriousCongestion,
-        "[conn][%p] Spurious congestion event",
-        Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnSpuriousCongestion(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONGESTION_CONTROL_C, ConnSpuriousCongestion , arg2);\
+#define _clog_4_ARGS_TRACE_InvalidCongestionControlAlgorithm(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONGESTION_CONTROL_C, InvalidCongestionControlAlgorithm , arg1, arg3);\
 
 #endif
 

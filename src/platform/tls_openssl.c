@@ -152,6 +152,28 @@ typedef struct CXPLAT_TLS {
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
 static
+QUIC_STATUS
+CxPlatTlsMapOpenSSLErrorToQuicStatus(
+    _In_ int OpenSSLError
+    )
+{
+    switch (OpenSSLError) {
+    case X509_V_ERR_CERT_REJECTED:
+        return QUIC_STATUS_BAD_CERTIFICATE;
+    case X509_V_ERR_CERT_REVOKED:
+        return QUIC_STATUS_REVOKED_CERTIFICATE;
+    case X509_V_ERR_CERT_HAS_EXPIRED:
+        return QUIC_STATUS_CERT_EXPIRED;
+    case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+        __fallthrough;
+    case X509_V_ERR_CERT_UNTRUSTED:
+        return QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+    default:
+        return QUIC_STATUS_TLS_ERROR;
+    }
+}
+
+static
 int
 CxPlatTlsAlpnSelectCallback(
     _In_ SSL *Ssl,
@@ -180,11 +202,13 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
+_Success_(return != FALSE)
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
-    _In_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags
+    _In_opt_ const char* SNI,
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
+    _Out_opt_ uint32_t* PlatformVerificationError
     );
 
 static
@@ -202,28 +226,49 @@ CxPlatTlsCertificateVerifyCallback(
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    int ValidationResult = X509_V_OK;
+    BOOLEAN IsDeferredValidationOrClientAuth =
+        (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
-    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
-        if (Cert == NULL) {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "No certificate passed");
-            X509_STORE_CTX_set_error(x509_ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
-            return FALSE;
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
+        IsDeferredValidationOrClientAuth) {
+        if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
+            if (Cert == NULL) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "No certificate passed");
+                X509_STORE_CTX_set_error(x509_ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
+                return FALSE;
+            }
+
+            CertificateVerified =
+                CxPlatTlsVerifyCertificate(
+                    Cert,
+                    TlsContext->SNI,
+                    TlsContext->SecConfig->Flags,
+                    IsDeferredValidationOrClientAuth?
+                        (uint32_t*)&ValidationResult :
+                        NULL);
+
+            if (!CertificateVerified) {
+                X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+            }
+        } else {
+            CertificateVerified = X509_verify_cert(x509_ctx);
+
+            if (IsDeferredValidationOrClientAuth &&
+                CertificateVerified <= 0) {
+                ValidationResult =
+                    (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
+            }
         }
-
-        CertificateVerified = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI, TlsContext->SecConfig->Flags);
-
-        if (!CertificateVerified) {
-            X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
-        }
-    } else {
-        CertificateVerified = X509_verify_cert(x509_ctx);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+        !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
         !CertificateVerified) {
         QuicTraceEvent(
             TlsError,
@@ -277,7 +322,7 @@ CxPlatTlsCertificateVerifyCallback(
             (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE*)&PortableCertificate : (QUIC_CERTIFICATE*)Cert,
             (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)x509_ctx,
             0,
-            0)) {
+            ValidationResult)) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -831,15 +876,18 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
 #ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
     CredConfigFlags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
 #endif
+
+    if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
+        !(CredConfigFlags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED)) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
+    }
 
     if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) &&
         (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
@@ -850,48 +898,52 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+#ifdef CX_PLATFORM_DARWIN
+    if (((CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) == 0) &&
+        (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+#endif
+
     if (CredConfig->Reserved != NULL) {
         return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and should be NULL.
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredConfig->CertificateFile == NULL ||
+            CredConfig->CertificateFile->CertificateFile == NULL ||
+            CredConfig->CertificateFile->PrivateKeyFile == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else {
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+        if (CredConfig->CertificateFileProtected == NULL ||
+            CredConfig->CertificateFileProtected->CertificateFile == NULL ||
+            CredConfig->CertificateFileProtected->PrivateKeyFile == NULL ||
+            CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+        if (CredConfig->CertificatePkcs12 == NULL ||
+            CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
+            CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
+        CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
+        CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
+#ifndef _WIN32
+        return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
+#endif
+        // Windows parameters checked later
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
+        if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
             return QUIC_STATUS_INVALID_PARAMETER; // Required for server
         }
-
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
-            if (CredConfig->CertificateFile == NULL ||
-                CredConfig->CertificateFile->CertificateFile == NULL ||
-                CredConfig->CertificateFile->PrivateKeyFile == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
-            if (CredConfig->CertificateFileProtected == NULL ||
-                CredConfig->CertificateFileProtected->CertificateFile == NULL ||
-                CredConfig->CertificateFileProtected->PrivateKeyFile == NULL ||
-                CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-        } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
-            if (CredConfig->CertificatePkcs12 == NULL ||
-                CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
-                CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
-#ifndef _WIN32
-            return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
-#endif
-            // Windows parameters checked later
-        } else {
-            return QUIC_STATUS_NOT_SUPPORTED;
-        }
+    } else {
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
@@ -1147,10 +1199,187 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
+    //
+    // Set the certs.
+    //
+
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
+        CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            SSL_CTX_set_default_passwd_cb_userdata(
+                SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
+        }
+
+        Ret =
+            SSL_CTX_use_PrivateKey_file(
+                SecurityConfig->SSLCtx,
+                CredConfig->CertificateFile->PrivateKeyFile,
+                SSL_FILETYPE_PEM);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_PrivateKey_file failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret =
+            SSL_CTX_use_certificate_chain_file(
+                SecurityConfig->SSLCtx,
+                CredConfig->CertificateFile->CertificateFile);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate_chain_file failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+        BIO* Bio = BIO_new(BIO_s_mem());
+        PKCS12 *Pkcs12 = NULL;
+
+        if (!Bio) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "BIO_new failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        BIO_set_mem_eof_return(Bio, 0);
+        BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
+        Pkcs12 = d2i_PKCS12_bio(Bio, NULL);
+        BIO_free(Bio);
+        Bio = NULL;
+
+        if (!Pkcs12) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "d2i_PKCS12_bio failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        STACK_OF(X509) *CaCertificates = NULL;
+        Ret =
+            PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &CaCertificates);
+        if (CaCertificates) {
+            X509* CaCert;
+            while ((CaCert = sk_X509_pop(CaCertificates)) != NULL) {
+                //
+                // This transfers ownership to SSLCtx and CaCert does not need to be freed.
+                //
+                SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
+            }
+        }
+        if (Pkcs12) {
+            PKCS12_free(Pkcs12);
+        }
+
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "PKCS12_parse failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret =
+            SSL_CTX_use_PrivateKey(
+                SecurityConfig->SSLCtx,
+                PrivateKey);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_PrivateKey_file failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret =
+            SSL_CTX_use_certificate(
+                SecurityConfig->SSLCtx,
+                X509Cert);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
+        Status =
+            CxPlatTlsExtractPrivateKey(
+                CredConfig,
+                &RsaKey,
+                &X509Cert);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
+
+        Ret =
+            SSL_CTX_use_RSAPrivateKey(
+                SecurityConfig->SSLCtx,
+                RsaKey);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_RSAPrivateKey_file failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret =
+            SSL_CTX_use_certificate(
+                SecurityConfig->SSLCtx,
+                X509Cert);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    }
+
+    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
+        Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_check_private_key failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    }
+
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+        if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+        }
 
         //
         // TODO - Support additional certificate validation parameters, such as
@@ -1167,180 +1396,29 @@ CxPlatTlsSecConfigCreate(
         SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
         SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
 
+        if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED ||
+            CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            SSL_CTX_set_cert_verify_callback(
+                SecurityConfig->SSLCtx,
+                CxPlatTlsCertificateVerifyCallback,
+                NULL);
+        }
+
+        if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            int VerifyMode = SSL_VERIFY_PEER;
+            if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+                SSL_CTX_set_verify_depth(
+                    SecurityConfig->SSLCtx,
+                    CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+            }
+            SSL_CTX_set_verify(
+                SecurityConfig->SSLCtx,
+                VerifyMode,
+                NULL);
+        }
+
         SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, CxPlatTlsAlpnSelectCallback, NULL);
-
-        //
-        // Set the server certs.
-        //
-
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
-
-            if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
-                SSL_CTX_set_default_passwd_cb_userdata(
-                    SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
-            }
-
-            Ret =
-                SSL_CTX_use_PrivateKey_file(
-                    SecurityConfig->SSLCtx,
-                    CredConfig->CertificateFile->PrivateKeyFile,
-                    SSL_FILETYPE_PEM);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_PrivateKey_file failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
-            Ret =
-                SSL_CTX_use_certificate_chain_file(
-                    SecurityConfig->SSLCtx,
-                    CredConfig->CertificateFile->CertificateFile);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate_chain_file failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
-            BIO* Bio = BIO_new(BIO_s_mem());
-            PKCS12 *Pkcs12 = NULL;
-
-            if (!Bio) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "BIO_new failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
-            BIO_set_mem_eof_return(Bio, 0);
-            BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
-            Pkcs12 = d2i_PKCS12_bio(Bio, NULL);
-            BIO_free(Bio);
-            Bio = NULL;
-
-            if (!Pkcs12) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "d2i_PKCS12_bio failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
-            STACK_OF(X509) *CaCertificates = NULL;
-            Ret =
-                PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &CaCertificates);
-            if (CaCertificates) {
-                X509* CaCert;
-                while ((CaCert = sk_X509_pop(CaCertificates)) != NULL) {
-                    //
-                    // This transfers ownership to SSLCtx and CaCert does not need to be freed.
-                    //
-                    SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
-                }
-            }
-            if (Pkcs12) {
-                PKCS12_free(Pkcs12);
-            }
-
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "PKCS12_parse failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
-            Ret =
-                SSL_CTX_use_PrivateKey(
-                    SecurityConfig->SSLCtx,
-                    PrivateKey);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_PrivateKey_file failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
-            Ret =
-                SSL_CTX_use_certificate(
-                    SecurityConfig->SSLCtx,
-                    X509Cert);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        } else {
-            Status =
-                CxPlatTlsExtractPrivateKey(
-                    CredConfig,
-                    &RsaKey,
-                    &X509Cert);
-            if (QUIC_FAILED(Status)) {
-                goto Exit;
-            }
-
-            Ret =
-                SSL_CTX_use_RSAPrivateKey(
-                    SecurityConfig->SSLCtx,
-                    RsaKey);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_RSAPrivateKey_file failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-
-            Ret =
-                SSL_CTX_use_certificate(
-                    SecurityConfig->SSLCtx,
-                    X509Cert);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_use_certificate failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        }
-
-        Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
-        if (Ret != 1) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ERR_get_error(),
-                "SSL_CTX_check_private_key failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
 
         SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
         SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, CxPlatTlsClientHelloCallback, NULL);

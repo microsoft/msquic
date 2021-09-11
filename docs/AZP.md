@@ -82,7 +82,7 @@ param (
     [string]$VmNamePrefix = "AZP",
 
     [Parameter(Mandatory = $false)]
-    [string]$VmPassword = "Very!SecurePassword2",
+    [string]$VmPassword = "Very!SecurePassword2", <#[SuppressMessage("Microsoft.Security", "CS001:SecretInline", Justification="Example password for demo")]#>
 
     [Parameter(Mandatory = $false)]
     [string]$AgentPool = 'MsQuic-Win-Latest',
