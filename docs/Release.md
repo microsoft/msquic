@@ -47,6 +47,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
 | PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
+| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 11 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -210,5 +211,26 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Support building posix without sendmmsg (#1896).
 - Use larger batch size if send segmentation is not available in posix (#1897).
 - Fix library version being set in incorrect location (#1905).
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.8 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.8](https://github.com/microsoft/msquic/releases/tag/v1.8.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
+
+- Update OpenSSL to v1.1.1l (#1936).
+- Bug fix for race condition around stateless operations and binding initialization (#1928).
+- Bug fix for NULL pointer read in stateless retry scenario (#1951).
+- Buf gix for path changes incorrectly resetting CC's bytes in flight (#1976).
+- Refactor CC to support multiple algorithms (#1949).
+- Various fixes for packaging automation (#1915, #1916, #1921, #1939, #1961).
+- Improvements in memory calculations for posix platforms (#1928).
+- Use inbox certificate validation for macOS/iOS (#1925).
+- Build macOS/iOS framework bundles (#1927).
+- Enable macOS core dump collection in automation (#1969).
+- Xbox GameCore build support (#1947).
+- Various test code fixes (#1970, #1974).
 
 Official (v1) RFC and draft-29 are supported by this release.
