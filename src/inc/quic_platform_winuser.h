@@ -755,6 +755,17 @@ NtSetInformationThread(
     );
 #endif
 
+#ifdef QUIC_UWP_BUILD
+WINBASEAPI
+BOOL
+WINAPI
+SetThreadGroupAffinity(
+    _In_ HANDLE hThread,
+    _In_ CONST GROUP_AFFINITY* GroupAffinity,
+    _Out_opt_ PGROUP_AFFINITY PreviousGroupAffinity
+    );
+#endif
+
 typedef struct CXPLAT_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
