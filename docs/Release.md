@@ -47,7 +47,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
 | PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
-| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 11 2021 | N/A | N/A |
+| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -224,7 +224,7 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Add support for client certificates with OpenSSL (#1930).
 - Bug fix for race condition around stateless operations and binding initialization (#1928).
 - Bug fix for NULL pointer read in stateless retry scenario (#1951).
-- Bug gix for path changes incorrectly resetting CC's bytes in flight (#1976).
+- Bug fix for path changes incorrectly resetting CC's bytes in flight (#1976).
 - Refactor CC to support multiple algorithms (#1949).
 - Various fixes for packaging automation (#1915, #1916, #1921, #1939, #1961).
 - Improvements in memory calculations for posix platforms (#1928).
