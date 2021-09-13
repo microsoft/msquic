@@ -59,9 +59,11 @@ RegNotifyChangeKeyValue(
 WINADVAPI
 LSTATUS
 APIENTRY
-RegOpenKeyA (
+RegOpenKeyExA(
     _In_ HKEY hKey,
     _In_opt_ LPCSTR lpSubKey,
+    _In_opt_ DWORD ulOptions,
+    _In_ REGSAM samDesired,
     _Out_ PHKEY phkResult
     );
 
