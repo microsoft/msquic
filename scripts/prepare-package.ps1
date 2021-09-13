@@ -60,4 +60,12 @@ foreach ($Config in $Configs) {
         Force-Copy (Join-Path $InputDir "secnetperfdrv.sys") (Join-Path $PlatformPackageDir "bin/kernel")
         Force-Copy (Join-Path $InputDir "secnetperfdrv.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
     }
+
+    # Special case chpe
+    $ChpePackageDir = Join-Path $PackageDir "chpe$($Config.Item2)"
+    foreach ($File in $IncFiles) {
+        Force-Copy (Join-Path $RootDir "src/inc/$File") $ChpePackageDir
+    }
+    Force-Copy (Join-Path $RootDir "src/manifest/MsQuic.wprp") $ChpePackageDir
+    Force-Copy (Join-Path $RootDir "src/manifest/MsQuicEtw.man") $ChpePackageDir
 }
