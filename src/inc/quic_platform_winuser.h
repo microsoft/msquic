@@ -173,6 +173,17 @@ CxPlatLogAssert(
 #define CXPLAT_FRE_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
 #define CXPLAT_FRE_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 
+#ifdef QUIC_UWP_BUILD
+WINBASEAPI
+_When_(lpModuleName == NULL,_Ret_notnull_)
+_When_(lpModuleName != NULL,_Ret_maybenull_)
+HMODULE
+WINAPI
+GetModuleHandleW(
+    _In_opt_ LPCWSTR lpModuleName
+    );
+#endif
+
 //
 // Verifier is enabled.
 //
