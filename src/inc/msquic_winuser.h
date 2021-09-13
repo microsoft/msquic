@@ -298,6 +298,11 @@ QuicAddrHash(
 
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
+//
+// Rtl String API's are not allowed in gamecore
+//
+#if WINAPI_FAMILY != WINAPI_FAMILY_GAMES
+
 inline
 _Success_(return != FALSE)
 BOOLEAN
@@ -307,12 +312,6 @@ QuicAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-#ifdef QUIC_GAMECORE_BUILD
-    UNREFERENCED_PARAMETER(AddrStr);
-    UNREFERENCED_PARAMETER(Port);
-    UNREFERENCED_PARAMETER(Addr);
-    return FALSE;
-#else
     Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == NO_ERROR) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
@@ -322,7 +321,6 @@ QuicAddrFromString(
         return FALSE;
     }
     return TRUE;
-#endif
 }
 
 //
@@ -340,11 +338,6 @@ QuicAddrToString(
     _Out_ QUIC_ADDR_STR* AddrStr
     )
 {
-#ifdef QUIC_GAMECORE_BUILD
-    UNREFERENCED_PARAMETER(AddrStr);
-    UNREFERENCED_PARAMETER(Addr);
-    return FALSE;
-#else
     LONG Status;
     ULONG AddrStrLen = ARRAYSIZE(AddrStr->Address);
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -364,7 +357,8 @@ QuicAddrToString(
                 &AddrStrLen);
     }
     return Status == NO_ERROR;
-#endif
 }
+
+#endif // WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_APP | WINAPI_PARTITION_SYSTEM)
 
 #endif // _MSQUIC_WINUSER_
