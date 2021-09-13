@@ -955,7 +955,7 @@ CxPlatDataPathInitialize(
             goto Error;
         }
 
-#ifdef QUIC_UWP_BUILD
+#if defined(QUIC_RESTRICTED_BUILD)
         SetThreadDescription(Datapath->Processors[i].CompletionThread, L"cxplat_datapath");
 #else
         THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;

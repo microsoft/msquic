@@ -298,7 +298,13 @@ QuicAddrHash(
 
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
+//
+// Rtl String API's are not allowed in gamecore
+//
+#if WINAPI_FAMILY != WINAPI_FAMILY_GAMES
+
 inline
+_Success_(return != FALSE)
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
@@ -325,6 +331,7 @@ typedef struct QUIC_ADDR_STR {
 } QUIC_ADDR_STR;
 
 inline
+_Success_(return != FALSE)
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
@@ -351,5 +358,7 @@ QuicAddrToString(
     }
     return Status == NO_ERROR;
 }
+
+#endif // WINAPI_FAMILY != WINAPI_FAMILY_GAMES
 
 #endif // _MSQUIC_WINUSER_
