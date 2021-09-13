@@ -394,10 +394,42 @@ if(WIN32)
         endif()
 
         # Locate Software Development Kits
-        GET_FILENAME_COMPONENT(Console_SdkRoot "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\GDK;InstallPath]" ABSOLUTE CACHE)
-        set(XdkEditionTarget "211000")
-        set(DurangoXdkInstallPath "${Console_SdkRoot}/${XdkEditionTarget}")
-        set(Console_EndpointLibRoot "${DurangoXdkInstallPath}/GXDK/gameKit/Lib/amd64")
+        get_filename_component(Console_SdkRoot "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\GDK;InstallPath]" ABSOLUTE CACHE)
+
+        if(NOT EXISTS ${Console_SdkRoot})
+            message(FATAL_ERROR "Could not find GDK install")
+        endif()
+
+        file(GLOB GdkFolders ${Console_SdkRoot}/*)
+
+        set(XdkEditionTarget 5000000000)
+
+        foreach(GdkFolder ${GdkFolders})
+            if (IS_DIRECTORY ${GdkFolder})
+                file(GLOB SubDirs ${GdkFolder}/*)
+                foreach(SubDir ${SubDirs})
+                    if (SubDir MATCHES "GXDK$")
+                        # Make sure library exists
+                        set(GxdkLibDirectory "${SubDir}/gameKit/Lib/amd64")
+                        set(GxdkRuntimeLib "${GxdkLibDirectory}/xgameplatform.lib")
+                        if (EXISTS ${GxdkRuntimeLib})
+                            get_filename_component(PotentialXdkEditionTarget ${GdkFolder} NAME)
+                            # Always select lowest version
+                            if (PotentialXdkEditionTarget LESS XdkEditionTarget)
+                                set(XdkEditionTarget ${PotentialXdkEditionTarget})
+                                set(Console_EndpointLibRoot "${GxdkLibDirectory}")
+                            endif()
+                        endif()
+                    endif()
+                endforeach()
+            endif()
+        endforeach()
+
+        if (XdkEditionTarget EQUAL 5000000000)
+            message(FATAL_ERROR "Gxdk Target Not Found")
+        endif()
+
+        message(STATUS "Chosing ${XdkEditionTarget} with root ${Console_EndpointLibRoot}")
 
     endif()
 

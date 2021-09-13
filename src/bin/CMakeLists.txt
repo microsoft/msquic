@@ -234,7 +234,7 @@ set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
     if(QUIC_UWP_BUILD)
-        target_link_libraries(msquic PUBLIC OneCore)
+        target_link_libraries(msquic PUBLIC OneCoreUAP)
     elseif(QUIC_GAMECORE_BUILD)
         target_link_options(inc INTERFACE ${Console_LinkOptions})
         target_compile_options(inc INTERFACE ${Console_ArchOptions})
