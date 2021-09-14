@@ -149,7 +149,7 @@ typedef struct QUIC_CID_LIST_ENTRY {
 #if DEBUG
 #define QUIC_CID_SET_PATH(Conn, Cid, Path)                                      \
     do {                                                                        \
-        CXPLAT_DBG_ASSERT(!Cid->Cid.Retired);                                   \
+        CXPLAT_DBG_ASSERT(!Cid->CID.Retired);                                   \
         CXPLAT_DBG_ASSERT(Cid->AssignedPath == NULL); Cid->AssignedPath = Path; \
         for (uint8_t PathIdx = Conn->PathsCount - 1; PathIdx > 0; PathIdx--) {  \
             if (Path != &Conn->Paths[PathIdx])                                  \
