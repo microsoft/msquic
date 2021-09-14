@@ -37,7 +37,11 @@ uint32_t CxPlatProcessorCount;
 
 uint64_t CxPlatTotalMemory;
 
+#ifdef __clang__
+__attribute__((noinline, noreturn, optnone))
+#else
 __attribute__((noinline, noreturn, optimize("O0")))
+#endif
 void
 quic_bugcheck(
     _In_z_ const char* File,
