@@ -907,7 +907,7 @@ QuicAbortiveTransfers(
     _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
     )
 {
-    uint32_t TimeoutMs = 500;
+    uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1392,7 +1392,7 @@ QuicTestReceiveResume(
     _In_ bool PauseFirst
     )
 {
-    uint32_t TimeoutMs = 500;
+    uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1629,7 +1629,7 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     )
 {
-    uint32_t TimeoutMs = 500;
+    uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
