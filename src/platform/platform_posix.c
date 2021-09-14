@@ -40,9 +40,18 @@ uint64_t CxPlatTotalMemory;
 __attribute__((noinline, noreturn))
 void
 quic_bugcheck(
-    void
+    _In_z_ const char* File,
+    _In_ int Line,
+    _In_z_ const char* Expr
     )
 {
+    //
+    // Pass in the error info so it can be seen in the debugger.
+    //
+    UNREFERENCED_PARAMETER(File);
+    UNREFERENCED_PARAMETER(Line);
+    UNREFERENCED_PARAMETER(Expr);
+
     //
     // We want to prevent this routine from being inlined so that we can
     // easily detect when our bugcheck conditions have occurred just by
