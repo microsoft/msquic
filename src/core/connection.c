@@ -3088,7 +3088,6 @@ QuicConnUpdateDestCid(
                 return FALSE;
             }
 
-            CXPLAT_DBG_ASSERT(DestCid != Connection->Paths[0].DestCid);
             Connection->Paths[0].DestCid = DestCid;
             QUIC_CID_SET_PATH(Connection, DestCid, &Connection->Paths[0]);
             DestCid->CID.UsedLocally = TRUE;
