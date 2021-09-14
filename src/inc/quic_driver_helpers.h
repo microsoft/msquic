@@ -14,7 +14,7 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
 
 //#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
 //#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
