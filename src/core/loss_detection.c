@@ -469,6 +469,13 @@ QuicLossDetectionOnPacketSent(
     QuicLossValidate(LossDetection);
 }
 
+#ifndef _WIN32
+#ifdef __clang__
+__attribute__((optnone))
+#else
+__attribute__((optimize("O0")))
+#endif
+#endif
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnPacketAcknowledged(
