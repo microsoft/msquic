@@ -3326,9 +3326,10 @@ Drop:
     QUIC_STATUS Status;
     do {
         Status = CxPlatSocketStartReceive(SocketProc, DatapathProc);
-    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
 
     if (!QUIC_SUCCEEDED(Status)) {
+        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
