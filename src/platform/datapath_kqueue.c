@@ -1270,7 +1270,7 @@ CxPlatSocketContextRecvComplete(
     int32_t RetryCount = 0;
     do {
         Status = CxPlatSocketContextPrepareReceive(SocketContext);
-    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
 
     if (!QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(

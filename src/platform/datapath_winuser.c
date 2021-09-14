@@ -3326,7 +3326,7 @@ Drop:
     QUIC_STATUS Status;
     do {
         Status = CxPlatSocketStartReceive(SocketProc, DatapathProc);
-    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
 
     if (!QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
