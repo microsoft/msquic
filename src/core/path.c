@@ -47,7 +47,7 @@ QuicPathRemove(
     )
 {
     CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
-    const QUIC_PATH* Path = &Connection->Paths[Index];
+    QUIC_PATH* Path = &Connection->Paths[Index];
     QuicTraceLogConnInfo(
         PathRemoved,
         Connection,
@@ -57,6 +57,7 @@ QuicPathRemove(
 #if DEBUG
     if (Path->DestCid) {
         QUIC_CID_CLEAR_PATH(Path->DestCid);
+        Path->DestCid = NULL;
     }
 #endif
 
@@ -68,6 +69,7 @@ QuicPathRemove(
     }
 
     Connection->PathsCount--;
+    CXPLAT_DBG_ASSERT(Connection->PathsCount != 0);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -285,4 +287,6 @@ QuicPathSetActive(
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
+    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
+    CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
 }

@@ -1061,7 +1061,7 @@ QuicConnOnRetirePriorToUpdated(
             ReplaceRetiredCids = TRUE;
         }
 
-        QUIC_CID_CLEAR_PATH(DestCid);
+        //QUIC_CID_CLEAR_PATH(DestCid);
         QuicConnRetireCid(Connection, DestCid);
     }
 
