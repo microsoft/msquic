@@ -196,7 +196,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus,
 // Decoder Ring for DatapathRecv
 // [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
 // QuicTraceEvent(
-        DatapathRecv,
+            DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
             (uint32_t)RecvPacket->BufferLength,

@@ -449,15 +449,15 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob
+        Write-LogAndDebug $RemoteResults.ToString()
+
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null
             net.exe stop msquicpriv /y | Out-Null
             sc.exe delete secnetperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
-
-        $RemoteResults = Wait-ForRemote -Job $RemoteJob
-        Write-LogAndDebug $RemoteResults.ToString()
 
         Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
 

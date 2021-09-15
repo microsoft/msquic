@@ -9093,6 +9093,39 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "PosixLoaded": {
+      "ModuleProperites": {},
+      "TraceString": "[ dso] Loaded",
+      "UniqueId": "PosixLoaded",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PosixUnloaded": {
+      "ModuleProperites": {},
+      "TraceString": "[ dso] Unloaded",
+      "UniqueId": "PosixUnloaded",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PosixInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ dso] Initialized (AvailMem = %llu bytes)",
+      "UniqueId": "PosixInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PosixUninitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ dso] Uninitialized",
+      "UniqueId": "PosixUninitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryAssert": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ASSERT, %u:%s - %s.",
@@ -12986,6 +13019,22 @@
       {
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
         "TraceID": "DatapathTooLarge"
+      },
+      {
+        "UniquenessHash": "31349def-7bef-9552-85d3-571ed17dd5ab",
+        "TraceID": "PosixLoaded"
+      },
+      {
+        "UniquenessHash": "91532cdf-2221-2667-1b05-a537e0452c6d",
+        "TraceID": "PosixUnloaded"
+      },
+      {
+        "UniquenessHash": "40b64940-ccfe-0749-363e-2579b535f9c6",
+        "TraceID": "PosixInitialized"
+      },
+      {
+        "UniquenessHash": "3c9f8c11-7ba6-80cd-f2a9-2863b654c189",
+        "TraceID": "PosixUninitialized"
       },
       {
         "UniquenessHash": "681db658-c247-7951-8110-1c361bf69097",

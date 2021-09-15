@@ -83,3 +83,10 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint64_t RecoverySentPacketNumber;
 
 } QUIC_CONGESTION_CONTROL_CUBIC;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlInitialize(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_SETTINGS* Settings
+    );

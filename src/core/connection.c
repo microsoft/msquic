@@ -1964,7 +1964,7 @@ QuicConnRestart(
         QuicPacketSpaceReset(Connection->Packets[i]);
     }
 
-    QuicCongestionControlReset(&Connection->CongestionControl);
+    QuicCongestionControlReset(&Connection->CongestionControl, TRUE);
     QuicSendReset(&Connection->Send);
     QuicLossDetectionReset(&Connection->LossDetection);
     QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);

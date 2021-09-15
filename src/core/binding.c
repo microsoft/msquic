@@ -1433,7 +1433,6 @@ QuicBindingDeliverDatagrams(
     // For long header packets for server owned bindings, the packet's DestCid
     // was not necessarily generated locally, so cannot be used for routing.
     // Instead, a hash of the tuple and source connection ID (SourceCid) is
-
     // used.
     //
     // The exact type of lookup table associated with the binding varies on the
