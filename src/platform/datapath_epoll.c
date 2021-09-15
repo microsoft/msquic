@@ -684,7 +684,7 @@ CxPlatDataPathInitialize(
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
-    Datapath->Features = 0;//CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
+    Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
 
 #ifdef UDP_SEGMENT
