@@ -30,15 +30,15 @@ extern "C" {
         ConnCubic,
         "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
         Connection,
-        Ctx->SlowStartThreshold,
-        Ctx->KCubic,
-        Ctx->WindowMax,
-        Ctx->WindowLastMax);
+        Cubic->SlowStartThreshold,
+        Cubic->KCubic,
+        Cubic->WindowMax,
+        Cubic->WindowLastMax);
 // arg2 = arg2 = Connection
-// arg3 = arg3 = Ctx->SlowStartThreshold
-// arg4 = arg4 = Ctx->KCubic
-// arg5 = arg5 = Ctx->WindowMax
-// arg6 = arg6 = Ctx->WindowLastMax
+// arg3 = arg3 = Cubic->SlowStartThreshold
+// arg4 = arg4 = Cubic->KCubic
+// arg5 = arg5 = Cubic->WindowMax
+// arg6 = arg6 = Cubic->WindowLastMax
 ----------------------------------------------------------*/
 #define _clog_7_ARGS_TRACE_ConnCubic(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_CUBIC_C, ConnCubic , arg2, arg3, arg4, arg5, arg6);\
@@ -144,20 +144,20 @@ tracepoint(CLOG_CUBIC_C, ConnSpuriousCongestion , arg2);\
         "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
         Connection,
         Connection->Stats.Send.TotalBytes,
-        Ctx->BytesInFlight,
-        Ctx->BytesInFlightMax,
-        Ctx->CongestionWindow,
-        Ctx->SlowStartThreshold,
+        Cubic->BytesInFlight,
+        Cubic->BytesInFlightMax,
+        Cubic->CongestionWindow,
+        Cubic->SlowStartThreshold,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
 // arg2 = arg2 = Connection
 // arg3 = arg3 = Connection->Stats.Send.TotalBytes
-// arg4 = arg4 = Ctx->BytesInFlight
-// arg5 = arg5 = Ctx->BytesInFlightMax
-// arg6 = arg6 = Ctx->CongestionWindow
-// arg7 = arg7 = Ctx->SlowStartThreshold
+// arg4 = arg4 = Cubic->BytesInFlight
+// arg5 = arg5 = Cubic->BytesInFlightMax
+// arg6 = arg6 = Cubic->CongestionWindow
+// arg7 = arg7 = Cubic->SlowStartThreshold
 // arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent
 // arg9 = arg9 = Connection->SendBuffer.IdealBytes
 // arg10 = arg10 = Connection->SendBuffer.PostedBytes
