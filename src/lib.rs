@@ -9,31 +9,23 @@ use std::option::Option;
 // The following starts the C interop layer of MsQuic API.
 //
 
-/// Represents an opaque handle to a MsQuic object.
+/// Opaque handle to a MsQuic object.
 pub type Handle = *const libc::c_void;
 
-/// Represents an unsigned 62-bit integer.
+/// Unsigned 62-bit integer.
 #[allow(non_camel_case_types)]
 pub type u62 = u64;
 
-/// Represents a C-style bool.
+/// C-style bool.
 pub type BOOLEAN = ::std::os::raw::c_uchar;
 
-/// Represents the family of IP address.
+/// Family of an IP address.
 pub type AddressFamily = u16;
 pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = 0;
 pub const ADDRESS_FAMILY_INET: AddressFamily = 2;
 pub const ADDRESS_FAMILY_INET6: AddressFamily = 23;
 
-/// Represents a completely generic address payload.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct sockaddr {
-    pub family: AddressFamily,
-    pub data: [u8; 14usize],
-}
-
-/// Represents an IPv4 address payload.
+/// IPv4 address payload.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct sockaddr_in {
@@ -43,7 +35,7 @@ pub struct sockaddr_in {
     pub zero: [u8; 8usize],
 }
 
-/// Represents an IPv6 address payload.
+/// IPv6 address payload.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct sockaddr_in6 {
@@ -54,15 +46,15 @@ pub struct sockaddr_in6 {
     pub scope_id: u32,
 }
 
-/// Provides a generic representation of IPv4 or IPv6 addresses.
+/// Generic representation of IPv4 or IPv6 addresses.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union Addr {
-    pub ip: sockaddr,
     pub ipv4: sockaddr_in,
     pub ipv6: sockaddr_in6,
 }
 
+/// Helper for processing MsQuic return statuses.
 pub struct Status { }
 
 impl Status {
@@ -88,16 +80,19 @@ impl Status {
     }
 }
 
+/// Configures how to process a registration's workload.
 pub type ExecutionProfile = u32;
 pub const EXECUTION_PROFILE_LOW_LATENCY: ExecutionProfile = 0;
 pub const EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT: ExecutionProfile = 1;
 pub const EXECUTION_PROFILE_TYPE_SCAVENGER: ExecutionProfile = 2;
 pub const EXECUTION_PROFILE_TYPE_REAL_TIME: ExecutionProfile = 3;
 
+/// Represents how load balancing is performed.
 pub type LoadBalancingMode = u32;
 pub const LOAD_BALANCING_DISABLED: LoadBalancingMode = 0;
 pub const LOAD_BALANCING_SERVER_ID_IP: LoadBalancingMode = 1;
 
+/// Type of credentials used for a connection.
 pub type CredentialType = u32;
 pub const CREDENTIAL_TYPE_NONE: CredentialType = 0;
 pub const CREDENTIAL_TYPE_CERTIFICATE_HASH: CredentialType = 1;
@@ -107,6 +102,7 @@ pub const CREDENTIAL_TYPE_CERTIFICATE_FILE: CredentialType = 4;
 pub const CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED: CredentialType = 5;
 pub const CREDENTIAL_TYPE_CERTIFICATE_PKCS12: CredentialType = 6;
 
+/// Modifies the default credential configuration.
 pub type CredentialFlags = u32;
 pub const CREDENTIAL_FLAG_NONE: CredentialFlags = 0;
 pub const CREDENTIAL_FLAG_CLIENT: CredentialFlags = 1;
@@ -125,29 +121,35 @@ pub const CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE: CredentialFlags = 4096;
 pub const CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES: CredentialFlags = 8192;
 pub const CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES: CredentialFlags = 16384;
 
+/// Set of allowed TLS cipher suites.
 pub type AllowedCipherSuiteFlags = u32;
 pub const ALLOWED_CIPHER_SUITE_NONE: AllowedCipherSuiteFlags = 0;
 pub const ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256: AllowedCipherSuiteFlags = 1;
 pub const ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384: AllowedCipherSuiteFlags = 2;
 pub const ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256: AllowedCipherSuiteFlags = 4;
 
+/// Modifies the default certificate hash store configuration.
 pub type CertificateHashStoreFlags = u32;
 pub const CERTIFICATE_HASH_STORE_FLAG_NONE: CertificateHashStoreFlags = 0;
 pub const CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE: CertificateHashStoreFlags = 1;
 
+/// Controls connection shutdown behavior.
 pub type ConnectionShutdownFlags = u32;
 pub const CONNECTION_SHUTDOWN_FLAG_NONE: ConnectionShutdownFlags = 0;
 pub const CONNECTION_SHUTDOWN_FLAG_SILENT: ConnectionShutdownFlags = 1;
 
+/// Type of resumption behavior on the server side.
 pub type ServerResumptionLevel = u32;
 pub const SERVER_NO_RESUME: ServerResumptionLevel = 0;
 pub const SERVER_RESUME_ONLY: ServerResumptionLevel = 1;
 pub const SERVER_RESUME_AND_ZERORTT: ServerResumptionLevel = 2;
 
+/// Modifies the behavior when sending resumption data.
 pub type SendResumptionFlags = u32;
 pub const SEND_RESUMPTION_FLAG_NONE: SendResumptionFlags = 0;
 pub const SEND_RESUMPTION_FLAG_FINAL: SendResumptionFlags = 1;
 
+/// Controls the connection's scheduling behavior for streams.
 pub type StreamSchedulingScheme = u32;
 pub const STREAM_SCHEDULING_SCHEME_FIFO: StreamSchedulingScheme = 0;
 pub const STREAM_SCHEDULING_SCHEME_ROUND_ROBIN: StreamSchedulingScheme = 1;
@@ -166,6 +168,7 @@ pub const STREAM_START_FLAG_ASYNC: StreamStartFlags = 4;
 pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 8;
 pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 16;
 
+/// Controls stream shutdown behavior.
 pub type StreamShutdownFlags = u32;
 pub const STREAM_SHUTDOWN_FLAG_NONE: StreamShutdownFlags = 0;
 pub const STREAM_SHUTDOWN_FLAG_GRACEFUL: StreamShutdownFlags = 1;
@@ -179,6 +182,7 @@ pub const RECEIVE_FLAG_NONE: ReceiveFlags = 0;
 pub const RECEIVE_FLAG_0_RTT: ReceiveFlags = 1;
 pub const RECEIVE_FLAG_FIN: ReceiveFlags = 2;
 
+/// Controls stream and datagram send behavior.
 pub type SendFlags = u32;
 pub const SEND_FLAG_NONE: SendFlags = 0;
 pub const SEND_FLAG_ALLOW_0_RTT: SendFlags = 1;
@@ -195,6 +199,7 @@ pub const DATAGRAM_SEND_ACKNOWLEDGED: DatagramSendState = 3;
 pub const DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS: DatagramSendState = 4;
 pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
 
+/// Specifies the configuration for a new registration.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct RegistrationConfig {
@@ -202,14 +207,17 @@ pub struct RegistrationConfig {
     pub execution_profile: ExecutionProfile
 }
 
+/// Completion callback for a async creation of a new credential.
 pub type CredentialLoadComplete = extern fn(configuration: Handle, context: *const c_void, status: u64);
 
+/// The 20-byte hash/thumbprint of a certificate.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CertificateHash {
     pub sha_hash: [u8; 20usize],
 }
 
+/// The 20-byte hash/thumbprint and store name of a certificate.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct CertificateHashStore {
@@ -218,6 +226,7 @@ pub struct CertificateHashStore {
     pub store_name: [i8; 128usize],
 }
 
+/// The file paths of a certificate.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CertificateFile {
@@ -225,6 +234,7 @@ pub struct CertificateFile {
     pub certificate_file: *const i8,
 }
 
+/// The file paths of a protected certificate.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CertificateFileProtected {
@@ -233,6 +243,7 @@ pub struct CertificateFileProtected {
     pub private_key_password: *const i8,
 }
 
+/// The binary blobs of a PKCS#12 certificate.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CertificatePkcs12 {
@@ -241,9 +252,13 @@ pub struct CertificatePkcs12 {
     pub private_key_password: *const i8,
 }
 
+/// Generic interface for a certificate.
 pub type Certificate = c_void;
+
+/// Generic interface for a certificate chain.
 pub type CertificateChain = c_void;
 
+/// Wrapper for all certificate types.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union CertificateUnion {
@@ -255,6 +270,7 @@ pub union CertificateUnion {
     pub pkcs12: *const CertificatePkcs12,
 }
 
+/// Specifies the configuration for a new credential.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct CredentialConfig {
@@ -267,6 +283,7 @@ pub struct CredentialConfig {
     pub allowed_cipher_suites: AllowedCipherSuiteFlags,
 }
 
+/// Key information for TLS session ticket encryption.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct TicketKeyConfig {
@@ -275,6 +292,7 @@ pub struct TicketKeyConfig {
     pub material_length: u8,
 }
 
+/// A generic wrapper for contiguous buffer.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Buffer {
@@ -741,25 +759,30 @@ extern {
 // The following starts the "nice" Rust API wrapper on the C interop layer.
 //
 
+/// Top level entry point for the MsQuic API.
 pub struct Api {
     table: *const ApiTable,
 }
 
+/// The execution context for processing connections on the application's behalf.
 pub struct Registration {
     table: *const ApiTable,
     handle: Handle,
 }
 
+/// Specifies how to configure a connection.
 pub struct Configuration {
     table: *const ApiTable,
     handle: Handle,
 }
 
+/// A single QUIC connection.
 pub struct Connection {
     table: *const ApiTable,
     handle: Handle,
 }
 
+/// A single QUIC stream on a parent connection.
 pub struct Stream {
     table: *const ApiTable,
     handle: Handle,
@@ -974,6 +997,10 @@ impl Drop for Stream {
         unsafe { ((*self.table).stream_close)(self.handle) };
     }
 }
+
+//
+// The following defines some simple test code.
+//
 
 #[allow(dead_code)] // Used in test code
 extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u32 {
