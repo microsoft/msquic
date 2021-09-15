@@ -405,9 +405,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         break; // Get Only
     case QUIC_PARAM_CONN_STATISTICS_PLAT:                           // QUIC_STATISTICS
         break; // Get Only
-    //case QUIC_PARAM_CONN_SHARE_UDP_BINDING:                         // uint8_t (BOOLEAN)
-        //Helper.SetUint8(QUIC_PARAM_CONN_SHARE_UDP_BINDING, (uint8_t)GetRandom(2));
-        //break;
+    case QUIC_PARAM_CONN_SHARE_UDP_BINDING:                         // uint8_t (BOOLEAN)
+        Helper.SetUint8(QUIC_PARAM_CONN_SHARE_UDP_BINDING, (uint8_t)GetRandom(2));
+        break;
     case QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT:                   // uint16_t
         break; // Get Only
     case QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT:                  // uint16_t
