@@ -1570,7 +1570,7 @@ CxPlatSocketContextRecvComplete(
         RecvPacket->PartitionIndex = SocketContext->ProcContext->Index;
 
         QuicTraceEvent(
-        DatapathRecv,
+            DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
             (uint32_t)RecvPacket->BufferLength,
