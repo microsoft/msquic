@@ -247,7 +247,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
 QuicCongestionControlGetBytesInFlightMax(
-    _In_ const  QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
     return Cc->QuicCongestionControlGetBytesInFlightMax(Cc);
