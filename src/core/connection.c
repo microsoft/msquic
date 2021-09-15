@@ -1684,6 +1684,10 @@ QuicConnTryClose(
         QuicDatagramSendShutdown(&Connection->Datagram);
     }
 
+    if (SilentClose) {
+        QuicSendClear(&Connection->Send);
+    }
+
     if (SilentClose ||
         (Connection->State.ClosedRemotely && Connection->State.ClosedLocally)) {
         Connection->State.ShutdownCompleteTimedOut = FALSE;
@@ -4574,7 +4578,11 @@ QuicConnRecvFrames(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
                         sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length);
-                    QuicConnSilentlyAbort(Connection);
+                    if (ReplaceRetiredCids) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
+                    }
                     return FALSE;
                 }
 
