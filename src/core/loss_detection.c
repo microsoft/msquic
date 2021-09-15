@@ -595,7 +595,21 @@ QuicLossDetectionOnPacketAcknowledged(
                 QUIC_CID_VALIDATE_NULL(Connection, DestCid);
 #if DEBUG
                 DestCid->Freed = TRUE;
+
+                // Assert no freed dest cids are in list
+                for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+                        Entry != &Connection->DestCids;
+                        Entry = Entry->Flink) {
+                    QUIC_CID_LIST_ENTRY* DestCid =
+                        CXPLAT_CONTAINING_RECORD(
+                            Entry,
+                            QUIC_CID_LIST_ENTRY,
+                            Link);
+                    CXPLAT_DBG_ASSERT(!DestCid->Freed);
+                }
 #endif
+
+
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
