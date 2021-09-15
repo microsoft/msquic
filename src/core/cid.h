@@ -140,7 +140,6 @@ typedef struct QUIC_CID_LIST_ENTRY {
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
 #ifdef DEBUG
     QUIC_PATH* AssignedPath;
-    BOOLEAN Freed;
 #endif
     QUIC_CID CID;
 
@@ -254,9 +253,6 @@ QuicCidNewRandomDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
-#if DEBUG
-        Entry->Freed = FALSE;
-#endif
         QUIC_CID_CLEAR_PATH(Entry);
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH;
@@ -286,9 +282,6 @@ QuicCidNewDestination(
             QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
-#if DEBUG
-        Entry->Freed = FALSE;
-#endif
         QUIC_CID_CLEAR_PATH(Entry);
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;

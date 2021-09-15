@@ -795,10 +795,6 @@ QuicSendWriteFrames(
                     break;
                 }
 
-                for (uint16_t PC = 0; PC < Connection->PathsCount; PC++) {
-                    CXPLAT_DBG_ASSERT(Connection->Paths[PC].DestCid != DestCid);
-                }
-
                 QUIC_RETIRE_CONNECTION_ID_EX Frame = {
                     DestCid->CID.SequenceNumber
                 };

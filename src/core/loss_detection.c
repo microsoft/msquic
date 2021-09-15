@@ -469,20 +469,12 @@ QuicLossDetectionOnPacketSent(
     QuicLossValidate(LossDetection);
 }
 
-#ifndef _WIN32
-#ifdef __clang__
-__attribute__((optnone))
-#else
-__attribute__((optimize("O0")))
-#endif
-#endif
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnPacketAcknowledged(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet,
-    _In_opt_ QUIC_PATH* DatagramPath
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -589,27 +581,8 @@ QuicLossDetectionOnPacketAcknowledged(
             if (DestCid != NULL) {
 #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                CXPLAT_DBG_ASSERT(DatagramPath == NULL || DatagramPath->DestCid != DestCid);
                 CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
-                UNREFERENCED_PARAMETER(DatagramPath);
                 QUIC_CID_VALIDATE_NULL(Connection, DestCid);
-#if DEBUG
-                DestCid->Freed = TRUE;
-
-                // Assert no freed dest cids are in list
-                for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
-                        Entry != &Connection->DestCids;
-                        Entry = Entry->Flink) {
-                    QUIC_CID_LIST_ENTRY* CheckDest =
-                        CXPLAT_CONTAINING_RECORD(
-                            Entry,
-                            QUIC_CID_LIST_ENTRY,
-                            Link);
-                    CXPLAT_DBG_ASSERT(!CheckDest->Freed);
-                }
-#endif
-
-
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
@@ -1118,7 +1091,7 @@ QuicLossDetectionDiscardPackets(
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
-            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, NULL);
+            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
 
             Packet = NextPacket;
 
@@ -1165,7 +1138,7 @@ QuicLossDetectionDiscardPackets(
                 AckedRetransmittableBytes += Packet->PacketLength;
             }
 
-            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, NULL);
+            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
 
             Packet = NextPacket;
 
@@ -1430,7 +1403,7 @@ QuicLossDetectionProcessAckBlocks(
 
         SmallestRtt = CXPLAT_MIN(SmallestRtt, PacketRtt);
 
-        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, Path);
+        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
     }
 
     QuicLossValidate(LossDetection);

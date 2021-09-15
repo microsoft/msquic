@@ -47,7 +47,7 @@ QuicPathRemove(
     )
 {
     CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
-    QUIC_PATH* Path = &Connection->Paths[Index];
+    const QUIC_PATH* Path = &Connection->Paths[Index];
     QuicTraceLogConnInfo(
         PathRemoved,
         Connection,
@@ -57,7 +57,6 @@ QuicPathRemove(
 #if DEBUG
     if (Path->DestCid) {
         QUIC_CID_CLEAR_PATH(Path->DestCid);
-        Path->DestCid = NULL;
     }
 #endif
 
