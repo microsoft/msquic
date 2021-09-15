@@ -4574,11 +4574,7 @@ QuicConnRecvFrames(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
                         sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length);
-                    if (ReplaceRetiredCids) {
-                        QuicConnSilentlyAbort(Connection);
-                    } else {
-                        QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
-                    }
+                    QuicConnSilentlyAbort(Connection);
                     return FALSE;
                 }
 
