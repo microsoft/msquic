@@ -163,7 +163,7 @@ QuicUserMain(
     return Status;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
 
 QUIC_STATUS
 QuicKernelMain(
@@ -397,7 +397,7 @@ main(
     for (int i = 0; i < argc; ++i) {
 
         if (_strnicmp(argv[i] + 1, DriverSearch, DriverLen) == 0) {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
             //
             // See if private driver
             //
@@ -437,7 +437,7 @@ main(
     }
 
     if (DriverName != nullptr) {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
         printf("Entering kernel mode main\n");
         RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
 #else

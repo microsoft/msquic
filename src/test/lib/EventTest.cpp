@@ -154,6 +154,7 @@ struct ConnValidator {
     ConnEventValidator** ExpectedEvents;
     uint32_t CurrentEvent;
     CxPlatEvent Complete;
+    CxPlatEvent HandshakeComplete;
     ConnValidator(HQUIC Configuration = nullptr) :
         Handle(nullptr), Configuration(Configuration),
         ExpectedEvents(nullptr), CurrentEvent(0), Complete(true) { }
@@ -183,6 +184,10 @@ struct ConnValidator {
             // ignore them and validate all other events.
             //
             return;
+        }
+
+        if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            HandshakeComplete.Set();
         }
 
         do {
@@ -817,6 +822,7 @@ QuicTestValidateStreamEvents3(
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
+    TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
     CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
@@ -939,6 +945,7 @@ QuicTestValidateStreamEvents4(
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
+    TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
     CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
@@ -1166,6 +1173,7 @@ QuicTestValidateStreamEvents6(
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
+    TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
     CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
