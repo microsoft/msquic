@@ -600,12 +600,12 @@ QuicLossDetectionOnPacketAcknowledged(
                 for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                         Entry != &Connection->DestCids;
                         Entry = Entry->Flink) {
-                    QUIC_CID_LIST_ENTRY* DestCid =
+                    QUIC_CID_LIST_ENTRY* CheckDest =
                         CXPLAT_CONTAINING_RECORD(
                             Entry,
                             QUIC_CID_LIST_ENTRY,
                             Link);
-                    CXPLAT_DBG_ASSERT(!DestCid->Freed);
+                    CXPLAT_DBG_ASSERT(!CheckDest->Freed);
                 }
 #endif
 
