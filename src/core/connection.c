@@ -2099,7 +2099,7 @@ QuicConnRecvResumptionTicket(
         Event.RESUMED.ResumptionStateLength = (uint16_t)AppDataLength;
         Event.RESUMED.ResumptionState = (AppDataLength > 0) ? AppData : NULL;
         QuicTraceLogConnVerbose(
-            IndicateResumptionTicketReceived,
+            IndicateResumed,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMED");
         ResumptionAccepted =
