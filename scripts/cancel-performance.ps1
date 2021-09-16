@@ -16,7 +16,9 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [string]$WinRMUser = ""
+    [string]$WinRMUser = "",
+
+    [switch]$SkipRemote = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -30,18 +32,20 @@ if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
 # Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
 
-if ($Remote -eq "") {
-    if ($WinRMUser -ne "") {
-        $Session = New-PSSession -ComputerName $ComputerName -Credential $WinRMUser -ConfigurationName PowerShell.7
+if (!$SkipRemote) {
+    if ($Remote -eq "") {
+        if ($WinRMUser -ne "") {
+            $Session = New-PSSession -ComputerName $ComputerName -Credential $WinRMUser -ConfigurationName PowerShell.7
+        } else {
+            $Session = New-PSSession -ComputerName $ComputerName -ConfigurationName PowerShell.7
+        }
     } else {
-        $Session = New-PSSession -ComputerName $ComputerName -ConfigurationName PowerShell.7
+        $Session = New-PSSession -HostName "$Remote"
     }
-} else {
-    $Session = New-PSSession -HostName "$Remote"
 }
 
 if ($null -eq $Session) {
-    Write-Error "Failed to create remote session"
+    Write-Host "Failed to create remote session"
 } else {
     $RemoteAddress = $Session.ComputerName
     Write-Output "Connected to: $RemoteAddress"
