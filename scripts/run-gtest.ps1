@@ -719,7 +719,7 @@ try {
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Output can be found in $($LogDir)"
         if ($ErrorsAsWarnings) {
-            Write-Host "$($TestsFailed) test(s) failed."
+            Write-Warning "$($TestsFailed) test(s) failed."
         } else {
             Write-Error "$($TestsFailed) test(s) failed."
         }
