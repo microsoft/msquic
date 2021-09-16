@@ -1018,6 +1018,7 @@ QuicConnRetireCurrentDestCid(
         return FALSE;
     }
 
+    CXPLAT_DBG_ASSERT(Path->DestCid != NewDestCid);
     QUIC_CID_LIST_ENTRY* OldDestCid = Path->DestCid;
     QUIC_CID_CLEAR_PATH(Path->DestCid);
     QuicConnRetireCid(Connection, Path->DestCid);
@@ -1095,6 +1096,7 @@ QuicConnReplaceRetiredCids(
             continue;
         }
 
+        CXPLAT_DBG_ASSERT(NewDestCid != Path->DestCid);
         Path->DestCid = NewDestCid;
         QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
         Path->DestCid->CID.UsedLocally = TRUE;
@@ -1674,6 +1676,10 @@ QuicConnTryClose(
         //
         QuicStreamSetShutdown(&Connection->Streams);
         QuicDatagramSendShutdown(&Connection->Datagram);
+    }
+
+    if (SilentClose) {
+        QuicSendClear(&Connection->Send);
     }
 
     if (SilentClose ||
@@ -4950,16 +4956,19 @@ QuicConnRecvPostProcessing(
                 // TODO - What if the peer (client) only sends a single CID and
                 // rebinding happens? Should we support using the same CID over?
                 //
-                (*Path)->DestCid = QuicConnGetUnusedDestCid(Connection);
-                if ((*Path)->DestCid == NULL) {
+                QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
+                if (NewDestCid== NULL) {
                     QuicTraceEvent(
                         ConnError,
                         "[conn][%p] ERROR, %s.",
                         Connection,
                         "No unused CID for new path");
                     (*Path)->GotValidPacket = FALSE; // Don't have a new CID to use!!!
+                    (*Path)->DestCid = NULL;
                     return;
                 }
+                CXPLAT_DBG_ASSERT(NewDestCid != (*Path)->DestCid);
+                (*Path)->DestCid = NewDestCid;
                 QUIC_CID_SET_PATH(Connection, (*Path)->DestCid, (*Path));
                 (*Path)->DestCid->CID.UsedLocally = TRUE;
             }
