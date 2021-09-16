@@ -127,9 +127,15 @@ This event is the last one delivered to the application, and indicates the conne
 
 `HandshakeCompleted`
 
+A flag indicating if the QUIC handshake completed before the connection was shutdown.
+
 `PeerAcknowledgedShutdown`
 
+A flag indicating if the peer explicitly acknowledged the connection shutdown.
+
 `AppCloseInProgress`
+
+A flag indicating that the application called [ConnectionClose](ConnectionClose.md) on this connection.
 
 ## QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED
 
@@ -137,11 +143,15 @@ This event is delivered when the local address used for the primary/active path 
 
 `Address`
 
+The new local IP address.
+
 ## QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
 
 This event is delivered when the remote address used for the primary/active path communication has changed.
 
 `Address`
+
+The new peer IP address.
 
 ## QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED
 
@@ -149,7 +159,17 @@ This event is delivered when the peer has created a new stream.
 
 `Stream`
 
+A handle to the newly peer-created stream.
+
 `Flags`
+
+A set of flags indicating describing the newly opened stream:
+
+Value | Meaning
+--- | ---
+**QUIC_STREAM_OPEN_FLAG_NONE**<br>0 | No special behavior. Defaults to bidirectional stream.
+**QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL**<br>1 | A unidirectional stream.
+**QUIC_STREAM_OPEN_FLAG_0_RTT**<br>2 | The stream was received in 0-RTT.
 
 ## QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE
 
@@ -157,7 +177,11 @@ This event indicates the number of streams the peer is willing to accept has cha
 
 `BidirectionalCount`
 
+The number of bidirectional streams the peer is willing to accept.
+
 `UnidirectionalCount`
+
+The number of unidirectional streams the peer is willing to accept.
 
 ## QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS
 
@@ -169,13 +193,19 @@ This event indicates the processor or CPU that MsQuic has determined would be th
 
 `IdealProcessor`
 
+The processor number that should be ideally used for processing the connection.
+
 ## QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED
 
 This event indicates the current state for sending unreliable datagrams has changed.
 
 `SendEnabled`
 
+A flag that indicates datagrams are allowed to be sent.
+
 `MaxSendLength`
+
+When enabled, indicates the maximum length of a single datagram that can fit in a packet.
 
 ## QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED
 
@@ -183,31 +213,62 @@ This event indicates a received unreliable datagram from the peer.
 
 `Buffer`
 
+Contains a pointer to the received data along with the length of the data.
+
 `Flags`
+
+A set of flags indicating describing the received datagram data:
+
+Value | Meaning
+--- | ---
+**QUIC_RECEIVE_FLAG_NONE**<br>0 | No special behavior.
+**QUIC_RECEIVE_FLAG_0_RTT**<br>1 | The data was received in 0-RTT.
+**QUIC_RECEIVE_FLAG_FIN**<br>2 | N/A. Only used for Stream data. Unused for datagrams.
 
 ## QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED
 
-This event indicates a state change for a previous unreliable datagram send.
+This event indicates a state change for a previous unreliable datagram send via [DatagramSend](DatagramSend.md).
 
 `ClientContext`
 
+The context pointer passed into [DatagramSend](DatagramSend.md) as `ClientSendContext`.
+
 `State`
+
+The latest state for the sent datagram.
+
+Value | Meaning
+--- | ---
+**QUIC_DATAGRAM_SEND_SENT**<br>0 | Indicates the datagram has now been sent out on the network. This is the earliest the app may free the `Buffers` passed into [DatagramSend](DatagramSend.md).
+**QUIC_DATAGRAM_SEND_LOST_SUSPECT**<br>1 | The sent datagram is suspected to be lost. If desired, the app could retransmit the data now.
+**QUIC_DATAGRAM_SEND_LOST_DISCARDED**<br>2 | The sent datagram is lost and no longer tracked by MsQuic.
+**QUIC_DATAGRAM_SEND_ACKNOWLEDGED**<br>3 | The sent datagram has been acknowledged.
+**QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS**<br>4 | The sent datagram has been acknowledged after previously being suspected as lost.
+**QUIC_DATAGRAM_SEND_CANCELED**<br>5 | The queued datagram was canceled; either because the connection was shutdown or the peer did not negotiate the feature.
 
 ## QUIC_CONNECTION_EVENT_RESUMED
 
-This event indicates that a previous TLS session has been successfully resumed.
+This event indicates that a previous session has been successfully resumed at the TLS layer. This event is delivered for the server side only. The server app must indicate acceptance or rejection of the resumption ticket by returning a successful or failure status code from the event. If rejected by the server app, then resumption is rejected and a normal handshake will be performed.
 
 `ResumptionStateLength`
 
+The length of the `ResumptionState` buffer.
+
 `ResumptionState`
+
+The resumption ticket data previously sent to the client via [ConnectionSendResumptionTicket](ConnectionSendResumptionTicket.md).
 
 ## QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
 
-This event indicates a TLS resumption ticket has been received from the peer.
+This event indicates a TLS resumption ticket has been received from the server.
 
 `ResumptionTicketLength`
 
+The length of the `ResumptionTicket` buffer.
+
 `ResumptionTicket`
+
+The resumption ticket data received from the server. For a client to later resume the session in a new connection, it must pass this data to the new connection via the `QUIC_PARAM_CONN_RESUMPTION_TICKET` parameter.
 
 ## QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED
 
@@ -215,14 +276,23 @@ This event indicates a certificate has been received from the peer.
 
 `Certificate`
 
+Pointer to a platform/TLS specific certificate. Valid only during the callback.
+
 `DeferredErrorFlags`
+
+Bit flag of errors encountered when doing deferring validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront. Only supported with Schannel currently.
 
 `DeferredStatus`
 
+Most severe error status when doing deferred validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront.
+
 `Chain`
+
+Pointer to a platform/TLS specific certificate chain. Valid only during the callback.
 
 # See Also
 
 [ConnectionOpen](ConnectionOpen.md)<br>
+[QUIC_CONNECTION_CALLBACK](QUIC_CONNECTION_CALLBACK.md)<br>
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>

@@ -2101,7 +2101,7 @@ QuicConnRecvResumptionTicket(
         QuicTraceLogConnVerbose(
             IndicateResumptionTicketReceived,
             Connection,
-            "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
+            "Indicating QUIC_CONNECTION_EVENT_RESUMED");
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
