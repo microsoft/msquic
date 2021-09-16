@@ -16,9 +16,6 @@ Environment:
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_trace.h"
-#ifdef CX_PLATFORM_LINUX
-#include <sys/syscall.h>
-#endif
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -35,6 +32,8 @@ int RandomFd; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so";
+
+uint32_t CxPlatProcessorCount;
 
 uint64_t CxPlatTotalMemory;
 
@@ -64,6 +63,26 @@ CxPlatSystemLoad(
     void
     )
 {
+    #if defined(CX_PLATFORM_DARWIN)
+    //
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
+    //
+    CxPlatProcessorCount = 1;
+#else
+    CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
+
+    //
+    // N.B.
+    // Do not place any initialization code below this point.
+    //
+
     //
     // Following code is modified from coreclr.
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
@@ -129,10 +148,9 @@ CxPlatSystemLoad(
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
-#ifdef DEBUG
-    CxPlatform.AllocFailDenominator = 0;
-    CxPlatform.AllocCounter = 0;
-#endif
+    QuicTraceLogInfo(
+        PosixLoaded,
+        "[ dso] Loaded");
 }
 
 void
@@ -140,21 +158,43 @@ CxPlatSystemUnload(
     void
     )
 {
+    QuicTraceLogInfo(
+        PosixUnloaded,
+        "[ dso] Unloaded");
 }
+
+uint64_t CGroupGetMemoryLimit();
 
 QUIC_STATUS
 CxPlatInitialize(
     void
     )
 {
+    QUIC_STATUS Status;
+
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
-        return (QUIC_STATUS)errno;
+        Status = (QUIC_STATUS)errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
+        goto Exit;
     }
 
-    CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
+    CxPlatTotalMemory = CGroupGetMemoryLimit();
 
-    return QUIC_STATUS_SUCCESS;
+    Status = QUIC_STATUS_SUCCESS;
+
+    QuicTraceLogInfo(
+        PosixInitialized,
+        "[ dso] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+
+Exit:
+
+    return Status;
 }
 
 void
@@ -163,6 +203,9 @@ CxPlatUninitialize(
     )
 {
     close(RandomFd);
+    QuicTraceLogInfo(
+        PosixUninitialized,
+        "[ dso] Uninitialized");
 }
 
 void*
@@ -406,44 +449,12 @@ CxPlatSleep(
 }
 
 uint32_t
-CxPlatProcMaxCount(
-    void
-    )
-{
-#if defined(CX_PLATFORM_DARWIN)
-    //
-    // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core.
-    //
-    return 1;
-#else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-}
-
-uint32_t
-CxPlatProcActiveCount(
-    void
-    )
-{
-#if defined(CX_PLATFORM_DARWIN)
-    //
-    // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core.
-    //
-    return 1;
-#else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-}
-
-uint32_t
 CxPlatProcCurrentNumber(
     void
     )
 {
 #if defined(CX_PLATFORM_LINUX)
-    return (uint32_t)sched_getcpu();
+    return (uint32_t)sched_getcpu() % CxPlatProcessorCount;
 #elif defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
@@ -611,7 +622,7 @@ CxPlatThreadCreate(
 
 #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
-#ifndef __GLIBC__
+#if !defined(__GLIBC__) && !defined(__ANDROID__)
     if (Status == QUIC_STATUS_SUCCESS) {
         if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
@@ -639,6 +650,7 @@ CxPlatSetCurrentThreadProcessorAffinity(
     _In_ uint16_t ProcessorIndex
     )
 {
+#ifndef __ANDROID__
     cpu_set_t CpuSet;
     pthread_t Thread = pthread_self();
     CPU_ZERO(&CpuSet);
@@ -652,6 +664,10 @@ CxPlatSetCurrentThreadProcessorAffinity(
     }
 
     return QUIC_STATUS_SUCCESS;
+#else
+    UNREFERENCED_PARAMETER(ProcessorIndex);
+    return QUIC_STATUS_SUCCESS;
+#endif
 }
 
 #elif defined(CX_PLATFORM_DARWIN)
@@ -741,6 +757,7 @@ CxPlatCurThreadID(
     return syscall(SYS_gettid);
 
 #elif defined(CX_PLATFORM_DARWIN)
+    // cppcheck-suppress duplicateExpression
     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
     uint64_t Tid;
     int Res = pthread_threadid_np(NULL, &Tid);

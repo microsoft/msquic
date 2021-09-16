@@ -68,13 +68,16 @@
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\lib\</OutDir>
   </PropertyGroup>
+ <PropertyGroup>
+    <ExternalIncludePath />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ONEBRANCH_BUILD)' != ''">
+    <ApiValidator_Enable>false</ApiValidator_Enable>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(SolutionDir)build\clog;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <PreBuildEvent>
-      <Command>cmd /C $(SolutionDir)\src\manifest\create_kernel_clog_dependencies.bat $(SolutionDir) $(Platform) $(Configuration)</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>

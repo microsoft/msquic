@@ -16,7 +16,7 @@ To start collecting a trace, you can use the following command:
 netsh.exe trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl provider={ff15e657-4f26-570e-88ab-0796b258d11c} level=0x5 keywords=0xffffffff
 ```
 
-> **Note** - The command above collects **all** keywords (`0xffffffff`) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see [MsQuicEtw.man](..\src\manifest\MsQuicEtw.man) and see `<keywords>`.
+> **Note** - The command above collects **all** keywords (`0xffffffff`) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see [MsQuicEtw.man](../src/manifest/MsQuicEtw.man) and see `<keywords>`.
 
 And to stop log the trace session, you can use the following command:
 
@@ -30,7 +30,11 @@ To convert the trace, you can use the following command:
 netsh.exe trace convert quic.etl
 ```
 
-> **Important** - If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. **TODO** - Provide instructions to get around this problem.
+If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. To solve this issue, newer versions of Windows (11 and Server 2022) support a `manpath` flag that can be used to manually specify a manifest. This will likely always be needed for apps using MsQuic in user mode.
+
+```
+netsh.exe trace convert quic.etl manpath=path/to/manifest/MsQuicEtw.man
+```
 
 You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
@@ -69,6 +73,8 @@ You must replace `ETL_PATH` with the path of the output ETL file that you want t
 ## Linux
 
 On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging.
+
+Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. These can be installed by running `./scripts/prepare-machine.ps1 -Configuration Test`
 
 To start collecting a trace, you can use the following commands:
 
@@ -152,6 +158,10 @@ QUIC_PERF_COUNTER_CONN_OPER_COMPLETED | Total connection operations processed ev
 QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH | Current worker operations queued
 QUIC_PERF_COUNTER_WORK_OPER_QUEUED | Total worker operations queued ever
 QUIC_PERF_COUNTER_WORK_OPER_COMPLETED | Total worker operations processed ever
+QUIC_PERF_COUNTER_PATH_VALIDATED | Total path challenges that succeed ever
+QUIC_PERF_COUNTER_PATH_FAILURE | Total path challenges that fail ever
+QUIC_PERF_COUNTER_SEND_STATELESS_RESET | Total stateless reset packets sent ever
+QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
 
 ## Windows Performance Monitor
 

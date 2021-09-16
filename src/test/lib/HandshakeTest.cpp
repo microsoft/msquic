@@ -122,7 +122,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncConfiguration,
+    _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage
@@ -241,6 +241,9 @@ QuicTestConnect(
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
+                        if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                            CxPlatSleep(1000);
+                        }
                         TEST_QUIC_SUCCEEDED(
                             Server->SetConfiguration(ServerConfiguration));
                     }
@@ -486,7 +489,7 @@ QuicTestPathValidationTimeout(
                 QuicAddr OrigLocalAddr;
                 TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
                 QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                CxPlatSleep(100);
+                CxPlatSleep(200);
 
                 ReplaceAddressThenDropHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr, 1);
                 TEST_FALSE(Client.GetIsShutdown());
@@ -2110,13 +2113,16 @@ QuicTestConnectClientCertificate(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+            if (!UseClientCertificate) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
+            }
             Listener.Context = &ServerAcceptCtx;
 
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 if (!UseClientCertificate) {
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_REQUIRED_CERTIFICATE);
                 }
 
                 TEST_QUIC_SUCCEEDED(
@@ -2130,15 +2136,12 @@ QuicTestConnectClientCertificate(
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
-                TEST_EQUAL(UseClientCertificate, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 if (UseClientCertificate) {
                     if (!Server->WaitForConnectionComplete()) {
                         return;
                     }
-                } else {
-                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
                 }
                 TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
             }
@@ -2276,6 +2279,7 @@ QuicTestConnectExpiredServerCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_EXPIRED_CERTIFICATE;
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2297,7 +2301,6 @@ QuicTestConnectExpiredServerCertificate(
                 TEST_EQUAL(false, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_EXPIRED_CERTIFICATE);
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -2674,4 +2677,78 @@ QuicTestClientSharedLocalPort(
     TEST_QUIC_SUCCEEDED(Connection2.StartLocalhost(ClientConfiguration, Server1LocalAddr));
     TEST_TRUE(Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection2.HandshakeComplete);
+}
+
+bool
+GetTestInterfaceIndices(
+    _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
+    _Out_ uint32_t& LoopbackInterfaceIndex,
+    _Out_ uint32_t& OtherInterfaceIndex
+    )
+{
+    CXPLAT_ADAPTER_ADDRESS* Addresses = nullptr;
+    uint32_t AddressesCount = 0;
+    if (CxPlatDataPathGetLocalAddresses(nullptr, &Addresses, &AddressesCount) == QUIC_STATUS_NOT_SUPPORTED) {
+        return false; // Not currently supported by this platform.
+    }
+
+    for (uint32_t i = 0; i < AddressesCount; ++i) {
+        if (Addresses[i].OperationStatus == CXPLAT_OPERATION_STATUS_UP &&
+            QuicAddrGetFamily(&Addresses[i].Address) == QuicAddrFamily) {
+            if (Addresses[i].InterfaceType == CXPLAT_IF_TYPE_SOFTWARE_LOOPBACK &&
+                LoopbackInterfaceIndex == UINT32_MAX) {
+                LoopbackInterfaceIndex = Addresses[i].InterfaceIndex;
+            }
+            if (Addresses[i].InterfaceType != CXPLAT_IF_TYPE_SOFTWARE_LOOPBACK &&
+                OtherInterfaceIndex == UINT32_MAX) {
+                OtherInterfaceIndex = Addresses[i].InterfaceIndex;
+            }
+        }
+    }
+
+    CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
+
+    return LoopbackInterfaceIndex != UINT32_MAX && OtherInterfaceIndex != UINT32_MAX;
+}
+
+void
+QuicTestInterfaceBinding(
+    _In_ int Family
+    )
+{
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    uint32_t LoopbackInterfaceIndex = UINT32_MAX;
+    uint32_t OtherInterfaceIndex = UINT32_MAX;
+    if (!GetTestInterfaceIndices(QuicAddrFamily, LoopbackInterfaceIndex, OtherInterfaceIndex)) {
+        return; // Not supported
+    }
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection1(Registration);
+    TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection1.SetLocalInterface(LoopbackInterfaceIndex));
+    TEST_QUIC_SUCCEEDED(Connection1.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection1.HandshakeComplete);
+
+    MsQuicConnection Connection2(Registration);
+    TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection2.SetLocalInterface(OtherInterfaceIndex));
+    TEST_QUIC_SUCCEEDED(Connection2.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
+    TEST_TRUE(!Connection2.HandshakeComplete);
 }

@@ -444,6 +444,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    0,
+    sizeof(UINT8),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -474,6 +477,7 @@ typedef union {
     QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
     uint32_t Test;
     QUIC_RUN_REBIND_PARAMS RebindParams;
+    UINT8 RejectByClosing;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -664,7 +668,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.ServerStatelessRetry != 0,
                 Params->Params1.ClientUsesOldVersion != 0,
                 Params->Params1.MultipleALPNs != 0,
-                Params->Params1.AsyncConfiguration != 0,
+                (QUIC_TEST_ASYNC_CONFIG_MODE)Params->Params1.AsyncConfiguration,
                 Params->Params1.MultiPacketClientInitial != 0,
                 (QUIC_TEST_RESUMPTION_MODE)Params->Params1.SessionResumption,
                 Params->Params1.RandomLossPercentage
@@ -1090,6 +1094,20 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_CLIENT_LOCAL_PATH_CHANGES:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestLocalPathChanges(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS:
+        QuicTestCtlRun(QuicTestStreamDifferentAbortErrors());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_REJECTION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestConnectionRejection(Params->RejectByClosing));
+        break;
+
+    case IOCTL_QUIC_RUN_INTERFACE_BINDING:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestInterfaceBinding(Params->Family));
         break;
 
     default:

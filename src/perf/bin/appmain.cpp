@@ -163,7 +163,7 @@ QuicUserMain(
     return Status;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
 
 QUIC_STATUS
 QuicKernelMain(
@@ -370,6 +370,7 @@ main(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
     bool KeyboardWait = false;
@@ -387,15 +388,16 @@ main(
     int ArgCount = 0;
 
     CxPlatSystemLoad();
-    if (QUIC_FAILED(CxPlatInitialize())) {
+    if (QUIC_FAILED(Status = CxPlatInitialize())) {
         printf("Platform failed to initialize\n");
-        goto Exit;
+        CxPlatSystemUnload();
+        return Status;
     }
 
     for (int i = 0; i < argc; ++i) {
 
         if (_strnicmp(argv[i] + 1, DriverSearch, DriverLen) == 0) {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
             //
             // See if private driver
             //
@@ -435,7 +437,7 @@ main(
     }
 
     if (DriverName != nullptr) {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
         printf("Entering kernel mode main\n");
         RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
 #else

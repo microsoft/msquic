@@ -16,20 +16,11 @@ Abstract:
 //
 extern const uint32_t DefaultSupportedVersionsList[3];
 
-typedef struct QUIC_CLIENT_VER_NEG_INFO {
-    uint32_t CurrentVersion;
-    uint32_t PreviousVersion;
-    QUIC_VAR_INT RecvNegotiationVerCount;
-    const uint32_t* RecvNegotiationVersions;
-    QUIC_VAR_INT CompatibleVersionCount;
-    const uint32_t* CompatibleVersions;
-} QUIC_CLIENT_VER_NEG_INFO;
-
-typedef struct QUIC_SERVER_VER_NEG_INFO {
-    uint32_t NegotiatedVersion;
-    QUIC_VAR_INT SupportedVersionCount;
-    const uint32_t* SupportedVersions;
-} QUIC_SERVER_VER_NEG_INFO;
+typedef struct QUIC_VERSION_INFORMATION_V1 {
+    uint32_t ChosenVersion;
+    uint32_t OtherVersionsCount;
+    const uint32_t* OtherVersions;
+} QUIC_VERSION_INFORMATION_V1;
 
 BOOLEAN
 QuicVersionNegotiationExtIsVersionServerSupported(
@@ -65,31 +56,24 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     );
 
 QUIC_STATUS
-QuicVersionNegotiationExtParseClientVerNegInfo(
+QuicVersionNegotiationExtParseVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
-    _Out_ QUIC_CLIENT_VER_NEG_INFO* ClientVNI
-    );
-
-QUIC_STATUS
-QuicVersionNegotiationExtParseServerVerNegInfo(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* const Buffer,
-    _In_ uint16_t BufferLength,
-    _Out_ QUIC_SERVER_VER_NEG_INFO* ServerVNI
+    _Out_ QUIC_VERSION_INFORMATION_V1* VersionInfo
     );
 
 //
-// Encodes Version Negotiation Information into the opaque blob used by the
-// extension.
+// Encodes Version Information into the opaque blob used by the extension.
 //
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
 _Success_(return != NULL)
+_Ret_writes_bytes_(*VerInfoLength)
 const uint8_t*
-QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
+QuicVersionNegotiationExtEncodeVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
-    _Out_ uint32_t* VNInfoLength
+    _Out_ uint32_t* VerInfoLength
     );

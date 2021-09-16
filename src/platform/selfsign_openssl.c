@@ -26,6 +26,9 @@ Abstract:
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 #ifdef QUIC_CLOG
 #include "selfsign_openssl.c.clog.h"
 #endif
@@ -272,8 +275,10 @@ Exit:
     return Status;
 }
 
-static char* QuicTestCertFilename = (char*)"localhost_cert.pem";
-static char* QuicTestPrivateKeyFilename = (char*)"localhost_key.pem";
+static char* QuicTestServerCertFilename = (char*)"localhost_cert.pem";
+static char* QuicTestServerPrivateKeyFilename = (char*)"localhost_key.pem";
+static char* QuicTestClientCertFilename = (char*)"client_cert.pem";
+static char* QuicTestClientPrivateKeyFilename = (char*)"client_key.pem";
 
 #ifndef MAX_PATH
 #define MAX_PATH 50
@@ -302,17 +307,25 @@ CxPlatGetSelfSignedCert(
     )
 {
     UNREFERENCED_PARAMETER(Type);
-    UNREFERENCED_PARAMETER(ClientCertificate);
+    const char* CertFileName = NULL;
+    const char* KeyFileName = NULL;
 
     if (ClientCertificate) {
-        //
-        // Client certificate is not supported on OpenSSL (yet)
-        //
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Client Certificate is not supported in OpenSSL");
-        return NULL;
+#ifdef _WIN32
+        CertFileName = "msquicopensslclientcert";
+        KeyFileName = "msquicopensslclientkey";
+#else
+        CertFileName = QuicTestClientCertFilename;
+        KeyFileName = QuicTestClientPrivateKeyFilename;
+#endif
+    } else {
+#ifdef _WIN32
+        CertFileName = "msquicopensslservercert";
+        KeyFileName = "msquicopensslserverkey";
+#else
+        CertFileName = QuicTestServerCertFilename;
+        KeyFileName = QuicTestServerPrivateKeyFilename;
+#endif
     }
 
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
@@ -341,7 +354,7 @@ CxPlatGetSelfSignedCert(
     UINT TempFileStatus =
         GetTempFileNameA(
             Params->TempPath,
-            "msquicopensslcert",
+            CertFileName,
             0,
             Params->CertFilepath);
     if (TempFileStatus == 0) {
@@ -355,7 +368,7 @@ CxPlatGetSelfSignedCert(
     TempFileStatus =
         GetTempFileNameA(
             Params->TempPath,
-            "msquicopensslkey",
+            KeyFileName,
             0,
             Params->PrivateKeyFilepath);
     if (TempFileStatus == 0) {
@@ -389,8 +402,8 @@ CxPlatGetSelfSignedCert(
         1);
     CxPlatCopyMemory(
         Params->CertFilepath + strlen(Params->TempDir) + 1,
-        QuicTestCertFilename,
-        strlen(QuicTestCertFilename));
+        CertFileName,
+        strlen(CertFileName));
     CxPlatCopyMemory(
         Params->PrivateKeyFilepath,
         Params->TempDir,
@@ -401,15 +414,17 @@ CxPlatGetSelfSignedCert(
         1);
     CxPlatCopyMemory(
         Params->PrivateKeyFilepath + strlen(Params->TempDir) + 1,
-        QuicTestPrivateKeyFilename,
-        strlen(QuicTestPrivateKeyFilename));
+        KeyFileName,
+        strlen(KeyFileName));
 #endif
 
     if (QUIC_FAILED(
         CxPlatTlsGenerateSelfSignedCert(
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
-            (char *)"localhost"))) {
+            ClientCertificate ?
+                (char *)"MsQuicClient":
+                (char *)"localhost"))) {
         goto Error;
     }
 
@@ -476,6 +491,9 @@ CxPlatFreeSelfSignedCert(
 #ifdef _WIN32
     DeleteFileA(Params->CertFilepath);
     DeleteFileA(Params->PrivateKeyFilepath);
+#elif TARGET_OS_IOS
+    UNREFERENCED_PARAMETER(CredConfig);
+    UNREFERENCED_PARAMETER(Params);
 #else
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);

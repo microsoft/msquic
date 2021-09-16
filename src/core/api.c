@@ -345,7 +345,7 @@ MsQuicConnectionStart(
     }
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
-    CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
+    CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -426,7 +426,7 @@ MsQuicConnectionSetConfiguration(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (!QuicConnIsServer(Connection)) {
+    if (QuicConnIsClient(Connection)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -526,7 +526,7 @@ MsQuicConnectionSendResumptionTicket(
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
-    if (!QuicConnIsServer(Connection)) {
+    if (QuicConnIsClient(Connection)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -631,8 +631,12 @@ MsQuicStreamOpen(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (QuicConnIsClosed(Connection)) {
-        Status = QUIC_STATUS_INVALID_STATE;
+    BOOLEAN ClosedLocally = Connection->State.ClosedLocally;
+    if (ClosedLocally || Connection->State.ClosedRemotely) {
+        Status =
+            ClosedLocally ?
+            QUIC_STATUS_INVALID_STATE :
+            QUIC_STATUS_ABORTED;
         goto Error;
     }
 

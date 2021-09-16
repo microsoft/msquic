@@ -93,7 +93,8 @@ class CxPlatWatchdog {
     }
 public:
     CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        CXPLAT_THREAD_CONFIG Config = { 0 };
+        CXPLAT_THREAD_CONFIG Config;
+        memset(&Config, 0, sizeof(CXPLAT_THREAD_CONFIG));
         Config.Name = "cxplat_watchdog";
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;
@@ -801,6 +802,17 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 sizeof(Addr.SockAddr),
                 &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    SetLocalInterface(_In_ uint32_t Index) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_INTERFACE,
+                sizeof(Index),
+                &Index);
     }
 
     QUIC_STATUS

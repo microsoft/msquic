@@ -51,6 +51,10 @@ MsQuicLibraryLoad(
         CxPlatListInitializeHead(&MsQuicLib.Bindings);
         QuicTraceRundownCallback = QuicTraceRundown;
         MsQuicLib.Loaded = TRUE;
+        MsQuicLib.Version[0] = VER_MAJOR;
+        MsQuicLib.Version[1] = VER_MINOR;
+        MsQuicLib.Version[2] = VER_PATCH;
+        MsQuicLib.Version[3] = VER_BUILD_ID;
     }
 }
 
@@ -68,10 +72,6 @@ MsQuicLibraryUnload(
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
-        MsQuicLib.Version[0] = VER_MAJOR;
-        MsQuicLib.Version[1] = VER_MINOR;
-        MsQuicLib.Version[2] = VER_PATCH;
-        MsQuicLib.Version[3] = VER_BUILD_ID;
         CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
@@ -1476,20 +1476,16 @@ QuicLibraryLookupBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
-#ifdef QUIC_COMPARTMENT_ID
-    _In_ QUIC_COMPARTMENT_ID CompartmentId,
-#endif
-    _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
     _Out_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
-    BOOLEAN PortUnspecified = LocalAddress == NULL || QuicAddrGetPort(LocalAddress) == 0;
+    BOOLEAN PortUnspecified = UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
+    BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -1524,10 +1520,10 @@ SharedEphemeralRetry:
     Binding =
         QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
+            UdpConfig->CompartmentId,
 #endif
-            LocalAddress,
-            RemoteAddress);
+            UdpConfig->LocalAddress,
+            UdpConfig->RemoteAddress);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
             (ServerOwned != Binding->ServerOwned)) {
@@ -1557,8 +1553,8 @@ SharedEphemeralRetry:
     if (Status != QUIC_STATUS_NOT_FOUND) {
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
         if (QUIC_FAILED(Status) && SharedEphemeralWorkAround) {
-            CXPLAT_DBG_ASSERT(LocalAddress);
-            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
             goto SharedEphemeralRetry;
         }
 #endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
@@ -1573,19 +1569,13 @@ NewBinding:
 
     Status =
         QuicBindingInitialize(
-#ifdef QUIC_COMPARTMENT_ID
-            CompartmentId,
-#endif
-            ShareBinding,
-            ServerOwned,
-            LocalAddress,
-            RemoteAddress,
+            UdpConfig,
             NewBinding);
     if (QUIC_FAILED(Status)) {
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
         if (SharedEphemeralWorkAround) {
-            CXPLAT_DBG_ASSERT(LocalAddress);
-            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
             goto SharedEphemeralRetry;
         }
 #endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
@@ -1611,10 +1601,10 @@ NewBinding:
         Binding =
             QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-                CompartmentId,
+                UdpConfig->CompartmentId,
 #endif
                 &NewLocalAddress,
-                RemoteAddress);
+                UdpConfig->RemoteAddress);
     } else {
         //
         // The datapath does not supports multiple connected sockets on the same
@@ -1624,11 +1614,12 @@ NewBinding:
         Binding =
             QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-                CompartmentId,
+                UdpConfig->CompartmentId,
 #endif
                 &NewLocalAddress,
                 NULL);
     }
+
     if (Binding != NULL) {
         if (!PortUnspecified && !Binding->Exclusive) {
             //
@@ -1648,6 +1639,7 @@ NewBinding:
                 "[ lib] Now in use.");
             MsQuicLib.InUse = TRUE;
         }
+        (*NewBinding)->RefCount++;
         CxPlatListInsertTail(&MsQuicLib.Bindings, &(*NewBinding)->Link);
     }
 
@@ -1665,7 +1657,6 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 *NewBinding,
                 "Binding ephemeral port reuse encountered");
-            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
 
@@ -1675,8 +1666,8 @@ NewBinding:
             // one.
             //
             SharedEphemeralWorkAround = TRUE;
-            LocalAddress = &NewLocalAddress;
-            QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+            ((CXPLAT_UDP_CONFIG*)UdpConfig)->LocalAddress = &NewLocalAddress;
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
             goto SharedEphemeralRetry;
 #else
             Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -1688,20 +1679,18 @@ NewBinding:
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
-            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
             if (SharedEphemeralWorkAround) {
-                CXPLAT_DBG_ASSERT(LocalAddress);
-                QuicAddrSetPort((QUIC_ADDR*)LocalAddress, QuicAddrGetPort(LocalAddress) + 1);
+                CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+                QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
                 goto SharedEphemeralRetry;
             }
 #endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
             Status = QUIC_STATUS_ADDRESS_IN_USE;
 
         } else {
-            (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = Binding;
             Status = QUIC_STATUS_SUCCESS;

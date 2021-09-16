@@ -39,6 +39,11 @@ void QuicTestDesiredVersionSettings();
 void QuicTestValidateParamApi();
 
 //
+// Rejection Tests
+//
+void QuicTestConnectionRejection(bool RejectByClosing);
+
+//
 // Event Validation Tests
 //
 
@@ -90,13 +95,19 @@ typedef enum QUIC_TEST_RESUMPTION_MODE {
     QUIC_TEST_RESUMPTION_REJECTED,
 } QUIC_TEST_RESUMPTION_MODE;
 
+typedef enum QUIC_TEST_ASYNC_CONFIG_MODE {
+    QUIC_TEST_ASYNC_CONFIG_DISABLED,
+    QUIC_TEST_ASYNC_CONFIG_ENABLED,
+    QUIC_TEST_ASYNC_CONFIG_DELAYED,
+} QUIC_TEST_ASYNC_CONFIG_MODE;
+
 void
 QuicTestConnect(
     _In_ int Family,
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncConfiguration,
+    _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
@@ -177,6 +188,11 @@ QuicTestLoadBalancedHandshake(
 
 void
 QuicTestClientSharedLocalPort(
+    _In_ int Family
+    );
+
+void
+QuicTestInterfaceBinding(
     _In_ int Family
     );
 
@@ -394,6 +410,10 @@ QuicTestNthAllocFail(
 
 void
 QuicTestStreamPriority(
+    );
+
+void
+QuicTestStreamDifferentAbortErrors(
     );
 
 //
@@ -895,4 +915,15 @@ typedef struct {
     QUIC_CTL_CODE(73, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 73
+#define IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS \
+    QUIC_CTL_CODE(74, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CONNECTION_REJECTION \
+    QUIC_CTL_CODE(75, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // bool - RejectByClosing
+
+#define IOCTL_QUIC_RUN_INTERFACE_BINDING \
+    QUIC_CTL_CODE(76, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 76

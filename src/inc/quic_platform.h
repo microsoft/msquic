@@ -17,13 +17,6 @@ Supported Environments:
 
 #pragma once
 
-//
-// Due to a bug in VS 16.10, we need to disable stdio inlining
-// Remove this once that bug is fixed
-//
-#ifdef _KERNEL_MODE
-#define _NO_CRT_STDIO_INLINE
-#endif
 #include <stddef.h>
 
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
@@ -140,8 +133,8 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
 #define QUIC_POOL_DESIRED_VER_LIST          '04cQ' // Qc40 - QUIC App-supplied desired versions list
 #define QUIC_POOL_DEFAULT_COMPAT_VER_LIST   '14cQ' // Qc41 - QUIC Default compatible versions list
-#define QUIC_POOL_VER_NEG_INFO              '24cQ' // Qc42 - QUIC Version negotiation info
-#define QUIC_POOL_RECVD_VER_LIST            '34cQ' // Qc43 - QUIC Received version negotiation list
+#define QUIC_POOL_VERSION_INFO              '24cQ' // Qc42 - QUIC Version info
+#define QUIC_POOL_PROCESS                   '34cQ' // Qc43 - QUIC Process
 #define QUIC_POOL_TLS_TMP_TP                '44cQ' // Qc44 - QUIC Platform TLS Temporary TP storage
 #define QUIC_POOL_PCP                       '54cQ' // Qc45 - QUIC PCP
 #define QUIC_POOL_DATAPATH_ADDRESSES        '64cQ' // Qc46 - QUIC Datapath Addresses
@@ -171,7 +164,6 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #include "quic_platform_posix.h"
 #elif CX_PLATFORM_DARWIN
 #define CX_PLATFORM_TYPE 4
-#define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
 #include "quic_platform_posix.h"
 #else
 #define CX_PLATFORM_TYPE 0xFF

@@ -12,6 +12,7 @@ typedef struct QUIC_WORKER_POOL QUIC_WORKER_POOL;
 typedef struct QUIC_REGISTRATION QUIC_REGISTRATION;
 typedef struct QUIC_CONFIGURATION QUIC_CONFIGURATION;
 typedef struct QUIC_LISTENER QUIC_LISTENER;
+typedef struct QUIC_CONGESTION_CONTROL QUIC_CONGESTION_CONTROL;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_STREAM QUIC_STREAM;
 typedef struct QUIC_PACKET_BUILDER QUIC_PACKET_BUILDER;
@@ -457,6 +458,11 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DPLPMTUD_INCREMENT                     80
 
+//
+// The default congestion control algorithm
+//
+#define QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT   QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/
@@ -503,3 +509,5 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"
 #define QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT    "MtuDiscoverySearchCompleteTimeoutUs"
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
+
+#define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"

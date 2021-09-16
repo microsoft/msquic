@@ -486,7 +486,7 @@ QuicLossDetectionOnPacketAcknowledged(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
         EncryptLevel < QUIC_ENCRYPT_LEVEL_COUNT);
 
-    if (!QuicConnIsServer(Connection) &&
+    if (QuicConnIsClient(Connection) &&
         !Connection->State.HandshakeConfirmed &&
         Packet->Flags.KeyType == QUIC_PACKET_KEY_1_RTT) {
         QuicTraceLogConnInfo(
@@ -581,7 +581,7 @@ QuicLossDetectionOnPacketAcknowledged(
             if (DestCid != NULL) {
 #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                QUIC_CID_VALIDATE_NULL(DestCid);
+                QUIC_CID_VALIDATE_NULL(Connection, DestCid);
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
@@ -767,7 +767,7 @@ QuicLossDetectionRetransmitFrames(
                     FALSE);
             if (DestCid != NULL) {
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                QUIC_CID_VALIDATE_NULL(DestCid);
+                QUIC_CID_VALIDATE_NULL(Connection, DestCid);
                 DestCid->CID.NeedsToSend = TRUE;
                 NewDataQueued |=
                     QuicSendSetSendFlag(
@@ -792,6 +792,7 @@ QuicLossDetectionRetransmitFrames(
                         Connection,
                         "Path[%hhu] validation timed out",
                         Path->ID);
+                    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_FAILURE);
                     QuicPathRemove(Connection, PathIndex);
                 } else {
                     Path->SendChallenge = TRUE;
@@ -1153,7 +1154,7 @@ QuicLossDetectionDiscardPackets(
         const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
         if (QuicCongestionControlOnDataAcknowledged(
                 &Connection->CongestionControl,
-                US_TO_MS(TimeNow),
+                TimeNow,
                 LossDetection->LargestAck,
                 AckedRetransmittableBytes,
                 Path->SmoothedRtt)) {
@@ -1434,7 +1435,7 @@ QuicLossDetectionProcessAckBlocks(
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
         if (QuicCongestionControlOnDataAcknowledged(
                 &Connection->CongestionControl,
-                US_TO_MS(TimeNow),
+                TimeNow,
                 LossDetection->LargestAck,
                 AckedRetransmittableBytes,
                 Connection->Paths[0].SmoothedRtt)) {

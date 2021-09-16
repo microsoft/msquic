@@ -907,7 +907,7 @@ QuicAbortiveTransfers(
     _In_ QUIC_ABORTIVE_TRANSFER_FLAGS Flags
     )
 {
-    uint32_t TimeoutMs = 500;
+    uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1392,7 +1392,7 @@ QuicTestReceiveResume(
     _In_ bool PauseFirst
     )
 {
-    uint32_t TimeoutMs = 500;
+    uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1629,7 +1629,7 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     )
 {
-    uint32_t TimeoutMs = 500;
+    uint32_t TimeoutMs = 2000;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -2414,4 +2414,70 @@ QuicTestStreamPriority(
     TEST_TRUE(Context.ReceiveEvents[0] == Stream2.ID());
     TEST_TRUE(Context.ReceiveEvents[1] == Stream3.ID());
     TEST_TRUE(Context.ReceiveEvents[2] == Stream1.ID());
+}
+
+struct StreamDifferentAbortErrors {
+    QUIC_UINT62 PeerSendAbortErrorCode {0};
+    QUIC_UINT62 PeerRecvAbortErrorCode {0};
+    CxPlatEvent StreamShutdownComplete;
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (StreamDifferentAbortErrors*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED) {
+            TestContext->PeerRecvAbortErrorCode = Event->PEER_RECEIVE_ABORTED.ErrorCode;
+        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
+            TestContext->PeerSendAbortErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
+        } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->StreamShutdownComplete.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestStreamDifferentAbortErrors(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerBidiStreamCount(1), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamDifferentAbortErrors Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamDifferentAbortErrors::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    const QUIC_UINT62 RecvShutdownErrorCode = 0x1234567890;
+    const QUIC_UINT62 SendShutdownErrorCode = 0x9876543210;
+
+    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream.Start());
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(RecvShutdownErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(SendShutdownErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND));
+
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    TEST_TRUE(Context.StreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.PeerRecvAbortErrorCode == RecvShutdownErrorCode);
+    TEST_TRUE(Context.PeerSendAbortErrorCode == SendShutdownErrorCode);
 }

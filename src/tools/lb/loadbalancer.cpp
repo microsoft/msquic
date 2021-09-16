@@ -29,10 +29,18 @@ struct LbInterface {
     QUIC_ADDR LocalAddress;
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic) : IsPublic(IsPublic) {
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
+        UdpConfig.LocalAddress = nullptr;
+        UdpConfig.RemoteAddress = nullptr;
+        UdpConfig.Flags = 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = this;
         if (IsPublic) {
-            CxPlatSocketCreateUdp(Datapath, Address, nullptr, this, 0, &Socket);
+            UdpConfig.LocalAddress = Address;
+            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
         } else {
-            CxPlatSocketCreateUdp(Datapath, nullptr, Address, this, 0, &Socket);
+            UdpConfig.RemoteAddress = Address;
+            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
         }
         if (!Socket) {
             printf("CxPlatSocketCreateUdp failed.\n");

@@ -32,7 +32,7 @@ PrintUsage()
     printf("\nquicip runs a public IP lookup server.\n\n");
 
     printf("Usage:\n");
-    printf("  quicipserver.exe -selfsign or -cert_hash:<...> [and -cert_store:<...> | -machine] or (-cert_file:<...> and -key_file:<...>)\n");
+    printf("  quicipserver.exe -selfsign:1 or -cert_hash:<...> [and -cert_store:<...> | -machine] or (-cert_file:<...> and -key_file:<...>)\n");
 }
 
 QUIC_STATUS

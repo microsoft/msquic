@@ -289,7 +289,7 @@ QuicPacketBuilderPrepare(
         Builder->DatagramLength = 0;
         Builder->MinimumDatagramLength = 0;
 
-        if (IsTailLossProbe && !QuicConnIsServer(Connection)) {
+        if (IsTailLossProbe && QuicConnIsClient(Connection)) {
             if (NewPacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
                 //
                 // Short header (1-RTT) packets need to be padded enough to
@@ -631,7 +631,7 @@ QuicPacketBuilderFinalizeHeaderProtection(
 // off.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicPacketBuilderFinalize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ BOOLEAN FlushBatchedDatagrams
@@ -639,6 +639,7 @@ QuicPacketBuilderFinalize(
 {
     QUIC_CONNECTION* Connection = Builder->Connection;
     BOOLEAN FinalQuicPacket = FALSE;
+    BOOLEAN CanKeepSending = TRUE;
 
     QuicPacketBuilderValidate(Builder, FALSE);
 
@@ -651,11 +652,16 @@ QuicPacketBuilderFinalize(
             --Connection->Send.NextPacketNumber;
             Builder->DatagramLength -= Builder->HeaderLength;
             Builder->HeaderLength = 0;
+            CanKeepSending = FALSE;
 
             if (Builder->DatagramLength == 0) {
                 CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
+        }
+        if (Builder->Path->Allowance != UINT32_MAX) {
+            QuicConnAddOutFlowBlockedReason(
+                Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
         }
         FinalQuicPacket = FlushBatchedDatagrams && (Builder->TotalCountDatagrams != 0);
         goto Exit;
@@ -947,6 +953,8 @@ Exit:
     QuicPacketBuilderValidate(Builder, FALSE);
 
     CXPLAT_DBG_ASSERT(!FlushBatchedDatagrams || Builder->SendData == NULL);
+
+    return CanKeepSending;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

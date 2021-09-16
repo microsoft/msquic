@@ -96,6 +96,12 @@
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <SignMode>Off</SignMode>
   </PropertyGroup>
+  <PropertyGroup>
+    <ExternalIncludePath />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ONEBRANCH_BUILD)' != ''">
+    <ApiValidator_Enable>false</ApiValidator_Enable>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

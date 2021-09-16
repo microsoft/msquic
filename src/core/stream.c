@@ -204,9 +204,13 @@ QuicStreamStart(
 {
     QUIC_STATUS Status;
 
-    if (QuicConnIsClosed(Stream->Connection) ||
+    BOOLEAN ClosedLocally = Stream->Connection->State.ClosedLocally;
+    if ((ClosedLocally || Stream->Connection->State.ClosedRemotely) ||
         Stream->Flags.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status =
+            (ClosedLocally || Stream->Flags.Started) ?
+            QUIC_STATUS_INVALID_STATE :
+            QUIC_STATUS_ABORTED;
         goto Exit;
     }
 
@@ -372,7 +376,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",

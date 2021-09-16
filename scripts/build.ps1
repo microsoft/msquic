@@ -108,7 +108,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
+    [ValidateSet("gamecore-durango", "gamecore-scarlett", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -143,7 +143,7 @@ param (
     [switch]$Clean = $false,
 
     [Parameter(Mandatory = $false)]
-    [int32]$Parallel = -1,
+    [int32]$Parallel = -2,
 
     [Parameter(Mandatory = $false)]
     [switch]$DynamicCRT = $false,
@@ -191,6 +191,14 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+if ($Parallel -lt -1) {
+    if ($IsWindows) {
+        $Parallel = -1
+    } else {
+        $Parallel = 0
+    }
+}
+
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
 $Platform = $BuildConfig.Platform
@@ -211,9 +219,19 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And $Static) {
-    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
+if (!$IsWindows -And ($Platform -eq "gamecore-durango" -or $Platform -eq "gamecore-scarlett")) {
+    Write-Error "[$(Get-Date)] Cannot build gamecore on non windows platforms"
     exit
+}
+
+if ($Arch -ne "x64" -And ($Platform -eq "gamecore-durango" -or $Platform -eq "gamecore-scarlett")) {
+    Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
+    exit
+}
+
+if ($Platform -eq "ios" -and !$Static) {
+    $Static = $true
+    Write-Host "iOS can only be built as static"
 }
 
 # Root directory of the project.
@@ -271,27 +289,40 @@ function CMake-Generate {
     }
 
     if ($IsWindows) {
-        $Arguments += " $Generator -A "
-        switch ($Arch) {
-            "x86"   { $Arguments += "Win32" }
-            "x64"   { $Arguments += "x64" }
-            "arm"   { $Arguments += "arm" }
-            "arm64" { $Arguments += "arm64" }
-        }
-    } elseif ($IsMacOS) {
-        $Arguments += " $Generator"
-        switch ($Arch) {
-            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
-            "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
+        if ($Generator.Contains("Visual Studio")) {
+            $Arguments += " $Generator -A "
+            switch ($Arch) {
+                "x86"   { $Arguments += "Win32" }
+                "x64"   { $Arguments += "x64" }
+                "arm"   { $Arguments += "arm" }
+                "arm64" { $Arguments += "arm64" }
+            }
+        } else {
+            Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
+            $Arguments += " $Generator"
         }
     } else {
         $Arguments += " $Generator"
+    }
+    if ($Platform -eq "ios") {
+        $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
+        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DDEPLOYMENT_TARGET=""13.0"" -DENABLE_ARC=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=""13.0"""
+        switch ($Arch) {
+            "x64"   { $Arguments += " -DPLATFORM=SIMULATOR64"}
+            "arm64" { $Arguments += " -DPLATFORM=OS64"}
+        }
+    }
+    if ($Platform -eq "macos") {
+        switch ($Arch) {
+            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""10.15"""}
+            "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
+        }
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
-    $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
+    $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -322,8 +353,15 @@ function CMake-Generate {
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
+    # On gamecore, only the main binary can be built.
+    if ($Platform -eq "gamecore-durango") {
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
+    }
+    if ($Platform -eq "gamecore-scarlett") {
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_SCARLETT_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
+    }
     if ($ToolchainFile -ne "") {
-        $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
     }
     if ($SkipPdbAltPath) {
         $Arguments += " -DQUIC_PDBALTPATH=OFF"
@@ -333,7 +371,9 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
-        $Arguments += " -DQUIC_CI_CONFIG=$Config"
+        if ($Platform -eq "android" -or $ToolchainFile -ne "") {
+            $Arguments += " -DQUIC_SKIP_CI_CHECKS=ON"
+        }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }
@@ -345,6 +385,20 @@ function CMake-Generate {
     }
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
+    }
+    if ($Platform -eq "android") {
+        $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        switch ($Arch) {
+            "x86"   { $Arguments += " -DANDROID_ABI=x86"}
+            "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
+            "arm"   { $Arguments += " -DANDROID_ABI=armeabi-v7a" }
+            "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
+        }
+        $Arguments += " -DANDROID_PLATFORM=android-29"
+        $NDK = $env:ANDROID_NDK_HOME
+        $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
+        $Arguments += " -DANDROID_NDK=""$NDK"""
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
     }
     $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
@@ -397,6 +451,15 @@ function CMake-Build {
                 }
             } else {
                 Log "Failed to find VC Tools path!"
+            }
+        }
+    }
+    # Package debug symbols on macos
+    if ($Platform -eq "macos") {
+        $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File
+        foreach ($Artifact in $BuiltArtifacts) {
+            if (Test-Path $Artifact) {
+                dsymutil $Artifact
             }
         }
     }

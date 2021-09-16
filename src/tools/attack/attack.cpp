@@ -300,13 +300,16 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     CXPLAT_SOCKET* Binding;
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = nullptr;
+    UdpConfig.RemoteAddress = &ServerAddress;
+    UdpConfig.Flags = 0;
+    UdpConfig.InterfaceIndex = 0;
+    UdpConfig.CallbackContext = nullptr;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(
             Datapath,
-            nullptr,
-            &ServerAddress,
-            nullptr,
-            0,
+            &UdpConfig,
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);

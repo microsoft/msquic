@@ -258,16 +258,22 @@ MsQuicListenerStart(
         goto Error;
     }
 
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = &BindingLocalAddress;
+    UdpConfig.RemoteAddress = NULL;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_SHARE | CXPLAT_SOCKET_SERVER_OWNED; // Listeners always share the binding.
+    UdpConfig.InterfaceIndex = 0;
+#ifdef QUIC_COMPARTMENT_ID
+    UdpConfig.CompartmentId = QuicCompartmentIdGetCurrent();
+#endif
+#ifdef QUIC_OWNING_PROCESS
+    UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
+#endif
+
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
         QuicLibraryGetBinding(
-#ifdef QUIC_COMPARTMENT_ID
-            QuicCompartmentIdGetCurrent(),
-#endif
-            TRUE,           // Listeners always share the binding.
-            TRUE,
-            &BindingLocalAddress,
-            NULL,
+            &UdpConfig,
             &Listener->Binding);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -497,6 +503,7 @@ QuicListenerClaimConnection(
     //
 
     Connection->State.ListenerAccepted = TRUE;
+    Connection->State.ExternalOwner = TRUE;
 
     QUIC_LISTENER_EVENT Event;
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
@@ -516,6 +523,10 @@ QuicListenerClaimConnection(
     QuicListenerDetachSilo();
 
     if (QUIC_FAILED(Status)) {
+        CXPLAT_FRE_ASSERTMSG(
+            !Connection->State.HandleClosed,
+            "App MUST not close and reject connection!");
+        Connection->State.ExternalOwner = FALSE;
         QuicTraceEvent(
             ListenerErrorStatus,
             "[list][%p] ERROR, %u, %s.",
@@ -529,17 +540,16 @@ QuicListenerClaimConnection(
     }
 
     //
-    // The application layer has accepted the connection and provided a server
-    // certificate.
+    // The application layer has accepted the connection.
     //
     CXPLAT_FRE_ASSERTMSG(
+        Connection->State.HandleClosed ||
         Connection->ClientCallbackHandler != NULL,
-        "App MUST set callback handler!");
+        "App MUST set callback handler or close connection!");
 
-    Connection->State.ExternalOwner = TRUE;
     Connection->State.UpdateWorker = TRUE;
 
-    return TRUE;
+    return !Connection->State.HandleClosed;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

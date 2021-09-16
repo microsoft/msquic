@@ -35,9 +35,9 @@ void CompareTransportParams(
     COMPARE_TP_FIELD(MAX_ACK_DELAY, MaxAckDelay);
     COMPARE_TP_FIELD(ACTIVE_CONNECTION_ID_LIMIT, ActiveConnectionIdLimit);
     if (A->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-        ASSERT_EQ(A->VersionNegotiationInfoLength, B->VersionNegotiationInfoLength);
+        ASSERT_EQ(A->VersionInfoLength, B->VersionInfoLength);
         ASSERT_EQ(
-            memcmp(A->VersionNegotiationInfo, B->VersionNegotiationInfo, (size_t)A->VersionNegotiationInfoLength),
+            memcmp(A->VersionInfo, B->VersionInfo, (size_t)A->VersionInfoLength),
             0);
     } 
     //COMPARE_TP_FIELD(InitialSourceConnectionID);
@@ -136,9 +136,9 @@ TEST(TransportParamTest, VersionNegotiationExtension)
 {
     QUIC_TRANSPORT_PARAMETERS OriginalTP;
     CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
-    uint8_t VNInfo[21];
-    OriginalTP.VersionNegotiationInfo = VNInfo;
-    OriginalTP.VersionNegotiationInfoLength = sizeof(VNInfo);
+    uint8_t VerInfo[21];
+    OriginalTP.VersionInfo = VerInfo;
+    OriginalTP.VersionInfoLength = sizeof(VerInfo);
     OriginalTP.Flags = QUIC_TP_FLAG_VERSION_NEGOTIATION;
 
     EncodeDecodeAndCompare(&OriginalTP);
