@@ -7,22 +7,13 @@
 
 #include "cubic.h"
 
-typedef union QUIC_CONGESTION_CONTROL_CONTEXT {
-    QUIC_CONGESTION_CONTROL_CUBIC CubicCtx;
-    
-    //
-    // Add new congestion control context here
-    //
-
-} QUIC_CONGESTION_CONTROL_CONTEXT;
-
 typedef struct QUIC_CONGESTION_CONTROL {
 
     //
     // Name of congestion control algorithm
     //
     const char* Name;
-    
+
     BOOLEAN (*QuicCongestionControlCanSend)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc
         );
@@ -32,13 +23,9 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ uint8_t NumPackets
         );
 
-    void (*QuicCongestionControlInitialize)(
-        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
-        _In_ const QUIC_SETTINGS* Settings
-        );
-
     void (*QuicCongestionControlReset)(
-        _In_ struct QUIC_CONGESTION_CONTROL* Cc
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ BOOLEAN FullReset
         );
 
     uint32_t (*QuicCongestionControlGetSendAllowance)(
@@ -89,14 +76,24 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ const struct QUIC_CONGESTION_CONTROL* Cc
         );
 
-    QUIC_CONGESTION_CONTROL_CONTEXT Ctx;
+    //
+    // Algorithm specific state.
+    //
+    union {
+        QUIC_CONGESTION_CONTROL_CUBIC Cubic;
+    };
+
 } QUIC_CONGESTION_CONTROL;
 
-#define QUIC_CONGESTION_CONTROL_CONTEXT_SIZE (RTL_FIELD_SIZE(QUIC_CONGESTION_CONTROL, Ctx))
-
-CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_CONGESTION_CONTROL_CUBIC) <= QUIC_CONGESTION_CONTROL_CONTEXT_SIZE,
-    "Context size for Cubic exceeds the expected size");
+//
+// Initializes the algorithm specific congestion control algorithm.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlInitialize(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_SETTINGS* Settings
+    );
 
 //
 // Returns TRUE if more bytes can be sent on the network.
@@ -123,54 +120,65 @@ QuicCongestionControlSetExemption(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicCongestionControlInitialize(
-    _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 void
 QuicCongestionControlReset(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    );
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN FullReset
+    )
+{
+    Cc->QuicCongestionControlReset(Cc, FullReset);
+}
 
 //
 // Returns the number of bytes that can be sent immediately.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 uint32_t
 QuicCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
     _In_ BOOLEAN TimeSinceLastSendValid
-    );
+    )
+{
+    return Cc->QuicCongestionControlGetSendAllowance(Cc, TimeSinceLastSend, TimeSinceLastSendValid);
+}
 
 //
 // Called when any retransmittable data is sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
+inline
 void
 QuicCongestionControlOnDataSent(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
-    );
+    )
+{
+    Cc->QuicCongestionControlOnDataSent(Cc, NumRetransmittableBytes);
+}
 
 //
 // Called when any data needs to be removed from inflight but cannot be
 // considered lost or acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 BOOLEAN
 QuicCongestionControlOnDataInvalidated(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
-    );
+    )
+{
+    return Cc->QuicCongestionControlOnDataInvalidated(Cc, NumRetransmittableBytes);
+}
 
 //
 // Called when any data is acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 BOOLEAN
 QuicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -178,12 +186,17 @@ QuicCongestionControlOnDataAcknowledged(
     _In_ uint64_t LargestPacketNumberAcked,
     _In_ uint32_t NumRetransmittableBytes,
     _In_ uint32_t SmoothedRtt
-    );
+    )
+{
+    return Cc->QuicCongestionControlOnDataAcknowledged(
+        Cc, TimeNow, LargestPacketNumberAcked, NumRetransmittableBytes, SmoothedRtt);
+}
 
 //
 // Called when data is determined lost.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 void
 QuicCongestionControlOnDataLost(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -191,22 +204,34 @@ QuicCongestionControlOnDataLost(
     _In_ uint64_t LargestPacketNumberSent,
     _In_ uint32_t NumRetransmittableBytes,
     _In_ BOOLEAN PersistentCongestion
-    );
+    )
+{
+    Cc->QuicCongestionControlOnDataLost(
+        Cc, LargestPacketNumberLost, LargestPacketNumberSent, NumRetransmittableBytes, PersistentCongestion);
+}
 
 //
 // Called when all recently considered lost data was actually acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 void
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
-    );
+    )
+{
+    Cc->QuicCongestionControlOnSpuriousCongestionEvent(Cc);
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 uint8_t
 QuicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
-    );
+    )
+{
+    return Cc->QuicCongestionControlGetExemptions(Cc);
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
@@ -222,7 +247,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
 QuicCongestionControlGetBytesInFlightMax(
-    _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
     return Cc->QuicCongestionControlGetBytesInFlightMax(Cc);

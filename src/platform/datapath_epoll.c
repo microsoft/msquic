@@ -615,7 +615,7 @@ CxPlatProcessorContextInitialize(
         goto Exit;
     }
 
-    ThreadCreated = true;
+    ThreadCreated = TRUE;
 
 Exit:
 
@@ -1570,7 +1570,7 @@ CxPlatSocketContextRecvComplete(
         RecvPacket->PartitionIndex = SocketContext->ProcContext->Index;
 
         QuicTraceEvent(
-        DatapathRecv,
+            DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
             (uint32_t)RecvPacket->BufferLength,
@@ -1605,9 +1605,10 @@ Drop: ;
     int32_t RetryCount = 0;
     do {
         Status = CxPlatSocketContextPrepareReceive(SocketContext);
-    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
 
     if (!QUIC_SUCCEEDED(Status)) {
+        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",

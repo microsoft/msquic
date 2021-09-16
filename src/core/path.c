@@ -283,6 +283,6 @@ QuicPathSetActive(
         UdpPortChangeOnly);
 
     if (!UdpPortChangeOnly) {
-        QuicCongestionControlReset(&Connection->CongestionControl);
+        QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
 }

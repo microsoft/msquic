@@ -22,6 +22,12 @@ Environment:
 #include <wincrypt.h>
 #include "msquic.h"
 
+#ifdef QUIC_RESTRICTED_BUILD
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
+#endif
+
 typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;
     BCRYPT_PSS_PADDING_INFO Pss;
@@ -577,7 +583,7 @@ CxPlatCertSelect(
     // Low byte of SignatureAlgorithms[] is the TLS SignatureAlgorithm:
     //  anonymous(0), rsa(1), dsa(2), ecdsa(3)
     //
-    
+
     PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
 
     if (CertCtx == NULL) {
@@ -860,12 +866,14 @@ CxPlatCertValidateChain(
     _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
     _In_ uint32_t CertFlags,
-    _In_ uint32_t IgnoreFlags
+    _In_ uint32_t IgnoreFlags,
+    _Out_opt_ uint32_t* ValidationError
     )
 {
     BOOLEAN Result = FALSE;
     PCCERT_CHAIN_CONTEXT ChainContext = NULL;
     LPWSTR ServerName = NULL;
+    DWORD Error = NO_ERROR;
 
     PCCERT_CONTEXT LeafCertCtx = (PCCERT_CONTEXT)Certificate;
 
@@ -876,6 +884,10 @@ CxPlatCertValidateChain(
         szOID_SERVER_GATED_CRYPTO,
         szOID_SGC_NETSCAPE
     };
+
+    if (ValidationError != NULL) {
+        *ValidationError = NO_ERROR;
+    }
 
     memset(&ChainPara, 0, sizeof(ChainPara));
     ChainPara.cbSize = sizeof(ChainPara);
@@ -892,10 +904,11 @@ CxPlatCertValidateChain(
             CertFlags,
             NULL,
             &ChainContext)) {
+        Error = GetLastError();
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            GetLastError(),
+            Error,
             "CertGetCertificateChain failed");
         goto Exit;
     }
@@ -916,12 +929,13 @@ CxPlatCertValidateChain(
         }
     }
 
-    Result =
-        NO_ERROR ==
+    Error =
         CxPlatCertVerifyCertChainPolicy(
             ChainContext,
             ServerName,
             IgnoreFlags);
+
+    Result = NO_ERROR == Error;
 
 Exit:
 
@@ -930,6 +944,9 @@ Exit:
     }
     if (ServerName != NULL) {
         CXPLAT_FREE(ServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+    if (ValidationError != NULL && !Result) {
+        *ValidationError = (uint32_t)Error;
     }
 
     return Result;

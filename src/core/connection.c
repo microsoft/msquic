@@ -1964,7 +1964,7 @@ QuicConnRestart(
         QuicPacketSpaceReset(Connection->Packets[i]);
     }
 
-    QuicCongestionControlReset(&Connection->CongestionControl);
+    QuicCongestionControlReset(&Connection->CongestionControl, TRUE);
     QuicSendReset(&Connection->Send);
     QuicLossDetectionReset(&Connection->LossDetection);
     QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
@@ -4711,6 +4711,7 @@ QuicConnRecvFrames(
                 QUIC_PATH* TempPath = &Connection->Paths[i];
                 if (!TempPath->IsPeerValidated &&
                     !memcmp(Frame.Data, TempPath->Challenge, sizeof(Frame.Data))) {
+                    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_VALIDATED);
                     QuicPathSetValid(Connection, TempPath, QUIC_PATH_VALID_PATH_RESPONSE);
                     break;
                 }
