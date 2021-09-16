@@ -32,6 +32,8 @@ if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
 # Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
 
+$Session = $null
+
 if (!$SkipRemote) {
     if ($Remote -eq "") {
         if ($WinRMUser -ne "") {
