@@ -68,6 +68,7 @@ QuicPathRemove(
     }
 
     Connection->PathsCount--;
+    CXPLAT_DBG_ASSERT(Connection->PathsCount != 0);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -283,6 +284,8 @@ QuicPathSetActive(
         UdpPortChangeOnly);
 
     if (!UdpPortChangeOnly) {
-        QuicCongestionControlReset(&Connection->CongestionControl);
+        QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
+    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
+    CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
 }

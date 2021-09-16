@@ -611,7 +611,7 @@ CxPlatGetAllocFailDenominator(
 }
 #endif
 
-#if defined(QUIC_UWP_BUILD) || defined(QUIC_GAMECORE_BUILD)
+#if defined(QUIC_RESTRICTED_BUILD)
 DWORD
 CxPlatProcActiveCount(
     )
@@ -627,7 +627,7 @@ CxPlatProcActiveCount(
 
     Count = 0;
     for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count +=  ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
+        Count += ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
     }
     CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
     CXPLAT_DBG_ASSERT(Count != 0);
@@ -649,7 +649,7 @@ CxPlatProcMaxCount(
 
     Count = 0;
     for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count +=  ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
+        Count += ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
     }
     CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
     CXPLAT_DBG_ASSERT(Count != 0);

@@ -27,11 +27,11 @@ extern "C" {
 // Decoder Ring for InvalidCongestionControlAlgorithm
 // [conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic
 // QuicTraceLogConnWarning(
-                InvalidCongestionControlAlgorithm,
-                Connection,
-                "Unknown congestion control algorithm: %d, fallback to Cubic",
-                Settings->CongestionControlAlgorithm);
-// arg1 = arg1 = Connection
+            InvalidCongestionControlAlgorithm,
+            QuicCongestionControlGetConnection(Cc),
+            "Unknown congestion control algorithm: %d, fallback to Cubic",
+            Settings->CongestionControlAlgorithm);
+// arg1 = arg1 = QuicCongestionControlGetConnection(Cc)
 // arg3 = arg3 = Settings->CongestionControlAlgorithm
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_InvalidCongestionControlAlgorithm(uniqueId, arg1, encoded_arg_string, arg3)\

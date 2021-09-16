@@ -42,6 +42,51 @@ typedef struct CXPLAT_STORAGE {
 
 } CXPLAT_STORAGE;
 
+#ifdef QUIC_RESTRICTED_BUILD
+WINADVAPI
+LSTATUS
+APIENTRY
+RegNotifyChangeKeyValue(
+    _In_ HKEY hKey,
+    _In_ BOOL bWatchSubtree,
+    _In_ DWORD dwNotifyFilter,
+    _In_opt_ HANDLE hEvent,
+    _In_ BOOL fAsynchronous
+    );
+#endif
+
+#ifdef QUIC_UWP_BUILD
+WINADVAPI
+LSTATUS
+APIENTRY
+RegOpenKeyExA(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _In_opt_ DWORD ulOptions,
+    _In_ REGSAM samDesired,
+    _Out_ PHKEY phkResult
+    );
+
+WINADVAPI
+LSTATUS
+APIENTRY
+RegCloseKey(
+    _In_ HKEY hKey
+    );
+
+WINADVAPI
+LSTATUS
+APIENTRY
+RegQueryValueExA(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpValueName,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
+    );
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
