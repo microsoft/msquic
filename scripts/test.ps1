@@ -61,6 +61,9 @@ This script provides helpers for running executing the MsQuic tests.
 .Parameter AZP
     Runs in Azure Pipelines mode.
 
+.Parameter ErrorsAsWarnings
+    Treats all errors as warnings.
+
 .EXAMPLE
     test.ps1
 
@@ -145,7 +148,10 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SkipUnitTests = $false
+    [switch]$SkipUnitTests = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ErrorsAsWarnings = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -288,6 +294,9 @@ if ($CodeCoverage) {
 }
 if ($AZP) {
     $TestArguments += " -AZP"
+}
+if ($ErrorsAsWarnings) {
+    $TestArguments += " -ErrorsAsWarnings"
 }
 
 # Run the script.

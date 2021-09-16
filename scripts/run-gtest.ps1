@@ -53,6 +53,9 @@ as necessary.
 .Parameter AZP
     Runs in Azure Pipelines mode.
 
+.Parameter ErrorsAsWarnings
+    Treats all errors as warnings.
+
 #>
 
 param (
@@ -107,7 +110,10 @@ param (
     [String]$PfxPath = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ErrorsAsWarnings = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -133,7 +139,11 @@ function LogWrn($msg) {
 
 function LogErr($msg) {
     if ($AZP) {
-        Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+        if ($ErrorsAsWarnings) {
+            Write-Host "##vso[task.logissue type=warning;][$(Get-Date)] $msg"
+        } else {
+            Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+        }
     } else {
         Write-Host "[$(Get-Date)] $msg"
     }
@@ -708,7 +718,11 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Output can be found in $($LogDir)"
-        Write-Error "$($TestsFailed) test(s) failed."
+        if ($ErrorsAsWarnings) {
+            Write-Host "$($TestsFailed) test(s) failed."
+        } else {
+            Write-Error "$($TestsFailed) test(s) failed."
+        }
     } elseif ($AZP -and $TestCount -eq 0) {
         Write-Error "Failed to run any tests."
     } else {
