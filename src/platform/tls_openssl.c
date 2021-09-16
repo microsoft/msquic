@@ -856,7 +856,7 @@ CXPLAT_STATIC_ASSERT(
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ RSA** EvpPrivateKey,
+    _Out_ EVP_PKEY** EvpPrivateKey,
     _Out_ X509** X509Cert);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -962,7 +962,7 @@ CxPlatTlsSecConfigCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
-    RSA* RsaKey = NULL;
+    EVP_PKEY* PrivKey = NULL;
     X509* X509Cert = NULL;
     EVP_PKEY * PrivateKey = NULL;
     char* CipherSuiteString = NULL;
@@ -1326,22 +1326,22 @@ CxPlatTlsSecConfigCreate(
         Status =
             CxPlatTlsExtractPrivateKey(
                 CredConfig,
-                &RsaKey,
+                &PrivKey,
                 &X509Cert);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
 
         Ret =
-            SSL_CTX_use_RSAPrivateKey(
+            SSL_CTX_use_PrivateKey(
                 SecurityConfig->SSLCtx,
-                RsaKey);
+                PrivKey);
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 ERR_get_error(),
-                "SSL_CTX_use_RSAPrivateKey_file failed");
+                "SSL_CTX_use_PrivateKey failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -1451,8 +1451,8 @@ Exit:
         X509_free(X509Cert);
     }
 
-    if (RsaKey != NULL) {
-        RSA_free(RsaKey);
+    if (PrivKey != NULL) {
+        EVP_PKEY_free(PrivKey);
     }
 
     if (PrivateKey != NULL) {
