@@ -213,13 +213,13 @@ QuicTestDatagramSend(
                         nullptr));
 
                 uint32_t Tries = 0;
-                while (Client.GetDatagramsSent() != 1 && Tries < 10) {
+                while (Client.GetDatagramsSent() != 1 && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(1, Client.GetDatagramsSent());
 
                 Tries = 0;
-                while (Client.GetDatagramsAcknowledged() != 1 && Tries < 10) {
+                while (Client.GetDatagramsAcknowledged() != 1 && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
@@ -236,13 +236,13 @@ QuicTestDatagramSend(
                         nullptr));
 
                 Tries = 0;
-                while (Client.GetDatagramsSent() != 2 && Tries < 10) {
+                while (Client.GetDatagramsSent() != 2 && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(2, Client.GetDatagramsSent());
 
                 Tries = 0;
-                while (Client.GetDatagramsSuspectLost() != 1 && Tries < 10) {
+                while (Client.GetDatagramsSuspectLost() != 1 && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
