@@ -17,11 +17,14 @@
   <Target Name="msquic_AfterBuild" AfterTargets="AfterBuild" />
   <Target Name="msquic_AfterBuild_win32" Label="Win32" Condition="'$(Platform.ToLower())' == 'win32'" AfterTargets="msquic_AfterBuild">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/x86/msquic.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/x86/msquic.dll" DestinationFolder="$(TargetDir)/AppX" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="msquic_AfterBuild_x64" Label="x64" Condition="'$(Platform.ToLower())' == 'x64'" AfterTargets="msquic_AfterBuild">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/x64/msquic.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/x64/msquic.dll" DestinationFolder="$(TargetDir)/AppX" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="msquic_AfterBuild_arm64" Label="arm64" Condition="'$(Platform.ToLower())' == 'arm64'" AfterTargets="msquic_AfterBuild">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/arm64/msquic.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/arm64/msquic.dll" DestinationFolder="$(TargetDir)/AppX" SkipUnchangedFiles="true" />
   </Target>
 </Project>
