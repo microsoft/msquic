@@ -569,7 +569,7 @@ function GetTestCases {
 
 function Get-WindowsKitTool {
     param (
-        [string]$Arch = "x64",
+        [string]$Arch = "x86",
         [Parameter(Mandatory = $true)]
         [string]$Tool
     )
