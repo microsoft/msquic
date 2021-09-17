@@ -404,12 +404,7 @@ if(WIN32)
 
         set(Console_ArchOptions /favor:AMD64)
 
-        if (QUIC_SCARLETT_BUILD)
-            list(APPEND Console_ArchOptions /arch:AVX2 /d2vzeroupper)
-            set(Console_ArchOptions_LTCG /d2:-vzeroupper)
-        else()
-            list(APPEND Console_ArchOptions /arch:AVX)
-        endif()
+        list(APPEND Console_ArchOptions /arch:AVX)
 
         # Locate Software Development Kits
         get_filename_component(Console_SdkRoot "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\GDK;InstallPath]" ABSOLUTE CACHE)
@@ -432,8 +427,9 @@ if(WIN32)
                         set(GxdkRuntimeLib "${GxdkLibDirectory}/xgameplatform.lib")
                         if (EXISTS ${GxdkRuntimeLib})
                             get_filename_component(PotentialXdkEditionTarget ${GdkFolder} NAME)
-                            # Always select lowest version
-                            if (PotentialXdkEditionTarget LESS XdkEditionTarget)
+                            # Always select lowest version equal or higher than 211000
+                            if (PotentialXdkEditionTarget LESS XdkEditionTarget AND
+                                PotentialXdkEditionTarget GREATER_EQUAL 211000)
                                 set(XdkEditionTarget ${PotentialXdkEditionTarget})
                                 set(Console_EndpointLibRoot "${GxdkLibDirectory}")
                             endif()
@@ -474,8 +470,8 @@ if(WIN32)
     # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 ${Console_ArchOptions_LTCG} /DEBUG /OPT:REF /OPT:ICF")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 ${Console_ArchOptions_LTCG} /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
 
     # Configure PGO linker flags.
     set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/msquic.pgd")
