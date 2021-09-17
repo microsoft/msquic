@@ -116,6 +116,7 @@ Environment:
 #define QUIC_STATUS_REVOKED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(44)   // Revoked Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)   // Expired Certificate
 #define QUIC_STATUS_UNKNOWN_CERTIFICATE     QUIC_STATUS_TLS_ALERT(46)   // Unknown Certificate
+#define QUIC_STATUS_REQUIRED_CERTIFICATE    QUIC_STATUS_TLS_ALERT(116)  // Required Certificate
 
 #define QUIC_STATUS_CERT_EXPIRED            CERT_E_EXPIRED
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     CERT_E_UNTRUSTEDROOT
@@ -297,7 +298,13 @@ QuicAddrHash(
 
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
+//
+// Rtl String API's are not allowed in gamecore
+//
+#if WINAPI_FAMILY != WINAPI_FAMILY_GAMES
+
 inline
+_Success_(return != FALSE)
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
@@ -324,6 +331,7 @@ typedef struct QUIC_ADDR_STR {
 } QUIC_ADDR_STR;
 
 inline
+_Success_(return != FALSE)
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
@@ -350,5 +358,7 @@ QuicAddrToString(
     }
     return Status == NO_ERROR;
 }
+
+#endif // WINAPI_FAMILY != WINAPI_FAMILY_GAMES
 
 #endif // _MSQUIC_WINUSER_

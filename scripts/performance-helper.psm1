@@ -282,6 +282,12 @@ function Get-ExeName {
 
 function Remove-PerfServices {
     if ($IsWindows) {
+        if ($null -ne (Get-Process -Name "secnetperf" -ErrorAction Ignore)) {
+            try {
+                Stop-Process -Name "secnetperf" -Force | Out-Null
+            }
+            catch {}
+        }
         if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
             try {
                 net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -298,6 +304,12 @@ function Remove-PerfServices {
         }
 
         Invoke-TestCommand -Session $Session -ScriptBlock {
+            if ($null -ne (Get-Process -Name "secnetperf" -ErrorAction Ignore)) {
+                try {
+                    Stop-Process -Name "secnetperf" -Force | Out-Null
+                }
+                catch {}
+            }
             if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {
                     net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -358,13 +370,16 @@ function Invoke-RemoteExe {
             net.exe start msquicpriv
         }
 
-        & $Exe ($RunArgs).Split(" ")
-
-        # Uninstall the kernel mode test driver and revert the msquic driver.
-        if ($Kernel) {
-            net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete secnetperfdrvpriv | Out-Null
-            sc.exe delete msquicpriv | Out-Null
+        try {
+            & $Exe ($RunArgs).Split(" ")
+        } finally {
+            # Uninstall the kernel mode test drivers.
+            if ($Kernel) {
+                net.exe stop secnetperfdrvpriv /y | Out-Null
+                net.exe stop msquicpriv /y | Out-Null
+                sc.exe delete secnetperfdrvpriv | Out-Null
+                sc.exe delete msquicpriv | Out-Null
+            }
         }
 
         if ($Record) {
@@ -507,11 +522,17 @@ function Invoke-LocalExe {
 
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
-    $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
+    $LocalJob = $null
 
-    # Wait for the job to finish
-    Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
-    Stop-Job -Job $LocalJob | Out-Null
+    try {
+        $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
+    } finally {
+        if ($null -ne $LocalJob) {
+            # Wait for the job to finish
+            Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
+            Stop-Job -Job $LocalJob | Out-Null
+        }
+    }
 
     $RetVal = Receive-Job -Job $LocalJob
 

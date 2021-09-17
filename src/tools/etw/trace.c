@@ -296,6 +296,18 @@ QuicTraceGlobalEvent(
             case QUIC_PERF_COUNTER_WORK_OPER_COMPLETED:
                 printf("    Total worker operations processed ever:             ");
                 break;
+            case QUIC_PERF_COUNTER_PATH_VALIDATED:
+                printf("    Total path challenges that succeed ever:            ");
+                break;
+            case QUIC_PERF_COUNTER_PATH_FAILURE:
+                printf("    Total path challenges that fail ever:               ");
+                break;
+            case QUIC_PERF_COUNTER_SEND_STATELESS_RESET:
+                printf("    Total stateless reset packets sent ever:            ");
+                break;
+            case QUIC_PERF_COUNTER_SEND_STATELESS_RETRY:
+                printf("    Total stateless retry packets sent ever:            ");
+                break;
             default:
                 printf("    Unknown:                                            ");
                 break;

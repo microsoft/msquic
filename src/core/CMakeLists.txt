@@ -18,6 +18,7 @@ set(SOURCES
     connection.c
     crypto.c
     crypto_tls.c
+    cubic.c
     datagram.c
     frame.c
     library.c

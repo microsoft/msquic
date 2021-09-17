@@ -966,6 +966,8 @@ QuicBindingProcessStatelessOperation(
                 QUIC_STATELESS_RESET_TOKEN_LENGTH
             ).Buffer);
 
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_SEND_STATELESS_RESET);
+
     } else if (OperationType == QUIC_OPER_TYPE_RETRY) {
 
         CXPLAT_DBG_ASSERT(RecvPacket->DestCid != NULL);
@@ -1048,6 +1050,8 @@ QuicBindingProcessStatelessOperation(
             QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
+
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_SEND_STATELESS_RETRY);
 
     } else {
         CXPLAT_TEL_ASSERT(FALSE); // Should be unreachable code.
@@ -1433,7 +1437,6 @@ QuicBindingDeliverDatagrams(
     // For long header packets for server owned bindings, the packet's DestCid
     // was not necessarily generated locally, so cannot be used for routing.
     // Instead, a hash of the tuple and source connection ID (SourceCid) is
-
     // used.
     //
     // The exact type of lookup table associated with the binding varies on the

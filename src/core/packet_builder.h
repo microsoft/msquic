@@ -224,7 +224,7 @@ QuicPacketBuilderHasAllowance(
 {
     return
         Builder->SendAllowance > 0 ||
-        Builder->Connection->CongestionControl.Exemptions > 0;
+        QuicCongestionControlGetExemptions(&Builder->Connection->CongestionControl) > 0;
 }
 
 //

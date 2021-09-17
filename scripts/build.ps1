@@ -108,7 +108,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
+    [ValidateSet("gamecore-durango", "gamecore-scarlett", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -216,6 +216,16 @@ if ($Generator -eq "") {
 
 if (!$IsWindows -And $Platform -eq "uwp") {
     Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
+    exit
+}
+
+if (!$IsWindows -And ($Platform -eq "gamecore-durango" -or $Platform -eq "gamecore-scarlett")) {
+    Write-Error "[$(Get-Date)] Cannot build gamecore on non windows platforms"
+    exit
+}
+
+if ($Arch -ne "x64" -And ($Platform -eq "gamecore-durango" -or $Platform -eq "gamecore-scarlett")) {
+    Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
     exit
 }
 
@@ -343,6 +353,13 @@ function CMake-Generate {
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
+    # On gamecore, only the main binary can be built.
+    if ($Platform -eq "gamecore-durango") {
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
+    }
+    if ($Platform -eq "gamecore-scarlett") {
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_SCARLETT_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
+    }
     if ($ToolchainFile -ne "") {
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
     }
@@ -434,6 +451,15 @@ function CMake-Build {
                 }
             } else {
                 Log "Failed to find VC Tools path!"
+            }
+        }
+    }
+    # Package debug symbols on macos
+    if ($Platform -eq "macos") {
+        $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File
+        foreach ($Artifact in $BuiltArtifacts) {
+            if (Test-Path $Artifact) {
+                dsymutil $Artifact
             }
         }
     }

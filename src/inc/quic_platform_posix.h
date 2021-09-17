@@ -209,7 +209,9 @@ InterlockedIncrement64(
 __attribute__((noinline, noreturn))
 void
 quic_bugcheck(
-    void
+    _In_z_ const char* File,
+    _In_ int Line,
+    _In_z_ const char* Expr
     );
 
 void
@@ -222,7 +224,7 @@ CxPlatLogAssert(
 #define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X, Y);
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
-#define CXPLAT_FRE_ASSERT(exp) ((exp) ? (void)0 : (CxPlatLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck()));
+#define CXPLAT_FRE_ASSERT(exp) ((exp) ? (void)0 : (CxPlatLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck(__FILE__, __LINE__, #exp)));
 #define CXPLAT_FRE_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 
 #ifdef DEBUG

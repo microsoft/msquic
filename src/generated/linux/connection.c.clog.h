@@ -1070,21 +1070,21 @@ tracepoint(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete , arg1);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived
+#ifndef _clog_3_ARGS_TRACE_IndicateResumed
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for IndicateResumptionTicketReceived
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
+// Decoder Ring for IndicateResumed
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED
 // QuicTraceLogConnVerbose(
-            IndicateResumptionTicketReceived,
+            IndicateResumed,
             Connection,
-            "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
+            "Indicating QUIC_CONNECTION_EVENT_RESUMED");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
+#define _clog_3_ARGS_TRACE_IndicateResumed(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicateResumed , arg1);\
 
 #endif
 
@@ -1105,6 +1105,7 @@ tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
 
 #endif
 
@@ -3798,31 +3799,6 @@ tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
 // arg3 = arg3 = "UpdateMaxAckDelay is less than TimerResolution"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidRemoved
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
-// QuicTraceEvent(
-                            ConnSourceCidRemoved,
-                            "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                            Connection,
-                            NextSourceCid->CID.SequenceNumber,
-                            CASTED_CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = NextSourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnSourceCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-tracepoint(CLOG_CONNECTION_C, ConnSourceCidRemoved , arg2, arg3, arg4_len, arg4);\
 
 #endif
 

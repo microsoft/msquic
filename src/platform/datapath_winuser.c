@@ -955,7 +955,7 @@ CxPlatDataPathInitialize(
             goto Error;
         }
 
-#ifdef QUIC_UWP_BUILD
+#if defined(QUIC_RESTRICTED_BUILD)
         SetThreadDescription(Datapath->Processors[i].CompletionThread, L"cxplat_datapath");
 #else
         THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
@@ -3326,9 +3326,10 @@ Drop:
     QUIC_STATUS Status;
     do {
         Status = CxPlatSocketStartReceive(SocketProc, DatapathProc);
-    } while (!QUIC_SUCCEEDED(Status) && RetryCount < 10);
+    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
 
     if (!QUIC_SUCCEEDED(Status)) {
+        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",

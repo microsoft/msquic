@@ -122,7 +122,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncConfiguration,
+    _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage
@@ -241,6 +241,9 @@ QuicTestConnect(
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
+                        if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                            CxPlatSleep(1000);
+                        }
                         TEST_QUIC_SUCCEEDED(
                             Server->SetConfiguration(ServerConfiguration));
                     }
@@ -486,7 +489,7 @@ QuicTestPathValidationTimeout(
                 QuicAddr OrigLocalAddr;
                 TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
                 QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                CxPlatSleep(100);
+                CxPlatSleep(200);
 
                 ReplaceAddressThenDropHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr, 1);
                 TEST_FALSE(Client.GetIsShutdown());
@@ -2110,13 +2113,16 @@ QuicTestConnectClientCertificate(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+            if (!UseClientCertificate) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
+            }
             Listener.Context = &ServerAcceptCtx;
 
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 if (!UseClientCertificate) {
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_REQUIRED_CERTIFICATE);
                 }
 
                 TEST_QUIC_SUCCEEDED(
@@ -2130,15 +2136,12 @@ QuicTestConnectClientCertificate(
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
-                TEST_EQUAL(UseClientCertificate, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 if (UseClientCertificate) {
                     if (!Server->WaitForConnectionComplete()) {
                         return;
                     }
-                } else {
-                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
                 }
                 TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
             }
@@ -2276,6 +2279,7 @@ QuicTestConnectExpiredServerCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_EXPIRED_CERTIFICATE;
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2297,7 +2301,6 @@ QuicTestConnectExpiredServerCertificate(
                 TEST_EQUAL(false, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_EXPIRED_CERTIFICATE);
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }

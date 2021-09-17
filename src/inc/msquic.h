@@ -357,6 +357,11 @@ typedef enum QUIC_CIPHER_SUITE {
     QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256  = 0x1303, // Not supported on Schannel
 } QUIC_CIPHER_SUITE;
 
+typedef enum QUIC_CONGESTION_CONTROL_ALGORITHM {
+    QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC,
+    QUIC_CONGESTION_CONTROL_ALGORITHM_MAX,
+} QUIC_CONGESTION_CONTROL_ALGORITHM;
+
 //
 // All the available information describing a handshake.
 //
@@ -459,6 +464,10 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH,// Current worker operations queued.
     QUIC_PERF_COUNTER_WORK_OPER_QUEUED,     // Total worker operations queued ever.
     QUIC_PERF_COUNTER_WORK_OPER_COMPLETED,  // Total worker operations processed ever.
+    QUIC_PERF_COUNTER_PATH_VALIDATED,       // Total path challenges that succeed ever.
+    QUIC_PERF_COUNTER_PATH_FAILURE,         // Total path challenges that fail ever.
+    QUIC_PERF_COUNTER_SEND_STATELESS_RESET, // Total stateless reset packets sent ever.
+    QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
@@ -501,7 +510,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t MaxBindingStatelessOperations          : 1;
             uint64_t StatelessOperationExpirationMs         : 1;
-            uint64_t RESERVED                               : 30;
+            uint64_t CongestionControlAlgorithm             : 1;
+            uint64_t RESERVED                               : 29;
         } IsSet;
     };
 
@@ -541,6 +551,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t MtuDiscoveryMissingProbeCount;
     uint16_t MaxBindingStatelessOperations;
     uint16_t StatelessOperationExpirationMs;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CongestionControlAlgorithm;
 
 } QUIC_SETTINGS;
 
@@ -951,7 +962,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } RESUMPTION_TICKET_RECEIVED;
         struct {
             QUIC_CERTIFICATE* Certificate;      // Peer certificate (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
-            uint32_t DeferredErrorFlags;        // Bit flag of errors (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
+            uint32_t DeferredErrorFlags;        // Bit flag of errors (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) - Schannel only, zero otherwise.
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
