@@ -48,9 +48,6 @@ Environment:
 
 static int CGroupVersion = 0;
 static char* CGroupMemoryPath = NULL;
-static const char* CGroupMemStatKeyNames[4];
-static size_t CGroupMemStatKeyLengths[4];
-static size_t CGroupMemStatNKeys = 0;
 
 //
 // Get memory size multiplier based on the passed in units (k = kilo, m = mega, g = giga)
@@ -158,9 +155,7 @@ FindCGroupVersion(
     switch (Stats.f_type) {
         case TMPFS_MAGIC: return 1;
         case CGROUP2_SUPER_MAGIC: return 2;
-        default:
-            CXPLAT_DBG_ASSERTMSG(FALSE, "Unexpected file system type for /sys/fs/cgroup");
-            return 0;
+        default: return 0;
     }
 }
 
@@ -211,7 +206,6 @@ FindHierarchyMount(
                                 FilesystemType,
                                 Options);
         if (SscanfRet != 2) {
-            CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
             goto Done;
         }
 
@@ -242,7 +236,6 @@ FindHierarchyMount(
                         MountRoot,
                         MountPath);
                 if (SscanfRet != 2) {
-                    CXPLAT_DBG_ASSERTMSG(FALSE, "Failed to parse mount info file contents with sscanf.");
                     goto Done;
                 }
 
@@ -313,18 +306,14 @@ FindCGroupPathForSubsystem(
                                     "%*[^:]:%[^:]:%s",
                                     SubsystemList,
                                     CGroupPath);
-            if (SscanfRet != 2)
-            {
-                assert(!"Failed to parse cgroup info file contents with sscanf.");
+            if (SscanfRet != 2) {
                 goto Done;
             }
 
             char* Context = NULL;
             char* StrTok = strtok_r(SubsystemList, ",", &Context);
-            while (StrTok != NULL)
-            {
-                if (IsSubsystem(StrTok))
-                {
+            while (StrTok != NULL) {
+                if (IsSubsystem(StrTok)) {
                     Result = TRUE;
                     break;
                 }
@@ -340,7 +329,6 @@ FindCGroupPathForSubsystem(
                 Result = TRUE;
             }
         } else {
-            CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version in mountinfo.");
             goto Done;
         }
     }
@@ -473,23 +461,6 @@ CGroupInitialize(
 {
     CGroupVersion = FindCGroupVersion();
     CGroupMemoryPath = FindCGroupPath(CGroupVersion == 1 ? &IsCGroup1MemorySubsystem : NULL);
-
-    if (CGroupVersion == 1) {
-        CGroupMemStatNKeys = 4;
-        CGroupMemStatKeyNames[0] = "total_inactive_anon ";
-        CGroupMemStatKeyNames[1] = "total_active_anon ";
-        CGroupMemStatKeyNames[2] = "total_dirty ";
-        CGroupMemStatKeyNames[3] = "total_unevictable ";
-    } else {
-        CGroupMemStatNKeys = 3;
-        CGroupMemStatKeyNames[0] = "anon ";
-        CGroupMemStatKeyNames[1] = "file_dirty ";
-        CGroupMemStatKeyNames[2] = "unevictable ";
-    }
-
-    for (size_t i = 0; i < CGroupMemStatNKeys; i++) {
-        CGroupMemStatKeyLengths[i] = strlen(CGroupMemStatKeyNames[i]);
-    }
 }
 
 static
@@ -508,16 +479,12 @@ GetCGroupRestrictedMemoryLimit(
     _Out_ uint64_t* MemLimit
     )
 {
-    if (CGroupVersion == 0) {
-        return FALSE;
-    }
     if (CGroupVersion == 1) {
         return GetCGroupMemoryLimit(CGROUP1_MEMORY_LIMIT_FILENAME, MemLimit);
     }
     if (CGroupVersion == 2) {
         return GetCGroupMemoryLimit(CGROUP2_MEMORY_LIMIT_FILENAME, MemLimit);
     }
-    CXPLAT_DBG_ASSERTMSG(FALSE, "Unknown cgroup version");
     return FALSE;
 }
 
