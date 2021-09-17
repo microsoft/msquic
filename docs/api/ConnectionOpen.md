@@ -60,3 +60,5 @@ Once the connection has been shutdown, it must be cleaned up with a call to [Con
 [ConnectionClose](ConnectionClose.md)<br>
 [ConnectionShutdown](ConnectionShutdown.md)<br>
 [ConnectionStart](ConnectionStart.md)<br>
+[QUIC_CONNECTION_CALLBACK](QUIC_CONNECTION_CALLBACK.md)<br>
+[QUIC_CONNECTION_EVENT](QUIC_CONNECTION_EVENT.md)<br>

@@ -1186,6 +1186,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicateResumed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED",
+      "UniqueId": "IndicateResumed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "IndicateResumptionTicketReceived": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED",
@@ -11139,6 +11151,10 @@
       {
         "UniquenessHash": "f8280555-5057-232c-bc7d-b3cdd8f840f5",
         "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "8c1a717b-f814-d6d9-3f2e-f1987be847d6",
+        "TraceID": "IndicateResumed"
       },
       {
         "UniquenessHash": "920800a1-3a54-af40-19d9-fdfaf274a6d4",
