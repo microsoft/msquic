@@ -226,40 +226,24 @@ else()
 
     include(CheckSymbolExists)
     include(CheckFunctionExists)
+    include(CheckIncludeFile)
     check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
     check_function_exists(sysconf HAS_SYSCONF)
 
     if (CX_PLATFORM STREQUAL "linux")
         include(CheckCCompilerFlag)
 
-        check_c_source_compiles(
-            "
-            #include <netinet/udp.h>
-            int main() { return UDP_SEGMENT; }
-            "
-            HAS_UDP_SEGMENT)
+        check_symbol_exists(UDP_SEGMENT netinet/udp.h HAS_UDP_SEGMENT)
         if (NOT HAS_UDP_SEGMENT)
             message(STATUS "UDP_SEGMENT is missing. Send performance will be reduced")
         endif()
 
-        check_c_source_compiles(
-            "
-            #include <sys/socket.h>
-            int main() { return SO_ATTACH_REUSEPORT_CBPF; }
-            "
-            HAS_SO_ATTACH_REUSEPORT_CBPF)
+        check_symbol_exists(SO_ATTACH_REUSEPORT_CBPF sys/socket.h HAS_SO_ATTACH_REUSEPORT_CBPF)
         if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
             message(STATUS "SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
         endif()
 
-        check_c_source_compiles(
-            "
-            #define _GNU_SOURCE
-            #include <sys/socket.h>
-            #include <stddef.h>
-            int main() { return sendmmsg(0, NULL, 0, 0); }
-            "
-            HAS_SENDMMSG)
+        check_function_exists(sendmmsg HAS_SENDMMSG)
         if(NOT HAS_SENDMMSG)
             message(STATUS "sendmmsg is missing. Send performance will be reduced")
         endif()
@@ -275,18 +259,18 @@ else()
             endif()
         endif()
 
+        if (QUIC_ENABLE_LOGGING)
+            check_include_file(lttng/ust-config.h HAS_LTTNG)
+            if (NOT HAS_LTTNG)
+                message(STATUS "LTTng logging not found. Disabling logging")
+                set(QUIC_ENABLE_LOGGING OFF)
+            endif()
+        endif()
+
         # Check to see if lttng will work
         if(QUIC_ENABLE_LOGGING)
-            check_c_source_compiles(
-                "
-                #include <lttng/ust-config.h>
-                #ifdef LTTNG_UST_HAVE_SDT_INTEGRATION
-                #error \"SDT is enabled\"
-                #endif
-                int main() { return 0; }
-                "
-                HAS_LTTNG_WITHOUT_SDT)
-            if(NOT HAS_LTTNG_WITHOUT_SDT)
+            check_symbol_exists(LTTNG_UST_HAVE_SDT_INTEGRATION lttng/ust-config.h HAS_LTTNG_SDT)
+            if(HAS_LTTNG_SDT)
                 message(WARNING "LTTng with SDT integration does not work. Disabling logging")
                 set(QUIC_ENABLE_LOGGING OFF)
             endif()
