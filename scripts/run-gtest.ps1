@@ -567,6 +567,42 @@ function GetTestCases {
     $Tests.ToArray()
 }
 
+function Get-WindowsKitTool {
+    param (
+        [string]$Arch = "x64",
+        [Parameter(Mandatory = $true)]
+        [string]$Tool
+    )
+
+    $KitBinRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+    if (!(Test-Path $KitBinRoot)) {
+        Write-Error "Windows Kit Binary Folder not Found"
+        return ""
+    }
+
+    $FoundToolPath = $null
+    $FoundToolVersion = "0"
+
+    $Subfolders = Get-ChildItem -Path $KitBinRoot -Directory
+    foreach ($Subfolder in $Subfolders) {
+        $ToolPath = Join-Path $Subfolder "$Arch\$Tool"
+        if (Test-Path $ToolPath) {
+            $KitVersion = $Subfolder.Name
+
+            if ($KitVersion -gt $FoundToolVersion) {
+                $FoundToolVersion = $KitVersion
+                $FoundToolPath = $ToolPath
+            }
+        }
+    }
+
+    if ($null -ne $FoundToolPath) {
+        return $FoundToolPath
+    }
+    Write-Error "Failed to find tool"
+    return $null
+}
+
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
@@ -625,9 +661,12 @@ if ($Kernel -ne "") {
     }
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
+
+    $SignTool = Get-WindowsKitTool -Tool "signtool.exe"
+
     if (Test-Path c:\CodeSign.pfx) {
-        & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
-        & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
+        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
+        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
     }
     sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
     if ($LastExitCode) {
