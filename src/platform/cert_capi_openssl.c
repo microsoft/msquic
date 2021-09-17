@@ -120,6 +120,7 @@ CxPlatTlsExtractPrivateKey(
 {
     QUIC_CERTIFICATE* Cert = NULL;
     BYTE* KeyData = NULL;
+    BIO* Pkcs8Bio = NULL;
     EVP_PKEY* PKey = NULL;
     DWORD KeyLength = 0;
     NCRYPT_KEY_HANDLE KeyHandle = 0;
@@ -241,7 +242,7 @@ CxPlatTlsExtractPrivateKey(
         goto Exit;
     }
 
-    BIO* Pkcs8Bio = BIO_new_mem_buf(KeyData, KeyLength);
+    Pkcs8Bio = BIO_new_mem_buf(KeyData, KeyLength);
     if (Pkcs8Bio == NULL) {
         QuicTraceEvent(
             LibraryError,
@@ -254,8 +255,9 @@ CxPlatTlsExtractPrivateKey(
     PKey = d2i_PKCS8PrivateKey_bio(Pkcs8Bio, NULL, NULL, NULL);
     if (PKey == NULL) {
         QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_peek_error(),
             "d2i_PKCS8PrivateKey_bio failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -274,6 +276,10 @@ Exit:
 
     if (PKey != NULL) {
         EVP_PKEY_free(PKey);
+    }
+
+    if (Pkcs8Bio != NULL) {
+        BIO_free(Pkcs8Bio);
     }
 
     if (KeyData != NULL) {
