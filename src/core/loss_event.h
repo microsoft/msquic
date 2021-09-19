@@ -5,8 +5,6 @@
 
 --*/
 
-#pragma once
-
 typedef struct QUIC_LOSS_EVENT {
 
     uint64_t LargestPacketNumberLost;

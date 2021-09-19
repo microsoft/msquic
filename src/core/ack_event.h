@@ -5,8 +5,6 @@
 
 --*/
 
-#pragma once
-
 typedef struct QUIC_ACK_EVENT {
 
     uint64_t TimeNow; // microsecond
