@@ -347,23 +347,20 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CubicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t TimeNow, // microsecond
-    _In_ uint64_t LargestPacketNumberAcked,
-    _In_ uint32_t NumRetransmittableBytes,
-    _In_ uint32_t SmoothedRtt
+    _In_ const QUIC_ACK_EVENT* AckEvent
     )
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
-    TimeNow = US_TO_MS(TimeNow);
+    uint64_t TimeNow = US_TO_MS(AckEvent->TimeNow);
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
-    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= NumRetransmittableBytes);
-    Cubic->BytesInFlight -= NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= AckEvent->NumRetransmittableBytes);
+    Cubic->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
     if (Cubic->IsInRecovery) {
-        if (LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
+        if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
             //
             // Done recovering. Note that completion of recovery is defined a
             // bit differently here than in TCP: we simply require an ACK for a
@@ -378,7 +375,7 @@ CubicCongestionControlOnDataAcknowledged(
             Cubic->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
         goto Exit;
-    } else if (NumRetransmittableBytes == 0) {
+    } else if (AckEvent->NumRetransmittableBytes == 0) {
         goto Exit;
     }
 
@@ -388,7 +385,7 @@ CubicCongestionControlOnDataAcknowledged(
         // Slow Start
         //
 
-        Cubic->CongestionWindow += NumRetransmittableBytes;
+        Cubic->CongestionWindow += AckEvent->NumRetransmittableBytes;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
             Cubic->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
@@ -441,7 +438,7 @@ CubicCongestionControlOnDataAcknowledged(
         int64_t DeltaT =
             (int64_t)TimeInCongAvoid -
             (int64_t)Cubic->KCubic +
-            (int64_t)US_TO_MS(SmoothedRtt);
+            (int64_t)US_TO_MS(AckEvent->SmoothedRtt);
 
         int64_t CubicWindow =
             ((((DeltaT * DeltaT) >> 10) * DeltaT *
@@ -478,7 +475,7 @@ CubicCongestionControlOnDataAcknowledged(
 
         int64_t AimdWindow =
             Cubic->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
-            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * CXPLAT_MAX(1, US_TO_MS(SmoothedRtt)));
+            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * CXPLAT_MAX(1, US_TO_MS(AckEvent->SmoothedRtt)));
 
         //
         // Use the cubic or AIMD window, whichever is larger.
@@ -524,10 +521,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlOnDataLost(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t LargestPacketNumberLost,
-    _In_ uint64_t LargestPacketNumberSent,
-    _In_ uint32_t NumRetransmittableBytes,
-    _In_ BOOLEAN PersistentCongestion
+    _In_ const QUIC_LOSS_EVENT* LossEvent
     )
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
@@ -540,18 +534,18 @@ CubicCongestionControlOnDataLost(
     // congestion event.
     //
     if (!Cubic->HasHadCongestionEvent ||
-        LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
+        LossEvent->LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
 
-        Cubic->RecoverySentPacketNumber = LargestPacketNumberSent;
+        Cubic->RecoverySentPacketNumber = LossEvent->LargestPacketNumberSent;
         CubicCongestionControlOnCongestionEvent(Cc);
 
-        if (PersistentCongestion && !Cubic->IsInPersistentCongestion) {
+        if (LossEvent->PersistentCongestion && !Cubic->IsInPersistentCongestion) {
             CubicCongestionControlOnPersistentCongestionEvent(Cc);
         }
     }
 
-    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= NumRetransmittableBytes);
-    Cubic->BytesInFlight -= NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
+    Cubic->BytesInFlight -= LossEvent->NumRetransmittableBytes;
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
