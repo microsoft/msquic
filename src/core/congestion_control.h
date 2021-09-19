@@ -7,8 +7,29 @@
 
 #include "cubic.h"
 
-typedef struct QUIC_ACK_EVENT QUIC_ACK_EVENT;
-typedef struct QUIC_LOSS_EVENT QUIC_LOSS_EVENT;
+typedef struct QUIC_ACK_EVENT {
+
+    uint64_t TimeNow; // microsecond
+
+    uint64_t LargestPacketNumberAcked;
+
+    uint32_t NumRetransmittableBytes;
+
+    uint32_t SmoothedRtt;
+
+} QUIC_ACK_EVENT;
+
+typedef struct QUIC_LOSS_EVENT {
+
+    uint64_t LargestPacketNumberLost;
+
+    uint64_t LargestPacketNumberSent;
+
+    uint32_t NumRetransmittableBytes;
+
+    BOOLEAN PersistentCongestion : 1;
+
+} QUIC_LOSS_EVENT;
 
 typedef struct QUIC_CONGESTION_CONTROL {
 

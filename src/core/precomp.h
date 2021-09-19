@@ -78,8 +78,6 @@ extern "C" {
 #include "packet_builder.h"
 #include "listener.h"
 #include "cubic.h"
-#include "ack_event.h"
-#include "loss_event.h"
 
 #if defined(__cplusplus)
 }
