@@ -1025,12 +1025,15 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 //
                 QuicConnUpdatePeerPacketTolerance(Connection, QUIC_MIN_ACK_SEND_NUMBER);
             }
-            QuicCongestionControlOnDataLost(
-                &Connection->CongestionControl,
-                LargestLostPacketNumber,
-                LossDetection->LargestSentPacketNumber,
-                LostRetransmittableBytes,
-                LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD);
+            
+            QUIC_LOSS_EVENT LossEvent = CreateQuicLossEvent();
+            LossEvent.LargestPacketNumberLost = LargestLostPacketNumber;
+            LossEvent.LargestPacketNumberSent = LossDetection->LargestSentPacketNumber;
+            LossEvent.NumRetransmittableBytes = LostRetransmittableBytes;
+            LossEvent.PersistentCongestion = 
+                LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD;
+            
+            QuicCongestionControlOnDataLost(&Connection->CongestionControl, &LossEvent);
             //
             // Send packets from any previously blocked streams.
             //
@@ -1153,12 +1156,15 @@ QuicLossDetectionDiscardPackets(
 
     if (AckedRetransmittableBytes > 0) {
         const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
-        if (QuicCongestionControlOnDataAcknowledged(
-                &Connection->CongestionControl,
-                TimeNow,
-                LossDetection->LargestAck,
-                AckedRetransmittableBytes,
-                Path->SmoothedRtt)) {
+
+        QUIC_ACK_EVENT AckEvent = CreateQuicAckEvent();
+        AckEvent.TimeNow = TimeNow;
+        AckEvent.LargestPacketNumberAcked = LossDetection->LargestAck;
+        AckEvent.NumRetransmittableBytes = AckedRetransmittableBytes;
+        AckEvent.SmoothedRtt = Path->SmoothedRtt;
+        AckEvent.IsImplicit = TRUE;
+
+        if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
             //
             // We were previously blocked and are now unblocked.
             //
@@ -1434,12 +1440,14 @@ QuicLossDetectionProcessAckBlocks(
     }
 
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
-        if (QuicCongestionControlOnDataAcknowledged(
-                &Connection->CongestionControl,
-                TimeNow,
-                LossDetection->LargestAck,
-                AckedRetransmittableBytes,
-                Connection->Paths[0].SmoothedRtt)) {
+        QUIC_ACK_EVENT AckEvent = CreateQuicAckEvent();
+        AckEvent.TimeNow = TimeNow;
+        AckEvent.LargestPacketNumberAcked = LossDetection->LargestAck;
+        AckEvent.NumRetransmittableBytes = AckedRetransmittableBytes;
+        AckEvent.SmoothedRtt = Connection->Paths[0].SmoothedRtt;
+        AckEvent.IsImplicit = FALSE;
+
+        if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
             //
             // We were previously blocked and are now unblocked.
             //
