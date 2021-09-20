@@ -111,6 +111,11 @@ Quic0RttClientValidateIdentifier(
         uint8_t* Identifier
     )
 {
+    auto Id = (QUIC_0RTT_IDENTIFIER*)Identifier;
+    if (Id->DataCenter != Client->DataCenterId || Id->Server != Client->ServerId) {
+        return false;
+    }
+
     QUIC_0RTT_REQUEST Request(*Client);
     return
         Request.IsValid() &&
@@ -118,13 +123,12 @@ Quic0RttClientValidateIdentifier(
         Request.WaitForResponse();
 }
 
-extern "C"
 QUIC_STATUS
 Quic0RttClientStreamCallback(
     _In_ MsQuicStream* Stream,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
-    )
+    ) noexcept
 {
     auto Request = (QUIC_0RTT_REQUEST*)Context;
     if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {

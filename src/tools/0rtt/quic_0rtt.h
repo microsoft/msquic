@@ -36,15 +36,20 @@ void Quic0RttUninitialize(void);
 
 typedef struct QUIC_0RTT_SERVICE QUIC_0RTT_SERVICE;
 
-QUIC_0RTT_SERVICE* Quic0RttServiceStart();
+QUIC_0RTT_SERVICE*
+Quic0RttServiceStart(
+    _In_reads_(20)
+        const uint8_t* CertificateThumbprint
+    );
 
-void Quic0RttServiceStop(QUIC_0RTT_SERVICE* Service);
+void
+Quic0RttServiceStop(
+    _In_ QUIC_0RTT_SERVICE* Service
+    );
 
 //
 // Client side part that creates identifiers and calls into the service to
 // validate them.
-//
-// TODO - Make this async.
 //
 
 typedef struct QUIC_0RTT_CLIENT QUIC_0RTT_CLIENT;
@@ -69,7 +74,7 @@ Quic0RttClientGenerateIdentifier(
     );
 
 BOOLEAN
-Quic0RttClientValidateIdentifier(
+Quic0RttClientValidateIdentifier( // TODO - Make this async.
     _In_ QUIC_0RTT_CLIENT* Client,
     _In_reads_(QUIC_0RTT_ID_LENGTH)
         uint8_t* Identifier
