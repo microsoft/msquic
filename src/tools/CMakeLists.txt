@@ -21,6 +21,7 @@ function(quic_tool_warnings)
     target_link_libraries(${ARGV0} warnings)
 endfunction()
 
+add_subdirectory(0rtt)
 add_subdirectory(attack)
 add_subdirectory(interop)
 add_subdirectory(interopserver)
