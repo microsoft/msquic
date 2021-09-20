@@ -5,6 +5,9 @@
 
 --*/
 
+#if DEBUG
+#include <stdio.h>
+#endif
 #include "quic_platform.h"
 #include "quic_hashtable.h"
 #include "msquic.hpp"
@@ -41,9 +44,12 @@ struct QUIC_0RTT_ID_TABLE {
             auto ExpireTimeStamp = TimeStamp + QUIC_0RTT_ID_LIFETIME_US;
             while (!CxPlatListIsEmpty(&IdentifierList)) {
                 auto Entry = CXPLAT_CONTAINING_RECORD(IdentifierList.Flink, QUIC_0RTT_ID_ENTRY, List);
-                if (Entry->ExpireTimeStamp < TimeStamp) {
+                if (Entry->ExpireTimeStamp > TimeStamp) {
                     break;
                 }
+#if DEBUG
+                printf("Remove %llu\n", Entry->Hash.Signature);
+#endif
                 IdentifierTable.Remove(&Entry->Hash);
                 CxPlatListRemoveHead(&IdentifierList);
                 Pool.Free(Entry);
@@ -54,6 +60,9 @@ struct QUIC_0RTT_ID_TABLE {
                 NewEntry->ExpireTimeStamp = ExpireTimeStamp;
                 IdentifierTable.Insert(&NewEntry->Hash);
                 CxPlatListInsertTail(&IdentifierList, &NewEntry->List);
+#if DEBUG
+                printf("Insert %llu\n", Identifier);
+#endif
                 Result = true;
             }
             Lock.Release();
@@ -61,6 +70,9 @@ struct QUIC_0RTT_ID_TABLE {
                 Pool.Free(NewEntry);
             }
         }
+#if DEBUG
+        printf("Validate %llu = %hhu\n", Identifier, Result);
+#endif
         return Result;
     }
 };
@@ -86,7 +98,7 @@ struct QUIC_0RTT_SERVICE {
     bool IsValid() const { return Listener.IsValid(); }
     bool Start() {
         QuicAddr ListenAddr(QUIC_ADDRESS_FAMILY_UNSPEC, (uint16_t)QUIC_0RTT_PORT);
-        return Listener.Start(MsQuicAlpn(QUIC_0RTT_ALPN), &ListenAddr.SockAddr);
+        return QUIC_SUCCEEDED(Listener.Start(MsQuicAlpn(QUIC_0RTT_ALPN), &ListenAddr.SockAddr));
     }
     bool ValidateIdentifier(uint64_t Identifier) { return Table.ValidateIdentifier(Identifier); }
 };

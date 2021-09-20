@@ -14,21 +14,20 @@ int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv)
 {
-    if (argc > 1 &&
-        (
-            !strcmp(argv[1], "?") ||
-            !strcmp(argv[1], "-?") ||
-            !strcmp(argv[1], "--?") ||
-            !strcmp(argv[1], "/?") ||
-            !strcmp(argv[1], "help")
-        )) {
-        printf("Usage: quic0rtt.exe -server <thumbprint> | -client <server>\n");
+    if (argc < 2 ||
+        !strcmp(argv[1], "?") ||
+        !strcmp(argv[1], "-?") ||
+        !strcmp(argv[1], "--?") ||
+        !strcmp(argv[1], "/?") ||
+        !strcmp(argv[1], "help")) {
+        printf("Usage: quic0rtt.exe -server:<thumbprint> | -client:<server>\n");
         exit(1);
     }
 
-    const char* Value;
+    Quic0RttInitialize();
 
-    if ((Value = GetValue(argc, argv, "-server")) != nullptr) {
+    const char* Value;
+    if ((Value = GetValue(argc, argv, "server")) != nullptr) {
         uint8_t Thumbprint[20];
         if (DecodeHexBuffer(Value, 20, Thumbprint) != 20) {
             printf("Bad thumbprint length\n");
@@ -48,17 +47,13 @@ main(int argc, char **argv)
 
     } else {
 
-        if (argc < 3) {
-            printf("No -client <server> specified!\n");
-            return 1;
-        }
-        const char* ServerName = GetValue(argc, argv, "-client");
-        if (!ServerName) {
+        Value = GetValue(argc, argv, "client");
+        if (!Value) {
             printf("No -client <server> specified!\n");
             return 1;
         }
 
-        auto Client = Quic0RttClientInitialize(0, 0, ServerName);
+        auto Client = Quic0RttClientInitialize(0, 0, Value);
         if (!Client) {
             printf("Failed to initialize client\n");
             return 1;
@@ -72,6 +67,8 @@ main(int argc, char **argv)
 
         Quic0RttClientUninitialize(Client);
     }
+
+    Quic0RttUninitialize();
 
     return 0;
 }

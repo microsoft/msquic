@@ -82,16 +82,16 @@ Quic0RttClientGenerateIdentifier(
 MsQuicStreamCallback Quic0RttClientStreamCallback;
 
 struct QUIC_0RTT_REQUEST {
+    bool Success {false};
     QUIC_0RTT_CLIENT& Client;
     CxPlatEvent CompletionEvent;
+    QUIC_BUFFER Buffer {QUIC_0RTT_ID_LENGTH, nullptr};
     MsQuicStream Stream {
         Client.Connection,
         QUIC_STREAM_OPEN_FLAG_NONE,
         CleanUpManual,
         Quic0RttClientStreamCallback,
-        &CompletionEvent};
-    QUIC_BUFFER Buffer {QUIC_0RTT_ID_LENGTH, nullptr};
-    bool Success {false};
+        this};
     QUIC_0RTT_REQUEST(QUIC_0RTT_CLIENT& Client) : Client(Client) {}
     bool IsValid() const { return Stream.IsValid(); }
     bool Send(_In_reads_(QUIC_0RTT_ID_LENGTH) uint8_t* Identifier) {
