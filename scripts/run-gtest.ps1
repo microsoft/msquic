@@ -130,22 +130,18 @@ function Log($msg) {
 }
 
 function LogWrn($msg) {
-    if ($AZP) {
+    if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
     } else {
-        Write-Host "[$(Get-Date)] $msg"
+        Write-Warning "[$(Get-Date)] $msg"
     }
 }
 
 function LogErr($msg) {
-    if ($AZP) {
-        if ($ErrorsAsWarnings) {
-            Write-Host "##vso[task.logissue type=warning;][$(Get-Date)] $msg"
-        } else {
-            Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
-        }
+    if ($AZP -and !$ErrorsAsWarnings) {
+        Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
     } else {
-        Write-Host "[$(Get-Date)] $msg"
+        Write-Warning "[$(Get-Date)] $msg"
     }
 }
 
@@ -436,7 +432,7 @@ function Wait-TestCase($TestCase) {
         }
         $TestCase.Process.WaitForExit()
         if ($TestCase.Process.ExitCode -ne 0) {
-            LogWrn "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
+            Log "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
             $ProcessCrashed = $true
         }
         if ($IsReadingStreams) {
