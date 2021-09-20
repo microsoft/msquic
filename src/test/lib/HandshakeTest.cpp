@@ -224,7 +224,7 @@ QuicTestConnect(
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
                         if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
-                            CxPlatSleep(1000);
+                            QuicSleep(1000);
                         }
                         TEST_QUIC_SUCCEEDED(
                             Server->SetConfiguration(ServerConfiguration));
