@@ -11,9 +11,23 @@
 extern "C" {
 #endif
 
+typedef struct QUIC_0RTT_IDENTIFIER {
+    uint64_t DataCenter;
+    uint64_t Server;
+    uint64_t Index;
+} QUIC_0RTT_IDENTIFIER;
+
 #define QUIC_0RTT_ALPN "0rtt"
 #define QUIC_0RTT_PORT 4499
-#define QUIC_0RTT_ID_LENGTH 16
+#define QUIC_0RTT_ID_LENGTH sizeof(QUIC_0RTT_IDENTIFIER)
+
+//
+// Library initialization.
+//
+
+BOOLEAN Quic0RttInitialize(void);
+
+void Quic0RttUninitialize(void);
 
 //
 // Serivce/server side part that accepts and handles requests to validate 0-RTT
@@ -35,9 +49,17 @@ void Quic0RttServiceStop(QUIC_0RTT_SERVICE* Service);
 
 typedef struct QUIC_0RTT_CLIENT QUIC_0RTT_CLIENT;
 
-QUIC_0RTT_CLIENT* Quic0RttClientInitialize(const char* ServerName);
+QUIC_0RTT_CLIENT*
+Quic0RttClientInitialize(
+    _In_ uint64_t DataCenterId,
+    _In_ uint64_t ServerId,
+    _In_z_ const char* ServerName
+    );
 
-void Quic0RttClientUninitialize(QUIC_0RTT_CLIENT* Client);
+void
+Quic0RttClientUninitialize(
+    _In_ QUIC_0RTT_CLIENT* Client
+    );
 
 void
 Quic0RttClientGenerateIdentifier(
@@ -46,7 +68,7 @@ Quic0RttClientGenerateIdentifier(
         uint8_t* Identifier
     );
 
-bool
+BOOLEAN
 Quic0RttClientValidateIdentifier(
     _In_ QUIC_0RTT_CLIENT* Client,
     _In_reads_(QUIC_0RTT_ID_LENGTH)

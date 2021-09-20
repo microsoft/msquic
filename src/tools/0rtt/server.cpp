@@ -10,8 +10,6 @@
 #include "msquic.hpp"
 #include "quic_0rtt.h"
 
-const MsQuicApi* MsQuic;
-
 typedef struct QUIC_0RTT_SERVICE {
     MsQuicRegistration Registration {true};
     MsQuicConfiguration Configuration {

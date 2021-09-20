@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include "msquichelper.h"
+#include "msquic.hpp"
 #include "quic_0rtt.h"
 
 int
@@ -49,7 +50,7 @@ main(int argc, char **argv)
             return 1;
         }
 
-        auto Client = Quic0RttClientInitialize(ServerName);
+        auto Client = Quic0RttClientInitialize(0, 0, ServerName);
         if (!Client) {
             printf("Failed to initialize client\n");
             return 1;
@@ -65,4 +66,27 @@ main(int argc, char **argv)
     }
 
     return 0;
+}
+
+const MsQuicApi* MsQuic;
+
+extern "C"
+BOOLEAN
+Quic0RttInitialize(void)
+{
+    CxPlatSystemLoad();
+    CxPlatInitialize();
+    return
+        (MsQuic = new(std::nothrow) MsQuicApi()) != nullptr &&
+        QUIC_SUCCEEDED(MsQuic->GetInitStatus());
+}
+
+extern "C"
+void
+Quic0RttUninitialize(void)
+{
+    delete MsQuic;
+    MsQuic = nullptr;
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
