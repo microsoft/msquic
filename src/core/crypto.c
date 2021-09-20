@@ -1540,7 +1540,7 @@ QuicCryptoProcessTlsCompletion(
                 "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                 Connection,
                 InitialSourceCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
+                CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
             CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDHASH);
         }
 
