@@ -21,7 +21,7 @@ typedef struct QUIC_0RTT_ID_ENTRY {
     uint64_t ExpireTimeStamp;
 } QUIC_0RTT_ID_ENTRY;
 
-typedef struct QUIC_0RTT_ID_TABLE {
+struct QUIC_0RTT_ID_TABLE {
     CxPlatLock Lock;
     HashTable IdentifierTable;
     CXPLAT_LIST_ENTRY IdentifierList;
@@ -65,7 +65,7 @@ typedef struct QUIC_0RTT_ID_TABLE {
     }
 };
 
-typedef struct QUIC_0RTT_SERVICE {
+struct QUIC_0RTT_SERVICE {
     QUIC_0RTT_ID_TABLE Table;
     MsQuicRegistration Registration {true};
     MsQuicCertificateHash CertificateHash;
@@ -89,7 +89,7 @@ typedef struct QUIC_0RTT_SERVICE {
         return Listener.Start(MsQuicAlpn(QUIC_0RTT_ALPN), &ListenAddr.SockAddr);
     }
     bool ValidateIdentifier(uint64_t Identifier) { return Table.ValidateIdentifier(Identifier); }
-} QUIC_0RTT_SERVICE;
+};
 
 extern "C"
 QUIC_0RTT_SERVICE*
@@ -119,10 +119,11 @@ Quic0RttServiceStop(
 
 QUIC_STATUS
 Quic0RttServiceConnCallback(
-    _In_ MsQuicConnection* Connection,
+    _In_ MsQuicConnection* /* Connection */,
     _In_opt_ void* Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
-    ) noexcept {
+    )
+{
     if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Quic0RttServiceStreamCallback, Context);
     }
@@ -159,4 +160,5 @@ Quic0RttServiceStreamCallback(
         MsQuic->StreamClose(Stream);
         break;
     }
+    return QUIC_STATUS_SUCCESS;
 }

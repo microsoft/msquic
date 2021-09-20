@@ -22,12 +22,20 @@ main(int argc, char **argv)
             !strcmp(argv[1], "/?") ||
             !strcmp(argv[1], "help")
         )) {
-        printf("Usage: quic0rtt.exe -server | -client <server>\n");
+        printf("Usage: quic0rtt.exe -server <thumbprint> | -client <server>\n");
         exit(1);
     }
 
-    if (GetFlag(argc, argv, "-server")) {
-        auto Service = Quic0RttServiceStart();
+    const char* Value;
+
+    if ((Value = GetValue(argc, argv, "-server")) != nullptr) {
+        uint8_t Thumbprint[20];
+        if (DecodeHexBuffer(Value, 20, Thumbprint) != 20) {
+            printf("Bad thumbprint length\n");
+            return 1;
+        }
+
+        auto Service = Quic0RttServiceStart(Thumbprint);
         if (!Service) {
             printf("Failed to start service\n");
             return 1;

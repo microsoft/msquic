@@ -14,7 +14,7 @@
 #define QUIC_0RTT_CLIENT_CREDENTIAL_FLAGS \
     (QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)
 
-typedef struct QUIC_0RTT_CLIENT {
+struct QUIC_0RTT_CLIENT {
     MsQuicRegistration Registration {true};
     MsQuicConfiguration Configuration {
         Registration,
@@ -39,7 +39,7 @@ typedef struct QUIC_0RTT_CLIENT {
         Id->Server = ServerId;
         Id->Index = InterlockedIncrement64((LONG64*)&IdIndex);
     }
-} QUIC_0RTT_CLIENT;
+};
 
 extern "C"
 QUIC_0RTT_CLIENT*
@@ -81,7 +81,7 @@ Quic0RttClientGenerateIdentifier(
 
 MsQuicStreamCallback Quic0RttClientStreamCallback;
 
-typedef struct QUIC_0RTT_REQUEST {
+struct QUIC_0RTT_REQUEST {
     QUIC_0RTT_CLIENT& Client;
     CxPlatEvent CompletionEvent;
     MsQuicStream Stream {
@@ -101,7 +101,7 @@ typedef struct QUIC_0RTT_REQUEST {
     bool WaitForResponse() {
         return CompletionEvent.WaitTimeout(QUIC_0RTT_CLIENT_WAIT_TIMEOUT_MS) && Success;
     }
-} QUIC_0RTT_REQUEST;
+};
 
 extern "C"
 BOOLEAN
@@ -125,10 +125,10 @@ Quic0RttClientValidateIdentifier(
 
 QUIC_STATUS
 Quic0RttClientStreamCallback(
-    _In_ MsQuicStream* Stream,
+    _In_ MsQuicStream* /* Stream */,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
-    ) noexcept
+    )
 {
     auto Request = (QUIC_0RTT_REQUEST*)Context;
     if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
