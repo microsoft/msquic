@@ -214,7 +214,7 @@ if ($IsWindows) {
             $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
             if (!$RootCert) {
                 Write-Host "MsQuicTestRoot not found! Creating new MsQuicTestRoot certificate..."
-                $RootCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestRoot" -FriendlyName MsQuicTestRoot -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
+                $RootCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestRoot" -FriendlyName MsQuicTestRoot -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP521 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
                 $TempRootPath = Join-Path $Env:TEMP "MsQuicTestRoot.cer"
                 Export-Certificate -Type CERT -Cert $RootCert -FilePath $TempRootPath
                 CertUtil.exe -addstore Root $TempRootPath
@@ -228,7 +228,7 @@ if ($IsWindows) {
             $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServer"}
             if (!$ServerCert) {
                 Write-Host "MsQuicTestServer not found! Creating new MsQuicTestServer certificate..."
-                $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+                $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
                 $TempServerPath = Join-Path $Env:TEMP "MsQuicTestServerCert.pfx"
                 Export-PfxCertificate -Cert $ServerCert -Password $PfxPassword -FilePath $TempServerPath
                 Import-PfxCertificate -FilePath $TempServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -241,7 +241,7 @@ if ($IsWindows) {
             $ExpiredServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredServer"}
             if (!$ExpiredServerCert) {
                 Write-Host "MsQuicTestExpiredServer not found! Creating new MsQuicTestExpiredServer certificate..."
-                $ExpiredServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestExpiredServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+                $ExpiredServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestExpiredServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
                 $TempExpiredServerPath = Join-Path $Env:TEMP "MsQuicTestExpiredServerCert.pfx"
                 Export-PfxCertificate -Cert $ExpiredServerCert -Password $PfxPassword -FilePath $TempExpiredServerPath
                 Import-PfxCertificate -FilePath $TempExpiredServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -254,7 +254,7 @@ if ($IsWindows) {
             $ClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestClient"}
             if (!$ClientCert) {
                 Write-Host "MsQuicTestClient not found! Creating new MsQuicTestClient certificate..."
-                $ClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestClient" -FriendlyName MsQuicTestClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
+                $ClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestClient" -FriendlyName MsQuicTestClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
                 $TempClientPath = Join-Path $Env:TEMP "MsQuicTestClientCert.pfx"
                 Export-PfxCertificate -Cert $ClientCert -Password $PfxPassword -FilePath $TempClientPath
                 Import-PfxCertificate -FilePath $TempClientPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -267,7 +267,7 @@ if ($IsWindows) {
             $ExpiredClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredClient"}
             if (!$ExpiredClientCert) {
                 Write-Host "MsQuicTestExpiredClient not found! Creating new MsQuicTestExpiredClient certificate..."
-                $ExpiredClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredClient" -FriendlyName MsQuicTestExpiredClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
+                $ExpiredClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredClient" -FriendlyName MsQuicTestExpiredClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
                 $TempExpiredClientPath = Join-Path $Env:TEMP "MsQuicTestClientExpiredCert.pfx"
                 Export-PfxCertificate -Cert $ExpiredClientCert -Password $PfxPassword -FilePath $TempExpiredClientPath
                 Import-PfxCertificate -FilePath $TempExpiredClientPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
