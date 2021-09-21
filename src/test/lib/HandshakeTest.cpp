@@ -123,7 +123,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncConfiguration,
+    _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ bool SessionResumption,
     _In_ uint8_t RandomLossPercentage
@@ -223,6 +223,9 @@ QuicTestConnect(
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
+                        if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                            QuicSleep(1000);
+                        }
                         TEST_QUIC_SUCCEEDED(
                             Server->SetConfiguration(ServerConfiguration));
                     }

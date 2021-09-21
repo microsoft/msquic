@@ -1801,35 +1801,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
-// QuicTraceEvent(
-                            ConnSourceCidRemoved,
-                            "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                            Connection,
-                            NextSourceCid->CID.SequenceNumber,
-                            CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = NextSourceCid->CID.SequenceNumber
-// arg4 = arg4 = CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSourceCidRemoved,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnLocalAddrRemoved
 // [conn][%p] Removed Local IP: %!ADDR!
 // QuicTraceEvent(

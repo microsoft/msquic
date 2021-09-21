@@ -60,13 +60,19 @@ void QuicTestBindConnectionExplicit(_In_ int Family);
 // Handshake Tests
 //
 
+typedef enum QUIC_TEST_ASYNC_CONFIG_MODE {
+    QUIC_TEST_ASYNC_CONFIG_DISABLED,
+    QUIC_TEST_ASYNC_CONFIG_ENABLED,
+    QUIC_TEST_ASYNC_CONFIG_DELAYED,
+} QUIC_TEST_ASYNC_CONFIG_MODE;
+
 void
 QuicTestConnect(
     _In_ int Family,
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncConfiguration,
+    _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ bool SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
