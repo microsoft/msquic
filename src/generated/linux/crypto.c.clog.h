@@ -664,6 +664,31 @@ tracepoint(CLOG_CRYPTO_C, ConnHandshakeComplete , arg2);\
 
 
 
+#ifndef _clog_6_ARGS_TRACE_ConnSourceCidRemoved
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnSourceCidRemoved
+// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
+// QuicTraceEvent(
+                ConnSourceCidRemoved,
+                "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                Connection,
+                InitialSourceCid->CID.SequenceNumber,
+                CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
+// arg2 = arg2 = Connection
+// arg3 = arg3 = InitialSourceCid->CID.SequenceNumber
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data)
+----------------------------------------------------------*/
+#define _clog_6_ARGS_TRACE_ConnSourceCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
+tracepoint(CLOG_CRYPTO_C, ConnSourceCidRemoved , arg2, arg3, arg4_len, arg4);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 

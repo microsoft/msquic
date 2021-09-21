@@ -1834,26 +1834,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnSourceCidRemoved": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-      "UniqueId": "ConnSourceCidRemoved",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "!CID!",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnLocalAddrRemoved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removed Local IP: %!ADDR!",
@@ -2042,6 +2022,26 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnSourceCidRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+      "UniqueId": "ConnSourceCidRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -11279,10 +11279,6 @@
         "TraceID": "ConnPacketRecv"
       },
       {
-        "UniquenessHash": "65f1ff8d-810a-4f24-b2f6-817daf9275ef",
-        "TraceID": "ConnSourceCidRemoved"
-      },
-      {
         "UniquenessHash": "23378f35-794d-1493-0f86-0c338e1bf37c",
         "TraceID": "ConnLocalAddrRemoved"
       },
@@ -11309,6 +11305,10 @@
       {
         "UniquenessHash": "11964356-1a57-bc4d-0637-9300c14e0cb9",
         "TraceID": "ConnOutFlowBlocked"
+      },
+      {
+        "UniquenessHash": "65f1ff8d-810a-4f24-b2f6-817daf9275ef",
+        "TraceID": "ConnSourceCidRemoved"
       },
       {
         "UniquenessHash": "60d753ab-6710-fe16-e47d-37f046f5973c",
