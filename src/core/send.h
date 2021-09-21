@@ -338,6 +338,15 @@ QuicSendProcessDelayedAckTimer(
     );
 
 //
+// Clears all send flags and send streams.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicSendClear(
+    _In_ QUIC_SEND* Send
+    );
+
+//
 // Indicates the connection has a given QUIC_CONN_SEND_FLAG_* that is ready
 // to be sent. Returns TRUE if the flag is (or already was) queued.
 //

@@ -1637,6 +1637,10 @@ QuicConnTryClose(
         QuicDatagramSendShutdown(&Connection->Datagram);
     }
 
+    if (SilentClose) {
+        QuicSendClear(&Connection->Send);
+    }
+
     if (SilentClose ||
         (Connection->State.ClosedRemotely && Connection->State.ClosedLocally)) {
         Connection->State.ShutdownCompleteTimedOut = FALSE;
