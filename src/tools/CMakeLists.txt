@@ -12,7 +12,7 @@ function(add_quic_tool)
         target_link_libraries(${targetname} platform)
     endif()
 
-    target_link_libraries(${targetname} inc logging)
+    target_link_libraries(${targetname} base_link)
 
     set_property(TARGET ${targetname} PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tools")
 endfunction()
