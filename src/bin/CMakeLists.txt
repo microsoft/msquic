@@ -11,7 +11,7 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings logging)
+    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
 else()
     add_library(msquic_static STATIC static/empty.c)
@@ -174,13 +174,13 @@ else()
         set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
         set(DEPS_LINES "")
         foreach(line ${DEPS_LIST})
-            message(STATUS ${line})
+            # message(STATUS ${line})
             set(DEPS_LINES "${DEPS_LINES}addlib ${line}\n")
         endforeach(line)
         file(
             GENERATE
             OUTPUT ${QUIC_DEPS_FILE}
-            CONTENT "create \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmsquic.a\"\n${DEPS_LINES}save\nend\n"
+            CONTENT "create \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\"\n${DEPS_LINES}save\nend\n"
         )
 
         # Run archiver tool
@@ -208,12 +208,10 @@ else()
     # msquic_static directly if they don't need the monolithic library.
     add_library(msquic INTERFACE)
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
-    target_link_libraries(msquic INTERFACE inc)
     target_link_libraries(msquic
         INTERFACE
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
     )
-    target_link_libraries(msquic INTERFACE inc)
     if (CX_PLATFORM STREQUAL "darwin")
         target_link_libraries(msquic INTERFACE "-framework CoreFoundation" "-framework Security")
     endif()
