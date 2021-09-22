@@ -162,7 +162,7 @@ else()
         )
 
         # Run archiver tool (lib.exe) on our generated linker args
-        add_custom_target(
+        add_custom_command(
             OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
@@ -200,6 +200,8 @@ else()
     )
 
     set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+    message(STATUS "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
     # Provide interface library to link the monolithic library
     # NOTE: It is important that this interface library NOT link directly to
