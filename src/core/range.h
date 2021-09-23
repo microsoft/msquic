@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define QUIC_RANGE_NO_MAX_ALLOC_SIZE    UINT32_MAX
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
 
@@ -374,3 +378,7 @@ QuicRangeGetMaxSafe(
     _In_ QUIC_RANGE* Range,
     _Out_ uint64_t* Value
     );
+
+#if defined(__cplusplus)
+}
+#endif

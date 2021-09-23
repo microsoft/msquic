@@ -9,6 +9,10 @@
 // QUIC Transport Error codes defined by the QUIC Transport RFC.
 //
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // An endpoint uses this with CONNECTION_CLOSE to signal that the connection
 // is being closed abruptly in the absence of any error.
@@ -899,3 +903,7 @@ QuicFrameLogAll(
         const uint8_t * const Packet,
     _In_ uint16_t Offset
     );
+
+#if defined(__cplusplus)
+}
+#endif

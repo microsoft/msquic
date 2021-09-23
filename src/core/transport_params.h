@@ -9,6 +9,10 @@ Abstract:
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define QUIC_TP_FLAG_INITIAL_MAX_DATA                       0x00000001
 #define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL       0x00000002
 #define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE      0x00000004
@@ -234,3 +238,7 @@ void
 QuicCryptoTlsCleanupTransportParameters(
     _In_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );
+
+#if defined(__cplusplus)
+}
+#endif
