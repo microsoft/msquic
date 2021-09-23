@@ -137,6 +137,10 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
+if (NOT QUIC_BUILD_SHARED)
+    cmake_minimum_required(VERSION 3.20)
+endif()
+
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
