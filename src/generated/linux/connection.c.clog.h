@@ -1070,21 +1070,21 @@ tracepoint(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete , arg1);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived
+#ifndef _clog_3_ARGS_TRACE_IndicateResumed
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for IndicateResumptionTicketReceived
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
+// Decoder Ring for IndicateResumed
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED
 // QuicTraceLogConnVerbose(
-            IndicateResumptionTicketReceived,
+            IndicateResumed,
             Connection,
-            "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
+            "Indicating QUIC_CONNECTION_EVENT_RESUMED");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
+#define _clog_3_ARGS_TRACE_IndicateResumed(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicateResumed , arg1);\
 
 #endif
 
@@ -1105,6 +1105,7 @@ tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
 
 #endif
 

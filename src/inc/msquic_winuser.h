@@ -24,7 +24,7 @@ Environment:
 #endif
 
 #include <windows.h>
-#include <ws2def.h>
+#include <winsock2.h>
 #include <ws2ipdef.h>
 #pragma warning(push)
 #pragma warning(disable:6385) // Invalid data: accessing [buffer-name], the readable size is size1 bytes but size2 bytes may be read
