@@ -459,6 +459,17 @@ CxPlatGetTestCertificate(
         char Principal[100]
     )
 {
+#ifdef _WIN32
+    return
+        CxPlatGetTestCertificateWindows(
+            Type,
+            StoreType,
+            CredType,
+            Params,
+            CertHash,
+            CertHashStore,
+            Principal);
+#else
     // Not yet supported
     UNREFERENCED_PARAMETER(Type);
     UNREFERENCED_PARAMETER(StoreType);
@@ -468,6 +479,7 @@ CxPlatGetTestCertificate(
     UNREFERENCED_PARAMETER(CertHashStore);
     UNREFERENCED_PARAMETER(Principal);
     return FALSE;
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -476,7 +488,11 @@ CxPlatFreeTestCert(
     _In_ QUIC_CREDENTIAL_CONFIG* Params
     )
 {
+#ifdef _WIN32
+    CxPlatFreeTestCertWindows(Params);
+#else
     UNREFERENCED_PARAMETER(Params);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

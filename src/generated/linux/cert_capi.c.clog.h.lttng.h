@@ -8,10 +8,10 @@
         CertCapiVerifiedChain,
         "CertVerifyChain: %S 0x%x, result=0x%x",
         ServerName,
-        IgnoreFlags,
+        CredFlags,
         Status);
 // arg2 = arg2 = ServerName
-// arg3 = arg3 = IgnoreFlags
+// arg3 = arg3 = CredFlags
 // arg4 = arg4 = Status
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiVerifiedChain,
