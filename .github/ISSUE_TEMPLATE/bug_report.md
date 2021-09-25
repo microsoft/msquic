@@ -31,4 +31,4 @@ Enter a description of what you expected to happen.
 Enter a description of what actually happened when reproducing this issue.
 
 ### Additional details
-Please provide any additional details that you would like to share here. You can omit this section if you'd like.
+Please provide any additional details that you would like to share here, if applicable.
