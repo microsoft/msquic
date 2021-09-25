@@ -7,7 +7,7 @@ about: Report a bug or unexpected behavior
 Please enter a clear and short description of your bug here.
 
 ### Operating system version
-On what operating system did this bug occur in? Provide information of the affected OS and its version here, e.g.:
+On what operating system did this bug occur? Provide information of the affected OS and its version here, e.g.:
 
 Windows 11 (Build `10.0.22463.1000.rs_prerelease.210917-1503`), or
 
