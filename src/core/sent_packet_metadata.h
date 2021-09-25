@@ -88,11 +88,27 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     BOOLEAN IsMtuProbe              : 1;
     BOOLEAN KeyPhase                : 1;
     BOOLEAN SuspectedLost           : 1;
+    BOOLEAN IsAppLimited            : 1;
+    BOOLEAN HasLastAckedPacketInfo  : 1;
 #if DEBUG
     BOOLEAN Freed                   : 1;
 #endif
 
 } QUIC_SEND_PACKET_FLAGS;
+
+typedef struct LAST_ACKED_PACKET_INFO {
+
+    uint64_t TotalBytesSent;
+
+    uint64_t TotalBytesAcked;
+
+    uint32_t SentTime;
+
+    uint32_t AdjustedAckTime;
+
+    uint32_t AckTime;
+
+} LAST_ACKED_PACKET_INFO;
 
 //
 // Tracker for a sent packet.
@@ -103,9 +119,16 @@ typedef struct QUIC_SENT_PACKET_METADATA {
 
     uint64_t PacketId;
     uint64_t PacketNumber;
+
     uint32_t SentTime; // In microseconds
+
     uint16_t PacketLength;
+
     uint8_t PathId;
+
+    uint64_t TotalBytesSentThen;
+
+    LAST_ACKED_PACKET_INFO LastAckedPacketInfo;
 
     //
     // Hints about the QUIC packet and included frames.

@@ -41,6 +41,7 @@ PrintHelp(
         "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
         "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n"
+        "  -cc:<algo>                   Indicates congestion control algorithm to use. (def:cubic)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_IO_SIZE
@@ -57,16 +58,16 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Configuration.IsValid()) {
-        return Configuration.GetInitStatus();
-    }
-
     const char* Target = nullptr;
     if (!TryGetValue(argc, argv, "target", &Target) &&
         !TryGetValue(argc, argv, "server", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (!Configuration.IsValid()) {
+        return Configuration.GetInitStatus();
     }
 
     TryGetValue(argc, argv, "tcp", &UseTcp);

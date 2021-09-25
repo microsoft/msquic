@@ -361,6 +361,7 @@ typedef enum QUIC_CIPHER_SUITE {
 
 typedef enum QUIC_CONGESTION_CONTROL_ALGORITHM {
     QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC,
+    QUIC_CONGESTION_CONTROL_ALGORITHM_BBR,
     QUIC_CONGESTION_CONTROL_ALGORITHM_MAX,
 } QUIC_CONGESTION_CONTROL_ALGORITHM;
 
@@ -614,6 +615,9 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 2;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
+    uint8_t CongestionControlAlgorithm;
 
 } QUIC_SETTINGS;
 

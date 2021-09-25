@@ -73,6 +73,7 @@ jobs:
         rtt: [5, 50, 200, 500]
         queueRatio: [0.2, 1, 5]
         loss: [0,1000,10000]
+        congestionControl: ["cubic", "bbr"]
         exclude:
         - rate: 5
           rtt: 5

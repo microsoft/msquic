@@ -7300,6 +7300,8 @@
           "MacroVariableName": "arg6"
         }
       ],
+        }
+      ],
       "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxSpuriousLoss": {
