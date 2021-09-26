@@ -1,0 +1,64 @@
+name: 🐛 Bug report
+description: Report a bug or unexpected behavior
+title: "Bug title"
+labels: []
+body:
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: Please enter a clear and short description of your bug here.
+      placeholder: A crash occurs if X is called from Y.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Operating system version
+      description: On what operating system did this bug occur? Provide information of the affected OS and its version here.
+      placeholder: |
+        Windows 11 (Build 10.0.22463.1000.rs_prerelease.210917-1503), Ubuntu 20.04 LTS
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: MsQuic version
+      description: On what version of MsQuic does this bug occur? Please specify a (pre)release version or affected code branch.
+      placeholder: |
+        MsQuic 1.8, MsQuic branch "performance"
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Steps taken to reproduce bug
+      description: Add the steps taken to reproduce the bug in this section.
+      placeholder: |
+        1. Run X
+        2. View output
+        3. See error
+  - type: markdown
+    attributes:
+      value: |
+        ### Behavior
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Expected behavior
+      description: Enter a description of what you expected to happen.
+      placeholder: The call to X from Y should succeed.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Actual outcome
+      description: Enter a description of what actually happened when reproducing this issue.
+      placeholder: The program crashed after parameter Z was being set in X.
+  - type: textarea
+    attributes:
+      label: Screenshots/Log Output
+      description: If applicable, add screenshots or log output here to help further explain your problem.
+  - type: textarea
+    attributes:
+      label: Additional details
+      description: Please provide any additional details that you would like to share here. You can leave this field blank.
