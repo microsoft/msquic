@@ -1,7 +1,7 @@
 name: ⭐ Submit a feature request
 description: Request a feature that you think should be supported
 title: "Feature request title"
-labels: ["feature request"]
+labels: feature request
 body:
   - type: textarea
     validations:
