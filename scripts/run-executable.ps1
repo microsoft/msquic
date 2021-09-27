@@ -185,7 +185,7 @@ function Start-Executable {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         # Set ASAN option to prevent deadlock bug in ASAN RtlReAllocHeap.
-        $pinfo.EnvironmentVariables.Add("windows_hook_legacy_allocators", "1")
+        $pinfo.EnvironmentVariables.Add("ASAN_OPTIONS", "windows_hook_legacy_allocators=1")
         if ($EnableAppVerifier) {
             where.exe appverif.exe | Out-Null
             if ($LastExitCode -eq 0) {
