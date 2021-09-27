@@ -124,8 +124,6 @@ if ($CodeCoverage) {
 $SpinQuic = $null
 if ($IsWindows) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic.exe"
-    # Set ASAN option to prevent deadlock bug in ASAN RtlReAllocHeap.
-    $env:ASAN_OPTIONS='windows_hook_legacy_allocators=1'
 } elseif ($IsLinux -or $IsMacOS) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic"
 } else {
