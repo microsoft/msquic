@@ -206,6 +206,10 @@ QuicTestConnectUnreachable(
     );
 
 void
+QuicTestConnectInvalidAddress(
+    );
+
+void
 QuicTestConnectBadAlpn(
     _In_ int Family
     );
@@ -926,4 +930,7 @@ typedef struct {
     QUIC_CTL_CODE(76, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 76
+#define IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS \
+    QUIC_CTL_CODE(77, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 77
