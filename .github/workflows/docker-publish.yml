@@ -6,7 +6,7 @@ on:
     # Publish semver tags as releases.
     tags: |
       latest
-      v1.9.0.${{ github.run_id }}
+      v1.9.0.$(github.run_id)
   pull_request:
     branches: [ main ]
 
