@@ -45,7 +45,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=semver,pattern={{version}},value=v1.9.0.$(github.run_id)
+            type=semver,pattern={{version}},value=v1.9.0-${{ github.run_id }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
