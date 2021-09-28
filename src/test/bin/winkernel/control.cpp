@@ -1113,6 +1113,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS:
         QuicTestCtlRun(QuicTestConnectInvalidAddress());
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
