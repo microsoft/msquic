@@ -3793,10 +3793,15 @@ QuicConnRecvDecryptAndAuthenticate(
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
 
+    QuicTraceEvent(
+        PacketDecrypt,
+        "[pack][%llu] Decrypting",
+        Packet->PacketId);
+
     uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(
         Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->Iv,
-        (uint8_t*) &Packet->PacketNumber,
+        (uint8_t*)&Packet->PacketNumber,
         Iv);
 
     //
@@ -4346,7 +4351,7 @@ QuicConnRecvFrames(
                 QUIC_STATUS Status =
                     QuicStreamRecv(
                         Stream,
-                        Packet->EncryptedWith0Rtt,
+                        Packet,
                         FrameType,
                         PayloadLength,
                         Payload,
@@ -5305,6 +5310,10 @@ QuicConnRecvDatagrams(
 
             Packet->Buffer += Packet->BufferLength;
 
+            /*uint32_t Proc = CxPlatProcCurrentNumber();
+            uint64_t ProcShifted = ((uint64_t)Proc) << 40;
+            Packet->PacketId =
+                ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);*/
             Packet->ValidatedHeaderInv = FALSE;
             Packet->ValidatedHeaderVer = FALSE;
             Packet->ValidToken = FALSE;

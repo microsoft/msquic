@@ -484,3 +484,45 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamError,
         ctf_string(arg3, arg3)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReceiveFrame
+// [strm][%p] Processing frame in packet %llu
+// QuicTraceEvent(
+        StreamReceiveFrame,
+        "[strm][%p] Processing frame in packet %llu",
+        Stream,
+        Packet->PacketId);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = Packet->PacketId
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrame,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamFlushRecv
+// [strm][%p] Flushing receive
+// QuicTraceEvent(
+        StreamFlushRecv,
+        "[strm][%p] Flushing receive",
+        Stream);
+// arg2 = arg2 = Stream
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamFlushRecv,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)

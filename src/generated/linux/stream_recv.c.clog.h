@@ -549,6 +549,50 @@ tracepoint(CLOG_STREAM_RECV_C, StreamError , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_StreamReceiveFrame
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReceiveFrame
+// [strm][%p] Processing frame in packet %llu
+// QuicTraceEvent(
+        StreamReceiveFrame,
+        "[strm][%p] Processing frame in packet %llu",
+        Stream,
+        Packet->PacketId);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = Packet->PacketId
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_StreamReceiveFrame(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrame , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_StreamFlushRecv
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamFlushRecv
+// [strm][%p] Flushing receive
+// QuicTraceEvent(
+        StreamFlushRecv,
+        "[strm][%p] Flushing receive",
+        Stream);
+// arg2 = arg2 = Stream
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_StreamFlushRecv(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_STREAM_RECV_C, StreamFlushRecv , arg2);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_StreamRecvState
 
 

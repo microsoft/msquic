@@ -25,6 +25,7 @@ namespace QuicTrace.DataModel.ETW
         Platform      = 0x0000000000000400ul,
         Api           = 0x0000000000000800ul,
         Log           = 0x0000000000001000ul,
+        RPS           = 0x0000000000002000ul,
         LowVolume     = 0x0000000080000000ul,
         DataFlow      = 0x0000000040000000ul,
         Scheduling    = 0x0000000020000000ul,
@@ -222,6 +223,14 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.StreamErrorStatus:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicStreamErrorStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadString());
+                case QuicEventId.StreamAlloc:
+                    return new QuicStreamAllocEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
+                case QuicEventId.StreamWriteFrames:
+                    return new QuicStreamWriteFramesEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
+                case QuicEventId.StreamReceiveFrame:
+                    return new QuicStreamReceiveFrameEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
+                case QuicEventId.StreamFlushRecv:
+                    return new QuicStreamFlushRecvEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
 
                 case (QuicEventId)9216: // Temporary, while there are still builds out there generating this old event
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), new System.Net.IPEndPoint(0,0));
@@ -246,6 +255,21 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.LogVerbose:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryMessageEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadString());
+
+                case QuicEventId.PacketBatchCreate:
+                    return new QuicPacketBatchCreateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
+                case QuicEventId.PacketCreated:
+                    return new QuicPacketCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong(), data.ReadULong());
+                case QuicEventId.PacketEncrypt:
+                    return new QuicPacketEncryptEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
+                case QuicEventId.PacketFinalize:
+                    return new QuicPacketFinalizeEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
+                case QuicEventId.PacketBatchSend:
+                    return new QuicPacketBatchSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
+                case QuicEventId.PacketReceive:
+                    return new QuicPacketReceiveEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
+                case QuicEventId.PacketDecrypt:
+                    return new QuicPacketDecryptEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
 
                 default:
                     return null;

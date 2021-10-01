@@ -2145,6 +2145,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketDecrypt
+// [pack][%llu] Decrypting
+// QuicTraceEvent(
+        PacketDecrypt,
+        "[pack][%llu] Decrypting",
+        Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketDecrypt,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPacketRecv
 // [conn][%p][RX][%llu] %c (%hu bytes)
 // QuicTraceEvent(

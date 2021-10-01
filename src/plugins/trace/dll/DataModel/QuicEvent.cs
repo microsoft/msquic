@@ -153,6 +153,10 @@ namespace QuicTrace.DataModel
         StreamLogWarning,
         StreamLogInfo,
         StreamLogVerbose,
+        StreamAlloc,
+        StreamWriteFrames,
+        StreamReceiveFrame,
+        StreamFlushRecv,
 
         BindingCreated = 7168,
         BindingRundown,
@@ -178,7 +182,15 @@ namespace QuicTrace.DataModel
         LogError = 10240,
         LogWarning,
         LogInfo,
-        LogVerbose
+        LogVerbose,
+
+        PacketBatchCreate = 11264,
+        PacketCreated,
+        PacketEncrypt,
+        PacketFinalize,
+        PacketBatchSend,
+        PacketReceive,
+        PacketDecrypt
     }
 
     //

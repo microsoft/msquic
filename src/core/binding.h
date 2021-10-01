@@ -34,6 +34,11 @@ typedef struct CXPLAT_RECV_PACKET {
     uint64_t PacketNumber;
 
     //
+    // The unique identifier for the packet.
+    //
+    uint64_t PacketId;
+
+    //
     // The current packet buffer.
     //
     union {

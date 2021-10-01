@@ -850,6 +850,47 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicStreamAllocEvent : QuicEvent
+    {
+        public ulong Connection { get; }
+
+        internal QuicStreamAllocEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, ulong connection) :
+            base(QuicEventId.StreamAlloc, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            Connection = connection;
+        }
+    }
+
+    public class QuicStreamWriteFramesEvent : QuicEvent
+    {
+        public ulong ID { get; }
+
+        internal QuicStreamWriteFramesEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, ulong id) :
+            base(QuicEventId.StreamWriteFrames, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            ID = id;
+        }
+    }
+
+    public class QuicStreamReceiveFrameEvent : QuicEvent
+    {
+        public ulong ID { get; }
+
+        internal QuicStreamReceiveFrameEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, ulong id) :
+            base(QuicEventId.StreamReceiveFrame, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            ID = id;
+        }
+    }
+
+    public class QuicStreamFlushRecvEvent : QuicEvent
+    {
+        internal QuicStreamFlushRecvEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamFlushRecv, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
     #endregion
 
     #region Datapath Events
@@ -960,6 +1001,83 @@ namespace QuicTrace.DataModel
         {
             Status = status;
             ErrorString = errorString;
+        }
+    }
+
+    #endregion
+
+    #region Packet Events
+
+    public class QuicPacketBatchCreateEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        internal QuicPacketBatchCreateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketBatchCreate, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+        }
+    }
+
+    public class QuicPacketCreatedEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        public ulong BatchID { get; }
+
+        internal QuicPacketCreatedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id, ulong id2) :
+            base(QuicEventId.PacketCreated, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+            BatchID = id2;
+        }
+    }
+
+    public class QuicPacketEncryptEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        internal QuicPacketEncryptEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketEncrypt, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+        }
+    }
+
+    public class QuicPacketFinalizeEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        internal QuicPacketFinalizeEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketFinalize, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+        }
+    }
+
+    public class QuicPacketBatchSendEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        internal QuicPacketBatchSendEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketBatchSend, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+        }
+    }
+
+    public class QuicPacketReceiveEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        internal QuicPacketReceiveEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketReceive, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+        }
+    }
+
+    public class QuicPacketDecryptEvent : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        internal QuicPacketDecryptEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketDecrypt, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
         }
     }
 

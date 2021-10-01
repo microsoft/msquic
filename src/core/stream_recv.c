@@ -458,7 +458,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN EncryptedWith0Rtt,
+    _In_ CXPLAT_RECV_PACKET* Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -468,6 +468,12 @@ QuicStreamRecv(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    QuicTraceEvent(
+        StreamReceiveFrame,
+        "[strm][%p] Processing frame in packet %llu",
+        Stream,
+        Packet->PacketId);
 
     switch (FrameType) {
 
@@ -573,7 +579,7 @@ QuicStreamRecv(
 
         Status =
             QuicStreamProcessStreamFrame(
-                Stream, EncryptedWith0Rtt, &Frame);
+                Stream, Packet->EncryptedWith0Rtt, &Frame);
 
         break;
     }
@@ -704,6 +710,11 @@ QuicStreamRecvFlush(
             "Ignoring recv flush (recv disabled)");
         return;
     }
+
+    QuicTraceEvent(
+        StreamFlushRecv,
+        "[strm][%p] Flushing receive",
+        Stream);
 
     CXPLAT_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
     CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);

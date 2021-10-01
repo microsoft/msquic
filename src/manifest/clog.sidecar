@@ -370,6 +370,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "PacketReceive": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Received",
+      "UniqueId": "PacketReceive",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConfigurationOpenStorageFailed": {
       "ModuleProperites": {},
       "TraceString": "[cnfg][%p] Failed to open settings, 0x%x",
@@ -1933,6 +1945,18 @@
       "splitArgs": [
         {
           "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketDecrypt": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Decrypting",
+      "UniqueId": "PacketDecrypt",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg2"
         }
       ],
@@ -6032,6 +6056,58 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "PacketBatchCreate": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Batch created",
+      "UniqueId": "PacketBatchCreate",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Created in batch %llu",
+      "UniqueId": "PacketCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketEncrypt": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Encrypting",
+      "UniqueId": "PacketEncrypt",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketFinalize": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Finalizing",
+      "UniqueId": "PacketFinalize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnPacketSent": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p][TX][%llu] %hhu (%hu bytes)",
@@ -6052,6 +6128,18 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketBatchSend": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Sending batch",
+      "UniqueId": "PacketBatchSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -6904,6 +6992,22 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "StreamAlloc": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Allocated, Conn=%p",
+      "UniqueId": "StreamAlloc",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "StreamDestroyed": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Destroyed",
@@ -7296,6 +7400,34 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "StreamReceiveFrame": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Processing frame in packet %llu",
+      "UniqueId": "StreamReceiveFrame",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "StreamFlushRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Flushing receive",
+      "UniqueId": "StreamFlushRecv",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "IndicateSendShutdownComplete": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE",
@@ -7575,6 +7707,22 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "StreamWriteFrames": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Writing frames to packet %llu",
+      "UniqueId": "StreamWriteFrames",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "NotAccepted": {
       "ModuleProperites": {},
@@ -10933,6 +11081,10 @@
         "TraceID": "BindingExecOper"
       },
       {
+        "UniquenessHash": "f1741ac1-9c6a-e567-0c1c-9dc411e88b49",
+        "TraceID": "PacketReceive"
+      },
+      {
         "UniquenessHash": "c020fe47-4ec6-93b0-03db-ec72593a14b5",
         "TraceID": "ConfigurationOpenStorageFailed"
       },
@@ -11339,6 +11491,10 @@
       {
         "UniquenessHash": "01d5a727-8287-c441-9ff0-0ebbd899549f",
         "TraceID": "ConnHandshakeStart"
+      },
+      {
+        "UniquenessHash": "b27efe89-6500-60ee-bdbb-b417ecce6d62",
+        "TraceID": "PacketDecrypt"
       },
       {
         "UniquenessHash": "af137df5-1055-7424-de16-65895d8d276b",
@@ -12221,8 +12377,28 @@
         "TraceID": "PacketBuilderSendBatch"
       },
       {
+        "UniquenessHash": "89921df3-42ec-b9b6-01d4-f9382118e2c6",
+        "TraceID": "PacketBatchCreate"
+      },
+      {
+        "UniquenessHash": "e0aaacd6-02f1-c4f2-571b-290d53b0ebf7",
+        "TraceID": "PacketCreated"
+      },
+      {
+        "UniquenessHash": "040e32a3-ba11-8989-d6d4-57d7c799c359",
+        "TraceID": "PacketEncrypt"
+      },
+      {
+        "UniquenessHash": "e1679e26-ce08-f741-23b6-23fa6f1de264",
+        "TraceID": "PacketFinalize"
+      },
+      {
         "UniquenessHash": "8acd91f1-3c17-7458-fb5b-e3453f2825d3",
         "TraceID": "ConnPacketSent"
+      },
+      {
+        "UniquenessHash": "7bafe9ea-d2c7-fff4-4ebc-89b91768b3f0",
+        "TraceID": "PacketBatchSend"
       },
       {
         "UniquenessHash": "607e449d-59a9-9d66-fcd1-b0a2e12f1dc1",
@@ -12473,6 +12649,10 @@
         "TraceID": "IndicateStreamShutdownComplete"
       },
       {
+        "UniquenessHash": "cbc983bb-6d04-149e-6eda-09d855f77d4c",
+        "TraceID": "StreamAlloc"
+      },
+      {
         "UniquenessHash": "cfaab7b3-b77b-3a94-a433-4c9b57907696",
         "TraceID": "StreamDestroyed"
       },
@@ -12573,6 +12753,14 @@
         "TraceID": "IndicatePeerSendShutdown"
       },
       {
+        "UniquenessHash": "aaf00b3c-6719-7619-1362-6058d0d3be90",
+        "TraceID": "StreamReceiveFrame"
+      },
+      {
+        "UniquenessHash": "61d63ef6-4148-bc5a-4160-61170ed9ed36",
+        "TraceID": "StreamFlushRecv"
+      },
+      {
         "UniquenessHash": "e7d79111-7d5f-45a3-50b8-e4ca6de3c081",
         "TraceID": "IndicateSendShutdownComplete"
       },
@@ -12631,6 +12819,10 @@
       {
         "UniquenessHash": "b5af9a64-4d59-3aa3-f0d4-abcbbbfd0329",
         "TraceID": "SendDumpAck"
+      },
+      {
+        "UniquenessHash": "cc7f8746-a729-760b-90cc-8f3973b3fde2",
+        "TraceID": "StreamWriteFrames"
       },
       {
         "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",

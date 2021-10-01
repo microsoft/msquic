@@ -36,7 +36,9 @@ namespace QuicTrace.DataModel
             }
         }
 
-        internal QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
+#pragma warning disable CA1062 // Validate arguments of public methods
+        public QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
+#pragma warning restore CA1062 // Validate arguments of public methods
         {
         }
 
