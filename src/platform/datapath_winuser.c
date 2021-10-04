@@ -1452,11 +1452,11 @@ CxPlatSocketCreateUdp(
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     Socket->Mtu = CXPLAT_MAX_MTU;
+    Socket->PortReservationSocket = INVALID_SOCKET;
     CxPlatRundownAcquire(&Datapath->SocketsRundown);
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    Socket->PortReservationSocket = INVALID_SOCKET;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         Socket->Processors[i].Parent = Socket;
@@ -2075,6 +2075,7 @@ CxPlatSocketCreateTcpInternal(
             ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
     }
     Socket->Mtu = CXPLAT_MAX_MTU;
+    Socket->PortReservationSocket = INVALID_SOCKET;
     CxPlatRundownAcquire(&Datapath->SocketsRundown);
 
     SocketProc = &Socket->Processors[0];
@@ -2375,6 +2376,7 @@ CxPlatSocketCreateTcpListener(
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     Socket->Mtu = CXPLAT_MAX_MTU;
+    Socket->PortReservationSocket = INVALID_SOCKET;
     CxPlatRundownAcquire(&Datapath->SocketsRundown);
 
     SocketProc = &Socket->Processors[0];
@@ -2719,7 +2721,14 @@ CxPlatDataPathSocketContextShutdown(
         //
         // Last socket context cleaned up, so now the binding can be freed.
         //
-        closesocket(SocketProc->Parent->PortReservationSocket);
+
+        //
+        // Close the port reservation socket. TCP does not create it, so
+        // we must check for invalid value.
+        //
+        if (SocketProc->Parent->PortReservationSocket != INVALID_SOCKET) {
+            closesocket(SocketProc->Parent->PortReservationSocket);
+        }
         CxPlatRundownRelease(&SocketProc->Parent->Datapath->SocketsRundown);
         QuicTraceLogVerbose(
             DatapathShutDownComplete,
