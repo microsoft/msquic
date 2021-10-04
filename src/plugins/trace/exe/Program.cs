@@ -4,6 +4,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -162,7 +163,7 @@ namespace QuicTrace
 
             public ulong StreamID = ulong.MaxValue;
 
-            public bool IsIncomplete { get { return StreamAlloc == 0 || PacketWrite == 0 || PacketEncrypt == 0 || PacketFinalize == 0 || PacketSend == 0 || PacketReceive == 0 || PacketDecrypt == 0 || PacketRead == 0 || StreamFlush == 0 || StreamDelete == 0; } }
+            public bool IsIncomplete { get { return StreamAlloc == 0 || PacketWrite == 0 || PacketEncrypt == 0 || PacketFinalize == 0 || PacketSend == 0 || PacketReceive == 0 || PacketDecrypt == 0 || PacketRead == 0 || StreamFlush == 0 || StreamDelete == 0 || Connection == null; } }
 
             public bool IsServer {  get { return PacketReceive < StreamAlloc; } }
 
@@ -237,9 +238,7 @@ namespace QuicTrace
 
             public uint ProcessId { get; }
 
-            public List<byte[]> SourceCIDs = new List<byte[]>();
-
-            public List<byte[]> DestinationCIDs = new List<byte[]>();
+            public QuicRequestConn? Peer = null;
 
             internal QuicRequestConn(ulong pointer, uint processId)
             {
@@ -334,12 +333,26 @@ namespace QuicTrace
             }
         }
 
+        class SequentialByteComparer : IEqualityComparer<byte[]>
+        {
+#pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
+            public bool Equals(byte[] x, byte[] y) => StructuralComparisons.StructuralEqualityComparer.Equals(x, y);
+#pragma warning restore CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
+            public int GetHashCode([System.Diagnostics.CodeAnalysis.DisallowNull] byte[] obj)
+            {
+                return StructuralComparisons.StructuralEqualityComparer.GetHashCode(obj);
+            }
+        }
+
         static void RunRpsAnalysis(QuicState quicState)
         {
             var ConnSet = new QuicObjectSet<QuicRequestConn>(QuicRequestConn.CreateEventId, QuicRequestConn.DestroyedEventId, QuicRequestConn.New);
             var StreamSet = new QuicObjectSet<QuicStreamRequest>(QuicStreamRequest.CreateEventId, QuicStreamRequest.DestroyedEventId, QuicStreamRequest.New);
             var PacketBatchSet = new QuicObjectSet<QuicPacketBatch>(QuicPacketBatch.CreateEventId, QuicPacketBatch.DestroyedEventId, QuicPacketBatch.New);
             var PacketSet = new QuicObjectSet<QuicPacket>(QuicPacket.CreateEventId, QuicPacket.DestroyedEventId, QuicPacket.New);
+
+            var ConnSourceCIDs = new Dictionary<byte[], QuicRequestConn>(new SequentialByteComparer());
+            var ConnDestinationCIDs = new Dictionary<byte[], QuicRequestConn>(new SequentialByteComparer());
 
             var ClientRequests = new List<RequestTiming>();
             var ServerRequests = new List<RequestTiming>();
@@ -354,14 +367,24 @@ namespace QuicTrace
                     {
                         //Console.WriteLine("ConnSourceCidAdded {0}", evt.ObjectPointer);
                         var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                        Conn.SourceCIDs.Add((evt as QuicConnectionSourceCidAddedEvent)!.CID);
+                        ConnSourceCIDs.Add((evt as QuicConnectionSourceCidAddedEvent)!.CID, Conn);
+                        if (Conn.Peer == null && ConnDestinationCIDs.TryGetValue((evt as QuicConnectionSourceCidAddedEvent)!.CID, out var peer))
+                        {
+                            Conn.Peer = peer;
+                            //Console.WriteLine("Peer Set {0}", evt.ObjectPointer);
+                        }
                         break;
                     }
                     case QuicEventId.ConnDestCidAdded:
                     {
-                        //Console.WriteLine("ConnSourceCidAdded {0}", evt.ObjectPointer);
+                        //Console.WriteLine("ConnDestCidAdded {0}", evt.ObjectPointer);
                         var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                        Conn.DestinationCIDs.Add((evt as QuicConnectionDestinationCidAddedEvent)!.CID);
+                        ConnDestinationCIDs.Add((evt as QuicConnectionDestinationCidAddedEvent)!.CID, Conn);
+                        if (Conn.Peer == null && ConnSourceCIDs.TryGetValue((evt as QuicConnectionDestinationCidAddedEvent)!.CID, out var peer))
+                        {
+                            Conn.Peer = peer;
+                            //Console.WriteLine("Peer Set (dest) {0}", evt.ObjectPointer);
+                        }
                         break;
                     }
                     case QuicEventId.StreamAlloc:
@@ -369,9 +392,10 @@ namespace QuicTrace
                         //Console.WriteLine("StreamAlloc {0}", evt.ObjectPointer);
                         var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
                         Stream.Timings.StreamAlloc = (ulong)evt.TimeStamp.ToNanoseconds;
-                        if (Stream.Timings.Connection != null)
+                        if (Stream.Timings.Connection == null)
                         {
                             Stream.Timings.Connection = ConnSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamAllocEvent)!.Connection, evt.ProcessId));
+                            //Console.WriteLine("Conn Set {0}", evt.ObjectPointer);
                         }
                         break;
                     }
@@ -381,9 +405,10 @@ namespace QuicTrace
                         var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
                         Stream.Timings.StreamID = (evt as QuicStreamCreatedEvent)!.StreamID;
                         //Stream.Timings.StreamAlloc = (ulong)evt.TimeStamp.ToNanoseconds;
-                        if (Stream.Timings.Connection != null)
+                        if (Stream.Timings.Connection == null)
                         {
                             Stream.Timings.Connection = ConnSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamCreatedEvent)!.Connection, evt.ProcessId));
+                            //Console.WriteLine("Conn Set {0}", evt.ObjectPointer);
                         }
                         break;
                     }
@@ -488,17 +513,24 @@ namespace QuicTrace
                 }
             }
 
-            var ServerDict = ServerRequests.ToDictionary(x => ( x.Connection.SourceCIDs, x.StreamID ) );
+            var requestCount = ClientRequests.Count;
+            if (requestCount == 0)
+            {
+                Console.WriteLine("No complete requests!");
+                return;
+            }
+
+            var ServerDict = ServerRequests.ToDictionary(x => ( x.Connection!, x.StreamID ) );
             foreach (var timing in ClientRequests)
             {
-                if (ServerDict.TryGetValue(( timing.Connection.SourceCIDs, timing.StreamID ), out var peer))
+                if (ServerDict.TryGetValue(( timing.Connection!.Peer!, timing.StreamID ), out var peer))
                 {
                     timing.Peer = peer;
                     peer.Peer = timing;
+                    Console.WriteLine("Request Peer Set {0}", timing.StreamID);
                 }
             }
 
-            var requestCount = ClientRequests.Count;
             var sortedRequests = ClientRequests.OrderBy(t => t.Latency);
 
             var queueTimes = ClientRequests.OrderBy(t => t.QueueTime);

@@ -2463,7 +2463,7 @@
               value="5148"
               />
           <event
-              keywords="ut:Connection ut:LowVolume"
+              keywords="ut:Connection ut:LowVolume ut:RPS"
               level="win:Verbose"
               message="$(string.Etw.ConnDestCidAdd)"
               opcode="Connection"
