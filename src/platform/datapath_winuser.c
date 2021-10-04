@@ -328,6 +328,11 @@ typedef struct CXPLAT_SOCKET {
     void *ClientContext;
 
     //
+    // Socket to contain the port reservation.
+    //
+    SOCKET PortReservationSocket;
+
+    //
     // Per-processor socket contexts.
     //
     CXPLAT_SOCKET_PROC Processors[0];
@@ -1411,6 +1416,7 @@ CxPlatSocketCreateUdp(
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
+    DWORD BytesReturned;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1450,6 +1456,7 @@ CxPlatSocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
+    Socket->PortReservationSocket = INVALID_SOCKET;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         Socket->Processors[i].Parent = Socket;
@@ -1461,11 +1468,65 @@ CxPlatSocketCreateUdp(
         CxPlatRundownInitialize(&Socket->Processors[i].UpcallRundown);
     }
 
+    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
+        //
+        // Create a socket for port reservation for the local port.
+        //
+        Socket->PortReservationSocket =
+            WSASocketW(
+                AF_INET6,
+                SOCK_DGRAM,
+                IPPROTO_UDP,
+                NULL,
+                0,
+                WSA_FLAG_OVERLAPPED);
+        if (Socket->PortReservationSocket == INVALID_SOCKET) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "WSASocketW");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        //
+        // Create a port reservation for the local port.
+        //
+        INET_PORT_RANGE PortRange;
+        PortRange.StartPort = Config->LocalAddress->Ipv4.sin_port;
+        PortRange.NumberOfPorts = 1;
+
+        Result =
+            WSAIoctl(
+                Socket->PortReservationSocket,
+                SIO_ACQUIRE_PORT_RESERVATION,
+                &PortRange,
+                sizeof(PortRange),
+                &PortReservation,
+                sizeof(PortReservation),
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "SIO_ACQUIRE_PORT_RESERVATION");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+    }
+
     for (uint16_t i = 0; i < SocketCount; i++) {
 
         CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
         uint16_t AffinitizedProcessor = (uint16_t)i;
-        DWORD BytesReturned;
 
         SocketProc->Socket =
             WSASocketW(
@@ -1792,38 +1853,6 @@ QUIC_DISABLED_BY_FUZZER_START;
 
         if (Config->LocalAddress &&
             Config->LocalAddress->Ipv4.sin_port != 0) {
-            if (i == 0) {
-                //
-                // Create a port reservation for the local port.
-                //
-                INET_PORT_RANGE PortRange;
-                PortRange.StartPort = Config->LocalAddress->Ipv4.sin_port;
-                PortRange.NumberOfPorts = 1;
-
-                Result =
-                    WSAIoctl(
-                        SocketProc->Socket,
-                        SIO_ACQUIRE_PORT_RESERVATION,
-                        &PortRange,
-                        sizeof(PortRange),
-                        &PortReservation,
-                        sizeof(PortReservation),
-                        &BytesReturned,
-                        NULL,
-                        NULL);
-                if (Result == SOCKET_ERROR) {
-                    int WsaError = WSAGetLastError();
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        Socket,
-                        WsaError,
-                        "SIO_ACQUIRE_PORT_RESERVATION");
-                    Status = HRESULT_FROM_WIN32(WsaError);
-                    goto Error;
-                }
-            }
-
             //
             // Associate the port reservation with the socket.
             //
@@ -1979,6 +2008,9 @@ QUIC_DISABLED_BY_FUZZER_START;
 QUIC_DISABLED_BY_FUZZER_END;
 
                     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
+                }
+                if (Socket->PortReservationSocket != INVALID_SOCKET) {
+                    closesocket(Socket->PortReservationSocket);
                 }
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
                 CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
@@ -2687,6 +2719,7 @@ CxPlatDataPathSocketContextShutdown(
         //
         // Last socket context cleaned up, so now the binding can be freed.
         //
+        closesocket(SocketProc->Parent->PortReservationSocket);
         CxPlatRundownRelease(&SocketProc->Parent->Datapath->SocketsRundown);
         QuicTraceLogVerbose(
             DatapathShutDownComplete,
