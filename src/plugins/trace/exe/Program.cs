@@ -520,10 +520,10 @@ namespace QuicTrace
                 return;
             }
 
-            var ServerDict = ServerRequests.ToDictionary(x => ( x.Connection!, x.StreamID ) );
+            var ServerDict = ServerRequests.ToDictionary(x => ( x.Connection!.Pointer, x.StreamID ) );
             foreach (var timing in ClientRequests)
             {
-                if (ServerDict.TryGetValue(( timing.Connection!.Peer!, timing.StreamID ), out var peer))
+                if (ServerDict.TryGetValue(( timing.Connection!.Peer!.Pointer, timing.StreamID ), out var peer))
                 {
                     timing.Peer = peer;
                     peer.Peer = timing;
