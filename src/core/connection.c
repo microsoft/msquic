@@ -3793,6 +3793,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
 
+    CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
     QuicTraceEvent(
         PacketDecrypt,
         "[pack][%llu] Decrypting",
@@ -5093,6 +5094,7 @@ QuicConnRecvDatagramBatch(
         CXPLAT_DBG_ASSERT(Datagrams[i]->Allocated);
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = CxPlatDataPathRecvDataToRecvPacket(Datagrams[i]);
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
@@ -5192,6 +5194,7 @@ QuicConnRecvDatagrams(
         CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CXPLAT_DBG_ASSERT(Packet != NULL);
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
 
         CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
         Packet->ReleaseDeferred = FALSE;

@@ -42,10 +42,11 @@ namespace QuicTrace.DataModel
         {
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1801:Review unused parameters", Justification = "<Pending>")]
         public QuicObjectKey(int pointerSize, ulong pointer, uint processId)
         {
             Pointer = pointer;
-            ProcessId = IsKernelMemory(pointerSize, pointer) ? 4 : processId;
+            ProcessId = /* IsKernelMemory(pointerSize, pointer) ? 4 : */processId;
         }
 
         public override bool Equals(object? obj)

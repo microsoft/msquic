@@ -2761,7 +2761,7 @@
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
-              keywords="ut:Stream ut:LowVolume"
+              keywords="ut:Stream ut:LowVolume ut:RPS"
               level="win:Informational"
               message="$(string.Etw.StreamCreated)"
               opcode="Stream"
@@ -2788,7 +2788,7 @@
               value="6146"
               />
           <event
-              keywords="ut:Stream ut:LowVolume"
+              keywords="ut:Stream ut:LowVolume ut:RPS"
               level="win:Informational"
               message="$(string.Etw.StreamRundown)"
               opcode="Stream"

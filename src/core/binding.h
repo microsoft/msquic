@@ -29,14 +29,14 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
 typedef struct CXPLAT_RECV_PACKET {
 
     //
-    // The bytes that represent the fully decoded packet number.
-    //
-    uint64_t PacketNumber;
-
-    //
     // The unique identifier for the packet.
     //
     uint64_t PacketId;
+
+    //
+    // The bytes that represent the fully decoded packet number.
+    //
+    uint64_t PacketNumber;
 
     //
     // The current packet buffer.

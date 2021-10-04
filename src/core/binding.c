@@ -1148,7 +1148,7 @@ QuicBindingPreprocessDatagram(
     )
 {
     CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
+    CxPlatZeroMemory(&Packet->PacketNumber, sizeof(CXPLAT_RECV_PACKET) - sizeof(uint64_t));
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
 
@@ -1621,6 +1621,7 @@ QuicBindingReceive(
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
 
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(
             PacketReceive,
             "[pack][%llu] Received",
