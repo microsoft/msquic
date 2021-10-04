@@ -1,0 +1,21 @@
+name: ⭐ Submit a feature request
+description: Request a feature that you think should be supported
+title: "Feature request title"
+labels: feature request
+body:
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the feature you'd like supported
+      description: Enter a description of the feature you would like to propose.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Proposed solution
+      description: What are the benefits/reasons for having this feature?
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context that might be helpful, if applicable.

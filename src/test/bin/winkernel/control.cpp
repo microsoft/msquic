@@ -447,6 +447,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(UINT8),
     sizeof(INT32),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1108,6 +1109,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_INTERFACE_BINDING:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestInterfaceBinding(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS:
+        QuicTestCtlRun(QuicTestConnectInvalidAddress());
         break;
 
     default:
