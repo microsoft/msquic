@@ -2454,7 +2454,7 @@
               value="5147"
               />
           <event
-              keywords="ut:Connection ut:LowVolume"
+              keywords="ut:Connection ut:LowVolume ut:RPS"
               level="win:Verbose"
               message="$(string.Etw.ConnSourceCidAdd)"
               opcode="Connection"
@@ -2788,7 +2788,7 @@
               value="6146"
               />
           <event
-              keywords="ut:Stream ut:LowVolume ut:RPS"
+              keywords="ut:Stream ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.StreamRundown)"
               opcode="Stream"

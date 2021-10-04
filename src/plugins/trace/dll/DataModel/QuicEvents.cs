@@ -720,6 +720,42 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicConnectionSourceCidAddedEvent : QuicEvent
+    {
+        public ulong SequenceNumber { get; }
+
+
+#pragma warning disable CA1819 // Properties should not return arrays
+        public byte[] CID { get; }
+#pragma warning restore CA1819 // Properties should not return arrays
+
+        internal QuicConnectionSourceCidAddedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
+                                                       ulong sequenceNumber, ReadOnlySpan<byte> cid) :
+            base(QuicEventId.ConnSourceCidAdded, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            SequenceNumber = sequenceNumber;
+            CID = cid.ToArray();
+        }
+    }
+
+    public class QuicConnectionDestinationCidAddedEvent : QuicEvent
+    {
+        public ulong SequenceNumber { get; }
+
+
+#pragma warning disable CA1819 // Properties should not return arrays
+        public byte[] CID { get; }
+#pragma warning restore CA1819 // Properties should not return arrays
+
+        internal QuicConnectionDestinationCidAddedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
+                                                       ulong sequenceNumber, ReadOnlySpan<byte> cid) :
+            base(QuicEventId.ConnDestCidAdded, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            SequenceNumber = sequenceNumber;
+            CID = cid.ToArray();
+        }
+    }
+
     public class QuicConnectionStatsEvent : QuicEvent
     {
         public uint SmoothedRtt { get; }
