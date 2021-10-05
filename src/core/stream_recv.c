@@ -183,7 +183,6 @@ QuicStreamProcessResetFrame(
                 "Tried to reset at earlier final size!");
             QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
             return;
-
         }
 
         if (TotalRecvLength < FinalSize) {
@@ -311,17 +310,38 @@ QuicStreamProcessStreamFrame(
         goto Error;
     }
 
-    if (Stream->Flags.RemoteCloseFin ||
-        Stream->Flags.RemoteCloseReset ||
-        Stream->Flags.SentStopSending) {
+    if (Stream->Flags.RemoteCloseFin || Stream->Flags.RemoteCloseReset) {
         //
-        // Ignore the data if we are already closed remotely. Likely means we received
-        // a copy of already processed data that was resent.
+        // Ignore the data if we are already closed remotely. Likely means we
+        // received a copy of already processed data that was resent.
         //
         QuicTraceLogStreamVerbose(
             IgnoreRecvAfterClose,
             Stream,
             "Ignoring recv after close");
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
+
+    if (Stream->Flags.SentStopSending) {
+        //
+        // The app has already aborting the receive path, but the peer might end
+        // up sending a FIN instead of a reset. Ignore the data but treat any
+        // FIN as a reset.
+        //
+        if (Frame->Fin) {
+            QuicTraceLogStreamInfo(
+                TreatFinAsReset,
+                Stream,
+                "Treating FIN after receive abort as reset");
+            QuicStreamProcessResetFrame(Stream, Frame->Offset + Frame->Length, 0);
+
+        } else {
+            QuicTraceLogStreamVerbose(
+                IgnoreRecvAfterAbort,
+                Stream,
+                "Ignoring received frame after receive abort");
+        }
         Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }
