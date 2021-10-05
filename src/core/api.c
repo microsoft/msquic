@@ -923,7 +923,7 @@ MsQuicStreamShutdown(
     }
 
     if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL &&
-        Flags != QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL) {
+        Flags & (QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE)) {
         //
         // Not allowed to use the graceful shutdown flag with any other flag.
         //
@@ -952,6 +952,27 @@ MsQuicStreamShutdown(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+
+    if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_INLINE &&
+        Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+        CXPLAT_PASSIVE_CODE();
+
+        //
+        // Execute this blocking API call inline if called on the worker thread.
+        //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        QuicStreamShutdown(Stream, Flags, ErrorCode);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
 
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
