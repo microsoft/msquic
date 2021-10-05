@@ -7084,6 +7084,18 @@
       ],
       "macroName": "QuicTraceLogStreamInfo"
     },
+    "TreatFinAsReset": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Treating FIN after receive abort as reset",
+      "UniqueId": "TreatFinAsReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamInfo"
+    },
     "QueueRecvFlush": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Queuing recv flush",
@@ -7132,6 +7144,18 @@
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Ignoring recv after close",
       "UniqueId": "IgnoreRecvAfterClose",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "IgnoreRecvAfterAbort": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Ignoring received frame after receive abort",
+      "UniqueId": "IgnoreRecvAfterAbort",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -12521,6 +12545,10 @@
         "TraceID": "LocalCloseStopSending"
       },
       {
+        "UniquenessHash": "40c67c17-d530-a2d2-272a-4730ad121b34",
+        "TraceID": "TreatFinAsReset"
+      },
+      {
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush"
       },
@@ -12535,6 +12563,10 @@
       {
         "UniquenessHash": "59f615c0-9861-8dc7-db5a-224ebc6336a5",
         "TraceID": "IgnoreRecvAfterClose"
+      },
+      {
+        "UniquenessHash": "61c9329f-42bd-40dd-43cc-5b5c3fa2830b",
+        "TraceID": "IgnoreRecvAfterAbort"
       },
       {
         "UniquenessHash": "337f803e-406e-0817-5804-7273bf3a07ec",
