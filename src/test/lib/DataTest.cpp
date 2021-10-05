@@ -2533,9 +2533,6 @@ QuicTestStreamAbortRecvFinRace(
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-    const QUIC_UINT62 RecvShutdownErrorCode = 0x1234567890;
-    const QUIC_UINT62 SendShutdownErrorCode = 0x9876543210;
-
     MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamAbortRecvFinRace::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Stream.Start());
