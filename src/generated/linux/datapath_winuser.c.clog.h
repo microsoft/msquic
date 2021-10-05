@@ -879,6 +879,54 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
+                "SIO_ACQUIRE_PORT_RESERVATION");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = WsaError
+// arg4 = arg4 = "SIO_ACQUIRE_PORT_RESERVATION"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "WSASocketW");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = WsaError
+// arg4 = arg4 = "WSASocketW"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
                 "Set IPV6_V6ONLY");
 // arg2 = arg2 = Socket
 // arg3 = arg3 = WsaError
@@ -1195,6 +1243,30 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 // arg2 = arg2 = Socket
 // arg3 = arg3 = WsaError
 // arg4 = arg4 = "Set IP_UNICAST_IF"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "SIO_ASSOCIATE_PORT_RESERVATION");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = WsaError
+// arg4 = arg4 = "SIO_ASSOCIATE_PORT_RESERVATION"
 ----------------------------------------------------------*/
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
