@@ -355,6 +355,12 @@ if ($IsWindows) {
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
         }
+        "OneBranchPackage" {
+            sudo apt-get update
+            # used for packaging
+            sudo apt-get install -y ruby ruby-dev rpm
+            sudo gem install fpm
+        }
     }
 } elseif ($IsMacOS) {
     if ($Configuration -eq "Test") {
