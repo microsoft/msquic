@@ -409,7 +409,7 @@ QuicStreamProcessStreamFrame(
         // Keep track of the total ordered bytes received.
         //
         Stream->Connection->Send.OrderedStreamBytesReceived += WriteLength;
-        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived < Stream->Connection->Send.MaxData);
+        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived <= Stream->Connection->Send.MaxData);
         CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
 
         if (QuicRecvBufferGetTotalLength(&Stream->RecvBuffer) == Stream->MaxAllowedRecvOffset) {
