@@ -35,7 +35,7 @@ on the provided configuration.
 
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Build", "Test", "Dev", "OneBranch")]
+    [ValidateSet("Build", "Test", "Dev", "OneBranch", "OneBranchPackage")]
     [string]$Configuration,
 
     [Parameter(Mandatory = $false)]
@@ -354,6 +354,12 @@ if ($IsWindows) {
             sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
+        }
+        "OneBranchPackage" {
+            sudo apt-get update
+            # used for packaging
+            sudo apt-get install -y ruby ruby-dev rpm
+            sudo gem install fpm
         }
     }
 } elseif ($IsMacOS) {
