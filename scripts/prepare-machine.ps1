@@ -35,7 +35,7 @@ on the provided configuration.
 
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Build", "Test", "Dev", "OneBranch")]
+    [ValidateSet("Build", "Test", "Dev", "OneBranch", "OneBranchPackage")]
     [string]$Configuration,
 
     [Parameter(Mandatory = $false)]
