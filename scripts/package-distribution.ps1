@@ -140,6 +140,6 @@ foreach ($Build in $AllBuilds) {
     # For now, package only x64 Release binaries
     if ($Platform -eq "linux" -and $BuildBaseName -like "*x64_Release*") {
         Write-Output "Packaging $Build"
-        scripts/make-packages.sh  --output $DistDir
+        & $RootDir/scripts/make-packages.sh --output $DistDir
     }
 }
