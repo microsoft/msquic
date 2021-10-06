@@ -6,7 +6,7 @@ use std::path::Path;
 
 fn main() {
     let mut path_extra = "msquic/lib";
-    let mut logging_enabled = "off";
+    let mut logging_enabled = "on";
     if cfg!(windows) {
         path_extra = "lib";
         logging_enabled = "on";
