@@ -8,7 +8,7 @@ trigger: none
 resources:
   pipelines:
   - pipeline: mainpipe
-    source: msquic-totrigger
+    source: msquic-PullRequest
     trigger: true
 
 pool:
