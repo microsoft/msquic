@@ -16,6 +16,10 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 
+Get-ChildItem $RootDir
+$env:BUILD_SOURCESDIRECTORY
+Get-ChildItem $env:BUILD_SOURCESDIRECTORY
+
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
