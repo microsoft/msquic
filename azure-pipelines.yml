@@ -4,7 +4,7 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+- thadhouse/tiggertesting
 
 pool:
   vmImage: ubuntu-latest
