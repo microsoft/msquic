@@ -5,11 +5,11 @@
 // Decoder Ring for InvalidCongestionControlAlgorithm
 // [conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic
 // QuicTraceLogConnWarning(
-                InvalidCongestionControlAlgorithm,
-                Connection,
-                "Unknown congestion control algorithm: %d, fallback to Cubic",
-                Settings->CongestionControlAlgorithm);
-// arg1 = arg1 = Connection
+            InvalidCongestionControlAlgorithm,
+            QuicCongestionControlGetConnection(Cc),
+            "Unknown congestion control algorithm: %d, fallback to Cubic",
+            Settings->CongestionControlAlgorithm);
+// arg1 = arg1 = QuicCongestionControlGetConnection(Cc)
 // arg3 = arg3 = Settings->CongestionControlAlgorithm
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONGESTION_CONTROL_C, InvalidCongestionControlAlgorithm,

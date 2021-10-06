@@ -536,6 +536,28 @@ tracepoint(CLOG_DATAPATH_WINKERNEL_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
+            "WskControlClient WSK_TDI_BEHAVIOR");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "WskControlClient WSK_TDI_BEHAVIOR"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
             "WskControlClient WSK_SET_STATIC_EVENT_CALLBACKS");
 // arg2 = arg2 = Status
 // arg3 = arg3 = "WskControlClient WSK_SET_STATIC_EVENT_CALLBACKS"

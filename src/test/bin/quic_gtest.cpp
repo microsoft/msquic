@@ -957,6 +957,15 @@ TEST_P(WithFamilyArgs, Unreachable) {
     }
 }
 
+TEST(HandshakeTest, InvalidAddress) {
+    TestLogger Logger("QuicTestConnectInvalidAddress");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS));
+    } else {
+        QuicTestConnectInvalidAddress();
+    }
+}
+
 TEST_P(WithFamilyArgs, BadALPN) {
     TestLoggerT<ParamType> Logger("QuicTestConnectBadAlpn", GetParam());
     if (TestingKernelMode) {

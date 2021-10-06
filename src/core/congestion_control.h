@@ -7,14 +7,29 @@
 
 #include "cubic.h"
 
-typedef union QUIC_CONGESTION_CONTROL_CONTEXT {
-    QUIC_CONGESTION_CONTROL_CUBIC CubicCtx;
+typedef struct QUIC_ACK_EVENT {
 
-    //
-    // Add new congestion control context here
-    //
+    uint64_t TimeNow; // microsecond
 
-} QUIC_CONGESTION_CONTROL_CONTEXT;
+    uint64_t LargestPacketNumberAcked;
+
+    uint32_t NumRetransmittableBytes;
+
+    uint32_t SmoothedRtt;
+
+} QUIC_ACK_EVENT;
+
+typedef struct QUIC_LOSS_EVENT {
+
+    uint64_t LargestPacketNumberLost;
+
+    uint64_t LargestPacketNumberSent;
+
+    uint32_t NumRetransmittableBytes;
+
+    BOOLEAN PersistentCongestion : 1;
+
+} QUIC_LOSS_EVENT;
 
 typedef struct QUIC_CONGESTION_CONTROL {
 
@@ -30,11 +45,6 @@ typedef struct QUIC_CONGESTION_CONTROL {
     void (*QuicCongestionControlSetExemption)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
         _In_ uint8_t NumPackets
-        );
-
-    void (*QuicCongestionControlInitialize)(
-        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
-        _In_ const QUIC_SETTINGS* Settings
         );
 
     void (*QuicCongestionControlReset)(
@@ -60,18 +70,12 @@ typedef struct QUIC_CONGESTION_CONTROL {
 
     BOOLEAN (*QuicCongestionControlOnDataAcknowledged)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
-        _In_ uint64_t TimeNow, // microsecond
-        _In_ uint64_t LargestPacketNumberAcked,
-        _In_ uint32_t NumRetransmittableBytes,
-        _In_ uint32_t SmoothedRtt
+        _In_ const QUIC_ACK_EVENT* AckEvent
         );
 
     void (*QuicCongestionControlOnDataLost)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
-        _In_ uint64_t LargestPacketNumberLost,
-        _In_ uint64_t LargestPacketNumberSent,
-        _In_ uint32_t NumRetransmittableBytes,
-        _In_ BOOLEAN PersistentCongestion
+        _In_ const QUIC_LOSS_EVENT* LossEvent
         );
 
     void (*QuicCongestionControlOnSpuriousCongestionEvent)(
@@ -90,14 +94,24 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ const struct QUIC_CONGESTION_CONTROL* Cc
         );
 
-    QUIC_CONGESTION_CONTROL_CONTEXT Ctx;
+    //
+    // Algorithm specific state.
+    //
+    union {
+        QUIC_CONGESTION_CONTROL_CUBIC Cubic;
+    };
+
 } QUIC_CONGESTION_CONTROL;
 
-#define QUIC_CONGESTION_CONTROL_CONTEXT_SIZE (RTL_FIELD_SIZE(QUIC_CONGESTION_CONTROL, Ctx))
-
-CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_CONGESTION_CONTROL_CUBIC) <= QUIC_CONGESTION_CONTROL_CONTEXT_SIZE,
-    "Context size for Cubic exceeds the expected size");
+//
+// Initializes the algorithm specific congestion control algorithm.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlInitialize(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_SETTINGS* Settings
+    );
 
 //
 // Returns TRUE if more bytes can be sent on the network.
@@ -124,91 +138,110 @@ QuicCongestionControlSetExemption(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicCongestionControlInitialize(
-    _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 void
 QuicCongestionControlReset(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ BOOLEAN FullReset
-    );
+    )
+{
+    Cc->QuicCongestionControlReset(Cc, FullReset);
+}
 
 //
 // Returns the number of bytes that can be sent immediately.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 uint32_t
 QuicCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
     _In_ BOOLEAN TimeSinceLastSendValid
-    );
+    )
+{
+    return Cc->QuicCongestionControlGetSendAllowance(Cc, TimeSinceLastSend, TimeSinceLastSendValid);
+}
 
 //
 // Called when any retransmittable data is sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
+inline
 void
 QuicCongestionControlOnDataSent(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
-    );
+    )
+{
+    Cc->QuicCongestionControlOnDataSent(Cc, NumRetransmittableBytes);
+}
 
 //
 // Called when any data needs to be removed from inflight but cannot be
 // considered lost or acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 BOOLEAN
 QuicCongestionControlOnDataInvalidated(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
-    );
+    )
+{
+    return Cc->QuicCongestionControlOnDataInvalidated(Cc, NumRetransmittableBytes);
+}
 
 //
 // Called when any data is acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 BOOLEAN
 QuicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t TimeNow, // microsecond
-    _In_ uint64_t LargestPacketNumberAcked,
-    _In_ uint32_t NumRetransmittableBytes,
-    _In_ uint32_t SmoothedRtt
-    );
+    _In_ const QUIC_ACK_EVENT* AckEvent
+    )
+{
+    return Cc->QuicCongestionControlOnDataAcknowledged(Cc, AckEvent);
+}
 
 //
 // Called when data is determined lost.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 void
 QuicCongestionControlOnDataLost(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t LargestPacketNumberLost,
-    _In_ uint64_t LargestPacketNumberSent,
-    _In_ uint32_t NumRetransmittableBytes,
-    _In_ BOOLEAN PersistentCongestion
-    );
+    _In_ const QUIC_LOSS_EVENT* LossEvent
+    )
+{
+    Cc->QuicCongestionControlOnDataLost(Cc, LossEvent);
+}
 
 //
 // Called when all recently considered lost data was actually acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 void
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
-    );
+    )
+{
+    Cc->QuicCongestionControlOnSpuriousCongestionEvent(Cc);
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 uint8_t
 QuicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
-    );
+    )
+{
+    return Cc->QuicCongestionControlGetExemptions(Cc);
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
@@ -224,7 +257,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
 QuicCongestionControlGetBytesInFlightMax(
-    _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
     return Cc->QuicCongestionControlGetBytesInFlightMax(Cc);

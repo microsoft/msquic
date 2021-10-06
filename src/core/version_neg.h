@@ -11,6 +11,10 @@ Abstract:
 
 #pragma once
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // This list is the versions that the server advertises support for.
 //
@@ -77,3 +81,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
     _In_ QUIC_CONNECTION* Connection,
     _Out_ uint32_t* VerInfoLength
     );
+
+#if defined(__cplusplus)
+}
+#endif
