@@ -2642,13 +2642,7 @@ QuicTestLoadBalancedHandshake(
             // Sometimes the local port might be used already. Just ignore this
             // failure and continue on.
             //
-#ifdef WSAEACCES
-            TEST_TRUE(
-                Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE ||
-                Connection.TransportShutdownStatus == HRESULT_FROM_WIN32(WSAEACCES));
-#else
             TEST_TRUE(Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE);
-#endif
 
         } else {
             if (SchannelMode) {
