@@ -1,0 +1,28 @@
+name: Check CLOG
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Configuration Dev
+      shell: pwsh
+    - name: Run CLOG Update
+      run: scripts/update-sidecar.ps1
+      shell: pwsh
+    - name: Check for Changes
+      run: |
+        git add .
+        git --no-pager diff --exit-code HEAD
