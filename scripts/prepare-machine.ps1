@@ -156,6 +156,9 @@ function Install-DuoNic {
     # Download the CI repo that contains DuoNic.
     Download-CoreNet-Deps
 
+    # Install the test root certificate.
+    certutil.exe -addstore -f "Root" "artifacts\corenet-ci-main\testroot-sha2.cer"
+
     # Install the DuoNic driver.
     pushd artifacts\corenet-ci-main\duonic
     & duonic.ps1 -Install
