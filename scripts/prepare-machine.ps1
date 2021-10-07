@@ -57,7 +57,10 @@ param (
     [switch]$TestCertificates,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SignCode
+    [switch]$SignCode,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DuoNic
 )
 
 #Requires -RunAsAdministrator
@@ -131,6 +134,46 @@ function Install-ClogTool {
         $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
         $MessagesAtEnd.Add($err.ToString())
     }
+}
+
+$ArtifactsPath = Join-Path $RootDir "artifacts"
+$CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
+$SetupPath = Join-Path $CoreNetCiPath "vm-setup"
+
+function Download-CoreNet-Deps {
+    # Download and extract https://github.com/microsoft/corenet-ci.
+    if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    if (!(Test-Path $CoreNetCiPath)) {
+        $ZipPath = Join-Path $ArtifactsPath "corenet-ci.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
+        Remove-Item -Path $ZipPath
+    }
+}
+
+# Installs DuoNic from the CoreNet-CI repo.
+function Install-DuoNic {
+    # Check to see if test signing is enabled.
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
+
+    # Download the CI repo that contains DuoNic.
+    Write-Host "Downloading CoreNet-CI"
+    Download-CoreNet-Deps
+
+    # Install the test root certificate.
+    Write-Host "Installing test root certificate"
+    $RootCertPath = Join-Path $SetupPath "testroot-sha2.cer"
+    if (!(Test-Path $RootCertPath)) { Write-Error "Missing file: $RootCertPath" }
+    certutil.exe -addstore -f "Root" $RootCertPath
+
+    # Install the DuoNic driver.
+    Write-Host "Installing DuoNic driver"
+    $DuoNicPath = Join-Path $SetupPath duonic
+    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
 }
 
 if (($Configuration -eq "Dev")) {
@@ -300,6 +343,9 @@ if ($IsWindows) {
 
             # Delete the installer.
             Remove-Item -Path $ExeFile
+        }
+        if ($DuoNic) {
+            Install-DuoNic
         }
     }
 
