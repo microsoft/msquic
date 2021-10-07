@@ -170,10 +170,10 @@ function Install-DuoNic {
 
     # Install the DuoNic driver.
     Write-Host "Installing DuoNic driver"
-    pushd (Join-Path $SetupPath duonic)
-    if (!(Test-Path duonic.ps1)) { Write-Error "Missing file: duonic.ps1" }
-    & "duonic.ps1 -Install"
-    popd
+    $DuoNicPath = Join-Path $SetupPath duonic
+    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
 }
 
 if (($Configuration -eq "Dev")) {
