@@ -185,14 +185,15 @@ QuicStreamProcessResetFrame(
             return;
         }
 
-        if (TotalRecvLength < FinalSize) {
+        uint64_t TotalReadLength = Stream->RecvBuffer.BaseOffset;
+        if (TotalReadLength < FinalSize) {
             //
-            // The final offset is indicating that more data was sent than we
-            // have actually received. Make sure to update our flow control
+            // The final offset is indicating that more data was sent than the
+            // app has completely read. Make sure to update our flow control
             // accounting so we stay in sync with the peer.
             //
 
-            uint64_t FlowControlIncrease = FinalSize - TotalRecvLength;
+            uint64_t FlowControlIncrease = FinalSize - TotalReadLength;
             Stream->Connection->Send.OrderedStreamBytesReceived += FlowControlIncrease;
             if (Stream->Connection->Send.OrderedStreamBytesReceived < FlowControlIncrease ||
                 Stream->Connection->Send.OrderedStreamBytesReceived > Stream->Connection->Send.MaxData) {
