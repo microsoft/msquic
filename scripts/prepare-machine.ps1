@@ -136,13 +136,18 @@ function Install-ClogTool {
     }
 }
 
+$ArtifactsPath = Join-Path $RootDir "artifacts"
+$CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
+$SetupPath = Join-Path $CoreNetCiPath "vm-setup"
+
 function Download-CoreNet-Deps {
     # Download and extract https://github.com/microsoft/corenet-ci.
-    if (!(Test-Path "artifacts")) { mkdir artifacts }
-    if (!(Test-Path "artifacts\corenet-ci-main")) {
-        Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile "artifacts\corenet-ci.zip"
-        Expand-Archive -Path "artifacts\corenet-ci.zip" -DestinationPath "artifacts" -Force
-        Remove-Item -Path "artifacts\corenet-ci.zip"
+    if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    if (!(Test-Path $CoreNetCiPath)) {
+        $ZipPath = Join-Path $ArtifactsPath "corenet-ci.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
+        Remove-Item -Path $ZipPath
     }
 }
 
@@ -154,13 +159,19 @@ function Install-DuoNic {
     if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
 
     # Download the CI repo that contains DuoNic.
+    Write-Host "Downloading CoreNet-CI"
     Download-CoreNet-Deps
 
     # Install the test root certificate.
-    certutil.exe -addstore -f "Root" "artifacts\corenet-ci-main\vm-setup\testroot-sha2.cer"
+    Write-Host "Installing test root certificate"
+    $RootCertPath = Join-Path $SetupPath "testroot-sha2.cer"
+    if (!(Test-Path $RootCertPath)) { Write-Error "Missing file: $RootCertPath" }
+    certutil.exe -addstore -f "Root" $RootCertPath
 
     # Install the DuoNic driver.
-    pushd artifacts\corenet-ci-main\vm-setup\duonic
+    Write-Host "Installing DuoNic driver"
+    pushd (Join-Path $SetupPath duonic)
+    if (!(Test-Path duonic.ps1)) { Write-Error "Missing file: duonic.ps1" }
     & duonic.ps1 -Install
     popd
 }
