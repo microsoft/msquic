@@ -57,7 +57,10 @@ param (
     [switch]$TestCertificates,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SignCode
+    [switch]$SignCode,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DuoNic
 )
 
 #Requires -RunAsAdministrator
@@ -131,6 +134,32 @@ function Install-ClogTool {
         $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
         $MessagesAtEnd.Add($err.ToString())
     }
+}
+
+function Download-CoreNet-Deps {
+    # Download and extract https://github.com/microsoft/corenet-ci.
+    if (!(Test-Path "artifacts")) { mkdir artifacts }
+    if (!(Test-Path "artifacts\corenet-ci-main")) {
+        Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile "artifacts\corenet-ci.zip"
+        Expand-Archive -Path "artifacts\corenet-ci.zip" -DestinationPath "artifacts" -Force
+        Remove-Item -Path "artifacts\corenet-ci.zip"
+    }
+}
+
+# Installs DuoNic from the CoreNet-CI repo.
+function Install-DuoNic {
+    # Check to see if test signing is enabled.
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
+
+    # Download the CI repo that contains DuoNic.
+    Download-CoreNet-Deps
+
+    # Install the DuoNic driver.
+    pushd artifacts\corenet-ci-main\duonic
+    & duonic.ps1 -Install
+    popd
 }
 
 if (($Configuration -eq "Dev")) {
@@ -300,6 +329,9 @@ if ($IsWindows) {
 
             # Delete the installer.
             Remove-Item -Path $ExeFile
+        }
+        if ($DuoNic) {
+            Install-DuoNic
         }
     }
 
