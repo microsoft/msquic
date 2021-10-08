@@ -210,7 +210,6 @@ QuicStreamProcessResetFrame(
                     ResetTooBig,
                     Stream,
                     "Tried to reset with too big final size!");
-                CXPLAT_DBG_ASSERT(FALSE);
                 QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
                 return;
             }
