@@ -12,7 +12,7 @@ endif()
 set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} datapath_winuser.c platform_winuser.c storage_winuser.c)
+    set(SOURCES ${SOURCES} datapath_dpdk.c platform_winuser.c storage_winuser.c)
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux")
@@ -47,7 +47,7 @@ target_link_libraries(platform PRIVATE warnings)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES} ${PROJECT_SOURCE_DIR}/artifacts/dpdk/include)
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
     target_compile_options(platform PRIVATE /analyze)
