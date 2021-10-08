@@ -9,13 +9,13 @@ Abstract:
 
 Future work:
 
-    -Early slowstart exit via HyStart or similar.
+    - Early slowstart exit via HyStart or similar.
 
 --*/
 
 #include "precomp.h"
 #ifdef QUIC_CLOG
-#include "cubic_impl.c.clog.h"
+#include "cubic.c.clog.h"
 #endif
 
 #include "cubic.h"
@@ -25,23 +25,6 @@ Future work:
 //
 #define TEN_TIMES_BETA_CUBIC 7
 #define TEN_TIMES_C_CUBIC 4
-
-static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
-    .Name = "Cubic",
-    .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
-    .QuicCongestionControlSetExemption = CubicCongestionControlSetExemption,
-    .QuicCongestionControlInitialize = CubicCongestionControlInitialize,
-    .QuicCongestionControlReset = CubicCongestionControlReset,
-    .QuicCongestionControlGetSendAllowance = CubicCongestionControlGetSendAllowance,
-    .QuicCongestionControlOnDataSent = CubicCongestionControlOnDataSent,
-    .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
-    .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
-    .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
-    .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
-    .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
-    .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
-    .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
-};
 
 //
 // Shifting nth root algorithm.
@@ -82,44 +65,42 @@ CubeRoot(
     return y;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnLogCubic(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    UNREFERENCED_PARAMETER(Connection);
-
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)(&Connection->CongestionControl.Ctx);
+    const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection->CongestionControl.Cubic;
 
     QuicTraceEvent(
         ConnCubic,
         "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
         Connection,
-        Ctx->SlowStartThreshold,
-        Ctx->KCubic,
-        Ctx->WindowMax,
-        Ctx->WindowLastMax);
+        Cubic->SlowStartThreshold,
+        Cubic->KCubic,
+        Cubic->WindowMax,
+        Cubic->WindowLastMax);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CubicCongestionControlCanSend(
+    _In_ QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
+    return Cubic->BytesInFlight < Cubic->CongestionWindow || Cubic->Exemptions > 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CubicCongestionControlInitialize(
+CubicCongestionControlSetExemption(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ uint8_t NumPackets
     )
 {
-    *Cc = QuicCongestionControlCubic;
-
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
-
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    Ctx->SlowStartThreshold = UINT32_MAX;
-    Ctx->SendIdleTimeoutMs = Settings->SendIdleTimeoutMs;
-    Ctx->InitialWindowPackets = Settings->InitialWindowPackets;
-    Ctx->CongestionWindow = Connection->Paths[0].Mtu * Ctx->InitialWindowPackets;
-    Ctx->BytesInFlightMax = Ctx->CongestionWindow / 2;
-    QuicConnLogOutFlowStats(Connection);
-    QuicConnLogCubic(Connection);
+    Cc->Cubic.Exemptions = NumPackets;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -129,16 +110,16 @@ CubicCongestionControlReset(
     _In_ BOOLEAN FullReset
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    Ctx->SlowStartThreshold = UINT32_MAX;
-    Ctx->IsInRecovery = FALSE;
-    Ctx->HasHadCongestionEvent = FALSE;
-    Ctx->CongestionWindow = Connection->Paths[0].Mtu * Ctx->InitialWindowPackets;
-    Ctx->BytesInFlightMax = Ctx->CongestionWindow / 2;
+    Cubic->SlowStartThreshold = UINT32_MAX;
+    Cubic->IsInRecovery = FALSE;
+    Cubic->HasHadCongestionEvent = FALSE;
+    Cubic->CongestionWindow = Connection->Paths[0].Mtu * Cubic->InitialWindowPackets;
+    Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
     if (FullReset) {
-        Ctx->BytesInFlight = 0;
+        Cubic->BytesInFlight = 0;
     }
     QuicConnLogOutFlowStats(Connection);
     QuicConnLogCubic(Connection);
@@ -152,11 +133,11 @@ CubicCongestionControlGetSendAllowance(
     _In_ BOOLEAN TimeSinceLastSendValid
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     uint32_t SendAllowance;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    if (Ctx->BytesInFlight >= Ctx->CongestionWindow) {
+    if (Cubic->BytesInFlight >= Cubic->CongestionWindow) {
         //
         // We are CC blocked, so we can't send anything.
         //
@@ -170,7 +151,7 @@ CubicCongestionControlGetSendAllowance(
         //
         // We're not in the necessary state to pace.
         //
-        SendAllowance = Ctx->CongestionWindow - Ctx->BytesInFlight;
+        SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
 
     } else {
 
@@ -189,22 +170,22 @@ CubicCongestionControlGetSendAllowance(
         // more complicated, and we use a simple estimate of 25% growth.
         //
         uint64_t EstimatedWnd;
-        if (Ctx->CongestionWindow < Ctx->SlowStartThreshold) {
-            EstimatedWnd = (uint64_t)Ctx->CongestionWindow << 1;
-            if (EstimatedWnd > Ctx->SlowStartThreshold) {
-                EstimatedWnd = Ctx->SlowStartThreshold;
+        if (Cubic->CongestionWindow < Cubic->SlowStartThreshold) {
+            EstimatedWnd = (uint64_t)Cubic->CongestionWindow << 1;
+            if (EstimatedWnd > Cubic->SlowStartThreshold) {
+                EstimatedWnd = Cubic->SlowStartThreshold;
             }
         } else {
-            EstimatedWnd = Ctx->CongestionWindow + (Ctx->CongestionWindow >> 2); // CongestionWindow * 1.25
+            EstimatedWnd = Cubic->CongestionWindow + (Cubic->CongestionWindow >> 2); // CongestionWindow * 1.25
         }
 
         SendAllowance =
             (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
-        if (SendAllowance > (Ctx->CongestionWindow - Ctx->BytesInFlight)) {
-            SendAllowance = Ctx->CongestionWindow - Ctx->BytesInFlight;
+        if (SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
+            SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
         }
-        if (SendAllowance > (Ctx->CongestionWindow >> 2)) {
-            SendAllowance = Ctx->CongestionWindow >> 2; // Don't send more than a quarter of the current window.
+        if (SendAllowance > (Cubic->CongestionWindow >> 2)) {
+            SendAllowance = Cubic->CongestionWindow >> 2; // Don't send more than a quarter of the current window.
         }
     }
     return SendAllowance;
@@ -242,7 +223,7 @@ CubicCongestionControlOnCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     QuicTraceEvent(
@@ -251,27 +232,27 @@ CubicCongestionControlOnCongestionEvent(
         Connection);
     Connection->Stats.Send.CongestionCount++;
 
-    Ctx->IsInRecovery = TRUE;
-    Ctx->HasHadCongestionEvent = TRUE;
+    Cubic->IsInRecovery = TRUE;
+    Cubic->HasHadCongestionEvent = TRUE;
 
     //
     // Save previous state, just in case this ends up being spurious.
     //
-    Ctx->PrevWindowMax = Ctx->WindowMax;
-    Ctx->PrevWindowLastMax = Ctx->WindowLastMax;
-    Ctx->PrevKCubic = Ctx->KCubic;
-    Ctx->PrevSlowStartThreshold = Ctx->SlowStartThreshold;
-    Ctx->PrevCongestionWindow = Ctx->CongestionWindow;
+    Cubic->PrevWindowMax = Cubic->WindowMax;
+    Cubic->PrevWindowLastMax = Cubic->WindowLastMax;
+    Cubic->PrevKCubic = Cubic->KCubic;
+    Cubic->PrevSlowStartThreshold = Cubic->SlowStartThreshold;
+    Cubic->PrevCongestionWindow = Cubic->CongestionWindow;
 
-    Ctx->WindowMax = Ctx->CongestionWindow;
-    if (Ctx->WindowLastMax > Ctx->WindowMax) {
+    Cubic->WindowMax = Cubic->CongestionWindow;
+    if (Cubic->WindowLastMax > Cubic->WindowMax) {
         //
         // Fast convergence.
         //
-        Ctx->WindowLastMax = Ctx->WindowMax;
-        Ctx->WindowMax = Ctx->WindowMax * (10 + TEN_TIMES_BETA_CUBIC) / 20;
+        Cubic->WindowLastMax = Cubic->WindowMax;
+        Cubic->WindowMax = Cubic->WindowMax * (10 + TEN_TIMES_BETA_CUBIC) / 20;
     } else {
-        Ctx->WindowLastMax = Ctx->WindowMax;
+        Cubic->WindowLastMax = Cubic->WindowMax;
     }
 
     //
@@ -282,18 +263,18 @@ CubicCongestionControlOnCongestionEvent(
     // by 9 before the division and then right-shifting the result by 3
     // (since 2^9 = 2^3^3).
     //
-    Ctx->KCubic =
+    Cubic->KCubic =
         CubeRoot(
-            (Ctx->WindowMax / Connection->Paths[0].Mtu * (10 - TEN_TIMES_BETA_CUBIC) << 9) /
+            (Cubic->WindowMax / Connection->Paths[0].Mtu * (10 - TEN_TIMES_BETA_CUBIC) << 9) /
             TEN_TIMES_C_CUBIC);
-    Ctx->KCubic = S_TO_MS(Ctx->KCubic);
-    Ctx->KCubic >>= 3;
+    Cubic->KCubic = S_TO_MS(Cubic->KCubic);
+    Cubic->KCubic >>= 3;
 
-    Ctx->SlowStartThreshold =
-    Ctx->CongestionWindow =
+    Cubic->SlowStartThreshold =
+    Cubic->CongestionWindow =
         CXPLAT_MAX(
             (uint32_t)Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
-            Ctx->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
+            Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -302,7 +283,7 @@ CubicCongestionControlOnPersistentCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     QuicTraceEvent(
@@ -311,14 +292,14 @@ CubicCongestionControlOnPersistentCongestionEvent(
         Connection);
     Connection->Stats.Send.PersistentCongestionCount++;
 
-    Ctx->IsInPersistentCongestion = TRUE;
-    Ctx->WindowMax =
-        Ctx->WindowLastMax =
-        Ctx->SlowStartThreshold =
-            Ctx->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
-    Ctx->CongestionWindow =
+    Cubic->IsInPersistentCongestion = TRUE;
+    Cubic->WindowMax =
+        Cubic->WindowLastMax =
+        Cubic->SlowStartThreshold =
+            Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
+    Cubic->CongestionWindow =
         Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
-    Ctx->KCubic = 0;
+    Cubic->KCubic = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -328,18 +309,18 @@ CubicCongestionControlOnDataSent(
     _In_ uint32_t NumRetransmittableBytes
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
-    Ctx->BytesInFlight += NumRetransmittableBytes;
-    if (Ctx->BytesInFlightMax < Ctx->BytesInFlight) {
-        Ctx->BytesInFlightMax = Ctx->BytesInFlight;
+    Cubic->BytesInFlight += NumRetransmittableBytes;
+    if (Cubic->BytesInFlightMax < Cubic->BytesInFlight) {
+        Cubic->BytesInFlightMax = Cubic->BytesInFlight;
         QuicSendBufferConnectionAdjust(QuicCongestionControlGetConnection(Cc));
     }
 
-    if (Ctx->Exemptions > 0) {
-        --Ctx->Exemptions;
+    if (Cubic->Exemptions > 0) {
+        --Cubic->Exemptions;
     }
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
@@ -352,12 +333,12 @@ CubicCongestionControlOnDataInvalidated(
     _In_ uint32_t NumRetransmittableBytes
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
-    CXPLAT_DBG_ASSERT(Ctx->BytesInFlight >= NumRetransmittableBytes);
-    Ctx->BytesInFlight -= NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= NumRetransmittableBytes);
+    Cubic->BytesInFlight -= NumRetransmittableBytes;
 
     return CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
@@ -366,23 +347,20 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CubicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t TimeNow, // microsecond
-    _In_ uint64_t LargestPacketNumberAcked,
-    _In_ uint32_t NumRetransmittableBytes,
-    _In_ uint32_t SmoothedRtt
+    _In_ const QUIC_ACK_EVENT* AckEvent
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
-    TimeNow = US_TO_MS(TimeNow);
+    uint64_t TimeNow = US_TO_MS(AckEvent->TimeNow);
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
-    CXPLAT_DBG_ASSERT(Ctx->BytesInFlight >= NumRetransmittableBytes);
-    Ctx->BytesInFlight -= NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= AckEvent->NumRetransmittableBytes);
+    Cubic->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
-    if (Ctx->IsInRecovery) {
-        if (LargestPacketNumberAcked > Ctx->RecoverySentPacketNumber) {
+    if (Cubic->IsInRecovery) {
+        if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
             //
             // Done recovering. Note that completion of recovery is defined a
             // bit differently here than in TCP: we simply require an ACK for a
@@ -392,24 +370,24 @@ CubicCongestionControlOnDataAcknowledged(
                 ConnRecoveryExit,
                 "[conn][%p] Recovery complete",
                 Connection);
-            Ctx->IsInRecovery = FALSE;
-            Ctx->IsInPersistentCongestion = FALSE;
-            Ctx->TimeOfCongAvoidStart = CxPlatTimeMs64();
+            Cubic->IsInRecovery = FALSE;
+            Cubic->IsInPersistentCongestion = FALSE;
+            Cubic->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
         goto Exit;
-    } else if (NumRetransmittableBytes == 0) {
+    } else if (AckEvent->NumRetransmittableBytes == 0) {
         goto Exit;
     }
 
-    if (Ctx->CongestionWindow < Ctx->SlowStartThreshold) {
+    if (Cubic->CongestionWindow < Cubic->SlowStartThreshold) {
 
         //
         // Slow Start
         //
 
-        Ctx->CongestionWindow += NumRetransmittableBytes;
-        if (Ctx->CongestionWindow >= Ctx->SlowStartThreshold) {
-            Ctx->TimeOfCongAvoidStart = CxPlatTimeMs64();
+        Cubic->CongestionWindow += AckEvent->NumRetransmittableBytes;
+        if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
+            Cubic->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
 
     } else {
@@ -424,19 +402,19 @@ CubicCongestionControlOnDataAcknowledged(
         // reduce the value of TimeInCongAvoid, which effectively freezes window
         // growth during the gap.
         //
-        if (Ctx->TimeOfLastAckValid) {
-            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Ctx->TimeOfLastAck, TimeNow);
-            if (TimeSinceLastAck > Ctx->SendIdleTimeoutMs &&
+        if (Cubic->TimeOfLastAckValid) {
+            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cubic->TimeOfLastAck, TimeNow);
+            if (TimeSinceLastAck > Cubic->SendIdleTimeoutMs &&
                 TimeSinceLastAck > US_TO_MS(Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
-                Ctx->TimeOfCongAvoidStart += TimeSinceLastAck;
-                if (CxPlatTimeAtOrBefore64(TimeNow, Ctx->TimeOfCongAvoidStart)) {
-                    Ctx->TimeOfCongAvoidStart = TimeNow;
+                Cubic->TimeOfCongAvoidStart += TimeSinceLastAck;
+                if (CxPlatTimeAtOrBefore64(TimeNow, Cubic->TimeOfCongAvoidStart)) {
+                    Cubic->TimeOfCongAvoidStart = TimeNow;
                 }
             }
         }
 
         uint64_t TimeInCongAvoid =
-            CxPlatTimeDiff64(Ctx->TimeOfCongAvoidStart, CxPlatTimeMs64());
+            CxPlatTimeDiff64(Cubic->TimeOfCongAvoidStart, CxPlatTimeMs64());
         if (TimeInCongAvoid > UINT32_MAX) {
             TimeInCongAvoid = UINT32_MAX;
         }
@@ -459,20 +437,20 @@ CubicCongestionControlOnDataAcknowledged(
 
         int64_t DeltaT =
             (int64_t)TimeInCongAvoid -
-            (int64_t)Ctx->KCubic +
-            (int64_t)US_TO_MS(SmoothedRtt);
+            (int64_t)Cubic->KCubic +
+            (int64_t)US_TO_MS(AckEvent->SmoothedRtt);
 
         int64_t CubicWindow =
             ((((DeltaT * DeltaT) >> 10) * DeltaT *
              (int64_t)(Connection->Paths[0].Mtu * TEN_TIMES_C_CUBIC / 10)) >> 20) +
-            (int64_t)Ctx->WindowMax;
+            (int64_t)Cubic->WindowMax;
 
         if (CubicWindow < 0) {
             //
             // The window came out so large it overflowed. We want to limit the
             // huge window below anyway, so just set it to the limiting value.
             //
-            CubicWindow = 2 * Ctx->BytesInFlightMax;
+            CubicWindow = 2 * Cubic->BytesInFlightMax;
         }
 
         //
@@ -496,14 +474,14 @@ CubicCongestionControlOnDataAcknowledged(
         CXPLAT_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
 
         int64_t AimdWindow =
-            Ctx->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
-            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * CXPLAT_MAX(1, US_TO_MS(SmoothedRtt)));
+            Cubic->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
+            TimeInCongAvoid * Connection->Paths[0].Mtu / (2 * CXPLAT_MAX(1, US_TO_MS(AckEvent->SmoothedRtt)));
 
         //
         // Use the cubic or AIMD window, whichever is larger.
         //
         if (AimdWindow > CubicWindow) {
-            Ctx->CongestionWindow = (uint32_t)CXPLAT_MAX(AimdWindow, Ctx->CongestionWindow + 1);
+            Cubic->CongestionWindow = (uint32_t)CXPLAT_MAX(AimdWindow, Cubic->CongestionWindow + 1);
         } else {
             //
             // Here we increment by a fraction of the difference, per the spec,
@@ -511,9 +489,9 @@ CubicCongestionControlOnDataAcknowledged(
             // prevent a burst when transitioning into congestion avoidance, since
             // the cubic window may be significantly different from SlowStartThreshold.
             //
-            Ctx->CongestionWindow +=
+            Cubic->CongestionWindow +=
                 (uint32_t)CXPLAT_MAX(
-                    ((CubicWindow - Ctx->CongestionWindow) * Connection->Paths[0].Mtu) / Ctx->CongestionWindow,
+                    ((CubicWindow - Cubic->CongestionWindow) * Connection->Paths[0].Mtu) / Cubic->CongestionWindow,
                     1);
         }
     }
@@ -528,14 +506,14 @@ CubicCongestionControlOnDataAcknowledged(
     // Using 2 * BytesInFlightMax for the limit allows for exponential growth
     // in the window when not otherwise limited.
     //
-    if (Ctx->CongestionWindow > 2 * Ctx->BytesInFlightMax) {
-        Ctx->CongestionWindow = 2 * Ctx->BytesInFlightMax;
+    if (Cubic->CongestionWindow > 2 * Cubic->BytesInFlightMax) {
+        Cubic->CongestionWindow = 2 * Cubic->BytesInFlightMax;
     }
 
 Exit:
 
-    Ctx->TimeOfLastAck = TimeNow;
-    Ctx->TimeOfLastAckValid = TRUE;
+    Cubic->TimeOfLastAck = TimeNow;
+    Cubic->TimeOfLastAckValid = TRUE;
     return CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
 
@@ -543,13 +521,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlOnDataLost(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t LargestPacketNumberLost,
-    _In_ uint64_t LargestPacketNumberSent,
-    _In_ uint32_t NumRetransmittableBytes,
-    _In_ BOOLEAN PersistentCongestion
+    _In_ const QUIC_LOSS_EVENT* LossEvent
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
@@ -558,19 +533,19 @@ CubicCongestionControlOnDataLost(
     // hasn't been a congestion event yet) then treat this loss as a new
     // congestion event.
     //
-    if (!Ctx->HasHadCongestionEvent ||
-        LargestPacketNumberLost > Ctx->RecoverySentPacketNumber) {
+    if (!Cubic->HasHadCongestionEvent ||
+        LossEvent->LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
 
-        Ctx->RecoverySentPacketNumber = LargestPacketNumberSent;
+        Cubic->RecoverySentPacketNumber = LossEvent->LargestPacketNumberSent;
         CubicCongestionControlOnCongestionEvent(Cc);
 
-        if (PersistentCongestion && !Ctx->IsInPersistentCongestion) {
+        if (LossEvent->PersistentCongestion && !Cubic->IsInPersistentCongestion) {
             CubicCongestionControlOnPersistentCongestionEvent(Cc);
         }
     }
 
-    CXPLAT_DBG_ASSERT(Ctx->BytesInFlight >= NumRetransmittableBytes);
-    Ctx->BytesInFlight -= NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
+    Cubic->BytesInFlight -= LossEvent->NumRetransmittableBytes;
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
@@ -582,9 +557,9 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
-    if (!Ctx->IsInRecovery) {
+    if (!Cubic->IsInRecovery) {
         return;
     }
 
@@ -599,14 +574,14 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     //
     // Revert to previous state.
     //
-    Ctx->WindowMax = Ctx->PrevWindowMax;
-    Ctx->WindowLastMax = Ctx->PrevWindowLastMax;
-    Ctx->KCubic = Ctx->PrevKCubic;
-    Ctx->SlowStartThreshold = Ctx->PrevSlowStartThreshold;
-    Ctx->CongestionWindow = Ctx->PrevCongestionWindow;
+    Cubic->WindowMax = Cubic->PrevWindowMax;
+    Cubic->WindowLastMax = Cubic->PrevWindowLastMax;
+    Cubic->KCubic = Cubic->PrevKCubic;
+    Cubic->SlowStartThreshold = Cubic->PrevSlowStartThreshold;
+    Cubic->CongestionWindow = Cubic->PrevCongestionWindow;
 
-    Ctx->IsInRecovery = FALSE;
-    Ctx->HasHadCongestionEvent = FALSE;
+    Cubic->IsInRecovery = FALSE;
+    Cubic->HasHadCongestionEvent = FALSE;
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(Connection);
@@ -617,22 +592,19 @@ CubicCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
-
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-
+    const QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
+    const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QuicTraceEvent(
         ConnOutFlowStats,
         "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
         Connection,
         Connection->Stats.Send.TotalBytes,
-        Ctx->BytesInFlight,
-        Ctx->BytesInFlightMax,
-        Ctx->CongestionWindow,
-        Ctx->SlowStartThreshold,
+        Cubic->BytesInFlight,
+        Cubic->BytesInFlightMax,
+        Cubic->CongestionWindow,
+        Cubic->SlowStartThreshold,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
@@ -641,11 +613,10 @@ CubicCongestionControlLogOutFlowStatus(
 
 uint32_t
 CubicCongestionControlGetBytesInFlightMax(
-    _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
-    return Ctx->BytesInFlightMax;
+    return Cc->Cubic.BytesInFlightMax;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -654,6 +625,42 @@ CubicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_CUBIC* Ctx = (QUIC_CONGESTION_CONTROL_CUBIC*)&Cc->Ctx;
-    return Ctx->Exemptions;
+    return Cc->Cubic.Exemptions;
+}
+
+static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
+    .Name = "Cubic",
+    .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
+    .QuicCongestionControlSetExemption = CubicCongestionControlSetExemption,
+    .QuicCongestionControlReset = CubicCongestionControlReset,
+    .QuicCongestionControlGetSendAllowance = CubicCongestionControlGetSendAllowance,
+    .QuicCongestionControlOnDataSent = CubicCongestionControlOnDataSent,
+    .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
+    .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
+    .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
+    .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
+    .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
+    .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
+    .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
+};
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlInitialize(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_SETTINGS* Settings
+    )
+{
+    *Cc = QuicCongestionControlCubic;
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
+
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    Cubic->SlowStartThreshold = UINT32_MAX;
+    Cubic->SendIdleTimeoutMs = Settings->SendIdleTimeoutMs;
+    Cubic->InitialWindowPackets = Settings->InitialWindowPackets;
+    Cubic->CongestionWindow = Connection->Paths[0].Mtu * Cubic->InitialWindowPackets;
+    Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
+    QuicConnLogOutFlowStats(Connection);
+    QuicConnLogCubic(Connection);
 }

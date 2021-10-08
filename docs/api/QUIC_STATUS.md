@@ -43,6 +43,7 @@ Value | Meaning
 **QUIC_STATUS_HANDSHAKE_FAILURE** | The connection handshake failed.
 **QUIC_STATUS_ABORTED** | The connection or stream was aborted.
 **QUIC_STATUS_ADDRESS_IN_USE** | The local address is already in use.
+**QUIC_STATUS_INVALID_ADDRESS** | Binding to socket failed, likely caused by a family mismatch between local and remote address.
 **QUIC_STATUS_CONNECTION_TIMEOUT** | The connection timed out waiting for a response from the peer.
 **QUIC_STATUS_CONNECTION_IDLE** | The connection timed out from inactivity.
 **QUIC_STATUS_INTERNAL_ERROR** | An internal error was encountered.

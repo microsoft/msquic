@@ -314,6 +314,138 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, AllocFailure , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Type,
+            "Unsupported Type passed to CxPlatGetTestCertificate");
+// arg2 = arg2 = Type
+// arg3 = arg3 = "Unsupported Type passed to CxPlatGetTestCertificate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
+            "NULL CertHash passed to CxPlatGetTestCertificate");
+// arg2 = arg2 = (unsigned int)QUIC_STATUS_INVALID_PARAMETER
+// arg3 = arg3 = "NULL CertHash passed to CxPlatGetTestCertificate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
+            "NULL CertHashStore passed to CxPlatGetTestCertificate");
+// arg2 = arg2 = (unsigned int)QUIC_STATUS_INVALID_PARAMETER
+// arg3 = arg3 = "NULL CertHashStore passed to CxPlatGetTestCertificate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
+            "NULL Principal passed to CxPlatGetTestCertificate");
+// arg2 = arg2 = (unsigned int)QUIC_STATUS_INVALID_PARAMETER
+// arg3 = arg3 = "NULL Principal passed to CxPlatGetTestCertificate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            CredType,
+            "Unsupported CredType passed to CxPlatGetTestCertificate");
+// arg2 = arg2 = CredType
+// arg3 = arg3 = "Unsupported CredType passed to CxPlatGetTestCertificate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertOpenStore failed");
+// arg2 = arg2 = GetLastError()
+// arg3 = arg3 = "CertOpenStore failed"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

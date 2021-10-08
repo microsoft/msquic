@@ -35,7 +35,7 @@ on the provided configuration.
 
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Build", "Test", "Dev")]
+    [ValidateSet("Build", "Test", "Dev", "OneBranch", "OneBranchPackage")]
     [string]$Configuration,
 
     [Parameter(Mandatory = $false)]
@@ -57,7 +57,10 @@ param (
     [switch]$TestCertificates,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SignCode
+    [switch]$SignCode,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DuoNic
 )
 
 #Requires -RunAsAdministrator
@@ -131,6 +134,46 @@ function Install-ClogTool {
         $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
         $MessagesAtEnd.Add($err.ToString())
     }
+}
+
+$ArtifactsPath = Join-Path $RootDir "artifacts"
+$CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
+$SetupPath = Join-Path $CoreNetCiPath "vm-setup"
+
+function Download-CoreNet-Deps {
+    # Download and extract https://github.com/microsoft/corenet-ci.
+    if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    if (!(Test-Path $CoreNetCiPath)) {
+        $ZipPath = Join-Path $ArtifactsPath "corenet-ci.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
+        Remove-Item -Path $ZipPath
+    }
+}
+
+# Installs DuoNic from the CoreNet-CI repo.
+function Install-DuoNic {
+    # Check to see if test signing is enabled.
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
+
+    # Download the CI repo that contains DuoNic.
+    Write-Host "Downloading CoreNet-CI"
+    Download-CoreNet-Deps
+
+    # Install the test root certificate.
+    Write-Host "Installing test root certificate"
+    $RootCertPath = Join-Path $SetupPath "testroot-sha2.cer"
+    if (!(Test-Path $RootCertPath)) { Write-Error "Missing file: $RootCertPath" }
+    certutil.exe -addstore -f "Root" $RootCertPath
+
+    # Install the DuoNic driver.
+    Write-Host "Installing DuoNic driver"
+    $DuoNicPath = Join-Path $SetupPath duonic
+    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
 }
 
 if (($Configuration -eq "Dev")) {
@@ -301,6 +344,9 @@ if ($IsWindows) {
             # Delete the installer.
             Remove-Item -Path $ExeFile
         }
+        if ($DuoNic) {
+            Install-DuoNic
+        }
     }
 
 } elseif ($IsLinux) {
@@ -344,6 +390,22 @@ if ($IsWindows) {
             sudo apt-get install -y lttng-tools
 
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
+        }
+        "OneBranch" {
+            sudo apt-add-repository ppa:lttng/stable-2.12
+            sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
+            sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
+            sudo apt-get update
+            sudo apt-get install -y cmake
+            sudo apt-get install -y build-essential
+            sudo apt-get install -y liblttng-ust-dev
+            sudo apt-get install -y lttng-tools
+        }
+        "OneBranchPackage" {
+            sudo apt-get update
+            # used for packaging
+            sudo apt-get install -y ruby ruby-dev rpm
+            sudo gem install fpm
         }
     }
 } elseif ($IsMacOS) {

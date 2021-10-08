@@ -298,6 +298,12 @@ QuicCidEncodeLength(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicCongestionControlCanSend(
+    _In_ QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlSetExemption(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -305,9 +311,75 @@ QuicCongestionControlSetExemption(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlReset(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN FullReset
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCongestionControlGetSendAllowance(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ uint64_t TimeSinceLastSend, // microsec
+    _In_ BOOLEAN TimeSinceLastSendValid
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCongestionControlOnDataSent(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ uint32_t NumRetransmittableBytes
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicCongestionControlCanSend(
+QuicCongestionControlOnDataInvalidated(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ uint32_t NumRetransmittableBytes
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicCongestionControlOnDataAcknowledged(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ACK_EVENT* AckEvent
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlOnDataLost(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_LOSS_EVENT* LossEvent
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint8_t
+QuicCongestionControlGetExemptions(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlLogOutFlowStatus(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCongestionControlGetBytesInFlightMax(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+QUIC_CONNECTION*
+QuicCongestionControlGetConnection(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
 QUIC_CONNECTION*
@@ -344,11 +416,6 @@ PacketSizeFromUdpPayloadSize(
 QUIC_PACKET_SPACE*
 QuicAckTrackerGetPacketSpace(
     _In_ QUIC_ACK_TRACKER* Tracker
-    );
-
-QUIC_CONNECTION*
-QuicCongestionControlGetConnection(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
 QUIC_CID_STR
@@ -687,29 +754,4 @@ void
 QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicCongestionControlLogOutFlowStatus(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
-QuicCongestionControlGetBytesInFlightMax(
-    _In_ const struct QUIC_CONGESTION_CONTROL* Cc
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-CubicCongestionControlCanSend(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CubicCongestionControlSetExemption(
-    _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint8_t NumPackets
     );

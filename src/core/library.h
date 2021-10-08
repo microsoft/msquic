@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // The different possible types of handles.
 //
@@ -583,3 +587,7 @@ QuicLibraryGenerateStatelessResetToken(
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
     );
+
+#if defined(__cplusplus)
+}
+#endif

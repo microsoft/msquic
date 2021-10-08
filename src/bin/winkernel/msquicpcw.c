@@ -129,6 +129,10 @@ MsQuicPcwStartup(
         { 30, 0, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH * sizeof(int64_t), sizeof(int64_t)},
         { 31, 0, QUIC_PERF_COUNTER_WORK_OPER_QUEUED * sizeof(int64_t), sizeof(int64_t)},
         { 32, 0, QUIC_PERF_COUNTER_WORK_OPER_COMPLETED * sizeof(int64_t), sizeof(int64_t)},
+        { 33, 0, QUIC_PERF_COUNTER_PATH_VALIDATED * sizeof(int64_t), sizeof(int64_t)},
+        { 34, 0, QUIC_PERF_COUNTER_PATH_FAILURE * sizeof(int64_t), sizeof(int64_t)},
+        { 35, 0, QUIC_PERF_COUNTER_SEND_STATELESS_RESET * sizeof(int64_t), sizeof(int64_t)},
+        { 36, 0, QUIC_PERF_COUNTER_SEND_STATELESS_RETRY * sizeof(int64_t), sizeof(int64_t)},
     };
 
     RtlZeroMemory(&RegInfo, sizeof(RegInfo));

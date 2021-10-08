@@ -43,7 +43,7 @@
     <ClCompile Include="connection.c" />
     <ClCompile Include="crypto.c" />
     <ClCompile Include="crypto_tls.c" />
-    <ClCompile Include="cubic_impl.c" />
+    <ClCompile Include="cubic.c" />
     <ClCompile Include="datagram.c" />
     <ClCompile Include="frame.c" />
     <ClCompile Include="injection.c" />
@@ -82,7 +82,6 @@
     <ClInclude Include="connection.h" />
     <ClInclude Include="crypto.h" />
     <ClInclude Include="cubic.h" />
-    <ClInclude Include="cubic_impl.h" />
     <ClInclude Include="datagram.h" />
     <ClInclude Include="frame.h" />
     <ClInclude Include="library.h" />
