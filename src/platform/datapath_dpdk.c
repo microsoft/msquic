@@ -71,8 +71,38 @@ CxPlatDataPathInitialize(
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
-    //return (QUIC_STATUS)rte_eal_init(0, NULL);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    const char* argv[] = {
+        "msquic",
+        "-n", "4",
+        "-l", "3,4",
+        "-d", "rte_mempool_ring-21.dll",
+        "-d", "rte_bus_pci-21.dll",
+        "-d", "rte_common_mlx5-21.dll",
+        "-d", "rte_net_mlx5-21.dll"
+    };
+
+    int ret = rte_eal_init(ARRAYSIZE(argv), argv);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eal_init");
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+
+    *NewDataPath = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
+    if (*NewDataPath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            sizeof(CXPLAT_DATAPATH));
+        rte_eal_cleanup();
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -84,8 +114,8 @@ CxPlatDataPathUninitialize(
     if (Datapath == NULL) {
         return;
     }
-
-	//rte_eal_cleanup();
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+	rte_eal_cleanup();
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

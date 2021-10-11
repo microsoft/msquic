@@ -48,7 +48,7 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC inc)
+target_link_libraries(platform PUBLIC inc  ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_eal.lib)
 
 target_link_libraries(platform PRIVATE warnings)
 
