@@ -48,7 +48,14 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC inc ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_eal.lib ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ethdev.lib)
+target_link_libraries(
+    platform
+    PUBLIC
+    inc
+    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_eal.lib
+    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ethdev.lib
+    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mbuf.lib
+    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mempool.lib)
 
 target_link_libraries(platform PRIVATE warnings)
 

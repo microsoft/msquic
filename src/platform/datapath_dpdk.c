@@ -39,7 +39,8 @@ typedef struct CXPLAT_SOCKET {
 
 typedef struct CXPLAT_DATAPATH {
 
-    uint32_t Reserved;
+    uint16_t Port;
+    struct rte_mempool *MemoryPool;
 
 } CXPLAT_DATAPATH;
 
@@ -63,6 +64,10 @@ CxPlatDataPathRecvDataToRecvPacket(
             sizeof(CXPLAT_RECV_DATA));
 }
 
+#define NUM_MBUFS 8191
+#define MBUF_CACHE_SIZE 250
+#define BURST_SIZE 32
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -81,29 +86,24 @@ CxPlatDataPathInitialize(
         "-d", "rte_common_mlx5-21.dll",
         "-d", "rte_net_mlx5-21.dll"
     };
-
-    int ret = rte_eal_init(ARRAYSIZE(argv), argv);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eal_init");
-        return QUIC_STATUS_INTERNAL_ERROR;
-    }
-
     const char* DeviceName = "0000:81:00.0";
-    uint16_t PortId;
-    ret = rte_eth_dev_get_port_by_name(DeviceName, &PortId);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_get_port_by_name");
-        rte_eal_cleanup();
-        return QUIC_STATUS_INTERNAL_ERROR;
-    }
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN CleanUpRte = FALSE;
+    int ret;
+    uint16_t Port;
+    struct rte_eth_conf PortConfig = {
+        .rxmode = {
+            .max_rx_pkt_len = 2000, // RTE_ETHER_MAX_LEN,
+        },
+    };
+	const uint16_t rx_rings = 1, tx_rings = 1;
+    uint16_t NumPorts;
+    struct rte_eth_dev_info DeviceInfo;
+	struct rte_eth_rxconf rxconf;
+	struct rte_eth_txconf txconf;
+	uint16_t nb_rxd = 1024;
+	uint16_t nb_txd = 1024;
 
     *NewDataPath = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
     if (*NewDataPath == NULL) {
@@ -112,11 +112,151 @@ CxPlatDataPathInitialize(
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             sizeof(CXPLAT_DATAPATH));
-        rte_eal_cleanup();
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
     }
 
-    return QUIC_STATUS_SUCCESS;
+    ret = rte_eal_init(ARRAYSIZE(argv), argv);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eal_init");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+    CleanUpRte = TRUE;
+
+    NumPorts = rte_eth_dev_count_avail();
+	if (NumPorts < 2 || (NumPorts & 1)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            NumPorts,
+            "rte_eth_dev_count_avail");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+	(*NewDataPath)->MemoryPool = rte_pktmbuf_pool_create("MBUF_POOL",
+		NUM_MBUFS * NumPorts, MBUF_CACHE_SIZE, 0,
+		RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    if ((*NewDataPath)->MemoryPool == NULL) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            0,
+            "rte_pktmbuf_pool_create");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    ret = rte_eth_dev_get_port_by_name(DeviceName, &Port);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_get_port_by_name");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+    (*NewDataPath)->Port = Port;
+
+    ret = rte_eth_dev_info_get(Port, &DeviceInfo);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_info_get");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE) {
+        PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+    }
+
+    ret = rte_eth_dev_configure(Port, rx_rings, tx_rings, &PortConfig);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_configure");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    ret = rte_eth_dev_adjust_nb_rx_tx_desc(Port, &nb_rxd, &nb_txd);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_configure");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+	rxconf = DeviceInfo.default_rxconf;
+
+	for (uint16_t q = 0; q < rx_rings; q++) {
+		ret = rte_eth_rx_queue_setup(Port, q, nb_rxd,
+			rte_eth_dev_socket_id(Port), &rxconf, (*NewDataPath)->MemoryPool);
+        if (ret < 0) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ret,
+                "rte_eth_rx_queue_setup");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Error;
+        }
+	}
+
+	txconf = DeviceInfo.default_txconf;
+	txconf.offloads = PortConfig.txmode.offloads;
+	for (uint16_t q = 0; q < tx_rings; q++) {
+		ret = rte_eth_tx_queue_setup(Port, q, nb_txd,
+				rte_eth_dev_socket_id(Port), &txconf);
+        if (ret < 0) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ret,
+                "rte_eth_tx_queue_setup");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Error;
+        }
+	}
+
+	ret  = rte_eth_dev_start(Port);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_start");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+Error:
+
+    if (QUIC_FAILED(Status)) {
+        if (CleanUpRte) {
+            rte_eal_cleanup();
+        }
+        if (*NewDataPath != NULL) {
+            CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
+            *NewDataPath = NULL;
+        }
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
