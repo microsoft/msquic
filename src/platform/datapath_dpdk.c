@@ -20,6 +20,7 @@ Abstract:
 #include <rte_per_lcore.h>
 #include <rte_lcore.h>
 #include <rte_debug.h>
+#include <rte_ethdev.h>
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
@@ -88,6 +89,19 @@ CxPlatDataPathInitialize(
             "[ lib] ERROR, %u, %s.",
             ret,
             "rte_eal_init");
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+
+    const char* DeviceName = "0000:81:00.0";
+    uint16_t PortId;
+    ret = rte_eth_dev_get_port_by_name(DeviceName, &PortId);
+    if (ret < 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_get_port_by_name");
+        rte_eal_cleanup();
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
