@@ -84,6 +84,9 @@ This script provides helpers for building msquic.
 .PARAMETER UseSystemOpenSSLCrypto
     Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
 
+.PARAMETER UseDpdk
+    Use DPDK for the datapath instead of system socket APIs.
+
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -180,6 +183,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$UseSystemOpenSSLCrypto = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseDpdk = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
@@ -382,6 +388,9 @@ function CMake-Generate {
     }
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
+    }
+    if ($UseDpdk) {
+        $Arguments += " -DQUIC_USE_DPDK=on"
     }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"

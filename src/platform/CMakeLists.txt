@@ -11,15 +11,22 @@ endif()
 
 set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk.o
-    COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk.o -c
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c
-    DEPENDS MsQuicEtw_HeaderBuild
-)
+if(QUIC_USE_DPDK)
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk.o
+        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk.o -c
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c
+        DEPENDS MsQuicEtw_HeaderBuild
+    )
+endif()
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk.o platform_winuser.c storage_winuser.c)
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
+    if(QUIC_USE_DPDK)
+        set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk.o)
+    else()
+        set(SOURCES ${SOURCES} datapath_winuser.c)
+    endif()
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux")
@@ -48,20 +55,32 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(
-    platform
-    PUBLIC
-    inc
-    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_eal.lib
-    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ethdev.lib
-    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mbuf.lib
-    ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mempool.lib)
+if(QUIC_USE_DPDK)
+    target_link_libraries(
+        platform
+        PUBLIC
+        inc
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_eal.lib
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ethdev.lib
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mbuf.lib
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mempool.lib)
+else()
+    target_link_libraries(platform PUBLIC inc)
+endif()
 
 target_link_libraries(platform PRIVATE warnings)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES} ${PROJECT_SOURCE_DIR}/artifacts/dpdk/include)
+if(QUIC_USE_DPDK)
+    target_include_directories(
+        platform
+        PRIVATE
+        ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/include)
+else()
+    target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+endif()
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
     target_compile_options(platform PRIVATE /analyze)
