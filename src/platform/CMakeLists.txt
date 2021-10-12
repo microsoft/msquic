@@ -14,7 +14,7 @@ set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
 if(QUIC_USE_DPDK)
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk.o
-        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk.o -c
+        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk.o -c -msse4
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk.c
         DEPENDS MsQuicEtw_HeaderBuild
     )

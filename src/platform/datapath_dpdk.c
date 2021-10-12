@@ -68,19 +68,242 @@ CxPlatDataPathRecvDataToRecvPacket(
 #define MBUF_CACHE_SIZE 250
 #define BURST_SIZE 32
 
-static uint16_t
-CxPlatDataPathRx(uint16_t port, uint16_t qidx,
-        struct rte_mbuf **pkts, uint16_t nb_pkts,
-        uint16_t max_pkts, void *_)
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct ETHERNET_HEADER {
+    uint8_t Destination[6];
+    uint8_t Source[6];
+    union {
+        uint16_t Type;
+        uint16_t Length;
+    };
+    uint8_t Data[0];
+} ETHERNET_HEADER;
+
+typedef struct IPV4_HEADER {
+    uint8_t VersionAndHeaderLength;
+    uint8_t TypeOfService;
+    uint16_t TotalLength;
+    uint16_t Identification;
+    uint16_t FlagsAndFragmentOffset;
+    uint8_t TimeToLive;
+    uint8_t Protocol;
+    uint16_t HeaderChecksum;
+    uint8_t Source[4];
+    uint8_t Destination[4];
+    uint8_t Data[0];
+} IPV4_HEADER;
+
+typedef struct IPV6_HEADER {
+    uint32_t VersionAndTrafficClass;
+    uint16_t FlowLabel;
+    uint16_t PayloadLength;
+    uint8_t NextHeader;
+    uint8_t HopLimit;
+    uint8_t Source[16];
+    uint8_t Destination[16];
+    uint8_t Data[0];
+} IPV6_HEADER;
+
+typedef struct IPV6_EXTENSION {
+    uint8_t NextHeader;
+    uint8_t Length;
+    uint16_t Reserved0;
+    uint32_t Reserved1;
+    uint8_t Data[0];
+} IPV6_EXTENSION;
+
+typedef struct UDP_HEADER {
+    uint16_t SourcePort;
+    uint16_t DestinationPort;
+    uint16_t Length;
+    uint16_t Checksum;
+    uint8_t Data[0];
+} UDP_HEADER;
+
+#pragma pack(pop)
+
+typedef struct PACKET_DESCRIPTOR {
+    QUIC_ADDR Source;
+    QUIC_ADDR Destination;
+    const uint8_t* Data;
+    uint16_t Length;
+} PACKET_DESCRIPTOR;
+
+static
+void
+CxPlatDpdkParseUdp(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ PACKET_DESCRIPTOR* Packet,
+    _In_reads_bytes_(Length)
+        const UDP_HEADER* Udp,
+    _In_ uint16_t Length
+    )
 {
-    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)_;
-    if (nb_pkts != 0) {
-        printf("[%p] RX: %u\n", Datapath, nb_pkts);
-        for (uint16_t i = 0; i < nb_pkts; i++) {
-            printf("  PktLen  = %u\n", pkts[i]->pkt_len);
+    if (Length < sizeof(UDP_HEADER)) {
+        return;
+    }
+    Length -= sizeof(UDP_HEADER);
+
+    Packet->Source.Ipv4.sin_port = Udp->SourcePort;
+    Packet->Destination.Ipv4.sin_port = Udp->DestinationPort;
+
+    Packet->Data = Udp->Data;
+    Packet->Length = Length;
+}
+
+static
+void
+CxPlatDpdkParseIPv4(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ PACKET_DESCRIPTOR* Packet,
+    _In_reads_bytes_(Length)
+        const IPV4_HEADER* IP,
+    _In_ uint16_t Length
+    )
+{
+    if (Length < sizeof(IPV4_HEADER)) {
+        return;
+    }
+    Length -= sizeof(IPV4_HEADER);
+
+    Packet->Source.Ipv4.sin_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Source.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
+    Packet->Destination.Ipv4.sin_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Destination.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
+
+    if (IP->Protocol == 17) {
+        CxPlatDpdkParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
+    }
+}
+
+static
+void
+CxPlatDpdkParseIPv6(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ PACKET_DESCRIPTOR* Packet,
+    _In_reads_bytes_(Length)
+        const IPV6_HEADER* IP,
+    _In_ uint16_t Length
+    )
+{
+    if (Length < sizeof(IPV6_HEADER)) {
+        return;
+    }
+    Length -= sizeof(IPV6_HEADER);
+
+    Packet->Source.Ipv6.sin6_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Source.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
+    Packet->Destination.Ipv6.sin6_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Destination.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
+
+    if (IP->NextHeader == 17) {
+        CxPlatDpdkParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
+    } else if (IP->NextHeader != 59) {
+        const uint8_t* Data = IP->Data;
+        do {
+            if (Length < sizeof(IPV6_EXTENSION)) {
+                return;
+            }
+            const IPV6_EXTENSION* Extension = (const IPV6_EXTENSION*)Data;
+            const uint16_t ExtLength = sizeof(IPV6_EXTENSION) + Extension->Length * sizeof(IPV6_EXTENSION);
+            if (Length < ExtLength) {
+                return;
+            }
+            Length -= ExtLength;
+            Data += ExtLength;
+            if (Extension->NextHeader == 17) {
+                CxPlatDpdkParseUdp(Datapath, Packet, (UDP_HEADER*)Extension->Data, Length);
+            } else if (Extension->NextHeader == 59) {
+                return;
+            }
+        } while (TRUE);
+    }
+}
+
+static
+void
+CxPlatDpdkParseEthernet(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ PACKET_DESCRIPTOR* Packet,
+    _In_reads_bytes_(Length)
+        const ETHERNET_HEADER* Ethernet,
+    _In_ uint16_t Length
+    )
+{
+    if (Length < sizeof(ETHERNET_HEADER)) {
+        return;
+    }
+    Length -= sizeof(ETHERNET_HEADER);
+
+    if (Ethernet->Type == 0x0008) { // IPv4
+        CxPlatDpdkParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
+    } else if (Ethernet->Type == 0xDD86) { // IPv6
+        CxPlatDpdkParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
+    }
+}
+
+#define CXPLAT_MAX_PACKET_BATCH_SIZE 32
+
+static
+void
+CxPlatDpdkRxUdp(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_reads_(Count)
+        const PACKET_DESCRIPTOR* Datagrams,
+    _In_range_(1, CXPLAT_MAX_PACKET_BATCH_SIZE)
+        uint16_t Count
+    )
+{
+    for (uint16_t i = 0; i < Count; i++) {
+        const PACKET_DESCRIPTOR* Datagram = &Datagrams[i];
+        QUIC_ADDR_STR Source; QuicAddrToString(&Datagram->Source, &Source);
+        QUIC_ADDR_STR Destination; QuicAddrToString(&Datagram->Destination, &Destination);
+        printf("RX [%hu] [%s:%hu->%s:%hu]\n", Datagram->Length,
+            Source.Address, CxPlatByteSwapUint16(Datagram->Source.Ipv4.sin_port),
+            Destination.Address, CxPlatByteSwapUint16(Datagram->Destination.Ipv4.sin_port));
+        // TODO - Process datagram
+    }
+}
+
+static
+uint16_t
+CxPlatDpdkRxEthernet(
+    _In_ uint16_t Port,
+    _In_ uint16_t Queue,
+    _In_reads_(PacketsCount)
+        struct rte_mbuf** Packets,
+    _In_ uint16_t PacketsCount,
+    _In_ uint16_t PacketsMaxCount,
+    _In_ void *Context
+    )
+{
+    UNREFERENCED_PARAMETER(Port);
+    UNREFERENCED_PARAMETER(Queue);
+    UNREFERENCED_PARAMETER(PacketsMaxCount);
+    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
+    PACKET_DESCRIPTOR Datagrams[CXPLAT_MAX_PACKET_BATCH_SIZE];
+    uint16_t DatagramsCount = 0;
+    for (uint16_t i = 0; i < PacketsCount; i++) {
+        Datagrams[DatagramsCount].Length = 0;
+        CxPlatDpdkParseEthernet(
+            Datapath,
+            &Datagrams[DatagramsCount],
+            (ETHERNET_HEADER*)(((char*)Packets[i]->buf_addr)+Packets[i]->data_off),
+            Packets[i]->pkt_len); // TODO - Subtract 'data_off`?
+
+        if (Datagrams[DatagramsCount].Length != 0) {
+            if (++DatagramsCount == CXPLAT_MAX_PACKET_BATCH_SIZE) {
+                CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
+                DatagramsCount = 0;
+            }
         }
     }
-    return nb_pkts;
+    if (DatagramsCount != 0) {
+        CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
+    }
+    return PacketsCount;
 }
 
 static void
@@ -96,8 +319,8 @@ lcore_main(void)
 					"polling thread.\n\tPerformance will "
 					"not be optimal.\n", port);
 
-	printf("\nCore %u forwarding packets. [Ctrl+C to quit]\n",
-			rte_lcore_id());
+	printf("\nCore %u / Socket %u forwarding packets. [Ctrl+C to quit]\n",
+			rte_lcore_id(), rte_socket_id());
 	for (;;) {
 		RTE_ETH_FOREACH_DEV(port) {
 			struct rte_mbuf *bufs[BURST_SIZE];
@@ -317,7 +540,7 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-	rte_eth_add_rx_callback(Port, 0, CxPlatDataPathRx, *NewDataPath);
+	rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, *NewDataPath);
 
     lcore_main();
 
