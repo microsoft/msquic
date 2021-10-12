@@ -456,7 +456,7 @@ function CMake-Build {
         $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File
         foreach ($Artifact in $BuiltArtifacts) {
             if (Test-Path $Artifact) {
-                dsymutil $Artifact
+                dsymutil $Artifact 2>/dev/null
             }
         }
     }
