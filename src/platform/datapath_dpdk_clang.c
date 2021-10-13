@@ -23,8 +23,7 @@ Abstract:
 #include <rte_debug.h>
 #include <rte_ethdev.h>
 
-#pragma warning(disable:4116) // unnamed type definition in parentheses
-#pragma warning(disable:4100) // unreferenced formal parameter
+CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context);
 
 static
 uint16_t
@@ -36,63 +35,7 @@ CxPlatDpdkRxEthernet(
     _In_ uint16_t PacketsCount,
     _In_ uint16_t PacketsMaxCount,
     _In_ void *Context
-    )
-{
-    UNREFERENCED_PARAMETER(Port);
-    UNREFERENCED_PARAMETER(Queue);
-    UNREFERENCED_PARAMETER(PacketsMaxCount);
-    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
-    DATAGRAM_DESCRIPTOR Datagrams[MAX_BURST_SIZE];
-    uint16_t DatagramsCount = 0;
-    for (uint16_t i = 0; i < PacketsCount; i++) {
-        Datagrams[DatagramsCount].Length = 0;
-        CxPlatDpdkParseEthernet(
-            Datapath,
-            &Datagrams[DatagramsCount],
-            (ETHERNET_HEADER*)(((char*)Packets[i]->buf_addr)+Packets[i]->data_off),
-            Packets[i]->pkt_len); // TODO - Subtract 'data_off`?
-
-        if (Datagrams[DatagramsCount].Length != 0) {
-            if (++DatagramsCount == MAX_BURST_SIZE) {
-                CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
-                DatagramsCount = 0;
-            }
-        }
-    }
-    if (DatagramsCount != 0) {
-        CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
-    }
-    return PacketsCount;
-}
-
-CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context) {
-    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
-    if (rte_eth_dev_socket_id(Datapath->Port) > 0 &&
-            rte_eth_dev_socket_id(Datapath->Port) !=
-                    (int)rte_socket_id())
-        printf("WARNING, port %u is on remote NUMA node to "
-                "polling thread.\n\tPerformance will "
-                "not be optimal.\n", Datapath->Port);
-
-    printf("\nCore %u / Socket %u forwarding packets. [Ctrl+C to quit]\n",
-            rte_lcore_id(), rte_socket_id());
-
-    while (Datapath->Running) {
-        struct rte_mbuf *bufs[MAX_BURST_SIZE];
-        const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, 0, bufs, MAX_BURST_SIZE);
-        if (unlikely(nb_rx == 0))
-            continue;
-        /*const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port ^ 1, 0,
-                bufs, nb_rx);
-        if (unlikely(nb_tx < nb_rx)) {
-            uint16_t buf;
-
-            for (buf = nb_tx; buf < nb_rx; buf++)
-                rte_pktmbuf_free(bufs[buf]);
-        }*/
-	}
-    CXPLAT_THREAD_RETURN(0);
-}
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -148,9 +91,10 @@ CxPlatDpdkInitialize(
     }
     CleanUpRte = TRUE;
 
-    Datapath->MemoryPool = rte_pktmbuf_pool_create("MBUF_POOL",
-        NUM_MBUFS, MBUF_CACHE_SIZE, 0,
-        RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    Datapath->MemoryPool =
+        rte_pktmbuf_pool_create(
+            "MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
+            RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
     if (Datapath->MemoryPool == NULL) {
         printf("rte_pktmbuf_pool_create failed\n");
         QuicTraceEvent(
@@ -295,7 +239,7 @@ CxPlatDpdkInitialize(
     Datapath->Running = TRUE;
     Status = CxPlatThreadCreate(&Config, &Datapath->WorkerThread); // TODO - I think we're supposed to use rte to spawn the thread instead.
     if (QUIC_FAILED(Status)) {
-        printf("CxPlatThreadCreate failed: 0x%x\n", Status);
+        printf("CxPlatThreadCreate failed: 0x%x\n", (uint32_t)Status);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -323,9 +267,73 @@ CxPlatDpdkUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-
     Datapath->Running = FALSE;
     CxPlatThreadWait(&Datapath->WorkerThread);
     CxPlatThreadDelete(&Datapath->WorkerThread);
     rte_eal_cleanup();
+}
+
+CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context) {
+    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
+    if (rte_eth_dev_socket_id(Datapath->Port) > 0 &&
+            rte_eth_dev_socket_id(Datapath->Port) !=
+                    (int)rte_socket_id())
+        printf("WARNING, port %u is on remote NUMA node to "
+                "polling thread.\n\tPerformance will "
+                "not be optimal.\n", Datapath->Port);
+
+    printf("\nCore %u / Socket %u forwarding packets. [Ctrl+C to quit]\n",
+            rte_lcore_id(), rte_socket_id());
+
+    while (Datapath->Running) {
+        struct rte_mbuf *bufs[MAX_BURST_SIZE];
+        const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, 0, bufs, MAX_BURST_SIZE);
+        if (unlikely(nb_rx == 0))
+            continue;
+        /*const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port ^ 1, 0,
+                bufs, nb_rx);
+        if (unlikely(nb_tx < nb_rx)) {
+            uint16_t buf;
+
+            for (buf = nb_tx; buf < nb_rx; buf++)
+                rte_pktmbuf_free(bufs[buf]);
+        }*/
+    }
+    CXPLAT_THREAD_RETURN(0);
+}
+
+static
+uint16_t
+CxPlatDpdkRxEthernet(
+    _In_ uint16_t Port,
+    _In_ uint16_t Queue,
+    _In_reads_(PacketsCount)
+        struct rte_mbuf** Packets,
+    _In_ uint16_t PacketsCount,
+    _In_ uint16_t PacketsMaxCount,
+    _In_ void *Context
+    )
+{
+    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
+    DATAGRAM_DESCRIPTOR Datagrams[MAX_BURST_SIZE];
+    uint16_t DatagramsCount = 0;
+    for (uint16_t i = 0; i < PacketsCount; i++) {
+        Datagrams[DatagramsCount].Length = 0;
+        CxPlatDpdkParseEthernet(
+            Datapath,
+            &Datagrams[DatagramsCount],
+            (ETHERNET_HEADER*)(((char*)Packets[i]->buf_addr)+Packets[i]->data_off),
+            Packets[i]->pkt_len); // TODO - Subtract 'data_off`?
+
+        if (Datagrams[DatagramsCount].Length != 0) {
+            if (++DatagramsCount == MAX_BURST_SIZE) {
+                CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
+                DatagramsCount = 0;
+            }
+        }
+    }
+    if (DatagramsCount != 0) {
+        CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
+    }
+    return PacketsCount;
 }
