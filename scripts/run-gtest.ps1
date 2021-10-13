@@ -674,7 +674,7 @@ if ($Kernel -ne "") {
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
-    verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
+    verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
     if ($LastExitCode) {
         Log ("verifier.exe " + $LastExitCode)
     }
@@ -685,7 +685,7 @@ if ($Kernel -ne "") {
 }
 
 if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
-    verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
+    verifier.exe /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
     if ($LastExitCode) {
         Log ("verifier.exe " + $LastExitCode)
     }
@@ -763,8 +763,8 @@ try {
     }
 
     if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
-        verifier.exe /volatile /removedriver afd.sys netio.sys tcpip.sys
-        verifier.exe /volatile /flags 0x0
+        verifier.exe /removedriver afd.sys netio.sys tcpip.sys
+        verifier.exe /flags 0x0
     }
 
     # Print out the results.
