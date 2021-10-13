@@ -74,10 +74,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context) {
                 "polling thread.\n\tPerformance will "
                 "not be optimal.\n", Datapath->Port);
 
-	printf("\nCore %u / Socket %u forwarding packets. [Ctrl+C to quit]\n",
-			rte_lcore_id(), rte_socket_id());
+    printf("\nCore %u / Socket %u forwarding packets. [Ctrl+C to quit]\n",
+            rte_lcore_id(), rte_socket_id());
 
-	while (Datapath->Running) {
+    while (Datapath->Running) {
         struct rte_mbuf *bufs[MAX_BURST_SIZE];
         const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, 0, bufs, MAX_BURST_SIZE);
         if (unlikely(nb_rx == 0))
@@ -120,12 +120,12 @@ CxPlatDpdkInitialize(
             .max_rx_pkt_len = 2000, // RTE_ETHER_MAX_LEN,
         },
     };
-	uint16_t nb_rxd = 1024;
-	uint16_t nb_txd = 1024;
-	const uint16_t rx_rings = 1, tx_rings = 1;
+    uint16_t nb_rxd = 1024;
+    uint16_t nb_txd = 1024;
+    const uint16_t rx_rings = 1, tx_rings = 1;
     struct rte_eth_dev_info DeviceInfo;
-	struct rte_eth_rxconf rxconf;
-	struct rte_eth_txconf txconf;
+    struct rte_eth_rxconf rxconf;
+    struct rte_eth_txconf txconf;
     struct rte_ether_addr addr;
     CXPLAT_THREAD_CONFIG Config = {
         CXPLAT_THREAD_FLAG_NONE, // TODO - CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
@@ -148,9 +148,9 @@ CxPlatDpdkInitialize(
     }
     CleanUpRte = TRUE;
 
-	Datapath->MemoryPool = rte_pktmbuf_pool_create("MBUF_POOL",
-		NUM_MBUFS, MBUF_CACHE_SIZE, 0,
-		RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    Datapath->MemoryPool = rte_pktmbuf_pool_create("MBUF_POOL",
+        NUM_MBUFS, MBUF_CACHE_SIZE, 0,
+        RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
     if (Datapath->MemoryPool == NULL) {
         printf("rte_pktmbuf_pool_create failed\n");
         QuicTraceEvent(
@@ -211,10 +211,10 @@ CxPlatDpdkInitialize(
         goto Error;
     }
 
-	rxconf = DeviceInfo.default_rxconf;
+    rxconf = DeviceInfo.default_rxconf;
 
-	for (uint16_t q = 0; q < rx_rings; q++) {
-		ret = rte_eth_rx_queue_setup(Port, q, nb_rxd, rte_eth_dev_socket_id(Port), &rxconf, Datapath->MemoryPool);
+    for (uint16_t q = 0; q < rx_rings; q++) {
+        ret = rte_eth_rx_queue_setup(Port, q, nb_rxd, rte_eth_dev_socket_id(Port), &rxconf, Datapath->MemoryPool);
         if (ret < 0) {
             printf("rte_eth_rx_queue_setup failed: %d\n", ret);
             QuicTraceEvent(
@@ -225,12 +225,12 @@ CxPlatDpdkInitialize(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }
-	}
+    }
 
-	txconf = DeviceInfo.default_txconf;
-	txconf.offloads = PortConfig.txmode.offloads;
-	for (uint16_t q = 0; q < tx_rings; q++) {
-		ret = rte_eth_tx_queue_setup(Port, q, nb_txd, rte_eth_dev_socket_id(Port), &txconf);
+    txconf = DeviceInfo.default_txconf;
+    txconf.offloads = PortConfig.txmode.offloads;
+    for (uint16_t q = 0; q < tx_rings; q++) {
+        ret = rte_eth_tx_queue_setup(Port, q, nb_txd, rte_eth_dev_socket_id(Port), &txconf);
         if (ret < 0) {
             printf("rte_eth_tx_queue_setup failed: %d\n", ret);
             QuicTraceEvent(
@@ -241,9 +241,9 @@ CxPlatDpdkInitialize(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }
-	}
+    }
 
-	ret = rte_eth_dev_start(Port);
+    ret = rte_eth_dev_start(Port);
     if (ret < 0) {
         printf("rte_eth_dev_start failed: %d\n", ret);
         QuicTraceEvent(
@@ -280,7 +280,7 @@ CxPlatDpdkInitialize(
         goto Error;
     }
 
-	rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, Datapath);
+    rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, Datapath);
 
     printf("Port %u MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8
             " %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
@@ -327,5 +327,5 @@ CxPlatDpdkUninitialize(
     Datapath->Running = FALSE;
     CxPlatThreadWait(&Datapath->WorkerThread);
     CxPlatThreadDelete(&Datapath->WorkerThread);
-	rte_eal_cleanup();
+    rte_eal_cleanup();
 }

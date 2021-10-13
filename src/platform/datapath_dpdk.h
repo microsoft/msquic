@@ -11,8 +11,6 @@
 #define MBUF_CACHE_SIZE 250
 #define MAX_BURST_SIZE 32
 
-//typedef struct rte_mempool;
-
 typedef struct CXPLAT_DATAPATH {
 
     BOOLEAN Running;
