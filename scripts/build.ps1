@@ -458,7 +458,7 @@ function CMake-Build {
         foreach ($Artifact in $BuiltArtifacts) {
             if (Test-Path $Artifact) {
                 Write-Host "processing dsymutil $Artifact"
-                dsymutil $Artifact 2>&1
+                dsymutil $Artifact *> /dev/null
             }
         }
     }
