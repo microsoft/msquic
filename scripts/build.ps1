@@ -453,10 +453,12 @@ function CMake-Build {
     }
     # Package debug symbols on macos
     if ($Platform -eq "macos") {
+        Write-Host (Get-Host).Version
         $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File
         foreach ($Artifact in $BuiltArtifacts) {
             if (Test-Path $Artifact) {
-                dsymutil $Artifact 2>&1 | Out-Null
+                Write-Host "processing dsymutil $Artifact"
+                dsymutil $Artifact 2>&1
             }
         }
     }
