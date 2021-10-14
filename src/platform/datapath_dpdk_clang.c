@@ -23,17 +23,18 @@ Abstract:
 #include <rte_debug.h>
 #include <rte_ethdev.h>
 
-CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context);
+CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context);
+static int CxPlatDpdkWorkerThread(_In_ void* Context);
 
 static
 uint16_t
 CxPlatDpdkRxEthernet(
     _In_ uint16_t Port,
     _In_ uint16_t Queue,
-    _In_reads_(PacketsCount)
-        struct rte_mbuf** Packets,
-    _In_ uint16_t PacketsCount,
-    _In_ uint16_t PacketsMaxCount,
+    _In_reads_(BuffersCount)
+        struct rte_mbuf** Buffers,
+    _In_ uint16_t BuffersCount,
+    _In_ uint16_t BuffersMaxCount,
     _In_ void *Context
     );
 
@@ -43,10 +44,66 @@ CxPlatDpdkInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath
     )
 {
+    CXPLAT_THREAD_CONFIG Config = {
+        0, 0, "DpdkMain", CxPlatDpdkMainThread, Datapath
+    };
+
+    BOOLEAN CleanUpThread = FALSE;
+    CxPlatEventInitialize(&Datapath->StartComplete, TRUE, FALSE);
+
+    //
+    // This starts a new thread to do all the DPDK initialization because DPDK
+    // effectively takes that thread over. It waits for the initialization part
+    // to complete before returning. After that, the DPDK main thread starts
+    // running the DPDK main loop until clean up.
+    //
+
+    QUIC_STATUS Status = CxPlatThreadCreate(&Config, &Datapath->DpdkThread);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+        goto Error;
+    }
+    CleanUpThread = TRUE;
+
+    CxPlatEventWaitForever(&Datapath->StartComplete);
+    Status = Datapath->StartStatus;
+
+Error:
+
+    if (QUIC_FAILED(Status)) {
+        if (CleanUpThread) {
+            CxPlatThreadWait(&Datapath->DpdkThread);
+            CxPlatThreadDelete(&Datapath->DpdkThread);
+        }
+        CxPlatEventUninitialize(&Datapath->StartComplete);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpdkUninitialize(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    Datapath->Running = FALSE;
+    CxPlatThreadWait(&Datapath->DpdkThread);
+    CxPlatThreadDelete(&Datapath->DpdkThread);
+}
+
+CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
+{
+    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
+
     const char* argv[] = {
         "msquic",
         "-n", "4",
-        "-l", "3,4",
+        "-l", "10-13",
         "-d", "rte_mempool_ring-21.dll",
         "-d", "rte_bus_pci-21.dll",
         "-d", "rte_common_mlx5-21.dll",
@@ -70,13 +127,6 @@ CxPlatDpdkInitialize(
     struct rte_eth_rxconf rxconf;
     struct rte_eth_txconf txconf;
     struct rte_ether_addr addr;
-    CXPLAT_THREAD_CONFIG Config = {
-        CXPLAT_THREAD_FLAG_NONE, // TODO - CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
-        0,
-        NULL,
-        CxPlatDpdkWorkerThread,
-        NULL
-    };
 
     printf("Calling rte_eal_init...\n");
     ret = rte_eal_init(ARRAYSIZE(argv), (char**)argv);
@@ -91,21 +141,6 @@ CxPlatDpdkInitialize(
     }
     CleanUpRte = TRUE;
 
-    Datapath->MemoryPool =
-        rte_pktmbuf_pool_create(
-            "MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
-            RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
-    if (Datapath->MemoryPool == NULL) {
-        printf("rte_pktmbuf_pool_create failed\n");
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            0,
-            "rte_pktmbuf_pool_create");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
-
     ret = rte_eth_dev_get_port_by_name(DeviceName, &Port);
     if (ret < 0) {
         printf("rte_eth_dev_count_avail failed: %d\n", ret);
@@ -118,6 +153,21 @@ CxPlatDpdkInitialize(
         goto Error;
     }
     Datapath->Port = Port;
+
+    Datapath->MemoryPool =
+        rte_pktmbuf_pool_create(
+            "MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
+            RTE_MBUF_DEFAULT_BUF_SIZE, rte_eth_dev_socket_id(Port));
+    if (Datapath->MemoryPool == NULL) {
+        printf("rte_pktmbuf_pool_create failed\n");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            0,
+            "rte_pktmbuf_pool_create");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
 
     ret = rte_eth_dev_info_get(Port, &DeviceInfo);
     if (ret < 0) {
@@ -156,7 +206,6 @@ CxPlatDpdkInitialize(
     }
 
     rxconf = DeviceInfo.default_rxconf;
-
     for (uint16_t q = 0; q < rx_rings; q++) {
         ret = rte_eth_rx_queue_setup(Port, q, nb_rxd, rte_eth_dev_socket_id(Port), &rxconf, Datapath->MemoryPool);
         if (ret < 0) {
@@ -225,71 +274,68 @@ CxPlatDpdkInitialize(
     }
 
     rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, Datapath);
-
-    printf("Port %u MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8
-            " %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
-            (unsigned)Port,
-            addr.addr_bytes[0], addr.addr_bytes[1],
-            addr.addr_bytes[2], addr.addr_bytes[3],
-            addr.addr_bytes[4], addr.addr_bytes[5]);
-
-    Config.Context = Datapath;
-    //Config.IdealProcessor = TODO;
+    printf("\nStarting Port %hu, MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
+            Datapath->Port,
+            Datapath->SourceMac[0], Datapath->SourceMac[1], Datapath->SourceMac[2],
+            Datapath->SourceMac[3], Datapath->SourceMac[4], Datapath->SourceMac[5]);
 
     Datapath->Running = TRUE;
-    Status = CxPlatThreadCreate(&Config, &Datapath->WorkerThread); // TODO - I think we're supposed to use rte to spawn the thread instead.
-    if (QUIC_FAILED(Status)) {
-        printf("CxPlatThreadCreate failed: 0x%x\n", (uint32_t)Status);
+    ret = rte_eal_mp_remote_launch(CxPlatDpdkWorkerThread, Datapath, SKIP_MAIN);
+    if (ret < 0) {
+        printf("rte_eal_mp_remote_launch failed: %d\n", ret);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate");
+            ret,
+            "rte_eal_mp_remote_launch");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
-    CxPlatSleep(10000);
+    Datapath->StartStatus = Status;
+    CxPlatEventSet(Datapath->StartComplete);
+
+    CxPlatDpdkWorkerThread(Datapath);
+
+    rte_eal_mp_wait_lcore(); // Wait on the other cores/threads
 
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (CleanUpRte) {
-            rte_eal_cleanup();
-        }
+        Datapath->StartStatus = Status;
+        CxPlatEventSet(Datapath->StartComplete);
     }
 
-    return Status;
+    if (CleanUpRte) {
+        rte_eal_cleanup();
+    }
+
+    CXPLAT_THREAD_RETURN(0);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpdkUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
+static
+int
+CxPlatDpdkWorkerThread(
+    _In_ void* Context
     )
 {
-    Datapath->Running = FALSE;
-    CxPlatThreadWait(&Datapath->WorkerThread);
-    CxPlatThreadDelete(&Datapath->WorkerThread);
-    rte_eal_cleanup();
-}
-
-CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context) {
     CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
+    const uint16_t Core = (uint16_t)rte_lcore_id();
+
+    printf("Core %u worker running...\n", Core);
+
     if (rte_eth_dev_socket_id(Datapath->Port) > 0 &&
             rte_eth_dev_socket_id(Datapath->Port) !=
                     (int)rte_socket_id())
-        printf("WARNING, port %u is on remote NUMA node to "
+        printf("\nWARNING, port %u is on remote NUMA node to "
                 "polling thread.\n\tPerformance will "
-                "not be optimal.\n", Datapath->Port);
-
-    printf("\nCore %u / Socket %u forwarding packets. [Ctrl+C to quit]\n",
-            rte_lcore_id(), rte_socket_id());
+                "not be optimal.\n\n", Datapath->Port);
 
     while (Datapath->Running) {
         struct rte_mbuf *bufs[MAX_BURST_SIZE];
-        const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, 0, bufs, MAX_BURST_SIZE);
-        if (unlikely(nb_rx == 0))
-            continue;
+        const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, Core%4, bufs, MAX_BURST_SIZE);
+        for (uint16_t buf = 0; buf < nb_rx; buf++)
+            rte_pktmbuf_free(bufs[buf]);
         /*const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port ^ 1, 0,
                 bufs, nb_rx);
         if (unlikely(nb_tx < nb_rx)) {
@@ -299,7 +345,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkWorkerThread, Context) {
                 rte_pktmbuf_free(bufs[buf]);
         }*/
     }
-    CXPLAT_THREAD_RETURN(0);
+
+    return 0;
 }
 
 static
@@ -307,33 +354,33 @@ uint16_t
 CxPlatDpdkRxEthernet(
     _In_ uint16_t Port,
     _In_ uint16_t Queue,
-    _In_reads_(PacketsCount)
-        struct rte_mbuf** Packets,
-    _In_ uint16_t PacketsCount,
-    _In_ uint16_t PacketsMaxCount,
+    _In_reads_(BuffersCount)
+        struct rte_mbuf** Buffers,
+    _In_ uint16_t BuffersCount,
+    _In_ uint16_t BuffersMaxCount,
     _In_ void *Context
     )
 {
     CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
-    DATAGRAM_DESCRIPTOR Datagrams[MAX_BURST_SIZE];
-    uint16_t DatagramsCount = 0;
-    for (uint16_t i = 0; i < PacketsCount; i++) {
-        Datagrams[DatagramsCount].Length = 0;
+    const uint16_t Core = (uint16_t)rte_lcore_id();
+    PACKET_DESCRIPTOR Packets[MAX_BURST_SIZE];
+    uint16_t PacketsCount = 0;
+    for (uint16_t i = 0; i < BuffersCount; i++) {
+        Packets[PacketsCount].IsValid = FALSE;
         CxPlatDpdkParseEthernet(
             Datapath,
-            &Datagrams[DatagramsCount],
-            (ETHERNET_HEADER*)(((char*)Packets[i]->buf_addr)+Packets[i]->data_off),
-            Packets[i]->pkt_len); // TODO - Subtract 'data_off`?
+            &Packets[PacketsCount],
+            ((uint8_t*)Buffers[i]->buf_addr)+Buffers[i]->data_off,
+            Buffers[i]->pkt_len);
 
-        if (Datagrams[DatagramsCount].Length != 0) {
-            if (++DatagramsCount == MAX_BURST_SIZE) {
-                CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
-                DatagramsCount = 0;
-            }
+        if (Packets[PacketsCount].IsValid) {
+            Packets[PacketsCount].Core = Core;
+            ++PacketsCount;
+            CXPLAT_DBG_ASSERT(PacketsCount <= MAX_BURST_SIZE);
         }
     }
-    if (DatagramsCount != 0) {
-        CxPlatDpdkRxUdp(Datapath, Datagrams, DatagramsCount);
+    if (PacketsCount != 0) {
+        CxPlatDpdkRx(Datapath, Packets, PacketsCount);
     }
-    return PacketsCount;
+    return BuffersCount;
 }

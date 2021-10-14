@@ -6,6 +6,7 @@
 --*/
 
 #include "platform_internal.h"
+#include "quic_hashtable.h"
 
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
@@ -14,93 +15,71 @@
 typedef struct CXPLAT_DATAPATH {
 
     BOOLEAN Running;
-    CXPLAT_THREAD WorkerThread;
+    CXPLAT_THREAD DpdkThread;
+    QUIC_STATUS StartStatus;
+    CXPLAT_EVENT StartComplete;
 
     uint16_t Port;
     uint8_t SourceMac[6];
     struct rte_mempool *MemoryPool;
 
+    uint32_t ClientRecvContextLength;
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
+
 } CXPLAT_DATAPATH;
 
-#pragma pack(push)
-#pragma pack(1)
+typedef enum PACKET_L2_TYPE {
+    L2_TYPE_ETHERNET,
+    L2_TYPE_WIFI,
+} PACKET_L2_TYPE;
 
-typedef struct ETHERNET_HEADER {
-    uint8_t Destination[6];
-    uint8_t Source[6];
-    union {
-        uint16_t Type;
-        uint16_t Length;
-    };
-    uint8_t Data[0];
-} ETHERNET_HEADER;
+typedef enum PACKET_L3_TYPE {
+    L3_TYPE_LLDP,
+    L3_TYPE_ICMPV4,
+    L3_TYPE_ICMPV6,
+    L3_TYPE_IPV4,
+    L3_TYPE_IPV6,
+    L3_TYPE_QUIC,
+} PACKET_L3_TYPE;
 
-typedef struct IPV4_HEADER {
-    uint8_t VersionAndHeaderLength;
-    uint8_t TypeOfService;
-    uint16_t TotalLength;
-    uint16_t Identification;
-    uint16_t FlagsAndFragmentOffset;
-    uint8_t TimeToLive;
-    uint8_t Protocol;
-    uint16_t HeaderChecksum;
-    uint8_t Source[4];
-    uint8_t Destination[4];
-    uint8_t Data[0];
-} IPV4_HEADER;
+typedef enum PACKET_L4_TYPE {
+    L4_TYPE_TCP,
+    L4_TYPE_UDP,
+} PACKET_L4_TYPE;
 
-typedef struct IPV6_HEADER {
-    uint32_t VersionAndTrafficClass;
-    uint16_t FlowLabel;
+typedef struct PACKET_DESCRIPTOR {
+    uint32_t IsValid : 1;
+    uint32_t L2Type : 2;
+    uint32_t L3Type : 3;
+    uint32_t L4Type : 2;
+    uint16_t Core;
     uint16_t PayloadLength;
-    uint8_t NextHeader;
-    uint8_t HopLimit;
-    uint8_t Source[16];
-    uint8_t Destination[16];
-    uint8_t Data[0];
-} IPV6_HEADER;
-
-typedef struct IPV6_EXTENSION {
-    uint8_t NextHeader;
-    uint8_t Length;
-    uint16_t Reserved0;
-    uint32_t Reserved1;
-    uint8_t Data[0];
-} IPV6_EXTENSION;
-
-typedef struct UDP_HEADER {
-    uint16_t SourcePort;
-    uint16_t DestinationPort;
-    uint16_t Length;
-    uint16_t Checksum;
-    uint8_t Data[0];
-} UDP_HEADER;
-
-#pragma pack(pop)
-
-typedef struct DATAGRAM_DESCRIPTOR {
-    QUIC_ADDR Source;
-    QUIC_ADDR Destination;
-    const uint8_t* Data;
-    uint16_t Length;
-} DATAGRAM_DESCRIPTOR;
+    const uint8_t* Payload;
+    union {
+        struct {
+            QUIC_ADDR Source;
+            QUIC_ADDR Destination;
+        } IP;
+    };
+} PACKET_DESCRIPTOR;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpdkParseEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Inout_ DATAGRAM_DESCRIPTOR* Datagram,
+    _Inout_ PACKET_DESCRIPTOR* Datagram,
     _In_reads_bytes_(Length)
-        const ETHERNET_HEADER* Ethernet,
+        const uint8_t* Payload,
     _In_ uint16_t Length
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkRxUdp(
+CxPlatDpdkRx(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_reads_(Count)
-        const DATAGRAM_DESCRIPTOR* Datagrams,
+        const PACKET_DESCRIPTOR* Packets,
     _In_range_(1, MAX_BURST_SIZE)
         uint16_t Count
     );
