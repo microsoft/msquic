@@ -193,6 +193,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
+    uint8_t Reserved : 6;
 
 } CXPLAT_RECV_DATA;
 
@@ -381,7 +382,7 @@ CxPlatDataPathResolveAddress(
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     );
-    
+
 //
 // Values from RFC 2863
 //

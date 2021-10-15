@@ -106,7 +106,7 @@ TcpEngine::TcpEngine(
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
-    if (QUIC_FAILED(
+    /*if (QUIC_FAILED(
         CxPlatDataPathInitialize(
             0, // TODO
             nullptr,
@@ -119,7 +119,7 @@ TcpEngine::TcpEngine(
         if (!Workers[i].Initialize(this)) {
             return;
         }
-    }
+    }*/
     Initialized = true;
 }
 

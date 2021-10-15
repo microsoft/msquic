@@ -26,18 +26,6 @@ Abstract:
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context);
 static int CxPlatDpdkWorkerThread(_In_ void* Context);
 
-static
-uint16_t
-CxPlatDpdkRxEthernet(
-    _In_ uint16_t Port,
-    _In_ uint16_t Queue,
-    _In_reads_(BuffersCount)
-        struct rte_mbuf** Buffers,
-    _In_ uint16_t BuffersCount,
-    _In_ uint16_t BuffersMaxCount,
-    _In_ void *Context
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpdkInitialize(
@@ -122,7 +110,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     };
     uint16_t nb_rxd = 1024;
     uint16_t nb_txd = 1024;
-    const uint16_t rx_rings = 1, tx_rings = 1;
+    const uint16_t rx_rings = 4, tx_rings = 1;
     struct rte_eth_dev_info DeviceInfo;
     struct rte_eth_rxconf rxconf;
     struct rte_eth_txconf txconf;
@@ -273,7 +261,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         goto Error;
     }
 
-    rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, Datapath);
+    //rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, Datapath);
     printf("\nStarting Port %hu, MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
             Datapath->Port,
             Datapath->SourceMac[0], Datapath->SourceMac[1], Datapath->SourceMac[2],
@@ -314,6 +302,62 @@ Error:
 }
 
 static
+void
+CxPlatDpdkRxEthernet(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const uint16_t Core,
+    _In_reads_(BuffersCount)
+        struct rte_mbuf** Buffers,
+    _In_ uint16_t BuffersCount
+    )
+{
+    DPDK_RX_PACKET* PacketChain = NULL;
+    DPDK_RX_PACKET** PacketChainTail = &PacketChain;
+    DPDK_RX_PACKET Packet; // Working space
+    for (uint16_t i = 0; i < BuffersCount; i++) {
+        CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
+        CxPlatDpdkParseEthernet(
+            Datapath,
+            &Packet,
+            ((uint8_t*)Buffers[i]->buf_addr)+Buffers[i]->data_off,
+            Buffers[i]->pkt_len);
+
+        if (Packet.Buffer) {
+            Packet.PartitionIndex = Core;
+            Packet.Mbuf = Buffers[i];
+            Packet.OwnerPool = &Datapath->AdditionalInfoPool;
+            DPDK_RX_PACKET* NewPacket = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool);
+            if (NewPacket) {
+                CxPlatCopyMemory(NewPacket, &Packet, sizeof(DPDK_RX_PACKET));
+                *PacketChainTail = NewPacket;
+                PacketChainTail = (DPDK_RX_PACKET**)&NewPacket->Next;
+            } else {
+                rte_pktmbuf_free(Buffers[i]);
+            }
+        } else {
+            rte_pktmbuf_free(Buffers[i]);
+        }
+    }
+    if (PacketChain) {
+        CxPlatDpdkRx(Datapath, PacketChain);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpdkReturn(
+    _In_opt_ const DPDK_RX_PACKET* PacketChain
+    )
+{
+    while (PacketChain) {
+        const DPDK_RX_PACKET* Packet = PacketChain;
+        PacketChain =  (DPDK_RX_PACKET*)PacketChain->Next;
+        rte_pktmbuf_free(Packet->Mbuf);
+        CxPlatPoolFree(Packet->OwnerPool, Packet);
+    }
+}
+
+static
 int
 CxPlatDpdkWorkerThread(
     _In_ void* Context
@@ -334,8 +378,9 @@ CxPlatDpdkWorkerThread(
     while (Datapath->Running) {
         struct rte_mbuf *bufs[MAX_BURST_SIZE];
         const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, Core%4, bufs, MAX_BURST_SIZE);
-        for (uint16_t buf = 0; buf < nb_rx; buf++)
-            rte_pktmbuf_free(bufs[buf]);
+        if (nb_rx != 0) {
+            CxPlatDpdkRxEthernet(Datapath, Core, bufs, nb_rx);
+        }
         /*const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port ^ 1, 0,
                 bufs, nb_rx);
         if (unlikely(nb_tx < nb_rx)) {
@@ -347,40 +392,4 @@ CxPlatDpdkWorkerThread(
     }
 
     return 0;
-}
-
-static
-uint16_t
-CxPlatDpdkRxEthernet(
-    _In_ uint16_t Port,
-    _In_ uint16_t Queue,
-    _In_reads_(BuffersCount)
-        struct rte_mbuf** Buffers,
-    _In_ uint16_t BuffersCount,
-    _In_ uint16_t BuffersMaxCount,
-    _In_ void *Context
-    )
-{
-    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
-    const uint16_t Core = (uint16_t)rte_lcore_id();
-    PACKET_DESCRIPTOR Packets[MAX_BURST_SIZE];
-    uint16_t PacketsCount = 0;
-    for (uint16_t i = 0; i < BuffersCount; i++) {
-        Packets[PacketsCount].IsValid = FALSE;
-        CxPlatDpdkParseEthernet(
-            Datapath,
-            &Packets[PacketsCount],
-            ((uint8_t*)Buffers[i]->buf_addr)+Buffers[i]->data_off,
-            Buffers[i]->pkt_len);
-
-        if (Packets[PacketsCount].IsValid) {
-            Packets[PacketsCount].Core = Core;
-            ++PacketsCount;
-            CXPLAT_DBG_ASSERT(PacketsCount <= MAX_BURST_SIZE);
-        }
-    }
-    if (PacketsCount != 0) {
-        CxPlatDpdkRx(Datapath, Packets, PacketsCount);
-    }
-    return BuffersCount;
 }

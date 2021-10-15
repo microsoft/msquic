@@ -14,7 +14,7 @@ set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
 if(QUIC_USE_DPDK)
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk_clang.o
-        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk_clang.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk_clang.o -c -msse4
+        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk_clang.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk_clang.o -c -msse4 -g -Wno-extern-initializer -Wno-microsoft-anon-tag
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk_clang.c
         DEPENDS MsQuicEtw_HeaderBuild
     )

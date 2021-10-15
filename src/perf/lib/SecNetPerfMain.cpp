@@ -120,7 +120,7 @@ QuicMainStart(
 
     QUIC_STATUS Status;
 
-    if (ServerMode) {
+    /*if (ServerMode) {
         Datapath = nullptr;
         Binding = nullptr;
         const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -156,7 +156,7 @@ QuicMainStart(
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
-    }
+    }*/
 
     MsQuic = new(std::nothrow) MsQuicApi;
     if (MsQuic == nullptr) {
