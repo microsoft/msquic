@@ -36,7 +36,7 @@ typedef struct CXPLAT_SOCKET {
 
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
+void
 CxPlatDpdkPrependPacketHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -257,7 +257,10 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    Address->Ipv4.sin_family = AF_INET;
+    Address->Ipv4.sin_port = 0;
+    Address->Ipv4.sin_addr.S_un.S_addr = ListenerIP;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -284,7 +287,11 @@ CxPlatSocketCreateUdp(
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
-    (*NewSocket)->LocalPort = Config->LocalAddress->Ipv4.sin_port;
+    if (Config->LocalAddress) {
+        (*NewSocket)->LocalPort = Config->LocalAddress->Ipv4.sin_port;
+    } else {
+        (*NewSocket)->LocalPort = 0xCDAB;
+    }
     if (Config->RemoteAddress) {
         (*NewSocket)->RemotePort = Config->RemoteAddress->Ipv4.sin_port;
     } else {
@@ -452,7 +459,7 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    SendData->Buffer->Length = MaxBufferLength;
+    SendData->Buffer.Length = MaxBufferLength;
     return &SendData->Buffer;
 }
 
@@ -494,6 +501,12 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
+    QUIC_ADDR_STR Source; QuicAddrToString(LocalAddress, &Source);
+    QUIC_ADDR_STR Destination; QuicAddrToString(RemoteAddress, &Destination);
+    printf("[%02hu] TX [%hu] [%s:%hu->%s:%hu]\n",
+        (uint16_t)CxPlatProcCurrentNumber(), (uint16_t)SendData->Buffer.Length,
+        Source.Address, CxPlatByteSwapUint16(LocalAddress->Ipv4.sin_port),
+        Destination.Address, CxPlatByteSwapUint16(RemoteAddress->Ipv4.sin_port));
     CxPlatDpdkPrependPacketHeaders(Socket, LocalAddress, RemoteAddress, SendData);
     CxPlatDpdkTx(SendData);
     return QUIC_STATUS_SUCCESS;
@@ -741,7 +754,7 @@ CxPlatDpdkParseEthernet(
 
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
+void
 CxPlatDpdkPrependPacketHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -749,7 +762,7 @@ CxPlatDpdkPrependPacketHeaders(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    UDP_HEADER* UDP = (UDP_HEADER*)(SendData->Buffer - sizeof(UDP_HEADER));
+    UDP_HEADER* UDP = (UDP_HEADER*)(SendData->Buffer.Buffer - sizeof(UDP_HEADER));
     IPV4_HEADER* IP = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
     ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IP) - sizeof(ETHERNET_HEADER));
 
@@ -757,13 +770,13 @@ CxPlatDpdkPrependPacketHeaders(
 
     if (Socket->RemotePort != 0) {
         CxPlatCopyMemory(Ethernet->Destination, ListenerMac, sizeof(ListenerMac));
-        CxPlatZeroMemory(Ethernet->Source, ConnectedMac, sizeof(ConnectedMac));
+        CxPlatCopyMemory(Ethernet->Source, ConnectedMac, sizeof(ConnectedMac));
 
         CxPlatCopyMemory(IP->Destination, &ListenerIP, sizeof(ListenerIP));
         CxPlatCopyMemory(IP->Source, &ConnectedIP, sizeof(ConnectedIP));
 
     } else {
-        CxPlatZeroMemory(Ethernet->Destination, ConnectedMac, sizeof(ConnectedMac));
+        CxPlatCopyMemory(Ethernet->Destination, ConnectedMac, sizeof(ConnectedMac));
         CxPlatCopyMemory(Ethernet->Source, ListenerMac, sizeof(ListenerMac));
 
         CxPlatCopyMemory(IP->Destination, &ConnectedIP, sizeof(ConnectedIP));
@@ -772,17 +785,17 @@ CxPlatDpdkPrependPacketHeaders(
 
     IP->VersionAndHeaderLength = 0x45;
     IP->TypeOfService = 0;
-    IP->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + SendData->Buffer->Length);
+    IP->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)SendData->Buffer.Length);
     IP->Identification = 0;
     IP->FlagsAndFragmentOffset = 0;
     IP->TimeToLive = 64;
-    IP->Protocol = 17;
+    IP->Protocol = 17; // UDP
     IP->HeaderChecksum = 0;
 
     UDP->DestinationPort = Socket->RemotePort;
     UDP->SourcePort = Socket->LocalPort;
-    UDP->Length = htons(SendData->Buffer->Length);
+    UDP->Length = htons((uint16_t)SendData->Buffer.Length);
 
-    SendData->Buffer->Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
-    SendData->Buffer->Buffer -= sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
+    SendData->Buffer.Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
+    SendData->Buffer.Buffer -= sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
 }

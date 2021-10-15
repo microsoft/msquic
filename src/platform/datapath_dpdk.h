@@ -55,7 +55,7 @@ typedef struct CXPLAT_SEND_DATA {
 
     struct rte_mbuf* Mbuf;
     CXPLAT_DATAPATH* Datapath;
-    QUIC_BUFFER* Buffer;
+    QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA;
 
@@ -102,7 +102,7 @@ CxPlatDpdkAllocTx(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-CXPLAT_SEND_DATA*
+void
 CxPlatDpdkFreeTx(
     _In_ CXPLAT_SEND_DATA* SendData
     );

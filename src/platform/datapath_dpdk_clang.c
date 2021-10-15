@@ -57,7 +57,7 @@ CxPlatDpdkInitialize(
     }
     CleanUpThread = TRUE;
 
-    CxPlatEventWaitForever(&Datapath->StartComplete);
+    CxPlatEventWaitForever(Datapath->StartComplete);
     Status = Datapath->StartStatus;
 
 Error:
@@ -67,7 +67,7 @@ Error:
             CxPlatThreadWait(&Datapath->DpdkThread);
             CxPlatThreadDelete(&Datapath->DpdkThread);
         }
-        CxPlatEventUninitialize(&Datapath->StartComplete);
+        CxPlatEventUninitialize(Datapath->StartComplete);
     }
 
     return Status;
@@ -82,6 +82,7 @@ CxPlatDpdkUninitialize(
     Datapath->Running = FALSE;
     CxPlatThreadWait(&Datapath->DpdkThread);
     CxPlatThreadDelete(&Datapath->DpdkThread);
+    CxPlatEventUninitialize(Datapath->StartComplete);
 }
 
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
@@ -369,11 +370,11 @@ CxPlatDpdkAllocTx(
         SendData->Mbuf = rte_pktmbuf_alloc(Datapath->MemoryPool);
         if (SendData->Mbuf) {
             SendData->Datapath = Datapath;
-            SendData->Buffer->Length = 0;
-            SendData->Buffer->Buffer =
+            SendData->Buffer.Length = 0;
+            SendData->Buffer.Buffer =
                 ((uint8_t*)SendData->Mbuf->buf_addr) + (RTE_ETHER_MAX_LEN - MaxPacketSize);
         } else {
-            CxPlatPoolFree(SendData, &Datapath->AdditionalInfoPool);
+            CxPlatPoolFree(&Datapath->AdditionalInfoPool, SendData);
             SendData = NULL;
         }
     }
@@ -381,7 +382,7 @@ CxPlatDpdkAllocTx(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-CXPLAT_SEND_DATA*
+void
 CxPlatDpdkFreeTx(
     _In_ CXPLAT_SEND_DATA* SendData
     )
@@ -397,8 +398,8 @@ CxPlatDpdkTx(
     )
 {
     CXPLAT_DATAPATH* Datapath = SendData->Datapath;
-    SendData->Mbuf->data_len = SendData->Buffer->Length;
-    SendData->Mbuf->data_off = (RTE_ETHER_MAX_LEN - SendData->Buffer->Length);
+    SendData->Mbuf->data_len = SendData->Buffer.Length;
+    SendData->Mbuf->data_off = (RTE_ETHER_MAX_LEN - SendData->Buffer.Length);
     uint16_t Index = (Datapath->TxBufferOffset + Datapath->TxBufferCount) % ARRAYSIZE(Datapath->TxBufferRing);
     Datapath->TxBufferRing[Index] = SendData->Mbuf;
     Datapath->TxBufferCount++;
