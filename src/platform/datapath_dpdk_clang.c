@@ -91,7 +91,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     const char* argv[] = {
         "msquic",
         "-n", "4",
-        "-l", "10-13",
+        "-l", "10",
         "-d", "rte_mempool_ring-21.dll",
         "-d", "rte_bus_pci-21.dll",
         "-d", "rte_common_mlx5-21.dll",
@@ -105,7 +105,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     uint16_t Port;
     struct rte_eth_conf PortConfig = {
         .rxmode = {
-            .max_rx_pkt_len = 2000, // RTE_ETHER_MAX_LEN,
+            .max_rx_pkt_len = RTE_ETHER_MAX_LEN,
         },
     };
     uint16_t nb_rxd = 1024;
@@ -353,8 +353,71 @@ CxPlatDpdkReturn(
         const DPDK_RX_PACKET* Packet = PacketChain;
         PacketChain =  (DPDK_RX_PACKET*)PacketChain->Next;
         rte_pktmbuf_free(Packet->Mbuf);
-        CxPlatPoolFree(Packet->OwnerPool, Packet);
+        CxPlatPoolFree(Packet->OwnerPool, (void*)Packet);
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+CXPLAT_SEND_DATA*
+CxPlatDpdkAllocTx(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t MaxPacketSize
+    )
+{
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool);
+    if (SendData) {
+        SendData->Mbuf = rte_pktmbuf_alloc(Datapath->MemoryPool);
+        if (SendData->Mbuf) {
+            SendData->Datapath = Datapath;
+            SendData->Buffer->Length = 0;
+            SendData->Buffer->Buffer =
+                ((uint8_t*)SendData->Mbuf->buf_addr) + (RTE_ETHER_MAX_LEN - MaxPacketSize);
+        } else {
+            CxPlatPoolFree(SendData, &Datapath->AdditionalInfoPool);
+            SendData = NULL;
+        }
+    }
+    return SendData;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+CXPLAT_SEND_DATA*
+CxPlatDpdkFreeTx(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    rte_pktmbuf_free(SendData->Mbuf);
+    CxPlatPoolFree(&SendData->Datapath->AdditionalInfoPool, SendData);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpdkTx(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    CXPLAT_DATAPATH* Datapath = SendData->Datapath;
+    SendData->Mbuf->data_len = SendData->Buffer->Length;
+    SendData->Mbuf->data_off = (RTE_ETHER_MAX_LEN - SendData->Buffer->Length);
+    uint16_t Index = (Datapath->TxBufferOffset + Datapath->TxBufferCount) % ARRAYSIZE(Datapath->TxBufferRing);
+    Datapath->TxBufferRing[Index] = SendData->Mbuf;
+    Datapath->TxBufferCount++;
+    CxPlatPoolFree(&Datapath->AdditionalInfoPool, SendData);
+}
+
+static
+void
+CxPlatDpdkDrainTx(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t Count
+    )
+{
+    struct rte_mbuf** tx_bufs = Datapath->TxBufferRing + Datapath->TxBufferOffset;
+    const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port, 0, tx_bufs, Count);
+    for (uint16_t buf = nb_tx; buf < Count; buf++)
+        rte_pktmbuf_free(tx_bufs[buf]);
+    Datapath->TxBufferOffset = (Datapath->TxBufferOffset + Count) % ARRAYSIZE(Datapath->TxBufferRing);
+    Datapath->TxBufferCount -= Count;
 }
 
 static
@@ -376,19 +439,19 @@ CxPlatDpdkWorkerThread(
                 "not be optimal.\n\n", Datapath->Port);
 
     while (Datapath->Running) {
-        struct rte_mbuf *bufs[MAX_BURST_SIZE];
-        const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, Core%4, bufs, MAX_BURST_SIZE);
-        if (nb_rx != 0) {
-            CxPlatDpdkRxEthernet(Datapath, Core, bufs, nb_rx);
+        {
+            struct rte_mbuf *bufs[MAX_BURST_SIZE];
+            const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, 0, bufs, MAX_BURST_SIZE);
+            if (nb_rx != 0) {
+                CxPlatDpdkRxEthernet(Datapath, Core, bufs, nb_rx);
+            }
         }
-        /*const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port ^ 1, 0,
-                bufs, nb_rx);
-        if (unlikely(nb_tx < nb_rx)) {
-            uint16_t buf;
-
-            for (buf = nb_tx; buf < nb_rx; buf++)
-                rte_pktmbuf_free(bufs[buf]);
-        }*/
+        if (Datapath->TxBufferCount) {
+            if (Datapath->TxBufferCount + Datapath->TxBufferOffset > ARRAYSIZE(Datapath->TxBufferRing)) {
+                CxPlatDpdkDrainTx(Datapath, ARRAYSIZE(Datapath->TxBufferRing) - Datapath->TxBufferOffset);
+            }
+            CxPlatDpdkDrainTx(Datapath, Datapath->TxBufferCount);
+        }
     }
 
     return 0;

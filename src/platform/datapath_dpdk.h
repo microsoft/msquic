@@ -20,8 +20,11 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_EVENT StartComplete;
 
     uint16_t Port;
+    uint16_t TxBufferCount;
+    uint16_t TxBufferOffset;
     uint8_t SourceMac[6];
-    struct rte_mempool *MemoryPool;
+    struct rte_mempool* MemoryPool;
+    struct rte_mbuf* TxBufferRing[128];
 
     CXPLAT_POOL AdditionalInfoPool;
 
@@ -47,6 +50,14 @@ typedef struct DPDK_RX_PACKET {
     struct rte_mbuf* Mbuf;
     CXPLAT_POOL* OwnerPool;
 } DPDK_RX_PACKET;
+
+typedef struct CXPLAT_SEND_DATA {
+
+    struct rte_mbuf* Mbuf;
+    CXPLAT_DATAPATH* Datapath;
+    QUIC_BUFFER* Buffer;
+
+} CXPLAT_SEND_DATA;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -81,4 +92,23 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpdkReturn(
     _In_opt_ const DPDK_RX_PACKET* PacketChain
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+CXPLAT_SEND_DATA*
+CxPlatDpdkAllocTx(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t MaxPacketSize
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+CXPLAT_SEND_DATA*
+CxPlatDpdkFreeTx(
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpdkTx(
+    _In_ CXPLAT_SEND_DATA* SendData
     );

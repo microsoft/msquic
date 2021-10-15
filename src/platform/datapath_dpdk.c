@@ -17,14 +17,11 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+const uint8_t ListenerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
+const uint8_t ConnectedMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x81 }; // TODO
+
 const uint32_t ListenerIP = 0x01FFFFFF;
 const uint32_t ConnectedIP = 0x02FFFFFF;
-
-typedef struct CXPLAT_SEND_DATA {
-
-    uint32_t Reserved;
-
-} CXPLAT_SEND_DATA;
 
 typedef struct CXPLAT_SOCKET {
 
@@ -36,6 +33,16 @@ typedef struct CXPLAT_SOCKET {
     uint16_t RemotePort;
 
 } CXPLAT_SOCKET;
+
+static
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpdkPrependPacketHeaders(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
 
 BOOLEAN
 CxPlatCheckSocket(
@@ -106,7 +113,7 @@ CxPlatDataPathRecvPacketToRecvData(
 {
     return (CXPLAT_RECV_DATA*)
         (((PUCHAR)Context) -
-            sizeof(CXPLAT_RECV_DATA));
+            sizeof(DPDK_RX_PACKET));
 }
 
 CXPLAT_RECV_PACKET*
@@ -116,7 +123,7 @@ CxPlatDataPathRecvDataToRecvPacket(
 {
     return (CXPLAT_RECV_PACKET*)
         (((PUCHAR)Datagram) +
-            sizeof(CXPLAT_RECV_DATA));
+            sizeof(DPDK_RX_PACKET));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -434,7 +441,7 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-    return NULL;
+    return CxPlatDpdkAllocTx(Socket->Datapath, MaxPacketSize);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -445,7 +452,8 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    return NULL;
+    SendData->Buffer->Length = MaxBufferLength;
+    return &SendData->Buffer;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -454,6 +462,7 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CxPlatDpdkFreeTx(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -463,6 +472,7 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
+    // No-op
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -484,7 +494,9 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    CxPlatDpdkPrependPacketHeaders(Socket, LocalAddress, RemoteAddress, SendData);
+    CxPlatDpdkTx(SendData);
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -730,29 +742,47 @@ CxPlatDpdkParseEthernet(
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatDpdkWritePacket(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const DPDK_RX_PACKET* Packet,
-    _Inout_ uint16_t* Offset,
-    _In_ uint16_t BufferLength,
-    _Out_writes_to_(BufferLength, *Offset)
-        uint8_t* Buffer
+CxPlatDpdkPrependPacketHeaders(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (*Offset + sizeof(ETHERNET_HEADER) > BufferLength) {
-        return FALSE;
-    }
+    UDP_HEADER* UDP = (UDP_HEADER*)(SendData->Buffer - sizeof(UDP_HEADER));
+    IPV4_HEADER* IP = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
+    ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IP) - sizeof(ETHERNET_HEADER));
 
-    ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)(Buffer + *Offset);
-    *Offset += sizeof(ETHERNET_HEADER);
+    Ethernet->Type = 0x0008; // IPv4
 
-    CxPlatZeroMemory(Ethernet->Destination, sizeof(Ethernet->Destination));
-    CxPlatZeroMemory(Ethernet->Source, sizeof(Ethernet->Source));
+    if (Socket->RemotePort != 0) {
+        CxPlatCopyMemory(Ethernet->Destination, ListenerMac, sizeof(ListenerMac));
+        CxPlatZeroMemory(Ethernet->Source, ConnectedMac, sizeof(ConnectedMac));
 
-    if (Packet->Reserved == L3_TYPE_LLDP) {
-        Ethernet->Type = 0xCC88;
-        return FALSE; // TODO - Complete
+        CxPlatCopyMemory(IP->Destination, &ListenerIP, sizeof(ListenerIP));
+        CxPlatCopyMemory(IP->Source, &ConnectedIP, sizeof(ConnectedIP));
+
     } else {
-        return FALSE;
+        CxPlatZeroMemory(Ethernet->Destination, ConnectedMac, sizeof(ConnectedMac));
+        CxPlatCopyMemory(Ethernet->Source, ListenerMac, sizeof(ListenerMac));
+
+        CxPlatCopyMemory(IP->Destination, &ConnectedIP, sizeof(ConnectedIP));
+        CxPlatCopyMemory(IP->Source, &ListenerIP, sizeof(ListenerIP));
     }
+
+    IP->VersionAndHeaderLength = 0x45;
+    IP->TypeOfService = 0;
+    IP->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + SendData->Buffer->Length);
+    IP->Identification = 0;
+    IP->FlagsAndFragmentOffset = 0;
+    IP->TimeToLive = 64;
+    IP->Protocol = 17;
+    IP->HeaderChecksum = 0;
+
+    UDP->DestinationPort = Socket->RemotePort;
+    UDP->SourcePort = Socket->LocalPort;
+    UDP->Length = htons(SendData->Buffer->Length);
+
+    SendData->Buffer->Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
+    SendData->Buffer->Buffer -= sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
 }
