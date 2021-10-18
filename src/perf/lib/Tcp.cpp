@@ -119,8 +119,8 @@ TcpEngine::TcpEngine(
         if (!Workers[i].Initialize(this)) {
             return;
         }
-    }*/
-    Initialized = true;
+    }
+    Initialized = true;*/
 }
 
 TcpEngine::~TcpEngine()

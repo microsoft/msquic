@@ -18,7 +18,7 @@ Abstract:
 #pragma warning(disable:4100) // unreferenced formal parameter
 
 const uint8_t ListenerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
-const uint8_t ConnectedMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x81 }; // TODO
+const uint8_t ConnectedMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
 
 const uint32_t ListenerIP = 0x01FFFFFF;
 const uint32_t ConnectedIP = 0x02FFFFFF;
@@ -393,6 +393,16 @@ CxPlatSocketGetRemoteAddress(
     }
 }
 
+BOOLEAN FilterPacket(_In_ const DPDK_RX_PACKET* Packet) {
+    if (Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == ConnectedIP ||
+        Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == ListenerIP ||
+        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == ConnectedIP ||
+        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == ListenerIP) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
 void PrintPacket(_In_ const DPDK_RX_PACKET* Packet) {
     if (Packet->Reserved == L4_TYPE_UDP) {
         QUIC_ADDR_STR Source; QuicAddrToString(&Packet->IP.RemoteAddress, &Source);
@@ -414,20 +424,34 @@ CxPlatDpdkRx(
     _In_ const DPDK_RX_PACKET* PacketChain
     )
 {
+    DPDK_RX_PACKET* ReturnPacketChain = NULL;
+    DPDK_RX_PACKET** ReturnPacketChainTail = &ReturnPacketChain;
+
     const DPDK_RX_PACKET* Packet = PacketChain;
     while (Packet) {
-        PrintPacket(Packet);
+        BOOLEAN Return = TRUE;
+        if (!FilterPacket(Packet)) {
+            PrintPacket(Packet);
+        }
+
         if (Packet->Reserved == L4_TYPE_UDP) {
             CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, Packet->IP.LocalAddress.Ipv4.sin_port);
             if (Socket) {
-                // TODO - Indicate received packet
+                Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
                 CxPlatRundownRelease(&Socket->Rundown);
+                Return = FALSE;
             }
+        }
+
+        if (Return) {
+            *ReturnPacketChainTail = (DPDK_RX_PACKET*)Packet;
+            ReturnPacketChainTail = (DPDK_RX_PACKET**)&Packet->Next;
         }
 
         Packet = (const DPDK_RX_PACKET*)Packet->Next;
     }
-    CxPlatDpdkReturn(PacketChain);
+
+    CxPlatDpdkReturn(ReturnPacketChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

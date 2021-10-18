@@ -92,13 +92,14 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     const char* argv[] = {
         "msquic",
         "-n", "4",
-        "-l", "10",
+        "-l", "19",
         "-d", "rte_mempool_ring-21.dll",
         "-d", "rte_bus_pci-21.dll",
         "-d", "rte_common_mlx5-21.dll",
         "-d", "rte_net_mlx5-21.dll"
     };
-    const char* DeviceName = "0000:81:00.0";
+    const char* DeviceName1 = "0000:81:00.0";
+    const char* DeviceName2 = "0000:81:00.1";
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CleanUpRte = FALSE;
@@ -130,9 +131,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     }
     CleanUpRte = TRUE;
 
-    ret = rte_eth_dev_get_port_by_name(DeviceName, &Port);
+    ret = rte_eth_dev_get_port_by_name(DeviceName1, &Port);
     if (ret < 0) {
-        printf("rte_eth_dev_count_avail failed: %d\n", ret);
+        ret = rte_eth_dev_get_port_by_name(DeviceName2, &Port);
+    }
+    if (ret < 0) {
+        printf("rte_eth_dev_get_port_by_name failed: %d\n", ret);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -315,6 +319,7 @@ CxPlatDpdkRxEthernet(
     DPDK_RX_PACKET* PacketChain = NULL;
     DPDK_RX_PACKET** PacketChainTail = &PacketChain;
     DPDK_RX_PACKET Packet; // Working space
+    printf("DPDK RX %hu packets\n", BuffersCount);
     for (uint16_t i = 0; i < BuffersCount; i++) {
         CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
         CxPlatDpdkParseEthernet(
@@ -324,6 +329,7 @@ CxPlatDpdkRxEthernet(
             Buffers[i]->pkt_len);
 
         if (Packet.Buffer) {
+            Packet.Allocated = TRUE;
             Packet.PartitionIndex = Core;
             Packet.Mbuf = Buffers[i];
             Packet.OwnerPool = &Datapath->AdditionalInfoPool;
