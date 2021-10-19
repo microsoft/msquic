@@ -111,9 +111,7 @@ CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Context
     )
 {
-    return (CXPLAT_RECV_DATA*)
-        (((PUCHAR)Context) -
-            sizeof(DPDK_RX_PACKET));
+    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(DPDK_RX_PACKET));
 }
 
 CXPLAT_RECV_PACKET*
@@ -121,9 +119,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-    return (CXPLAT_RECV_PACKET*)
-        (((PUCHAR)Datagram) +
-            sizeof(DPDK_RX_PACKET));
+    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(DPDK_RX_PACKET));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -290,7 +286,7 @@ CxPlatSocketCreateUdp(
     if (Config->LocalAddress) {
         (*NewSocket)->LocalPort = Config->LocalAddress->Ipv4.sin_port;
     } else {
-        (*NewSocket)->LocalPort = 0xCDAB;
+        (*NewSocket)->LocalPort = CxPlatByteSwapUint16(InterlockedIncrement16((short*)&Datapath->NextLocalPort));
     }
     if (Config->RemoteAddress) {
         (*NewSocket)->RemotePort = Config->RemoteAddress->Ipv4.sin_port;
@@ -427,16 +423,29 @@ CxPlatDpdkRx(
     DPDK_RX_PACKET* ReturnPacketChain = NULL;
     DPDK_RX_PACKET** ReturnPacketChainTail = &ReturnPacketChain;
 
-    const DPDK_RX_PACKET* Packet = PacketChain;
-    while (Packet) {
-        BOOLEAN Return = TRUE;
-        if (!FilterPacket(Packet)) {
-            PrintPacket(Packet);
+    while (PacketChain) {
+        DPDK_RX_PACKET* Packet = (DPDK_RX_PACKET*)PacketChain;
+        PacketChain = (DPDK_RX_PACKET*)PacketChain->Next;
+        Packet->Next = NULL;
+
+        if (FilterPacket(Packet)) {
+            continue;
         }
 
+        //PrintPacket(Packet);
+
+        BOOLEAN Return = TRUE;
         if (Packet->Reserved == L4_TYPE_UDP) {
             CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, Packet->IP.LocalAddress.Ipv4.sin_port);
             if (Socket) {
+                QuicTraceEvent(
+                    DatapathRecv,
+                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                    Socket,
+                    Packet->BufferLength,
+                    Packet->BufferLength,
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress));
                 Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
                 CxPlatRundownRelease(&Socket->Rundown);
                 Return = FALSE;
@@ -444,11 +453,9 @@ CxPlatDpdkRx(
         }
 
         if (Return) {
-            *ReturnPacketChainTail = (DPDK_RX_PACKET*)Packet;
+            *ReturnPacketChainTail = Packet;
             ReturnPacketChainTail = (DPDK_RX_PACKET**)&Packet->Next;
         }
-
-        Packet = (const DPDK_RX_PACKET*)Packet->Next;
     }
 
     CxPlatDpdkReturn(ReturnPacketChain);
@@ -525,12 +532,21 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    QUIC_ADDR_STR Source; QuicAddrToString(LocalAddress, &Source);
+    QuicTraceEvent(
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        1,
+        (uint16_t)SendData->Buffer.Length,
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+    /*QUIC_ADDR_STR Source; QuicAddrToString(LocalAddress, &Source);
     QUIC_ADDR_STR Destination; QuicAddrToString(RemoteAddress, &Destination);
     printf("[%02hu] TX [%hu] [%s:%hu->%s:%hu]\n",
         (uint16_t)CxPlatProcCurrentNumber(), (uint16_t)SendData->Buffer.Length,
         Source.Address, CxPlatByteSwapUint16(LocalAddress->Ipv4.sin_port),
-        Destination.Address, CxPlatByteSwapUint16(RemoteAddress->Ipv4.sin_port));
+        Destination.Address, CxPlatByteSwapUint16(RemoteAddress->Ipv4.sin_port));*/
     CxPlatDpdkPrependPacketHeaders(Socket, LocalAddress, RemoteAddress, SendData);
     CxPlatDpdkTx(SendData);
     return QUIC_STATUS_SUCCESS;
@@ -653,7 +669,6 @@ CxPlatDpdkParseUdp(
 
     Packet->IP.RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
     Packet->IP.LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
-    Packet->Tuple = &Packet->IP;
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = Length;
@@ -701,9 +716,9 @@ CxPlatDpdkParseIPv6(
     }
     Length -= sizeof(IPV6_HEADER);
 
-    Packet->IP.RemoteAddress.Ipv6.sin6_family = AF_INET;
+    Packet->IP.RemoteAddress.Ipv6.sin6_family = AF_INET6;
     CxPlatCopyMemory(&Packet->IP.RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
-    Packet->IP.LocalAddress.Ipv6.sin6_family = AF_INET;
+    Packet->IP.LocalAddress.Ipv6.sin6_family = AF_INET6;
     CxPlatCopyMemory(&Packet->IP.LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == 17) {

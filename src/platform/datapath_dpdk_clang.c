@@ -254,18 +254,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     }
     CxPlatCopyMemory(Datapath->SourceMac, &addr, sizeof(addr));
 
-    /*ret = rte_eth_promiscuous_enable(Port);
-    if (ret < 0) {
-        printf("rte_eth_promiscuous_enable failed: %d\n", ret);
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_promiscuous_enable");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }*/
-
     printf("\nStarting Port %hu, MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
             Datapath->Port,
             Datapath->SourceMac[0], Datapath->SourceMac[1], Datapath->SourceMac[2],
@@ -335,6 +323,7 @@ CxPlatDpdkRxEthernet(
             DPDK_RX_PACKET* NewPacket = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool);
             if (NewPacket) {
                 CxPlatCopyMemory(NewPacket, &Packet, sizeof(DPDK_RX_PACKET));
+                NewPacket->Tuple = &NewPacket->IP;
                 *PacketChainTail = NewPacket;
                 PacketChainTail = (DPDK_RX_PACKET**)&NewPacket->Next;
             } else {
@@ -357,7 +346,7 @@ CxPlatDpdkReturn(
 {
     while (PacketChain) {
         const DPDK_RX_PACKET* Packet = PacketChain;
-        PacketChain =  (DPDK_RX_PACKET*)PacketChain->Next;
+        PacketChain = (DPDK_RX_PACKET*)PacketChain->Next;
         rte_pktmbuf_free(Packet->Mbuf);
         CxPlatPoolFree(Packet->OwnerPool, (void*)Packet);
     }
@@ -374,10 +363,12 @@ CxPlatDpdkAllocTx(
     if (SendData) {
         SendData->Mbuf = rte_pktmbuf_alloc(Datapath->MemoryPool);
         if (SendData->Mbuf) {
+            //printf("DPDK TX alloc packet (len=%hu)\n", MaxPacketSize);
             SendData->Datapath = Datapath;
-            SendData->Buffer.Length = 0;
+            SendData->Buffer.Length = MaxPacketSize;
+            SendData->Mbuf->data_off = 0;
             SendData->Buffer.Buffer =
-                ((uint8_t*)SendData->Mbuf->buf_addr) + (RTE_ETHER_MAX_LEN - MaxPacketSize);
+                ((uint8_t*)SendData->Mbuf->buf_addr) + 42; // Ethernet,IPv4,UDP
         } else {
             CxPlatPoolFree(&Datapath->AdditionalInfoPool, SendData);
             SendData = NULL;
@@ -402,12 +393,19 @@ CxPlatDpdkTx(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    SendData->Mbuf->data_len = (uint16_t)SendData->Buffer.Length;
+    //printf("DPDK TX queue packet (len=%hu, off=%hu)\n", SendData->Mbuf->data_len, SendData->Mbuf->data_off);
+
     CXPLAT_DATAPATH* Datapath = SendData->Datapath;
-    SendData->Mbuf->data_len = SendData->Buffer.Length;
-    SendData->Mbuf->data_off = (RTE_ETHER_MAX_LEN - SendData->Buffer.Length);
-    uint16_t Index = (Datapath->TxBufferOffset + Datapath->TxBufferCount) % ARRAYSIZE(Datapath->TxBufferRing);
-    Datapath->TxBufferRing[Index] = SendData->Mbuf;
-    Datapath->TxBufferCount++;
+    // TODO - Lock for writing to the TX ring.
+    if (Datapath->TxBufferCount < ARRAYSIZE(Datapath->TxBufferRing)) {
+        uint16_t Index = (Datapath->TxBufferOffset + Datapath->TxBufferCount) % ARRAYSIZE(Datapath->TxBufferRing);
+        Datapath->TxBufferRing[Index] = SendData->Mbuf;
+        Datapath->TxBufferCount++;
+    } else {
+        printf("DPDK TX drop packet (no room)\n");
+        rte_pktmbuf_free(SendData->Mbuf);
+    }
     CxPlatPoolFree(&Datapath->AdditionalInfoPool, SendData);
 }
 
@@ -454,11 +452,15 @@ CxPlatDpdkWorkerThread(
                 CxPlatDpdkRxEthernet(Datapath, Core, bufs, nb_rx);
             }
         }
-        if (Datapath->TxBufferCount) {
-            if (Datapath->TxBufferCount + Datapath->TxBufferOffset > ARRAYSIZE(Datapath->TxBufferRing)) {
+
+        // No lock should be necessary, so long as only a single thread drains the ring buffer.
+        uint16_t BufferCount = Datapath->TxBufferCount;
+        if (BufferCount) {
+            if (BufferCount + Datapath->TxBufferOffset > ARRAYSIZE(Datapath->TxBufferRing)) {
                 CxPlatDpdkDrainTx(Datapath, ARRAYSIZE(Datapath->TxBufferRing) - Datapath->TxBufferOffset);
+                BufferCount = Datapath->TxBufferCount;
             }
-            CxPlatDpdkDrainTx(Datapath, Datapath->TxBufferCount);
+            CxPlatDpdkDrainTx(Datapath, BufferCount);
         }
     }
 

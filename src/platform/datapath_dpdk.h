@@ -26,6 +26,8 @@ typedef struct CXPLAT_DATAPATH {
     struct rte_mempool* MemoryPool;
     struct rte_mbuf* TxBufferRing[128];
 
+    uint16_t NextLocalPort;
+
     CXPLAT_POOL AdditionalInfoPool;
 
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
