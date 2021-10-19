@@ -771,7 +771,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
@@ -822,7 +822,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
