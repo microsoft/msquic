@@ -282,6 +282,12 @@ function Get-ExeName {
 
 function Remove-PerfServices {
     if ($IsWindows) {
+        if ($null -ne (Get-Process -Name "secnetperf" -ErrorAction Ignore)) {
+            try {
+                Stop-Process -Name "secnetperf" -Force | Out-Null
+            }
+            catch {}
+        }
         if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
             try {
                 net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -298,6 +304,12 @@ function Remove-PerfServices {
         }
 
         Invoke-TestCommand -Session $Session -ScriptBlock {
+            if ($null -ne (Get-Process -Name "secnetperf" -ErrorAction Ignore)) {
+                try {
+                    Stop-Process -Name "secnetperf" -Force | Out-Null
+                }
+                catch {}
+            }
             if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {
                     net.exe stop secnetperfdrvpriv /y | Out-Null

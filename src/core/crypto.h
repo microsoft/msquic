@@ -10,6 +10,10 @@ Abstract:
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // Set of callbacks for TLS.
 //
@@ -395,3 +399,7 @@ QuicCryptoDecodeClientTicket(
     _Out_ uint32_t* ServerTicketLength,
     _Out_ uint32_t* QuicVersion
     );
+
+#if defined(__cplusplus)
+}
+#endif
