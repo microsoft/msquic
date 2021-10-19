@@ -254,7 +254,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     }
     CxPlatCopyMemory(Datapath->SourceMac, &addr, sizeof(addr));
 
-    ret = rte_eth_promiscuous_enable(Port);
+    /*ret = rte_eth_promiscuous_enable(Port);
     if (ret < 0) {
         printf("rte_eth_promiscuous_enable failed: %d\n", ret);
         QuicTraceEvent(
@@ -264,9 +264,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
             "rte_eth_promiscuous_enable");
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
-    }
+    }*/
 
-    //rte_eth_add_rx_callback(Port, 0, CxPlatDpdkRxEthernet, Datapath);
     printf("\nStarting Port %hu, MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
             Datapath->Port,
             Datapath->SourceMac[0], Datapath->SourceMac[1], Datapath->SourceMac[2],
@@ -319,7 +318,7 @@ CxPlatDpdkRxEthernet(
     DPDK_RX_PACKET* PacketChain = NULL;
     DPDK_RX_PACKET** PacketChainTail = &PacketChain;
     DPDK_RX_PACKET Packet; // Working space
-    printf("DPDK RX %hu packets\n", BuffersCount);
+    //printf("DPDK RX %hu packet(s)\n", BuffersCount);
     for (uint16_t i = 0; i < BuffersCount; i++) {
         CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
         CxPlatDpdkParseEthernet(
@@ -419,8 +418,10 @@ CxPlatDpdkDrainTx(
     _In_ uint16_t Count
     )
 {
+    //printf("DPDK TX %hu packet(s)\n", Count);
     struct rte_mbuf** tx_bufs = Datapath->TxBufferRing + Datapath->TxBufferOffset;
     const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port, 0, tx_bufs, Count);
+    if (nb_tx < Count) printf("DPDK TX %hu packet(s) failed\n", (uint16_t)(Count - nb_tx));
     for (uint16_t buf = nb_tx; buf < Count; buf++)
         rte_pktmbuf_free(tx_bufs[buf]);
     Datapath->TxBufferOffset = (Datapath->TxBufferOffset + Count) % ARRAYSIZE(Datapath->TxBufferRing);

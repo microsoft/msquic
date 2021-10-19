@@ -816,8 +816,8 @@ CxPlatDpdkPrependPacketHeaders(
     IP->Protocol = 17; // UDP
     IP->HeaderChecksum = 0;
 
-    UDP->DestinationPort = Socket->RemotePort;
-    UDP->SourcePort = Socket->LocalPort;
+    UDP->DestinationPort = RemoteAddress->Ipv4.sin_port;
+    UDP->SourcePort = LocalAddress->Ipv4.sin_port;
     UDP->Length = htons((uint16_t)SendData->Buffer.Length);
 
     SendData->Buffer.Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
