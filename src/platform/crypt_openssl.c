@@ -11,14 +11,22 @@ Abstract:
 
 #include "platform_internal.h"
 
-#define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
+#include "openssl/opensslv.h"
+#if OPENSSL_VERSION_MAJOR >= 3
+#define IS_OPENSSL_3
+#endif
+
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
 #include "openssl/bio.h"
-#include "openssl/err.h"
+#ifdef IS_OPENSSL_3
+#include "openssl/core_names.h"
+#else
 #include "openssl/hmac.h"
+#endif
+#include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/pkcs12.h"
@@ -414,19 +422,165 @@ CxPlatHpComputeMask(
 // Hash abstraction
 //
 
+#ifdef IS_OPENSSL_3
+//
+// OpenSSL 3.0 Hash implementation
+//
 typedef struct CXPLAT_HASH {
-    //
-    // The message digest.
-    //
-    const EVP_MD *Md;
-
-    //
-    // Context used for hashing.
-    //
-    HMAC_CTX* HashContext;
-
+    EVP_MAC* Mac;
+    EVP_MAC_CTX* Ctx;
+    uint32_t SaltLength;
+    uint8_t Salt[0];
 } CXPLAT_HASH;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatHashCreate(
+    _In_ CXPLAT_HASH_TYPE HashType,
+    _In_reads_(SaltLength)
+        const uint8_t* const Salt,
+    _In_ uint32_t SaltLength,
+    _Out_ CXPLAT_HASH** NewHash
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    CXPLAT_HASH* Hash;
+    const char* HashString;
+    OSSL_PARAM AlgParam[2];
+
+    Hash = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_HASH) + SaltLength, QUIC_POOL_TLS_HASH);
+    if (Hash == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Crypt Hash Context",
+            sizeof(CXPLAT_HASH) + SaltLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+    CxPlatZeroMemory(Hash, sizeof(CXPLAT_HASH) + SaltLength);
+
+    Hash->SaltLength = SaltLength;
+    CxPlatCopyMemory(Hash->Salt, Salt, SaltLength);
+
+    Hash->Mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    if (Hash->Mac == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_fetch failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
+    Hash->Ctx = EVP_MAC_CTX_new(Hash->Mac);
+    if (Hash->Ctx == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_CTX_new failed");
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    switch (HashType) {
+    case CXPLAT_HASH_SHA256:
+        HashString = "sha256";
+        break;
+    case CXPLAT_HASH_SHA384:
+        HashString = "sha384";
+        break;
+    case CXPLAT_HASH_SHA512:
+        HashString = "sha512";
+        break;
+    default:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+
+    AlgParam[0] = OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, (char*)HashString, 0);
+    AlgParam[1] = OSSL_PARAM_construct_end();
+
+    if (!EVP_MAC_CTX_set_params(Hash->Ctx, AlgParam)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_CTX_set_params failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
+    *NewHash = Hash;
+    Hash = NULL;
+
+Exit:
+
+    CxPlatHashFree(Hash);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatHashFree(
+    _In_opt_ CXPLAT_HASH* Hash
+    )
+{
+    if (Hash) {
+        if (Hash->Ctx) {
+            EVP_MAC_CTX_free(Hash->Ctx);
+        }
+        if (Hash->Mac) {
+            EVP_MAC_free(Hash->Mac);
+        }
+        CXPLAT_FREE(Hash, QUIC_POOL_TLS_HASH);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatHashCompute(
+    _In_ CXPLAT_HASH* Hash,
+    _In_reads_(InputLength)
+        const uint8_t* const Input,
+    _In_ uint32_t InputLength,
+    _In_ uint32_t OutputLength, // CxPlatHashLength(HashType)
+    _Out_writes_all_(OutputLength)
+        uint8_t* const Output
+    )
+{
+    if (!EVP_MAC_init(Hash->Ctx, Hash->Salt, Hash->SaltLength, NULL)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_init failed");
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+
+    if (!EVP_MAC_update(Hash->Ctx, Input, InputLength)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_update failed");
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+
+    size_t ActualOutputSize = OutputLength;
+    if (!EVP_MAC_final(Hash->Ctx, Output, &ActualOutputSize, OutputLength)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_final failed");
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+
+    CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
+    return QUIC_STATUS_SUCCESS;
+}
+#else
+//
+// OpenSSL 1.1 Hash implementation
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHashCreate(
@@ -535,3 +689,4 @@ CxPlatHashCompute(
     CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
     return QUIC_STATUS_SUCCESS;
 }
+#endif
