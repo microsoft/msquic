@@ -12,6 +12,10 @@
 #include "cert_capi_openssl.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -19,6 +23,27 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifndef _clog_3_ARGS_TRACE_TlsExportCapiCertChainVerifyResult
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for TlsExportCapiCertChainVerifyResult
+// Exported chain verification result: %u
+// QuicTraceLogVerbose(
+        TlsExportCapiCertChainVerifyResult,
+        "Exported chain verification result: %u",
+        PolicyStatus.dwError);
+// arg2 = arg2 = PolicyStatus.dwError
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_TlsExportCapiCertChainVerifyResult(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CERT_CAPI_OPENSSL_C, TlsExportCapiCertChainVerifyResult , arg2);\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
@@ -74,9 +99,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "CxPlatCertCreate");
+            "CertCreateCertificateChainEngine");
 // arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatCertCreate"
+// arg3 = arg3 = "CertCreateCertificateChainEngine"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -85,20 +110,88 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_LibraryError
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "d2i_X509 failed");
-// arg2 = arg2 = "d2i_X509 failed"
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertGetCertificateChain");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CertGetCertificateChain"
 ----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertGetCertificateChain didn't build a chain");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CertGetCertificateChain didn't build a chain"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            HRESULT_FROM_WIN32(GetLastError()),
+            "CertVerifyCertificateChainPolicy");
+// arg2 = arg2 = HRESULT_FROM_WIN32(GetLastError())
+// arg3 = arg3 = "CertVerifyCertificateChainPolicy"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatCertCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatCertCreate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 
@@ -158,9 +251,75 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed.");
+            "CertOpenStore failed");
 // arg2 = arg2 = Status
-// arg3 = arg3 = "NCryptExportKey failed."
+// arg3 = arg3 = "CertOpenStore failed"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertAddCertificateContextToStore failed");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CertAddCertificateContextToStore failed"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert temporary password to unicode");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "Convert temporary password to unicode"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "PFXExportCertStoreEx get size failed");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "PFXExportCertStoreEx get size failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -179,10 +338,10 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "RSA Key",
-            KeyLength);
-// arg2 = arg2 = "RSA Key"
-// arg3 = arg3 = KeyLength
+            "PFX data",
+            PfxDataBlob.cbData);
+// arg2 = arg2 = "PFX data"
+// arg3 = arg3 = PfxDataBlob.cbData
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CERT_CAPI_OPENSSL_C, AllocFailure , arg2, arg3);\
@@ -203,111 +362,11 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, AllocFailure , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed.");
+            "PFXExportCertStoreEx get size failed");
 // arg2 = arg2 = Status
-// arg3 = arg3 = "NCryptExportKey failed."
+// arg3 = arg3 = "PFXExportCertStoreEx get size failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "NCryptExportKey resulted in incorrect magic number");
-// arg2 = arg2 = "NCryptExportKey resulted in incorrect magic number"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_new failed");
-// arg2 = arg2 = "RSA_new failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_key failed");
-// arg2 = arg2 = "RSA_set0_key failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_factors failed");
-// arg2 = arg2 = "RSA_set0_factors failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_crt_params failed");
-// arg2 = arg2 = "RSA_set0_crt_params failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 
 #endif
 

@@ -8601,6 +8601,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "TlsExportCapiCertChainVerifyResult": {
+      "ModuleProperites": {},
+      "TraceString": "Exported chain verification result: %u",
+      "UniqueId": "TlsExportCapiCertChainVerifyResult",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "TlsLogSecret": {
       "ModuleProperites": {},
       "TraceString": "[ tls] %s[%u]: %s",
@@ -12919,6 +12931,10 @@
       {
         "UniquenessHash": "d53212c8-2068-d598-a55f-1b238ec86ad1",
         "TraceID": "CertCapiVerify"
+      },
+      {
+        "UniquenessHash": "34dcc43f-ca44-d42f-d1f1-ed7f98fc9779",
+        "TraceID": "TlsExportCapiCertChainVerifyResult"
       },
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
