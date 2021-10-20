@@ -964,9 +964,8 @@ CxPlatTlsSecConfigCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
-    EVP_PKEY* PrivKey = NULL;
     X509* X509Cert = NULL;
-    EVP_PKEY * PrivateKey = NULL;
+    EVP_PKEY* PrivateKey = NULL;
     char* CipherSuiteString = NULL;
 
     //
@@ -1279,16 +1278,15 @@ CxPlatTlsSecConfigCreate(
             uint8_t* PfxBlob = NULL;
             uint32_t PfxSize = 0;
             CxPlatRandom(sizeof(PasswordBuffer), PasswordBuffer);
-            Password = PasswordBuffer;
 
             //
             // Fixup password to printable characters
             //
             for (uint32_t idx = 0; idx < sizeof(PasswordBuffer); ++idx) {
-#pragma prefast(suppress:28199, "Buffer is initialized by CxPlatRandom");
                 PasswordBuffer[idx] = ((uint8_t)PasswordBuffer[idx] % 94) + 32;
             }
             PasswordBuffer[PFX_PASSWORD_LENGTH - 1] = 0;
+            Password = PasswordBuffer;
 
             Status =
                 CxPlatTlsExtractPrivateKey(
@@ -1473,10 +1471,6 @@ Exit:
 
     if (X509Cert != NULL) {
         X509_free(X509Cert);
-    }
-
-    if (PrivKey != NULL) {
-        EVP_PKEY_free(PrivKey);
     }
 
     if (PrivateKey != NULL) {
