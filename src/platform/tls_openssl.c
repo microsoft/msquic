@@ -37,6 +37,7 @@ uint16_t CxPlatTlsTPHeaderSize = 0;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
+#define PFX_PASSWORD_LENGTH 34
 //
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
@@ -856,8 +857,9 @@ CXPLAT_STATIC_ASSERT(
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ EVP_PKEY** EvpPrivateKey,
-    _Out_ X509** X509Cert);
+    _In_z_ const uint8_t* Password,
+    _Out_ uint8_t** PfxBytes,
+    _Out_ uint32_t* PfxSize);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1239,7 +1241,7 @@ CxPlatTlsSecConfigCreate(
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
-    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+    } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         BIO* Bio = BIO_new(BIO_s_mem());
         PKCS12 *Pkcs12 = NULL;
 
@@ -1254,7 +1256,60 @@ CxPlatTlsSecConfigCreate(
         }
 
         BIO_set_mem_eof_return(Bio, 0);
-        BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
+
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+            Ret =
+                BIO_write(
+                    Bio,
+                    CredConfig->CertificatePkcs12->Asn1Blob,
+                    CredConfig->CertificatePkcs12->Asn1BlobLength);
+            if (Ret < 0) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_write failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        } else {
+            uint8_t* PfxBlob = NULL;
+            uint32_t PfxSize = 0;
+            uint8_t Password[PFX_PASSWORD_LENGTH];
+            CxPlatRandom(sizeof(Password), Password);
+
+            //
+            // Fixup password to printable characters
+            //
+            for (uint32_t idx = 0; idx < sizeof(Password) - 2; ++idx) {
+                Password[idx] = (Password[idx] % 94) + 32;
+            }
+            Password[PFX_PASSWORD_LENGTH - 2] = 0;
+            Password[PFX_PASSWORD_LENGTH - 1] = 0;
+
+            Status =
+                CxPlatTlsExtractPrivateKey(
+                    CredConfig,
+                    Password,
+                    &PfxBlob,
+                    &PfxSize);
+            if (QUIC_FAILED(Status)) {
+                goto Exit;
+            }
+
+            Ret = BIO_write(Bio, PfxBlob, PfxSize);
+            CXPLAT_FREE(PfxBlob, QUIC_POOL_TLS_PFX);
+            if (Ret < 0) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_write failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        }
+
         Pkcs12 = d2i_PKCS12_bio(Bio, NULL);
         BIO_free(Bio);
         Bio = NULL;
@@ -1305,43 +1360,6 @@ CxPlatTlsSecConfigCreate(
                 "[ lib] ERROR, %u, %s.",
                 ERR_get_error(),
                 "SSL_CTX_use_PrivateKey_file failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        Ret =
-            SSL_CTX_use_certificate(
-                SecurityConfig->SSLCtx,
-                X509Cert);
-        if (Ret != 1) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ERR_get_error(),
-                "SSL_CTX_use_certificate failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-    } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-        Status =
-            CxPlatTlsExtractPrivateKey(
-                CredConfig,
-                &PrivKey,
-                &X509Cert);
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
-        }
-
-        Ret =
-            SSL_CTX_use_PrivateKey(
-                SecurityConfig->SSLCtx,
-                PrivKey);
-        if (Ret != 1) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ERR_get_error(),
-                "SSL_CTX_use_PrivateKey failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }

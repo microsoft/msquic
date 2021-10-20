@@ -128,21 +128,18 @@ Exit:
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ EVP_PKEY** RsaKey,
-    _Out_ X509** X509Cert
+    _In_z_ const uint8_t* Password,
+    _Out_ uint8_t** PfxBytes,
+    _Out_ uint32_t* PfxSize
     )
 {
     QUIC_CERTIFICATE* Cert = NULL;
-    BYTE* KeyData = NULL;
-    BIO* Pkcs8Bio = NULL;
-    EVP_PKEY* PKey = NULL;
-    DWORD KeyLength = 0;
+    HCERTSTORE TempCertStore = NULL;
+    CRYPT_DATA_BLOB PfxDataBlob = {0, NULL};
     NCRYPT_KEY_HANDLE KeyHandle = 0;
     PCCERT_CONTEXT CertCtx = NULL;
-    X509* X509CertStorage = NULL;
     DWORD ExportPolicyProperty = 0;
     DWORD ExportPolicyLength = 0;
-    unsigned char* TempCertEncoded = NULL;
     QUIC_STATUS Status;
 
     if (QUIC_FAILED(
@@ -157,23 +154,10 @@ CxPlatTlsExtractPrivateKey(
     }
 
     CertCtx = (PCCERT_CONTEXT)Cert;
+
     //
-    // d2i_X509 incremements the the cert variable, so it must be stored in a temp.
+    // TODO: support CSP keys in addition to CNG keys.
     //
-    TempCertEncoded = CertCtx->pbCertEncoded;
-    X509CertStorage =
-        d2i_X509(
-            NULL,
-            &TempCertEncoded,
-            CertCtx->cbCertEncoded);
-    if (X509CertStorage == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "d2i_X509 failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
 
     KeyHandle = (NCRYPT_KEY_HANDLE)CxPlatCertGetPrivateKey(Cert);
     if (KeyHandle == 0) {
@@ -208,96 +192,97 @@ CxPlatTlsExtractPrivateKey(
         goto Exit;
     }
 
-    if (FAILED(
-        Status =
-            NCryptExportKey(
-                KeyHandle,
-                0,
-                NCRYPT_PKCS8_PRIVATE_KEY_BLOB,
-                NULL,
-                NULL,
-                0,
-                &KeyLength,
-                NCRYPT_SILENT_FLAG))) {
+    TempCertStore =
+        CertOpenStore(
+            CERT_STORE_PROV_MEMORY,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_STORE_ENUM_ARCHIVED_FLAG,
+            NULL);
+
+    if (NULL == TempCertStore){
+        Status = HRESULT_FROM_WIN32(GetLastError());
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed.");
+            "CertOpenStore failed");
         goto Exit;
     }
 
-    KeyData = CXPLAT_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
-    if (KeyData == NULL) {
+    if (!CertAddCertificateContextToStore(
+            TempCertStore,
+            CertCtx,
+            CERT_STORE_ADD_REPLACE_EXISTING,
+            NULL)) {
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertAddCertificateContextToStore failed");
+        goto Exit;
+    }
+
+    //
+    // TODO: Export certificate chain, support PBES2
+    //
+    PKCS12_PBES2_EXPORT_PARAMS Pbes2ExportParams = {0};
+    Pbes2ExportParams.dwSize = sizeof(PKCS12_PBES2_EXPORT_PARAMS);
+    Pbes2ExportParams.pwszPbes2Alg = PKCS12_PBES2_ALG_AES256_SHA256;
+    DWORD Flags = EXPORT_PRIVATE_KEYS | REPORT_NOT_ABLE_TO_EXPORT_PRIVATE_KEY | PKCS12_EXPORT_PBES2_PARAMS;
+
+    if (!PFXExportCertStoreEx(
+            TempCertStore,
+            &PfxDataBlob,
+            (LPCWSTR)Password,
+            (void*)&Pbes2ExportParams,
+            Flags)) {
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "PFXExportCertStoreEx get size failed");
+        goto Exit;
+    }
+
+    PfxDataBlob.pbData = CXPLAT_ALLOC_NONPAGED(PfxDataBlob.cbData, QUIC_POOL_TLS_PFX);
+
+    if (PfxDataBlob.pbData == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "RSA Key",
-            KeyLength);
+            "PFX data",
+            PfxDataBlob.cbData);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    if (FAILED(Status =
-        NCryptExportKey(
-            KeyHandle,
-            0,
-            NCRYPT_PKCS8_PRIVATE_KEY_BLOB,
-            NULL,
-            KeyData,
-            KeyLength,
-            &KeyLength,
-            NCRYPT_SILENT_FLAG))) {
+    if (!PFXExportCertStoreEx(
+            TempCertStore,
+            &PfxDataBlob,
+            (LPCWSTR)Password,
+            (void*)&Pbes2ExportParams,
+            Flags)) {
+        Status = HRESULT_FROM_WIN32(GetLastError());
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed.");
+            "PFXExportCertStoreEx get size failed");
         goto Exit;
     }
 
-    Pkcs8Bio = BIO_new_mem_buf(KeyData, KeyLength);
-    if (Pkcs8Bio == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "BIO_new_mem_buf failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
+    *PfxBytes = PfxDataBlob.pbData;
+    *PfxSize = PfxDataBlob.cbData;
+    PfxDataBlob.pbData = NULL;
 
-    PKey = d2i_PKCS8PrivateKey_bio(Pkcs8Bio, NULL, NULL, NULL);
-    if (PKey == NULL) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_peek_error(),
-            "d2i_PKCS8PrivateKey_bio failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    *RsaKey = PKey;
-    PKey = NULL;
-    *X509Cert = X509CertStorage;
-    X509CertStorage = NULL;
     Status = QUIC_STATUS_SUCCESS;
 
 Exit:
-    if (X509CertStorage != NULL) {
-        X509_free(X509CertStorage);
-    }
-
-    if (PKey != NULL) {
-        EVP_PKEY_free(PKey);
-    }
-
-    if (Pkcs8Bio != NULL) {
-        BIO_free(Pkcs8Bio);
-    }
-
-    if (KeyData != NULL) {
-        CXPLAT_FREE(KeyData, QUIC_POOL_TLS_RSA);
+    if (PfxDataBlob.pbData != NULL) {
+        CXPLAT_FREE(PfxDataBlob.pbData, QUIC_POOL_TLS_PFX);
     }
 
     if (KeyHandle != 0) {
@@ -306,6 +291,10 @@ Exit:
 
     if (Cert != NULL && CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         CxPlatCertFree(Cert);
+    }
+
+    if (TempCertStore != NULL) {
+        CertCloseStore(TempCertStore, 0);
     }
 
     return Status;
