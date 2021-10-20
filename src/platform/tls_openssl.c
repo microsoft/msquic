@@ -37,7 +37,7 @@ uint16_t CxPlatTlsTPHeaderSize = 0;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
-#define PFX_PASSWORD_LENGTH 34
+#define PFX_PASSWORD_LENGTH 33
 //
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
@@ -857,7 +857,7 @@ CXPLAT_STATIC_ASSERT(
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_z_ const uint8_t* Password,
+    _In_z_ const char* Password,
     _Out_ uint8_t** PfxBytes,
     _Out_ uint32_t* PfxSize);
 
@@ -1244,6 +1244,8 @@ CxPlatTlsSecConfigCreate(
     } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         BIO* Bio = BIO_new(BIO_s_mem());
         PKCS12 *Pkcs12 = NULL;
+        const char* Password = NULL;
+        char PasswordBuffer[PFX_PASSWORD_LENGTH];
 
         if (!Bio) {
             QuicTraceEvent(
@@ -1258,6 +1260,7 @@ CxPlatTlsSecConfigCreate(
         BIO_set_mem_eof_return(Bio, 0);
 
         if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+            Password = CredConfig->CertificatePkcs12->PrivateKeyPassword;
             Ret =
                 BIO_write(
                     Bio,
@@ -1275,22 +1278,22 @@ CxPlatTlsSecConfigCreate(
         } else {
             uint8_t* PfxBlob = NULL;
             uint32_t PfxSize = 0;
-            uint8_t Password[PFX_PASSWORD_LENGTH];
-            CxPlatRandom(sizeof(Password), Password);
+            CxPlatRandom(sizeof(PasswordBuffer), PasswordBuffer);
+            Password = PasswordBuffer;
 
             //
             // Fixup password to printable characters
             //
-            for (uint32_t idx = 0; idx < sizeof(Password) - 2; ++idx) {
-                Password[idx] = (Password[idx] % 94) + 32;
+            for (uint32_t idx = 0; idx < sizeof(PasswordBuffer); ++idx) {
+#pragma prefast(suppress:28199, "Buffer is initialized by CxPlatRandom");
+                PasswordBuffer[idx] = ((uint8_t)PasswordBuffer[idx] % 94) + 32;
             }
-            Password[PFX_PASSWORD_LENGTH - 2] = 0;
-            Password[PFX_PASSWORD_LENGTH - 1] = 0;
+            PasswordBuffer[PFX_PASSWORD_LENGTH - 1] = 0;
 
             Status =
                 CxPlatTlsExtractPrivateKey(
                     CredConfig,
-                    Password,
+                    PasswordBuffer,
                     &PfxBlob,
                     &PfxSize);
             if (QUIC_FAILED(Status)) {
@@ -1326,7 +1329,7 @@ CxPlatTlsSecConfigCreate(
 
         STACK_OF(X509) *CaCertificates = NULL;
         Ret =
-            PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &CaCertificates);
+            PKCS12_parse(Pkcs12, Password, &PrivateKey, &X509Cert, &CaCertificates);
         if (CaCertificates) {
             X509* CaCert;
             while ((CaCert = sk_X509_pop(CaCertificates)) != NULL) {
@@ -1338,6 +1341,9 @@ CxPlatTlsSecConfigCreate(
         }
         if (Pkcs12) {
             PKCS12_free(Pkcs12);
+        }
+        if (Password == PasswordBuffer) {
+            CxPlatZeroMemory(PasswordBuffer, sizeof(PasswordBuffer));
         }
 
         if (Ret != 1) {

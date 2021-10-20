@@ -222,7 +222,7 @@ Exit:
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_z_ const uint8_t* Password,
+    _In_z_ const char* Password,
     _Out_ uint8_t** PfxBytes,
     _Out_ uint32_t* PfxSize
     )

@@ -126,14 +126,138 @@ Exit:
 }
 
 QUIC_STATUS
+CxPlatAddChainToStore(
+    _In_ HCERTSTORE	CertStore,
+    _In_ PCCERT_CONTEXT	CertContext
+    )
+{
+    QUIC_STATUS Status;
+    CERT_CHAIN_ENGINE_CONFIG CertChainEngineConfig;
+    HCERTCHAINENGINE CertChainEngine = NULL;
+    PCCERT_CHAIN_CONTEXT CertChainContext = NULL;
+    CERT_CHAIN_PARA CertChainPara;
+    PCCERT_CONTEXT TempCertContext = NULL;
+
+    CERT_CHAIN_POLICY_PARA PolicyPara;
+    CERT_CHAIN_POLICY_STATUS PolicyStatus;
+
+    //
+    // Create a new chain engine, then build the chain
+    //
+    ZeroMemory(&CertChainEngineConfig, sizeof(CertChainEngineConfig));
+    CertChainEngineConfig.cbSize = sizeof(CertChainEngineConfig);
+    if (!CertCreateCertificateChainEngine(&CertChainEngineConfig, &CertChainEngine)) {
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertCreateCertificateChainEngine");
+        goto Exit;
+    }
+
+    ZeroMemory(&CertChainPara, sizeof(CertChainPara));
+    CertChainPara.cbSize = sizeof(CertChainPara);
+
+    if (!CertGetCertificateChain(
+            CertChainEngine,
+            CertContext,
+            NULL,
+            NULL,
+            &CertChainPara,
+            0,
+            NULL,
+            &CertChainContext)) {
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertGetCertificateChain");
+        goto Exit;
+    }
+
+    //
+    // Make sure there is at least 1 simple chain.
+    //
+    if (CertChainContext->cChain == 0) {
+        Status = CERT_E_CHAINING;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertGetCertificateChain didn't build a chain");
+        goto Exit;
+    }
+
+    for (DWORD i = 0; i < CertChainContext->rgpChain[0]->cElement; ++i) {
+        CertAddCertificateContextToStore(
+            CertStore,
+            CertChainContext->rgpChain[0]->rgpElement[i]->pCertContext,
+            CERT_STORE_ADD_REPLACE_EXISTING,
+            &TempCertContext);
+
+        //
+        // Remove any private key property the cert context may have on it.
+        //
+        if (TempCertContext) {
+            CertSetCertificateContextProperty(
+                TempCertContext,
+                CERT_KEY_PROV_INFO_PROP_ID,
+                0,
+                NULL);
+
+            CertFreeCertificateContext(TempCertContext);
+        }
+    }
+
+    ZeroMemory(&PolicyPara, sizeof(PolicyPara));
+    PolicyPara.cbSize = sizeof(PolicyPara);
+
+    ZeroMemory(&PolicyStatus, sizeof(PolicyStatus));
+    PolicyStatus.cbSize = sizeof(PolicyStatus);
+
+    if (!CertVerifyCertificateChainPolicy(
+            CERT_CHAIN_POLICY_BASE,
+            CertChainContext,
+            &PolicyPara,
+            &PolicyStatus)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            HRESULT_FROM_WIN32(GetLastError()),
+            "CertVerifyCertificateChainPolicy");
+    }
+
+    QuicTraceLogVerbose(
+        TlsExportCapiCertChainVerifyResult,
+        "Exported chain verification result: %u",
+        PolicyStatus.dwError);
+
+    Status = S_OK;
+
+Exit:
+    if (CertChainContext != NULL) {
+        CertFreeCertificateChain(CertChainContext);
+    }
+
+    if (CertChainEngine != NULL) {
+        CertFreeCertificateChainEngine(CertChainEngine);
+    }
+
+    return Status;
+}
+
+QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_z_ const uint8_t* Password,
+    _In_z_ const char* Password,
     _Out_ uint8_t** PfxBytes,
     _Out_ uint32_t* PfxSize
     )
 {
     QUIC_CERTIFICATE* Cert = NULL;
+    PWSTR PasswordW = NULL;
     HCERTSTORE TempCertStore = NULL;
     CRYPT_DATA_BLOB PfxDataBlob = {0, NULL};
     NCRYPT_KEY_HANDLE KeyHandle = 0;
@@ -210,6 +334,11 @@ CxPlatTlsExtractPrivateKey(
         goto Exit;
     }
 
+    Status = CxPlatAddChainToStore(TempCertStore, CertCtx);
+    if (QUIC_FAILED(Status) && Status != CERT_E_CHAINING) {
+        goto Exit;
+    }
+
     if (!CertAddCertificateContextToStore(
             TempCertStore,
             CertCtx,
@@ -224,9 +353,20 @@ CxPlatTlsExtractPrivateKey(
         goto Exit;
     }
 
-    //
-    // TODO: Export certificate chain, support PBES2
-    //
+    Status =
+        CxPlatUtf8ToWideChar(
+            Password,
+            QUIC_POOL_PLATFORM_TMP_ALLOC,
+            &PasswordW);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert temporary password to unicode");
+        goto Exit;
+    }
+
     PKCS12_PBES2_EXPORT_PARAMS Pbes2ExportParams = {0};
     Pbes2ExportParams.dwSize = sizeof(PKCS12_PBES2_EXPORT_PARAMS);
     Pbes2ExportParams.pwszPbes2Alg = PKCS12_PBES2_ALG_AES256_SHA256;
@@ -235,7 +375,7 @@ CxPlatTlsExtractPrivateKey(
     if (!PFXExportCertStoreEx(
             TempCertStore,
             &PfxDataBlob,
-            (LPCWSTR)Password,
+            PasswordW,
             (void*)&Pbes2ExportParams,
             Flags)) {
         Status = HRESULT_FROM_WIN32(GetLastError());
@@ -262,7 +402,7 @@ CxPlatTlsExtractPrivateKey(
     if (!PFXExportCertStoreEx(
             TempCertStore,
             &PfxDataBlob,
-            (LPCWSTR)Password,
+            PasswordW,
             (void*)&Pbes2ExportParams,
             Flags)) {
         Status = HRESULT_FROM_WIN32(GetLastError());
@@ -281,6 +421,9 @@ CxPlatTlsExtractPrivateKey(
     Status = QUIC_STATUS_SUCCESS;
 
 Exit:
+    if (PasswordW != NULL) {
+        CXPLAT_FREE(PasswordW, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
     if (PfxDataBlob.pbData != NULL) {
         CXPLAT_FREE(PfxDataBlob.pbData, QUIC_POOL_TLS_PFX);
     }
