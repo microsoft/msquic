@@ -15,4 +15,4 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(secnetperf platform)
 endif()
 
-target_link_libraries(secnetperf logging)
+target_link_libraries(secnetperf logging base_link)

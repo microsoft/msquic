@@ -47,6 +47,9 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
+.Parameter EnableTcpipVerifier
+    Enables TCPIP verifier in user mode tests.
+
 .Parameter CodeCoverage
     Collects code coverage for this test run. Incompatible with -Debugger.
 
@@ -102,6 +105,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableTcpipVerifier = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
@@ -668,13 +674,20 @@ if ($Kernel -ne "") {
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
-    verifier.exe /volatile /adddriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys /flags 0x9BB
+    verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
     if ($LastExitCode) {
         Log ("verifier.exe " + $LastExitCode)
     }
     net.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
+    }
+}
+
+if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
+    verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
+    if ($LastExitCode) {
+        Log ("verifier.exe " + $LastExitCode)
     }
 }
 
@@ -745,7 +758,12 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
-        verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
+        verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
+        verifier.exe /volatile /flags 0x0
+    }
+
+    if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
+        verifier.exe /volatile /removedriver afd.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
     }
 

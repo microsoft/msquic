@@ -808,6 +808,51 @@ QuicTestConnectUnreachable(
 }
 
 void
+QuicTestConnectInvalidAddress(
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestConnection Client(Registration);
+        TEST_TRUE(Client.IsValid());
+
+        QuicAddr LocalAddr{QUIC_ADDRESS_FAMILY_INET, true};
+        LocalAddr.SetPort(TestUdpPortBase - 2);
+
+        QuicAddr RemoteAddr{QUIC_ADDRESS_FAMILY_INET6, true};
+        RemoteAddr.SetPort(TestUdpPortBase - 1);
+
+        TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(LocalAddr));
+        TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+
+        Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INVALID_ADDRESS);
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET6,
+                QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
+                TestUdpPortBase - 1));
+        if (!Client.WaitForConnectionComplete()) {
+            return;
+        }
+
+        TEST_FALSE(Client.GetIsConnected());
+        TEST_TRUE(Client.GetTransportClosed());
+    }
+}
+
+void
 QuicTestVersionNegotiation(
     _In_ int Family
     )
