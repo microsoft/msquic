@@ -398,7 +398,11 @@ if(WIN32)
         get_filename_component(Console_SdkRoot "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\GDK;InstallPath]" ABSOLUTE CACHE)
 
         if(NOT EXISTS ${Console_SdkRoot})
-            message(FATAL_ERROR "Could not find GDK install")
+            if (EXISTS "C:\Program Files (x86)\Microsoft GDK")
+                set(Console_SdkRoot "C:\Program Files (x86)\Microsoft GDK")
+            else()
+                message(FATAL_ERROR "Could not find GDK install")
+            endif()
         endif()
 
         file(GLOB GdkFolders ${Console_SdkRoot}/*)
