@@ -167,6 +167,7 @@ public:
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
+    uint8_t UseEncryption {TRUE};
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
     uint32_t RequestCount {RPS_DEFAULT_CONNECTION_COUNT * 2};

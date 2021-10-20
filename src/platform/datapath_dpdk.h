@@ -19,12 +19,15 @@ typedef struct CXPLAT_DATAPATH {
     QUIC_STATUS StartStatus;
     CXPLAT_EVENT StartComplete;
 
+    uint16_t CoreCount;
+
     uint16_t Port;
     uint16_t TxBufferCount;
     uint16_t TxBufferOffset;
+    CXPLAT_LOCK TxLock;
     uint8_t SourceMac[6];
     struct rte_mempool* MemoryPool;
-    struct rte_mbuf* TxBufferRing[128];
+    struct rte_mbuf* TxBufferRing[1024];
 
     uint16_t NextLocalPort;
 
@@ -33,7 +36,7 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
     CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
 
-    CXPLAT_RW_LOCK Lock;
+    CXPLAT_RW_LOCK SocketsLock;
     CXPLAT_HASHTABLE Sockets;
 
 } CXPLAT_DATAPATH;

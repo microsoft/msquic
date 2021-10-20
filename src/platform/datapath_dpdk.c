@@ -52,9 +52,9 @@ CxPlatCheckSocket(
 {
     BOOLEAN Found = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CxPlatRwLockAcquireShared(&Datapath->Lock);
+    CxPlatRwLockAcquireShared(&Datapath->SocketsLock);
     Found = CxPlatHashtableLookup(&Datapath->Sockets, SourcePort, &Context) != NULL;
-    CxPlatRwLockReleaseShared(&Datapath->Lock);
+    CxPlatRwLockReleaseShared(&Datapath->SocketsLock);
     return Found;
 }
 
@@ -67,14 +67,14 @@ CxPlatGetSocket(
     CXPLAT_SOCKET* Socket = NULL;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
-    CxPlatRwLockAcquireShared(&Datapath->Lock);
+    CxPlatRwLockAcquireShared(&Datapath->SocketsLock);
     if ((Entry = CxPlatHashtableLookup(&Datapath->Sockets, SourcePort, &Context)) != NULL) {
         Socket = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
         if (!CxPlatRundownAcquire(&Socket->Rundown)) {
             Socket = NULL;
         }
     }
-    CxPlatRwLockReleaseShared(&Datapath->Lock);
+    CxPlatRwLockReleaseShared(&Datapath->SocketsLock);
     return Socket;
 }
 
@@ -86,12 +86,12 @@ CxPlatTryAddSocket(
 {
     BOOLEAN Success = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CxPlatRwLockAcquireExclusive(&Datapath->Lock);
+    CxPlatRwLockAcquireExclusive(&Datapath->SocketsLock);
     if (!CxPlatHashtableLookup(&Datapath->Sockets, Socket->LocalPort, &Context)) {
         CxPlatHashtableInsert(&Datapath->Sockets, &Socket->Entry, Socket->LocalPort, NULL);
         Success = TRUE;
     }
-    CxPlatRwLockReleaseExclusive(&Datapath->Lock);
+    CxPlatRwLockReleaseExclusive(&Datapath->SocketsLock);
     return Success;
 }
 
@@ -101,9 +101,9 @@ CxPlatTryRemoveSocket(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    CxPlatRwLockAcquireExclusive(&Datapath->Lock);
+    CxPlatRwLockAcquireExclusive(&Datapath->SocketsLock);
     CxPlatHashtableRemove(&Datapath->Sockets, &Socket->Entry, NULL);
-    CxPlatRwLockReleaseExclusive(&Datapath->Lock);
+    CxPlatRwLockReleaseExclusive(&Datapath->SocketsLock);
 }
 
 CXPLAT_RECV_DATA*
@@ -148,6 +148,7 @@ CxPlatDataPathInitialize(
     }
     CxPlatZeroMemory(*NewDataPath, sizeof(CXPLAT_DATAPATH));
 
+    (*NewDataPath)->CoreCount = (uint16_t)CxPlatProcMaxCount();
     if (UdpCallbacks) {
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
@@ -156,7 +157,8 @@ CxPlatDataPathInitialize(
     }
     CxPlatPoolInitialize(FALSE, AdditionalBufferSize, QUIC_POOL_DATAPATH, &(*NewDataPath)->AdditionalInfoPool);
 
-    CxPlatRwLockInitialize(&(*NewDataPath)->Lock);
+    CxPlatLockInitialize(&(*NewDataPath)->TxLock);
+    CxPlatRwLockInitialize(&(*NewDataPath)->SocketsLock);
     if (!CxPlatHashtableInitializeEx(&(*NewDataPath)->Sockets, CXPLAT_HASH_MIN_SIZE)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -175,7 +177,8 @@ Error:
             if (CleanUpHashTable) {
                 CxPlatHashtableUninitialize(&(*NewDataPath)->Sockets);
             }
-            CxPlatRwLockUninitialize(&(*NewDataPath)->Lock);
+            CxPlatRwLockUninitialize(&(*NewDataPath)->SocketsLock);
+            CxPlatLockUninitialize(&(*NewDataPath)->TxLock);
             CxPlatPoolUninitialize(&(*NewDataPath)->AdditionalInfoPool);
             CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
@@ -196,7 +199,8 @@ CxPlatDataPathUninitialize(
     }
     CxPlatDpdkUninitialize(Datapath);
     CxPlatHashtableUninitialize(&Datapath->Sockets);
-    CxPlatRwLockUninitialize(&Datapath->Lock);
+    CxPlatRwLockUninitialize(&Datapath->SocketsLock);
+    CxPlatLockUninitialize(&Datapath->TxLock);
     CxPlatPoolUninitialize(&Datapath->AdditionalInfoPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
@@ -446,6 +450,7 @@ CxPlatDpdkRx(
                     Packet->BufferLength,
                     CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress),
                     CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress));
+                Packet->PartitionIndex = CxPlatHashSimple(sizeof(Packet->IP), (uint8_t*)&Packet->IP) % Datapath->CoreCount;
                 Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
                 CxPlatRundownRelease(&Socket->Rundown);
                 Return = FALSE;

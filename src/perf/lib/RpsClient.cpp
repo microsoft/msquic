@@ -25,8 +25,9 @@ PrintHelp(
         "\n"
         "  -target:<####>              The target server to connect to.\n"
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
+        "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
-        "  -ip:<0/4/6>                  A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -conns:<####>               The number of connections to use. (def:%u)\n"
         "  -requests:<####>            The number of requests to send at a time. (def:2*conns)\n"
         "  -request:<####>             The length of request payloads. (def:%u)\n"
@@ -72,6 +73,7 @@ RpsClient::Init(
     Target[Len] = '\0';
 
     TryGetValue(argc, argv, "runtime", &RunTime);
+    TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "conns", &ConnectionCount);
     RequestCount = 2 * ConnectionCount;
@@ -216,6 +218,21 @@ RpsClient::Start(
             Workers[i % ActiveProcCount].QueueConnection(&Connections[i]);
         } else {
             Workers[i % WorkerCount].QueueConnection(&Connections[i]);
+        }
+
+        if (!UseEncryption) {
+            BOOLEAN value = TRUE;
+            Status =
+                MsQuic->SetParam(
+                    Connections[i].Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                    sizeof(value),
+                    &value);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
+                return Status;
+            }
         }
 
         BOOLEAN Opt = TRUE;

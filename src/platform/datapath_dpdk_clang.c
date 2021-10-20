@@ -397,15 +397,20 @@ CxPlatDpdkTx(
     //printf("DPDK TX queue packet (len=%hu, off=%hu)\n", SendData->Mbuf->data_len, SendData->Mbuf->data_off);
 
     CXPLAT_DATAPATH* Datapath = SendData->Datapath;
-    // TODO - Lock for writing to the TX ring.
+    CxPlatLockAcquire(&Datapath->TxLock);
     if (Datapath->TxBufferCount < ARRAYSIZE(Datapath->TxBufferRing)) {
         uint16_t Index = (Datapath->TxBufferOffset + Datapath->TxBufferCount) % ARRAYSIZE(Datapath->TxBufferRing);
         Datapath->TxBufferRing[Index] = SendData->Mbuf;
         Datapath->TxBufferCount++;
-    } else {
+        SendData->Mbuf = NULL;
+    }
+    CxPlatLockRelease(&Datapath->TxLock);
+
+    if (SendData->Mbuf) {
         printf("DPDK TX drop packet (no room)\n");
         rte_pktmbuf_free(SendData->Mbuf);
     }
+
     CxPlatPoolFree(&Datapath->AdditionalInfoPool, SendData);
 }
 
@@ -416,14 +421,20 @@ CxPlatDpdkDrainTx(
     _In_ uint16_t Count
     )
 {
+    CXPLAT_DBG_ASSERT(Count <= ARRAYSIZE(Datapath->TxBufferRing));
+
     //printf("DPDK TX %hu packet(s)\n", Count);
     struct rte_mbuf** tx_bufs = Datapath->TxBufferRing + Datapath->TxBufferOffset;
     const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port, 0, tx_bufs, Count);
     if (nb_tx < Count) printf("DPDK TX %hu packet(s) failed\n", (uint16_t)(Count - nb_tx));
     for (uint16_t buf = nb_tx; buf < Count; buf++)
         rte_pktmbuf_free(tx_bufs[buf]);
-    Datapath->TxBufferOffset = (Datapath->TxBufferOffset + Count) % ARRAYSIZE(Datapath->TxBufferRing);
+
+    uint16_t NewOffset = (Datapath->TxBufferOffset + Count) % ARRAYSIZE(Datapath->TxBufferRing);
+    CxPlatLockAcquire(&Datapath->TxLock);
+    Datapath->TxBufferOffset = NewOffset;
     Datapath->TxBufferCount -= Count;
+    CxPlatLockRelease(&Datapath->TxLock);
 }
 
 static
