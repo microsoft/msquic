@@ -127,11 +127,12 @@ Exit:
 
 QUIC_STATUS
 CxPlatAddChainToStore(
-    _In_ HCERTSTORE	CertStore,
-    _In_ PCCERT_CONTEXT	CertContext
+    _In_ HCERTSTORE CertStore,
+    _In_ PCCERT_CONTEXT CertContext
     )
 {
     QUIC_STATUS Status;
+    DWORD LastError;
     CERT_CHAIN_ENGINE_CONFIG CertChainEngineConfig;
     HCERTCHAINENGINE CertChainEngine = NULL;
     PCCERT_CHAIN_CONTEXT CertChainContext = NULL;
@@ -142,16 +143,17 @@ CxPlatAddChainToStore(
     CERT_CHAIN_POLICY_STATUS PolicyStatus;
 
     //
-    // Create a new chain engine, then build the chain
+    // Create a new chain engine, then build the chain.
     //
     ZeroMemory(&CertChainEngineConfig, sizeof(CertChainEngineConfig));
     CertChainEngineConfig.cbSize = sizeof(CertChainEngineConfig);
     if (!CertCreateCertificateChainEngine(&CertChainEngineConfig, &CertChainEngine)) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertCreateCertificateChainEngine");
         goto Exit;
     }
@@ -168,11 +170,12 @@ CxPlatAddChainToStore(
             0,
             NULL,
             &CertChainContext)) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertGetCertificateChain");
         goto Exit;
     }
@@ -225,7 +228,7 @@ CxPlatAddChainToStore(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            HRESULT_FROM_WIN32(GetLastError()),
+            GetLastError(),
             "CertVerifyCertificateChainPolicy");
     }
 
@@ -252,7 +255,7 @@ QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_z_ const char* Password,
-    _Out_ uint8_t** PfxBytes,
+    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
     _Out_ uint32_t* PfxSize
     )
 {
@@ -264,6 +267,7 @@ CxPlatTlsExtractPrivateKey(
     PCCERT_CONTEXT CertCtx = NULL;
     DWORD ExportPolicyProperty = 0;
     DWORD ExportPolicyLength = 0;
+    DWORD LastError;
     QUIC_STATUS Status;
 
     if (QUIC_FAILED(
@@ -323,13 +327,13 @@ CxPlatTlsExtractPrivateKey(
             0,
             CERT_STORE_ENUM_ARCHIVED_FLAG,
             NULL);
-
-    if (NULL == TempCertStore){
-        Status = HRESULT_FROM_WIN32(GetLastError());
+    if (NULL == TempCertStore) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertOpenStore failed");
         goto Exit;
     }
@@ -344,11 +348,12 @@ CxPlatTlsExtractPrivateKey(
             CertCtx,
             CERT_STORE_ADD_REPLACE_EXISTING,
             NULL)) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertAddCertificateContextToStore failed");
         goto Exit;
     }
@@ -378,17 +383,17 @@ CxPlatTlsExtractPrivateKey(
             PasswordW,
             (void*)&Pbes2ExportParams,
             Flags)) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "PFXExportCertStoreEx get size failed");
         goto Exit;
     }
 
     PfxDataBlob.pbData = CXPLAT_ALLOC_NONPAGED(PfxDataBlob.cbData, QUIC_POOL_TLS_PFX);
-
     if (PfxDataBlob.pbData == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -405,11 +410,12 @@ CxPlatTlsExtractPrivateKey(
             PasswordW,
             (void*)&Pbes2ExportParams,
             Flags)) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "PFXExportCertStoreEx get size failed");
         goto Exit;
     }
