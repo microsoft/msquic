@@ -98,9 +98,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertCreateCertificateChainEngine");
-// arg2 = arg2 = Status
+// arg2 = arg2 = LastError
 // arg3 = arg3 = "CertCreateCertificateChainEngine"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -120,9 +120,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertGetCertificateChain");
-// arg2 = arg2 = Status
+// arg2 = arg2 = LastError
 // arg3 = arg3 = "CertGetCertificateChain"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -164,9 +164,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            HRESULT_FROM_WIN32(GetLastError()),
+            GetLastError(),
             "CertVerifyCertificateChainPolicy");
-// arg2 = arg2 = HRESULT_FROM_WIN32(GetLastError())
+// arg2 = arg2 = GetLastError()
 // arg3 = arg3 = "CertVerifyCertificateChainPolicy"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -250,9 +250,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertOpenStore failed");
-// arg2 = arg2 = Status
+// arg2 = arg2 = LastError
 // arg3 = arg3 = "CertOpenStore failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -272,9 +272,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "CertAddCertificateContextToStore failed");
-// arg2 = arg2 = Status
+// arg2 = arg2 = LastError
 // arg3 = arg3 = "CertAddCertificateContextToStore failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -316,9 +316,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "PFXExportCertStoreEx get size failed");
-// arg2 = arg2 = Status
+// arg2 = arg2 = LastError
 // arg3 = arg3 = "PFXExportCertStoreEx get size failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -361,9 +361,9 @@ tracepoint(CLOG_CERT_CAPI_OPENSSL_C, AllocFailure , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            LastError,
             "PFXExportCertStoreEx get size failed");
-// arg2 = arg2 = Status
+// arg2 = arg2 = LastError
 // arg3 = arg3 = "PFXExportCertStoreEx get size failed"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
