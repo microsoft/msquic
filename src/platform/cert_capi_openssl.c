@@ -126,24 +126,149 @@ Exit:
 }
 
 QUIC_STATUS
+CxPlatAddChainToStore(
+    _In_ HCERTSTORE CertStore,
+    _In_ PCCERT_CONTEXT CertContext
+    )
+{
+    QUIC_STATUS Status;
+    DWORD LastError;
+    CERT_CHAIN_ENGINE_CONFIG CertChainEngineConfig;
+    HCERTCHAINENGINE CertChainEngine = NULL;
+    PCCERT_CHAIN_CONTEXT CertChainContext = NULL;
+    CERT_CHAIN_PARA CertChainPara;
+    PCCERT_CONTEXT TempCertContext = NULL;
+
+    CERT_CHAIN_POLICY_PARA PolicyPara;
+    CERT_CHAIN_POLICY_STATUS PolicyStatus;
+
+    //
+    // Create a new chain engine, then build the chain.
+    //
+    ZeroMemory(&CertChainEngineConfig, sizeof(CertChainEngineConfig));
+    CertChainEngineConfig.cbSize = sizeof(CertChainEngineConfig);
+    if (!CertCreateCertificateChainEngine(&CertChainEngineConfig, &CertChainEngine)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertCreateCertificateChainEngine");
+        goto Exit;
+    }
+
+    ZeroMemory(&CertChainPara, sizeof(CertChainPara));
+    CertChainPara.cbSize = sizeof(CertChainPara);
+
+    if (!CertGetCertificateChain(
+            CertChainEngine,
+            CertContext,
+            NULL,
+            NULL,
+            &CertChainPara,
+            0,
+            NULL,
+            &CertChainContext)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertGetCertificateChain");
+        goto Exit;
+    }
+
+    //
+    // Make sure there is at least 1 simple chain.
+    //
+    if (CertChainContext->cChain == 0) {
+        Status = CERT_E_CHAINING;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertGetCertificateChain didn't build a chain");
+        goto Exit;
+    }
+
+    for (DWORD i = 0; i < CertChainContext->rgpChain[0]->cElement; ++i) {
+        CertAddCertificateContextToStore(
+            CertStore,
+            CertChainContext->rgpChain[0]->rgpElement[i]->pCertContext,
+            CERT_STORE_ADD_REPLACE_EXISTING,
+            &TempCertContext);
+
+        //
+        // Remove any private key property the cert context may have on it.
+        //
+        if (TempCertContext) {
+            CertSetCertificateContextProperty(
+                TempCertContext,
+                CERT_KEY_PROV_INFO_PROP_ID,
+                0,
+                NULL);
+
+            CertFreeCertificateContext(TempCertContext);
+        }
+    }
+
+    ZeroMemory(&PolicyPara, sizeof(PolicyPara));
+    PolicyPara.cbSize = sizeof(PolicyPara);
+
+    ZeroMemory(&PolicyStatus, sizeof(PolicyStatus));
+    PolicyStatus.cbSize = sizeof(PolicyStatus);
+
+    if (!CertVerifyCertificateChainPolicy(
+            CERT_CHAIN_POLICY_BASE,
+            CertChainContext,
+            &PolicyPara,
+            &PolicyStatus)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertVerifyCertificateChainPolicy");
+    }
+
+    QuicTraceLogVerbose(
+        TlsExportCapiCertChainVerifyResult,
+        "Exported chain verification result: %u",
+        PolicyStatus.dwError);
+
+    Status = S_OK;
+
+Exit:
+    if (CertChainContext != NULL) {
+        CertFreeCertificateChain(CertChainContext);
+    }
+
+    if (CertChainEngine != NULL) {
+        CertFreeCertificateChainEngine(CertChainEngine);
+    }
+
+    return Status;
+}
+
+QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ RSA** RsaKey,
-    _Out_ X509** X509Cert
+    _In_z_ const char* Password,
+    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
+    _Out_ uint32_t* PfxSize
     )
 {
     QUIC_CERTIFICATE* Cert = NULL;
-    BYTE* KeyData = NULL;
-    RSA* Rsa = NULL;
-    DWORD KeyLength = 0;
+    PWSTR PasswordW = NULL;
+    HCERTSTORE TempCertStore = NULL;
+    CRYPT_DATA_BLOB PfxDataBlob = {0, NULL};
     NCRYPT_KEY_HANDLE KeyHandle = 0;
     PCCERT_CONTEXT CertCtx = NULL;
-    X509* X509CertStorage = NULL;
     DWORD ExportPolicyProperty = 0;
     DWORD ExportPolicyLength = 0;
-    unsigned char* TempCertEncoded = NULL;
+    DWORD LastError;
     QUIC_STATUS Status;
-    int Ret = 0;
 
     if (QUIC_FAILED(
         Status =
@@ -157,23 +282,10 @@ CxPlatTlsExtractPrivateKey(
     }
 
     CertCtx = (PCCERT_CONTEXT)Cert;
+
     //
-    // d2i_X509 incremements the the cert variable, so it must be stored in a temp.
+    // TODO: support CSP keys in addition to CNG keys.
     //
-    TempCertEncoded = CertCtx->pbCertEncoded;
-    X509CertStorage =
-        d2i_X509(
-            NULL,
-            &TempCertEncoded,
-            CertCtx->cbCertEncoded);
-    if (X509CertStorage == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "d2i_X509 failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
 
     KeyHandle = (NCRYPT_KEY_HANDLE)CxPlatCertGetPrivateKey(Cert);
     if (KeyHandle == 0) {
@@ -208,149 +320,118 @@ CxPlatTlsExtractPrivateKey(
         goto Exit;
     }
 
-    if (FAILED(
-        Status =
-            NCryptExportKey(
-                KeyHandle,
-                0,
-                BCRYPT_RSAFULLPRIVATE_BLOB,
-                NULL,
-                NULL,
-                0,
-                &KeyLength,
-                0))) {
+    TempCertStore =
+        CertOpenStore(
+            CERT_STORE_PROV_MEMORY,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_STORE_ENUM_ARCHIVED_FLAG,
+            NULL);
+    if (NULL == TempCertStore) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertOpenStore failed");
+        goto Exit;
+    }
+
+    Status = CxPlatAddChainToStore(TempCertStore, CertCtx);
+    if (QUIC_FAILED(Status) && Status != CERT_E_CHAINING) {
+        goto Exit;
+    }
+
+    if (!CertAddCertificateContextToStore(
+            TempCertStore,
+            CertCtx,
+            CERT_STORE_ADD_REPLACE_EXISTING,
+            NULL)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertAddCertificateContextToStore failed");
+        goto Exit;
+    }
+
+    Status =
+        CxPlatUtf8ToWideChar(
+            Password,
+            QUIC_POOL_PLATFORM_TMP_ALLOC,
+            &PasswordW);
+    if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed.");
+            "Convert temporary password to unicode");
         goto Exit;
     }
 
-    KeyData = CXPLAT_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
-    if (KeyData == NULL) {
+    PKCS12_PBES2_EXPORT_PARAMS Pbes2ExportParams = {0};
+    Pbes2ExportParams.dwSize = sizeof(PKCS12_PBES2_EXPORT_PARAMS);
+    Pbes2ExportParams.pwszPbes2Alg = PKCS12_PBES2_ALG_AES256_SHA256;
+    DWORD Flags = EXPORT_PRIVATE_KEYS | REPORT_NOT_ABLE_TO_EXPORT_PRIVATE_KEY | PKCS12_EXPORT_PBES2_PARAMS;
+
+    if (!PFXExportCertStoreEx(
+            TempCertStore,
+            &PfxDataBlob,
+            PasswordW,
+            (void*)&Pbes2ExportParams,
+            Flags)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "PFXExportCertStoreEx get size failed");
+        goto Exit;
+    }
+
+    PfxDataBlob.pbData = CXPLAT_ALLOC_NONPAGED(PfxDataBlob.cbData, QUIC_POOL_TLS_PFX);
+    if (PfxDataBlob.pbData == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "RSA Key",
-            KeyLength);
+            "PFX data",
+            PfxDataBlob.cbData);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    if (FAILED(Status =
-        NCryptExportKey(
-            KeyHandle,
-            0,
-            BCRYPT_RSAFULLPRIVATE_BLOB,
-            NULL,
-            KeyData,
-            KeyLength,
-            &KeyLength,
-            0))) {
+    if (!PFXExportCertStoreEx(
+            TempCertStore,
+            &PfxDataBlob,
+            PasswordW,
+            (void*)&Pbes2ExportParams,
+            Flags)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
-            "NCryptExportKey failed.");
+            LastError,
+            "PFXExportCertStoreEx get size failed");
         goto Exit;
     }
 
-    BCRYPT_RSAKEY_BLOB* Blob = (BCRYPT_RSAKEY_BLOB*)KeyData;
+    *PfxBytes = PfxDataBlob.pbData;
+    *PfxSize = PfxDataBlob.cbData;
+    PfxDataBlob.pbData = NULL;
 
-    if (Blob->Magic != BCRYPT_RSAFULLPRIVATE_MAGIC) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "NCryptExportKey resulted in incorrect magic number");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Exit;
-    }
-
-    Rsa = RSA_new();
-    if (Rsa == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_new failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    //
-    // There is no automatic way to convert from a CNG representation of a
-    // private key to an OpenSSL representation. So in order for this to
-    // work, we must manually deconstruct the key from CNG, and construct it
-    // again in OpenSSL. The key ends up being the same, just represented
-    // differently.
-    // This was found using the following StackOverflow answer, with the
-    // author giving permissions to use it.
-    // https://stackoverflow.com/a/60181045
-    //
-
-    // n is the modulus common to both public and private key
-    BIGNUM* n = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp, Blob->cbModulus, NULL);
-    // e is the public exponent
-    BIGNUM* e = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB), Blob->cbPublicExp, NULL);
-    // d is the private exponent
-    BIGNUM* d = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbModulus, NULL);
-
-    Ret = RSA_set0_key(Rsa, n, e, d);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_key failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    // p and q are the first and second factor of n
-    BIGNUM* p = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus, Blob->cbPrime1, NULL);
-    BIGNUM* q = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1, Blob->cbPrime2, NULL);
-
-    Ret = RSA_set0_factors(Rsa, p, q);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_factors failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    // dmp1, dmq1 and iqmp are the exponents and coefficient for CRT calculations
-    BIGNUM* dmp1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
-    BIGNUM* dmq1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbPrime2, NULL);
-    BIGNUM* iqmp = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
-
-    Ret = RSA_set0_crt_params(Rsa, dmp1, dmq1, iqmp);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_crt_params failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    *RsaKey = Rsa;
-    Rsa = NULL;
-    *X509Cert = X509CertStorage;
-    X509CertStorage = NULL;
     Status = QUIC_STATUS_SUCCESS;
 
 Exit:
-    if (X509CertStorage != NULL) {
-        X509_free(X509CertStorage);
+    if (PasswordW != NULL) {
+        CXPLAT_FREE(PasswordW, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
-
-    if (Rsa != NULL) {
-        RSA_free(Rsa);
-    }
-
-    if (KeyData != NULL) {
-        CXPLAT_FREE(KeyData, QUIC_POOL_TLS_RSA);
+    if (PfxDataBlob.pbData != NULL) {
+        CXPLAT_FREE(PfxDataBlob.pbData, QUIC_POOL_TLS_PFX);
     }
 
     if (KeyHandle != 0) {
@@ -359,6 +440,10 @@ Exit:
 
     if (Cert != NULL && CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         CxPlatCertFree(Cert);
+    }
+
+    if (TempCertStore != NULL) {
+        CertCloseStore(TempCertStore, 0);
     }
 
     return Status;
