@@ -424,6 +424,10 @@ void
 QuicTestStreamAbortRecvFinRace(
     );
 
+void
+QuicTestStreamAbortConnFlowControl(
+    );
+
 //
 // QuicDrill tests
 //
@@ -940,4 +944,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_ABORT_RECV_FIN_RACE \
     QUIC_CTL_CODE(78, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 78
+#define IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL \
+    QUIC_CTL_CODE(79, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 79

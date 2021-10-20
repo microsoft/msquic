@@ -111,7 +111,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("gamecore-console", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
+    [ValidateSet("gamecore_console", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -225,12 +225,12 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And ($Platform -eq "gamecore-console")) {
+if (!$IsWindows -And ($Platform -eq "gamecore_console")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore on non windows platforms"
     exit
 }
 
-if ($Arch -ne "x64" -And ($Platform -eq "gamecore-console")) {
+if ($Arch -ne "x64" -And ($Platform -eq "gamecore_console")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
     exit
 }
@@ -360,7 +360,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
     # On gamecore, only the main binary can be built.
-    if ($Platform -eq "gamecore-console") {
+    if ($Platform -eq "gamecore_console") {
         $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
     }
     if ($ToolchainFile -ne "") {

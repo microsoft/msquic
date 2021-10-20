@@ -1496,6 +1496,15 @@ TEST(Misc, StreamAbortRecvFinRace) {
     }
 }
 
+TEST(Misc, StreamAbortConnFlowControl) {
+    TestLogger Logger("StreamAbortConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL));
+    } else {
+        QuicTestStreamAbortConnFlowControl();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

@@ -52,7 +52,7 @@ foreach ($File in $Files) {
 
 # Perform fixups
 $GenFiles = Get-ChildItem -Path "$OutputDir\*" -Recurse -File
-$ToRemovePath = "$OutputDir\linux\"
+$ToRemovePath = "$OutputDir$([IO.Path]::DirectorySeparatorChar)linux$([IO.Path]::DirectorySeparatorChar)"
 foreach ($File in $GenFiles) {
     ((Get-Content -path $File -Raw).Replace($ToRemovePath, "")) | Set-Content -Path $File -NoNewline
 }

@@ -222,12 +222,14 @@ Exit:
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ EVP_PKEY** EvpPrivateKey,
-    _Out_ X509** X509Cert
+    _In_z_ const char* Password,
+    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
+    _Out_ uint32_t* PfxSize
     )
 {
     UNREFERENCED_PARAMETER(CredConfig);
-    UNREFERENCED_PARAMETER(EvpPrivateKey);
-    UNREFERENCED_PARAMETER(X509Cert);
+    UNREFERENCED_PARAMETER(Password);
+    UNREFERENCED_PARAMETER(PfxBytes);
+    UNREFERENCED_PARAMETER(PfxSize);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
