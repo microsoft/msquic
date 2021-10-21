@@ -500,7 +500,7 @@ QuicSendWriteFrames(
             (void)QuicPacketBuilderAddFrame(
                 Builder, IsApplicationClose ? QUIC_FRAME_CONNECTION_CLOSE_1 : QUIC_FRAME_CONNECTION_CLOSE, FALSE);
         } else {
-            RanOutOfRoom = TRUE;
+            return FALSE; // Ran out of room.
         }
 
         return TRUE;
@@ -717,7 +717,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
@@ -768,7 +768,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
