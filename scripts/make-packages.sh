@@ -82,8 +82,8 @@ else
 fi
 
 ARTIFACTS="artifacts/bin/${OS}/${ARCH}_${CONFIG}_openssl"
-if [ ! -e "$ARTIFACTS/libmsquic.${LIBEXT}" ]; then
-    echo "$ARTIFACTS/libmsquic.${LIBEXT}" does not exist. Run build first.
+if [ ! -e "$ARTIFACTS/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
+    echo "$ARTIFACTS/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" does not exist. Run build first.
     exit 1
 fi
 
@@ -95,14 +95,14 @@ mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
   # RedHat/CentOS
-  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}=/usr/${LIBDIR}/libmsquic.${LIBEXT}"
-  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}" ]; then
-     FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}"
+  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
+     FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
   fpm -f -s dir -t rpm  -n ${NAME} -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
-    --provides libmsquic.so \
+    --provides libmsquic.so.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     ${CONFLICTS} \
     ${FILES}
 
@@ -110,14 +110,14 @@ if [ "$OS" == "linux" ]; then
   if [ "$LIBDIR" == 'lib64' ]; then
       LIBDIR="lib/x86_64-linux-gnu"
   fi
-  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}=/usr/${LIBDIR}/libmsquic.${LIBEXT}"
-  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}" ]; then
-     FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}"
+  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
+     FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
   fpm -f -s dir -t deb  -n ${NAME} -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
-    --provides libmsquic.so \
+    --provides libmsquic.so.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     ${CONFLICTS} \
     ${FILES}
 fi
@@ -125,6 +125,6 @@ if [ "$OS" == "macos" ]; then
   fpm -f -s dir -t osxpkg -n ${NAME} -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
-    --provides libmsquic.dylib \
-    "$ARTIFACTS/libmsquic.dylib"=/usr/local/lib/libmsquic.dylib
+    --provides libmsquic.dylib.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+    "$ARTIFACTS/libmsquic.dylib.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"=/usr/local/lib/libmsquic.dylib.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}
 fi

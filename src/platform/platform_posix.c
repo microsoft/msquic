@@ -21,6 +21,8 @@ Environment:
 #include <limits.h>
 #include <sched.h>
 #include <syslog.h>
+#define QUIC_VERSION_ONLY 1
+#include "msquic.ver"
 #ifdef QUIC_CLOG
 #include "platform_posix.c.clog.h"
 #endif
@@ -31,7 +33,12 @@ CX_PLATFORM CxPlatform = { NULL };
 int RandomFd; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
-static const char TpLibName[] = "libmsquic.lttng.so";
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define LIBRARY_VERSION STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH)
+
+static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
 uint32_t CxPlatProcessorCount;
 
@@ -112,7 +119,7 @@ CxPlatSystemLoad(
     }
 
     if (!ShouldLoad) {
-        return;
+        goto Exit;
     }
 
     //
@@ -121,7 +128,7 @@ CxPlatSystemLoad(
     Dl_info Info;
     int Succeeded = dladdr((void *)CxPlatSystemLoad, &Info);
     if (!Succeeded) {
-        return;
+        goto Exit;
     }
 
     size_t PathLen = strlen(Info.dli_fname);
@@ -138,7 +145,7 @@ CxPlatSystemLoad(
     }
 
     if (LastTrailingSlashLen == -1) {
-        return;
+        goto Exit;
     }
 
     size_t TpLibNameLen = strlen(TpLibName);
@@ -146,7 +153,7 @@ CxPlatSystemLoad(
 
     char* ProviderFullPath = CXPLAT_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ProviderFullPath == NULL) {
-        return;
+        goto Exit;
     }
 
     CxPlatCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
@@ -160,6 +167,8 @@ CxPlatSystemLoad(
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+Exit:
 
     QuicTraceLogInfo(
         PosixLoaded,

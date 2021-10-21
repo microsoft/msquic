@@ -29,7 +29,9 @@ $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package
 $CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "create-vpack.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
+$DistributionFile = Join-Path $RootDir "scripts" "package-distribution.ps1"
 $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
+$CMakeFile = Join-Path $RootDir "CMakeLists.txt"
 
 # Get the current version number from the msquic.ver file.
 $VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
@@ -74,3 +76,12 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 (Get-Content $FrameworkInfoFile) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $FrameworkInfoFile
+(Get-Content $DistributionFile) `
+    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
+    Out-File $DistributionFile
+(Get-Content $CMakeFile) `
+    -replace "$set(QUIC_MAJOR_VERSION $VerMajor)", "$set(QUIC_MAJOR_VERSION $NewVerMajor)" |`
+    Out-File $CMakeFile
+(Get-Content $CMakeFile) `
+    -replace "$set(QUIC_FULL_VERSION $VerMajor.$VerMinor.$VerPatch)", "$set(QUIC_FULL_VERSION $NewVerMajor.$NewVerMinor.$NewVerPatch)" |`
+    Out-File $CMakeFile

@@ -19,6 +19,8 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
+$Version = "1.10.0"
+
 $WindowsBuilds = @()
 $AllBuilds = @()
 
@@ -83,14 +85,14 @@ foreach ($Build in $AllBuilds) {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
     } elseif ($Platform -eq "linux") {
-        $Binaries += Join-Path $ArtifactsDir "libmsquic.so"
-        $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so"
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.so.$Version"
+        $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so.$Version"
         if (Test-Path $LttngBin) {
             $Binaries += $LttngBin
         }
     } else {
         # macos
-        $Binaries += Join-Path $ArtifactsDir "libmsquic.dylib"
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.dylib.$Version"
     }
 
     $Libraries = @()
