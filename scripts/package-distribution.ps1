@@ -94,7 +94,10 @@ foreach ($Build in $AllBuilds) {
     } else {
         # macos
         $Binaries += Join-Path $ArtifactsDir "libmsquic.$Version.dylib"
-        $DebugFolders += Join-Path $ArtifactsDir "libmsquic.$Version.dylib.dSYM"
+        $DebugFolder = Join-Path $ArtifactsDir "libmsquic.$Version.dylib.dSYM"
+        if (Test-Path $DebugFolder) {
+            $DebugFolders += $DebugFolder
+        }
     }
 
     $Libraries = @()
