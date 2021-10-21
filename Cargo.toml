@@ -47,3 +47,4 @@ cmake = "0.1"
 
 [dependencies]
 libc = "0.2.0"
+serde = { version = "1.0.117", features = ["derive"] }

@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
+use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use std::option::Option;
 use std::ptr;
 
@@ -52,6 +54,41 @@ pub struct sockaddr_in6 {
 pub union Addr {
     pub ipv4: sockaddr_in,
     pub ipv6: sockaddr_in6,
+}
+
+impl Addr {
+    /// Create a representation of IPv4 address and perform Network byte order conversion
+    /// on the port number.
+    pub fn ipv4(family: u16, port: u16, addr: u32) -> Addr {
+        Addr {
+            ipv4: sockaddr_in {
+                family,
+                port: port,
+                addr,
+                zero: [0, 0, 0, 0, 0, 0, 0, 0],
+            },
+        }
+    }
+
+    /// Create a representation of IPv6 address and perform Network byte order conversion
+    /// on the port number.
+    pub fn ipv6(
+        family: u16,
+        port: u16,
+        flow_info: u32,
+        addr: [u8; 16usize],
+        scope_id: u32,
+    ) -> Addr {
+        Addr {
+            ipv6: sockaddr_in6 {
+                family,
+                port: port,
+                flow_info,
+                addr,
+                scope_id,
+            },
+        }
+    }
 }
 
 /// Helper for processing MsQuic return statuses.
@@ -353,70 +390,71 @@ pub struct HandshakeInfo {
     pub cipher_suite: CipherSuite,
 }
 
-/*#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_1 {
-    pub Start: u64,
-    pub InitialFlightEnd: u64,
-    pub HandshakeFlightEnd: u64,
+#[repr(C)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS_TIMING {
+    pub start: u64,
+    pub initial_flight_end: u64,
+    pub handshake_flight_end: u64,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_2 {
-    pub ClientFlight1Bytes: u32,
-    pub ServerFlight1Bytes: u32,
-    pub ClientFlight2Bytes: u32,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS_HANDSHAKE {
+    pub client_flight1_bytes: u32,
+    pub server_flight1_bytes: u32,
+    pub client_flight2_bytes: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_3 {
-    pub PathMtu: u16,
-    pub TotalPackets: u64,
-    pub RetransmittablePackets: u64,
-    pub SuspectedLostPackets: u64,
-    pub SpuriousLostPackets: u64,
-    pub TotalBytes: u64,
-    pub TotalStreamBytes: u64,
-    pub CongestionCount: u32,
-    pub PersistentCongestionCount: u32,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS_SEND {
+    pub path_mtu: u16,
+    pub total_packets: u64,
+    pub retransmittable_packets: u64,
+    pub suspected_lost_packets: u64,
+    pub spurious_lost_packets: u64,
+    pub total_bytes: u64,
+    pub total_stream_bytes: u64,
+    pub congestion_count: u32,
+    pub persistent_congestion_count: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_4 {
-    pub TotalPackets: u64,
-    pub ReorderedPackets: u64,
-    pub DroppedPackets: u64,
-    pub DuplicatePackets: u64,
-    pub TotalBytes: u64,
-    pub TotalStreamBytes: u64,
-    pub DecryptionFailures: u64,
-    pub ValidAckFrames: u64,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS_RECV {
+    pub total_packets: u64,
+    pub reordered_packets: u64,
+    pub dropped_packets: u64,
+    pub duplicate_packets: u64,
+    pub total_bytes: u64,
+    pub total_stream_bytes: u64,
+    pub decryption_failures: u64,
+    pub valid_ack_frames: u64,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_5 {
-    pub KeyUpdateCount: u32,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QUIC_STATISTICS_MISC {
+    pub key_update_count: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct QUIC_STATISTICS {
-    pub CorrelationId: u64,
+    pub correlation_id: u64,
     pub _bitfield_align_1: [u8; 0],
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
-    pub Rtt: u32,
-    pub MinRtt: u32,
-    pub MaxRtt: u32,
-    pub Timing: QUIC_STATISTICS__bindgen_ty_1,
-    pub Handshake: QUIC_STATISTICS__bindgen_ty_2,
-    pub Send: QUIC_STATISTICS__bindgen_ty_3,
-    pub Recv: QUIC_STATISTICS__bindgen_ty_4,
-    pub Misc: QUIC_STATISTICS__bindgen_ty_5,
-}*/
+    //pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub _bitfield_1: u8,
+    pub rtt: u32,
+    pub min_rtt: u32,
+    pub max_rtt: u32,
+    pub timing: QUIC_STATISTICS_TIMING,
+    pub handshake: QUIC_STATISTICS_HANDSHAKE,
+    pub send: QUIC_STATISTICS_SEND,
+    pub recv: QUIC_STATISTICS_RECV,
+    pub misc: QUIC_STATISTICS_MISC,
+}
 
 /*#[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -728,7 +766,7 @@ pub type StreamEventHandler =
     extern "C" fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u32;
 
 #[repr(C)]
-pub struct ApiTable {
+struct ApiTable {
     set_context: extern "C" fn(handle: Handle, context: *const c_void),
     get_context: extern "C" fn(handle: Handle) -> *mut c_void,
     set_callback_handler:
@@ -744,7 +782,7 @@ pub struct ApiTable {
         handle: Handle,
         level: ParameterLevel,
         param: u32,
-        buffer_length: *mut u32,
+        buffer_length: *const u32,
         buffer: *const c_void,
     ) -> u32,
     registration_open:
@@ -763,7 +801,7 @@ pub struct ApiTable {
     configuration_close: extern "C" fn(configuration: Handle),
     configuration_load_credential:
         extern "C" fn(configuration: Handle, cred_config: *const CredentialConfig) -> u32,
-    pub listener_open: extern "C" fn(
+    listener_open: extern "C" fn(
         registration: Handle,
         handler: ListenerEventHandler,
         context: *const c_void,
@@ -811,7 +849,7 @@ pub struct ApiTable {
     stream_start: extern "C" fn(stream: Handle, flags: StreamStartFlags) -> u32,
     stream_shutdown:
         extern "C" fn(stream: Handle, flags: StreamShutdownFlags, error_code: u62) -> u32,
-    pub stream_send: extern "C" fn(
+    stream_send: extern "C" fn(
         stream: Handle,
         buffers: *const Buffer,
         buffer_count: u32,
@@ -840,8 +878,12 @@ extern "C" {
 //
 
 /// Top level entry point for the MsQuic API.
+///
+/// Developper must ensure a struct containing MsQuic members such as `Connection`
+///  or `Stream` declares `API` last so that the API is dropped last when the containing
+/// sruct goes out of scope.
 pub struct Api {
-    pub table: *const ApiTable,
+    table: *const ApiTable,
 }
 
 /// The execution context for processing connections on the application's behalf.
@@ -859,7 +901,7 @@ pub struct Configuration {
 /// A single QUIC connection.
 pub struct Connection {
     table: *const ApiTable,
-    handle: Handle,
+    pub handle: Handle,
 }
 
 /// A single server listener
@@ -874,18 +916,52 @@ pub struct Stream {
     handle: Handle,
 }
 
-impl Buffer {
-    pub fn from_str(data: &str) -> Buffer {
+/// A struct for accessing performance counters.
+pub struct Perf {
+    pub counters: [i64; PERF_COUNTER_MAX as usize],
+}
+
+impl From<&str> for Buffer {
+    fn from(data: &str) -> Buffer {
         Buffer {
             length: data.len() as u32,
             buffer: data.as_ptr() as *mut u8,
         }
     }
-    pub fn from_char(data: &String) -> Buffer {
+}
+
+impl From<&Vec<u8>> for Buffer {
+    fn from(data: &Vec<u8>) -> Buffer {
         Buffer {
             length: data.len() as u32,
             buffer: data.as_ptr() as *mut u8,
         }
+    }
+}
+
+impl From<&[u8]> for Buffer {
+    fn from(data: &[u8]) -> Buffer {
+        let buffer = Buffer {
+            length: data.len() as u32,
+            buffer: data.as_ptr() as *mut u8,
+        };
+        buffer
+    }
+}
+
+impl From<Buffer> for Vec<u8> {
+    fn from(data: Buffer) -> Vec<u8> {
+        let mut vec = vec![0; data.length.try_into().unwrap()];
+        for index in 0..data.length - 1 {
+            vec[index as usize] = unsafe { *data.buffer.offset(index as isize) };
+        }
+        vec
+    }
+}
+
+impl Perf {
+    pub fn counter(&self, counter: PerformanceCounter) -> i64 {
+        self.counters[counter as usize]
     }
 }
 
@@ -967,6 +1043,39 @@ impl Api {
         Api { table: new_table }
     }
 
+    pub fn close_listener(&self, listener: Handle) {
+        unsafe {
+            ((*self.table).listener_close)(listener);
+        }
+    }
+    pub fn close_connection(&self, connection: Handle) {
+        unsafe {
+            ((*self.table).connection_close)(connection);
+        }
+    }
+    pub fn close_stream(&self, stream: Handle) {
+        unsafe {
+            ((*self.table).stream_close)(stream);
+        }
+    }
+
+    pub fn get_perf(&self) -> Perf {
+        let mut perf = Perf {
+            counters: [0; PERF_COUNTER_MAX as usize],
+        };
+        let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
+        unsafe {
+            ((*self.table).get_param)(
+                std::ptr::null(),
+                PARAM_LEVEL_GLOBAL,
+                PARAM_GLOBAL_PERF_COUNTERS,
+                (&perf_length) as *const u32,
+                perf.counters.as_mut_ptr() as *const c_void,
+            )
+        };
+        perf
+    }
+
     pub fn set_callback_handler(
         &self,
         handle: Handle,
@@ -979,6 +1088,7 @@ impl Api {
 
 impl Drop for Api {
     fn drop(&mut self) {
+        println!("Drop API");
         unsafe { MsQuicClose(self.table) };
     }
 }
@@ -1003,6 +1113,7 @@ impl Registration {
 
 impl Drop for Registration {
     fn drop(&mut self) {
+        println!("Drop Reg");
         unsafe { ((*self.table).registration_close)(self.handle) };
     }
 }
@@ -1050,31 +1161,37 @@ impl Configuration {
 
 impl Drop for Configuration {
     fn drop(&mut self) {
+        println!("Drop Cnf");
         unsafe { ((*self.table).configuration_close)(self.handle) };
     }
 }
 
 impl Connection {
-    pub fn new(
+    pub fn new(registration: &Registration) -> Connection {
+        Connection {
+            table: registration.table,
+            handle: ptr::null(),
+        }
+    }
+
+    pub fn from_parts(handle: Handle, api: &Api) -> Connection {
+        Connection {
+            table: api.table,
+            handle,
+        }
+    }
+
+    pub fn open(
+        &self,
         registration: &Registration,
         handler: ConnectionEventHandler,
         context: *const c_void,
-    ) -> Connection {
-        let new_connection: Handle = ptr::null();
+    ) {
         let status = unsafe {
-            ((*registration.table).connection_open)(
-                registration.handle,
-                handler,
-                context,
-                &new_connection,
-            )
+            ((*self.table).connection_open)(registration.handle, handler, context, &self.handle)
         };
         if Status::failed(status) {
             panic!("ConnectionOpen failure 0x{:x}", status);
-        }
-        Connection {
-            table: registration.table,
-            handle: new_connection,
         }
     }
 
@@ -1086,17 +1203,61 @@ impl Connection {
                 configuration.handle,
                 0,
                 server_name_safe.as_ptr(),
-                server_port,
+                server_port.to_be(),
             )
         };
         if Status::failed(status) {
             panic!("ConnectionStart failure 0x{:x}", status);
         }
     }
+
+    pub fn get_stats(&self) -> QUIC_STATISTICS {
+        let mut stat_buffer: [u8; std::mem::size_of::<QUIC_STATISTICS>()] =
+            [0; std::mem::size_of::<QUIC_STATISTICS>()];
+        let stat_size_mut = std::mem::size_of::<QUIC_STATISTICS>();
+        unsafe {
+            ((*self.table).get_param)(
+                self.handle,
+                PARAM_LEVEL_CONNECTION,
+                PARAM_CONN_STATISTICS,
+                (&stat_size_mut) as *const usize as *const u32,
+                stat_buffer.as_mut_ptr() as *const c_void,
+            )
+        };
+
+        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QUIC_STATISTICS) }
+    }
+
+    pub fn set_configuration(&self, configuration: &Configuration, context: *const c_void) {
+        let status = unsafe {
+            ((*self.table).connection_set_configuration)(self.handle, configuration.handle)
+        };
+        if Status::failed(status) {
+            panic!("ConnectionSetConfiguration failure 0x{:x}", status);
+        }
+    }
+
+    pub fn set_callback_handler(&self, handler: ConnectionEventHandler, context: *const c_void) {
+        unsafe {
+            ((*self.table).set_callback_handler)(self.handle, handler as *const c_void, context)
+        };
+    }
+
+    pub fn set_stream_callback_handler(
+        &self,
+        stream_handle: Handle,
+        handler: StreamEventHandler,
+        context: *const c_void,
+    ) {
+        unsafe {
+            ((*self.table).set_callback_handler)(stream_handle, handler as *const c_void, context)
+        };
+    }
 }
 
 impl Drop for Connection {
     fn drop(&mut self) {
+        println!("Drop Con");
         unsafe { ((*self.table).connection_close)(self.handle) };
     }
 }
@@ -1138,41 +1299,37 @@ impl Listener {
         if Status::failed(status) {
             panic!("ListenerStart failed, {:x}!\n", status);
         }
-        println!("Listener started");
-    }
-}
-
-impl Drop for Listener {
-    fn drop(&mut self) {
-        unsafe { ((*self.table).listener_close)(self.handle) };
     }
 }
 
 impl Stream {
-    pub fn new(
+    pub fn new(context: *const c_void) -> Stream {
+        let api = unsafe { &*(context as *const Api) };
+        Stream {
+            table: api.table,
+            handle: ptr::null(),
+        }
+    }
+
+    pub fn from_parts(handle: Handle, api: &Api) -> Stream {
+        Stream {
+            table: api.table,
+            handle,
+        }
+    }
+
+    pub fn open(
+        &self,
         connection: Handle,
         flags: StreamOpenFlags,
         handler: StreamEventHandler,
         context: *const c_void,
-    ) -> Stream {
-        let api = unsafe { &*(context as *const Api) };
-        let new_stream: Handle = ptr::null();
-        let status =
-            unsafe { ((*api.table).stream_open)(connection, flags, handler, context, &new_stream) };
+    ) {
+        let status = unsafe {
+            ((*self.table).stream_open)(connection, flags, handler, context, &self.handle)
+        };
         if Status::failed(status) {
             panic!("StreamOpen failure 0x{:x}", status);
-        }
-        Stream {
-            table: api.table,
-            handle: new_stream,
-        }
-    }
-
-    pub fn from_context(handle: Handle, context: *const c_void) -> Stream {
-        let api = unsafe { &*(context as *const Api) };
-        Stream {
-            table: api.table,
-            handle: handle,
         }
     }
 
@@ -1183,18 +1340,54 @@ impl Stream {
         }
     }
 
-    pub fn send(&self, buffer: &Buffer, buffer_count: u32, flags: SendFlags) {
+    pub fn send(
+        &self,
+        buffer: &Buffer,
+        buffer_count: u32,
+        flags: SendFlags,
+        client_send_context: *const c_void,
+    ) {
         let status = unsafe {
-            ((*self.table).stream_send)(self.handle, buffer, buffer_count, flags, self.handle)
+            ((*self.table).stream_send)(
+                self.handle,
+                *&buffer,
+                buffer_count,
+                flags,
+                client_send_context, //(self as *const Stream) as *const c_void,
+            )
         };
         if Status::failed(status) {
             panic!("StreamSend failure 0x{:x}", status);
         }
     }
+
+    pub fn get_perf(&self) -> Perf {
+        let mut perf = Perf {
+            counters: [0; PERF_COUNTER_MAX as usize],
+        };
+        let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
+        unsafe {
+            ((*self.table).get_param)(
+                std::ptr::null(),
+                PARAM_LEVEL_GLOBAL,
+                PARAM_GLOBAL_PERF_COUNTERS,
+                (&perf_length) as *const u32,
+                perf.counters.as_mut_ptr() as *const c_void,
+            )
+        };
+        perf
+    }
+
+    pub fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
+        unsafe {
+            ((*self.table).set_callback_handler)(self.handle, handler as *const c_void, context)
+        };
+    }
 }
 
 impl Drop for Stream {
     fn drop(&mut self) {
+        println!("Drop Str");
         unsafe { ((*self.table).stream_close)(self.handle) };
     }
 }
@@ -1282,11 +1475,8 @@ fn test_module() {
     let cred_config = CredentialConfig::new_client();
     configuration.load_credential(&cred_config);
 
-    let _connection = Connection::new(
-        &registration,
-        test_conn_callback,
-        (&api as *const Api) as *const c_void,
-    );
+    let connection = Connection::new(&registration);
+    connection.open(&registration, test_conn_callback, &connection)
     /*_connection.start(&configuration, "google.com", 443);
 
     let duration = std::time::Duration::from_millis(1000);
