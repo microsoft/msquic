@@ -80,6 +80,7 @@ foreach ($Build in $AllBuilds) {
     # Find Binaries
 
     $Binaries = @()
+    $DebugFolders = @()
 
     if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
@@ -92,7 +93,8 @@ foreach ($Build in $AllBuilds) {
         }
     } else {
         # macos
-        $Binaries += Join-Path $ArtifactsDir "libmsquic.dylib.$Version"
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.$Version.dylib"
+        $DebugFolders += Join-Path $ArtifactsDir "libmsquic.$Version.dylib.dSYM"
     }
 
     $Libraries = @()
@@ -122,6 +124,10 @@ foreach ($Build in $AllBuilds) {
         $FileName = Split-Path -Path $Binary -Leaf
         $CopyToFolder = (Join-Path $BinFolder $FileName)
         Copy-Item -LiteralPath $Binary -Destination $CopyToFolder -Force
+    }
+
+    foreach ($DebugFolder in $DebugFolders) {
+        Copy-Item -Path $DebugFolder -Destination $BinFolder -Recurse
     }
 
     foreach ($Library in $Libraries) {

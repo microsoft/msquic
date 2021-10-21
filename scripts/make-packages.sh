@@ -125,6 +125,6 @@ if [ "$OS" == "macos" ]; then
   fpm -f -s dir -t osxpkg -n ${NAME} -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
-    --provides libmsquic.dylib.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-    "$ARTIFACTS/libmsquic.dylib.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"=/usr/local/lib/libmsquic.dylib.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}
+    --provides libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib \
+    "$ARTIFACTS/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib"=/usr/local/lib/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib
 fi
