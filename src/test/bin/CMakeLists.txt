@@ -18,11 +18,11 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(msquictest platform)
 endif()
 
-target_link_libraries(msquictest inc gtest logging)
+target_link_libraries(msquictest inc gtest logging base_link)
 
 # At least /W3 must be used on all windows builds to pass compliance
 if(MSVC)
-    target_compile_options(msquictest PRIVATE /W3)
+    target_compile_options(msquictest PRIVATE /W3 /bigobj)
 endif()
 
 add_test(NAME msquictest

@@ -18,6 +18,7 @@ set(SOURCES
     connection.c
     crypto.c
     crypto_tls.c
+    cubic.c
     datagram.c
     frame.c
     library.c
@@ -47,7 +48,6 @@ set(SOURCES
     operation.h
     stream.h
     connection.h
-    cubic_impl.c
 )
 
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

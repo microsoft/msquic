@@ -837,6 +837,7 @@ CxPlatDataPathInitialize(
         &NPI_WSK_INTERFACE_ID,
         WSK_EVENT_RECEIVE_FROM
     };
+    ULONG NoTdi = WSK_TDI_BEHAVIOR_BYPASS_TDI;
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
     if (NewDataPath == NULL) {
@@ -960,6 +961,27 @@ CxPlatDataPathInitialize(
             Status,
             "WskCaptureProviderNPI");
         goto Error;
+    }
+
+    Status =
+        Datapath->WskProviderNpi.Dispatch->
+        WskControlClient(
+            Datapath->WskProviderNpi.Client,
+            WSK_TDI_BEHAVIOR,
+            sizeof(NoTdi),
+            &NoTdi,
+            0,
+            NULL,
+            NULL,
+            NULL);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WskControlClient WSK_TDI_BEHAVIOR");
+        // We don't "goto Error;" here, because MSDN says that this may be removed
+        // in the future, at which point it presumably won't be needed.
     }
 
     Status =

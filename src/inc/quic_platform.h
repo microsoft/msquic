@@ -130,7 +130,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_STATELESS_CTX             'C3cQ' // Qc3C - QUIC Stateless Context
 #define QUIC_POOL_OPER                      'D3cQ' // Qc3D - QUIC Operation
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
-#define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
+#define QUIC_POOL_TLS_PFX                   'F3cQ' // Qc3F - QUIC Platform PFX
 #define QUIC_POOL_DESIRED_VER_LIST          '04cQ' // Qc40 - QUIC App-supplied desired versions list
 #define QUIC_POOL_DEFAULT_COMPAT_VER_LIST   '14cQ' // Qc41 - QUIC Default compatible versions list
 #define QUIC_POOL_VERSION_INFO              '24cQ' // Qc42 - QUIC Version info

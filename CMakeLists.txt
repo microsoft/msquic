@@ -137,6 +137,10 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
+if (NOT QUIC_BUILD_SHARED)
+    cmake_minimum_required(VERSION 3.20)
+endif()
+
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
@@ -226,40 +230,24 @@ else()
 
     include(CheckSymbolExists)
     include(CheckFunctionExists)
+    include(CheckIncludeFile)
     check_symbol_exists(_SC_PHYS_PAGES unistd.h HAS__SC_PHYS_PAGES)
     check_function_exists(sysconf HAS_SYSCONF)
 
     if (CX_PLATFORM STREQUAL "linux")
         include(CheckCCompilerFlag)
 
-        check_c_source_compiles(
-            "
-            #include <netinet/udp.h>
-            int main() { return UDP_SEGMENT; }
-            "
-            HAS_UDP_SEGMENT)
+        check_symbol_exists(UDP_SEGMENT netinet/udp.h HAS_UDP_SEGMENT)
         if (NOT HAS_UDP_SEGMENT)
             message(STATUS "UDP_SEGMENT is missing. Send performance will be reduced")
         endif()
 
-        check_c_source_compiles(
-            "
-            #include <sys/socket.h>
-            int main() { return SO_ATTACH_REUSEPORT_CBPF; }
-            "
-            HAS_SO_ATTACH_REUSEPORT_CBPF)
+        check_symbol_exists(SO_ATTACH_REUSEPORT_CBPF sys/socket.h HAS_SO_ATTACH_REUSEPORT_CBPF)
         if(NOT HAS_SO_ATTACH_REUSEPORT_CBPF)
             message(STATUS "SO_ATTACH_REUSEPORT_CBPF is missing. Server receive performance will be reduced")
         endif()
 
-        check_c_source_compiles(
-            "
-            #define _GNU_SOURCE
-            #include <sys/socket.h>
-            #include <stddef.h>
-            int main() { return sendmmsg(0, NULL, 0, 0); }
-            "
-            HAS_SENDMMSG)
+        check_function_exists(sendmmsg HAS_SENDMMSG)
         if(NOT HAS_SENDMMSG)
             message(STATUS "sendmmsg is missing. Send performance will be reduced")
         endif()
@@ -275,18 +263,18 @@ else()
             endif()
         endif()
 
+        if (QUIC_ENABLE_LOGGING)
+            check_include_file(lttng/ust-config.h HAS_LTTNG)
+            if (NOT HAS_LTTNG)
+                message(STATUS "LTTng logging not found. Disabling logging")
+                set(QUIC_ENABLE_LOGGING OFF)
+            endif()
+        endif()
+
         # Check to see if lttng will work
         if(QUIC_ENABLE_LOGGING)
-            check_c_source_compiles(
-                "
-                #include <lttng/ust-config.h>
-                #ifdef LTTNG_UST_HAVE_SDT_INTEGRATION
-                #error \"SDT is enabled\"
-                #endif
-                int main() { return 0; }
-                "
-                HAS_LTTNG_WITHOUT_SDT)
-            if(NOT HAS_LTTNG_WITHOUT_SDT)
+            check_symbol_exists(LTTNG_UST_HAVE_SDT_INTEGRATION lttng/ust-config.h HAS_LTTNG_SDT)
+            if(HAS_LTTNG_SDT)
                 message(WARNING "LTTng with SDT integration does not work. Disabling logging")
                 set(QUIC_ENABLE_LOGGING OFF)
             endif()
@@ -404,18 +392,17 @@ if(WIN32)
 
         set(Console_ArchOptions /favor:AMD64)
 
-        if (QUIC_SCARLETT_BUILD)
-            list(APPEND Console_ArchOptions /arch:AVX2 /d2vzeroupper)
-            set(Console_ArchOptions_LTCG /d2:-vzeroupper)
-        else()
-            list(APPEND Console_ArchOptions /arch:AVX)
-        endif()
+        list(APPEND Console_ArchOptions /arch:AVX)
 
         # Locate Software Development Kits
         get_filename_component(Console_SdkRoot "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\GDK;InstallPath]" ABSOLUTE CACHE)
 
         if(NOT EXISTS ${Console_SdkRoot})
-            message(FATAL_ERROR "Could not find GDK install")
+            if (EXISTS "C:\\Program Files (x86)\\Microsoft GDK")
+                set(Console_SdkRoot "C:\\Program Files (x86)\\Microsoft GDK")
+            else()
+                message(FATAL_ERROR "Could not find GDK install")
+            endif()
         endif()
 
         file(GLOB GdkFolders ${Console_SdkRoot}/*)
@@ -432,8 +419,9 @@ if(WIN32)
                         set(GxdkRuntimeLib "${GxdkLibDirectory}/xgameplatform.lib")
                         if (EXISTS ${GxdkRuntimeLib})
                             get_filename_component(PotentialXdkEditionTarget ${GdkFolder} NAME)
-                            # Always select lowest version
-                            if (PotentialXdkEditionTarget LESS XdkEditionTarget)
+                            # Always select lowest version equal or higher than 211000
+                            if (PotentialXdkEditionTarget LESS XdkEditionTarget AND
+                                PotentialXdkEditionTarget GREATER_EQUAL 211000)
                                 set(XdkEditionTarget ${PotentialXdkEditionTarget})
                                 set(Console_EndpointLibRoot "${GxdkLibDirectory}")
                             endif()
@@ -474,8 +462,8 @@ if(WIN32)
     # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 ${Console_ArchOptions_LTCG} /DEBUG /OPT:REF /OPT:ICF")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 ${Console_ArchOptions_LTCG} /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
 
     # Configure PGO linker flags.
     set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/msquic.pgd")

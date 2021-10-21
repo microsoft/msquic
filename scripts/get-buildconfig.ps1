@@ -30,7 +30,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("gamecore-durango", "gamecore-scarlett", "uwp", "windows", "linux", "macos", "android", "ios", "")] # For future expansion
+    [ValidateSet("gamecore_console", "uwp", "windows", "linux", "macos", "android", "ios", "")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]

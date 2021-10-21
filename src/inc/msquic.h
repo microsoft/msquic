@@ -181,6 +181,8 @@ typedef enum QUIC_STREAM_SHUTDOWN_FLAGS {
     QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE = 0x0004,   // Abruptly closes the receive path.
     QUIC_STREAM_SHUTDOWN_FLAG_ABORT         = 0x0006,   // Abruptly closes both send and receive paths.
     QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE     = 0x0008,   // Immediately sends completion events to app.
+    QUIC_STREAM_SHUTDOWN_FLAG_INLINE        = 0x0010,   // Process the shutdown immediately inline. Only for calls on callbacks.
+                                                        // WARNING: Can cause reentrant callbacks!
 } QUIC_STREAM_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_SHUTDOWN_FLAGS)
@@ -464,6 +466,10 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH,// Current worker operations queued.
     QUIC_PERF_COUNTER_WORK_OPER_QUEUED,     // Total worker operations queued ever.
     QUIC_PERF_COUNTER_WORK_OPER_COMPLETED,  // Total worker operations processed ever.
+    QUIC_PERF_COUNTER_PATH_VALIDATED,       // Total path challenges that succeed ever.
+    QUIC_PERF_COUNTER_PATH_FAILURE,         // Total path challenges that fail ever.
+    QUIC_PERF_COUNTER_SEND_STATELESS_RESET, // Total stateless reset packets sent ever.
+    QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 

@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for TlsExportCapiCertChainVerifyResult
+// Exported chain verification result: %u
+// QuicTraceLogVerbose(
+        TlsExportCapiCertChainVerifyResult,
+        "Exported chain verification result: %u",
+        PolicyStatus.dwError);
+// arg2 = arg2 = PolicyStatus.dwError
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, TlsExportCapiCertChainVerifyResult,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
@@ -49,10 +68,10 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus,
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "RSA Key",
-            KeyLength);
-// arg2 = arg2 = "RSA Key"
-// arg3 = arg3 = KeyLength
+            "PFX data",
+            PfxDataBlob.cbData);
+// arg2 = arg2 = "PFX data"
+// arg3 = arg3 = PfxDataBlob.cbData
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, AllocFailure,
     TP_ARGS(

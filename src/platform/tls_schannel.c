@@ -317,12 +317,15 @@ typedef struct _SecPkgContext_ConnectionInfo
 
 #define SCHANNEL_USE_BLACKLISTS
 
-#ifdef QUIC_GAMECORE_BUILD
+#if (defined(QUIC_GAMECORE_BUILD))
+#include <sdkddkver.h>
+#ifdef NTDDI_WIN10_CO
 typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
     PWSTR Buffer;
 } UNICODE_STRING, *PUNICODE_STRING;
+#endif
 #endif
 
 #include <schannel.h>

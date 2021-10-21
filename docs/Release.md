@@ -39,8 +39,8 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 
 | [Type](Release.md#release-support-policies) | Branch | Windows | Fork Date | Release Date | End of Support |
 | -- | -- | -- | -- | -- | -- |
-| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Server 2022 | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
-| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | TBD | Feb 10 2021 | TBD | TBD |
+| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
+| SAC | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Windows 11 | Feb 10 2021 | Oct 5 2021 | Apr 5 2023 |
 | PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A | N/A |
 | PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A |
 | PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A |
@@ -48,13 +48,14 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
+| PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
 
 ## MsQuic v1.0 (LTSC)
 
-[MsQuic v1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) is the first officially supported release. The primary shipping vehicle for this release will be the Windows Server 2022 release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
+[MsQuic v1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) is the first officially supported release. The primary shipping vehicle for this release will be the [Windows Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022) release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
 
 The QUIC specifications are currently "Submitted to IESG for Publication", so both the v1 and draft-29 versions are supported by this release.
 
@@ -69,9 +70,9 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 
 - `GetParam` for `QUIC_PARAM_CONN_STATISTICS` does not populate `Handshake.*` fields.
 
-## MsQuic v1.1 (TBD)
+## MsQuic v1.1 (SAC)
 
-[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (official name TBD) release. These changes include:
+[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.3) has various small improvements from v1.0. The primary shipping vehicle for this release will be the [Windows 11](https://blogs.windows.com/windowsexperience/2021/08/31/windows-11-available-on-october-5/) client release. These changes include:
 
  - Preview support for [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-03) extension.
  - Public API header build fixes.
@@ -218,7 +219,7 @@ Official (v1) RFC and draft-29 are supported by this release.
 
 **Not officially supported**
 
-[MsQuic v1.8](https://github.com/microsoft/msquic/releases/tag/v1.8.0) is a prerelease so there is no expected shipping vehicle. Some noted changes in this release include:
+[MsQuic v1.8](https://github.com/microsoft/msquic/releases/tag/v1.8.0) is a prerelease so there is no expected shipping vehicle. Signed Windows binaries are available. Some noted changes in this release include:
 
 - Update OpenSSL to v1.1.1l (#1936).
 - Add support for client certificates with OpenSSL (#1930).
@@ -233,5 +234,24 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Enable macOS core dump collection in automation (#1969).
 - Xbox GameCore build support (#1947).
 - Various test code fixes (#1970, #1974).
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.9 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.9](https://github.com/microsoft/msquic/releases/tag/v1.9.0) is a prerelease so there is no expected shipping vehicle. Signed Windows binaries are available. Some noted changes in this release include:
+
+- Xbox GameCore Support (#1973, #2005, #2084)
+- Adds performance counters around path changes (#1990)
+- Bug Fix: Fix shutdown bug by cleaning up all sends (#1850)
+- Additional connetion event documentation (#1996)
+- Add UWP nuget package support (#2002)
+- Improve client certificate validation (#1966)
+- Support non-RSA keys in OpenSSL-CAPI abstraction (#2000)
+- Bug Fix: Fix stream abort bug (#2049)
+- Bug Fix: Fix connection FC handling on stream abort (#2070)
+- Bug Fix: Fix rare endless loop in send path (#2082)
 
 Official (v1) RFC and draft-29 are supported by this release.

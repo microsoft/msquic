@@ -1186,6 +1186,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicateResumed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED",
+      "UniqueId": "IndicateResumed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "IndicateResumptionTicketReceived": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED",
@@ -7072,6 +7084,18 @@
       ],
       "macroName": "QuicTraceLogStreamInfo"
     },
+    "TreatFinAsReset": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Treating FIN after receive abort as reset",
+      "UniqueId": "TreatFinAsReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamInfo"
+    },
     "QueueRecvFlush": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Queuing recv flush",
@@ -7120,6 +7144,18 @@
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Ignoring recv after close",
       "UniqueId": "IgnoreRecvAfterClose",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "IgnoreRecvAfterAbort": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Ignoring received frame after receive abort",
+      "UniqueId": "IgnoreRecvAfterAbort",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -8560,6 +8596,18 @@
       "splitArgs": [
         {
           "DefinationEncoding": "4.4x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TlsExportCapiCertChainVerifyResult": {
+      "ModuleProperites": {},
+      "TraceString": "Exported chain verification result: %u",
+      "UniqueId": "TlsExportCapiCertChainVerifyResult",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
         }
       ],
@@ -10407,7 +10455,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            UTF8Encoding utf8 = new UTF8Encoding(false, true);\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                try {\n                    String CurrentAlpn = utf8.GetString(value, (int)i, (int)AlpnLength);\n                    AlpnList.Append(CurrentAlpn);\n                    i += AlpnLength;\n                } catch {\n                    // Fall back to printing hex\n                    for (; AlpnLength > 0; AlpnLength--, i++)\n                    {\n                        AlpnList.Append(value[i].ToString(\"x2\"));\n                        if (AlpnLength > 1) {\n                            AlpnList.Append(\",\");\n                        }\n                    }\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[3] | ((ushort)value[2] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            UTF8Encoding utf8 = new UTF8Encoding(false, true);\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                try {\n                    String CurrentAlpn = utf8.GetString(value, (int)i, (int)AlpnLength);\n                    AlpnList.Append(CurrentAlpn);\n                    i += AlpnLength;\n                } catch {\n                    // Fall back to printing hex\n                    for (; AlpnLength > 0; AlpnLength--, i++)\n                    {\n                        AlpnList.Append(value[i].ToString(\"x2\"));\n                        if (AlpnLength > 1) {\n                            AlpnList.Append(\",\");\n                        }\n                    }\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -11139,6 +11187,10 @@
       {
         "UniquenessHash": "f8280555-5057-232c-bc7d-b3cdd8f840f5",
         "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "8c1a717b-f814-d6d9-3f2e-f1987be847d6",
+        "TraceID": "IndicateResumed"
       },
       {
         "UniquenessHash": "920800a1-3a54-af40-19d9-fdfaf274a6d4",
@@ -12505,6 +12557,10 @@
         "TraceID": "LocalCloseStopSending"
       },
       {
+        "UniquenessHash": "40c67c17-d530-a2d2-272a-4730ad121b34",
+        "TraceID": "TreatFinAsReset"
+      },
+      {
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush"
       },
@@ -12519,6 +12575,10 @@
       {
         "UniquenessHash": "59f615c0-9861-8dc7-db5a-224ebc6336a5",
         "TraceID": "IgnoreRecvAfterClose"
+      },
+      {
+        "UniquenessHash": "61c9329f-42bd-40dd-43cc-5b5c3fa2830b",
+        "TraceID": "IgnoreRecvAfterAbort"
       },
       {
         "UniquenessHash": "337f803e-406e-0817-5804-7273bf3a07ec",
@@ -12871,6 +12931,10 @@
       {
         "UniquenessHash": "d53212c8-2068-d598-a55f-1b238ec86ad1",
         "TraceID": "CertCapiVerify"
+      },
+      {
+        "UniquenessHash": "34dcc43f-ca44-d42f-d1f1-ed7f98fc9779",
+        "TraceID": "TlsExportCapiCertChainVerifyResult"
       },
       {
         "UniquenessHash": "7512a5e6-b76b-d244-25a2-f27c6b593461",
