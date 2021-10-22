@@ -65,3 +65,15 @@ There are a number of other useful arguments for `test.ps1`.
 `InitialBreak` - Break in the debugger on initial attach/start.
 
 `BreakOnFailure` - Break into the debugger for any test failures.
+
+# Using DPDK
+
+Copy all DPDK binaries (from both .\dpdk\bin and .\dpdk\lib\dpdk\pmds-21.3) to the output location, along with the MsQuic binaries.
+
+Enable test signing (and reboot as necessary).
+
+Follow the steps [here](http://doc.dpdk.org/guides/windows_gsg/run_apps.html) to configure the correct privileges and install virt2phys (note, you may have to sign virt2phys if you don't have a kd).
+
+Download the Mellanox runtime and install it: https://www.mellanox.com/products/adapter-software/ethernet/windows/winof-2
+
+Follow the instructions [here](https://microsoft.sharepoint.com/teams/STACKTeam-CoreNetworkingMobileConnectivityPeripheralsStackSe/_layouts/15/Doc.aspx?sourcedoc=%7b51a801c3-0d8e-4c41-bdd4-958f6ed84c41%7d&action=edit&wd=target%28UVMS.one%7C2606bb27-b3c6-4831-9458-6fd9c9c7b89e%2FUVMS%20%2B%20CX5%20PMD%7Cefcce2a4-d701-4bb3-94a0-b4fb3a3703e6%2F%29&wdorigin=703) to find and set the necessary (DevcEnabled and DevxFsRules) registry key for the adapter you will be using.

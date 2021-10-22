@@ -215,3 +215,13 @@ cmake -G 'Unix Makefiles' ..
 ```
 cmake --build .
 ```
+
+# Using DPDK
+
+> **Important** - Only supported for Windows at this time.
+
+Install clang and make sure to add it to your PATH.
+
+Extract the DPDK zip (found [here](https://artprodeus21.artifacts.visualstudio.com/Aee8504d9-65a6-4f6c-85ed-0ad4265128ee/dbd3cd93-e45e-46cd-b003-03034bb436d4/_apis/artifact/cGlwZWxpbmVhcnRpZmFjdDovL21zY29kZWh1Yi9wcm9qZWN0SWQvZGJkM2NkOTMtZTQ1ZS00NmNkLWIwMDMtMDMwMzRiYjQzNmQ0L2J1aWxkSWQvMjE2OTc2L2FydGlmYWN0TmFtZS9kcGRr0/content?format=zip)) to `.\artifacts\dpdk`.
+
+Use the `-UseDpdk` switch with `build.ps1`.
