@@ -21,6 +21,14 @@ typedef struct CXPLAT_DATAPATH {
 
     uint16_t CoreCount;
 
+    // Constants
+    uint8_t ServerMac[6];
+    uint8_t ClientMac[6];
+    QUIC_ADDR ServerIP;
+    QUIC_ADDR ClientIP;
+    uint16_t DpdkCpu;
+    char DeviceName[32];
+
     uint16_t Port;
     uint16_t TxBufferCount;
     uint16_t TxBufferOffset;

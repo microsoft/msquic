@@ -17,12 +17,6 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
-const uint8_t ListenerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
-const uint8_t ConnectedMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
-
-const uint32_t ListenerIP = 0x01FFFFFF;
-const uint32_t ConnectedIP = 0x02FFFFFF;
-
 typedef struct CXPLAT_SOCKET {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
@@ -257,9 +251,7 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    Address->Ipv4.sin_family = AF_INET;
-    Address->Ipv4.sin_port = 0;
-    Address->Ipv4.sin_addr.S_un.S_addr = ListenerIP;
+    *Address = Datapath->ServerIP;
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -368,13 +360,12 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    Address->Ipv4.sin_family = AF_INET;
-    Address->Ipv4.sin_port = Socket->LocalPort;
     if (Socket->RemotePort != 0) {
-        Address->Ipv4.sin_addr.S_un.S_addr = ConnectedIP;
+        *Address = Socket->Datapath->ClientIP;
     } else {
-        Address->Ipv4.sin_addr.S_un.S_addr = ListenerIP;
+        *Address = Socket->Datapath->ServerIP;
     }
+    Address->Ipv4.sin_port = Socket->LocalPort;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -385,19 +376,22 @@ CxPlatSocketGetRemoteAddress(
     )
 {
     if (Socket->RemotePort != 0) {
-        Address->Ipv4.sin_family = AF_INET;
+        *Address = Socket->Datapath->ServerIP;
         Address->Ipv4.sin_port = Socket->RemotePort;
-        Address->Ipv4.sin_addr.S_un.S_addr = ListenerIP;
     } else {
         CxPlatZeroMemory(Address, sizeof(QUIC_ADDR));
     }
 }
 
-BOOLEAN FilterPacket(_In_ const DPDK_RX_PACKET* Packet) {
-    if (Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == ConnectedIP ||
-        Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == ListenerIP ||
-        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == ConnectedIP ||
-        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == ListenerIP) {
+BOOLEAN
+FilterPacket(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const DPDK_RX_PACKET* Packet
+    ) {
+    if (Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ClientIP.Ipv4.sin_addr.S_un.S_addr ||
+        Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ServerIP.Ipv4.sin_addr.S_un.S_addr ||
+        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ClientIP.Ipv4.sin_addr.S_un.S_addr ||
+        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ServerIP.Ipv4.sin_addr.S_un.S_addr) {
         return FALSE;
     }
     return TRUE;
@@ -432,7 +426,7 @@ CxPlatDpdkRx(
         PacketChain = (DPDK_RX_PACKET*)PacketChain->Next;
         Packet->Next = NULL;
 
-        if (FilterPacket(Packet)) {
+        if (FilterPacket(Datapath, Packet)) {
             continue;
         }
 
@@ -813,18 +807,18 @@ CxPlatDpdkPrependPacketHeaders(
     Ethernet->Type = 0x0008; // IPv4
 
     if (Socket->RemotePort != 0) {
-        CxPlatCopyMemory(Ethernet->Destination, ListenerMac, sizeof(ListenerMac));
-        CxPlatCopyMemory(Ethernet->Source, ConnectedMac, sizeof(ConnectedMac));
+        CxPlatCopyMemory(Ethernet->Destination, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
+        CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ClientMac, sizeof(Socket->Datapath->ClientMac));
 
-        CxPlatCopyMemory(IP->Destination, &ListenerIP, sizeof(ListenerIP));
-        CxPlatCopyMemory(IP->Source, &ConnectedIP, sizeof(ConnectedIP));
+        CxPlatCopyMemory(IP->Destination, &Socket->Datapath->ServerIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ServerIP.Ipv4.sin_addr));
+        CxPlatCopyMemory(IP->Source, &Socket->Datapath->ClientIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ClientIP.Ipv4.sin_addr));
 
     } else {
-        CxPlatCopyMemory(Ethernet->Destination, ConnectedMac, sizeof(ConnectedMac));
-        CxPlatCopyMemory(Ethernet->Source, ListenerMac, sizeof(ListenerMac));
+        CxPlatCopyMemory(Ethernet->Destination, Socket->Datapath->ClientMac, sizeof(Socket->Datapath->ClientMac));
+        CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
 
-        CxPlatCopyMemory(IP->Destination, &ConnectedIP, sizeof(ConnectedIP));
-        CxPlatCopyMemory(IP->Source, &ListenerIP, sizeof(ListenerIP));
+        CxPlatCopyMemory(IP->Destination, &Socket->Datapath->ClientIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ClientIP.Ipv4.sin_addr));
+        CxPlatCopyMemory(IP->Source, &Socket->Datapath->ServerIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ServerIP.Ipv4.sin_addr));
     }
 
     IP->VersionAndHeaderLength = 0x45;

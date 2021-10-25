@@ -10,6 +10,8 @@ Abstract:
 
 --*/
 
+#define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
+
 #include "datapath_dpdk.h"
 #ifdef QUIC_CLOG
 #include "datapath_dpdk_clang.c.clog.h"
@@ -26,6 +28,78 @@ Abstract:
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context);
 static int CxPlatDpdkWorkerThread(_In_ void* Context);
 
+void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
+{
+    uint8_t* MacPtr = Mac;
+    uint8_t* End = Mac + 6;
+    char* ValuePtr = Value;
+
+    while (MacPtr < End) {
+        if (*ValuePtr == '\0') {
+            break;
+        }
+
+        if (*ValuePtr == ':') {
+            ValuePtr++;
+        }
+
+        if (MacPtr < End) {
+            *MacPtr = (uint8_t)strtoul(ValuePtr, &ValuePtr, 16);
+            MacPtr++;
+        }
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpdkReadConfig(
+    _Inout_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    // Default config
+    const uint8_t DefaultServerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
+    CxPlatCopyMemory(Datapath->ServerMac, DefaultServerMac, 6);
+    Datapath->ServerIP.si_family = AF_INET;
+    Datapath->ServerIP.Ipv4.sin_addr.S_un.S_addr = 0x01FFFFFF;
+
+    const uint8_t DefaultClientMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
+    CxPlatCopyMemory(Datapath->ClientMac, DefaultClientMac, 6);
+    Datapath->ClientIP.si_family = AF_INET;
+    Datapath->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
+
+    Datapath->DpdkCpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+
+    FILE *File = fopen("dpdk.ini", "r");
+    if (File == NULL) {
+        return;
+    }
+
+    char Line[256];
+    while (fgets(Line, sizeof(Line), File) != NULL) {
+        char* Value = strchr(Line, '=');
+        if (Value == NULL) {
+            continue;
+        }
+        *Value++ = '\0';
+
+        if (strcmp(Line, "ServerMac") == 0) {
+            ValueToMac(Value, Datapath->ServerMac);
+        } else if (strcmp(Line, "ClientMac") == 0) {
+            ValueToMac(Value, Datapath->ClientMac);
+        } else if (strcmp(Line, "ServerIP") == 0) {
+             QuicAddrFromString(Value, 0, &Datapath->ServerIP);
+        } else if (strcmp(Line, "ClientIP") == 0) {
+             QuicAddrFromString(Value, 0, &Datapath->ClientIP);
+        } else if (strcmp(Line, "CPU") == 0) {
+             Datapath->DpdkCpu = (uint16_t)strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "DeviceName") == 0) {
+             strcpy(Datapath->DeviceName, Value);
+        }
+    }
+
+    fclose(File);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpdkInitialize(
@@ -35,6 +109,8 @@ CxPlatDpdkInitialize(
     CXPLAT_THREAD_CONFIG Config = {
         0, 0, "DpdkMain", CxPlatDpdkMainThread, Datapath
     };
+
+    CxPlatDpdkReadConfig(Datapath);
 
     BOOLEAN CleanUpThread = FALSE;
     CxPlatEventInitialize(&Datapath->StartComplete, TRUE, FALSE);
@@ -89,17 +165,18 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
 {
     CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)Context;
 
+    char DpdpCpuStr[16];
+    sprintf(DpdpCpuStr, "%hu", Datapath->DpdkCpu);
+
     const char* argv[] = {
         "msquic",
         "-n", "4",
-        "-l", "19",
+        "-l", DpdpCpuStr,
         "-d", "rte_mempool_ring-21.dll",
         "-d", "rte_bus_pci-21.dll",
         "-d", "rte_common_mlx5-21.dll",
         "-d", "rte_net_mlx5-21.dll"
     };
-    const char* DeviceName1 = "0000:81:00.0";
-    const char* DeviceName2 = "0000:81:00.1";
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CleanUpRte = FALSE;
@@ -131,9 +208,13 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     }
     CleanUpRte = TRUE;
 
-    ret = rte_eth_dev_get_port_by_name(DeviceName1, &Port);
-    if (ret < 0) {
-        ret = rte_eth_dev_get_port_by_name(DeviceName2, &Port);
+    if (Datapath->DeviceName[0] != '\0') {
+        ret = rte_eth_dev_get_port_by_name(Datapath->DeviceName, &Port);
+    } else {
+        ret = rte_eth_dev_get_port_by_name("0000:81:00.0", &Port);
+        if (ret < 0) {
+            ret = rte_eth_dev_get_port_by_name("0000:81:00.1", &Port);
+        }
     }
     if (ret < 0) {
         printf("rte_eth_dev_get_port_by_name failed: %d\n", ret);
