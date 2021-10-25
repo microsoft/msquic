@@ -383,34 +383,6 @@ CxPlatSocketGetRemoteAddress(
     }
 }
 
-BOOLEAN
-FilterPacket(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const DPDK_RX_PACKET* Packet
-    ) {
-    if (Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ClientIP.Ipv4.sin_addr.S_un.S_addr ||
-        Packet->IP.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ServerIP.Ipv4.sin_addr.S_un.S_addr ||
-        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ClientIP.Ipv4.sin_addr.S_un.S_addr ||
-        Packet->IP.LocalAddress.Ipv4.sin_addr.S_un.S_addr == Datapath->ServerIP.Ipv4.sin_addr.S_un.S_addr) {
-        return FALSE;
-    }
-    return TRUE;
-}
-
-void PrintPacket(_In_ const DPDK_RX_PACKET* Packet) {
-    if (Packet->Reserved == L4_TYPE_UDP) {
-        QUIC_ADDR_STR Source; QuicAddrToString(&Packet->IP.RemoteAddress, &Source);
-        QUIC_ADDR_STR Destination; QuicAddrToString(&Packet->IP.LocalAddress, &Destination);
-        printf("[%02hu] RX [%hu] [%s:%hu->%s:%hu]\n",
-            Packet->PartitionIndex, Packet->BufferLength,
-            Source.Address, CxPlatByteSwapUint16(Packet->IP.RemoteAddress.Ipv4.sin_port),
-            Destination.Address, CxPlatByteSwapUint16(Packet->IP.LocalAddress.Ipv4.sin_port));
-    } else if (Packet->Reserved == L3_TYPE_LLDP) {
-        printf("[%02hu] RX [%hu] LLDP\n",
-            Packet->PartitionIndex, Packet->BufferLength);
-    }
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpdkRx(
@@ -425,12 +397,6 @@ CxPlatDpdkRx(
         DPDK_RX_PACKET* Packet = (DPDK_RX_PACKET*)PacketChain;
         PacketChain = (DPDK_RX_PACKET*)PacketChain->Next;
         Packet->Next = NULL;
-
-        if (FilterPacket(Datapath, Packet)) {
-            continue;
-        }
-
-        //PrintPacket(Packet);
 
         BOOLEAN Return = TRUE;
         if (Packet->Reserved == L4_TYPE_UDP) {
@@ -780,6 +746,10 @@ CxPlatDpdkParseEthernet(
     Length -= sizeof(ETHERNET_HEADER);
 
     const ETHERNET_HEADER* Ethernet = (const ETHERNET_HEADER*)Payload;
+
+    if (memcmp(Datapath->SourceMac, Ethernet->Destination, sizeof(Ethernet->Destination)) != 0) {
+        return;
+    }
 
     if (Ethernet->Type == 0x0008) { // IPv4
         CxPlatDpdkParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
