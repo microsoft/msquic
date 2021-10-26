@@ -39,7 +39,7 @@ pub struct sockaddr_in {
 
 /// IPv6 address payload.
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct sockaddr_in6 {
     pub family: AddressFamily,
     pub port: u16,
@@ -378,7 +378,7 @@ pub const CIPHER_SUITE_TLS_AES_256_GCM_SHA384: CipherSuite = 4866;
 pub const CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256: CipherSuite = 4867;
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct HandshakeInfo {
     pub tls_protocol_version: TlsProtocolVersion,
     pub cipher_algorithm: CipherAlgorithm,
@@ -392,7 +392,7 @@ pub struct HandshakeInfo {
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS_TIMING {
+pub struct QuicStatisticsTiming {
     pub start: u64,
     pub initial_flight_end: u64,
     pub handshake_flight_end: u64,
@@ -400,7 +400,7 @@ pub struct QUIC_STATISTICS_TIMING {
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS_HANDSHAKE {
+pub struct QuicStatisticsHandshake {
     pub client_flight1_bytes: u32,
     pub server_flight1_bytes: u32,
     pub client_flight2_bytes: u32,
@@ -408,7 +408,7 @@ pub struct QUIC_STATISTICS_HANDSHAKE {
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS_SEND {
+pub struct QuicStatisticsSend {
     pub path_mtu: u16,
     pub total_packets: u64,
     pub retransmittable_packets: u64,
@@ -422,7 +422,7 @@ pub struct QUIC_STATISTICS_SEND {
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS_RECV {
+pub struct QuicStatisticsRecv {
     pub total_packets: u64,
     pub reordered_packets: u64,
     pub dropped_packets: u64,
@@ -435,13 +435,13 @@ pub struct QUIC_STATISTICS_RECV {
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS_MISC {
+pub struct QuicStatisticsMisc {
     pub key_update_count: u32,
 }
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS {
+pub struct QuicStatistics {
     pub correlation_id: u64,
     pub _bitfield_align_1: [u8; 0],
     //pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
@@ -449,11 +449,11 @@ pub struct QUIC_STATISTICS {
     pub rtt: u32,
     pub min_rtt: u32,
     pub max_rtt: u32,
-    pub timing: QUIC_STATISTICS_TIMING,
-    pub handshake: QUIC_STATISTICS_HANDSHAKE,
-    pub send: QUIC_STATISTICS_SEND,
-    pub recv: QUIC_STATISTICS_RECV,
-    pub misc: QUIC_STATISTICS_MISC,
+    pub timing: QuicStatisticsTiming,
+    pub handshake: QuicStatisticsHandshake,
+    pub send: QuicStatisticsSend,
+    pub recv: QuicStatisticsRecv,
+    pub misc: QuicStatisticsMisc,
 }
 
 /*#[repr(C)]
@@ -475,6 +475,11 @@ pub struct QUIC_LISTENER_STATISTICS {
     pub TotalRejectedConnections: u64,
     pub Binding: QUIC_LISTENER_STATISTICS__bindgen_ty_1,
 }*/
+
+/// A helper struct for accessing performance counters.
+pub struct QuicPerformance {
+    pub counters: [i64; PERF_COUNTER_MAX as usize],
+}
 
 pub type PerformanceCounter = u32;
 pub const PERF_COUNTER_CONN_CREATED: PerformanceCounter = 0;
@@ -901,7 +906,7 @@ pub struct Configuration {
 /// A single QUIC connection.
 pub struct Connection {
     table: *const ApiTable,
-    pub handle: Handle,
+    handle: Handle,
 }
 
 /// A single server listener
@@ -914,11 +919,6 @@ pub struct Listener {
 pub struct Stream {
     table: *const ApiTable,
     handle: Handle,
-}
-
-/// A struct for accessing performance counters.
-pub struct Perf {
-    pub counters: [i64; PERF_COUNTER_MAX as usize],
 }
 
 impl From<&str> for Buffer {
@@ -959,7 +959,7 @@ impl From<Buffer> for Vec<u8> {
     }
 }
 
-impl Perf {
+impl QuicPerformance {
     pub fn counter(&self, counter: PerformanceCounter) -> i64 {
         self.counters[counter as usize]
     }
@@ -1059,8 +1059,8 @@ impl Api {
         }
     }
 
-    pub fn get_perf(&self) -> Perf {
-        let mut perf = Perf {
+    pub fn get_perf(&self) -> QuicPerformance {
+        let mut perf = QuicPerformance {
             counters: [0; PERF_COUNTER_MAX as usize],
         };
         let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
@@ -1211,10 +1211,10 @@ impl Connection {
         }
     }
 
-    pub fn get_stats(&self) -> QUIC_STATISTICS {
-        let mut stat_buffer: [u8; std::mem::size_of::<QUIC_STATISTICS>()] =
-            [0; std::mem::size_of::<QUIC_STATISTICS>()];
-        let stat_size_mut = std::mem::size_of::<QUIC_STATISTICS>();
+    pub fn get_stats(&self) -> QuicStatistics {
+        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
+            [0; std::mem::size_of::<QuicStatistics>()];
+        let stat_size_mut = std::mem::size_of::<QuicStatistics>();
         unsafe {
             ((*self.table).get_param)(
                 self.handle,
@@ -1225,10 +1225,10 @@ impl Connection {
             )
         };
 
-        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QUIC_STATISTICS) }
+        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) }
     }
 
-    pub fn set_configuration(&self, configuration: &Configuration, context: *const c_void) {
+    pub fn set_configuration(&self, configuration: &Configuration) {
         let status = unsafe {
             ((*self.table).connection_set_configuration)(self.handle, configuration.handle)
         };
@@ -1320,13 +1320,13 @@ impl Stream {
 
     pub fn open(
         &self,
-        connection: Handle,
+        connection: &Connection,
         flags: StreamOpenFlags,
         handler: StreamEventHandler,
         context: *const c_void,
     ) {
         let status = unsafe {
-            ((*self.table).stream_open)(connection, flags, handler, context, &self.handle)
+            ((*self.table).stream_open)(connection.handle, flags, handler, context, &self.handle)
         };
         if Status::failed(status) {
             panic!("StreamOpen failure 0x{:x}", status);
@@ -1361,8 +1361,8 @@ impl Stream {
         }
     }
 
-    pub fn get_perf(&self) -> Perf {
-        let mut perf = Perf {
+    pub fn get_perf(&self) -> QuicPerformance {
+        let mut perf = QuicPerformance {
             counters: [0; PERF_COUNTER_MAX as usize],
         };
         let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
