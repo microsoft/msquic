@@ -42,6 +42,88 @@ tracepoint(CLOG_DATAPATH_DPDK_C, AllocFailure , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_SOCKET",
+            sizeof(CXPLAT_SOCKET));
+// arg2 = arg2 = "CXPLAT_SOCKET"
+// arg3 = arg3 = sizeof(CXPLAT_SOCKET)
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_9_ARGS_TRACE_DatapathRecv
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathRecv
+// [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
+// QuicTraceEvent(
+                    DatapathRecv,
+                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                    Socket,
+                    Packet->BufferLength,
+                    Packet->BufferLength,
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress));
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Packet->BufferLength
+// arg4 = arg4 = Packet->BufferLength
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress)
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress)
+----------------------------------------------------------*/
+#define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
+tracepoint(CLOG_DATAPATH_DPDK_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
+
+#endif
+
+
+
+
+#ifndef _clog_10_ARGS_TRACE_DatapathSend
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSend
+// [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
+// QuicTraceEvent(
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        1,
+        (uint16_t)SendData->Buffer.Length,
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+// arg2 = arg2 = Socket
+// arg3 = arg3 = SendData->Buffer.Length
+// arg4 = arg4 = 1
+// arg5 = arg5 = (uint16_t)SendData->Buffer.Length
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)
+----------------------------------------------------------*/
+#define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
+tracepoint(CLOG_DATAPATH_DPDK_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

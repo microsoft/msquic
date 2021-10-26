@@ -106,7 +106,8 @@ TcpEngine::TcpEngine(
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
-    /*if (QUIC_FAILED(
+#ifndef QUIC_NO_SHARED_DATAPATH
+    if (QUIC_FAILED(
         CxPlatDataPathInitialize(
             0, // TODO
             nullptr,
@@ -120,7 +121,8 @@ TcpEngine::TcpEngine(
             return;
         }
     }
-    Initialized = true;*/
+    Initialized = true;
+#endif // QUIC_NO_SHARED_DATAPATH
 }
 
 TcpEngine::~TcpEngine()

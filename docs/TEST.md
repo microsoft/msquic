@@ -68,12 +68,27 @@ There are a number of other useful arguments for `test.ps1`.
 
 # Using DPDK
 
-Copy all DPDK binaries (from both .\dpdk\bin and .\dpdk\lib\dpdk\pmds-21.3) to the output location, along with the MsQuic binaries.
+Copy all DPDK binaries (from both `.\dpdk\bin` and `.\dpdk\lib\dpdk\pmds-21.3`) to the output location, along with the MsQuic binaries.
 
-Enable test signing (and reboot as necessary).
+Follow the steps [here](http://doc.dpdk.org/guides/windows_gsg/run_apps.html) to configure the correct privileges.
 
-Follow the steps [here](http://doc.dpdk.org/guides/windows_gsg/run_apps.html) to configure the correct privileges and install virt2phys (note, you may have to sign virt2phys if you don't have a kd).
+Download the [Mellanox runtime](https://www.mellanox.com/products/adapter-software/ethernet/windows/winof-2) and install it.
 
-Download the Mellanox runtime and install it: https://www.mellanox.com/products/adapter-software/ethernet/windows/winof-2
+Enable DevX on the Mellanox (CX4 or CX5) NIC that you want to use for testing. You need to add 2 new registry keys: `DevxEnabled` and `DevxFsRules`:
 
-Follow the instructions [here](https://microsoft.sharepoint.com/teams/STACKTeam-CoreNetworkingMobileConnectivityPeripheralsStackSe/_layouts/15/Doc.aspx?sourcedoc=%7b51a801c3-0d8e-4c41-bdd4-958f6ed84c41%7d&action=edit&wd=target%28UVMS.one%7C2606bb27-b3c6-4831-9458-6fd9c9c7b89e%2FUVMS%20%2B%20CX5%20PMD%7Cefcce2a4-d701-4bb3-94a0-b4fb3a3703e6%2F%29&wdorigin=703) to find and set the necessary (DevxEnabled and DevxFsRules) registry key for the adapter you will be using.
+1. Open `Device manager` and locate the Mellanox device.
+2. Right click and open the `Properties`.
+3. Go to the `Details` tab.
+4. Select the `Driver` key in the `Property` list.
+5. Save the value you received.
+   -  For example: `{4d36e972-e325-11ce-bfc1-08002be10318}\0003`
+6. Open the registry editor (in console type `regedit`).
+7. Navigate to `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class`
+8. Select the class as shown in the driver key you extracted in step 5.
+   - For example: `{4d36e972-e325-11ce-bfc1-08002be10318}`.
+9. Select the device number as in `step 5`.
+   - For example: `0003`.
+10. Create a new `DWORD` with name `DevxEnabled` and set the value `1`.
+11. Create a new `DWORD` with name `DevxFsRules` and set the value `0x28`.
+12. Restart the driver. DevX Lib will be able to detect your device now.
+13. Verify `DevX=True` for the enabled adapter, run `cmd mlx5cmd -stat`.

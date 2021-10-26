@@ -29,13 +29,57 @@ extern "C" {
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatThreadCreate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
             ret,
             "rte_eal_init");
 // arg2 = arg2 = ret
 // arg3 = arg3 = "rte_eal_init"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_eth_dev_get_port_by_name");
+// arg2 = arg2 = ret
+// arg3 = arg3 = "rte_eth_dev_get_port_by_name"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 
@@ -75,9 +119,9 @@ tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             ret,
-            "rte_eth_dev_get_port_by_name");
+            "rte_ring_create");
 // arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_dev_get_port_by_name"
+// arg3 = arg3 = "rte_ring_create"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -251,9 +295,9 @@ tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             ret,
-            "rte_eth_promiscuous_enable");
+            "rte_eal_mp_remote_launch");
 // arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_promiscuous_enable"
+// arg3 = arg3 = "rte_eal_mp_remote_launch"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -262,22 +306,21 @@ tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatThreadCreate"
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No room in DPDK TX ring buffer");
+// arg2 = arg2 = "No room in DPDK TX ring buffer"
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryError , arg2);\
 
 #endif
 

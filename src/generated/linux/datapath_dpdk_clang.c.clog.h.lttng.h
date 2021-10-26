@@ -7,10 +7,10 @@
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eal_init");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eal_init"
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatThreadCreate"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus,
     TP_ARGS(
@@ -19,5 +19,24 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus,
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No room in DPDK TX ring buffer");
+// arg2 = arg2 = "No room in DPDK TX ring buffer"
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_DPDK_CLANG_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
     )
 )
