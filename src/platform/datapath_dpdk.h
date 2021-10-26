@@ -10,7 +10,9 @@
 
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
-#define MAX_BURST_SIZE 32
+#define RX_BURST_SIZE 16
+#define TX_BURST_SIZE 16
+#define TX_RING_SIZE 1024
 
 typedef struct CXPLAT_DATAPATH {
 
@@ -30,12 +32,10 @@ typedef struct CXPLAT_DATAPATH {
     char DeviceName[32];
 
     uint16_t Port;
-    uint16_t TxBufferCount;
-    uint16_t TxBufferOffset;
     CXPLAT_LOCK TxLock;
     uint8_t SourceMac[6];
     struct rte_mempool* MemoryPool;
-    struct rte_mbuf* TxBufferRing[1024];
+    struct rte_ring* TxRingBuffer;
 
     uint16_t NextLocalPort;
 

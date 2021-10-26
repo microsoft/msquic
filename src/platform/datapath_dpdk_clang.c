@@ -81,6 +81,9 @@ CxPlatDpdkReadConfig(
             continue;
         }
         *Value++ = '\0';
+        if (Value[strlen(Value) - 1] == '\n') {
+            Value[strlen(Value) - 1] = '\0';
+        }
 
         if (strcmp(Line, "ServerMac") == 0) {
             ValueToMac(Value, Datapath->ServerMac);
@@ -243,6 +246,21 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         goto Error;
     }
 
+    Datapath->TxRingBuffer =
+        rte_ring_create(
+            "TxRing", TX_RING_SIZE, rte_eth_dev_socket_id(Port),
+            RING_F_MP_HTS_ENQ | RING_F_SC_DEQ);
+    if (Datapath->TxRingBuffer == NULL) {
+        printf("rte_ring_create failed: %d\n", ret);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "rte_ring_create");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
     ret = rte_eth_dev_info_get(Port, &DeviceInfo);
     if (ret < 0) {
         printf("rte_eth_dev_info_get failed: %d\n", ret);
@@ -253,6 +271,23 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
             "rte_eth_dev_info_get");
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
+    }
+
+    if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_IPV4_CKSUM) {
+        printf("TX IPv4 Checksum Offload Enabled\n");
+        PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_IPV4_CKSUM;
+    }
+    if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_UDP_CKSUM) {
+        printf("TX UDP Checksum Offload Enabled\n");
+        PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_UDP_CKSUM;
+    }
+    if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_IPV4_CKSUM) {
+        printf("RX IPv4 Checksum Offload Enabled\n");
+        PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_IPV4_CKSUM;
+    }
+    if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_UDP_CKSUM) {
+        printf("RX UDP Checksum Offload Enabled\n");
+        PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_UDP_CKSUM;
     }
 
     ret = rte_eth_dev_configure(Port, rx_rings, tx_rings, &PortConfig);
@@ -335,7 +370,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     }
     CxPlatCopyMemory(Datapath->SourceMac, &addr, sizeof(addr));
 
-    printf("\nStarting Port %hu, MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8"\n",
+    printf("\nStarting Port %hu, MAC: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
             Datapath->Port,
             Datapath->SourceMac[0], Datapath->SourceMac[1], Datapath->SourceMac[2],
             Datapath->SourceMac[3], Datapath->SourceMac[4], Datapath->SourceMac[5]);
@@ -367,6 +402,14 @@ Error:
         CxPlatEventSet(Datapath->StartComplete);
     }
 
+    if (Datapath->TxRingBuffer) {
+        rte_ring_free(Datapath->TxRingBuffer);
+    }
+
+    if (Datapath->MemoryPool) {
+        rte_mempool_free(Datapath->MemoryPool);
+    }
+
     if (CleanUpRte) {
         rte_eal_cleanup();
     }
@@ -378,12 +421,16 @@ static
 void
 CxPlatDpdkRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const uint16_t Core,
-    _In_reads_(BuffersCount)
-        struct rte_mbuf** Buffers,
-    _In_ uint16_t BuffersCount
+    _In_ const uint16_t Core
     )
 {
+    struct rte_mbuf* Buffers[RX_BURST_SIZE];
+    const uint16_t BuffersCount =
+        rte_eth_rx_burst(Datapath->Port, 0, Buffers, RX_BURST_SIZE);
+    if (BuffersCount == 0) {
+        return;
+    }
+
     DPDK_RX_PACKET* PacketChain = NULL;
     DPDK_RX_PACKET** PacketChainTail = &PacketChain;
     DPDK_RX_PACKET Packet; // Working space
@@ -475,19 +522,13 @@ CxPlatDpdkTx(
     )
 {
     SendData->Mbuf->data_len = (uint16_t)SendData->Buffer.Length;
+    SendData->Mbuf->ol_flags = PKT_TX_IPV4 | PKT_TX_IP_CKSUM | PKT_TX_UDP_CKSUM;
+    SendData->Mbuf->l2_len = 14;
+    SendData->Mbuf->l3_len = 20;
     //printf("DPDK TX queue packet (len=%hu, off=%hu)\n", SendData->Mbuf->data_len, SendData->Mbuf->data_off);
 
     CXPLAT_DATAPATH* Datapath = SendData->Datapath;
-    CxPlatLockAcquire(&Datapath->TxLock);
-    if (Datapath->TxBufferCount < ARRAYSIZE(Datapath->TxBufferRing)) {
-        uint16_t Index = (Datapath->TxBufferOffset + Datapath->TxBufferCount) % ARRAYSIZE(Datapath->TxBufferRing);
-        Datapath->TxBufferRing[Index] = SendData->Mbuf;
-        Datapath->TxBufferCount++;
-        SendData->Mbuf = NULL;
-    }
-    CxPlatLockRelease(&Datapath->TxLock);
-
-    if (SendData->Mbuf) {
+    if (rte_ring_mp_enqueue(Datapath->TxRingBuffer, SendData->Mbuf) != 0) {
         printf("DPDK TX drop packet (no room)\n");
         rte_pktmbuf_free(SendData->Mbuf);
     }
@@ -497,25 +538,23 @@ CxPlatDpdkTx(
 
 static
 void
-CxPlatDpdkDrainTx(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t Count
+CxPlatDpdkTxEthernet(
+    _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    CXPLAT_DBG_ASSERT(Count <= ARRAYSIZE(Datapath->TxBufferRing));
+    struct rte_mbuf* Buffers[TX_BURST_SIZE];
+    uint32_t Available = 0;
+    do {
+        uint16_t BufferCount =
+            (uint16_t)rte_ring_sc_dequeue_burst(
+                Datapath->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, &Available);
+        if (!BufferCount) return;
 
-    //printf("DPDK TX %hu packet(s)\n", Count);
-    struct rte_mbuf** tx_bufs = Datapath->TxBufferRing + Datapath->TxBufferOffset;
-    const uint16_t nb_tx = rte_eth_tx_burst(Datapath->Port, 0, tx_bufs, Count);
-    if (nb_tx < Count) printf("DPDK TX %hu packet(s) failed\n", (uint16_t)(Count - nb_tx));
-    for (uint16_t buf = nb_tx; buf < Count; buf++)
-        rte_pktmbuf_free(tx_bufs[buf]);
-
-    uint16_t NewOffset = (Datapath->TxBufferOffset + Count) % ARRAYSIZE(Datapath->TxBufferRing);
-    CxPlatLockAcquire(&Datapath->TxLock);
-    Datapath->TxBufferOffset = NewOffset;
-    Datapath->TxBufferCount -= Count;
-    CxPlatLockRelease(&Datapath->TxLock);
+        const uint16_t TxCount = rte_eth_tx_burst(Datapath->Port, 0, Buffers, BufferCount);
+        for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
+            rte_pktmbuf_free(Buffers[buf]);
+        }
+    } while (Available);
 }
 
 static
@@ -530,30 +569,15 @@ CxPlatDpdkWorkerThread(
     printf("Core %u worker running...\n", Core);
 
     if (rte_eth_dev_socket_id(Datapath->Port) > 0 &&
-            rte_eth_dev_socket_id(Datapath->Port) !=
-                    (int)rte_socket_id())
-        printf("\nWARNING, port %u is on remote NUMA node to "
-                "polling thread.\n\tPerformance will "
-                "not be optimal.\n\n", Datapath->Port);
+        rte_eth_dev_socket_id(Datapath->Port) != (int)rte_socket_id()) {
+        printf("\nWARNING, port %u is on remote NUMA node to  polling thread.\n"
+               "\tPerformance will not be optimal.\n\n",
+               Datapath->Port);
+    }
 
     while (Datapath->Running) {
-        {
-            struct rte_mbuf *bufs[MAX_BURST_SIZE];
-            const uint16_t nb_rx = rte_eth_rx_burst(Datapath->Port, 0, bufs, MAX_BURST_SIZE);
-            if (nb_rx != 0) {
-                CxPlatDpdkRxEthernet(Datapath, Core, bufs, nb_rx);
-            }
-        }
-
-        // No lock should be necessary, so long as only a single thread drains the ring buffer.
-        uint16_t BufferCount = Datapath->TxBufferCount;
-        if (BufferCount) {
-            if (BufferCount + Datapath->TxBufferOffset > ARRAYSIZE(Datapath->TxBufferRing)) {
-                CxPlatDpdkDrainTx(Datapath, ARRAYSIZE(Datapath->TxBufferRing) - Datapath->TxBufferOffset);
-                BufferCount = Datapath->TxBufferCount;
-            }
-            CxPlatDpdkDrainTx(Datapath, BufferCount);
-        }
+        CxPlatDpdkRxEthernet(Datapath, Core);
+        CxPlatDpdkTxEthernet(Datapath);
     }
 
     return 0;

@@ -63,7 +63,8 @@ if(QUIC_USE_DPDK)
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_eal.lib
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ethdev.lib
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mbuf.lib
-        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mempool.lib)
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mempool.lib
+        ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ring.lib)
 else()
     target_link_libraries(platform PUBLIC inc)
 endif()

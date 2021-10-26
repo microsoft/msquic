@@ -143,6 +143,7 @@ CxPlatDataPathInitialize(
     CxPlatZeroMemory(*NewDataPath, sizeof(CXPLAT_DATAPATH));
 
     (*NewDataPath)->CoreCount = (uint16_t)CxPlatProcMaxCount();
+    (*NewDataPath)->TxRingBuffer = (struct rte_ring*)((*NewDataPath)+1);
     if (UdpCallbacks) {
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
@@ -399,7 +400,9 @@ CxPlatDpdkRx(
         Packet->Next = NULL;
 
         BOOLEAN Return = TRUE;
-        if (Packet->Reserved == L4_TYPE_UDP) {
+        if (Packet->Reserved == L4_TYPE_UDP &&
+            (QuicAddrCompareIp(&Packet->IP.LocalAddress, &Datapath->ServerIP) ||
+             QuicAddrCompareIp(&Packet->IP.LocalAddress, &Datapath->ClientIP))) {
             CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, Packet->IP.LocalAddress.Ipv4.sin_port);
             if (Socket) {
                 QuicTraceEvent(
