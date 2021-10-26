@@ -183,7 +183,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CleanUpRte = FALSE;
-    int ret;
     uint16_t Port;
     struct rte_eth_conf PortConfig = {
         .rxmode = {
@@ -192,14 +191,14 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     };
     uint16_t nb_rxd = 1024;
     uint16_t nb_txd = 1024;
-    const uint16_t rx_rings = 4, tx_rings = 1;
+    const uint16_t rx_rings = 1, tx_rings = 1;
     struct rte_eth_dev_info DeviceInfo;
     struct rte_eth_rxconf rxconf;
     struct rte_eth_txconf txconf;
     struct rte_ether_addr addr;
 
     printf("Calling rte_eal_init...\n");
-    ret = rte_eal_init(ARRAYSIZE(argv), (char**)argv);
+    int ret = rte_eal_init(ARRAYSIZE(argv), (char**)argv);
     if (ret < 0) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -419,7 +418,7 @@ Error:
 
 static
 void
-CxPlatDpdkRxEthernet(
+CxPlatDpdkRx(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const uint16_t Core
     )
@@ -427,14 +426,13 @@ CxPlatDpdkRxEthernet(
     struct rte_mbuf* Buffers[RX_BURST_SIZE];
     const uint16_t BuffersCount =
         rte_eth_rx_burst(Datapath->Port, 0, Buffers, RX_BURST_SIZE);
-    if (BuffersCount == 0) {
+    if (unlikely(BuffersCount == 0)) {
         return;
     }
 
     DPDK_RX_PACKET* PacketChain = NULL;
     DPDK_RX_PACKET** PacketChainTail = &PacketChain;
     DPDK_RX_PACKET Packet; // Working space
-    //printf("DPDK RX %hu packet(s)\n", BuffersCount);
     for (uint16_t i = 0; i < BuffersCount; i++) {
         CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
         CxPlatDpdkParseEthernet(
@@ -443,13 +441,13 @@ CxPlatDpdkRxEthernet(
             ((uint8_t*)Buffers[i]->buf_addr)+Buffers[i]->data_off,
             Buffers[i]->pkt_len);
 
-        if (Packet.Buffer) {
+        if (likely(Packet.Buffer)) {
             Packet.Allocated = TRUE;
             Packet.PartitionIndex = Core;
             Packet.Mbuf = Buffers[i];
             Packet.OwnerPool = &Datapath->AdditionalInfoPool;
             DPDK_RX_PACKET* NewPacket = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool);
-            if (NewPacket) {
+            if (likely(NewPacket)) {
                 CxPlatCopyMemory(NewPacket, &Packet, sizeof(DPDK_RX_PACKET));
                 NewPacket->Tuple = &NewPacket->IP;
                 *PacketChainTail = NewPacket;
@@ -462,13 +460,13 @@ CxPlatDpdkRxEthernet(
         }
     }
     if (PacketChain) {
-        CxPlatDpdkRx(Datapath, PacketChain);
+        CxPlatDpdkRxEthernet(Datapath, PacketChain);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkReturn(
+CxPlatDpdkRxFree(
     _In_opt_ const DPDK_RX_PACKET* PacketChain
     )
 {
@@ -482,16 +480,15 @@ CxPlatDpdkReturn(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
-CxPlatDpdkAllocTx(
+CxPlatDpdkTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t MaxPacketSize
     )
 {
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool);
-    if (SendData) {
+    if (likely(SendData)) {
         SendData->Mbuf = rte_pktmbuf_alloc(Datapath->MemoryPool);
-        if (SendData->Mbuf) {
-            //printf("DPDK TX alloc packet (len=%hu)\n", MaxPacketSize);
+        if (likely(SendData->Mbuf)) {
             SendData->Datapath = Datapath;
             SendData->Buffer.Length = MaxPacketSize;
             SendData->Mbuf->data_off = 0;
@@ -507,7 +504,7 @@ CxPlatDpdkAllocTx(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkFreeTx(
+CxPlatDpdkTxFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -517,7 +514,7 @@ CxPlatDpdkFreeTx(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkTx(
+CxPlatDpdkTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -525,12 +522,14 @@ CxPlatDpdkTx(
     SendData->Mbuf->ol_flags = PKT_TX_IPV4 | PKT_TX_IP_CKSUM | PKT_TX_UDP_CKSUM;
     SendData->Mbuf->l2_len = 14;
     SendData->Mbuf->l3_len = 20;
-    //printf("DPDK TX queue packet (len=%hu, off=%hu)\n", SendData->Mbuf->data_len, SendData->Mbuf->data_off);
 
     CXPLAT_DATAPATH* Datapath = SendData->Datapath;
-    if (rte_ring_mp_enqueue(Datapath->TxRingBuffer, SendData->Mbuf) != 0) {
-        printf("DPDK TX drop packet (no room)\n");
+    if (unlikely(rte_ring_mp_enqueue(Datapath->TxRingBuffer, SendData->Mbuf) != 0)) {
         rte_pktmbuf_free(SendData->Mbuf);
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No room in DPDK TX ring buffer");
     }
 
     CxPlatPoolFree(&Datapath->AdditionalInfoPool, SendData);
@@ -538,7 +537,7 @@ CxPlatDpdkTx(
 
 static
 void
-CxPlatDpdkTxEthernet(
+CxPlatDpdkTx(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -548,11 +547,15 @@ CxPlatDpdkTxEthernet(
         uint16_t BufferCount =
             (uint16_t)rte_ring_sc_dequeue_burst(
                 Datapath->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, &Available);
-        if (!BufferCount) return;
+        if (unlikely(BufferCount == 0)) {
+            return;
+        }
 
         const uint16_t TxCount = rte_eth_tx_burst(Datapath->Port, 0, Buffers, BufferCount);
-        for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
-            rte_pktmbuf_free(Buffers[buf]);
+        if (unlikely(TxCount < BufferCount)) {
+            for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
+                rte_pktmbuf_free(Buffers[buf]);
+            }
         }
     } while (Available);
 }
@@ -575,9 +578,9 @@ CxPlatDpdkWorkerThread(
                Datapath->Port);
     }
 
-    while (Datapath->Running) {
-        CxPlatDpdkRxEthernet(Datapath, Core);
-        CxPlatDpdkTxEthernet(Datapath);
+    while (likely(Datapath->Running)) {
+        CxPlatDpdkRx(Datapath, Core);
+        CxPlatDpdkTx(Datapath);
     }
 
     return 0;

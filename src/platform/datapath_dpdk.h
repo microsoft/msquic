@@ -50,7 +50,6 @@ typedef struct CXPLAT_DATAPATH {
 } CXPLAT_DATAPATH;
 
 typedef enum PACKET_TYPE {
-    L3_TYPE_LLDP,
     L3_TYPE_ICMPV4,
     L3_TYPE_ICMPV6,
     L4_TYPE_TCP,
@@ -72,18 +71,27 @@ typedef struct CXPLAT_SEND_DATA {
 
 } CXPLAT_SEND_DATA;
 
+//
+// Initializes the DPDK stack.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpdkInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
+//
+// Cleans up the DPDK stack.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpdkUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
+//
+// Upcall from DPDK to allow for parsing of a received Ethernet packet.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpdkParseEthernet(
@@ -94,34 +102,49 @@ CxPlatDpdkParseEthernet(
     _In_ uint16_t Length
     );
 
+//
+// Upcall from DPDK to indicate a received chain of packets.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkRx(
+CxPlatDpdkRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const DPDK_RX_PACKET* PacketChain
     );
 
+//
+// Frees a chain of previous received packets.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkReturn(
+CxPlatDpdkRxFree(
     _In_opt_ const DPDK_RX_PACKET* PacketChain
     );
 
+//
+// Allocates a new TX send object.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
-CxPlatDpdkAllocTx(
+CxPlatDpdkTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t MaxPacketSize
     );
 
+//
+// Frees a previously allocated TX send object.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkFreeTx(
+CxPlatDpdkTxFree(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
+//
+// Enqueues a TX send object to be sent out on the DPDK device.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkTx(
+CxPlatDpdkTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     );
