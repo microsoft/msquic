@@ -11,7 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#define OPENSSL_SUPPRESS_DEPRECATED 1 // FOR RSA (Will be removed soon)
 #include "openssl/opensslv.h"
 #if OPENSSL_VERSION_MAJOR >= 3
 #define IS_OPENSSL_3
