@@ -6,5 +6,5 @@ extern "C" {
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_posix_openssl.c.clog.h.c"
+#include "quic.clog_certificates_posix.c.clog.h.c"
 #endif

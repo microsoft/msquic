@@ -400,6 +400,7 @@ if ($IsWindows) {
             sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
+            sudo apt-get install -y libssl-dev
         }
         "OneBranchPackage" {
             sudo apt-get update

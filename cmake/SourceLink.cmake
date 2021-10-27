@@ -89,6 +89,16 @@ function(build_source_link_rule LOCAL_PATH GIT_REMOTE GIT_CURRENT_HASH OUTPUT)
     # Escape any backslashes for JSON
     string(REPLACE "\\" "\\\\" LOCAL_PATH ${LOCAL_PATH})
 
+    # If this is an mscodehub URL, replace with the equivalent GitHub URL.
+    if (("${GIT_REMOTE}" MATCHES "https://mscodehub\\.visualstudio\\.com/msquic/_git/msquic"))
+        set(GIT_REMOTE "https://github.com/microsoft/msquic")
+    endif()
+
+    # If this is an mscodehub dev URL, replace with the equivalent GitHub URL.
+    if (("${GIT_REMOTE}" MATCHES "https://dev\\.azure\\.com/mscodehub/_git/msquic"))
+        set(GIT_REMOTE "https://github.com/microsoft/msquic")
+    endif()
+
     # Verify this is a GitHub URL
     # In the future we could support other source servers but currently they
     # are not supported

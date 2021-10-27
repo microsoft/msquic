@@ -16,19 +16,10 @@ Environment:
 
 #include "platform_internal.h"
 
-#define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
-#include "openssl/err.h"
-#include "openssl/hmac.h"
-#include "openssl/kdf.h"
-#include "openssl/pem.h"
-#include "openssl/rsa.h"
-#include "openssl/ssl.h"
-#include "openssl/x509.h"
-
 #include <Security/Security.h>
 
 #ifdef QUIC_CLOG
-#include "darwin_openssl.c.clog.h"
+#include "certificates_darwin.c.clog.h"
 #endif
 
 static
@@ -51,15 +42,15 @@ CxPlatTlsMapTrustResultToQuicStatus(
 
 _Success_(return != FALSE)
 BOOLEAN
-CxPlatTlsVerifyCertificate(
-    _In_ X509* X509Cert,
+CxPlatCertVerifyRawCertificate(
+    _In_reads_bytes_(X509CertLength) unsigned char* X509Cert,
+    _In_ int X509CertLength,
     _In_opt_ const char* SNI,
     _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
     _Out_opt_ uint32_t* PlatformVerificationError
     )
 {
     BOOLEAN Result = FALSE;
-    unsigned char* OpenSSLCertBuffer = NULL;
     CFDataRef CfData = NULL;
     SecCertificateRef Certificate = NULL;
     OSStatus Status = 0;
@@ -69,22 +60,12 @@ CxPlatTlsVerifyCertificate(
     SecPolicyRef SSLPolicy = NULL;
     SecPolicyRef RevocationPolicy = NULL;
     CFErrorRef ErrorRef = NULL;
-    int OpenSSLCertLength = 0;
-
-    OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
-    if (OpenSSLCertLength <= 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "i2d_X509 failed");
-        goto Exit;
-    }
 
     CfData =
         CFDataCreateWithBytesNoCopy(
             NULL,
-            (const UInt8*)OpenSSLCertBuffer,
-            OpenSSLCertLength,
+            (const UInt8*)X509Cert,
+            X509CertLength,
             kCFAllocatorNull);
     if (CfData == NULL) {
         QuicTraceEvent(
@@ -212,22 +193,21 @@ Exit:
         CFRelease(CfData);
     }
 
-    if (OpenSSLCertBuffer != NULL) {
-        OPENSSL_free(OpenSSLCertBuffer);
-    }
     UNREFERENCED_PARAMETER(CredFlags);
     return Result;
 }
 
 QUIC_STATUS
-CxPlatTlsExtractPrivateKey(
+CxPlatCertExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ EVP_PKEY** EvpPrivateKey,
-    _Out_ X509** X509Cert
+    _In_z_ const char* Password,
+    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
+    _Out_ uint32_t* PfxSize
     )
 {
     UNREFERENCED_PARAMETER(CredConfig);
-    UNREFERENCED_PARAMETER(EvpPrivateKey);
-    UNREFERENCED_PARAMETER(X509Cert);
+    UNREFERENCED_PARAMETER(Password);
+    UNREFERENCED_PARAMETER(PfxBytes);
+    UNREFERENCED_PARAMETER(PfxSize);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
