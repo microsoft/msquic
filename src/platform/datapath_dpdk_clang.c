@@ -423,44 +423,40 @@ CxPlatDpdkRx(
     _In_ const uint16_t Core
     )
 {
-    struct rte_mbuf* Buffers[RX_BURST_SIZE];
+    void* Buffers[RX_BURST_SIZE];
     const uint16_t BuffersCount =
-        rte_eth_rx_burst(Datapath->Port, 0, Buffers, RX_BURST_SIZE);
+        rte_eth_rx_burst(Datapath->Port, 0, (struct rte_mbuf**)Buffers, RX_BURST_SIZE);
     if (unlikely(BuffersCount == 0)) {
         return;
     }
 
-    DPDK_RX_PACKET* PacketChain = NULL;
-    DPDK_RX_PACKET** PacketChainTail = &PacketChain;
+    uint16_t PacketCount = 0;
     DPDK_RX_PACKET Packet; // Working space
     for (uint16_t i = 0; i < BuffersCount; i++) {
+        struct rte_mbuf* Buffer = (struct rte_mbuf*)Buffers[i];
         CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
         CxPlatDpdkParseEthernet(
             Datapath,
             &Packet,
-            ((uint8_t*)Buffers[i]->buf_addr)+Buffers[i]->data_off,
-            Buffers[i]->pkt_len);
+            ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
+            Buffer->pkt_len);
 
-        if (likely(Packet.Buffer)) {
-            Packet.Allocated = TRUE;
-            Packet.PartitionIndex = Core;
-            Packet.Mbuf = Buffers[i];
-            Packet.OwnerPool = &Datapath->AdditionalInfoPool;
-            DPDK_RX_PACKET* NewPacket = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool);
-            if (likely(NewPacket)) {
-                CxPlatCopyMemory(NewPacket, &Packet, sizeof(DPDK_RX_PACKET));
-                NewPacket->Tuple = &NewPacket->IP;
-                *PacketChainTail = NewPacket;
-                PacketChainTail = (DPDK_RX_PACKET**)&NewPacket->Next;
-            } else {
-                rte_pktmbuf_free(Buffers[i]);
-            }
+        DPDK_RX_PACKET* NewPacket;
+        if (likely(Packet.Buffer && (NewPacket = CxPlatPoolAlloc(&Datapath->AdditionalInfoPool)) != NULL)) {
+            CxPlatCopyMemory(NewPacket, &Packet, sizeof(DPDK_RX_PACKET));
+            NewPacket->Allocated = TRUE;
+            NewPacket->PartitionIndex = Core;
+            NewPacket->Mbuf = Buffer;
+            NewPacket->OwnerPool = &Datapath->AdditionalInfoPool;
+            NewPacket->Tuple = &NewPacket->IP;
+            Buffers[PacketCount++] = NewPacket;
         } else {
-            rte_pktmbuf_free(Buffers[i]);
+            rte_pktmbuf_free(Buffer);
         }
     }
-    if (PacketChain) {
-        CxPlatDpdkRxEthernet(Datapath, PacketChain);
+
+    if (likely(PacketCount)) {
+        CxPlatDpdkRxEthernet(Datapath, (DPDK_RX_PACKET**)Buffers, PacketCount);
     }
 }
 
@@ -542,22 +538,19 @@ CxPlatDpdkTx(
     )
 {
     struct rte_mbuf* Buffers[TX_BURST_SIZE];
-    uint32_t Available = 0;
-    do {
-        uint16_t BufferCount =
-            (uint16_t)rte_ring_sc_dequeue_burst(
-                Datapath->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, &Available);
-        if (unlikely(BufferCount == 0)) {
-            return;
-        }
+    const uint16_t BufferCount =
+        (uint16_t)rte_ring_sc_dequeue_burst(
+            Datapath->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, NULL);
+    if (unlikely(BufferCount == 0)) {
+        return;
+    }
 
-        const uint16_t TxCount = rte_eth_tx_burst(Datapath->Port, 0, Buffers, BufferCount);
-        if (unlikely(TxCount < BufferCount)) {
-            for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
-                rte_pktmbuf_free(Buffers[buf]);
-            }
+    const uint16_t TxCount = rte_eth_tx_burst(Datapath->Port, 0, Buffers, BufferCount);
+    if (unlikely(TxCount < BufferCount)) {
+        for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
+            rte_pktmbuf_free(Buffers[buf]);
         }
-    } while (Available);
+    }
 }
 
 static
@@ -570,10 +563,9 @@ CxPlatDpdkWorkerThread(
     const uint16_t Core = (uint16_t)rte_lcore_id();
 
     printf("Core %u worker running...\n", Core);
-
     if (rte_eth_dev_socket_id(Datapath->Port) > 0 &&
         rte_eth_dev_socket_id(Datapath->Port) != (int)rte_socket_id()) {
-        printf("\nWARNING, port %u is on remote NUMA node to  polling thread.\n"
+        printf("\nWARNING, port %u is on remote NUMA node to polling thread.\n"
                "\tPerformance will not be optimal.\n\n",
                Datapath->Port);
     }

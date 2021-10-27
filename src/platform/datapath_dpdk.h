@@ -109,7 +109,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpdkRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const DPDK_RX_PACKET* PacketChain
+    _In_reads_(PacketCount)
+        DPDK_RX_PACKET** Packets,
+    _In_ uint16_t PacketCount
     );
 
 //

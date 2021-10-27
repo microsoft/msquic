@@ -23,7 +23,7 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH* Datapath;
     void* CallbackContext;
-    uint16_t LocalPort;
+    QUIC_ADDR LocalAddress;
     uint16_t RemotePort;
 
 } CXPLAT_SOCKET;
@@ -55,18 +55,23 @@ CxPlatCheckSocket(
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t SourcePort // Socket's local port
+    _In_ const QUIC_ADDR* LocalAddress
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatRwLockAcquireShared(&Datapath->SocketsLock);
-    if ((Entry = CxPlatHashtableLookup(&Datapath->Sockets, SourcePort, &Context)) != NULL) {
-        Socket = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
-        if (!CxPlatRundownAcquire(&Socket->Rundown)) {
-            Socket = NULL;
+    Entry = CxPlatHashtableLookup(&Datapath->Sockets, LocalAddress->Ipv4.sin_port, &Context);
+    while (Entry != NULL) {
+        CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress)) {
+            if (CxPlatRundownAcquire(&Temp->Rundown)) {
+                Socket = Temp;
+            }
+            break;
         }
+        Entry = CxPlatHashtableLookupNext(&Datapath->Sockets, &Context);
     }
     CxPlatRwLockReleaseShared(&Datapath->SocketsLock);
     return Socket;
@@ -81,8 +86,8 @@ CxPlatTryAddSocket(
     BOOLEAN Success = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CxPlatRwLockAcquireExclusive(&Datapath->SocketsLock);
-    if (!CxPlatHashtableLookup(&Datapath->Sockets, Socket->LocalPort, &Context)) {
-        CxPlatHashtableInsert(&Datapath->Sockets, &Socket->Entry, Socket->LocalPort, NULL);
+    if (!CxPlatHashtableLookup(&Datapath->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context)) {
+        CxPlatHashtableInsert(&Datapath->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, NULL);
         Success = TRUE;
     }
     CxPlatRwLockReleaseExclusive(&Datapath->SocketsLock);
@@ -281,15 +286,19 @@ CxPlatSocketCreateUdp(
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
-    if (Config->LocalAddress) {
-        (*NewSocket)->LocalPort = Config->LocalAddress->Ipv4.sin_port;
-    } else {
-        (*NewSocket)->LocalPort = CxPlatByteSwapUint16(InterlockedIncrement16((short*)&Datapath->NextLocalPort));
-    }
     if (Config->RemoteAddress) {
         (*NewSocket)->RemotePort = Config->RemoteAddress->Ipv4.sin_port;
+        (*NewSocket)->LocalAddress = Datapath->ClientIP;
     } else {
         (*NewSocket)->RemotePort = 0;
+        (*NewSocket)->LocalAddress = Datapath->ServerIP;
+    }
+    if (Config->LocalAddress) {
+        (*NewSocket)->LocalAddress.Ipv4.sin_port =
+            Config->LocalAddress->Ipv4.sin_port;
+    } else {
+        (*NewSocket)->LocalAddress.Ipv4.sin_port =
+            CxPlatByteSwapUint16(InterlockedIncrement16((short*)&Datapath->NextLocalPort));
     }
 
     if (!CxPlatTryAddSocket(Datapath, *NewSocket)) {
@@ -362,12 +371,7 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    if (Socket->RemotePort != 0) {
-        *Address = Socket->Datapath->ClientIP;
-    } else {
-        *Address = Socket->Datapath->ServerIP;
-    }
-    Address->Ipv4.sin_port = Socket->LocalPort;
+    *Address = Socket->LocalAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -389,21 +393,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpdkRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const DPDK_RX_PACKET* PacketChain
+    _In_reads_(PacketCount)
+        DPDK_RX_PACKET** Packets,
+    _In_ uint16_t PacketCount
     )
 {
-    DPDK_RX_PACKET* ReturnPacketChain = NULL;
-    DPDK_RX_PACKET** ReturnPacketChainTail = &ReturnPacketChain;
+    for (uint16_t i = 0; i < PacketCount; i++) {
+        DPDK_RX_PACKET* Packet = Packets[i];
+        CXPLAT_DBG_ASSERT(Packet->Next == NULL);
 
-    while (PacketChain) {
-        DPDK_RX_PACKET* Packet = (DPDK_RX_PACKET*)PacketChain;
-        PacketChain = (DPDK_RX_PACKET*)PacketChain->Next;
-        Packet->Next = NULL;
-
-        if (Packet->Reserved == L4_TYPE_UDP &&
-            (QuicAddrCompareIp(&Packet->IP.LocalAddress, &Datapath->ServerIP) ||
-             QuicAddrCompareIp(&Packet->IP.LocalAddress, &Datapath->ClientIP))) {
-            CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, Packet->IP.LocalAddress.Ipv4.sin_port);
+        if (Packet->Reserved == L4_TYPE_UDP) {
+            CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, &Packet->IP.LocalAddress);
             if (Socket) {
                 QuicTraceEvent(
                     DatapathRecv,
@@ -413,18 +413,15 @@ CxPlatDpdkRxEthernet(
                     Packet->BufferLength,
                     CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress),
                     CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress));
-                Packet->PartitionIndex = CxPlatHashSimple(sizeof(Packet->IP), (uint8_t*)&Packet->IP) % Datapath->CoreCount;
+                //Packet->PartitionIndex = CxPlatHashSimple(sizeof(Packet->IP), (uint8_t*)&Packet->IP) % Datapath->CoreCount;
                 Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
                 CxPlatRundownRelease(&Socket->Rundown);
                 continue;
             }
         }
 
-        *ReturnPacketChainTail = Packet;
-        ReturnPacketChainTail = (DPDK_RX_PACKET**)&Packet->Next;
+        CxPlatDpdkRxFree(Packet);
     }
-
-    CxPlatDpdkRxFree(ReturnPacketChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
