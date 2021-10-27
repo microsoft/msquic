@@ -203,15 +203,6 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
-_Success_(return != FALSE)
-BOOLEAN
-CxPlatTlsVerifyCertificate(
-    _In_ X509* X509Cert,
-    _In_opt_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
-    _Out_opt_ uint32_t* PlatformVerificationError
-    );
-
 static
 int
 CxPlatTlsCertificateVerifyCallback(
@@ -222,6 +213,8 @@ CxPlatTlsCertificateVerifyCallback(
     UNREFERENCED_PARAMETER(param);
     int CertificateVerified = 0;
     int status = TRUE;
+    unsigned char* OpenSSLCertBuffer = NULL;
+    int OpenSSLCertLength;
     QUIC_BUFFER PortableCertificate = { 0, 0 };
     QUIC_BUFFER PortableChain = { 0, 0 };
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
@@ -245,14 +238,29 @@ CxPlatTlsCertificateVerifyCallback(
                 return FALSE;
             }
 
-            CertificateVerified =
-                CxPlatTlsVerifyCertificate(
-                    Cert,
-                    TlsContext->SNI,
-                    TlsContext->SecConfig->Flags,
-                    IsDeferredValidationOrClientAuth?
-                        (uint32_t*)&ValidationResult :
-                        NULL);
+            OpenSSLCertLength = i2d_X509(Cert, &OpenSSLCertBuffer);
+            if (OpenSSLCertLength <= 0) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "i2d_X509 failed");
+                CertificateVerified = FALSE;
+            } else {
+                CertificateVerified =
+                    CxPlatCertVerifyRawCertificate(
+                        OpenSSLCertBuffer,
+                        OpenSSLCertLength,
+                        TlsContext->SNI,
+                        TlsContext->SecConfig->Flags,
+                        IsDeferredValidationOrClientAuth?
+                            (uint32_t*)&ValidationResult :
+                            NULL);
+            }
+
+            if (OpenSSLCertBuffer != NULL) {
+                OPENSSL_free(OpenSSLCertBuffer);
+            }
+
 
             if (!CertificateVerified) {
                 X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
@@ -854,13 +862,6 @@ CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
 
-QUIC_STATUS
-CxPlatTlsExtractPrivateKey(
-    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_z_ const char* Password,
-    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
-    _Out_ uint32_t* PfxSize);
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -1289,7 +1290,7 @@ CxPlatTlsSecConfigCreate(
             Password = PasswordBuffer;
 
             Status =
-                CxPlatTlsExtractPrivateKey(
+                CxPlatCertExtractPrivateKey(
                     CredConfig,
                     PasswordBuffer,
                     &PfxBlob,

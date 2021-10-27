@@ -17,20 +17,8 @@ Environment:
 #define QUIC_TEST_APIS 1
 #include "platform_internal.h"
 
-#define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
-#pragma warning(push)
-#pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
-#include "openssl/err.h"
-#include "openssl/hmac.h"
-#include "openssl/kdf.h"
-#include "openssl/pem.h"
-#include "openssl/rsa.h"
-#include "openssl/ssl.h"
-#include "openssl/x509.h"
-#pragma warning(pop)
-
 #ifdef QUIC_CLOG
-#include "cert_capi_openssl.c.clog.h"
+#include "certificates_capi.c.clog.h"
 #endif
 
 #include <wincrypt.h>
@@ -54,8 +42,9 @@ Environment:
 
 _Success_(return != FALSE)
 BOOLEAN
-CxPlatTlsVerifyCertificate(
-    _In_ X509* X509Cert,
+CxPlatCertVerifyRawCertificate(
+    _In_reads_bytes_(X509CertLength) unsigned char* X509Cert,
+    _In_ int X509CertLength,
     _In_opt_ const char* SNI,
     _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
     _Out_opt_ uint32_t* PlatformVerificationError
@@ -63,25 +52,14 @@ CxPlatTlsVerifyCertificate(
 {
     BOOLEAN Result = FALSE;
     PCCERT_CONTEXT CertContext = NULL;
-    unsigned char* OpenSSLCertBuffer = NULL;
-    int OpenSSLCertLength = 0;
-
-    OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
-    if (OpenSSLCertLength <= 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "i2d_X509 failed");
-        goto Exit;
-    }
 
     CertContext =
         (PCCERT_CONTEXT)
             CertCreateContext(
                 CERT_STORE_CERTIFICATE_CONTEXT,
                 X509_ASN_ENCODING,
-                OpenSSLCertBuffer,
-                OpenSSLCertLength,
+                X509Cert,
+                X509CertLength,
                 CERT_CREATE_CONTEXT_NOCOPY_FLAG,
                 NULL);
     if (CertContext == NULL) {
@@ -116,10 +94,6 @@ Exit:
 
     if (CertContext != NULL) {
         CertFreeCertificateContext(CertContext);
-    }
-
-    if (OpenSSLCertBuffer != NULL) {
-        OPENSSL_free(OpenSSLCertBuffer);
     }
 
     return Result;
@@ -252,7 +226,7 @@ Exit:
 }
 
 QUIC_STATUS
-CxPlatTlsExtractPrivateKey(
+CxPlatCertExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_z_ const char* Password,
     _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
