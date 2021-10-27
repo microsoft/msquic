@@ -10,30 +10,11 @@
         PolicyStatus.dwError);
 // arg2 = arg2 = PolicyStatus.dwError
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, TlsExportCapiCertChainVerifyResult,
+TRACEPOINT_EVENT(CLOG_CERTIFICATES_CAPI_C, TlsExportCapiCertChainVerifyResult,
     TP_ARGS(
         unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "i2d_X509 failed");
-// arg2 = arg2 = "i2d_X509 failed"
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, LibraryError,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
     )
 )
 
@@ -50,13 +31,32 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, LibraryError,
 // arg2 = arg2 = GetLastError()
 // arg3 = arg3 = "CertGetCertificateChain failed"
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_CERTIFICATES_CAPI_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Requested certificate does not support exporting. An exportable certificate is required");
+// arg2 = arg2 = "Requested certificate does not support exporting. An exportable certificate is required"
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CERTIFICATES_CAPI_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
     )
 )
 
@@ -73,7 +73,7 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, LibraryErrorStatus,
 // arg2 = arg2 = "PFX data"
 // arg3 = arg3 = PfxDataBlob.cbData
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CERT_CAPI_OPENSSL_C, AllocFailure,
+TRACEPOINT_EVENT(CLOG_CERTIFICATES_CAPI_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
         unsigned long long, arg3), 

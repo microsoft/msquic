@@ -261,7 +261,6 @@ CxPlatTlsCertificateVerifyCallback(
                 OPENSSL_free(OpenSSLCertBuffer);
             }
 
-
             if (!CertificateVerified) {
                 X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
             }

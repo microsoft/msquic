@@ -515,6 +515,25 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "i2d_X509 failed");
+// arg2 = arg2 = "i2d_X509 failed"
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
