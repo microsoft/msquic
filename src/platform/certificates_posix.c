@@ -15,21 +15,12 @@ Environment:
 
 #include "platform_internal.h"
 
-#define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
-#include "openssl/err.h"
-#include "openssl/hmac.h"
-#include "openssl/kdf.h"
-#include "openssl/pem.h"
-#include "openssl/rsa.h"
-#include "openssl/ssl.h"
-#include "openssl/x509.h"
-
 #ifdef QUIC_CLOG
-#include "posix_openssl.c.clog.h"
+#include "certificates_posix.c.clog.h"
 #endif
 
 QUIC_STATUS
-CxPlatTlsExtractPrivateKey(
+CxPlatCertExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_z_ const char* Password,
     _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
@@ -45,14 +36,16 @@ CxPlatTlsExtractPrivateKey(
 
 _Success_(return != FALSE)
 BOOLEAN
-CxPlatTlsVerifyCertificate(
-    _In_ X509* X509Cert,
+CxPlatCertVerifyRawCertificate(
+    _In_reads_bytes_(X509CertLength) unsigned char* X509Cert,
+    _In_ int X509CertLength,
     _In_opt_ const char* SNI,
     _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
     _Out_opt_ uint32_t* PlatformVerificationError
     )
 {
     UNREFERENCED_PARAMETER(X509Cert);
+    UNREFERENCED_PARAMETER(X509CertLength);
     UNREFERENCED_PARAMETER(SNI);
     UNREFERENCED_PARAMETER(CredFlags);
     UNREFERENCED_PARAMETER(PlatformVerificationError);
