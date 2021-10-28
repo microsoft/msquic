@@ -1208,6 +1208,18 @@ impl Connection {
         }
     }
 
+    pub fn close(&self) {
+        unsafe {
+            ((*self.table).connection_close)(self.handle);
+        }
+    }
+
+    pub fn stream_close(&self, stream: Handle) {
+        unsafe {
+            ((*self.table).stream_close)(stream);
+        }
+    }
+
     pub fn get_stats(&self) -> QuicStatistics {
         let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
             [0; std::mem::size_of::<QuicStatistics>()];
@@ -1336,6 +1348,12 @@ impl Stream {
         }
     }
 
+    pub fn close(&self) {
+        unsafe {
+            ((*self.table).stream_close)(self.handle);
+        }
+    }
+
     pub fn send(
         &self,
         buffer: &Buffer,
@@ -1380,7 +1398,7 @@ extern "C" fn test_conn_callback(
     context: *mut c_void,
     event: &ConnectionEvent,
 ) -> u32 {
-    let api = unsafe { &*(context as *const Api) };
+    let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
         CONNECTION_EVENT_CONNECTED => println!("Connected"),
         CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT => {
@@ -1394,13 +1412,11 @@ extern "C" fn test_conn_callback(
         CONNECTION_EVENT_SHUTDOWN_COMPLETE => println!("Shutdown complete"),
         CONNECTION_EVENT_PEER_STREAM_STARTED => {
             println!("Peer stream started");
-            unsafe {
-                api.set_callback_handler(
-                    event.payload.peer_stream_started.stream,
-                    test_stream_callback as *const c_void,
-                    context,
-                )
-            }
+            connection.set_stream_callback_handler(
+                unsafe { event.payload.peer_stream_started.stream },
+                test_stream_callback,
+                context,
+            );
         }
         _ => println!("Other callback {}", event.event_type),
     }
@@ -1413,7 +1429,7 @@ extern "C" fn test_stream_callback(
     context: *mut c_void,
     event: &StreamEvent,
 ) -> u32 {
-    let api = unsafe { &*(context as *const Api) };
+    let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
         STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {
             event.payload.start_complete.status
@@ -1428,7 +1444,7 @@ extern "C" fn test_stream_callback(
         STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
         STREAM_EVENT_SHUTDOWN_COMPLETE => {
             println!("Shutdown complete");
-            unsafe { ((*api.table).stream_close)(stream) };
+            connection.stream_close(stream);
         }
         STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
         STREAM_EVENT_PEER_ACCEPTED => println!("Peer accepted"),
@@ -1458,9 +1474,9 @@ fn test_module() {
         &registration,
         test_conn_callback,
         &connection as *const Connection as *const c_void,
-    )
-    /*_connection.start(&configuration, "google.com", 443);
+    );
+    connection.start(&configuration, "google.com", 443);
 
     let duration = std::time::Duration::from_millis(1000);
-    std::thread::sleep(duration);*/
+    std::thread::sleep(duration);
 }
