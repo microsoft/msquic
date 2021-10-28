@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
-use std::ptr;
+use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use std::option::Option;
+use std::ptr;
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -37,7 +39,7 @@ pub struct sockaddr_in {
 
 /// IPv6 address payload.
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct sockaddr_in6 {
     pub family: AddressFamily,
     pub port: u16,
@@ -54,27 +56,62 @@ pub union Addr {
     pub ipv6: sockaddr_in6,
 }
 
+impl Addr {
+    /// Create a representation of IPv4 address and perform Network byte order conversion
+    /// on the port number.
+    pub fn ipv4(family: u16, port: u16, addr: u32) -> Addr {
+        Addr {
+            ipv4: sockaddr_in {
+                family,
+                port: port,
+                addr,
+                zero: [0, 0, 0, 0, 0, 0, 0, 0],
+            },
+        }
+    }
+
+    /// Create a representation of IPv6 address and perform Network byte order conversion
+    /// on the port number.
+    pub fn ipv6(
+        family: u16,
+        port: u16,
+        flow_info: u32,
+        addr: [u8; 16usize],
+        scope_id: u32,
+    ) -> Addr {
+        Addr {
+            ipv6: sockaddr_in6 {
+                family,
+                port: port,
+                flow_info,
+                addr,
+                scope_id,
+            },
+        }
+    }
+}
+
 /// Helper for processing MsQuic return statuses.
-pub struct Status { }
+pub struct Status {}
 
 impl Status {
     /// Determines if a MsQuic status is considered a succes, which includes
     /// both "no error" and "pending" status codes.
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     pub fn succeeded(status: u32) -> bool {
         (status as i32) >= 0
     }
-    #[cfg(not(target_os="windows"))]
+    #[cfg(not(target_os = "windows"))]
     pub fn succeeded(status: u32) -> bool {
         (status as i32) <= 0
     }
 
     /// Determines if a MsQuic status is considered a failure.
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     pub fn failed(status: u32) -> bool {
         (status as i32) < 0
     }
-    #[cfg(not(target_os="windows"))]
+    #[cfg(not(target_os = "windows"))]
     pub fn failed(status: u32) -> bool {
         (status as i32) > 0
     }
@@ -204,11 +241,12 @@ pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
 #[derive(Debug, Copy, Clone)]
 pub struct RegistrationConfig {
     pub app_name: *const i8,
-    pub execution_profile: ExecutionProfile
+    pub execution_profile: ExecutionProfile,
 }
 
 /// Completion callback for a async creation of a new credential.
-pub type CredentialLoadComplete = extern fn(configuration: Handle, context: *const c_void, status: u64);
+pub type CredentialLoadComplete =
+    extern "C" fn(configuration: Handle, context: *const c_void, status: u64);
 
 /// The 20-byte hash/thumbprint of a certificate.
 #[repr(C)]
@@ -278,7 +316,7 @@ pub struct CredentialConfig {
     pub cred_flags: CredentialFlags,
     pub certificate: CertificateUnion,
     pub principle: *const i8,
-    reserved: *const c_void,
+    pub reserved: *const c_void,
     pub async_handler: Option<CredentialLoadComplete>,
     pub allowed_cipher_suites: AllowedCipherSuiteFlags,
 }
@@ -340,7 +378,7 @@ pub const CIPHER_SUITE_TLS_AES_256_GCM_SHA384: CipherSuite = 4866;
 pub const CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256: CipherSuite = 4867;
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct HandshakeInfo {
     pub tls_protocol_version: TlsProtocolVersion,
     pub cipher_algorithm: CipherAlgorithm,
@@ -352,70 +390,71 @@ pub struct HandshakeInfo {
     pub cipher_suite: CipherSuite,
 }
 
-/*#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_1 {
-    pub Start: u64,
-    pub InitialFlightEnd: u64,
-    pub HandshakeFlightEnd: u64,
+#[repr(C)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatisticsTiming {
+    pub start: u64,
+    pub initial_flight_end: u64,
+    pub handshake_flight_end: u64,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_2 {
-    pub ClientFlight1Bytes: u32,
-    pub ServerFlight1Bytes: u32,
-    pub ClientFlight2Bytes: u32,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatisticsHandshake {
+    pub client_flight1_bytes: u32,
+    pub server_flight1_bytes: u32,
+    pub client_flight2_bytes: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_3 {
-    pub PathMtu: u16,
-    pub TotalPackets: u64,
-    pub RetransmittablePackets: u64,
-    pub SuspectedLostPackets: u64,
-    pub SpuriousLostPackets: u64,
-    pub TotalBytes: u64,
-    pub TotalStreamBytes: u64,
-    pub CongestionCount: u32,
-    pub PersistentCongestionCount: u32,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatisticsSend {
+    pub path_mtu: u16,
+    pub total_packets: u64,
+    pub retransmittable_packets: u64,
+    pub suspected_lost_packets: u64,
+    pub spurious_lost_packets: u64,
+    pub total_bytes: u64,
+    pub total_stream_bytes: u64,
+    pub congestion_count: u32,
+    pub persistent_congestion_count: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_4 {
-    pub TotalPackets: u64,
-    pub ReorderedPackets: u64,
-    pub DroppedPackets: u64,
-    pub DuplicatePackets: u64,
-    pub TotalBytes: u64,
-    pub TotalStreamBytes: u64,
-    pub DecryptionFailures: u64,
-    pub ValidAckFrames: u64,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatisticsRecv {
+    pub total_packets: u64,
+    pub reordered_packets: u64,
+    pub dropped_packets: u64,
+    pub duplicate_packets: u64,
+    pub total_bytes: u64,
+    pub total_stream_bytes: u64,
+    pub decryption_failures: u64,
+    pub valid_ack_frames: u64,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS__bindgen_ty_5 {
-    pub KeyUpdateCount: u32,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatisticsMisc {
+    pub key_update_count: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_STATISTICS {
-    pub CorrelationId: u64,
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatistics {
+    pub correlation_id: u64,
     pub _bitfield_align_1: [u8; 0],
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
-    pub Rtt: u32,
-    pub MinRtt: u32,
-    pub MaxRtt: u32,
-    pub Timing: QUIC_STATISTICS__bindgen_ty_1,
-    pub Handshake: QUIC_STATISTICS__bindgen_ty_2,
-    pub Send: QUIC_STATISTICS__bindgen_ty_3,
-    pub Recv: QUIC_STATISTICS__bindgen_ty_4,
-    pub Misc: QUIC_STATISTICS__bindgen_ty_5,
-}*/
+    //pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub _bitfield_1: u8,
+    pub rtt: u32,
+    pub min_rtt: u32,
+    pub max_rtt: u32,
+    pub timing: QuicStatisticsTiming,
+    pub handshake: QuicStatisticsHandshake,
+    pub send: QuicStatisticsSend,
+    pub recv: QuicStatisticsRecv,
+    pub misc: QuicStatisticsMisc,
+}
 
 /*#[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -436,6 +475,11 @@ pub struct QUIC_LISTENER_STATISTICS {
     pub TotalRejectedConnections: u64,
     pub Binding: QUIC_LISTENER_STATISTICS__bindgen_ty_1,
 }*/
+
+/// A helper struct for accessing performance counters.
+pub struct QuicPerformance {
+    pub counters: [i64; PERF_COUNTER_MAX as usize],
+}
 
 pub type PerformanceCounter = u32;
 pub const PERF_COUNTER_CONN_CREATED: PerformanceCounter = 0;
@@ -583,7 +627,8 @@ pub struct ListenerEvent {
     pub payload: ListenerEventPayload,
 }
 
-pub type ListenerEventHandler = extern fn(listener: Handle, context: *mut c_void, event: &ListenerEvent) -> u32;
+pub type ListenerEventHandler =
+    extern "C" fn(listener: Handle, context: *mut c_void, event: &ListenerEvent) -> u32;
 
 pub type ConnectionEventType = u32;
 pub const CONNECTION_EVENT_CONNECTED: ConnectionEventType = 0;
@@ -637,6 +682,13 @@ pub struct ConnectionEventPeerStreamStarted {
 }
 
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventResumptionTicketReceived {
+    pub resumption_ticket_length: u32,
+    pub resumption_ticket: *const u8,
+}
+
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub union ConnectionEventPayload {
     pub connected: ConnectionEventConnected,
@@ -652,7 +704,7 @@ pub union ConnectionEventPayload {
     //pub datagram_received: ConnectionEventDatagramReceived,
     //pub datagram_send_state_changed: ConnectionEventDatagramSendStateChanged,
     //pub resumed: ConnectionEventResumed,
-    //pub resumption_ticket_received: ConnectionEventResumptionTicketReceived,
+    pub resumption_ticket_received: ConnectionEventResumptionTicketReceived,
     //pub peer_certificated_received: ConnectionEventPeerCertificateReceived,
 }
 
@@ -663,7 +715,8 @@ pub struct ConnectionEvent {
     pub payload: ConnectionEventPayload,
 }
 
-pub type ConnectionEventHandler = extern fn(connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u32;
+pub type ConnectionEventHandler =
+    extern "C" fn(connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u32;
 
 pub type StreamEventType = u32;
 pub const STREAM_EVENT_START_COMPLETE: StreamEventType = 0;
@@ -714,43 +767,113 @@ pub struct StreamEvent {
     pub payload: StreamEventPayload,
 }
 
-pub type StreamEventHandler = extern fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u32;
+pub type StreamEventHandler =
+    extern "C" fn(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u32;
 
 #[repr(C)]
 struct ApiTable {
-    set_context : extern fn(handle: Handle, context: *const c_void),
-    get_context : extern fn(handle: Handle) -> *mut c_void,
-    set_callback_handler : extern fn(handle: Handle, handler: *const c_void, context: *const c_void),
-    set_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: u32, buffer: *const c_void) -> u32,
-    get_param : extern fn(handle: Handle, level: ParameterLevel, param: u32, buffer_length: *mut u32, buffer: *const c_void) -> u32,
-    registration_open : extern fn(config: *const RegistrationConfig, registration: &Handle) -> u32,
-    registration_close : extern fn(registration: Handle),
-    registration_shutdown : extern fn(registration: Handle),
-    configuration_open : extern fn(registration: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, settings: *const Settings, settings_size: u32, context: *const c_void, configuration: &*const c_void) -> u32,
-    configuration_close : extern fn(configuration: Handle),
-    configuration_load_credential : extern fn(configuration: Handle, cred_config: *const CredentialConfig) -> u32,
-    listener_open : extern fn(registration: Handle, handler: ListenerEventHandler, context: *const c_void, listener: &Handle) -> u32,
-    listener_close : extern fn(listener: Handle),
-    listener_start : extern fn(listener: Handle, alpn_buffers: *const Buffer, alpn_buffer_cout: u32, local_address: *const Addr) -> u32,
-    listener_stop : extern fn(listener: Handle),
-    connection_open : extern fn(registration: Handle, handler: ConnectionEventHandler, context: *const c_void, connection: &Handle) -> u32,
-    connection_close : extern fn(connection: Handle),
-    connection_shutdown : extern fn(connection: Handle, flags: ConnectionShutdownFlags, error_code: u62),
-    connection_start : extern fn(connection: Handle, configuration: Handle, family: AddressFamily, server_name: *const i8, server_port: u16) -> u32,
-    connection_set_configuration : extern fn(connection: Handle, configuration: Handle) -> u32,
-    connection_send_resumption_ticket : extern fn(connection: Handle, flags: SendResumptionFlags, data_length: u16, resumption_data: *const u8) -> u32,
-    stream_open : extern fn(connection: Handle, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void, stream: &Handle) -> u32,
-    stream_close : extern fn(stream: Handle),
-    stream_start : extern fn(stream: Handle, flags: StreamStartFlags) -> u32,
-    stream_shutdown : extern fn(stream: Handle, flags: StreamShutdownFlags, error_code: u62) -> u32,
-    stream_send : extern fn(stream: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u32,
-    stream_receive_complete : extern fn(stream: Handle, buffer_length: u64) -> u32,
-    stream_receive_set_enabled : extern fn(stream: Handle, is_enabled: BOOLEAN) -> u32,
-    datagram_send : extern fn(connection: Handle, buffers: *const Buffer, buffer_count: u32, flags: SendFlags, client_send_context: *const c_void) -> u32,
+    set_context: extern "C" fn(handle: Handle, context: *const c_void),
+    get_context: extern "C" fn(handle: Handle) -> *mut c_void,
+    set_callback_handler:
+        extern "C" fn(handle: Handle, handler: *const c_void, context: *const c_void),
+    set_param: extern "C" fn(
+        handle: Handle,
+        level: ParameterLevel,
+        param: u32,
+        buffer_length: u32,
+        buffer: *const c_void,
+    ) -> u32,
+    get_param: extern "C" fn(
+        handle: Handle,
+        level: ParameterLevel,
+        param: u32,
+        buffer_length: *mut u32,
+        buffer: *const c_void,
+    ) -> u32,
+    registration_open:
+        extern "C" fn(config: *const RegistrationConfig, registration: &Handle) -> u32,
+    registration_close: extern "C" fn(registration: Handle),
+    registration_shutdown: extern "C" fn(registration: Handle),
+    configuration_open: extern "C" fn(
+        registration: Handle,
+        alpn_buffers: *const Buffer,
+        alpn_buffer_cout: u32,
+        settings: *const Settings,
+        settings_size: u32,
+        context: *const c_void,
+        configuration: &*const c_void,
+    ) -> u32,
+    configuration_close: extern "C" fn(configuration: Handle),
+    configuration_load_credential:
+        extern "C" fn(configuration: Handle, cred_config: *const CredentialConfig) -> u32,
+    listener_open: extern "C" fn(
+        registration: Handle,
+        handler: ListenerEventHandler,
+        context: *const c_void,
+        listener: &Handle,
+    ) -> u32,
+    listener_close: extern "C" fn(listener: Handle),
+    listener_start: extern "C" fn(
+        listener: Handle,
+        alpn_buffers: *const Buffer,
+        alpn_buffer_cout: u32,
+        local_address: *const Addr,
+    ) -> u32,
+    listener_stop: extern "C" fn(listener: Handle),
+    connection_open: extern "C" fn(
+        registration: Handle,
+        handler: ConnectionEventHandler,
+        context: *const c_void,
+        connection: &Handle,
+    ) -> u32,
+    connection_close: extern "C" fn(connection: Handle),
+    connection_shutdown:
+        extern "C" fn(connection: Handle, flags: ConnectionShutdownFlags, error_code: u62),
+    connection_start: extern "C" fn(
+        connection: Handle,
+        configuration: Handle,
+        family: AddressFamily,
+        server_name: *const i8,
+        server_port: u16,
+    ) -> u32,
+    connection_set_configuration: extern "C" fn(connection: Handle, configuration: Handle) -> u32,
+    connection_send_resumption_ticket: extern "C" fn(
+        connection: Handle,
+        flags: SendResumptionFlags,
+        data_length: u16,
+        resumption_data: *const u8,
+    ) -> u32,
+    stream_open: extern "C" fn(
+        connection: Handle,
+        flags: StreamOpenFlags,
+        handler: StreamEventHandler,
+        context: *const c_void,
+        stream: &Handle,
+    ) -> u32,
+    stream_close: extern "C" fn(stream: Handle),
+    stream_start: extern "C" fn(stream: Handle, flags: StreamStartFlags) -> u32,
+    stream_shutdown:
+        extern "C" fn(stream: Handle, flags: StreamShutdownFlags, error_code: u62) -> u32,
+    stream_send: extern "C" fn(
+        stream: Handle,
+        buffers: *const Buffer,
+        buffer_count: u32,
+        flags: SendFlags,
+        client_send_context: *const c_void,
+    ) -> u32,
+    stream_receive_complete: extern "C" fn(stream: Handle, buffer_length: u64) -> u32,
+    stream_receive_set_enabled: extern "C" fn(stream: Handle, is_enabled: BOOLEAN) -> u32,
+    datagram_send: extern "C" fn(
+        connection: Handle,
+        buffers: *const Buffer,
+        buffer_count: u32,
+        flags: SendFlags,
+        client_send_context: *const c_void,
+    ) -> u32,
 }
 
 #[link(name = "msquic")]
-extern {
+extern "C" {
     fn MsQuicOpenVersion(version: u32, api: &*const ApiTable) -> u32;
     fn MsQuicClose(api: *const ApiTable);
 }
@@ -760,6 +883,10 @@ extern {
 //
 
 /// Top level entry point for the MsQuic API.
+///
+/// Developper must ensure a struct containing MsQuic members such as `Connection`
+///  or `Stream` declares `API` last so that the API is dropped last when the containing
+/// sruct goes out of scope.
 pub struct Api {
     table: *const ApiTable,
 }
@@ -782,24 +909,59 @@ pub struct Connection {
     handle: Handle,
 }
 
+/// A single server listener
+pub struct Listener {
+    table: *const ApiTable,
+    handle: Handle,
+}
+
 /// A single QUIC stream on a parent connection.
 pub struct Stream {
     table: *const ApiTable,
     handle: Handle,
 }
 
-impl Buffer {
-    pub fn from_str(data: &str) -> Buffer {
+impl From<&str> for Buffer {
+    fn from(data: &str) -> Buffer {
         Buffer {
             length: data.len() as u32,
             buffer: data.as_ptr() as *mut u8,
         }
     }
-    pub fn from_char(data: &String) -> Buffer {
+}
+
+impl From<&Vec<u8>> for Buffer {
+    fn from(data: &Vec<u8>) -> Buffer {
         Buffer {
             length: data.len() as u32,
             buffer: data.as_ptr() as *mut u8,
         }
+    }
+}
+
+impl From<&[u8]> for Buffer {
+    fn from(data: &[u8]) -> Buffer {
+        let buffer = Buffer {
+            length: data.len() as u32,
+            buffer: data.as_ptr() as *mut u8,
+        };
+        buffer
+    }
+}
+
+impl From<Buffer> for Vec<u8> {
+    fn from(data: Buffer) -> Vec<u8> {
+        let mut vec = vec![0; data.length.try_into().unwrap()];
+        for index in 0..data.length - 1 {
+            vec[index as usize] = unsafe { *data.buffer.offset(index as isize) };
+        }
+        vec
+    }
+}
+
+impl QuicPerformance {
+    pub fn counter(&self, counter: PerformanceCounter) -> i64 {
+        self.counters[counter as usize]
     }
 }
 
@@ -848,6 +1010,11 @@ impl Settings {
         self.peer_unidi_stream_count = value;
         self
     }
+    pub fn set_idle_timeout_ms(&mut self, value: u64) -> &mut Settings {
+        self.is_set_flags |= 0x8;
+        self.idle_timeout_ms = value;
+        self
+    }
 }
 
 impl CredentialConfig {
@@ -855,7 +1022,9 @@ impl CredentialConfig {
         CredentialConfig {
             cred_type: CREDENTIAL_FLAG_NONE,
             cred_flags: CREDENTIAL_FLAG_CLIENT,
-            certificate: CertificateUnion { context: ptr::null() },
+            certificate: CertificateUnion {
+                context: ptr::null(),
+            },
             principle: ptr::null(),
             reserved: ptr::null(),
             async_handler: None,
@@ -871,12 +1040,48 @@ impl Api {
         if Status::failed(status) {
             panic!("MsQuicOpenVersion failure 0x{:x}", status);
         }
-        Api {
-            table: new_table,
+        Api { table: new_table }
+    }
+
+    pub fn close_listener(&self, listener: Handle) {
+        unsafe {
+            ((*self.table).listener_close)(listener);
+        }
+    }
+    pub fn close_connection(&self, connection: Handle) {
+        unsafe {
+            ((*self.table).connection_close)(connection);
+        }
+    }
+    pub fn close_stream(&self, stream: Handle) {
+        unsafe {
+            ((*self.table).stream_close)(stream);
         }
     }
 
-    pub fn set_callback_handler(&self, handle: Handle, handler: *const c_void, context: *const c_void) {
+    pub fn get_perf(&self) -> QuicPerformance {
+        let mut perf = QuicPerformance {
+            counters: [0; PERF_COUNTER_MAX as usize],
+        };
+        let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
+        unsafe {
+            ((*self.table).get_param)(
+                std::ptr::null(),
+                PARAM_LEVEL_GLOBAL,
+                PARAM_GLOBAL_PERF_COUNTERS,
+                (&perf_length) as *const u32 as *mut u32,
+                perf.counters.as_mut_ptr() as *const c_void,
+            )
+        };
+        perf
+    }
+
+    pub fn set_callback_handler(
+        &self,
+        handle: Handle,
+        handler: *const c_void,
+        context: *const c_void,
+    ) {
         unsafe { ((*self.table).set_callback_handler)(handle, handler, context) }
     }
 }
@@ -912,14 +1117,28 @@ impl Drop for Registration {
 }
 
 impl Configuration {
-    pub fn new(registration: &Registration, alpn: &Buffer, settings: *const Settings) -> Configuration {
+    pub fn new(
+        registration: &Registration,
+        alpn: &Buffer,
+        settings: *const Settings,
+    ) -> Configuration {
         let context: *const c_void = ptr::null();
         let new_configuration: Handle = ptr::null();
         let mut settings_size: u32 = 0;
         if settings != ptr::null() {
             settings_size = ::std::mem::size_of::<Settings>() as u32;
         }
-        let status = unsafe { ((*registration.table).configuration_open)(registration.handle, *&alpn, 1, settings, settings_size, context, &new_configuration) };
+        let status = unsafe {
+            ((*registration.table).configuration_open)(
+                registration.handle,
+                *&alpn,
+                1,
+                settings,
+                settings_size,
+                context,
+                &new_configuration,
+            )
+        };
         if Status::failed(status) {
             panic!("ConfigurationOpen failure 0x{:x}", status);
         }
@@ -930,7 +1149,8 @@ impl Configuration {
     }
 
     pub fn load_credential(&self, cred_config: &CredentialConfig) {
-        let status = unsafe { ((*self.table).configuration_load_credential)(self.handle, *&cred_config) };
+        let status =
+            unsafe { ((*self.table).configuration_load_credential)(self.handle, *&cred_config) };
         if Status::failed(status) {
             panic!("ConfigurationLoadCredential failure 0x{:x}", status);
         }
@@ -944,24 +1164,103 @@ impl Drop for Configuration {
 }
 
 impl Connection {
-    pub fn new(registration: &Registration, handler: ConnectionEventHandler, context: *const c_void) -> Connection {
-        let new_connection: Handle = ptr::null();
-        let status = unsafe { ((*registration.table).connection_open)(registration.handle, handler, context, &new_connection) };
-        if Status::failed(status) {
-            panic!("ConnectionOpen failure 0x{:x}", status);
-        }
+    pub fn new(registration: &Registration) -> Connection {
         Connection {
             table: registration.table,
-            handle: new_connection,
+            handle: ptr::null(),
+        }
+    }
+
+    pub fn from_parts(handle: Handle, api: &Api) -> Connection {
+        Connection {
+            table: api.table,
+            handle,
+        }
+    }
+
+    pub fn open(
+        &self,
+        registration: &Registration,
+        handler: ConnectionEventHandler,
+        context: *const c_void,
+    ) {
+        let status = unsafe {
+            ((*self.table).connection_open)(registration.handle, handler, context, &self.handle)
+        };
+        if Status::failed(status) {
+            panic!("ConnectionOpen failure 0x{:x}", status);
         }
     }
 
     pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
-        let status = unsafe { ((*self.table).connection_start)(self.handle, configuration.handle, 0, server_name_safe.as_ptr(), server_port) };
+        let status = unsafe {
+            ((*self.table).connection_start)(
+                self.handle,
+                configuration.handle,
+                0,
+                server_name_safe.as_ptr(),
+                server_port.to_be(),
+            )
+        };
         if Status::failed(status) {
             panic!("ConnectionStart failure 0x{:x}", status);
         }
+    }
+
+    pub fn close(&self) {
+        unsafe {
+            ((*self.table).connection_close)(self.handle);
+        }
+    }
+
+    pub fn stream_close(&self, stream: Handle) {
+        unsafe {
+            ((*self.table).stream_close)(stream);
+        }
+    }
+
+    pub fn get_stats(&self) -> QuicStatistics {
+        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
+            [0; std::mem::size_of::<QuicStatistics>()];
+        let stat_size_mut = std::mem::size_of::<QuicStatistics>();
+        unsafe {
+            ((*self.table).get_param)(
+                self.handle,
+                PARAM_LEVEL_CONNECTION,
+                PARAM_CONN_STATISTICS,
+                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
+                stat_buffer.as_mut_ptr() as *const c_void,
+            )
+        };
+
+        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) }
+    }
+
+    pub fn set_configuration(&self, configuration: &Configuration) {
+        let status = unsafe {
+            ((*self.table).connection_set_configuration)(self.handle, configuration.handle)
+        };
+        if Status::failed(status) {
+            panic!("ConnectionSetConfiguration failure 0x{:x}", status);
+        }
+    }
+
+    pub fn set_callback_handler(&self, handler: ConnectionEventHandler, context: *const c_void) {
+        unsafe {
+            ((*self.table).set_callback_handler)(self.handle, handler as *const c_void, context)
+        };
+    }
+
+    pub fn set_stream_callback_handler(
+        &self,
+        stream_handle: Handle,
+        handler: StreamEventHandler,
+        context: *const c_void,
+    ) {
+        unsafe {
+            ((*self.table).set_callback_handler)(stream_handle, handler as *const c_void, context)
+        };
     }
 }
 
@@ -971,16 +1270,74 @@ impl Drop for Connection {
     }
 }
 
+impl Listener {
+    pub fn new(
+        registration: &Registration,
+        handler: ListenerEventHandler,
+        context: *const c_void,
+    ) -> Listener {
+        let new_listener: Handle = ptr::null();
+        let status = unsafe {
+            ((*registration.table).listener_open)(
+                registration.handle,
+                handler,
+                context,
+                &new_listener,
+            )
+        };
+        if Status::failed(status) {
+            panic!("ListenerOpen failed, {:x}!\n", status);
+        }
+
+        Listener {
+            table: registration.table,
+            handle: new_listener,
+        }
+    }
+
+    pub fn start(&self, alpn_buffers: &Buffer, alpn_buffer_count: u32, local_address: &Addr) {
+        let status = unsafe {
+            ((*self.table).listener_start)(
+                self.handle,
+                *&alpn_buffers,
+                alpn_buffer_count,
+                *&local_address,
+            )
+        };
+        if Status::failed(status) {
+            panic!("ListenerStart failed, {:x}!\n", status);
+        }
+    }
+}
+
 impl Stream {
-    pub fn new(connection: &Connection, flags: StreamOpenFlags, handler: StreamEventHandler, context: *const c_void) -> Stream {
-        let new_stream: Handle = ptr::null();
-        let status = unsafe { ((*connection.table).stream_open)(connection.handle, flags, handler, context, &new_stream) };
+    pub fn new(context: *const c_void) -> Stream {
+        let api = unsafe { &*(context as *const Api) };
+        Stream {
+            table: api.table,
+            handle: ptr::null(),
+        }
+    }
+
+    pub fn from_parts(handle: Handle, api: &Api) -> Stream {
+        Stream {
+            table: api.table,
+            handle,
+        }
+    }
+
+    pub fn open(
+        &self,
+        connection: &Connection,
+        flags: StreamOpenFlags,
+        handler: StreamEventHandler,
+        context: *const c_void,
+    ) {
+        let status = unsafe {
+            ((*self.table).stream_open)(connection.handle, flags, handler, context, &self.handle)
+        };
         if Status::failed(status) {
             panic!("StreamOpen failure 0x{:x}", status);
-        }
-        Stream {
-            table: connection.table,
-            handle: new_stream,
         }
     }
 
@@ -989,6 +1346,39 @@ impl Stream {
         if Status::failed(status) {
             panic!("StreamStart failure 0x{:x}", status);
         }
+    }
+
+    pub fn close(&self) {
+        unsafe {
+            ((*self.table).stream_close)(self.handle);
+        }
+    }
+
+    pub fn send(
+        &self,
+        buffer: &Buffer,
+        buffer_count: u32,
+        flags: SendFlags,
+        client_send_context: *const c_void,
+    ) {
+        let status = unsafe {
+            ((*self.table).stream_send)(
+                self.handle,
+                *&buffer,
+                buffer_count,
+                flags,
+                client_send_context, //(self as *const Stream) as *const c_void,
+            )
+        };
+        if Status::failed(status) {
+            panic!("StreamSend failure 0x{:x}", status);
+        }
+    }
+
+    pub fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
+        unsafe {
+            ((*self.table).set_callback_handler)(self.handle, handler as *const c_void, context)
+        };
     }
 }
 
@@ -1003,28 +1393,50 @@ impl Drop for Stream {
 //
 
 #[allow(dead_code)] // Used in test code
-extern fn test_conn_callback(_connection: Handle, context: *mut c_void, event: &ConnectionEvent) -> u32 {
-    let api = unsafe {&*(context as *const Api) };
+extern "C" fn test_conn_callback(
+    _connection: Handle,
+    context: *mut c_void,
+    event: &ConnectionEvent,
+) -> u32 {
+    let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
         CONNECTION_EVENT_CONNECTED => println!("Connected"),
-        CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT => println!("Transport shutdown 0x{:x}", unsafe {event.payload.shutdown_initiated_by_transport.status}),
-        CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER => println!("App shutdown {}", unsafe {event.payload.shutdown_initiated_by_peer.error_code}),
+        CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT => {
+            println!("Transport shutdown 0x{:x}", unsafe {
+                event.payload.shutdown_initiated_by_transport.status
+            })
+        }
+        CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER => println!("App shutdown {}", unsafe {
+            event.payload.shutdown_initiated_by_peer.error_code
+        }),
         CONNECTION_EVENT_SHUTDOWN_COMPLETE => println!("Shutdown complete"),
         CONNECTION_EVENT_PEER_STREAM_STARTED => {
             println!("Peer stream started");
-            unsafe { api.set_callback_handler(event.payload.peer_stream_started.stream, test_stream_callback as *const c_void, context) }
-        },
+            connection.set_stream_callback_handler(
+                unsafe { event.payload.peer_stream_started.stream },
+                test_stream_callback,
+                context,
+            );
+        }
         _ => println!("Other callback {}", event.event_type),
     }
     0
 }
 
 #[allow(dead_code)] // Used in test code
-extern fn test_stream_callback(stream: Handle, context: *mut c_void, event: &StreamEvent) -> u32 {
-    let api = unsafe {&*(context as *const Api) };
+extern "C" fn test_stream_callback(
+    stream: Handle,
+    context: *mut c_void,
+    event: &StreamEvent,
+) -> u32 {
+    let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
-        STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {event.payload.start_complete.status}),
-        STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {event.payload.receive.total_buffer_length}),
+        STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {
+            event.payload.start_complete.status
+        }),
+        STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {
+            event.payload.receive.total_buffer_length
+        }),
         STREAM_EVENT_SEND_COMPLETE => println!("Send complete"),
         STREAM_EVENT_PEER_SEND_SHUTDOWN => println!("Peer send shutdown"),
         STREAM_EVENT_PEER_SEND_ABORTED => println!("Peer send aborted"),
@@ -1032,8 +1444,8 @@ extern fn test_stream_callback(stream: Handle, context: *mut c_void, event: &Str
         STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
         STREAM_EVENT_SHUTDOWN_COMPLETE => {
             println!("Shutdown complete");
-            unsafe { ((*api.table).stream_close)(stream) };
-        },
+            connection.stream_close(stream);
+        }
         STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
         STREAM_EVENT_PEER_ACCEPTED => println!("Peer accepted"),
         _ => println!("Other callback {}", event.event_type),
@@ -1046,16 +1458,25 @@ fn test_module() {
     let api = Api::new();
     let registration = Registration::new(&api, ptr::null());
 
-    let alpn = Buffer::from_str("h3");
-    let configuration = Configuration::new(&registration, &alpn, Settings::new()
-                                                                    .set_peer_bidi_stream_count(100)
-                                                                    .set_peer_unidi_stream_count(3));
+    let alpn = Buffer::from("h3");
+    let configuration = Configuration::new(
+        &registration,
+        &alpn,
+        Settings::new()
+            .set_peer_bidi_stream_count(100)
+            .set_peer_unidi_stream_count(3),
+    );
     let cred_config = CredentialConfig::new_client();
     configuration.load_credential(&cred_config);
 
-    let _connection = Connection::new(&registration, test_conn_callback, (&api as *const Api) as *const c_void);
-    /*_connection.start(&configuration, "google.com", 443);
+    let connection = Connection::new(&registration);
+    connection.open(
+        &registration,
+        test_conn_callback,
+        &connection as *const Connection as *const c_void,
+    );
+    connection.start(&configuration, "google.com", 443);
 
     let duration = std::time::Duration::from_millis(1000);
-    std::thread::sleep(duration);*/
+    std::thread::sleep(duration);
 }
