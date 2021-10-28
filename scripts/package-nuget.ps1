@@ -20,6 +20,9 @@ param (
     [string]$Tls = "openssl",
 
     [Parameter(Mandatory = $false)]
+    [switch]$UWP = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ReleaseBuild = $false
 )
 
@@ -62,7 +65,12 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Find all types we can archive
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
-$PlatformDir = Join-Path $BaseArtifactsDir "bin/windows"
+
+if ($UWP) {
+    $PlatformDir = Join-Path $BaseArtifactsDir "bin/uwp"
+} else {
+    $PlatformDir = Join-Path $BaseArtifactsDir "bin/windows"
+}
 
 $PackagingDir = Join-Path $BaseArtifactsDir "temp/nuget"
 
@@ -117,8 +125,14 @@ if ($Tls -like "openssl") {
 
 $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 
-Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") $PackagingDir
-Copy-Item (Join-Path $NugetSourceFolder "Microsoft.Native.Quic.MsQuic.$Tls.targets") $NativeDir
+if ($UWP) {
+    $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
+} else {
+    $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"
+}
+
+Copy-Item (Join-Path $NugetSourceFolder "$PackageName.nuspec") $PackagingDir
+Copy-Item (Join-Path $NugetSourceFolder "$PackageName.targets") $NativeDir
 
 Copy-Item (Join-Path $NugetSourceFolder "pkgicon.png") $PackagingDir
 
@@ -127,7 +141,7 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "1.9.0"
+$Version = "1.10.0"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {
@@ -142,4 +156,4 @@ if ($null -ne $BuildId) {
 
 Write-Host $Version
 
-nuget.exe pack (Join-Path $PackagingDir "Microsoft.Native.Quic.MsQuic.$Tls.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote -Version $Version
+nuget.exe pack (Join-Path $PackagingDir "$PackageName.nuspec") -OutputDirectory $DistDir -p CommitHash=$CurrentCommitHash -p RepoRemote=$RepoRemote -Version $Version

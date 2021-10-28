@@ -113,6 +113,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_HANDSHAKE_FAILURE       ((QUIC_STATUS)ECONNABORTED)     // 103  (53 on macOS)
 #define QUIC_STATUS_ABORTED                 ((QUIC_STATUS)ECANCELED)        // 125  (89 on macOS)
 #define QUIC_STATUS_ADDRESS_IN_USE          ((QUIC_STATUS)EADDRINUSE)       // 98   (48 on macOS)
+#define QUIC_STATUS_INVALID_ADDRESS         ((QUIC_STATUS)EAFNOSUPPORT)     // 97   (47 on macOS)
 #define QUIC_STATUS_CONNECTION_TIMEOUT      ((QUIC_STATUS)ETIMEDOUT)        // 110  (60 on macOS)
 #define QUIC_STATUS_CONNECTION_IDLE         ((QUIC_STATUS)ETIME)            // 62   (101 on macOS)
 #define QUIC_STATUS_INTERNAL_ERROR          ((QUIC_STATUS)EIO)              // 5

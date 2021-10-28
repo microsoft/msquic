@@ -212,12 +212,16 @@ QuicTestDatagramSend(
                         QUIC_SEND_FLAG_NONE,
                         nullptr));
 
-                CxPlatSleep(100);
-
+                uint32_t Tries = 0;
+                while (Client.GetDatagramsSent() != 1 && ++Tries < 10) {
+                    CxPlatSleep(100);
+                }
                 TEST_EQUAL(1, Client.GetDatagramsSent());
 
-                CxPlatSleep(100);
-
+                Tries = 0;
+                while (Client.GetDatagramsAcknowledged() != 1 && ++Tries < 10) {
+                    CxPlatSleep(100);
+                }
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -231,12 +235,16 @@ QuicTestDatagramSend(
                         QUIC_SEND_FLAG_NONE,
                         nullptr));
 
-                CxPlatSleep(100);
-
+                Tries = 0;
+                while (Client.GetDatagramsSent() != 2 && ++Tries < 10) {
+                    CxPlatSleep(100);
+                }
                 TEST_EQUAL(2, Client.GetDatagramsSent());
 
-                CxPlatSleep(500);
-
+                Tries = 0;
+                while (Client.GetDatagramsSuspectLost() != 1 && ++Tries < 10) {
+                    CxPlatSleep(100);
+                }
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
 #endif
 

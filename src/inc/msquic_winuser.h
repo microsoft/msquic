@@ -24,7 +24,7 @@ Environment:
 #endif
 
 #include <windows.h>
-#include <ws2def.h>
+#include <winsock2.h>
 #include <ws2ipdef.h>
 #pragma warning(push)
 #pragma warning(disable:6385) // Invalid data: accessing [buffer-name], the readable size is size1 bytes but size2 bytes may be read
@@ -96,6 +96,7 @@ Environment:
 #define QUIC_STATUS_HANDSHAKE_FAILURE       ERROR_QUIC_HANDSHAKE_FAILURE                    // 0x80410000
 #define QUIC_STATUS_ABORTED                 E_ABORT                                         // 0x80004004
 #define QUIC_STATUS_ADDRESS_IN_USE          HRESULT_FROM_WIN32(WSAEADDRINUSE)               // 0x80072740
+#define QUIC_STATUS_INVALID_ADDRESS         HRESULT_FROM_WIN32(WSAEADDRNOTAVAIL)            // 0x80072741
 #define QUIC_STATUS_CONNECTION_TIMEOUT      ERROR_QUIC_CONNECTION_TIMEOUT                   // 0x80410006
 #define QUIC_STATUS_CONNECTION_IDLE         ERROR_QUIC_CONNECTION_IDLE                      // 0x80410005
 #define QUIC_STATUS_UNREACHABLE             HRESULT_FROM_WIN32(ERROR_HOST_UNREACHABLE)      // 0x800704d0

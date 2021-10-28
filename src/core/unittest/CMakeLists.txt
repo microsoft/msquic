@@ -26,7 +26,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(msquiccoretest core platform)
 endif()
 
-target_link_libraries(msquiccoretest inc gtest warnings logging)
+target_link_libraries(msquiccoretest inc gtest warnings logging base_link)
 
 add_test(NAME msquiccoretest
          COMMAND msquiccoretest

@@ -367,3 +367,9 @@ FodyWeavers.xsd
 
 # PGO Local Test Copy
 artifacts_server/
+
+# Rust build output folder
+target/
+
+# Cargo (Rust) lock file
+Cargo.lock

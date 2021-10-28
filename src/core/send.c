@@ -246,6 +246,35 @@ QuicSendValidate(
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicSendClear(
+    _In_ QUIC_SEND* Send
+    )
+{
+    //
+    // Remove all flags for things we aren't allowed to send once the connection
+    // has been closed.
+    //
+    Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_CONN_CLOSED_MASK;
+
+    //
+    // Remove any queued up streams.
+    //
+    while (!CxPlatListIsEmpty(&Send->SendStreams)) {
+
+        QUIC_STREAM* Stream =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
+
+        CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
+        Stream->SendFlags = 0;
+        Stream->SendLink.Flink = NULL;
+
+        QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
@@ -281,28 +310,7 @@ QuicSendSetSendFlag(
     }
 
     if (IsCloseFrame) {
-
-        //
-        // Remove all flags for things we aren't allowed to send once the connection
-        // has been closed.
-        //
-        Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_CONN_CLOSED_MASK;
-
-        //
-        // Remove any queued up streams.
-        //
-        while (!CxPlatListIsEmpty(&Send->SendStreams)) {
-
-            QUIC_STREAM* Stream =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
-
-            CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
-            Stream->SendFlags = 0;
-            Stream->SendLink.Flink = NULL;
-
-            QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
-        }
+        QuicSendClear(Send);
     }
 
     QuicSendValidate(Send);
@@ -546,6 +554,8 @@ QuicSendWriteFrames(
             Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
             (void)QuicPacketBuilderAddFrame(
                 Builder, IsApplicationClose ? QUIC_FRAME_CONNECTION_CLOSE_1 : QUIC_FRAME_CONNECTION_CLOSE, FALSE);
+        } else {
+            return FALSE; // Ran out of room.
         }
 
         return TRUE;
@@ -761,7 +771,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
@@ -812,7 +822,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }

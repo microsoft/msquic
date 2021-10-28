@@ -52,6 +52,22 @@ struct CxPlatEvent {
     bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
 };
 
+struct CxPlatLock {
+    CXPLAT_LOCK Handle;
+    CxPlatLock() noexcept { CxPlatLockInitialize(&Handle); }
+    ~CxPlatLock() noexcept { CxPlatLockUninitialize(&Handle); }
+    void Acquire() noexcept { CxPlatLockAcquire(&Handle); }
+    void Release() noexcept { CxPlatLockRelease(&Handle); }
+};
+
+struct CxPlatPool {
+    CXPLAT_POOL Handle;
+    CxPlatPool(uint32_t Size, uint32_t Tag = 0, bool IsPaged = false) noexcept { CxPlatPoolInitialize(IsPaged, Size, Tag, &Handle); }
+    ~CxPlatPool() noexcept { CxPlatPoolUninitialize(&Handle); }
+    void* Alloc() noexcept { return CxPlatPoolAlloc(&Handle); }
+    void Free(void* Ptr) noexcept { CxPlatPoolFree(&Handle, Ptr); }
+};
+
 #ifdef CXPLAT_HASH_MIN_SIZE
 
 struct HashTable {
@@ -382,6 +398,7 @@ public:
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
     MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
+    MsQuicSettings& SetConnFlowControlWindow(uint32_t Window) { ConnFlowControlWindow = Window; IsSet.ConnFlowControlWindow = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -409,6 +426,14 @@ public:
     }
 };
 
+class MsQuicCertificateHash : public QUIC_CERTIFICATE_HASH {
+public:
+    MsQuicCertificateHash(_In_reads_(20) const uint8_t* Thumbprint) {
+        QUIC_CERTIFICATE_HASH* thisStruct = this;
+        memcpy(thisStruct->ShaHash, Thumbprint, sizeof(thisStruct->ShaHash));
+    }
+};
+
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
 #define QUIC_DEFAULT_CLIENT_CRED_FLAGS QUIC_CREDENTIAL_FLAG_CLIENT
 #endif
@@ -423,6 +448,13 @@ public:
         QUIC_CREDENTIAL_CONFIG* thisStruct = this;
         memset(thisStruct, 0, sizeof(QUIC_CREDENTIAL_CONFIG));
         Flags = _Flags;
+    }
+    MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAGS _Flags, const QUIC_CERTIFICATE_HASH* _CertificateHash) {
+        QUIC_CREDENTIAL_CONFIG* thisStruct = this;
+        memset(thisStruct, 0, sizeof(QUIC_CREDENTIAL_CONFIG));
+        Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        Flags = _Flags;
+        CertificateHash = (QUIC_CERTIFICATE_HASH*)_CertificateHash;
     }
 };
 

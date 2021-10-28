@@ -82,7 +82,7 @@ CxPlatCertValidateChain(
     _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t CertFlags,
-    _In_ uint32_t IgnoreFlags,
+    _In_ uint32_t CredFlags,
     _Out_opt_ uint32_t* ValidationError
     );
 
@@ -133,4 +133,22 @@ CxPlatCertVerify(
     _In_reads_(SignatureLength)
         const uint8_t *Signature,
     _In_ size_t SignatureLength
+    );
+
+QUIC_STATUS
+CxPlatCertExtractPrivateKey(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_z_ const char* Password,
+    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
+    _Out_ uint32_t* PfxSize
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+CxPlatCertVerifyRawCertificate(
+    _In_reads_bytes_(X509CertLength) unsigned char* X509Cert,
+    _In_ int X509CertLength,
+    _In_opt_ const char* SNI,
+    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
+    _Out_opt_ uint32_t* PlatformVerificationError
     );

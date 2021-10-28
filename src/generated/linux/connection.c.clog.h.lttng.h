@@ -1009,12 +1009,31 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateResumed
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED
+// QuicTraceLogConnVerbose(
+            IndicateResumed,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_RESUMED");
+// arg1 = arg1 = Connection
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumed,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateResumptionTicketReceived
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
 // QuicTraceLogConnVerbose(
-            IndicateResumptionTicketReceived,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
+                IndicateResumptionTicketReceived,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumptionTicketReceived,

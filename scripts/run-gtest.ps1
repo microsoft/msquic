@@ -47,11 +47,17 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
+.Parameter EnableTcpipVerifier
+    Enables TCPIP verifier in user mode tests.
+
 .Parameter CodeCoverage
     Collects code coverage for this test run. Incompatible with -Debugger.
 
 .Parameter AZP
     Runs in Azure Pipelines mode.
+
+.Parameter ErrorsAsWarnings
+    Treats all errors as warnings.
 
 #>
 
@@ -101,13 +107,19 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$EnableTcpipVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
     [String]$PfxPath = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ErrorsAsWarnings = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -124,18 +136,18 @@ function Log($msg) {
 }
 
 function LogWrn($msg) {
-    if ($AZP) {
+    if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
     } else {
-        Write-Host "[$(Get-Date)] $msg"
+        Write-Warning "[$(Get-Date)] $msg"
     }
 }
 
 function LogErr($msg) {
-    if ($AZP) {
+    if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
     } else {
-        Write-Host "[$(Get-Date)] $msg"
+        Write-Warning "[$(Get-Date)] $msg"
     }
 }
 
@@ -426,7 +438,7 @@ function Wait-TestCase($TestCase) {
         }
         $TestCase.Process.WaitForExit()
         if ($TestCase.Process.ExitCode -ne 0) {
-            LogWrn "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
+            Log "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
             $ProcessCrashed = $true
         }
         if ($IsReadingStreams) {
@@ -557,6 +569,42 @@ function GetTestCases {
     $Tests.ToArray()
 }
 
+function Get-WindowsKitTool {
+    param (
+        [string]$Arch = "x86",
+        [Parameter(Mandatory = $true)]
+        [string]$Tool
+    )
+
+    $KitBinRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+    if (!(Test-Path $KitBinRoot)) {
+        Write-Error "Windows Kit Binary Folder not Found"
+        return ""
+    }
+
+    $FoundToolPath = $null
+    $FoundToolVersion = "0"
+
+    $Subfolders = Get-ChildItem -Path $KitBinRoot -Directory
+    foreach ($Subfolder in $Subfolders) {
+        $ToolPath = Join-Path $Subfolder "$Arch\$Tool"
+        if (Test-Path $ToolPath) {
+            $KitVersion = $Subfolder.Name
+
+            if ($KitVersion -gt $FoundToolVersion) {
+                $FoundToolVersion = $KitVersion
+                $FoundToolPath = $ToolPath
+            }
+        }
+    }
+
+    if ($null -ne $FoundToolPath) {
+        return $FoundToolPath
+    }
+    Write-Error "Failed to find tool"
+    return $null
+}
+
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
@@ -615,21 +663,31 @@ if ($Kernel -ne "") {
     }
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
+
+    $SignTool = Get-WindowsKitTool -Tool "signtool.exe"
+
     if (Test-Path c:\CodeSign.pfx) {
-        & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
-        & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
+        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
+        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
     }
     sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
-    verifier.exe /volatile /adddriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys /flags 0x9BB
+    verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
     if ($LastExitCode) {
         Log ("verifier.exe " + $LastExitCode)
     }
     net.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
+    }
+}
+
+if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
+    verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
+    if ($LastExitCode) {
+        Log ("verifier.exe " + $LastExitCode)
     }
 }
 
@@ -700,7 +758,12 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
-        verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
+        verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
+        verifier.exe /volatile /flags 0x0
+    }
+
+    if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
+        verifier.exe /volatile /removedriver afd.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
     }
 
@@ -708,7 +771,11 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Output can be found in $($LogDir)"
-        Write-Error "$($TestsFailed) test(s) failed."
+        if ($ErrorsAsWarnings) {
+            Write-Warning "$($TestsFailed) test(s) failed."
+        } else {
+            Write-Error "$($TestsFailed) test(s) failed."
+        }
     } elseif ($AZP -and $TestCount -eq 0) {
         Write-Error "Failed to run any tests."
     } else {

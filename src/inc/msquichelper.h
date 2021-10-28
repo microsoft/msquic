@@ -194,6 +194,10 @@ DumpMsQuicPerfCounters(
     printf("  WORK_OPER_QUEUE_DEPTH: %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH]);
     printf("  WORK_OPER_QUEUED:      %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_WORK_OPER_QUEUED]);
     printf("  WORK_OPER_COMPLETED:   %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_WORK_OPER_COMPLETED]);
+    printf("  PATH_VALIDATED:        %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_PATH_VALIDATED]);
+    printf("  PATH_FAILURE:          %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_PATH_FAILURE]);
+    printf("  SEND_STATELESS_RESET:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_SEND_STATELESS_RESET]);
+    printf("  SEND_STATELESS_RETRY:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_SEND_STATELESS_RETRY]);
 }
 
 //

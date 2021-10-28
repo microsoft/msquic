@@ -68,7 +68,7 @@ foreach ($Build in $AllBuilds) {
 
     $Headers = @(Join-Path $HeaderDir "msquic.h")
 
-    if ($Platform -eq "windows" -or $Platform -eq "uwp") {
+    if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
     } else {
         $Headers += Join-Path $HeaderDir  "msquic_posix.h"
@@ -79,7 +79,7 @@ foreach ($Build in $AllBuilds) {
 
     $Binaries = @()
 
-    if ($Platform -eq "windows" -or $Platform -eq "uwp") {
+    if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
     } elseif ($Platform -eq "linux") {
@@ -95,7 +95,7 @@ foreach ($Build in $AllBuilds) {
 
     $Libraries = @()
 
-    if ($Platform -eq "windows" -or $Platform -eq "uwp") {
+    if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Libraries += Join-Path $ArtifactsDir "msquic.lib"
     }
 
@@ -140,6 +140,9 @@ foreach ($Build in $AllBuilds) {
     # For now, package only x64 Release binaries
     if ($Platform -eq "linux" -and $BuildBaseName -like "*x64_Release*") {
         Write-Output "Packaging $Build"
-        scripts/make-packages.sh  --output $DistDir
+        $OldLoc = Get-Location
+        Set-Location $RootDir
+        & $RootDir/scripts/make-packages.sh --output $DistDir
+        Set-Location $OldLoc
     }
 }
