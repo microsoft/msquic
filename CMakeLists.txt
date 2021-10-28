@@ -134,12 +134,17 @@ option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_USE_DPDK "Uses DPDK instead of socket APIs" OFF)
+option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
 if (NOT QUIC_BUILD_SHARED)
     cmake_minimum_required(VERSION 3.20)
+endif()
+
+if (QUIC_USE_DPDK AND QUIC_USE_XDP)
+    message(FATAL_ERROR "Cannot use both DPDK and XDP")
 endif()
 
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
@@ -320,7 +325,7 @@ if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)
 endif()
 
-if(QUIC_USE_DPDK)
+if(QUIC_USE_DPDK OR QUIC_USE_XDP)
     list(APPEND QUIC_COMMON_DEFINES QUIC_NO_SHARED_DATAPATH=1)
 endif()
 

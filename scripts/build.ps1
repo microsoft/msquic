@@ -87,6 +87,9 @@ This script provides helpers for building msquic.
 .PARAMETER UseDpdk
     Use DPDK for the datapath instead of system socket APIs.
 
+.PARAMETER UseXdp
+    Use XDP for the datapath instead of system socket APIs.
+
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -188,6 +191,9 @@ param (
     [switch]$UseDpdk = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
@@ -232,6 +238,11 @@ if (!$IsWindows -And ($Platform -eq "gamecore_console")) {
 
 if ($Arch -ne "x64" -And ($Platform -eq "gamecore_console")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
+    exit
+}
+
+if ($UseDpdk && $UseXdp) {
+    Write-Error "[$(Get-Date)] Cannot use both DPDK and XDP"
     exit
 }
 
@@ -391,6 +402,9 @@ function CMake-Generate {
     }
     if ($UseDpdk) {
         $Arguments += " -DQUIC_USE_DPDK=on"
+    }
+    if ($UseXdp) {
+        $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"

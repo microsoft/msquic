@@ -24,6 +24,8 @@ if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
     if(QUIC_USE_DPDK)
         set(SOURCES ${SOURCES} datapath_raw.c ${CMAKE_CURRENT_BINARY_DIR}/datapath_raw_dpdk.o)
+    elseif(QUIC_USE_XDP)
+        set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_xdp.c)
     else()
         set(SOURCES ${SOURCES} datapath_winuser.c)
     endif()
@@ -65,6 +67,12 @@ if(QUIC_USE_DPDK)
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mbuf.lib
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_mempool.lib
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/lib/rte_ring.lib)
+elseif(QUIC_USE_XDP)
+    target_link_libraries(
+        platform
+        PUBLIC
+        inc
+        ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/msxdp.lib
 else()
     target_link_libraries(platform PUBLIC inc)
 endif()
@@ -79,6 +87,12 @@ if(QUIC_USE_DPDK)
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/artifacts/dpdk/include)
+elseif(QUIC_USE_XDP)
+    target_include_directories(
+        platform
+        PRIVATE
+        ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
+        ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
 else()
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
