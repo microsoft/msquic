@@ -7,10 +7,10 @@
 // QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "i2d_X509 failed");
-// arg2 = arg2 = "i2d_X509 failed"
+            "CFDataCreateWithBytesNoCopy failed");
+// arg2 = arg2 = "CFDataCreateWithBytesNoCopy failed"
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DARWIN_OPENSSL_C, LibraryError,
+TRACEPOINT_EVENT(CLOG_CERTIFICATES_DARWIN_C, LibraryError,
     TP_ARGS(
         const char *, arg2), 
     TP_FIELDS(
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_DARWIN_OPENSSL_C, LibraryError,
 // arg2 = arg2 = Status
 // arg3 = arg3 = "SecTrustCreateWithCertificates failed"
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DARWIN_OPENSSL_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_CERTIFICATES_DARWIN_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 

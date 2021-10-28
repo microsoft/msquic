@@ -596,6 +596,27 @@ tracepoint(CLOG_TLS_OPENSSL_C, TlsError , arg2, arg3);\
 
 
 
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "i2d_X509 failed");
+// arg2 = arg2 = "i2d_X509 failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_TLS_OPENSSL_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_TlsError
 
 
