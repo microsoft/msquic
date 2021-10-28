@@ -5,7 +5,7 @@
 
 Abstract:
 
-    QUIC DPDK Datapath Implementation (User Mode)
+    QUIC Raw (i.e. DPDK or XDP) Datapath Implementation (User Mode)
 
 --*/
 
@@ -16,6 +16,13 @@ Abstract:
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
+
+typedef enum PACKET_TYPE {
+    L3_TYPE_ICMPV4,
+    L3_TYPE_ICMPV6,
+    L4_TYPE_TCP,
+    L4_TYPE_UDP,
+} PACKET_TYPE;
 
 typedef struct CXPLAT_SOCKET {
 
@@ -110,7 +117,7 @@ CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Context
     )
 {
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(DPDK_RX_PACKET));
+    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(CXPLAT_RECV_DATA));
 }
 
 CXPLAT_RECV_PACKET*
@@ -118,7 +125,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(DPDK_RX_PACKET));
+    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(CXPLAT_RECV_DATA));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -132,33 +139,28 @@ CxPlatDataPathInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CleanUpHashTable = FALSE;
-    const uint32_t AdditionalBufferSize =
-        sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
+    const size_t DatapathSize = CxPlatDpRawGetDapathSize();
+    CXPLAT_FRE_ASSERT(DatapathSize > sizeof(CXPLAT_DATAPATH));
 
-    *NewDataPath = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
+    UNREFERENCED_PARAMETER(TcpCallbacks);
+
+    *NewDataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
     if (*NewDataPath == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            sizeof(CXPLAT_DATAPATH));
+            DatapathSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CxPlatZeroMemory(*NewDataPath, sizeof(CXPLAT_DATAPATH));
+    CxPlatZeroMemory(*NewDataPath, DatapathSize);
 
-    (*NewDataPath)->CoreCount = (uint16_t)CxPlatProcMaxCount();
-    (*NewDataPath)->TxRingBuffer = (struct rte_ring*)((*NewDataPath)+1);
     (*NewDataPath)->NextLocalPort = 32768;
     if (UdpCallbacks) {
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
-    if (TcpCallbacks) {
-        (*NewDataPath)->TcpHandlers = *TcpCallbacks;
-    }
-    CxPlatPoolInitialize(FALSE, AdditionalBufferSize, QUIC_POOL_DATAPATH, &(*NewDataPath)->AdditionalInfoPool);
 
-    CxPlatLockInitialize(&(*NewDataPath)->TxLock);
     CxPlatRwLockInitialize(&(*NewDataPath)->SocketsLock);
     if (!CxPlatHashtableInitializeEx(&(*NewDataPath)->Sockets, CXPLAT_HASH_MIN_SIZE)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -166,7 +168,7 @@ CxPlatDataPathInitialize(
     }
     CleanUpHashTable = TRUE;
 
-    Status = CxPlatDpRawInitialize(*NewDataPath);
+    Status = CxPlatDpRawInitialize(*NewDataPath, ClientRecvContextLength);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -179,8 +181,6 @@ Error:
                 CxPlatHashtableUninitialize(&(*NewDataPath)->Sockets);
             }
             CxPlatRwLockUninitialize(&(*NewDataPath)->SocketsLock);
-            CxPlatLockUninitialize(&(*NewDataPath)->TxLock);
-            CxPlatPoolUninitialize(&(*NewDataPath)->AdditionalInfoPool);
             CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
         }
@@ -201,8 +201,6 @@ CxPlatDataPathUninitialize(
     CxPlatDpRawUninitialize(Datapath);
     CxPlatHashtableUninitialize(&Datapath->Sockets);
     CxPlatRwLockUninitialize(&Datapath->SocketsLock);
-    CxPlatLockUninitialize(&Datapath->TxLock);
-    CxPlatPoolUninitialize(&Datapath->AdditionalInfoPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
@@ -394,16 +392,16 @@ void
 CxPlatDpRawRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
-        DPDK_RX_PACKET** Packets,
+        CXPLAT_RECV_DATA** Packets,
     _In_ uint16_t PacketCount
     )
 {
     for (uint16_t i = 0; i < PacketCount; i++) {
-        DPDK_RX_PACKET* Packet = Packets[i];
+        CXPLAT_RECV_DATA* Packet = Packets[i];
         CXPLAT_DBG_ASSERT(Packet->Next == NULL);
 
         if (Packet->Reserved == L4_TYPE_UDP) {
-            CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, &Packet->IP.LocalAddress);
+            CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, &Packet->Tuple->LocalAddress);
             if (Socket) {
                 QuicTraceEvent(
                     DatapathRecv,
@@ -411,9 +409,8 @@ CxPlatDpRawRxEthernet(
                     Socket,
                     Packet->BufferLength,
                     Packet->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress));
-                //Packet->PartitionIndex = CxPlatHashSimple(sizeof(Packet->IP), (uint8_t*)&Packet->IP) % Datapath->CoreCount;
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress));
                 Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
                 CxPlatRundownRelease(&Socket->Rundown);
                 continue;
@@ -430,7 +427,7 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    CxPlatDpRawRxFree((const DPDK_RX_PACKET*)RecvDataChain);
+    CxPlatDpRawRxFree((const CXPLAT_RECV_DATA*)RecvDataChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -442,7 +439,7 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-    return CxPlatDpRawTxAlloc(Socket->Datapath, MaxPacketSize);
+    return CxPlatDpRawTxAlloc(Socket->Datapath, ECN, MaxPacketSize);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -603,7 +600,7 @@ static
 void
 CxPlatDpRawParseUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Inout_ DPDK_RX_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const UDP_HEADER* Udp,
     _In_ uint16_t Length
@@ -615,8 +612,8 @@ CxPlatDpRawParseUdp(
     Length -= sizeof(UDP_HEADER);
     Packet->Reserved = L4_TYPE_UDP;
 
-    Packet->IP.RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
-    Packet->IP.LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
+    Packet->Tuple->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
+    Packet->Tuple->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = Length;
@@ -627,7 +624,7 @@ static
 void
 CxPlatDpRawParseIPv4(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Inout_ DPDK_RX_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const IPV4_HEADER* IP,
     _In_ uint16_t Length
@@ -638,10 +635,10 @@ CxPlatDpRawParseIPv4(
     }
     Length -= sizeof(IPV4_HEADER);
 
-    Packet->IP.RemoteAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->IP.RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
-    Packet->IP.LocalAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->IP.LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
+    Packet->Tuple->RemoteAddress.Ipv4.sin_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Tuple->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
+    Packet->Tuple->LocalAddress.Ipv4.sin_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Tuple->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == 17) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
@@ -653,7 +650,7 @@ static
 void
 CxPlatDpRawParseIPv6(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Inout_ DPDK_RX_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const IPV6_HEADER* IP,
     _In_ uint16_t Length
@@ -664,10 +661,10 @@ CxPlatDpRawParseIPv6(
     }
     Length -= sizeof(IPV6_HEADER);
 
-    Packet->IP.RemoteAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->IP.RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
-    Packet->IP.LocalAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->IP.LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
+    Packet->Tuple->RemoteAddress.Ipv6.sin6_family = AF_INET6;
+    CxPlatCopyMemory(&Packet->Tuple->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
+    Packet->Tuple->LocalAddress.Ipv6.sin6_family = AF_INET6;
+    CxPlatCopyMemory(&Packet->Tuple->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == 17) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
@@ -693,11 +690,21 @@ CxPlatDpRawParseIPv6(
     }
 }
 
+BOOLEAN IsEthernetBroadcast(_In_reads_(6) const uint8_t Address[6])
+{
+    return (Address[0] == 0xFF) && (Address[1] == 0xFF) && (Address[2] == 0xFF) && (Address[3] == 0xFF) && (Address[4] == 0xFF) && (Address[5] == 0xFF);
+}
+
+BOOLEAN IsEthernetMulticast(_In_reads_(6) const uint8_t Address[6])
+{
+    return (Address[0] & 0x01) == 0x01;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawParseEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Inout_ DPDK_RX_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const uint8_t* Payload,
     _In_ uint16_t Length
@@ -710,7 +717,7 @@ CxPlatDpRawParseEthernet(
 
     const ETHERNET_HEADER* Ethernet = (const ETHERNET_HEADER*)Payload;
 
-    if (memcmp(Datapath->SourceMac, Ethernet->Destination, sizeof(Ethernet->Destination)) != 0) {
+    if (IsEthernetBroadcast(Ethernet->Destination) || IsEthernetMulticast(Ethernet->Destination)) {
         return;
     }
 
