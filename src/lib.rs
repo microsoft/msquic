@@ -1442,7 +1442,7 @@ fn test_module() {
     let api = Api::new();
     let registration = Registration::new(&api, ptr::null());
 
-    let alpn = Buffer::from_str("h3");
+    let alpn = Buffer::from("h3");
     let configuration = Configuration::new(
         &registration,
         &alpn,
@@ -1454,7 +1454,11 @@ fn test_module() {
     configuration.load_credential(&cred_config);
 
     let connection = Connection::new(&registration);
-    connection.open(&registration, test_conn_callback, &connection)
+    connection.open(
+        &registration,
+        test_conn_callback,
+        &connection as *const Connection as *const c_void,
+    )
     /*_connection.start(&configuration, "google.com", 443);
 
     let duration = std::time::Duration::from_millis(1000);
