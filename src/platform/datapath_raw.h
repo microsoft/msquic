@@ -76,7 +76,7 @@ typedef struct CXPLAT_SEND_DATA {
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDpdkInitialize(
+CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
@@ -85,7 +85,7 @@ CxPlatDpdkInitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpdkUninitialize(
+CxPlatDpRawUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
@@ -94,7 +94,7 @@ CxPlatDpdkUninitialize(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkParseEthernet(
+CxPlatDpRawParseEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ DPDK_RX_PACKET* Packet,
     _In_reads_bytes_(Length)
@@ -107,7 +107,7 @@ CxPlatDpdkParseEthernet(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkRxEthernet(
+CxPlatDpRawRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
         DPDK_RX_PACKET** Packets,
@@ -119,7 +119,7 @@ CxPlatDpdkRxEthernet(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkRxFree(
+CxPlatDpRawRxFree(
     _In_opt_ const DPDK_RX_PACKET* PacketChain
     );
 
@@ -128,7 +128,7 @@ CxPlatDpdkRxFree(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
-CxPlatDpdkTxAlloc(
+CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t MaxPacketSize
     );
@@ -138,7 +138,7 @@ CxPlatDpdkTxAlloc(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkTxFree(
+CxPlatDpRawTxFree(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
@@ -147,6 +147,6 @@ CxPlatDpdkTxFree(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkTxEnqueue(
+CxPlatDpRawTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     );

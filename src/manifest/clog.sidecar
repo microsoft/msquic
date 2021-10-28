@@ -8633,66 +8633,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathRecv": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-      "UniqueId": "DatapathRecv",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "DatapathSend": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-      "UniqueId": "DatapathSend",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg7"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] UDP send segmentation helper socket failed to open, 0x%x",
@@ -8789,6 +8729,34 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "DatapathRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+      "UniqueId": "DatapathRecv",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "DatapathCreated": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
@@ -8817,6 +8785,38 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "DatapathSend": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+      "UniqueId": "DatapathSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg7"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -12941,14 +12941,6 @@
         "TraceID": "TlsLogSecret"
       },
       {
-        "UniquenessHash": "3b8a506d-ede0-3c3b-7c31-83127acebfc6",
-        "TraceID": "DatapathRecv"
-      },
-      {
-        "UniquenessHash": "20cf52f5-ef36-a45b-6a54-29e5eaac7f19",
-        "TraceID": "DatapathSend"
-      },
-      {
         "UniquenessHash": "78b2984b-b937-3b8e-7684-9339d9267135",
         "TraceID": "DatapathOpenUdpSocketFailed"
       },
@@ -12977,12 +12969,20 @@
         "TraceID": "DatapathErrorStatus"
       },
       {
+        "UniquenessHash": "3b8a506d-ede0-3c3b-7c31-83127acebfc6",
+        "TraceID": "DatapathRecv"
+      },
+      {
         "UniquenessHash": "1cde4174-4172-15b7-b59b-dcbb6410b43a",
         "TraceID": "DatapathCreated"
       },
       {
         "UniquenessHash": "f5328bae-6bcb-72fc-a6fd-89b44261a85b",
         "TraceID": "DatapathDestroyed"
+      },
+      {
+        "UniquenessHash": "20cf52f5-ef36-a45b-6a54-29e5eaac7f19",
+        "TraceID": "DatapathSend"
       },
       {
         "UniquenessHash": "6eeae539-95db-bea9-7e36-8635006dae40",

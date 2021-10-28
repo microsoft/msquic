@@ -13,9 +13,9 @@ set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
 
 if(QUIC_USE_DPDK)
     add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk_clang.o
-        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk_clang.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_dpdk_clang.o -c -msse4 -g -Wno-extern-initializer -Wno-microsoft-anon-tag
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/datapath_dpdk_clang.c
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datapath_raw_dpdk.o
+        COMMAND clang ${CMAKE_CURRENT_SOURCE_DIR}/datapath_raw_dpdk.c -I${PROJECT_SOURCE_DIR}/src/inc -I${PROJECT_SOURCE_DIR}/artifacts/dpdk/include -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -I${QUIC_BUILD_DIR}/inc -o datapath_raw_dpdk.o -c -msse4 -g -Wno-extern-initializer -Wno-microsoft-anon-tag
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/datapath_raw_dpdk.c
         DEPENDS MsQuicEtw_HeaderBuild
     )
 endif()
@@ -23,7 +23,7 @@ endif()
 if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
     if(QUIC_USE_DPDK)
-        set(SOURCES ${SOURCES} datapath_dpdk.c ${CMAKE_CURRENT_BINARY_DIR}/datapath_dpdk_clang.o)
+        set(SOURCES ${SOURCES} datapath_raw.c ${CMAKE_CURRENT_BINARY_DIR}/datapath_raw_dpdk.o)
     else()
         set(SOURCES ${SOURCES} datapath_winuser.c)
     endif()

@@ -9,9 +9,9 @@ Abstract:
 
 --*/
 
-#include "datapath_dpdk.h"
+#include "datapath_raw.h"
 #ifdef QUIC_CLOG
-#include "datapath_dpdk.c.clog.h"
+#include "datapath_raw.c.clog.h"
 #endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
@@ -31,7 +31,7 @@ typedef struct CXPLAT_SOCKET {
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkPrependPacketHeaders(
+CxPlatDpRawPrependPacketHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -166,7 +166,7 @@ CxPlatDataPathInitialize(
     }
     CleanUpHashTable = TRUE;
 
-    Status = CxPlatDpdkInitialize(*NewDataPath);
+    Status = CxPlatDpRawInitialize(*NewDataPath);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -198,7 +198,7 @@ CxPlatDataPathUninitialize(
     if (Datapath == NULL) {
         return;
     }
-    CxPlatDpdkUninitialize(Datapath);
+    CxPlatDpRawUninitialize(Datapath);
     CxPlatHashtableUninitialize(&Datapath->Sockets);
     CxPlatRwLockUninitialize(&Datapath->SocketsLock);
     CxPlatLockUninitialize(&Datapath->TxLock);
@@ -391,7 +391,7 @@ CxPlatSocketGetRemoteAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkRxEthernet(
+CxPlatDpRawRxEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
         DPDK_RX_PACKET** Packets,
@@ -420,7 +420,7 @@ CxPlatDpdkRxEthernet(
             }
         }
 
-        CxPlatDpdkRxFree(Packet);
+        CxPlatDpRawRxFree(Packet);
     }
 }
 
@@ -430,7 +430,7 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    CxPlatDpdkRxFree((const DPDK_RX_PACKET*)RecvDataChain);
+    CxPlatDpRawRxFree((const DPDK_RX_PACKET*)RecvDataChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -442,7 +442,7 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-    return CxPlatDpdkTxAlloc(Socket->Datapath, MaxPacketSize);
+    return CxPlatDpRawTxAlloc(Socket->Datapath, MaxPacketSize);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -463,7 +463,7 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CxPlatDpdkTxFree(SendData);
+    CxPlatDpRawTxFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -504,8 +504,8 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-    CxPlatDpdkPrependPacketHeaders(Socket, LocalAddress, RemoteAddress, SendData);
-    CxPlatDpdkTxEnqueue(SendData);
+    CxPlatDpRawPrependPacketHeaders(Socket, LocalAddress, RemoteAddress, SendData);
+    CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -601,7 +601,7 @@ typedef struct UDP_HEADER {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
-CxPlatDpdkParseUdp(
+CxPlatDpRawParseUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ DPDK_RX_PACKET* Packet,
     _In_reads_bytes_(Length)
@@ -625,7 +625,7 @@ CxPlatDpdkParseUdp(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
-CxPlatDpdkParseIPv4(
+CxPlatDpRawParseIPv4(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ DPDK_RX_PACKET* Packet,
     _In_reads_bytes_(Length)
@@ -644,14 +644,14 @@ CxPlatDpdkParseIPv4(
     CxPlatCopyMemory(&Packet->IP.LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == 17) {
-        CxPlatDpdkParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
+        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
-CxPlatDpdkParseIPv6(
+CxPlatDpRawParseIPv6(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ DPDK_RX_PACKET* Packet,
     _In_reads_bytes_(Length)
@@ -670,7 +670,7 @@ CxPlatDpdkParseIPv6(
     CxPlatCopyMemory(&Packet->IP.LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == 17) {
-        CxPlatDpdkParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
+        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
     } else if (IP->NextHeader != 59) {
         const uint8_t* Data = IP->Data;
         do {
@@ -685,7 +685,7 @@ CxPlatDpdkParseIPv6(
             Length -= ExtLength;
             Data += ExtLength;
             if (Extension->NextHeader == 17) {
-                CxPlatDpdkParseUdp(Datapath, Packet, (UDP_HEADER*)Extension->Data, Length);
+                CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)Extension->Data, Length);
             } else if (Extension->NextHeader == 59) {
                 return;
             }
@@ -695,7 +695,7 @@ CxPlatDpdkParseIPv6(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkParseEthernet(
+CxPlatDpRawParseEthernet(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ DPDK_RX_PACKET* Packet,
     _In_reads_bytes_(Length)
@@ -715,16 +715,16 @@ CxPlatDpdkParseEthernet(
     }
 
     if (Ethernet->Type == 0x0008) { // IPv4
-        CxPlatDpdkParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
+        CxPlatDpRawParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
     } else if (Ethernet->Type == 0xDD86) { // IPv6
-        CxPlatDpdkParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
+        CxPlatDpRawParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
     }
 }
 
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkPrependPacketHeaders(
+CxPlatDpRawPrependPacketHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,

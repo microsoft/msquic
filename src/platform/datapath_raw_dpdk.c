@@ -12,9 +12,9 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
-#include "datapath_dpdk.h"
+#include "datapath_raw.h"
 #ifdef QUIC_CLOG
-#include "datapath_dpdk_clang.c.clog.h"
+#include "datapath_raw_dpdk.c.clog.h"
 #endif
 
 #include <rte_memory.h>
@@ -105,7 +105,7 @@ CxPlatDpdkReadConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDpdkInitialize(
+CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -154,7 +154,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpdkUninitialize(
+CxPlatDpRawUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -435,7 +435,7 @@ CxPlatDpdkRx(
     for (uint16_t i = 0; i < BuffersCount; i++) {
         struct rte_mbuf* Buffer = (struct rte_mbuf*)Buffers[i];
         CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
-        CxPlatDpdkParseEthernet(
+        CxPlatDpRawParseEthernet(
             Datapath,
             &Packet,
             ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
@@ -456,13 +456,13 @@ CxPlatDpdkRx(
     }
 
     if (likely(PacketCount)) {
-        CxPlatDpdkRxEthernet(Datapath, (DPDK_RX_PACKET**)Buffers, PacketCount);
+        CxPlatDpRawRxEthernet(Datapath, (DPDK_RX_PACKET**)Buffers, PacketCount);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkRxFree(
+CxPlatDpRawRxFree(
     _In_opt_ const DPDK_RX_PACKET* PacketChain
     )
 {
@@ -476,7 +476,7 @@ CxPlatDpdkRxFree(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
-CxPlatDpdkTxAlloc(
+CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t MaxPacketSize
     )
@@ -500,7 +500,7 @@ CxPlatDpdkTxAlloc(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkTxFree(
+CxPlatDpRawTxFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -510,7 +510,7 @@ CxPlatDpdkTxFree(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpdkTxEnqueue(
+CxPlatDpRawTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {

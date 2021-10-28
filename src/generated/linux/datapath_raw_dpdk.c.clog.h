@@ -1,15 +1,15 @@
 #include <clog.h>
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_DATAPATH_DPDK_CLANG_C
+#define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_DPDK_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "datapath_dpdk_clang.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_DATAPATH_DPDK_CLANG_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_DATAPATH_DPDK_CLANG_C
+#define TRACEPOINT_INCLUDE "datapath_raw_dpdk.c.clog.h.lttng.h"
+#if !defined(DEF_CLOG_DATAPATH_RAW_DPDK_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define DEF_CLOG_DATAPATH_RAW_DPDK_C
 #include <lttng/tracepoint.h>
 #define __int64 __int64_t
-#include "datapath_dpdk_clang.c.clog.h.lttng.h"
+#include "datapath_raw_dpdk.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
 #ifndef _clog_MACRO_QuicTraceEvent
@@ -35,7 +35,7 @@ extern "C" {
 // arg3 = arg3 = "CxPlatThreadCreate"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_DPDK_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
@@ -320,7 +320,7 @@ tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryErrorStatus , arg2, arg3);\
 // arg2 = arg2 = "No room in DPDK TX ring buffer"
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryError , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_DPDK_C, LibraryError , arg2);\
 
 #endif
 
@@ -331,5 +331,5 @@ tracepoint(CLOG_DATAPATH_DPDK_CLANG_C, LibraryError , arg2);\
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_datapath_dpdk_clang.c.clog.h.c"
+#include "quic.clog_datapath_raw_dpdk.c.clog.h.c"
 #endif

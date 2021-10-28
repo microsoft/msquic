@@ -4,4 +4,4 @@
 #else
 #define TRACEPOINT_DEFINE
 #endif
-#include "datapath_dpdk.c.clog.h"
+#include "datapath_raw_dpdk.c.clog.h"
