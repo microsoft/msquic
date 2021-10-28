@@ -1088,7 +1088,6 @@ impl Api {
 
 impl Drop for Api {
     fn drop(&mut self) {
-        println!("Drop API");
         unsafe { MsQuicClose(self.table) };
     }
 }
@@ -1113,7 +1112,6 @@ impl Registration {
 
 impl Drop for Registration {
     fn drop(&mut self) {
-        println!("Drop Reg");
         unsafe { ((*self.table).registration_close)(self.handle) };
     }
 }
@@ -1161,7 +1159,6 @@ impl Configuration {
 
 impl Drop for Configuration {
     fn drop(&mut self) {
-        println!("Drop Cnf");
         unsafe { ((*self.table).configuration_close)(self.handle) };
     }
 }
@@ -1257,7 +1254,6 @@ impl Connection {
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        println!("Drop Con");
         unsafe { ((*self.table).connection_close)(self.handle) };
     }
 }
@@ -1387,7 +1383,6 @@ impl Stream {
 
 impl Drop for Stream {
     fn drop(&mut self) {
-        println!("Drop Str");
         unsafe { ((*self.table).stream_close)(self.handle) };
     }
 }
