@@ -787,7 +787,7 @@ struct ApiTable {
         handle: Handle,
         level: ParameterLevel,
         param: u32,
-        buffer_length: *const u32,
+        buffer_length: *mut u32,
         buffer: *const c_void,
     ) -> u32,
     registration_open:
@@ -1069,7 +1069,7 @@ impl Api {
                 std::ptr::null(),
                 PARAM_LEVEL_GLOBAL,
                 PARAM_GLOBAL_PERF_COUNTERS,
-                (&perf_length) as *const u32,
+                (&perf_length) as *const u32 as *mut u32,
                 perf.counters.as_mut_ptr() as *const c_void,
             )
         };
@@ -1217,7 +1217,7 @@ impl Connection {
                 self.handle,
                 PARAM_LEVEL_CONNECTION,
                 PARAM_CONN_STATISTICS,
-                (&stat_size_mut) as *const usize as *const u32,
+                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
                 stat_buffer.as_mut_ptr() as *const c_void,
             )
         };
@@ -1355,23 +1355,6 @@ impl Stream {
         if Status::failed(status) {
             panic!("StreamSend failure 0x{:x}", status);
         }
-    }
-
-    pub fn get_perf(&self) -> QuicPerformance {
-        let mut perf = QuicPerformance {
-            counters: [0; PERF_COUNTER_MAX as usize],
-        };
-        let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
-        unsafe {
-            ((*self.table).get_param)(
-                std::ptr::null(),
-                PARAM_LEVEL_GLOBAL,
-                PARAM_GLOBAL_PERF_COUNTERS,
-                (&perf_length) as *const u32,
-                perf.counters.as_mut_ptr() as *const c_void,
-            )
-        };
-        perf
     }
 
     pub fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
