@@ -241,7 +241,7 @@ if ($Arch -ne "x64" -And ($Platform -eq "gamecore_console")) {
     exit
 }
 
-if ($UseDpdk && $UseXdp) {
+if ($UseDpdk -And $UseXdp) {
     Write-Error "[$(Get-Date)] Cannot use both DPDK and XDP"
     exit
 }
