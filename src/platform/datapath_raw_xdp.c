@@ -67,6 +67,22 @@ CXPLAT_STATIC_ASSERT(
     sizeof(XDP_TX_PACKET) <= sizeof(XDP_RX_PACKET),
     "Code assumes memory allocated for RX is enough for TX");
 
+CXPLAT_RECV_DATA*
+CxPlatDataPathRecvPacketToRecvData(
+    _In_ const CXPLAT_RECV_PACKET* const Context
+    )
+{
+    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
+}
+
+CXPLAT_RECV_PACKET*
+CxPlatDataPathRecvDataToRecvPacket(
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    )
+{
+    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
+}
+
 CXPLAT_THREAD_CALLBACK(CxPlatXdpMainThread, Context);
 static int CxPlatXdpWorkerThread(_In_ void* Context);
 
