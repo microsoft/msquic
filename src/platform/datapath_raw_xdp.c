@@ -16,6 +16,7 @@ Abstract:
 #include "datapath_raw_xdp.c.clog.h"
 #endif
 
+#include <afxdp.h>
 #include <msxdp.h>
 #include <stdio.h>
 

@@ -50,7 +50,6 @@ typedef struct DPDK_DATAPATH {
     struct rte_ring* TxRingBuffer;
 
     // Constants
-    uint16_t DpdkCpu;
     char DeviceName[32];
 
 } DPDK_DATAPATH;
@@ -63,11 +62,9 @@ typedef struct DPDK_RX_PACKET {
 } DPDK_RX_PACKET;
 
 typedef struct DPDK_TX_PACKET {
-
     CXPLAT_SEND_DATA;
     struct rte_mbuf* Mbuf;
     DPDK_DATAPATH* Dpdk;
-
 } DPDK_TX_PACKET;
 
 CXPLAT_STATIC_ASSERT(
@@ -76,6 +73,22 @@ CXPLAT_STATIC_ASSERT(
 
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context);
 static int CxPlatDpdkWorkerThread(_In_ void* Context);
+
+CXPLAT_RECV_DATA*
+CxPlatDataPathRecvPacketToRecvData(
+    _In_ const CXPLAT_RECV_PACKET* const Context
+    )
+{
+    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(DPDK_RX_PACKET));
+}
+
+CXPLAT_RECV_PACKET*
+CxPlatDataPathRecvDataToRecvPacket(
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    )
+{
+    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(DPDK_RX_PACKET));
+}
 
 void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
 {
@@ -116,7 +129,7 @@ CxPlatDpdkReadConfig(
     Dpdk->ClientIP.si_family = AF_INET;
     Dpdk->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
 
-    Dpdk->DpdkCpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+    Dpdk->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
 
     FILE *File = fopen("dpdk.ini", "r");
     if (File == NULL) {
@@ -143,7 +156,7 @@ CxPlatDpdkReadConfig(
         } else if (strcmp(Line, "ClientIP") == 0) {
              QuicAddrFromString(Value, 0, &Dpdk->ClientIP);
         } else if (strcmp(Line, "CPU") == 0) {
-             Dpdk->DpdkCpu = (uint16_t)strtoul(Value, NULL, 10);
+             Dpdk->Cpu = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "DeviceName") == 0) {
              strcpy(Dpdk->DeviceName, Value);
         }
@@ -173,9 +186,10 @@ CxPlatDpRawInitialize(
         0, 0, "DpdkMain", CxPlatDpdkMainThread, Dpdk
     };
     const uint32_t AdditionalBufferSize =
-        sizeof(CXPLAT_RECV_DATA) + ClientRecvContextLength;
+        sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
     CxPlatDpdkReadConfig(Dpdk);
+    CxPlatDpRawGenerateCpuTable(Datapath);
 
     BOOLEAN CleanUpThread = FALSE;
     CxPlatEventInitialize(&Dpdk->StartComplete, TRUE, FALSE);
@@ -238,7 +252,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Context;
 
     char DpdpCpuStr[16];
-    sprintf(DpdpCpuStr, "%hu", Dpdk->DpdkCpu);
+    sprintf(DpdpCpuStr, "%hu", Dpdk->Cpu);
 
     const char* argv[] = {
         "msquic",
@@ -426,7 +440,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         goto Error;
     }
 
-    printf("\nStarting Port %hu, MAC: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
+    printf("\nStarting Port %hu, %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
             Dpdk->Port,
             addr.addr_bytes[0], addr.addr_bytes[1], addr.addr_bytes[2],
             addr.addr_bytes[3], addr.addr_bytes[4], addr.addr_bytes[5]);
@@ -493,6 +507,7 @@ CxPlatDpdkRx(
     uint16_t PacketCount = 0;
     for (uint16_t i = 0; i < BuffersCount; i++) {
         struct rte_mbuf* Buffer = (struct rte_mbuf*)Buffers[i];
+        Packet.Buffer = NULL;
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Dpdk,
             (CXPLAT_RECV_DATA*)&Packet,
@@ -503,7 +518,6 @@ CxPlatDpdkRx(
         if (likely(Packet.Buffer && (NewPacket = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool)) != NULL)) {
             CxPlatCopyMemory(NewPacket, &Packet, sizeof(DPDK_RX_PACKET));
             NewPacket->Allocated = TRUE;
-            NewPacket->PartitionIndex = Core;
             NewPacket->Mbuf = Buffer;
             NewPacket->OwnerPool = &Dpdk->AdditionalInfoPool;
             NewPacket->Tuple = &NewPacket->IP;

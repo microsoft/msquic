@@ -14,6 +14,8 @@ Abstract:
 #include "datapath_raw.c.clog.h"
 #endif
 
+#include <stdio.h>
+
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
@@ -112,22 +114,6 @@ CxPlatTryRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Datapath->SocketsLock);
 }
 
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(CXPLAT_RECV_DATA));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(CXPLAT_RECV_DATA));
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -202,6 +188,26 @@ CxPlatDataPathUninitialize(
     CxPlatHashtableUninitialize(&Datapath->Sockets);
     CxPlatRwLockUninitialize(&Datapath->SocketsLock);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawGenerateCpuTable(
+    _Inout_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    Datapath->NumaNode = (uint8_t)CxPlatProcessorInfo[Datapath->Cpu].NumaNode;
+
+    //
+    // Build up the set of CPUs that are on the same NUMA node as this one.
+    //
+    Datapath->CpuTableSize = 0;
+    for (uint16_t i = 0; i < CxPlatProcMaxCount(); i++) {
+        if (i != Datapath->Cpu && // Skip raw layer's CPU
+            CxPlatProcessorInfo[i].NumaNode == Datapath->NumaNode) {
+            Datapath->CpuTable[Datapath->CpuTableSize++] = i;
+        }
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -291,7 +297,7 @@ CxPlatSocketCreateUdp(
         (*NewSocket)->RemotePort = 0;
         (*NewSocket)->LocalAddress = Datapath->ServerIP;
     }
-    if (Config->LocalAddress) {
+    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
         (*NewSocket)->LocalAddress.Ipv4.sin_port =
             Config->LocalAddress->Ipv4.sin_port;
     } else {
@@ -617,6 +623,10 @@ CxPlatDpRawParseUdp(
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = Length;
+
+    //const uint32_t Hash = CxPlatHashSimple(sizeof(*Packet->Tuple), (uint8_t*)Packet->Tuple);
+    const uint32_t Hash = Udp->SourcePort + Udp->DestinationPort;
+    Packet->PartitionIndex = Datapath->CpuTable[Hash % Datapath->CpuTableSize];
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

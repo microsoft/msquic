@@ -23,6 +23,12 @@ typedef struct CXPLAT_DATAPATH {
     QUIC_ADDR ServerIP;
     QUIC_ADDR ClientIP;
 
+    // RSS stuff
+    uint16_t Cpu;
+    uint8_t NumaNode;
+    uint8_t CpuTableSize;
+    uint16_t CpuTable[64];
+
 } CXPLAT_DATAPATH;
 
 typedef struct CXPLAT_SEND_DATA {
@@ -58,6 +64,15 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
+// Upcall from raw datapath to generate the CPU table used for RSS.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawGenerateCpuTable(
+    _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
 //
