@@ -19,101 +19,6 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
-typedef enum PACKET_TYPE {
-    L3_TYPE_ICMPV4,
-    L3_TYPE_ICMPV6,
-    L4_TYPE_TCP,
-    L4_TYPE_UDP,
-} PACKET_TYPE;
-
-typedef struct CXPLAT_SOCKET {
-
-    CXPLAT_HASHTABLE_ENTRY Entry;
-    CXPLAT_RUNDOWN_REF Rundown;
-    CXPLAT_DATAPATH* Datapath;
-    void* CallbackContext;
-    QUIC_ADDR LocalAddress;
-    uint16_t RemotePort;
-
-} CXPLAT_SOCKET;
-
-static
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatDpRawPrependPacketHeaders(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData
-    );
-
-BOOLEAN
-CxPlatCheckSocket(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t SourcePort // Socket's local port
-    )
-{
-    BOOLEAN Found = FALSE;
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CxPlatRwLockAcquireShared(&Datapath->SocketsLock);
-    Found = CxPlatHashtableLookup(&Datapath->Sockets, SourcePort, &Context) != NULL;
-    CxPlatRwLockReleaseShared(&Datapath->SocketsLock);
-    return Found;
-}
-
-CXPLAT_SOCKET*
-CxPlatGetSocket(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const QUIC_ADDR* LocalAddress
-    )
-{
-    CXPLAT_SOCKET* Socket = NULL;
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CXPLAT_HASHTABLE_ENTRY* Entry;
-    CxPlatRwLockAcquireShared(&Datapath->SocketsLock);
-    Entry = CxPlatHashtableLookup(&Datapath->Sockets, LocalAddress->Ipv4.sin_port, &Context);
-    while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
-        if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress)) {
-            if (CxPlatRundownAcquire(&Temp->Rundown)) {
-                Socket = Temp;
-            }
-            break;
-        }
-        Entry = CxPlatHashtableLookupNext(&Datapath->Sockets, &Context);
-    }
-    CxPlatRwLockReleaseShared(&Datapath->SocketsLock);
-    return Socket;
-}
-
-BOOLEAN
-CxPlatTryAddSocket(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_SOCKET* Socket
-    )
-{
-    BOOLEAN Success = FALSE;
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CxPlatRwLockAcquireExclusive(&Datapath->SocketsLock);
-    if (!CxPlatHashtableLookup(&Datapath->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context)) {
-        CxPlatHashtableInsert(&Datapath->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, NULL);
-        Success = TRUE;
-    }
-    CxPlatRwLockReleaseExclusive(&Datapath->SocketsLock);
-    return Success;
-}
-
-void
-CxPlatTryRemoveSocket(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_SOCKET* Socket
-    )
-{
-    CxPlatRwLockAcquireExclusive(&Datapath->SocketsLock);
-    CxPlatHashtableRemove(&Datapath->Sockets, &Socket->Entry, NULL);
-    CxPlatRwLockReleaseExclusive(&Datapath->SocketsLock);
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -124,7 +29,6 @@ CxPlatDataPathInitialize(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN CleanUpHashTable = FALSE;
     const size_t DatapathSize = CxPlatDpRawGetDapathSize();
     CXPLAT_FRE_ASSERT(DatapathSize > sizeof(CXPLAT_DATAPATH));
 
@@ -142,20 +46,18 @@ CxPlatDataPathInitialize(
     }
     CxPlatZeroMemory(*NewDataPath, DatapathSize);
 
-    (*NewDataPath)->NextLocalPort = 32768;
     if (UdpCallbacks) {
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
 
-    CxPlatRwLockInitialize(&(*NewDataPath)->SocketsLock);
-    if (!CxPlatHashtableInitializeEx(&(*NewDataPath)->Sockets, CXPLAT_HASH_MIN_SIZE)) {
+    if (!CxPlatSockPoolInitialize(&(*NewDataPath)->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CleanUpHashTable = TRUE;
 
     Status = CxPlatDpRawInitialize(*NewDataPath, ClientRecvContextLength);
     if (QUIC_FAILED(Status)) {
+        CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
         goto Error;
     }
 
@@ -163,10 +65,6 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (*NewDataPath != NULL) {
-            if (CleanUpHashTable) {
-                CxPlatHashtableUninitialize(&(*NewDataPath)->Sockets);
-            }
-            CxPlatRwLockUninitialize(&(*NewDataPath)->SocketsLock);
             CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
         }
@@ -185,8 +83,7 @@ CxPlatDataPathUninitialize(
         return;
     }
     CxPlatDpRawUninitialize(Datapath);
-    CxPlatHashtableUninitialize(&Datapath->Sockets);
-    CxPlatRwLockUninitialize(&Datapath->SocketsLock);
+    CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
@@ -291,10 +188,12 @@ CxPlatSocketCreateUdp(
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
     if (Config->RemoteAddress) {
-        (*NewSocket)->RemotePort = Config->RemoteAddress->Ipv4.sin_port;
+        (*NewSocket)->Connected = TRUE;
+        (*NewSocket)->RemoteAddress = *Config->RemoteAddress;
         (*NewSocket)->LocalAddress = Datapath->ClientIP;
     } else {
-        (*NewSocket)->RemotePort = 0;
+        (*NewSocket)->Connected = FALSE;
+        CxPlatZeroMemory(&(*NewSocket)->RemoteAddress, sizeof(QUIC_ADDR));
         (*NewSocket)->LocalAddress = Datapath->ServerIP;
     }
     if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
@@ -302,10 +201,10 @@ CxPlatSocketCreateUdp(
             Config->LocalAddress->Ipv4.sin_port;
     } else {
         (*NewSocket)->LocalAddress.Ipv4.sin_port =
-            CxPlatByteSwapUint16(InterlockedIncrement16((short*)&Datapath->NextLocalPort));
+            CxPlatByteSwapUint16(CxPlatSocketPoolGetNextLocalPort(&Datapath->SocketPool));
     }
 
-    if (!CxPlatTryAddSocket(Datapath, *NewSocket)) {
+    if (!CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket)) {
         Status = QUIC_STATUS_ADDRESS_IN_USE;
         goto Error;
     }
@@ -354,7 +253,7 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    CxPlatTryRemoveSocket(Socket->Datapath, Socket);
+    CxPlatTryRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
@@ -385,12 +284,7 @@ CxPlatSocketGetRemoteAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    if (Socket->RemotePort != 0) {
-        *Address = Socket->Datapath->ServerIP;
-        Address->Ipv4.sin_port = Socket->RemotePort;
-    } else {
-        CxPlatZeroMemory(Address, sizeof(QUIC_ADDR));
-    }
+    *Address = Socket->RemoteAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -407,7 +301,7 @@ CxPlatDpRawRxEthernet(
         CXPLAT_DBG_ASSERT(Packet->Next == NULL);
 
         if (Packet->Reserved == L4_TYPE_UDP) {
-            CXPLAT_SOCKET* Socket = CxPlatGetSocket(Datapath, &Packet->Tuple->LocalAddress);
+            CXPLAT_SOCKET* Socket = CxPlatGetSocket(&Datapath->SocketPool, &Packet->Tuple->LocalAddress);
             if (Socket) {
                 QuicTraceEvent(
                     DatapathRecv,
@@ -507,7 +401,7 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-    CxPlatDpRawPrependPacketHeaders(Socket, LocalAddress, RemoteAddress, SendData);
+    CxPlatFramingWriteHeaders(Socket, LocalAddress, RemoteAddress, &SendData->Buffer);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
@@ -542,6 +436,99 @@ CxPlatSocketGetParam(
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+//
+// Raw Socket Interface
+//
+
+BOOLEAN
+CxPlatSockPoolInitialize(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    )
+{
+    if (!CxPlatHashtableInitializeEx(&Pool->Sockets, CXPLAT_HASH_MIN_SIZE)) {
+        return FALSE;
+    }
+    CxPlatRwLockInitialize(&Pool->Lock);
+    Pool->NextLocalPort = 32768;
+    return TRUE;
+}
+
+void
+CxPlatSockPoolUninitialize(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    )
+{
+    CxPlatRwLockUninitialize(&Pool->Lock);
+    CxPlatHashtableUninitialize(&Pool->Sockets);
+}
+
+BOOLEAN
+CxPlatCheckSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ uint16_t SourcePort // Socket's local port
+    )
+{
+    BOOLEAN Found = FALSE;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CxPlatRwLockAcquireShared(&Pool->Lock);
+    Found = CxPlatHashtableLookup(&Pool->Sockets, SourcePort, &Context) != NULL;
+    CxPlatRwLockReleaseShared(&Pool->Lock);
+    return Found;
+}
+
+CXPLAT_SOCKET*
+CxPlatGetSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ const QUIC_ADDR* LocalAddress
+    )
+{
+    CXPLAT_SOCKET* Socket = NULL;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+    CxPlatRwLockAcquireShared(&Pool->Lock);
+    Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
+    while (Entry != NULL) {
+        CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress)) {
+            if (CxPlatRundownAcquire(&Temp->Rundown)) {
+                Socket = Temp;
+            }
+            break;
+        }
+        Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
+    }
+    CxPlatRwLockReleaseShared(&Pool->Lock);
+    return Socket;
+}
+
+BOOLEAN
+CxPlatTryAddSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    BOOLEAN Success = FALSE;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+    if (!CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context)) {
+        CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, NULL);
+        Success = TRUE;
+    }
+    CxPlatRwLockReleaseExclusive(&Pool->Lock);
+    return Success;
+}
+
+void
+CxPlatTryRemoveSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+    CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
+    CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
 //
@@ -738,40 +725,35 @@ CxPlatDpRawParseEthernet(
     }
 }
 
-static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpRawPrependPacketHeaders(
-    _In_ CXPLAT_SOCKET* Socket,
+CxPlatFramingWriteHeaders(
+    _In_ const CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData
+    _Inout_ QUIC_BUFFER* Buffer
     )
 {
-    UDP_HEADER* UDP = (UDP_HEADER*)(SendData->Buffer.Buffer - sizeof(UDP_HEADER));
+    UDP_HEADER* UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
     IPV4_HEADER* IP = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
     ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IP) - sizeof(ETHERNET_HEADER));
 
     Ethernet->Type = 0x0008; // IPv4
 
-    if (Socket->RemotePort != 0) {
+    if (Socket->Connected) {
         CxPlatCopyMemory(Ethernet->Destination, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
         CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ClientMac, sizeof(Socket->Datapath->ClientMac));
-
-        CxPlatCopyMemory(IP->Destination, &Socket->Datapath->ServerIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ServerIP.Ipv4.sin_addr));
-        CxPlatCopyMemory(IP->Source, &Socket->Datapath->ClientIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ClientIP.Ipv4.sin_addr));
-
     } else {
         CxPlatCopyMemory(Ethernet->Destination, Socket->Datapath->ClientMac, sizeof(Socket->Datapath->ClientMac));
         CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
-
-        CxPlatCopyMemory(IP->Destination, &Socket->Datapath->ClientIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ClientIP.Ipv4.sin_addr));
-        CxPlatCopyMemory(IP->Source, &Socket->Datapath->ServerIP.Ipv4.sin_addr, sizeof(Socket->Datapath->ServerIP.Ipv4.sin_addr));
     }
+
+    CxPlatCopyMemory(IP->Destination, &RemoteAddress->Ipv4.sin_addr, sizeof(RemoteAddress->Ipv4.sin_addr));
+    CxPlatCopyMemory(IP->Source, &LocalAddress->Ipv4.sin_addr, sizeof(LocalAddress->Ipv4.sin_addr));
 
     IP->VersionAndHeaderLength = 0x45;
     IP->TypeOfService = 0;
-    IP->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)SendData->Buffer.Length);
+    IP->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
     IP->Identification = 0;
     IP->FlagsAndFragmentOffset = 0;
     IP->TimeToLive = 64;
@@ -780,8 +762,8 @@ CxPlatDpRawPrependPacketHeaders(
 
     UDP->DestinationPort = RemoteAddress->Ipv4.sin_port;
     UDP->SourcePort = LocalAddress->Ipv4.sin_port;
-    UDP->Length = htons((uint16_t)SendData->Buffer.Length);
+    UDP->Length = htons((uint16_t)Buffer->Length);
 
-    SendData->Buffer.Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
-    SendData->Buffer.Buffer -= sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
+    Buffer->Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
+    Buffer->Buffer -= sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
 }

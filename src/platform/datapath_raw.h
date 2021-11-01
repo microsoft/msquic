@@ -8,14 +8,19 @@
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
+typedef struct CXPLAT_SOCKET_POOL {
+
+    CXPLAT_RW_LOCK Lock;
+    CXPLAT_HASHTABLE Sockets;
+    uint16_t NextLocalPort;
+
+} CXPLAT_SOCKET_POOL;
+
 typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
-    CXPLAT_RW_LOCK SocketsLock;
-    CXPLAT_HASHTABLE Sockets;
-
-    uint16_t NextLocalPort;
+    CXPLAT_SOCKET_POOL SocketPool;
 
     // Hacks - Eventually shouldn't be necessary
     uint8_t ServerMac[6];
@@ -136,4 +141,83 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+//
+// Raw Socket Interface
+//
+
+typedef struct CXPLAT_SOCKET {
+
+    CXPLAT_HASHTABLE_ENTRY Entry;
+    CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_DATAPATH* Datapath;
+    void* CallbackContext;
+    QUIC_ADDR LocalAddress;
+    QUIC_ADDR RemoteAddress;
+    BOOLEAN Connected;  // Bound to a remote address
+
+} CXPLAT_SOCKET;
+
+BOOLEAN
+CxPlatSockPoolInitialize(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    );
+
+void
+CxPlatSockPoolUninitialize(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    );
+
+inline
+uint16_t // Host byte order
+CxPlatSocketPoolGetNextLocalPort(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    )
+{
+    return InterlockedIncrement16((short*)&Pool->NextLocalPort);
+}
+
+BOOLEAN
+CxPlatCheckSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ uint16_t SourcePort // Socket's local port
+    );
+
+CXPLAT_SOCKET*
+CxPlatGetSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ const QUIC_ADDR* LocalAddress
+    );
+
+BOOLEAN
+CxPlatTryAddSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
+void
+CxPlatTryRemoveSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
+//
+// Network framing helpers. Used for Ethernet, IP (v4 & v6) and UDP.
+//
+
+typedef enum PACKET_TYPE {
+    L3_TYPE_ICMPV4,
+    L3_TYPE_ICMPV6,
+    L4_TYPE_TCP,
+    L4_TYPE_UDP,
+} PACKET_TYPE;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatFramingWriteHeaders(
+    _In_ const CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _Inout_ QUIC_BUFFER* Buffer
     );
