@@ -19,6 +19,12 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+//
+// Socket Pool Logic
+//
+
+#define HARDCODED_SOCK_POOL_START_PORT 32768
+
 BOOLEAN
 CxPlatSockPoolInitialize(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
@@ -28,7 +34,7 @@ CxPlatSockPoolInitialize(
         return FALSE;
     }
     CxPlatRwLockInitialize(&Pool->Lock);
-    Pool->NextLocalPort = 32768;
+    Pool->NextLocalPort = HARDCODED_SOCK_POOL_START_PORT;
     return TRUE;
 }
 
@@ -39,6 +45,21 @@ CxPlatSockPoolUninitialize(
 {
     CxPlatRwLockUninitialize(&Pool->Lock);
     CxPlatHashtableUninitialize(&Pool->Sockets);
+}
+
+uint16_t // Host byte order
+CxPlatSockPoolGetNextLocalPort(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    )
+{
+    uint16_t Port;
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+    Port = Pool->NextLocalPort++;
+    if (Pool->NextLocalPort == 0) {
+        Pool->NextLocalPort = HARDCODED_SOCK_POOL_START_PORT;
+    }
+    CxPlatRwLockReleaseExclusive(&Pool->Lock);
+    return Port;
 }
 
 CXPLAT_SOCKET*
