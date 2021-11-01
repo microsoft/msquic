@@ -30,9 +30,9 @@ extern "C" {
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            sizeof(CXPLAT_DATAPATH));
+            DatapathSize);
 // arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = sizeof(CXPLAT_DATAPATH)
+// arg3 = arg3 = DatapathSize
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
@@ -77,13 +77,13 @@ tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
                     Socket,
                     Packet->BufferLength,
                     Packet->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress));
 // arg2 = arg2 = Socket
 // arg3 = arg3 = Packet->BufferLength
 // arg4 = arg4 = Packet->BufferLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.LocalAddress), &Packet->IP.LocalAddress)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->IP.RemoteAddress), &Packet->IP.RemoteAddress)
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress)
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress)
 ----------------------------------------------------------*/
 #define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
 tracepoint(CLOG_DATAPATH_RAW_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
