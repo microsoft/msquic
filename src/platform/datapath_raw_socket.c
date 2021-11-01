@@ -41,20 +41,6 @@ CxPlatSockPoolUninitialize(
     CxPlatHashtableUninitialize(&Pool->Sockets);
 }
 
-BOOLEAN
-CxPlatCheckSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ uint16_t SourcePort // Socket's local port
-    )
-{
-    BOOLEAN Found = FALSE;
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CxPlatRwLockAcquireShared(&Pool->Lock);
-    Found = CxPlatHashtableLookup(&Pool->Sockets, SourcePort, &Context) != NULL;
-    CxPlatRwLockReleaseShared(&Pool->Lock);
-    return Found;
-}
-
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
@@ -86,12 +72,21 @@ CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    BOOLEAN Success = FALSE;
+    BOOLEAN Success = TRUE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
-    if (!CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context)) {
-        CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, NULL);
-        Success = TRUE;
+    Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
+    while (Entry != NULL) {
+        CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        if (QuicAddrCompareIp(&Temp->LocalAddress, &Socket->LocalAddress)) {
+            Success = FALSE;
+            break;
+        }
+        Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
+    }
+    if (Success) {
+        CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
     }
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
     return Success;

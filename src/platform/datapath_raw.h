@@ -178,12 +178,6 @@ CxPlatSocketPoolGetNextLocalPort(
     return InterlockedIncrement16((short*)&Pool->NextLocalPort);
 }
 
-BOOLEAN
-CxPlatCheckSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ uint16_t SourcePort // Socket's local port
-    );
-
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
