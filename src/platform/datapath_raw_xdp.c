@@ -16,56 +16,60 @@ Abstract:
 #include "datapath_raw_xdp.c.clog.h"
 #endif
 
-#include <afxdp.h>
-#include <msxdp.h>
+#include <afxdp_helper.h>
+#include <xdpapi.h>
 #include <stdio.h>
 
-#define NUM_MBUFS 8191
-#define MBUF_CACHE_SIZE 250
-#define RX_BURST_SIZE 16
-#define TX_BURST_SIZE 16
-#define TX_RING_SIZE 1024
+#define RX_BATCH_SIZE 16
+#define TX_BATCH_SIZE 16
+#define MAX_ETH_FRAME_SIZE 1514
+
+#define RX_BUFFER_TAG 'RpdX' // XdpR
+#define TX_BUFFER_TAG 'TpdX' // XdpT
 
 typedef struct XDP_DATAPATH {
-
     CXPLAT_DATAPATH;
 
+    // TODO: Use better (more scalable) buffer algorithms.
+    SLIST_HEADER RxPool;
+    uint8_t *RxBuffers;
+    HANDLE RxXsk;
+    XSK_RING RxFillRing;
+    XSK_RING RxRing;
+    HANDLE RxProgram;
+    SLIST_HEADER TxPool;
+    uint8_t *TxBuffers;
+    HANDLE TxXsk;
+    XSK_RING TxRing;
+    XSK_RING TxCompletionRing;
+
     BOOLEAN Running;
-    CXPLAT_THREAD XdpThread;
-    QUIC_STATUS StartStatus;
-    CXPLAT_EVENT StartComplete;
-
-    CXPLAT_POOL AdditionalInfoPool;
-
-    uint16_t Port;
-    CXPLAT_LOCK TxLock;
-    struct rte_mempool* MemoryPool;
-    struct rte_ring* TxRingBuffer;
+    CXPLAT_THREAD WorkerThread;
 
     // Constants
-    uint16_t XdpCpu;
-    char DeviceName[32];
-
+    uint16_t IfIndex;
+    uint32_t DatapathCpuGroup;
+    uint32_t DatapathCpuNumber;
+    uint32_t RxBufferCount;
+    uint32_t RxRingSize;
+    uint32_t TxBufferCount;
+    uint32_t TxRingSize;
 } XDP_DATAPATH;
 
 typedef struct XDP_RX_PACKET {
     CXPLAT_RECV_DATA;
     CXPLAT_TUPLE IP;
-    struct rte_mbuf* Mbuf;
-    CXPLAT_POOL* OwnerPool;
+    XDP_DATAPATH* Xdp;
+    // Followed by:
+    // uint8_t ClientContext[...];
+    // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_RX_PACKET;
 
 typedef struct XDP_TX_PACKET {
-
     CXPLAT_SEND_DATA;
-    struct rte_mbuf* Mbuf;
     XDP_DATAPATH* Xdp;
-
+    uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
-
-CXPLAT_STATIC_ASSERT(
-    sizeof(XDP_TX_PACKET) <= sizeof(XDP_RX_PACKET),
-    "Code assumes memory allocated for RX is enough for TX");
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
@@ -83,9 +87,9 @@ CxPlatDataPathRecvDataToRecvPacket(
     return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
 }
 
-CXPLAT_THREAD_CALLBACK(CxPlatXdpMainThread, Context);
-static int CxPlatXdpWorkerThread(_In_ void* Context);
+CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context);
 
+// TODO: common with DPDK and/or UDP/IP/ETH lib.
 void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
 {
     uint8_t* MacPtr = Mac;
@@ -125,7 +129,12 @@ CxPlatXdpReadConfig(
     Xdp->ClientIP.si_family = AF_INET;
     Xdp->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
 
-    Xdp->XdpCpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+    Xdp->DatapathCpuGroup = 0;
+    Xdp->DatapathCpuNumber = 0;
+    Xdp->RxBufferCount = 4096;
+    Xdp->RxRingSize = 128;
+    Xdp->TxBufferCount = 4096;
+    Xdp->TxRingSize = 128;
 
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
@@ -151,10 +160,20 @@ CxPlatXdpReadConfig(
              QuicAddrFromString(Value, 0, &Xdp->ServerIP);
         } else if (strcmp(Line, "ClientIP") == 0) {
              QuicAddrFromString(Value, 0, &Xdp->ClientIP);
-        } else if (strcmp(Line, "CPU") == 0) {
-             Xdp->XdpCpu = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "DeviceName") == 0) {
-             strcpy(Xdp->DeviceName, Value);
+        } else if (strcmp(Line, "CpuGroup") == 0) {
+             Xdp->DatapathCpuGroup = strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "CpuNumber") == 0) {
+             Xdp->DatapathCpuNumber = strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "IfIndex") == 0) {
+            Xdp->IfIndex = (uint16_t)strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "RxBufferCount") == 0) {
+             Xdp->RxBufferCount = strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "RxRingSize") == 0) {
+             Xdp->RxRingSize = strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "TxBufferCount") == 0) {
+             Xdp->TxBufferCount = strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "TxRingSize") == 0) {
+             Xdp->TxRingSize = strtoul(Value, NULL, 10);
         }
     }
 
@@ -179,49 +198,168 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     CXPLAT_THREAD_CONFIG Config = {
-        0, 0, "XdpMain", CxPlatXdpMainThread, Xdp
+        0, 0, "XdpDatapathWorker", CxPlatXdpWorkerThread, Xdp
     };
-    const uint32_t AdditionalBufferSize =
-        sizeof(CXPLAT_RECV_DATA) + ClientRecvContextLength;
+    const uint32_t RxHeadroom = sizeof(XDP_RX_PACKET) + ClientRecvContextLength;
+    const uint32_t RxPacketSize = ALIGN_UP(RxHeadroom + MAX_ETH_FRAME_SIZE, XDP_RX_PACKET);
+    QUIC_STATUS Status;
+
+    InitializeSListHead(&Xdp->RxPool);
+    InitializeSListHead(&Xdp->TxPool);
 
     CxPlatXdpReadConfig(Xdp);
 
-    BOOLEAN CleanUpThread = FALSE;
-    CxPlatEventInitialize(&Xdp->StartComplete, TRUE, FALSE);
-    CxPlatPoolInitialize(FALSE, AdditionalBufferSize, QUIC_POOL_DATAPATH, &Xdp->AdditionalInfoPool);
-    CxPlatLockInitialize(&Xdp->TxLock);
-
     //
-    // This starts a new thread to do all the XDP initialization because XDP
-    // effectively takes that thread over. It waits for the initialization part
-    // to complete before returning. After that, the Xdp main thread starts
-    // running the Xdp main loop until clean up.
+    // RX datapath.
     //
 
-    QUIC_STATUS Status = CxPlatThreadCreate(&Config, &Xdp->XdpThread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate");
+    Xdp->RxBuffers = CxPlatAlloc(Xdp->RxBufferCount * RxPacketSize, RX_BUFFER_TAG);
+    if (Xdp->RxBuffers == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CleanUpThread = TRUE;
 
-    CxPlatEventWaitForever(Xdp->StartComplete);
-    Status = Xdp->StartStatus;
+    Status = XskCreate(&Xdp->RxXsk);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    XSK_UMEM_REG RxUmem = {0};
+    RxUmem.address = Xdp->RxBuffers;
+    RxUmem.chunkSize = RxPacketSize;
+    RxUmem.headroom = RxHeadroom;
+    RxUmem.totalSize = Xdp->RxBufferCount * RxPacketSize;
+
+    Status = XskSetSockopt(Xdp->RxXsk, XSK_SOCKOPT_UMEM_REG, &RxUmem, sizeof(RxUmem));
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        XskSetSockopt(
+            Xdp->RxXsk, XSK_SOCKOPT_RX_FILL_RING_SIZE, &Xdp->RxRingSize, sizeof(Xdp->RxRingSize));
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        XskSetSockopt(
+            Xdp->RxXsk, XSK_SOCKOPT_RX_RING_SIZE, &Xdp->RxRingSize, sizeof(Xdp->RxRingSize));
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    uint32_t QueueId = 0;   // TODO: support more than one RSS queue.
+    uint32_t Flags = 0;     // TODO: support native/generic forced flags.
+    Status = XskBind(Xdp->RxXsk, Xdp->IfIndex, QueueId, Flags, NULL);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    XSK_RING_INFO_SET RxRingInfo;
+    uint32_t RxRingInfoSize = sizeof(RxRingInfo);
+    Status = XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_RING_INFO, &RxRingInfo, &RxRingInfoSize);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    XskRingInitialize(&Xdp->RxFillRing, &RxRingInfo.fill);
+    XskRingInitialize(&Xdp->RxRing, &RxRingInfo.rx);
+
+    XDP_RULE RxRule = {
+        .Match = XDP_MATCH_ALL,
+        .Action = XDP_PROGRAM_ACTION_REDIRECT,
+        .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+        .Redirect.Target = Xdp->RxXsk,
+    };
+
+    static const XDP_HOOK_ID RxHook = {
+        .Layer = XDP_HOOK_L2,
+        .Direction = XDP_HOOK_RX,
+        .SubLayer = XDP_HOOK_INSPECT,
+    };
+
+    Flags = 0; // TODO: support native/generic forced flags.
+    Status = XdpCreateProgram(Xdp->IfIndex, &RxHook, QueueId, Flags, &RxRule, 1, &Xdp->RxProgram);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    for (uint32_t i = 0; i < Xdp->RxBufferCount; i++) {
+        InterlockedPushEntrySList(&Xdp->RxPool, (PSLIST_ENTRY)&Xdp->RxBuffers[i * RxPacketSize]);
+    }
+
+    //
+    // TX datapath.
+    //
+
+    Xdp->TxBuffers = CxPlatAlloc(Xdp->TxBufferCount * sizeof(XDP_TX_PACKET), TX_BUFFER_TAG);
+    if (Xdp->TxBuffers == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    Status = XskCreate(&Xdp->TxXsk);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    XSK_UMEM_REG TxUmem = {0};
+    TxUmem.address = Xdp->TxBuffers;
+    TxUmem.chunkSize = sizeof(XDP_TX_PACKET);
+    TxUmem.headroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
+    TxUmem.totalSize = Xdp->TxBufferCount * sizeof(XDP_TX_PACKET);
+
+    Status = XskSetSockopt(Xdp->TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        XskSetSockopt(
+            Xdp->TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &Xdp->TxRingSize, sizeof(Xdp->TxRingSize));
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        XskSetSockopt(
+            Xdp->TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &Xdp->TxRingSize,
+            sizeof(Xdp->TxRingSize));
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Flags = 0; // TODO: support native/generic forced flags.
+    Status = XskBind(Xdp->TxXsk, Xdp->IfIndex, QueueId, Flags, NULL);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    XSK_RING_INFO_SET TxRingInfo;
+    uint32_t TxRingInfoSize = sizeof(TxRingInfo);
+    Status = XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    XskRingInitialize(&Xdp->TxRing, &TxRingInfo.tx);
+    XskRingInitialize(&Xdp->TxCompletionRing, &TxRingInfo.completion);
+
+    for (uint32_t i = 0; i < Xdp->TxBufferCount; i++) {
+        InterlockedPushEntrySList(
+            &Xdp->TxPool, (PSLIST_ENTRY)&Xdp->TxBuffers[i * sizeof(XDP_TX_PACKET)]);
+    }
+
+    Status = CxPlatThreadCreate(&Config, &Xdp->WorkerThread);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (CleanUpThread) {
-            CxPlatLockUninitialize(&Xdp->TxLock);
-            CxPlatPoolUninitialize(&Xdp->AdditionalInfoPool);
-            CxPlatThreadWait(&Xdp->XdpThread);
-            CxPlatThreadDelete(&Xdp->XdpThread);
-        }
-        CxPlatEventUninitialize(Xdp->StartComplete);
+        CxPlatDpRawUninitialize(Datapath);
     }
 
     return Status;
@@ -234,295 +372,104 @@ CxPlatDpRawUninitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    Xdp->Running = FALSE;
-    CxPlatLockUninitialize(&Xdp->TxLock);
-    CxPlatPoolUninitialize(&Xdp->AdditionalInfoPool);
-    CxPlatThreadWait(&Xdp->XdpThread);
-    CxPlatThreadDelete(&Xdp->XdpThread);
-    CxPlatEventUninitialize(Xdp->StartComplete);
-}
 
-CXPLAT_THREAD_CALLBACK(CxPlatXdpMainThread, Context)
-{
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
-
-    char DpdpCpuStr[16];
-    sprintf(DpdpCpuStr, "%hu", Xdp->XdpCpu);
-
-    const char* argv[] = {
-        "msquic",
-        "-n", "4",
-        "-l", DpdpCpuStr,
-        "-d", "rte_mempool_ring-21.dll",
-        "-d", "rte_bus_pci-21.dll",
-        "-d", "rte_common_mlx5-21.dll",
-        "-d", "rte_net_mlx5-21.dll"
-    };
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN CleanUpRte = FALSE;
-    uint16_t Port;
-    struct rte_eth_conf PortConfig = {
-        .rxmode = {
-            .max_rx_pkt_len = RTE_ETHER_MAX_LEN,
-        },
-    };
-    uint16_t nb_rxd = 1024;
-    uint16_t nb_txd = 1024;
-    const uint16_t rx_rings = 1, tx_rings = 1;
-    struct rte_eth_dev_info DeviceInfo;
-    struct rte_eth_rxconf rxconf;
-    struct rte_eth_txconf txconf;
-    struct rte_ether_addr addr;
-
-    int ret = rte_eal_init(ARRAYSIZE(argv), (char**)argv);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eal_init");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
-    CleanUpRte = TRUE;
-
-    if (Xdp->DeviceName[0] != '\0') {
-        ret = rte_eth_dev_get_port_by_name(Xdp->DeviceName, &Port);
-    } else {
-        ret = rte_eth_dev_get_port_by_name("0000:81:00.0", &Port);
-        if (ret < 0) {
-            ret = rte_eth_dev_get_port_by_name("0000:81:00.1", &Port);
-        }
-    }
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_get_port_by_name");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
-    Xdp->Port = Port;
-
-    Xdp->MemoryPool =
-        rte_pktmbuf_pool_create(
-            "MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
-            RTE_MBUF_DEFAULT_BUF_SIZE, rte_eth_dev_socket_id(Port));
-    if (Xdp->MemoryPool == NULL) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            0,
-            "rte_pktmbuf_pool_create");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (Xdp->WorkerThread != NULL) {
+        Xdp->Running = FALSE;
+        CxPlatThreadWait(&Xdp->WorkerThread);
+        CxPlatThreadDelete(&Xdp->WorkerThread);
     }
 
-    Xdp->TxRingBuffer =
-        rte_ring_create(
-            "TxRing", TX_RING_SIZE, rte_eth_dev_socket_id(Port),
-            RING_F_MP_HTS_ENQ | RING_F_SC_DEQ);
-    if (Xdp->TxRingBuffer == NULL) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_ring_create");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (Xdp->TxXsk != NULL) {
+        CloseHandle(Xdp->TxXsk);
     }
 
-    ret = rte_eth_dev_info_get(Port, &DeviceInfo);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_info_get");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (Xdp->TxBuffers != NULL) {
+        CxPlatFree(Xdp->TxBuffers, TX_BUFFER_TAG);
     }
 
-    if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_IPV4_CKSUM) {
-        printf("TX IPv4 Checksum Offload Enabled\n");
-        PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_IPV4_CKSUM;
-    }
-    if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_UDP_CKSUM) {
-        printf("TX UDP Checksum Offload Enabled\n");
-        PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_UDP_CKSUM;
-    }
-    if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_IPV4_CKSUM) {
-        printf("RX IPv4 Checksum Offload Enabled\n");
-        PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_IPV4_CKSUM;
-    }
-    if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_UDP_CKSUM) {
-        printf("RX UDP Checksum Offload Enabled\n");
-        PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_UDP_CKSUM;
+    if (Xdp->RxProgram != NULL) {
+        CloseHandle(Xdp->RxProgram);
     }
 
-    ret = rte_eth_dev_configure(Port, rx_rings, tx_rings, &PortConfig);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_configure");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (Xdp->RxXsk != NULL) {
+        CloseHandle(Xdp->RxXsk);
     }
 
-    ret = rte_eth_dev_adjust_nb_rx_tx_desc(Port, &nb_rxd, &nb_txd);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_configure");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (Xdp->RxBuffers != NULL) {
+        CxPlatFree(Xdp->RxBuffers, RX_BUFFER_TAG);
     }
-
-    rxconf = DeviceInfo.default_rxconf;
-    for (uint16_t q = 0; q < rx_rings; q++) {
-        ret = rte_eth_rx_queue_setup(Port, q, nb_rxd, rte_eth_dev_socket_id(Port), &rxconf, Xdp->MemoryPool);
-        if (ret < 0) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ret,
-                "rte_eth_rx_queue_setup");
-            Status = QUIC_STATUS_INTERNAL_ERROR;
-            goto Error;
-        }
-    }
-
-    txconf = DeviceInfo.default_txconf;
-    txconf.offloads = PortConfig.txmode.offloads;
-    for (uint16_t q = 0; q < tx_rings; q++) {
-        ret = rte_eth_tx_queue_setup(Port, q, nb_txd, rte_eth_dev_socket_id(Port), &txconf);
-        if (ret < 0) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ret,
-                "rte_eth_tx_queue_setup");
-            Status = QUIC_STATUS_INTERNAL_ERROR;
-            goto Error;
-        }
-    }
-
-    ret = rte_eth_dev_start(Port);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_start");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
-
-    ret = rte_eth_macaddr_get(Port, &addr);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_macaddr_get");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
-
-    printf("\nStarting Port %hu, MAC: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
-            Xdp->Port,
-            addr.addr_bytes[0], addr.addr_bytes[1], addr.addr_bytes[2],
-            addr.addr_bytes[3], addr.addr_bytes[4], addr.addr_bytes[5]);
-
-    Xdp->Running = TRUE;
-    ret = rte_eal_mp_remote_launch(CxPlatXdpWorkerThread, Xdp, SKIP_MAIN);
-    if (ret < 0) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eal_mp_remote_launch");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
-
-    Xdp->StartStatus = Status;
-    CxPlatEventSet(Xdp->StartComplete);
-
-    CxPlatXdpWorkerThread(Xdp);
-
-    rte_eal_mp_wait_lcore(); // Wait on the other cores/threads
-
-Error:
-
-    if (QUIC_FAILED(Status)) {
-        Xdp->StartStatus = Status;
-        CxPlatEventSet(Xdp->StartComplete);
-    }
-
-    if (Xdp->TxRingBuffer) {
-        rte_ring_free(Xdp->TxRingBuffer);
-    }
-
-    if (Xdp->MemoryPool) {
-        rte_mempool_free(Xdp->MemoryPool);
-    }
-
-    if (CleanUpRte) {
-        rte_eal_cleanup();
-    }
-
-    CXPLAT_THREAD_RETURN(0);
 }
 
 static
 void
 CxPlatXdpRx(
     _In_ XDP_DATAPATH* Xdp,
-    _In_ const uint16_t Core
+    _In_ uint16_t PartitionIndex
     )
 {
-    void* Buffers[RX_BURST_SIZE];
-    const uint16_t BuffersCount =
-        rte_eth_rx_burst(Xdp->Port, 0, (struct rte_mbuf**)Buffers, RX_BURST_SIZE);
-    if (unlikely(BuffersCount == 0)) {
-        return;
-    }
-
-    XDP_RX_PACKET Packet; // Working space
-    CxPlatZeroMemory(&Packet, sizeof(XDP_RX_PACKET));
-    Packet.Tuple = &Packet.IP;
-
+    void* Buffers[RX_BATCH_SIZE];
+    uint32_t RxIndex;
+    uint32_t FillIndex;
+    uint32_t ProdCount = 0;
     uint16_t PacketCount = 0;
+    const uint16_t BuffersCount = XskRingConsumerReserve(&Xdp->RxRing, RX_BATCH_SIZE, &RxIndex);
+
     for (uint16_t i = 0; i < BuffersCount; i++) {
-        struct rte_mbuf* Buffer = (struct rte_mbuf*)Buffers[i];
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Xdp->RxRing, RxIndex++);
+        XDP_RX_PACKET *Packet = Xdp->RxBuffers + XskDescriptorGetAddress(Buffer->address);
+        uint8_t *FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
+
+        CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
+        Packet->Tuple = &Packet->IP;
+
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
             (CXPLAT_RECV_DATA*)&Packet,
-            ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
-            Buffer->pkt_len);
+            FrameBuffer,
+            Buffer->length);
 
-        XDP_RX_PACKET* NewPacket;
-        if (likely(Packet.Buffer && (NewPacket = CxPlatPoolAlloc(&Xdp->AdditionalInfoPool)) != NULL)) {
-            CxPlatCopyMemory(NewPacket, &Packet, sizeof(XDP_RX_PACKET));
-            NewPacket->Allocated = TRUE;
-            NewPacket->PartitionIndex = Core;
-            NewPacket->Mbuf = Buffer;
-            NewPacket->OwnerPool = &Xdp->AdditionalInfoPool;
-            NewPacket->Tuple = &NewPacket->IP;
-            Buffers[PacketCount++] = NewPacket;
+        if (Packet->Buffer) {
+            Packet->Allocated = TRUE;
+            Packet->PartitionIndex = PartitionIndex;
+            Packet->Xdp = Xdp;
+            Buffers[PacketCount++] = Packet;
         } else {
-            rte_pktmbuf_free(Buffer);
+            if (XskRingProducerReserve(&Xdp->RxFillRing, 1, &FillIndex) == 1) {
+                uint64_t *FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex);
+                *FillDesc = XskDescriptorGetAddress(Buffer->address);
+                ProdCount++;
+            } else {
+                InterlockedPushEntrySList(&Xdp->RxPool, (PSLIST_ENTRY)Packet);
+            }
         }
     }
 
-    if (likely(PacketCount)) {
+    if (BuffersCount > 0) {
+        XskRingConsumerRelease(&Xdp->RxRing, BuffersCount);
+    }
+
+    uint32_t FillAvailable = XskRingProducerReserve(&Xdp->RxFillRing, MAXUINT32, &FillIndex);
+    if (FillAvailable > ProdCount) {
+        FillAvailable -= ProdCount;
+        FillIndex += ProdCount;
+
+        while (FillAvailable-- > 0) {
+            XDP_RX_PACKET *Packet = InterlockedPopEntrySList(&Xdp->RxPool);
+            if (Packet == NULL) {
+                break;
+            }
+
+            uint64_t *FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex++);
+            *FillDesc = (uint8_t*)Packet - Xdp->RxBuffers;
+            ProdCount++;
+        }
+    }
+
+    if (ProdCount > 0) {
+        XskRingProducerSubmit(&Xdp->RxFillRing, ProdCount);
+    }
+
+    if (PacketCount > 0) {
         CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, (CXPLAT_RECV_DATA**)Buffers, PacketCount);
     }
 }
@@ -536,8 +483,7 @@ CxPlatDpRawRxFree(
     while (PacketChain) {
         const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
-        rte_pktmbuf_free(Packet->Mbuf);
-        CxPlatPoolFree(Packet->OwnerPool, (void*)Packet);
+        InterlockedPushEntrySList(&Packet->Xdp->RxPool, (PSLIST_ENTRY)Packet);
     }
 }
 
@@ -631,18 +577,15 @@ CxPlatXdpWorkerThread(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
-    const uint16_t Core = (uint16_t)rte_lcore_id();
+    GROUP_AFFINITY Affinity = {0};
+    uint16_t PartitionIndex = 0;
 
-    printf("Core %u worker running...\n", Core);
-    if (rte_eth_dev_socket_id(Xdp->Port) > 0 &&
-        rte_eth_dev_socket_id(Xdp->Port) != (int)rte_socket_id()) {
-        printf("\nWARNING, port %u is on remote NUMA node to polling thread.\n"
-               "\tPerformance will not be optimal.\n\n",
-               Xdp->Port);
-    }
+    Affinity.Group = Xdp->DatapathCpuGroup;
+    Affinity.Mask = AFFINITY_MASK(Xdp->DatapathCpuNumber);
+    SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
 
-    while (likely(Xdp->Running)) {
-        CxPlatXdpRx(Xdp, Core);
+    while (Xdp->Running) {
+        CxPlatXdpRx(Xdp, PartitionIndex);
         CxPlatXdpTx(Xdp);
     }
 
