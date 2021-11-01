@@ -11,14 +11,22 @@ Abstract:
 
 #include "platform_internal.h"
 
-#define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
+#include "openssl/opensslv.h"
+#if OPENSSL_VERSION_MAJOR >= 3
+#define IS_OPENSSL_3
+#endif
+
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
 #include "openssl/bio.h"
-#include "openssl/err.h"
+#ifdef IS_OPENSSL_3
+#include "openssl/core_names.h"
+#else
 #include "openssl/hmac.h"
+#endif
+#include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/pkcs12.h"
@@ -203,15 +211,6 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
-_Success_(return != FALSE)
-BOOLEAN
-CxPlatTlsVerifyCertificate(
-    _In_ X509* X509Cert,
-    _In_opt_ const char* SNI,
-    _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
-    _Out_opt_ uint32_t* PlatformVerificationError
-    );
-
 static
 int
 CxPlatTlsCertificateVerifyCallback(
@@ -222,6 +221,8 @@ CxPlatTlsCertificateVerifyCallback(
     UNREFERENCED_PARAMETER(param);
     int CertificateVerified = 0;
     int status = TRUE;
+    unsigned char* OpenSSLCertBuffer = NULL;
+    int OpenSSLCertLength;
     QUIC_BUFFER PortableCertificate = { 0, 0 };
     QUIC_BUFFER PortableChain = { 0, 0 };
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
@@ -245,14 +246,28 @@ CxPlatTlsCertificateVerifyCallback(
                 return FALSE;
             }
 
-            CertificateVerified =
-                CxPlatTlsVerifyCertificate(
-                    Cert,
-                    TlsContext->SNI,
-                    TlsContext->SecConfig->Flags,
-                    IsDeferredValidationOrClientAuth?
-                        (uint32_t*)&ValidationResult :
-                        NULL);
+            OpenSSLCertLength = i2d_X509(Cert, &OpenSSLCertBuffer);
+            if (OpenSSLCertLength <= 0) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "i2d_X509 failed");
+                CertificateVerified = FALSE;
+            } else {
+                CertificateVerified =
+                    CxPlatCertVerifyRawCertificate(
+                        OpenSSLCertBuffer,
+                        OpenSSLCertLength,
+                        TlsContext->SNI,
+                        TlsContext->SecConfig->Flags,
+                        IsDeferredValidationOrClientAuth?
+                            (uint32_t*)&ValidationResult :
+                            NULL);
+            }
+
+            if (OpenSSLCertBuffer != NULL) {
+                OPENSSL_free(OpenSSLCertBuffer);
+            }
 
             if (!CertificateVerified) {
                 X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
@@ -720,10 +735,17 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     _When_(!enc, _In_reads_bytes_(EVP_MAX_IV_LENGTH))
         unsigned char iv[EVP_MAX_IV_LENGTH],
     _Inout_ EVP_CIPHER_CTX *ctx,
+#ifdef IS_OPENSSL_3
+    _Inout_ EVP_MAC_CTX *hctx,
+#else
     _Inout_ HMAC_CTX *hctx,
+#endif
     _In_ int enc // Encryption or decryption
     )
 {
+#ifdef IS_OPENSSL_3
+    OSSL_PARAM params[3];
+#endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
 
@@ -747,8 +769,24 @@ CxPlatTlsOnSessionTicketKeyNeeded(
         }
         CxPlatCopyMemory(key_name, TicketKey->Id, 16);
         EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
-        HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
 
+#ifdef IS_OPENSSL_3
+        params[0] =
+            OSSL_PARAM_construct_octet_string(
+                OSSL_MAC_PARAM_KEY,
+                TicketKey->Material,
+                32);
+        params[1] =
+            OSSL_PARAM_construct_utf8_string(
+                OSSL_MAC_PARAM_DIGEST,
+                "sha256",
+                0);
+        params[2] =
+            OSSL_PARAM_construct_end();
+         EVP_MAC_CTX_set_params(hctx, params);
+#else
+        HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
+#endif
     } else {
         if (memcmp(key_name, TicketKey->Id, 16) != 0) {
             QuicTraceEvent(
@@ -758,7 +796,23 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 "Ticket key_name mismatch");
             return 0; // No match
         }
+#ifdef IS_OPENSSL_3
+        params[0] =
+            OSSL_PARAM_construct_octet_string(
+                OSSL_MAC_PARAM_KEY,
+                TicketKey->Material,
+                32);
+        params[1] =
+            OSSL_PARAM_construct_utf8_string(
+                OSSL_MAC_PARAM_DIGEST,
+                "sha256",
+                0);
+        params[2] =
+            OSSL_PARAM_construct_end();
+         EVP_MAC_CTX_set_params(hctx, params);
+#else
         HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
+#endif
         EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
     }
 
@@ -853,13 +907,6 @@ CXPLAT_STATIC_ASSERT(
 CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
-
-QUIC_STATUS
-CxPlatTlsExtractPrivateKey(
-    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_z_ const char* Password,
-    _Outptr_result_buffer_(*PfxSize) uint8_t** PfxBytes,
-    _Out_ uint32_t* PfxSize);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1289,7 +1336,7 @@ CxPlatTlsSecConfigCreate(
             Password = PasswordBuffer;
 
             Status =
-                CxPlatTlsExtractPrivateKey(
+                CxPlatCertExtractPrivateKey(
                     CredConfig,
                     PasswordBuffer,
                     &PfxBlob,
@@ -1531,9 +1578,15 @@ CxPlatTlsSecConfigSetTicketKeys(
         KeyConfig,
         sizeof(QUIC_TICKET_KEY_CONFIG));
 
+#ifdef IS_OPENSSL_3
+    SSL_CTX_set_tlsext_ticket_key_evp_cb(
+        SecurityConfig->SSLCtx,
+        CxPlatTlsOnSessionTicketKeyNeeded);
+#else
     SSL_CTX_set_tlsext_ticket_key_cb(
         SecurityConfig->SSLCtx,
         CxPlatTlsOnSessionTicketKeyNeeded);
+#endif
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1850,7 +1903,11 @@ CxPlatTlsProcessData(
                 char buf[256];
                 const char* file;
                 int line;
+#ifdef IS_OPENSSL_3
+                ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
+#else
                 ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
+#endif
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,

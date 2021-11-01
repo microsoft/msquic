@@ -14,13 +14,17 @@ set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 
+# Newer versions of OpenSSL switched to Markdown, so we can use that to detect
+# the openssl version cloned
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/openssl/CHANGES")
+    message(STATUS "Configuring for OpenSSL 1.1")
+else()
+    set(QUIC_USE_OPENSSL3 ON)
+    message(STATUS "Configuring for OpenSSL 3.0")
+endif()
+
 set(OPENSSL_CONFIG_FLAGS
     enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-
-    #
-    # The following line is needed for the 3.0 branch.
-    #
-    # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
 
     no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
     no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
@@ -28,6 +32,10 @@ set(OPENSSL_CONFIG_FLAGS
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
     no-weak-ssl-ciphers no-shared no-tests)
+
+if (QUIC_USE_OPENSSL3)
+    list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv)
+endif()
 
 if (WIN32)
 
