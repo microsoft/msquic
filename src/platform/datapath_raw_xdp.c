@@ -55,6 +55,7 @@ typedef struct XDP_DATAPATH {
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
+    BOOL TxAlwaysPoke;
 } XDP_DATAPATH;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
@@ -139,6 +140,7 @@ CxPlatXdpReadConfig(
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
+    Xdp->TxAlwaysPoke = FALSE;
 
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
@@ -178,6 +180,8 @@ CxPlatXdpReadConfig(
              Xdp->TxBufferCount = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "TxRingSize") == 0) {
              Xdp->TxRingSize = strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "TxAlwaysPoke") == 0) {
+             Xdp->TxAlwaysPoke = !!strtoul(Value, NULL, 10);
         }
     }
 
@@ -657,7 +661,7 @@ CxPlatXdpTx(
 
     if (ProdCount > 0) {
         XskRingProducerSubmit(&Xdp->TxRing, ProdCount);
-        if (XskRingProducerNeedPoke(&Xdp->TxRing)) {
+        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Xdp->TxRing)) {
             uint32_t OutFlags;
             QUIC_STATUS Status = XskNotifySocket(Xdp->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
             CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
