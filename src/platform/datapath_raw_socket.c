@@ -56,7 +56,7 @@ CxPlatGetSocket(
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
         if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress) &&
-            (!Temp->Connected || QuicAddrCompareIp(&Temp->RemoteAddress, RemoteAddress))) {
+            (!Temp->Connected || QuicAddrCompare(&Temp->RemoteAddress, RemoteAddress))) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
             }
