@@ -640,7 +640,8 @@ CxPlatXdpTx(
     uint32_t ProdCount = 0;
     uint32_t CompCount = 0;
 
-    if (CxPlatListIsEmpty(TxQueue)) {
+    if (CxPlatListIsEmpty(TxQueue) &&
+        ReadPointerNoFence(&Xdp->TxQueue.Flink) != &Xdp->TxQueue) {
         CxPlatLockAcquire(&Xdp->TxLock);
         CxPlatListMoveItems(&Xdp->TxQueue, TxQueue);
         CxPlatLockRelease(&Xdp->TxLock);
