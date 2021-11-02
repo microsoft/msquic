@@ -484,7 +484,7 @@ CxPlatDpRawUninitialize(
     if (Xdp->RxXsk != NULL) {
         XSK_STATISTICS Stats;
         uint32_t StatsSize = sizeof(Stats);
-        if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+        if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
             // printf(Stats.rxDropped);
             // printf(Stats.rxInvalidDescriptors);
         }
