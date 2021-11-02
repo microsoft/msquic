@@ -12,7 +12,7 @@ typedef struct CXPLAT_SOCKET_POOL {
 
     CXPLAT_RW_LOCK Lock;
     CXPLAT_HASHTABLE Sockets;
-    uint16_t NextLocalPort;
+    uint16_t NextLocalPort; // Host byte order
 
 } CXPLAT_SOCKET_POOL;
 
@@ -169,11 +169,6 @@ CxPlatSockPoolUninitialize(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
     );
 
-uint16_t // Host byte order
-CxPlatSockPoolGetNextLocalPort(
-    _Inout_ CXPLAT_SOCKET_POOL* Pool
-    );
-
 //
 // Finds a socket to deliver received packets with the given addresses.
 //
@@ -191,7 +186,7 @@ CxPlatTryAddSocket(
     );
 
 void
-CxPlatTryRemoveSocket(
+CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
     );

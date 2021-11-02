@@ -47,21 +47,6 @@ CxPlatSockPoolUninitialize(
     CxPlatHashtableUninitialize(&Pool->Sockets);
 }
 
-uint16_t // Host byte order
-CxPlatSockPoolGetNextLocalPort(
-    _Inout_ CXPLAT_SOCKET_POOL* Pool
-    )
-{
-    uint16_t Port;
-    CxPlatRwLockAcquireExclusive(&Pool->Lock);
-    Port = Pool->NextLocalPort++;
-    if (Pool->NextLocalPort == 0) {
-        Pool->NextLocalPort = HARDCODED_SOCK_POOL_START_PORT;
-    }
-    CxPlatRwLockReleaseExclusive(&Pool->Lock);
-    return Port;
-}
-
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
@@ -98,7 +83,17 @@ CxPlatTryAddSocket(
     BOOLEAN Success = TRUE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
+
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
+
+    if (Socket->LocalAddress.Ipv4.sin_port == 0) {
+        Socket->LocalAddress.Ipv4.sin_port = CxPlatByteSwapUint16(Pool->NextLocalPort);
+        Pool->NextLocalPort++;
+        if (Pool->NextLocalPort == 0) {
+            Pool->NextLocalPort = HARDCODED_SOCK_POOL_START_PORT;
+        }
+    }
+
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
@@ -116,7 +111,7 @@ CxPlatTryAddSocket(
 }
 
 void
-CxPlatTryRemoveSocket(
+CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
     )

@@ -198,8 +198,7 @@ CxPlatSocketCreateUdp(
         (*NewSocket)->LocalAddress.Ipv4.sin_port =
             Config->LocalAddress->Ipv4.sin_port;
     } else {
-        (*NewSocket)->LocalAddress.Ipv4.sin_port =
-            CxPlatByteSwapUint16(CxPlatSockPoolGetNextLocalPort(&Datapath->SocketPool));
+        (*NewSocket)->LocalAddress.Ipv4.sin_port = 0;
     }
 
     if (!CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket)) {
@@ -251,7 +250,7 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    CxPlatTryRemoveSocket(&Socket->Datapath->SocketPool, Socket);
+    CxPlatRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
