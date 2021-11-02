@@ -465,6 +465,11 @@ CxPlatDpRawUninitialize(
     }
 
     if (Xdp->TxXsk != NULL) {
+        XSK_STATISTICS Stats;
+        uint32_t StatsSize = sizeof(Stats);
+        if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+            // printf(Stats.txInvalidDescriptors);
+        }
         CloseHandle(Xdp->TxXsk);
     }
 
@@ -477,6 +482,12 @@ CxPlatDpRawUninitialize(
     }
 
     if (Xdp->RxXsk != NULL) {
+        XSK_STATISTICS Stats;
+        uint32_t StatsSize = sizeof(Stats);
+        if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+            // printf(Stats.rxDropped);
+            // printf(Stats.rxInvalidDescriptors);
+        }
         CloseHandle(Xdp->RxXsk);
     }
 
