@@ -169,14 +169,10 @@ CxPlatSockPoolUninitialize(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
     );
 
-inline
 uint16_t // Host byte order
-CxPlatSocketPoolGetNextLocalPort(
+CxPlatSockPoolGetNextLocalPort(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
-    )
-{
-    return InterlockedIncrement16((short*)&Pool->NextLocalPort);
-}
+    );
 
 CXPLAT_SOCKET*
 CxPlatGetSocket(

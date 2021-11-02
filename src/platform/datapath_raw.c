@@ -199,7 +199,7 @@ CxPlatSocketCreateUdp(
             Config->LocalAddress->Ipv4.sin_port;
     } else {
         (*NewSocket)->LocalAddress.Ipv4.sin_port =
-            CxPlatByteSwapUint16(CxPlatSocketPoolGetNextLocalPort(&Datapath->SocketPool));
+            CxPlatByteSwapUint16(CxPlatSockPoolGetNextLocalPort(&Datapath->SocketPool));
     }
 
     if (!CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket)) {
