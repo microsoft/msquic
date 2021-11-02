@@ -174,10 +174,14 @@ CxPlatSockPoolGetNextLocalPort(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
     );
 
+//
+// Finds a socket to deliver received packets with the given addresses.
+//
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ const QUIC_ADDR* LocalAddress
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
     );
 
 BOOLEAN

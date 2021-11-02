@@ -65,7 +65,8 @@ CxPlatSockPoolGetNextLocalPort(
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ const QUIC_ADDR* LocalAddress
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
@@ -75,7 +76,8 @@ CxPlatGetSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
-        if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress)) {
+        if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress) &&
+            (!Temp->Connected || QuicAddrCompare(&Temp->RemoteAddress, RemoteAddress))) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
             }

@@ -299,7 +299,11 @@ CxPlatDpRawRxEthernet(
         CXPLAT_DBG_ASSERT(Packet->Next == NULL);
 
         if (Packet->Reserved == L4_TYPE_UDP) {
-            CXPLAT_SOCKET* Socket = CxPlatGetSocket(&Datapath->SocketPool, &Packet->Tuple->LocalAddress);
+            CXPLAT_SOCKET* Socket =
+                CxPlatGetSocket(
+                    &Datapath->SocketPool,
+                    &Packet->Tuple->LocalAddress,
+                    &Packet->Tuple->RemoteAddress);
             if (Socket) {
                 QuicTraceEvent(
                     DatapathRecv,
