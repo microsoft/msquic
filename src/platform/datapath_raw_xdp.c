@@ -18,6 +18,7 @@ Abstract:
 
 #include <afxdp_helper.h>
 #include <xdpapi.h>
+#include <stdio.h>
 
 #define RX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
@@ -466,6 +467,11 @@ CxPlatDpRawUninitialize(
     }
 
     if (Xdp->TxXsk != NULL) {
+        XSK_STATISTICS Stats;
+        uint32_t StatsSize = sizeof(Stats);
+        if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+            printf("txInvalidDescriptors: %llu\n", Stats.txInvalidDescriptors);
+        }
         CloseHandle(Xdp->TxXsk);
     }
 
@@ -478,6 +484,12 @@ CxPlatDpRawUninitialize(
     }
 
     if (Xdp->RxXsk != NULL) {
+        XSK_STATISTICS Stats;
+        uint32_t StatsSize = sizeof(Stats);
+        if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+            printf("rxDropped: %llu\n", Stats.rxDropped);
+            printf("rxInvalidDescriptors: %llu\n", Stats.rxInvalidDescriptors);
+        }
         CloseHandle(Xdp->RxXsk);
     }
 
