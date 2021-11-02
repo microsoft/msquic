@@ -30,24 +30,30 @@ typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
 
     // TODO: Use better (more scalable) buffer algorithms.
-    SLIST_HEADER RxPool;
     uint8_t *RxBuffers;
     HANDLE RxXsk;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
-    SLIST_HEADER TxPool;
     uint8_t *TxBuffers;
     HANDLE TxXsk;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
-    CXPLAT_LOCK TxLock;
-    CXPLAT_LIST_ENTRY TxQueue;
 
     BOOLEAN Running;
     CXPLAT_THREAD WorkerThread;
 
+    // Move contended buffer pools to their own cache lines.
+    DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
+    DECLSPEC_CACHEALIGN SLIST_HEADER TxPool;
+
+    // Move TX queue to its own cache line.
+    DECLSPEC_CACHEALIGN
+    CXPLAT_LOCK TxLock;
+    CXPLAT_LIST_ENTRY TxQueue;
+
     // Constants
+    DECLSPEC_CACHEALIGN
     uint16_t IfIndex;
     uint16_t DatapathCpuGroup;
     uint8_t DatapathCpuNumber;
