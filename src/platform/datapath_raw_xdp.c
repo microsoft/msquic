@@ -57,7 +57,7 @@ typedef struct XDP_DATAPATH {
     uint32_t TxRingSize;
 } XDP_DATAPATH;
 
-typedef struct XDP_RX_PACKET {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
     CXPLAT_RECV_DATA;
     CXPLAT_TUPLE IP;
     XDP_DATAPATH* Xdp;
@@ -66,7 +66,7 @@ typedef struct XDP_RX_PACKET {
     // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_RX_PACKET;
 
-typedef struct XDP_TX_PACKET {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_SEND_DATA;
     XDP_DATAPATH* Xdp;
     CXPLAT_LIST_ENTRY Link;
@@ -214,6 +214,8 @@ CxPlatDpRawInitialize(
     CxPlatListInitializeHead(&Xdp->TxQueue);
 
     CxPlatXdpReadConfig(Xdp);
+    CxPlatDpRawGenerateCpuTable(Datapath);
+
 
     //
     // RX datapath.
@@ -519,6 +521,7 @@ CxPlatXdpRx(
         XDP_RX_PACKET* Packet =
             (XDP_RX_PACKET*)(Xdp->RxBuffers + XskDescriptorGetAddress(Buffer->address));
         uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
+        printf("Recv RX %p (%u)\n", Packet, Buffer->length);
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Tuple = &Packet->IP;
@@ -632,7 +635,8 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    printf("Enqueue TX %p\n", Packet);
+    printf("Enqueue TX %p (length=%u)\n", Packet, Packet->Buffer.Length);
+    printf("TxPool = %llx\n", Packet->Xdp->TxPool.HeaderX64.NextEntry);
 
     CxPlatLockAcquire(&Packet->Xdp->TxLock);
     CxPlatListInsertTail(&Packet->Xdp->TxQueue, &Packet->Link);
@@ -662,6 +666,12 @@ CxPlatXdpTx(
         CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(TxQueue);
         XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
         printf("Send TX %p\n", Packet);
+
+        // Print the first 14 bytes of Packet
+        for (int i = 0; i < 14; i++) {
+            printf("%02hhx ", Packet->Buffer.Buffer[i]);
+        }
+        printf("\n");
 
         Buffer->address = (uint8_t*)Packet - Xdp->TxBuffers;
         XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
@@ -707,10 +717,23 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
     Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
     SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
 
+    uint32_t i = 0;
     while (Xdp->Running) {
-        UNREFERENCED_PARAMETER(PartitionIndex);
-        //CxPlatXdpRx(Xdp, PartitionIndex);
+        CxPlatXdpRx(Xdp, PartitionIndex);
         CxPlatXdpTx(Xdp, &TxQueue);
+
+        if (++i % 10000000 == 0) {
+            XSK_STATISTICS Stats;
+            uint32_t StatsSize = sizeof(Stats);
+            if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+                printf("txInvalidDescriptors: %llu\n", Stats.txInvalidDescriptors);
+            }
+            StatsSize = sizeof(Stats);
+            if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
+                printf("rxDropped: %llu\n", Stats.rxDropped);
+                printf("rxInvalidDescriptors: %llu\n", Stats.rxInvalidDescriptors);
+            }
+        }
     }
 
     return 0;
