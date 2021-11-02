@@ -18,7 +18,6 @@ Abstract:
 
 #include <afxdp_helper.h>
 #include <xdpapi.h>
-#include <stdio.h>
 
 #define RX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
