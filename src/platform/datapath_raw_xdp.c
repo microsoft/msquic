@@ -431,6 +431,7 @@ CxPlatDpRawInitialize(
             &Xdp->TxPool, (PSLIST_ENTRY)&Xdp->TxBuffers[i * sizeof(XDP_TX_PACKET)]);
     }
 
+    Xdp->Running = TRUE;
     Status = CxPlatThreadCreate(&Config, &Xdp->WorkerThread);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -591,6 +592,7 @@ CxPlatDpRawTxAlloc(
     UNREFERENCED_PARAMETER(ECN);
 
     if (Packet) {
+        printf("Alloc TX %p\n", Packet);
         CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill);
         Packet->Xdp = Xdp;
         Packet->Buffer.Length = MaxPacketSize;
@@ -607,6 +609,7 @@ CxPlatDpRawTxFree(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    printf("Free TX %p\n", Packet);
     InterlockedPushEntrySList(&Packet->Xdp->TxPool, (PSLIST_ENTRY)Packet);
 }
 
@@ -617,6 +620,7 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    printf("Enqueue TX %p\n", Packet);
 
     CxPlatLockAcquire(&Packet->Xdp->TxLock);
     CxPlatListInsertTail(&Packet->Xdp->TxQueue, &Packet->Link);
@@ -645,6 +649,7 @@ CxPlatXdpTx(
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Xdp->TxRing, TxIndex++);
         CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(TxQueue);
         XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+        printf("Send TX %p\n", Packet);
 
         Buffer->address = (uint8_t*)Packet - Xdp->TxBuffers;
         XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
@@ -653,6 +658,7 @@ CxPlatXdpTx(
     }
 
     if (ProdCount > 0) {
+        printf("Submit TX ring\n");
         XskRingProducerSubmit(&Xdp->TxRing, ProdCount);
         if (XskRingProducerNeedPoke(&Xdp->TxRing)) {
             uint32_t OutFlags;
@@ -666,6 +672,7 @@ CxPlatXdpTx(
     while (CompAvailable-- > 0) {
         uint64_t* CompDesc = XskRingGetElement(&Xdp->TxCompletionRing, CompIndex++);
         XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)(Xdp->TxBuffers + *CompDesc);
+        printf("Complate TX %p\n", Packet);
         InterlockedPushEntrySList(&Xdp->TxPool, (PSLIST_ENTRY)Packet);
         CompCount++;
     }
@@ -689,7 +696,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
     SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
 
     while (Xdp->Running) {
-        CxPlatXdpRx(Xdp, PartitionIndex);
+        UNREFERENCED_PARAMETER(PartitionIndex);
+        //CxPlatXdpRx(Xdp, PartitionIndex);
         CxPlatXdpTx(Xdp, &TxQueue);
     }
 
