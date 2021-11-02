@@ -19,6 +19,29 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP RX Buffers",
+            Xdp->RxBufferCount * RxPacketSize);
+// arg2 = arg2 = "XDP RX Buffers"
+// arg3 = arg3 = Xdp->RxBufferCount * RxPacketSize
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
@@ -30,9 +53,9 @@ extern "C" {
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "CxPlatThreadCreate");
+            "XskCreate");
 // arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatThreadCreate"
+// arg3 = arg3 = "XskCreate"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
@@ -52,10 +75,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eal_init");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eal_init"
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_UMEM_REG)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskSetSockopt(XSK_SOCKOPT_UMEM_REG)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -74,10 +97,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_get_port_by_name");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_dev_get_port_by_name"
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_RX_FILL_RING_SIZE)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskSetSockopt(XSK_SOCKOPT_RX_FILL_RING_SIZE)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -96,10 +119,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            0,
-            "rte_pktmbuf_pool_create");
-// arg2 = arg2 = 0
-// arg3 = arg3 = "rte_pktmbuf_pool_create"
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_RX_RING_SIZE)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskSetSockopt(XSK_SOCKOPT_RX_RING_SIZE)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -118,10 +141,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_ring_create");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_ring_create"
+            Status,
+            "XskBind");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskBind"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -140,10 +163,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_info_get");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_dev_info_get"
+            Status,
+            "XskGetSockopt(XSK_SOCKOPT_RING_INFO)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskGetSockopt(XSK_SOCKOPT_RING_INFO)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -162,10 +185,54 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_configure");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_dev_configure"
+            Status,
+            "XdpCreateProgram");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XdpCreateProgram"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP TX Buffers",
+            Xdp->TxBufferCount * sizeof(XDP_TX_PACKET));
+// arg2 = arg2 = "XDP TX Buffers"
+// arg3 = arg3 = Xdp->TxBufferCount * sizeof(XDP_TX_PACKET)
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskCreate"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -184,54 +251,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_configure");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_dev_configure"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ret,
-                "rte_eth_rx_queue_setup");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_rx_queue_setup"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ret,
-                "rte_eth_tx_queue_setup");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_tx_queue_setup"
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_UMEM_REG)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskSetSockopt(XSK_SOCKOPT_UMEM_REG)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -250,10 +273,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_dev_start");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_dev_start"
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_TX_RING_SIZE)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskSetSockopt(XSK_SOCKOPT_TX_RING_SIZE)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -272,10 +295,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eth_macaddr_get");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eth_macaddr_get"
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_TX_COMPLETION_RING_SIZE)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskSetSockopt(XSK_SOCKOPT_TX_COMPLETION_RING_SIZE)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -294,10 +317,10 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "rte_eal_mp_remote_launch");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "rte_eal_mp_remote_launch"
+            Status,
+            "XskBind");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskBind"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
@@ -306,21 +329,44 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_LibraryError
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "No room in Xdp TX ring buffer");
-// arg2 = arg2 = "No room in Xdp TX ring buffer"
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskGetSockopt(XSK_SOCKOPT_RING_INFO)");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "XskGetSockopt(XSK_SOCKOPT_RING_INFO)"
 ----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryError , arg2);\
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatThreadCreate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

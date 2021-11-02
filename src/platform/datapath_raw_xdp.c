@@ -220,12 +220,22 @@ CxPlatDpRawInitialize(
 
     Xdp->RxBuffers = CxPlatAlloc(Xdp->RxBufferCount * RxPacketSize, RX_BUFFER_TAG);
     if (Xdp->RxBuffers == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP RX Buffers",
+            Xdp->RxBufferCount * RxPacketSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
     Status = XskCreate(&Xdp->RxXsk);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskCreate");
         goto Error;
     }
 
@@ -237,6 +247,11 @@ CxPlatDpRawInitialize(
 
     Status = XskSetSockopt(Xdp->RxXsk, XSK_SOCKOPT_UMEM_REG, &RxUmem, sizeof(RxUmem));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_UMEM_REG)");
         goto Error;
     }
 
@@ -244,6 +259,11 @@ CxPlatDpRawInitialize(
         XskSetSockopt(
             Xdp->RxXsk, XSK_SOCKOPT_RX_FILL_RING_SIZE, &Xdp->RxRingSize, sizeof(Xdp->RxRingSize));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_RX_FILL_RING_SIZE)");
         goto Error;
     }
 
@@ -251,6 +271,11 @@ CxPlatDpRawInitialize(
         XskSetSockopt(
             Xdp->RxXsk, XSK_SOCKOPT_RX_RING_SIZE, &Xdp->RxRingSize, sizeof(Xdp->RxRingSize));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_RX_RING_SIZE)");
         goto Error;
     }
 
@@ -258,6 +283,11 @@ CxPlatDpRawInitialize(
     uint32_t Flags = 0;     // TODO: support native/generic forced flags.
     Status = XskBind(Xdp->RxXsk, Xdp->IfIndex, QueueId, Flags, NULL);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskBind");
         goto Error;
     }
 
@@ -265,6 +295,11 @@ CxPlatDpRawInitialize(
     uint32_t RxRingInfoSize = sizeof(RxRingInfo);
     Status = XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_RING_INFO, &RxRingInfo, &RxRingInfoSize);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskGetSockopt(XSK_SOCKOPT_RING_INFO)");
         goto Error;
     }
 
@@ -287,6 +322,11 @@ CxPlatDpRawInitialize(
     Flags = 0; // TODO: support native/generic forced flags.
     Status = XdpCreateProgram(Xdp->IfIndex, &RxHook, QueueId, Flags, &RxRule, 1, &Xdp->RxProgram);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XdpCreateProgram");
         goto Error;
     }
 
@@ -300,12 +340,22 @@ CxPlatDpRawInitialize(
 
     Xdp->TxBuffers = CxPlatAlloc(Xdp->TxBufferCount * sizeof(XDP_TX_PACKET), TX_BUFFER_TAG);
     if (Xdp->TxBuffers == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP TX Buffers",
+            Xdp->TxBufferCount * sizeof(XDP_TX_PACKET));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
     Status = XskCreate(&Xdp->TxXsk);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskCreate");
         goto Error;
     }
 
@@ -317,6 +367,11 @@ CxPlatDpRawInitialize(
 
     Status = XskSetSockopt(Xdp->TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_UMEM_REG)");
         goto Error;
     }
 
@@ -324,6 +379,11 @@ CxPlatDpRawInitialize(
         XskSetSockopt(
             Xdp->TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &Xdp->TxRingSize, sizeof(Xdp->TxRingSize));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_TX_RING_SIZE)");
         goto Error;
     }
 
@@ -332,12 +392,22 @@ CxPlatDpRawInitialize(
             Xdp->TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &Xdp->TxRingSize,
             sizeof(Xdp->TxRingSize));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskSetSockopt(XSK_SOCKOPT_TX_COMPLETION_RING_SIZE)");
         goto Error;
     }
 
     Flags = 0; // TODO: support native/generic forced flags.
     Status = XskBind(Xdp->TxXsk, Xdp->IfIndex, QueueId, Flags, NULL);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskBind");
         goto Error;
     }
 
@@ -345,6 +415,11 @@ CxPlatDpRawInitialize(
     uint32_t TxRingInfoSize = sizeof(TxRingInfo);
     Status = XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskGetSockopt(XSK_SOCKOPT_RING_INFO)");
         goto Error;
     }
 
@@ -358,6 +433,11 @@ CxPlatDpRawInitialize(
 
     Status = CxPlatThreadCreate(&Config, &Xdp->WorkerThread);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
         goto Error;
     }
 
