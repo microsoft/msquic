@@ -293,16 +293,28 @@ CxPlatDpRawRxEthernet(
     _In_ uint16_t PacketCount
     )
 {
+    CXPLAT_SOCKET* Socket = NULL;
+
     for (uint16_t i = 0; i < PacketCount; i++) {
         CXPLAT_RECV_DATA* Packet = Packets[i];
         CXPLAT_DBG_ASSERT(Packet->Next == NULL);
 
         if (Packet->Reserved == L4_TYPE_UDP) {
-            CXPLAT_SOCKET* Socket =
-                CxPlatGetSocket(
-                    &Datapath->SocketPool,
-                    &Packet->Tuple->LocalAddress,
-                    &Packet->Tuple->RemoteAddress);
+
+            if (Socket &&
+                QuicAddrCompare(&Packet->Tuple->LocalAddress, &Packets[i-1]->Tuple->LocalAddress) &&
+                QuicAddrCompare(&Packet->Tuple->RemoteAddress, &Packets[i-1]->Tuple->RemoteAddress)) {
+                //
+                // Optimization: skip socket lookup for consecutive packets with the same 4-tuple.
+                //
+            } else {
+                Socket =
+                    CxPlatGetSocket(
+                        &Datapath->SocketPool,
+                        &Packet->Tuple->LocalAddress,
+                        &Packet->Tuple->RemoteAddress);
+            }
+
             if (Socket) {
                 QuicTraceEvent(
                     DatapathRecv,
