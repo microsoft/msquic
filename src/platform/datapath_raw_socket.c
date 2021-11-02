@@ -324,6 +324,28 @@ CxPlatFramingWriteHeaders(
     _Inout_ QUIC_BUFFER* Buffer
     )
 {
+    UDP_HEADER* UDP;
+    ETHERNET_HEADER* Ethernet;
+    IPV4_HEADER* IPv4;
+    IPV6_HEADER* IPv6;
+
+    if (QuicAddrGetFamily(LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+        //
+        // Fill IPv4 header.
+        //
+        IPv4->VersionAndHeaderLength = 0x45;
+        IPv4->TypeOfService = 0;
+        IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
+        IPv4->Identification = 0;
+        IPv4->FlagsAndFragmentOffset = 0;
+        IPv4->TimeToLive = 64;
+        IPv4->Protocol = 17; // UDP
+        IPv4->HeaderChecksum = 0;
+    } else {
+        //
+        // Fill IPv6 header.
+        //
+    }
     UDP_HEADER* UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
     IPV4_HEADER* IP = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
     ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IP) - sizeof(ETHERNET_HEADER));
@@ -341,14 +363,7 @@ CxPlatFramingWriteHeaders(
     CxPlatCopyMemory(IP->Destination, &RemoteAddress->Ipv4.sin_addr, sizeof(RemoteAddress->Ipv4.sin_addr));
     CxPlatCopyMemory(IP->Source, &LocalAddress->Ipv4.sin_addr, sizeof(LocalAddress->Ipv4.sin_addr));
 
-    IP->VersionAndHeaderLength = 0x45;
-    IP->TypeOfService = 0;
-    IP->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
-    IP->Identification = 0;
-    IP->FlagsAndFragmentOffset = 0;
-    IP->TimeToLive = 64;
-    IP->Protocol = 17; // UDP
-    IP->HeaderChecksum = 0;
+
 
     UDP->DestinationPort = RemoteAddress->Ipv4.sin_port;
     UDP->SourcePort = LocalAddress->Ipv4.sin_port;
