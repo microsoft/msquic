@@ -21,7 +21,6 @@ Abstract:
 #include <stdio.h>
 
 #define RX_BATCH_SIZE 16
-#define TX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
 
 #define RX_BUFFER_TAG 'RpdX' // XdpR
@@ -42,14 +41,16 @@ typedef struct XDP_DATAPATH {
     HANDLE TxXsk;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
+    CXPLAT_LOCK TxLock;
+    CXPLAT_LIST_ENTRY TxQueue;
 
     BOOLEAN Running;
     CXPLAT_THREAD WorkerThread;
 
     // Constants
     uint16_t IfIndex;
-    uint32_t DatapathCpuGroup;
-    uint32_t DatapathCpuNumber;
+    uint16_t DatapathCpuGroup;
+    uint8_t DatapathCpuNumber;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
@@ -68,6 +69,7 @@ typedef struct XDP_RX_PACKET {
 typedef struct XDP_TX_PACKET {
     CXPLAT_SEND_DATA;
     XDP_DATAPATH* Xdp;
+    CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
 
@@ -95,6 +97,8 @@ void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
     uint8_t* MacPtr = Mac;
     uint8_t* End = Mac + 6;
     char* ValuePtr = Value;
+
+    *Mac = 0; // satisfy compiler.
 
     while (MacPtr < End) {
         if (*ValuePtr == '\0') {
@@ -161,9 +165,9 @@ CxPlatXdpReadConfig(
         } else if (strcmp(Line, "ClientIP") == 0) {
              QuicAddrFromString(Value, 0, &Xdp->ClientIP);
         } else if (strcmp(Line, "CpuGroup") == 0) {
-             Xdp->DatapathCpuGroup = strtoul(Value, NULL, 10);
+             Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "CpuNumber") == 0) {
-             Xdp->DatapathCpuNumber = strtoul(Value, NULL, 10);
+             Xdp->DatapathCpuNumber = (uint8_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "IfIndex") == 0) {
             Xdp->IfIndex = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxBufferCount") == 0) {
@@ -206,6 +210,8 @@ CxPlatDpRawInitialize(
 
     InitializeSListHead(&Xdp->RxPool);
     InitializeSListHead(&Xdp->TxPool);
+    CxPlatLockInitialize(&Xdp->TxLock);
+    CxPlatListInitializeHead(&Xdp->TxQueue);
 
     CxPlatXdpReadConfig(Xdp);
 
@@ -398,6 +404,8 @@ CxPlatDpRawUninitialize(
     if (Xdp->RxBuffers != NULL) {
         CxPlatFree(Xdp->RxBuffers, RX_BUFFER_TAG);
     }
+
+    CxPlatLockUninitialize(&Xdp->TxLock);
 }
 
 static
@@ -407,32 +415,33 @@ CxPlatXdpRx(
     _In_ uint16_t PartitionIndex
     )
 {
-    void* Buffers[RX_BATCH_SIZE];
+    CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
     uint32_t RxIndex;
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
-    uint16_t PacketCount = 0;
-    const uint16_t BuffersCount = XskRingConsumerReserve(&Xdp->RxRing, RX_BATCH_SIZE, &RxIndex);
+    uint32_t PacketCount = 0;
+    const uint32_t BuffersCount = XskRingConsumerReserve(&Xdp->RxRing, RX_BATCH_SIZE, &RxIndex);
 
-    for (uint16_t i = 0; i < BuffersCount; i++) {
+    for (uint32_t i = 0; i < BuffersCount; i++) {
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Xdp->RxRing, RxIndex++);
-        XDP_RX_PACKET *Packet = Xdp->RxBuffers + XskDescriptorGetAddress(Buffer->address);
-        uint8_t *FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
+        XDP_RX_PACKET* Packet =
+            (XDP_RX_PACKET*)(Xdp->RxBuffers + XskDescriptorGetAddress(Buffer->address));
+        uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Tuple = &Packet->IP;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
-            (CXPLAT_RECV_DATA*)&Packet,
+            (CXPLAT_RECV_DATA*)Packet,
             FrameBuffer,
-            Buffer->length);
+            (uint16_t)Buffer->length);
 
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
             Packet->PartitionIndex = PartitionIndex;
             Packet->Xdp = Xdp;
-            Buffers[PacketCount++] = Packet;
+            Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
         } else {
             if (XskRingProducerReserve(&Xdp->RxFillRing, 1, &FillIndex) == 1) {
                 uint64_t *FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex);
@@ -454,12 +463,12 @@ CxPlatXdpRx(
         FillIndex += ProdCount;
 
         while (FillAvailable-- > 0) {
-            XDP_RX_PACKET *Packet = InterlockedPopEntrySList(&Xdp->RxPool);
+            XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)InterlockedPopEntrySList(&Xdp->RxPool);
             if (Packet == NULL) {
                 break;
             }
 
-            uint64_t *FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex++);
+            uint64_t* FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex++);
             *FillDesc = (uint8_t*)Packet - Xdp->RxBuffers;
             ProdCount++;
         }
@@ -470,7 +479,7 @@ CxPlatXdpRx(
     }
 
     if (PacketCount > 0) {
-        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, (CXPLAT_RECV_DATA**)Buffers, PacketCount);
+        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
     }
 }
 
@@ -483,6 +492,7 @@ CxPlatDpRawRxFree(
     while (PacketChain) {
         const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
+        // Packet->Allocated = FALSE; (other data paths don't clear this flag?)
         InterlockedPushEntrySList(&Packet->Xdp->RxPool, (PSLIST_ENTRY)Packet);
     }
 }
@@ -496,20 +506,18 @@ CxPlatDpRawTxAlloc(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    XDP_TX_PACKET* Packet = CxPlatPoolAlloc(&Xdp->AdditionalInfoPool);
-    if (likely(Packet)) {
-        Packet->Mbuf = rte_pktmbuf_alloc(Xdp->MemoryPool);
-        if (likely(Packet->Mbuf)) {
-            Packet->Xdp = Xdp;
-            Packet->Buffer.Length = MaxPacketSize;
-            Packet->Mbuf->data_off = 0;
-            Packet->Buffer.Buffer =
-                ((uint8_t*)Packet->Mbuf->buf_addr) + 42; // Ethernet,IPv4,UDP
-        } else {
-            CxPlatPoolFree(&Xdp->AdditionalInfoPool, Packet);
-            Packet = NULL;
-        }
+    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Xdp->TxPool);
+    const uint16_t HeaderBackfill = 42; // Ethernet,IPv4,UDP
+
+    UNREFERENCED_PARAMETER(ECN);
+
+    if (Packet) {
+        CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill);
+        Packet->Xdp = Xdp;
+        Packet->Buffer.Length = MaxPacketSize;
+        Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill];
     }
+
     return (CXPLAT_SEND_DATA*)Packet;
 }
 
@@ -520,8 +528,7 @@ CxPlatDpRawTxFree(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    rte_pktmbuf_free(Packet->Mbuf);
-    CxPlatPoolFree(&Packet->Xdp->AdditionalInfoPool, SendData);
+    InterlockedPushEntrySList(&Packet->Xdp->TxPool, (PSLIST_ENTRY)Packet);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -531,62 +538,80 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    Packet->Mbuf->data_len = (uint16_t)Packet->Buffer.Length;
-    Packet->Mbuf->ol_flags = PKT_TX_IPV4 | PKT_TX_IP_CKSUM | PKT_TX_UDP_CKSUM;
-    Packet->Mbuf->l2_len = 14;
-    Packet->Mbuf->l3_len = 20;
 
-    XDP_DATAPATH* Xdp = Packet->Xdp;
-    if (unlikely(rte_ring_mp_enqueue(Xdp->TxRingBuffer, Packet->Mbuf) != 0)) {
-        rte_pktmbuf_free(Packet->Mbuf);
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "No room in Xdp TX ring buffer");
-    }
-
-    CxPlatPoolFree(&Xdp->AdditionalInfoPool, Packet);
+    CxPlatLockAcquire(&Packet->Xdp->TxLock);
+    CxPlatListInsertTail(&Packet->Xdp->TxQueue, &Packet->Link);
+    CxPlatLockRelease(&Packet->Xdp->TxLock);
 }
 
 static
 void
 CxPlatXdpTx(
-    _In_ XDP_DATAPATH* Xdp
+    _In_ XDP_DATAPATH* Xdp,
+    _Inout_ CXPLAT_LIST_ENTRY* TxQueue
     )
 {
-    struct rte_mbuf* Buffers[TX_BURST_SIZE];
-    const uint16_t BufferCount =
-        (uint16_t)rte_ring_sc_dequeue_burst(
-            Xdp->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, NULL);
-    if (unlikely(BufferCount == 0)) {
-        return;
+    uint32_t ProdCount = 0;
+    uint32_t CompCount = 0;
+
+    if (CxPlatListIsEmpty(TxQueue)) {
+        CxPlatLockAcquire(&Xdp->TxLock);
+        CxPlatListMoveItems(&Xdp->TxQueue, TxQueue);
+        CxPlatLockRelease(&Xdp->TxLock);
     }
 
-    const uint16_t TxCount = rte_eth_tx_burst(Xdp->Port, 0, Buffers, BufferCount);
-    if (unlikely(TxCount < BufferCount)) {
-        for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
-            rte_pktmbuf_free(Buffers[buf]);
+    uint32_t TxIndex;
+    uint32_t TxAvailable = XskRingProducerReserve(&Xdp->TxRing, MAXUINT32, &TxIndex);
+    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(TxQueue)) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Xdp->TxRing, TxIndex++);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(TxQueue);
+        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+
+        Buffer->address = (uint8_t*)Packet - Xdp->TxBuffers;
+        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
+        Buffer->length = Packet->Buffer.Length;
+        ProdCount++;
+    }
+
+    if (ProdCount > 0) {
+        XskRingProducerSubmit(&Xdp->TxRing, ProdCount);
+        if (XskRingProducerNeedPoke(&Xdp->TxRing)) {
+            uint32_t OutFlags;
+            QUIC_STATUS Status = XskNotifySocket(Xdp->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
+            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         }
+    }
+
+    uint32_t CompIndex;
+    uint32_t CompAvailable = XskRingConsumerReserve(&Xdp->TxCompletionRing, MAXUINT32, &CompIndex);
+    while (CompAvailable-- > 0) {
+        uint64_t* CompDesc = XskRingGetElement(&Xdp->TxCompletionRing, CompIndex++);
+        XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)(Xdp->TxBuffers + *CompDesc);
+        InterlockedPushEntrySList(&Xdp->TxPool, (PSLIST_ENTRY)Packet);
+        CompCount++;
+    }
+
+    if (CompCount > 0) {
+        XskRingConsumerRelease(&Xdp->TxCompletionRing, CompCount);
     }
 }
 
-static
-int
-CxPlatXdpWorkerThread(
-    _In_ void* Context
-    )
+CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
     GROUP_AFFINITY Affinity = {0};
     uint16_t PartitionIndex = 0;
+    CXPLAT_LIST_ENTRY TxQueue;
+
+    CxPlatListInitializeHead(&TxQueue);
 
     Affinity.Group = Xdp->DatapathCpuGroup;
-    Affinity.Mask = AFFINITY_MASK(Xdp->DatapathCpuNumber);
+    Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
     SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
 
     while (Xdp->Running) {
         CxPlatXdpRx(Xdp, PartitionIndex);
-        CxPlatXdpTx(Xdp);
+        CxPlatXdpTx(Xdp, &TxQueue);
     }
 
     return 0;

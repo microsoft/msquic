@@ -72,7 +72,7 @@ elseif(QUIC_USE_XDP)
         platform
         PUBLIC
         inc
-        ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/msxdp.lib)
+        ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
 else()
     target_link_libraries(platform PUBLIC inc)
 endif()
