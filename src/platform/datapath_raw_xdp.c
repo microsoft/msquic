@@ -214,6 +214,7 @@ CxPlatDpRawInitialize(
     CxPlatListInitializeHead(&Xdp->TxQueue);
 
     CxPlatXdpReadConfig(Xdp);
+    Datapath->Cpu = Xdp->DatapathCpuNumber;
     CxPlatDpRawGenerateCpuTable(Datapath);
 
 
@@ -505,8 +506,7 @@ CxPlatDpRawUninitialize(
 static
 void
 CxPlatXdpRx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint16_t PartitionIndex
+    _In_ XDP_DATAPATH* Xdp
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -521,7 +521,6 @@ CxPlatXdpRx(
         XDP_RX_PACKET* Packet =
             (XDP_RX_PACKET*)(Xdp->RxBuffers + XskDescriptorGetAddress(Buffer->address));
         uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
-        printf("Recv RX %p (%u)\n", Packet, Buffer->length);
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Tuple = &Packet->IP;
@@ -534,17 +533,10 @@ CxPlatXdpRx(
 
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
-            Packet->PartitionIndex = PartitionIndex;
             Packet->Xdp = Xdp;
             Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
         } else {
-            if (XskRingProducerReserve(&Xdp->RxFillRing, 1, &FillIndex) == 1) {
-                uint64_t *FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex);
-                *FillDesc = XskDescriptorGetAddress(Buffer->address);
-                ProdCount++;
-            } else {
-                InterlockedPushEntrySList(&Xdp->RxPool, (PSLIST_ENTRY)Packet);
-            }
+            InterlockedPushEntrySList(&Xdp->RxPool, (PSLIST_ENTRY)Packet);
         }
     }
 
@@ -553,20 +545,15 @@ CxPlatXdpRx(
     }
 
     uint32_t FillAvailable = XskRingProducerReserve(&Xdp->RxFillRing, MAXUINT32, &FillIndex);
-    if (FillAvailable > ProdCount) {
-        FillAvailable -= ProdCount;
-        FillIndex += ProdCount;
-
-        while (FillAvailable-- > 0) {
-            XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)InterlockedPopEntrySList(&Xdp->RxPool);
-            if (Packet == NULL) {
-                break;
-            }
-
-            uint64_t* FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex++);
-            *FillDesc = (uint8_t*)Packet - Xdp->RxBuffers;
-            ProdCount++;
+    while (FillAvailable-- > 0) {
+        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)InterlockedPopEntrySList(&Xdp->RxPool);
+        if (Packet == NULL) {
+            break;
         }
+
+        uint64_t* FillDesc = XskRingGetElement(&Xdp->RxFillRing, FillIndex++);
+        *FillDesc = (uint8_t*)Packet - Xdp->RxBuffers;
+        ProdCount++;
     }
 
     if (ProdCount > 0) {
@@ -607,7 +594,6 @@ CxPlatDpRawTxAlloc(
     UNREFERENCED_PARAMETER(ECN);
 
     if (Packet) {
-        printf("Alloc TX %p\n", Packet);
         CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill);
         Packet->Xdp = Xdp;
         Packet->Buffer.Length = MaxPacketSize;
@@ -624,7 +610,6 @@ CxPlatDpRawTxFree(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    printf("Free TX %p\n", Packet);
     InterlockedPushEntrySList(&Packet->Xdp->TxPool, (PSLIST_ENTRY)Packet);
 }
 
@@ -635,8 +620,6 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    printf("Enqueue TX %p (length=%u)\n", Packet, Packet->Buffer.Length);
-    printf("TxPool = %llx\n", Packet->Xdp->TxPool.HeaderX64.NextEntry);
 
     CxPlatLockAcquire(&Packet->Xdp->TxLock);
     CxPlatListInsertTail(&Packet->Xdp->TxQueue, &Packet->Link);
@@ -665,13 +648,6 @@ CxPlatXdpTx(
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Xdp->TxRing, TxIndex++);
         CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(TxQueue);
         XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
-        printf("Send TX %p\n", Packet);
-
-        // Print the first 14 bytes of Packet
-        for (int i = 0; i < 14; i++) {
-            printf("%02hhx ", Packet->Buffer.Buffer[i]);
-        }
-        printf("\n");
 
         Buffer->address = (uint8_t*)Packet - Xdp->TxBuffers;
         XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
@@ -680,12 +656,12 @@ CxPlatXdpTx(
     }
 
     if (ProdCount > 0) {
-        printf("Submit TX ring\n");
         XskRingProducerSubmit(&Xdp->TxRing, ProdCount);
         if (XskRingProducerNeedPoke(&Xdp->TxRing)) {
             uint32_t OutFlags;
             QUIC_STATUS Status = XskNotifySocket(Xdp->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
             CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+            UNREFERENCED_PARAMETER(Status);
         }
     }
 
@@ -694,7 +670,6 @@ CxPlatXdpTx(
     while (CompAvailable-- > 0) {
         uint64_t* CompDesc = XskRingGetElement(&Xdp->TxCompletionRing, CompIndex++);
         XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)(Xdp->TxBuffers + *CompDesc);
-        printf("Complate TX %p\n", Packet);
         InterlockedPushEntrySList(&Xdp->TxPool, (PSLIST_ENTRY)Packet);
         CompCount++;
     }
@@ -708,7 +683,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
     GROUP_AFFINITY Affinity = {0};
-    uint16_t PartitionIndex = 0;
     CXPLAT_LIST_ENTRY TxQueue;
 
     CxPlatListInitializeHead(&TxQueue);
@@ -717,23 +691,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
     Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
     SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
 
-    uint32_t i = 0;
     while (Xdp->Running) {
-        CxPlatXdpRx(Xdp, PartitionIndex);
+        CxPlatXdpRx(Xdp);
         CxPlatXdpTx(Xdp, &TxQueue);
-
-        if (++i % 10000000 == 0) {
-            XSK_STATISTICS Stats;
-            uint32_t StatsSize = sizeof(Stats);
-            if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
-                printf("txInvalidDescriptors: %llu\n", Stats.txInvalidDescriptors);
-            }
-            StatsSize = sizeof(Stats);
-            if (QUIC_SUCCEEDED(XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize))) {
-                printf("rxDropped: %llu\n", Stats.rxDropped);
-                printf("rxInvalidDescriptors: %llu\n", Stats.rxInvalidDescriptors);
-            }
-        }
     }
 
     return 0;
