@@ -352,11 +352,11 @@ RpsClient::GetExtraData(
     _Inout_ uint32_t* Length
     )
 {
-    CXPLAT_FRE_ASSERT(*Length > sizeof(RunTime) + sizeof(CachedCompletedRequests));
+    CXPLAT_FRE_ASSERT(*Length >= sizeof(RunTime) + sizeof(CachedCompletedRequests));
     CxPlatCopyMemory(Data, &RunTime, sizeof(RunTime));
     Data += sizeof(RunTime);
     CxPlatCopyMemory(Data, &CachedCompletedRequests, sizeof(CachedCompletedRequests));
-    Data += sizeof(RunTime);
+    Data += sizeof(CachedCompletedRequests);
     uint64_t BufferLength = *Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     if (BufferLength > CachedCompletedRequests * sizeof(uint32_t)) {
         BufferLength = CachedCompletedRequests * sizeof(uint32_t);
