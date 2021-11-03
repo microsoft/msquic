@@ -252,6 +252,16 @@ CxPlatListIsEmpty(
     return (BOOLEAN)(ListHead->Flink == ListHead);
 }
 
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN
+CxPlatListIsEmptyNoFence(
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
+    )
+{
+    return (BOOLEAN)(QuicReadPtrNoFence(&ListHead->Flink) == ListHead);
+}
+
 FORCEINLINE
 void
 CxPlatListInsertHead(
