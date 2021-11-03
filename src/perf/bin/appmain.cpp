@@ -39,7 +39,7 @@ QuicHandleRpsClient(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     uint32_t RunTime;
-    uint32_t CachedCompletedRequests;
+    uint64_t CachedCompletedRequests;
     CxPlatCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
     ExtraData += sizeof(RunTime);
     CxPlatCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
