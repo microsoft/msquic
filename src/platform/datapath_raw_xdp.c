@@ -580,6 +580,15 @@ CxPlatXdpRx(
     if (PacketCount > 0) {
         CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
     }
+
+    if (XskRingError(&Xdp->RxRing)) {
+        XSK_ERROR ErrorStatus;
+        QUIC_STATUS XskStatus;
+        uint32_t ErrorSize = sizeof(ErrorStatus);
+        XskStatus = XskGetSockopt(Xdp->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
+        printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+        Xdp->Running = FALSE;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -723,6 +732,15 @@ CxPlatXdpTx(
         InterlockedPushListSList(
             &Xdp->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
             CompCount);
+    }
+
+    if (XskRingError(&Xdp->TxRing)) {
+        XSK_ERROR ErrorStatus;
+        QUIC_STATUS XskStatus;
+        uint32_t ErrorSize = sizeof(ErrorStatus);
+        XskStatus = XskGetSockopt(Xdp->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
+        printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+        Xdp->Running = FALSE;
     }
 }
 
