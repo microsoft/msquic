@@ -202,6 +202,8 @@ InterlockedIncrement64(
     return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
+#define QuicReadPtrNoFence(p) ((void*)(*p)) // TODO
+
 //
 // Assertion interfaces.
 //

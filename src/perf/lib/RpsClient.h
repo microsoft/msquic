@@ -35,10 +35,15 @@ struct StreamContext {
 
 struct RpsConnectionContext {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
+    RpsClient* Client {nullptr};
     RpsWorkerContext* Worker {nullptr};
     HQUIC Handle {nullptr};
     operator HQUIC() const { return Handle; }
     ~RpsConnectionContext() noexcept { if (Handle) { MsQuic->ConnectionClose(Handle); } }
+    QUIC_STATUS
+    ConnectionCallback(
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        );
     QUIC_STATUS
     StreamCallback(
         _In_ StreamContext* StrmContext,
@@ -100,6 +105,14 @@ struct RpsWorkerContext {
         CxPlatListInsertTail(&Connections, &Connection->Link);
         CxPlatLockRelease(&Lock);
     }
+    void UpdateConnection(RpsConnectionContext* Connection) {
+        if (this != Connection->Worker) {
+            CxPlatLockAcquire(&Connection->Worker->Lock);
+            CxPlatListEntryRemove(&Connection->Link);
+            CxPlatLockRelease(&Connection->Worker->Lock);
+            QueueConnection(Connection);
+        }
+    }
     void QueueSendRequest();
 };
 
@@ -142,12 +155,6 @@ public:
         _Out_writes_bytes_(*Length) uint8_t* Data,
         _Inout_ uint32_t* Length
         ) override;
-
-    QUIC_STATUS
-    ConnectionCallback(
-        _In_ HQUIC ConnectionHandle,
-        _Inout_ QUIC_CONNECTION_EVENT* Event
-        );
 
     MsQuicRegistration Registration {
         "secnetperf-client-rps",

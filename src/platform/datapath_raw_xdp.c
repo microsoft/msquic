@@ -29,21 +29,23 @@ Abstract:
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
 
-    // TODO: Use better (more scalable) buffer algorithms.
-    uint8_t *RxBuffers;
+    uint8_t* RxBuffers;
     HANDLE RxXsk;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
-    uint8_t *TxBuffers;
+    uint8_t* TxBuffers;
     HANDLE TxXsk;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
 
     BOOLEAN Running;
     CXPLAT_THREAD WorkerThread;
+    CXPLAT_LIST_ENTRY WorkerTxQueue;
+    CXPLAT_SLIST_ENTRY WorkerRxPool;
 
     // Move contended buffer pools to their own cache lines.
+    // TODO: Use better (more scalable) buffer algorithms.
     DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
     DECLSPEC_CACHEALIGN SLIST_HEADER TxPool;
 
@@ -214,7 +216,7 @@ CxPlatDpRawInitialize(
     CXPLAT_THREAD_CONFIG Config = {
         0, 0, "XdpDatapathWorker", CxPlatXdpWorkerThread, Xdp
     };
-    const uint32_t RxHeadroom = sizeof(XDP_RX_PACKET) + ClientRecvContextLength;
+    const uint32_t RxHeadroom = sizeof(XDP_RX_PACKET) + ALIGN_UP(ClientRecvContextLength, uint32_t);
     const uint32_t RxPacketSize = ALIGN_UP(RxHeadroom + MAX_ETH_FRAME_SIZE, XDP_RX_PACKET);
     QUIC_STATUS Status;
 
@@ -222,11 +224,12 @@ CxPlatDpRawInitialize(
     InitializeSListHead(&Xdp->TxPool);
     CxPlatLockInitialize(&Xdp->TxLock);
     CxPlatListInitializeHead(&Xdp->TxQueue);
+    CxPlatListInitializeHead(&Xdp->WorkerTxQueue);
+    Xdp->WorkerRxPool.Next = NULL;
 
     CxPlatXdpReadConfig(Xdp);
     Datapath->Cpu = Xdp->DatapathCpuNumber;
     CxPlatDpRawGenerateCpuTable(Datapath);
-
 
     //
     // RX datapath.
@@ -546,7 +549,7 @@ CxPlatXdpRx(
             Packet->Xdp = Xdp;
             Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
         } else {
-            InterlockedPushEntrySList(&Xdp->RxPool, (PSLIST_ENTRY)Packet);
+            CxPlatListPushEntry(&Xdp->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
         }
     }
 
@@ -556,7 +559,11 @@ CxPlatXdpRx(
 
     uint32_t FillAvailable = XskRingProducerReserve(&Xdp->RxFillRing, MAXUINT32, &FillIndex);
     while (FillAvailable-- > 0) {
-        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)InterlockedPopEntrySList(&Xdp->RxPool);
+        if (Xdp->WorkerRxPool.Next == NULL) {
+            Xdp->WorkerRxPool.Next = (CXPLAT_SLIST_ENTRY*)InterlockedFlushSList(&Xdp->RxPool);
+        }
+
+        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)CxPlatListPopEntry(&Xdp->WorkerRxPool);
         if (Packet == NULL) {
             break;
         }
@@ -581,11 +588,35 @@ CxPlatDpRawRxFree(
     _In_opt_ const CXPLAT_RECV_DATA* PacketChain
     )
 {
+    uint32_t Count = 0;
+    SLIST_ENTRY* Head = NULL;
+    SLIST_ENTRY** Tail = &Head;
+    SLIST_HEADER* Pool = NULL;
+
     while (PacketChain) {
         const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
         // Packet->Allocated = FALSE; (other data paths don't clear this flag?)
-        InterlockedPushEntrySList(&Packet->Xdp->RxPool, (PSLIST_ENTRY)Packet);
+
+        if (Pool != &Packet->Xdp->RxPool) {
+            if (Count > 0) {
+                InterlockedPushListSList(
+                    Pool, Head, CONTAINING_RECORD(Tail, SLIST_ENTRY, Next), Count);
+                Head = NULL;
+                Tail = &Head;
+                Count = 0;
+            }
+
+            Pool = &Packet->Xdp->RxPool;
+        }
+
+        *Tail = (SLIST_ENTRY*)Packet;
+        Tail = &((SLIST_ENTRY*)Packet)->Next;
+        Count++;
+    }
+
+    if (Count > 0) {
+        InterlockedPushListSList(Pool, Head, CONTAINING_RECORD(Tail, SLIST_ENTRY, Next), Count);
     }
 }
 
@@ -639,25 +670,26 @@ CxPlatDpRawTxEnqueue(
 static
 void
 CxPlatXdpTx(
-    _In_ XDP_DATAPATH* Xdp,
-    _Inout_ CXPLAT_LIST_ENTRY* TxQueue
+    _In_ XDP_DATAPATH* Xdp
     )
 {
     uint32_t ProdCount = 0;
     uint32_t CompCount = 0;
+    SLIST_ENTRY* TxCompleteHead = NULL;
+    SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
 
-    if (CxPlatListIsEmpty(TxQueue) &&
+    if (CxPlatListIsEmpty(&Xdp->WorkerTxQueue) &&
         ReadPointerNoFence(&Xdp->TxQueue.Flink) != &Xdp->TxQueue) {
         CxPlatLockAcquire(&Xdp->TxLock);
-        CxPlatListMoveItems(&Xdp->TxQueue, TxQueue);
+        CxPlatListMoveItems(&Xdp->TxQueue, &Xdp->WorkerTxQueue);
         CxPlatLockRelease(&Xdp->TxLock);
     }
 
     uint32_t TxIndex;
     uint32_t TxAvailable = XskRingProducerReserve(&Xdp->TxRing, MAXUINT32, &TxIndex);
-    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(TxQueue)) {
+    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Xdp->WorkerTxQueue)) {
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Xdp->TxRing, TxIndex++);
-        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(TxQueue);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Xdp->WorkerTxQueue);
         XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
 
         Buffer->address = (uint8_t*)Packet - Xdp->TxBuffers;
@@ -681,12 +713,16 @@ CxPlatXdpTx(
     while (CompAvailable-- > 0) {
         uint64_t* CompDesc = XskRingGetElement(&Xdp->TxCompletionRing, CompIndex++);
         XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)(Xdp->TxBuffers + *CompDesc);
-        InterlockedPushEntrySList(&Xdp->TxPool, (PSLIST_ENTRY)Packet);
+        *TxCompleteTail = (PSLIST_ENTRY)Packet;
+        TxCompleteTail = &((PSLIST_ENTRY)Packet)->Next;
         CompCount++;
     }
 
     if (CompCount > 0) {
         XskRingConsumerRelease(&Xdp->TxCompletionRing, CompCount);
+        InterlockedPushListSList(
+            &Xdp->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
+            CompCount);
     }
 }
 
@@ -694,9 +730,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
     GROUP_AFFINITY Affinity = {0};
-    CXPLAT_LIST_ENTRY TxQueue;
-
-    CxPlatListInitializeHead(&TxQueue);
 
     Affinity.Group = Xdp->DatapathCpuGroup;
     Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
@@ -704,7 +737,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 
     while (Xdp->Running) {
         CxPlatXdpRx(Xdp);
-        CxPlatXdpTx(Xdp, &TxQueue);
+        CxPlatXdpTx(Xdp);
     }
 
     return 0;

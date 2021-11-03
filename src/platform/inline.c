@@ -66,6 +66,12 @@ CxPlatListIsEmpty(
     _In_ const CXPLAT_LIST_ENTRY* ListHead
     );
 
+_Must_inspect_result_
+BOOLEAN
+CxPlatListIsEmptyNoFence(
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
+    );
+
 void
 CxPlatListInsertHead(
     _Inout_ CXPLAT_LIST_ENTRY* ListHead,

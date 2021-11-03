@@ -177,11 +177,8 @@ RpsClient::Start(
     }
 
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
-        [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
-            return ((RpsClient*)Context)->
-                ConnectionCallback(
-                    Conn,
-                    Event);
+        [](HQUIC /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
+            return ((RpsConnectionContext*)Context)->ConnectionCallback(Event);
         };
 
     Connections = UniquePtr<RpsConnectionContext[]>(new(std::nothrow) RpsConnectionContext[ConnectionCount]);
@@ -203,11 +200,13 @@ RpsClient::Start(
             return Status;
         }
 
+        Connections[i].Client = this;
+
         Status =
             MsQuic->ConnectionOpen(
                 Registration,
                 Handler,
-                this,
+                &Connections[i],
                 &Connections[i].Handle);
         if (QUIC_FAILED(Status)) {
             WriteOutput("ConnectionOpen failed, 0x%x\n", Status);
@@ -352,11 +351,11 @@ RpsClient::GetExtraData(
     _Inout_ uint32_t* Length
     )
 {
-    CXPLAT_FRE_ASSERT(*Length > sizeof(RunTime) + sizeof(CachedCompletedRequests));
+    CXPLAT_FRE_ASSERT(*Length >= sizeof(RunTime) + sizeof(CachedCompletedRequests));
     CxPlatCopyMemory(Data, &RunTime, sizeof(RunTime));
     Data += sizeof(RunTime);
     CxPlatCopyMemory(Data, &CachedCompletedRequests, sizeof(CachedCompletedRequests));
-    Data += sizeof(RunTime);
+    Data += sizeof(CachedCompletedRequests);
     uint64_t BufferLength = *Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     if (BufferLength > CachedCompletedRequests * sizeof(uint32_t)) {
         BufferLength = CachedCompletedRequests * sizeof(uint32_t);
@@ -367,20 +366,25 @@ RpsClient::GetExtraData(
 }
 
 QUIC_STATUS
-RpsClient::ConnectionCallback(
-    _In_ HQUIC /* ConnectionHandle */,
+RpsConnectionContext::ConnectionCallback(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        if ((uint32_t)InterlockedIncrement64((int64_t*)&ActiveConnections) == ConnectionCount) {
-            CxPlatEventSet(AllConnected.Handle);
+        if ((uint32_t)InterlockedIncrement64((int64_t*)&Client->ActiveConnections) == Client->ConnectionCount) {
+            CxPlatEventSet(Client->AllConnected.Handle);
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        break;
+    case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+        if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client->WorkerCount) {
+            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client->WorkerCount - 1);
+        }
+        Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);
         break;
     default:
         break;
