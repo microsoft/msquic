@@ -335,14 +335,12 @@ QuicWorkerGetNextConnection(
     _In_ QUIC_WORKER* Worker
     )
 {
-    QUIC_CONNECTION* Connection;
+    QUIC_CONNECTION* Connection = NULL;
 
-    if (Worker->Enabled) {
+    if (Worker->Enabled &&
+        ReadPointerNoFence(&Worker->Connections.Flink) != &Worker->Connections) {
         CxPlatDispatchLockAcquire(&Worker->Lock);
-
-        if (CxPlatListIsEmpty(&Worker->Connections)) {
-            Connection = NULL;
-        } else {
+        if (!CxPlatListIsEmpty(&Worker->Connections)) {
             Connection =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
@@ -352,10 +350,7 @@ QuicWorkerGetNextConnection(
             Connection->WorkerProcessing = TRUE;
             QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
         }
-
         CxPlatDispatchLockRelease(&Worker->Lock);
-    } else {
-        Connection = NULL;
     }
 
     return Connection;
@@ -367,27 +362,19 @@ QuicWorkerGetNextOperation(
     _In_ QUIC_WORKER* Worker
     )
 {
-    QUIC_OPERATION* Operation;
+    QUIC_OPERATION* Operation = NULL;
 
-    if (Worker->Enabled) {
+    if (Worker->Enabled && Worker->OperationCount != 0) {
         CxPlatDispatchLockAcquire(&Worker->Lock);
-
-        if (Worker->OperationCount == 0) {
-            Operation = NULL;
-        } else {
-            Operation =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+        Operation =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
 #if DEBUG
-            Operation->Link.Flink = NULL;
+        Operation->Link.Flink = NULL;
 #endif
-            Worker->OperationCount--;
-            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
-        }
-
+        Worker->OperationCount--;
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
         CxPlatDispatchLockRelease(&Worker->Lock);
-    } else {
-        Operation = NULL;
     }
 
     return Operation;
@@ -397,7 +384,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerProcessTimers(
     _In_ QUIC_WORKER* Worker,
-    _In_ CXPLAT_THREAD_ID ThreadID
+    _In_ CXPLAT_THREAD_ID ThreadID,
+    _In_ uint64_t TimeNow
     )
 {
     //
@@ -405,7 +393,6 @@ QuicWorkerProcessTimers(
     //
     CXPLAT_LIST_ENTRY ExpiredTimers;
     CxPlatListInitializeHead(&ExpiredTimers);
-    uint64_t TimeNow = CxPlatTimeUs64();
     QuicTimerWheelGetExpired(&Worker->TimerWheel, TimeNow, &ExpiredTimers);
 
     //
@@ -548,6 +535,54 @@ QuicWorkerProcessConnection(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicWorkerLoopCleanup(
+    _In_ QUIC_WORKER* Worker
+    )
+{
+    //
+    // Because the registration layer only waits for the rundown to complete,
+    // and because the connection releases the rundown on handle close,
+    // not free, it's possible that the worker thread still had the connection
+    // in it's list by the time clean up started. So it needs to release any
+    // remaining references on connections.
+    //
+    int64_t Dequeue = 0;
+    while (!CxPlatListIsEmpty(&Worker->Connections)) {
+        QUIC_CONNECTION* Connection =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
+        if (!Connection->State.ExternalOwner) {
+            //
+            // If there is no external owner, shut down the connection so
+            // that it's not leaked.
+            //
+            QuicTraceLogConnVerbose(
+                AbandonOnLibShutdown,
+                Connection,
+                "Abandoning on shutdown");
+            QuicConnOnShutdownComplete(Connection);
+        }
+        QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
+        --Dequeue;
+    }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
+
+    Dequeue = 0;
+    while (!CxPlatListIsEmpty(&Worker->Operations)) {
+        QUIC_OPERATION* Operation =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+#if DEBUG
+        Operation->Link.Flink = NULL;
+#endif
+        QuicOperationFree(Worker, Operation);
+        --Dequeue;
+    }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
+}
+
 typedef enum QUIC_WORKER_LOOP_STATE {
     QUIC_WORKER_LOOP_EXIT,
     QUIC_WORKER_LOOP_CONTINUE,
@@ -591,51 +626,11 @@ QuicWorkerLoop(
 
     } else if (Reason == QUIC_WORKER_LOOP_REASON_TIMER) {
         QuicWorkerToggleActivityState(Worker, FALSE);
-        QuicWorkerProcessTimers(Worker, ThreadID);
+        QuicWorkerProcessTimers(Worker, ThreadID, CxPlatTimeUs64());
     }
 
     if (!Worker->Enabled) {
-        //
-        // Because the registration layer only waits for the rundown to complete,
-        // and because the connection releases the rundown on handle close,
-        // not free, it's possible that the worker thread still had the connection
-        // in it's list by the time clean up started. So it needs to release any
-        // remaining references on connections.
-        //
-        int64_t Dequeue = 0;
-        while (!CxPlatListIsEmpty(&Worker->Connections)) {
-            QUIC_CONNECTION* Connection =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
-            if (!Connection->State.ExternalOwner) {
-                //
-                // If there is no external owner, shut down the connection so
-                // that it's not leaked.
-                //
-                QuicTraceLogConnVerbose(
-                    AbandonOnLibShutdown,
-                    Connection,
-                    "Abandoning on shutdown");
-                QuicConnOnShutdownComplete(Connection);
-            }
-            QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
-            --Dequeue;
-        }
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
-
-        Dequeue = 0;
-        while (!CxPlatListIsEmpty(&Worker->Operations)) {
-            QUIC_OPERATION* Operation =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
-#if DEBUG
-            Operation->Link.Flink = NULL;
-#endif
-            QuicOperationFree(Worker, Operation);
-            --Dequeue;
-        }
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
-
+        QuicWorkerLoopCleanup(Worker);
         return QUIC_WORKER_LOOP_EXIT;
     }
 
@@ -672,7 +667,7 @@ QuicWorkerLoop(
         //
         // Timers are ready to be processed.
         //
-        QuicWorkerProcessTimers(Worker, ThreadID);
+        QuicWorkerProcessTimers(Worker, ThreadID, TimeNow);
         return QUIC_WORKER_LOOP_CONTINUE;
     }
 
@@ -684,6 +679,17 @@ QuicWorkerLoop(
         //
         return QUIC_WORKER_LOOP_CONTINUE;
     }
+
+#ifdef QUIC_WORKER_POLLING
+    if (Worker->PollCount++ < QUIC_WORKER_POLLING) {
+        //
+        // Busy loop for a while to keep the thread hot in case new work comes
+        // in.
+        //
+        return QUIC_WORKER_LOOP_CONTINUE;
+    }
+    Worker->PollCount = 0; // Reset the counter.
+#endif // QUIC_WORKER_POLLING
 
     if (*Delay != UINT64_MAX) {
         //
