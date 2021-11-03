@@ -259,7 +259,7 @@ CxPlatListIsEmptyNoFence(
     _In_ const CXPLAT_LIST_ENTRY* ListHead
     )
 {
-    return (BOOLEAN)(QuicReadPtrNoFence(&ListHead->Flink) == ListHead);
+    return (BOOLEAN)(QuicReadPtrNoFence((void*)&ListHead->Flink) == ListHead);
 }
 
 FORCEINLINE
