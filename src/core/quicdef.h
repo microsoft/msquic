@@ -132,7 +132,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // If enabled, workers will poll the number of times before falling back to the
 // wait or delay state.
 //
-//#define QUIC_WORKER_POLLING                     10000
+#define QUIC_WORKER_POLLING                     10000
 
 //
 // The maximum amount of queue delay a worker should take on (in ms).
@@ -219,7 +219,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // The initial stream FC window size reported to peers.
 //
-#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x8000  // 32768
+#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x10000  // 65536
 
 //
 // The initial stream receive buffer allocation size.
