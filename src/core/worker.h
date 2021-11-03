@@ -26,6 +26,11 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     BOOLEAN IsActive;
 
     //
+    // TRUE if the worker ran out of work to process right now.
+    //
+    BOOLEAN IsIdle;
+
+    //
     // The worker's ideal processor.
     //
     uint16_t IdealProcessor;
@@ -34,6 +39,13 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // The average queue delay connections experience, in microseconds.
     //
     uint32_t AverageQueueDelay;
+
+#ifdef QUIC_WORKER_POLLING
+    //
+    // The number of poll loops that have been executed.
+    //
+    uint32_t PollCount;
+#endif // QUIC_WORKER_POLLING
 
     //
     // Timers for the worker's connections.

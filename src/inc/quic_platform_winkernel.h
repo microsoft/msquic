@@ -361,6 +361,7 @@ typedef struct CXPLAT_DISPATCH_RW_LOCK {
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
 #define QuicReadLongPtrNoFence ReadNoFence
 #endif
+#define QuicReadPtrNoFence ReadPointerNoFence
 
 typedef LONG_PTR CXPLAT_REF_COUNT;
 
