@@ -1383,6 +1383,7 @@ CxPlatTlsSecConfigCreate(
                 //
                 SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
             }
+            sk_X509_free(CaCertificates);
         }
         if (Pkcs12) {
             PKCS12_free(Pkcs12);
