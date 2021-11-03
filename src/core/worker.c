@@ -608,14 +608,14 @@ QuicWorkerLoop(
         return QUIC_WORKER_LOOP_EXIT;
     }
 
-    if (DelayElapsed) {
-        CXPLAT_DBG_ASSERT(Worker->IsIdle);
-        QuicWorkerToggleActivityState(Worker, FALSE);
-        QuicWorkerProcessTimers(Worker, ThreadID, CxPlatTimeUs64());
+    if (Worker->IsIdle) {
         Worker->IsIdle = FALSE;
-    } else if (Worker->IsIdle) {
-        QuicWorkerToggleActivityState(Worker, TRUE);
-        Worker->IsIdle = FALSE;
+        if (DelayElapsed) {
+            QuicWorkerToggleActivityState(Worker, FALSE);
+            QuicWorkerProcessTimers(Worker, ThreadID, CxPlatTimeUs64());
+        } else {
+            QuicWorkerToggleActivityState(Worker, TRUE);
+        }
     }
 
     //
@@ -682,7 +682,7 @@ QuicWorkerLoop(
     Worker->PollCount = 0; // Reset the counter.
 #endif // QUIC_WORKER_POLLING
 
-    Worker->IsIdle = FALSE;
+    Worker->IsIdle = TRUE;
 
     if (*Delay != UINT64_MAX) {
         //
