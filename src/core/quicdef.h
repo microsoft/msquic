@@ -129,8 +129,8 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_DEFAULT_RETRY_MEMORY_FRACTION      65 // ~0.1%
 
 //
-// If enabled, workers will the number of times before falling back to the wait
-// or delay state.
+// If enabled, workers will poll the number of times before falling back to the
+// wait or delay state.
 //
 //#define QUIC_WORKER_POLLING                     10000
 
