@@ -265,7 +265,7 @@ CxPlatDpRawParseIPv6(
     CxPlatCopyMemory(&Packet->Tuple->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == IPPROTO_UDP) {
-        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
+        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, ntohs(IP->PayloadLength));
     } else {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "unacceptable transport protocol");
     }
@@ -342,6 +342,7 @@ CxPlatFramingWriteHeaders(
     IPV4_HEADER* IPv4;
     IPV6_HEADER* IPv6;
     uint16_t EthType;
+    uint16_t IpHeaderLen;
 
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
@@ -354,7 +355,7 @@ CxPlatFramingWriteHeaders(
     UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length);
 
     //
-    // Fill IP header.
+    // Fill IPv4/IPv6 header.
     //
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPv4 = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
@@ -370,11 +371,15 @@ CxPlatFramingWriteHeaders(
         CxPlatCopyMemory(IPv4->Source, &LocalAddress->Ipv4.sin_addr, sizeof(LocalAddress->Ipv4.sin_addr));
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
+        IpHeaderLen = sizeof(IPV4_HEADER);
     } else {
         IPv6 = (IPV6_HEADER*)(((uint8_t*)UDP) - sizeof(IPV6_HEADER));
         //
         // IPv6 Version, Traffic Class, ECN Field and Flow Label fields in host
         // byte order.
+        // TODO: support big-endian systems. Not quite sure if it's needed since QUIC core code
+        // also doesn't support big-endian systems due to the use of CxPlatByteSwapXxx which swaps
+        // bytes even when there's no need.
         //
         union {
             struct {
@@ -389,7 +394,7 @@ CxPlatFramingWriteHeaders(
         uint32_t FlowId = (uint32_t)(uintptr_t)Socket;
         VersionClassEcnFlow.Version = IPV6_VERSION;
         VersionClassEcnFlow.Class = 0;
-        VersionClassEcnFlow.EcnField = 0; // Not ECN capable currently
+        VersionClassEcnFlow.EcnField = 0; // Not ECN capable currently.
         VersionClassEcnFlow.Flow = FlowId;
         if ((FlowId != 0) && (VersionClassEcnFlow.Flow == 0)) {
             //
@@ -398,12 +403,14 @@ CxPlatFramingWriteHeaders(
             VersionClassEcnFlow.Flow = (FlowId >> 12);
         }
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);
-        IPv6->PayloadLength = htons((uint16_t)Buffer->Length);
+        IPv6->PayloadLength = htons(sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
         IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
+        IPv6->NextHeader = IPPROTO_UDP;
         CxPlatCopyMemory(IPv6->Destination, &RemoteAddress->Ipv6.sin6_addr, sizeof(RemoteAddress->Ipv6.sin6_addr));
         CxPlatCopyMemory(IPv6->Source, &LocalAddress->Ipv6.sin6_addr, sizeof(LocalAddress->Ipv6.sin6_addr));
         EthType = ETHERNET_TYPE_IPV6;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
+        IpHeaderLen = sizeof(IPV6_HEADER);
     }
 
     //
@@ -419,6 +426,6 @@ CxPlatFramingWriteHeaders(
         CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
     }
 
-    Buffer->Length += sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
-    Buffer->Buffer -= sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
+    Buffer->Length += sizeof(UDP_HEADER) + IpHeaderLen + sizeof(ETHERNET_HEADER);
+    Buffer->Buffer -= sizeof(UDP_HEADER) + IpHeaderLen + sizeof(ETHERNET_HEADER);
 }
