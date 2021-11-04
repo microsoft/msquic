@@ -182,24 +182,42 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
+    CxPlatZeroMemory(*NewSocket, sizeof(CXPLAT_SOCKET));
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
+
     if (Config->RemoteAddress) {
+        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
         (*NewSocket)->Connected = TRUE;
         (*NewSocket)->RemoteAddress = *Config->RemoteAddress;
-        (*NewSocket)->LocalAddress = Datapath->ClientIP;
-    } else {
-        (*NewSocket)->Connected = FALSE;
-        CxPlatZeroMemory(&(*NewSocket)->RemoteAddress, sizeof(QUIC_ADDR));
-        (*NewSocket)->LocalAddress = Datapath->ServerIP;
     }
-    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
-        (*NewSocket)->LocalAddress.Ipv4.sin_port =
-            Config->LocalAddress->Ipv4.sin_port;
+
+    if (Config->LocalAddress) {
+        if (QuicAddrIsWildCard(Config->LocalAddress)) {
+            if ((*NewSocket)->Connected) {
+                (*NewSocket)->LocalAddress = Datapath->ClientIP;
+            } else {
+                (*NewSocket)->Wildcard = TRUE;
+            }
+        } else {
+            CXPLAT_FRE_ASSERT((*NewSocket)->Connected); // Assumes only connected sockets fully specify local address
+            (*NewSocket)->LocalAddress = *Config->LocalAddress;
+        }
+        if (Config->LocalAddress->Ipv4.sin_port != 0) {
+            (*NewSocket)->LocalAddress.Ipv4.sin_port =
+                Config->LocalAddress->Ipv4.sin_port;
+        }
     } else {
-        (*NewSocket)->LocalAddress.Ipv4.sin_port = 0;
+        if ((*NewSocket)->Connected) {
+            (*NewSocket)->LocalAddress = Datapath->ClientIP;
+        } else {
+            (*NewSocket)->Wildcard = TRUE;
+        }
     }
+
+    CXPLAT_FRE_ASSERT((*NewSocket)->Wildcard ^ (*NewSocket)->Connected); // Assumes either a pure wildcard listener or a
+                                                                         // connected socket; not both.
 
     if (!CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket)) {
         Status = QUIC_STATUS_ADDRESS_IN_USE;
@@ -294,31 +312,45 @@ CxPlatDpRawRxEthernet(
     )
 {
     for (uint16_t i = 0; i < PacketCount; i++) {
-        CXPLAT_RECV_DATA* Packet = Packets[i];
-        CXPLAT_DBG_ASSERT(Packet->Next == NULL);
+        CXPLAT_SOCKET* Socket = NULL;
+        CXPLAT_RECV_DATA* PacketChain = Packets[i];
+        CXPLAT_DBG_ASSERT(PacketChain->Next == NULL);
 
-        if (Packet->Reserved == L4_TYPE_UDP) {
-            CXPLAT_SOCKET* Socket =
+        if (PacketChain->Reserved == L4_TYPE_UDP) {
+            Socket =
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
-                    &Packet->Tuple->LocalAddress,
-                    &Packet->Tuple->RemoteAddress);
-            if (Socket) {
+                    &PacketChain->Tuple->LocalAddress,
+                    &PacketChain->Tuple->RemoteAddress);
+        }
+        if (Socket) {
+            //
+            // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
+            //
+            while (i < PacketCount) {
                 QuicTraceEvent(
                     DatapathRecv,
                     "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
                     Socket,
-                    Packet->BufferLength,
-                    Packet->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress));
-                Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
-                CxPlatRundownRelease(&Socket->Rundown);
-                continue;
+                    Packets[i]->BufferLength,
+                    Packets[i]->BufferLength,
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress));
+                if (i == PacketCount - 1 ||
+                    Packets[i+1]->Reserved != L4_TYPE_UDP ||
+                    Packets[i+1]->Tuple->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                    !CxPlatSocketCompare(Socket, &Packets[i+1]->Tuple->LocalAddress, &Packets[i+1]->Tuple->RemoteAddress)) {
+                    break;
+                }
+                Packets[i]->Next = Packets[i+1];
+                CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                i++;
             }
+            Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
+            CxPlatRundownRelease(&Socket->Rundown);
+        } else {
+            CxPlatDpRawRxFree(PacketChain);
         }
-
-        CxPlatDpRawRxFree(Packet);
     }
 }
 
