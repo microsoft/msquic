@@ -208,7 +208,16 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
     if ($IsWindows) {
-        $Generator = "Visual Studio 16 2019"
+        $SetupModule = Get-Module -Name "VSSetup"
+        if ($null -eq $SetupModule) {
+            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
+        }
+        $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
+        if ($VsVersion.Contains("2022")) {
+            $Generator = "Visual Studio 17 2022"
+        } else {
+            $Generator = "Visual Studio 16 2019"
+        }
     } else {
         $Generator = "Unix Makefiles"
     }
