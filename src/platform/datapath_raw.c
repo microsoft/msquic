@@ -200,6 +200,7 @@ CxPlatSocketCreateUdp(
                 (*NewSocket)->Wildcard = TRUE;
             }
         } else {
+            CXPLAT_FRE_ASSERT((*NewSocket)->Connected); // Assumes only connected sockets fully specify local address
             (*NewSocket)->LocalAddress = *Config->LocalAddress;
         }
         if (Config->LocalAddress->Ipv4.sin_port != 0) {
