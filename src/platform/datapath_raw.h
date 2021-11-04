@@ -155,6 +155,7 @@ typedef struct CXPLAT_SOCKET {
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
+    BOOLEAN Wildcard;   // Using a wildcard local address
     BOOLEAN Connected;  // Bound to a remote address
 
 } CXPLAT_SOCKET;
@@ -168,6 +169,32 @@ void
 CxPlatSockPoolUninitialize(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
     );
+
+//
+// Returns TRUE if the socket matches the given addresses. This code is used in
+// conjunction with the hash table lookup, which already compares local UDP port
+// so it assumes that matches already.
+//
+inline
+BOOL
+CxPlatSocketCompare(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
+    )
+{
+    if (Socket->Wildcard) {
+        return TRUE; // The local port match is all that is needed.
+    }
+
+    //
+    // Make sure the local IP matches and the full remote address matches.
+    //
+    CXPLAT_DBG_ASSERT(Socket->Connected);
+    return
+        QuicAddrCompareIp(&Socket->LocalAddress, LocalAddress) &&
+        QuicAddrCompare(&Socket->RemoteAddress, RemoteAddress);
+}
 
 //
 // Finds a socket to deliver received packets with the given addresses.

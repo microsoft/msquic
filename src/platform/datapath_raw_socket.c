@@ -61,8 +61,7 @@ CxPlatGetSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
-        if (QuicAddrCompareIp(&Temp->LocalAddress, LocalAddress) &&
-            (!Temp->Connected || QuicAddrCompare(&Temp->RemoteAddress, RemoteAddress))) {
+        if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
             }
@@ -97,7 +96,7 @@ CxPlatTryAddSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
-        if (QuicAddrCompareIp(&Temp->LocalAddress, &Socket->LocalAddress)) {
+        if (!CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
             Success = FALSE;
             break;
         }

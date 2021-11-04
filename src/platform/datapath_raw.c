@@ -182,24 +182,38 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
+    CxPlatZeroMemory(*NewSocket, sizeof(CXPLAT_SOCKET));
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
+
     if (Config->RemoteAddress) {
         (*NewSocket)->Connected = TRUE;
         (*NewSocket)->RemoteAddress = *Config->RemoteAddress;
+    }
+
+    if (Config->LocalAddress) {
+        if (QuicAddrIsWildCard(Config->LocalAddress)) {
+            if ((*NewSocket)->Connected) {
+                (*NewSocket)->LocalAddress = Datapath->ClientIP;
+            } else {
+                (*NewSocket)->Wildcard = TRUE;
+            }
+            (*NewSocket)->LocalAddress = Datapath->ServerIP;
+        } else {
+            (*NewSocket)->LocalAddress = *Config->LocalAddress;
+        }
+        if (Config->LocalAddress->Ipv4.sin_port != 0) {
+            (*NewSocket)->LocalAddress.Ipv4.sin_port =
+                Config->LocalAddress->Ipv4.sin_port;
+        }
+    } else {
+        CXPLAT_FRE_ASSERT((*NewSocket)->Connected); // Assumes connected socket
         (*NewSocket)->LocalAddress = Datapath->ClientIP;
-    } else {
-        (*NewSocket)->Connected = FALSE;
-        CxPlatZeroMemory(&(*NewSocket)->RemoteAddress, sizeof(QUIC_ADDR));
-        (*NewSocket)->LocalAddress = Datapath->ServerIP;
     }
-    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
-        (*NewSocket)->LocalAddress.Ipv4.sin_port =
-            Config->LocalAddress->Ipv4.sin_port;
-    } else {
-        (*NewSocket)->LocalAddress.Ipv4.sin_port = 0;
-    }
+
+    CXPLAT_FRE_ASSERT((*NewSocket)->Wildcard ^ (*NewSocket)->Connected); // Assumes either a pure wildcard listener or a
+                                                                         // connected socket; not both.
 
     if (!CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket)) {
         Status = QUIC_STATUS_ADDRESS_IN_USE;
@@ -320,8 +334,8 @@ CxPlatDpRawRxEthernet(
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress));
                 if (i == PacketCount - 1 ||
                     Packets[i+1]->Reserved != L4_TYPE_UDP ||
-                    !QuicAddrCompare(&PacketChain->Tuple->LocalAddress, &Packets[i+1]->Tuple->LocalAddress) ||
-                    !QuicAddrCompare(&PacketChain->Tuple->RemoteAddress, &Packets[i+1]->Tuple->RemoteAddress)) {
+                    Packets[i+1]->Tuple->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                    !CxPlatSocketCompare(Socket, &Packets[i+1]->Tuple->LocalAddress, &Packets[i+1]->Tuple->RemoteAddress)) {
                     break;
                 }
                 Packets[i]->Next = Packets[i+1];
