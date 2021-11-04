@@ -294,31 +294,45 @@ CxPlatDpRawRxEthernet(
     )
 {
     for (uint16_t i = 0; i < PacketCount; i++) {
-        CXPLAT_RECV_DATA* Packet = Packets[i];
-        CXPLAT_DBG_ASSERT(Packet->Next == NULL);
+        CXPLAT_SOCKET* Socket = NULL;
+        CXPLAT_RECV_DATA* PacketChain = Packets[i];
+        CXPLAT_DBG_ASSERT(PacketChain->Next == NULL);
 
-        if (Packet->Reserved == L4_TYPE_UDP) {
-            CXPLAT_SOCKET* Socket =
+        if (PacketChain->Reserved == L4_TYPE_UDP) {
+            Socket =
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
-                    &Packet->Tuple->LocalAddress,
-                    &Packet->Tuple->RemoteAddress);
-            if (Socket) {
+                    &PacketChain->Tuple->LocalAddress,
+                    &PacketChain->Tuple->RemoteAddress);
+        }
+        if (Socket) {
+            //
+            // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
+            //
+            while (i < PacketCount) {
                 QuicTraceEvent(
                     DatapathRecv,
                     "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
                     Socket,
-                    Packet->BufferLength,
-                    Packet->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress));
-                Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)Packet);
-                CxPlatRundownRelease(&Socket->Rundown);
-                continue;
+                    Packets[i]->BufferLength,
+                    Packets[i]->BufferLength,
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress));
+                if (i == PacketCount - 1 ||
+                    Packets[i+1]->Reserved != L4_TYPE_UDP ||
+                    !QuicAddrCompare(&PacketChain->Tuple->LocalAddress, &Packets[i+1]->Tuple->LocalAddress) ||
+                    !QuicAddrCompare(&PacketChain->Tuple->RemoteAddress, &Packets[i+1]->Tuple->RemoteAddress)) {
+                    break;
+                }
+                Packets[i]->Next = Packets[i+1];
+                CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                i++;
             }
+            Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
+            CxPlatRundownRelease(&Socket->Rundown);
+        } else {
+            CxPlatDpRawRxFree(PacketChain);
         }
-
-        CxPlatDpRawRxFree(Packet);
     }
 }
 
