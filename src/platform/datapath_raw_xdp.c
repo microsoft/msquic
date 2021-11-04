@@ -247,7 +247,7 @@ CxPlatDpRawInitialize(
         goto Error;
     }
 
-    ZeroMemory(Xdp->Queues, Xdp->QueueCount * sizeof(*Xdp->Queues));
+    CxPlatZeroMemory(Xdp->Queues, Xdp->QueueCount * sizeof(*Xdp->Queues));
 
     for (uint32_t QueueIndex = 0; QueueIndex < Xdp->QueueCount; QueueIndex++) {
         XDP_QUEUE* Queue = &Xdp->Queues[QueueIndex];
@@ -257,7 +257,7 @@ CxPlatDpRawInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
-        Queue->WorkerRxPool.Next = NULL;
+        CxPlatZeroMemory(&Queue->WorkerRxPool, sizeof(Queue->WorkerRxPool));
 
         //
         // RX datapath.
