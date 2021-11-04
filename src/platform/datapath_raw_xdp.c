@@ -257,7 +257,6 @@ CxPlatDpRawInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
-        CxPlatZeroMemory(&Queue->WorkerRxPool, sizeof(Queue->WorkerRxPool));
 
         //
         // RX datapath.
