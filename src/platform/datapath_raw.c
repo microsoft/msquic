@@ -199,7 +199,6 @@ CxPlatSocketCreateUdp(
             } else {
                 (*NewSocket)->Wildcard = TRUE;
             }
-            (*NewSocket)->LocalAddress = Datapath->ServerIP;
         } else {
             (*NewSocket)->LocalAddress = *Config->LocalAddress;
         }
