@@ -188,6 +188,7 @@ CxPlatSocketCreateUdp(
     (*NewSocket)->CallbackContext = Config->CallbackContext;
 
     if (Config->RemoteAddress) {
+        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
         (*NewSocket)->Connected = TRUE;
         (*NewSocket)->RemoteAddress = *Config->RemoteAddress;
     }
