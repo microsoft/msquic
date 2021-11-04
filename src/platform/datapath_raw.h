@@ -39,6 +39,7 @@ typedef struct CXPLAT_DATAPATH {
 typedef struct CXPLAT_SEND_DATA {
 
     QUIC_BUFFER Buffer;
+    QUIC_ADDRESS_FAMILY Family;
 
 } CXPLAT_SEND_DATA;
 
@@ -81,7 +82,16 @@ CxPlatDpRawGenerateCpuTable(
     );
 
 //
-// Upcall from raw datapath to allow for parsing of a received Ethernet packet.
+// Calculate how much space we should reserve for headers.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint16_t
+CxPlatDpRawParseCalculateHeaderBackFill(
+    _In_ QUIC_ADDRESS_FAMILY Family
+    );
+
+//
+// Upcall from raw datapath to indicate a received chain of packets.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -122,7 +132,8 @@ CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _In_ QUIC_ADDRESS_FAMILY Family
     );
 
 //
@@ -208,5 +219,6 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _Inout_ QUIC_BUFFER* Buffer
+    _Inout_ QUIC_BUFFER* Buffer,
+    _In_ QUIC_ADDRESS_FAMILY Family
     );

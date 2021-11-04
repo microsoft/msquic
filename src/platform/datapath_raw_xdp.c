@@ -625,12 +625,13 @@ CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_ECN_TYPE ECN, // unused currently
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Xdp->TxPool);
-    const uint16_t HeaderBackfill = 42; // Ethernet,IPv4,UDP
+    uint16_t HeaderBackfill = CxPlatDpRawParseCalculateHeaderBackFill(Family);
 
     UNREFERENCED_PARAMETER(ECN);
 
@@ -639,6 +640,7 @@ CxPlatDpRawTxAlloc(
         Packet->Xdp = Xdp;
         Packet->Buffer.Length = MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill];
+        Packet->Family = Family;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;

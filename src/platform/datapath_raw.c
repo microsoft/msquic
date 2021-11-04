@@ -340,7 +340,8 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-    return CxPlatDpRawTxAlloc(Socket->Datapath, ECN, MaxPacketSize);
+    return CxPlatDpRawTxAlloc(
+        Socket->Datapath, ECN, MaxPacketSize, QuicAddrGetFamily(&Socket->RemoteAddress));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -402,7 +403,8 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-    CxPlatFramingWriteHeaders(Socket, LocalAddress, RemoteAddress, &SendData->Buffer);
+    CxPlatFramingWriteHeaders(
+        Socket, LocalAddress, RemoteAddress, &SendData->Buffer, SendData->Family);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }

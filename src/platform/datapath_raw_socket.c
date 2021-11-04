@@ -313,12 +313,28 @@ CxPlatDpRawParseEthernet(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+uint16_t
+CxPlatDpRawParseCalculateHeaderBackFill(
+    _In_ QUIC_ADDRESS_FAMILY Family
+    )
+{
+    CXPLAT_DBG_ASSERT(
+        Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
+    if (Family == QUIC_ADDRESS_FAMILY_INET) {
+        return sizeof(UDP_HEADER) + sizeof(IPV4_HEADER);
+    } else {
+        return sizeof(UDP_HEADER) + sizeof(IPV6_HEADER);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _Inout_ QUIC_BUFFER* Buffer
+    _Inout_ QUIC_BUFFER* Buffer,
+    _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
     UDP_HEADER* UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
@@ -337,7 +353,7 @@ CxPlatFramingWriteHeaders(
     //
     // Fill IP header.
     //
-    if (QuicAddrGetFamily(LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+    if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPv4 = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
