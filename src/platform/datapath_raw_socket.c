@@ -96,7 +96,7 @@ CxPlatTryAddSocket(
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
-        if (!CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
+        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
             Success = FALSE;
             break;
         }
