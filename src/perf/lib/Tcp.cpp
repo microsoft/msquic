@@ -891,7 +891,7 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
     if (!BatchedSendData) {
-        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE);
+        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE, QuicAddrGetFamily(&RemoteAddress));
         if (!BatchedSendData) { return nullptr; }
     }
     return CxPlatSendDataAllocBuffer(BatchedSendData, TLS_BLOCK_SIZE);

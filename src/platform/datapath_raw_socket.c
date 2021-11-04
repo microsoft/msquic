@@ -321,9 +321,9 @@ CxPlatDpRawParseCalculateHeaderBackFill(
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
-        return sizeof(UDP_HEADER) + sizeof(IPV4_HEADER);
+        return sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
     } else {
-        return sizeof(UDP_HEADER) + sizeof(IPV6_HEADER);
+        return sizeof(UDP_HEADER) + sizeof(IPV6_HEADER) + sizeof(ETHERNET_HEADER);
     }
 }
 
@@ -342,6 +342,9 @@ CxPlatFramingWriteHeaders(
     IPV4_HEADER* IPv4;
     IPV6_HEADER* IPv6;
     uint16_t EthType;
+
+    CXPLAT_DBG_ASSERT(
+        Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
 
     //
     // Fill UDP header.
