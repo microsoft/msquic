@@ -207,8 +207,11 @@ CxPlatSocketCreateUdp(
                 Config->LocalAddress->Ipv4.sin_port;
         }
     } else {
-        CXPLAT_FRE_ASSERT((*NewSocket)->Connected); // Assumes connected socket
-        (*NewSocket)->LocalAddress = Datapath->ClientIP;
+        if ((*NewSocket)->Connected) {
+            (*NewSocket)->LocalAddress = Datapath->ClientIP;
+        } else {
+            (*NewSocket)->Wildcard = TRUE;
+        }
     }
 
     CXPLAT_FRE_ASSERT((*NewSocket)->Wildcard ^ (*NewSocket)->Connected); // Assumes either a pure wildcard listener or a
