@@ -63,6 +63,7 @@ typedef struct XDP_DATAPATH {
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
+    BOOL Affinitize;
     BOOL TxAlwaysPoke;
 } XDP_DATAPATH;
 
@@ -142,8 +143,6 @@ CxPlatXdpReadConfig(
     Xdp->ClientIP.si_family = AF_INET;
     Xdp->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
 
-    Xdp->DatapathCpuGroup = 0;
-    Xdp->DatapathCpuNumber = 0;
     Xdp->RxBufferCount = 4096;
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
@@ -176,8 +175,10 @@ CxPlatXdpReadConfig(
              QuicAddrFromString(Value, 0, &Xdp->ClientIP);
         } else if (strcmp(Line, "CpuGroup") == 0) {
              Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
+             Xdp->Affinitize = TRUE;
         } else if (strcmp(Line, "CpuNumber") == 0) {
              Xdp->DatapathCpuNumber = (uint8_t)strtoul(Value, NULL, 10);
+             Xdp->Affinitize = TRUE;
         } else if (strcmp(Line, "IfIndex") == 0) {
             Xdp->IfIndex = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxBufferCount") == 0) {
@@ -747,11 +748,14 @@ CxPlatXdpTx(
 CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
-    GROUP_AFFINITY Affinity = {0};
 
-    Affinity.Group = Xdp->DatapathCpuGroup;
-    Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
-    SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
+    if (Xdp->Affinitize) {
+        GROUP_AFFINITY Affinity = {0};
+
+        Affinity.Group = Xdp->DatapathCpuGroup;
+        Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
+        SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
+    }
 
     while (Xdp->Running) {
         CxPlatXdpRx(Xdp);
