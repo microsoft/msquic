@@ -183,8 +183,8 @@ CxPlatSocketCompare(
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
+    CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
     if (Socket->Wildcard) {
-        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
         return TRUE; // The local port match is all that is needed.
     }
 
