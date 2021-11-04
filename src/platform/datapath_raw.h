@@ -155,7 +155,7 @@ typedef struct CXPLAT_SOCKET {
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
-    BOOLEAN Wildcard;   // Using a wildcard local address
+    BOOLEAN Wildcard;   // Using a wildcard local address. Optimization to always reading LocalAddress.
     BOOLEAN Connected;  // Bound to a remote address
 
 } CXPLAT_SOCKET;
@@ -184,6 +184,7 @@ CxPlatSocketCompare(
     )
 {
     if (Socket->Wildcard) {
+        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(LocalAddress));
         return TRUE; // The local port match is all that is needed.
     }
 
