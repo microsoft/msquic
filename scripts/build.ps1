@@ -214,6 +214,7 @@ if ($Generator -eq "") {
         if ($null -eq $SetupModule) {
             Write-Host "Installing Module"
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
+            Get-Module -Name "VSSetup"
         }
         Write-Host "Calling Get-VSSetupInstance"
         Get-VSSetupInstance | Select-Object *
