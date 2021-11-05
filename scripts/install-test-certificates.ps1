@@ -170,8 +170,8 @@ $Collection = [System.Security.Cryptography.X509Certificates.X509Certificate2Col
 
 $Collection.Add($Leaf[1]) # TODO(AnRossi):Why is $Leaf an array of an Int and the Cert?
 #Export the intermediate and root certs and then import them to drop their private keys.
-$Collection.Import($IntermediateSigner.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::SerializedCert))
-$Collection.Import($Root.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::SerializedCert))
+$Collection.Import($IntermediateSigner.rawData)
+$Collection.Import($Root.rawData)
 
 $Pfx = $Collection.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, "PLACEHOLDER");
 
