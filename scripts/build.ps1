@@ -208,6 +208,8 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 Get-Command perl
 
+$env:Path
+
 if ($Generator -eq "") {
     if ($IsWindows) {
         $SetupModule = Get-Module -Name "VSSetup"
