@@ -206,17 +206,12 @@ $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $ArtifactsDir = $BuildConfig.ArtifactsDir
 
-Get-Command perl
-
-$env:Path
-
 if ($Generator -eq "") {
     if ($IsWindows) {
         $SetupModule = Get-Module -Name "VSSetup"
         if ($null -eq $SetupModule) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             Import-Module VSSetup
-            Get-Module
         }
         $VsVersion = Get-VSSetupInstance -Prerelease | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
         if ($VsVersion.Contains("2022")) {
