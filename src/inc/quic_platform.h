@@ -441,6 +441,12 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+
+void CxPlatAddExecutionContext(CXPLAT_EXECUTION_CONTEXT* Context);
+
+#endif // QUIC_USE_EXECUTION_CONTEXTS
+
 //
 // Test Interface for loading a self-signed certificate.
 //

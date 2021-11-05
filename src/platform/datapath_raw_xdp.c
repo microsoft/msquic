@@ -804,6 +804,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
+#endif
+
     if (Xdp->Affinitize) {
         GROUP_AFFINITY Affinity = {0};
 
@@ -818,8 +822,18 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 
             CxPlatXdpRx(Xdp, Queue);
             CxPlatXdpTx(Xdp, Queue);
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+        (void)CxPlatRunExecutionContexts(ThreadID);
+#endif
         }
     }
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    while (CxPlatRunExecutionContexts(ThreadID)) {
+        // no-op
+    }
+#endif
 
     return 0;
 }

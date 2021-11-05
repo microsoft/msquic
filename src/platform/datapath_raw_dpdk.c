@@ -646,10 +646,24 @@ CxPlatDpdkWorkerThread(
                Dpdk->Port);
     }
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
+#endif
+
     while (likely(Dpdk->Running)) {
         CxPlatDpdkRx(Dpdk, Core);
         CxPlatDpdkTx(Dpdk);
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+        (void)CxPlatRunExecutionContexts(ThreadID);
+#endif
     }
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    while (CxPlatRunExecutionContexts(ThreadID)) {
+        // no-op
+    }
+#endif
 
     return 0;
 }
