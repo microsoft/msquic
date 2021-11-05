@@ -206,6 +206,8 @@ $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $ArtifactsDir = $BuildConfig.ArtifactsDir
 
+Get-Command perl
+
 if ($Generator -eq "") {
     if ($IsWindows) {
         $SetupModule = Get-Module -Name "VSSetup"
