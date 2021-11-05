@@ -28,14 +28,22 @@ BOOLEAN
 QuicWorkerLoop(
     _Inout_ struct CXPLAT_EXECUTION_CONTEXT* Context,
     _Inout_ uint64_t* TimeNow,
-    _In_ CXPLAT_THREAD_ID ThreadID,
-    _In_ BOOLEAN Timeout
+    _In_ CXPLAT_THREAD_ID ThreadID
     );
 
 //
 // Thread callback for processing the work queued for the worker.
 //
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context);
+
+void
+QuicWorkerThreadWake(
+    _In_ QUIC_WORKER* Worker
+    )
+{
+    Worker->ExecutionContext.Ready = TRUE; // Run the execution context
+    CxPlatEventSet(Worker->Ready);
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -68,7 +76,7 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.Callback = QuicWorkerLoop;
     Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
     Worker->ExecutionContext.Ready = TRUE;
-    CxPlatEventInitialize(&Worker->Done, FALSE, FALSE);
+    CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
     CxPlatListInitializeHead(&Worker->Operations);
@@ -126,22 +134,21 @@ QuicWorkerUninitialize(
         Worker);
 
     //
-    // Prevent the thread from processing any more operations.
+    // Clean up the worker execution context.
     //
     Worker->Enabled = FALSE;
-    Worker->ExecutionContext.Ready = TRUE; // Run the execution context
+    QuicWorkerThreadWake(Worker);
+    CxPlatEventWaitForever(Worker->Done);
+    CxPlatEventUninitialize(Worker->Done);
 
     //
     // Wait for the thread to finish.
     //
-    CxPlatEventSet(Worker->Ready);
     if (Worker->Thread) {
         CxPlatThreadWait(&Worker->Thread);
         CxPlatThreadDelete(&Worker->Thread);
     }
     CxPlatEventUninitialize(Worker->Ready);
-    CxPlatEventWaitForever(Worker->Done);
-    CxPlatEventUninitialize(Worker->Done);
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
@@ -186,15 +193,6 @@ QuicWorkerIsIdle(
     return
         CxPlatListIsEmpty(&Worker->Connections) &&
         CxPlatListIsEmpty(&Worker->Operations);
-}
-
-void
-QuicWorkerThreadWake(
-    _In_ QUIC_WORKER* Worker
-    )
-{
-    Worker->ExecutionContext.Ready = TRUE; // Run the execution context
-    CxPlatEventSet(Worker->Ready);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -305,25 +303,6 @@ QuicWorkerQueueOperation(
     } else if (WakeWorkerThread) {
         QuicWorkerThreadWake(Worker);
     }
-}
-
-//
-// Called when a worker changes between the idle and active state.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicWorkerToggleActivityState(
-    _In_ QUIC_WORKER* Worker,
-    _In_ uint32_t Arg
-    )
-{
-    Worker->IsActive = !Worker->IsActive;
-    QuicTraceEvent(
-        WorkerActivityStateUpdated,
-        "[wrkr][%p] IsActive = %hhu, Arg = %u",
-        Worker,
-        Worker->IsActive,
-        Arg);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -444,7 +423,8 @@ void
 QuicWorkerProcessConnection(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_CONNECTION* Connection,
-    _In_ CXPLAT_THREAD_ID ThreadID
+    _In_ CXPLAT_THREAD_ID ThreadID,
+    _Inout_ uint64_t* TimeNow
     )
 {
     QuicTraceEvent(
@@ -459,7 +439,7 @@ QuicWorkerProcessConnection(
             Worker,
             CxPlatTimeDiff32(
                 Connection->Stats.Schedule.LastQueueTime,
-                CxPlatTimeUs32()));
+                (uint32_t)*TimeNow));
     }
 
     //
@@ -610,14 +590,13 @@ QuicWorkerLoopCleanup(
 }
 
 //
-// Runs one iteration of the worker loop.
+// Runs one iteration of the worker loop. Returns FALSE when it's time to exit.
 //
 BOOLEAN
 QuicWorkerLoop(
     _Inout_ struct CXPLAT_EXECUTION_CONTEXT* Context,
     _Inout_ uint64_t* TimeNow,
-    _In_ CXPLAT_THREAD_ID ThreadID,
-    _In_ BOOLEAN Timeout
+    _In_ CXPLAT_THREAD_ID ThreadID
     )
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context->Context;
@@ -625,32 +604,44 @@ QuicWorkerLoop(
     if (!Worker->Enabled) {
         QuicWorkerLoopCleanup(Worker);
         CxPlatEventSet(Worker->Done);
-        return TRUE;
+        return FALSE;
+    }
+
+    if (!Worker->IsActive) {
+        Worker->IsActive = TRUE;
+        QuicTraceEvent(
+            WorkerActivityStateUpdated,
+            "[wrkr][%p] IsActive = %hhu, Arg = %u",
+            Worker,
+            Worker->IsActive,
+            1);
     }
 
     Context->Ready = FALSE;
 
-    if (Worker->IsIdle) {
-        Worker->IsIdle = FALSE;
-        if (Timeout) {
-            QuicWorkerToggleActivityState(Worker, FALSE);
-            QuicWorkerProcessTimers(Worker, ThreadID, *TimeNow);
-            *TimeNow = CxPlatTimeUs64();
-        } else {
-            QuicWorkerToggleActivityState(Worker, TRUE);
-        }
-    }
+    //
+    // Opportunistically try to snap-shot performance counters and do some
+    // validation.
+    //
+    QuicPerfCounterTrySnapShot(*TimeNow);
 
     //
     // For every loop of the worker thread, in an attempt to balance things,
-    // a single connection will be processed (if available), followed by a
-    // single stateless operation (if available), and then by any expired
-    // timers (which just queue more operations on connections).
+    // first the timer wheel is checked and any expired timers are processed.
+    // Then, a single connection will be processed (if available), followed by a
+    // single stateless operation (if available).
     //
+
+    if (Worker->TimerWheel.NextExpirationTime != UINT64_MAX &&
+        Worker->TimerWheel.NextExpirationTime <= *TimeNow) {
+        QuicWorkerProcessTimers(Worker, ThreadID, *TimeNow);
+        *TimeNow = CxPlatTimeUs64();
+    }
 
     QUIC_CONNECTION* Connection = QuicWorkerGetNextConnection(Worker);
     if (Connection != NULL) {
-        QuicWorkerProcessConnection(Worker, Connection, ThreadID);
+        QuicWorkerProcessConnection(Worker, Connection, ThreadID, TimeNow);
+        Context->Ready = TRUE;
         *TimeNow = CxPlatTimeUs64();
     }
 
@@ -661,40 +652,15 @@ QuicWorkerLoop(
             Operation->STATELESS.Context);
         QuicOperationFree(Worker, Operation);
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
+        Context->Ready = TRUE;
         *TimeNow = CxPlatTimeUs64();
     }
 
-    //
-    // Opportunistically try to snap-shot performance counters and do some
-    // validation.
-    //
-    QuicPerfCounterTrySnapShot(*TimeNow);
-
-    //
-    // Get the delay until the next timer expires. Check to see if any timers
-    // have expired; if so, process them. If not, only wait for the next timer
-    // if we have run out of connections and stateless operations to process.
-    //
-    Context->NextTimeUs = UINT64_MAX;
-    uint64_t Delay = QuicTimerWheelGetWaitTime(&Worker->TimerWheel, *TimeNow);
-
-    if (Delay == 0) {
+    if (Context->Ready) {
         //
-        // Timers are ready to be processed.
+        // There is more work to be done.
         //
-        QuicWorkerProcessTimers(Worker, ThreadID, *TimeNow);
-        Context->Ready = TRUE;
-        return FALSE;
-    }
-
-    if (Connection != NULL || Operation != NULL) {
-        //
-        // There still may be more connections or stateless operations to be
-        // processed. Continue processing until there are no more. Then the
-        // thread can wait for the timer delay.
-        //
-        Context->Ready = TRUE;
-        return FALSE;
+        return TRUE;
     }
 
 #ifdef QUIC_WORKER_POLLING
@@ -704,68 +670,55 @@ QuicWorkerLoop(
         // in.
         //
         Context->Ready = TRUE;
-        return FALSE;
+        *TimeNow = CxPlatTimeUs64();
+        return TRUE;
     }
     Worker->PollCount = 0; // Reset the counter.
 #endif // QUIC_WORKER_POLLING
 
-    Worker->IsIdle = TRUE;
+    //
+    // We have no other work to process at the moment. Wait for work to come in
+    // or any timer to expire.
+    //
+    Worker->IsActive = FALSE;
+    Context->NextTimeUs = Worker->TimerWheel.NextExpirationTime;
+    QuicTraceEvent(
+        WorkerActivityStateUpdated,
+        "[wrkr][%p] IsActive = %hhu, Arg = %u",
+        Worker,
+        Worker->IsActive,
+        UINT32_MAX);
     QuicWorkerResetQueueDelay(Worker);
-
-    if (Delay != UINT64_MAX) {
-        //
-        // Since we have no connections and no stateless operations to process
-        // at the moment, we need to wait for the ready event or the next timer
-        // to expire.
-        //
-        Context->NextTimeUs = *TimeNow + Delay;
-        if (Delay >= (uint64_t)UINT32_MAX) {
-            QuicWorkerToggleActivityState(Worker, UINT32_MAX - 1);
-        } else {
-            QuicWorkerToggleActivityState(Worker, (uint32_t)Delay);
-        }
-        return FALSE;
-    }
-
-    //
-    // No active timers running, so just wait for the ready event.
-    //
-    Context->NextTimeUs = UINT64_MAX;
-    QuicWorkerToggleActivityState(Worker, UINT32_MAX);
-    return FALSE;
+    return TRUE;
 }
 
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
-    CXPLAT_EXECUTION_CONTEXT* ExecutionContext = &Worker->ExecutionContext;
+    CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
     const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
-    uint64_t TimeNow = CxPlatTimeUs64();
-    BOOLEAN Timeout = FALSE;
 
-    Worker->IsActive = TRUE;
     QuicTraceEvent(
         WorkerStart,
         "[wrkr][%p] Start",
         Worker);
 
-    //
-    // Keep looping until the exit result. Wait on the ready event as necessary.
-    //
-    while (!QuicWorkerLoop(ExecutionContext, &TimeNow, ThreadID, Timeout)) {
-        if (!ExecutionContext->Ready) {
-            if (ExecutionContext->NextTimeUs != UINT64_MAX) {
-                uint64_t Delay = ExecutionContext->NextTimeUs - TimeNow;
+    uint64_t TimeNow = CxPlatTimeUs64();
+    while (QuicWorkerLoop(EC, &TimeNow, ThreadID)) {
+        if (!EC->Ready) {
+            if (EC->NextTimeUs == UINT64_MAX) {
+                CxPlatEventWaitForever(Worker->Ready);
+                TimeNow = CxPlatTimeUs64();
+
+            } else if (EC->NextTimeUs > TimeNow) {
+                uint64_t Delay = US_TO_MS(EC->NextTimeUs - TimeNow) + 1;
                 if (Delay >= (uint64_t)UINT32_MAX) {
                     Delay = UINT32_MAX - 1; // Max has special meaning for most platforms.
                 }
-                Timeout = !CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
-            } else {
-                CxPlatEventWaitForever(Worker->Ready);
+                CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
+                TimeNow = CxPlatTimeUs64();
             }
-            ExecutionContext->Ready = FALSE;
         }
-        TimeNow = CxPlatTimeUs64();
     }
 
     QuicTraceEvent(

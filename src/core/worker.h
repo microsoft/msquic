@@ -32,11 +32,6 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     BOOLEAN IsActive;
 
     //
-    // TRUE if the worker ran out of work to process right now.
-    //
-    BOOLEAN IsIdle;
-
-    //
     // The worker's ideal processor.
     //
     uint16_t IdealProcessor;
