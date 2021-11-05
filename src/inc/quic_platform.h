@@ -413,6 +413,34 @@ CxPlatGetAllocFailDenominator(
 #define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
 #endif
 
+//
+// General purpose execution context abstraction layer. Used for driving worker
+// loops.
+//
+
+typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
+
+//
+// Returns TRUE when it's time to cleanup.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(*CXPLAT_EXECUTION_FN)(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ uint64_t* TimeNow,      // The current time, in microseconds.
+    _In_ CXPLAT_THREAD_ID ThreadID, // The current thread ID.
+    _In_ BOOLEAN Timeout            // True if executed because NextTimeUs elapsed.
+    );
+
+typedef struct CXPLAT_EXECUTION_CONTEXT {
+
+    void* Context;
+    CXPLAT_EXECUTION_FN Callback;
+    uint64_t NextTimeUs;
+    BOOLEAN Ready;
+
+} CXPLAT_EXECUTION_CONTEXT;
 
 //
 // Test Interface for loading a self-signed certificate.
