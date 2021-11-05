@@ -214,10 +214,7 @@ if ($Generator -eq "") {
             Import-Module VSSetup
             Get-Module
         }
-        Get-VSSetupInstance
-        $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
-        Write-Host "Testing VS Version"
-        Write-Host $VsVersion
+        $VsVersion = Get-VSSetupInstance -Prerelease | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
         if ($VsVersion.Contains("2022")) {
             $Generator = "Visual Studio 17 2022"
         } else {
@@ -446,7 +443,7 @@ function CMake-Build {
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             Import-Module VSSetup
-            $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
+            $VSInstallationPath = Get-VSSetupInstance -Prerelease | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
             $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
             $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
             if (Test-Path $VCToolsPath) {
