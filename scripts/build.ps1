@@ -214,6 +214,7 @@ if ($Generator -eq "") {
             Import-Module VSSetup
             Get-Module
         }
+        Get-VSSetupInstance
         $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
         Write-Host "Testing VS Version"
         Write-Host $VsVersion
