@@ -11,9 +11,15 @@
 typedef struct QUIC_CACHEALIGN QUIC_WORKER {
 
     //
-    // An event to kick the thread.
+    // Context for execution callbacks and state management.
     //
-    CXPLAT_EVENT Ready;
+    CXPLAT_EXECUTION_CONTEXT ExecutionContext;
+
+    //
+    // Event to signal when the execution context (i.e. worker thread) is
+    // complete.
+    //
+    CXPLAT_EVENT Done;
 
     //
     // TRUE if the worker is currently running.
@@ -24,11 +30,6 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // TRUE if the worker is currently processing connections.
     //
     BOOLEAN IsActive;
-
-    //
-    // TRUE if the worker ran out of work to process right now.
-    //
-    BOOLEAN IsIdle;
 
     //
     // The worker's ideal processor.
@@ -51,6 +52,11 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // Timers for the worker's connections.
     //
     QUIC_TIMER_WHEEL TimerWheel;
+
+    //
+    // An event to kick the thread.
+    //
+    CXPLAT_EVENT Ready;
 
     //
     // A thread for draining operations from queued connections.

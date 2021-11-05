@@ -76,16 +76,6 @@ QuicTimerWheelUpdateConnection(
     );
 
 //
-// Returns the time (in us) until the next timer elapses.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-uint64_t
-QuicTimerWheelGetWaitTime(
-    _In_ QUIC_TIMER_WHEEL* TimerWheel,
-    _In_ uint64_t TimeNow
-    );
-
-//
 // Gets the next connection with an expired timer.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
