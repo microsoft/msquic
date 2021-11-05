@@ -188,7 +188,6 @@ QuicWorkerIsIdle(
         CxPlatListIsEmpty(&Worker->Operations);
 }
 
-inline
 void
 QuicWorkerThreadWake(
     _In_ QUIC_WORKER* Worker
