@@ -208,10 +208,14 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
     if ($IsWindows) {
+        Write-Host "Getting Module"
         $SetupModule = Get-Module -Name "VSSetup"
+        Write-Host "Got Module $SetupModule Here"
         if ($null -eq $SetupModule) {
+            Write-Host "Installing Module"
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
         }
+        Write-Host "Calling Get-VSSetupInstance"
         Get-VSSetupInstance | Select-Object *
         #Get-VSSetupInstance | Select-Object -ExpandProperty Packages
         Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64
