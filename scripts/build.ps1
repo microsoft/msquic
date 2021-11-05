@@ -208,20 +208,11 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
     if ($IsWindows) {
-        Write-Host "Getting Module"
         $SetupModule = Get-Module -Name "VSSetup"
-        Write-Host "Got Module $SetupModule Here"
         if ($null -eq $SetupModule) {
-            Write-Host "Installing Module"
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
-            Write-Host "Installed VSSetup, getting module"
-            Get-Module -Name "VSSetup"
-            Write-Host "Module should be above"
+            Import-Module VSSetup
         }
-        Write-Host "Calling Get-VSSetupInstance"
-        Get-VSSetupInstance | Select-Object *
-        #Get-VSSetupInstance | Select-Object -ExpandProperty Packages
-        Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64
         $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
         if ($VsVersion.Contains("2022")) {
             $Generator = "Visual Studio 17 2022"
@@ -450,6 +441,7 @@ function CMake-Build {
         Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
+            Import-Module VSSetup
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
             $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
             $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
