@@ -248,12 +248,6 @@ typedef enum PACKET_TYPE {
     L4_TYPE_UDP,
 } PACKET_TYPE;
 
-typedef enum HEADER_TYPE {
-    HEADER_ALL,
-    HEADER_L2,
-    HEADER_L3,
-} HEADER_TYPE;
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
