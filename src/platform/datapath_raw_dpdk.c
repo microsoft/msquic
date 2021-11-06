@@ -551,19 +551,24 @@ CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_ECN_TYPE ECN, // unused currently
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
+
     if (likely(Packet)) {
         Packet->Mbuf = rte_pktmbuf_alloc(Dpdk->MemoryPool);
         if (likely(Packet->Mbuf)) {
+            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
             Packet->Dpdk = Dpdk;
             Packet->Buffer.Length = MaxPacketSize;
             Packet->Mbuf->data_off = 0;
-            Packet->Buffer.Buffer =
-                ((uint8_t*)Packet->Mbuf->buf_addr) + 42; // Ethernet,IPv4,UDP
+            Packet->Buffer.Buffer = ((uint8_t*)Packet->Mbuf->buf_addr) + HeaderFill.AllLayer;
+            Packet->Mbuf->l2_len = HeaderFill.LinkLayer;
+            Packet->Mbuf->l3_len = HeaderFill.NetworkLayer;
+            Packet->Family = Family;
         } else {
             CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
             Packet = NULL;
@@ -592,8 +597,6 @@ CxPlatDpRawTxEnqueue(
     DPDK_TX_PACKET* Packet = (DPDK_TX_PACKET*)SendData;
     Packet->Mbuf->data_len = (uint16_t)Packet->Buffer.Length;
     Packet->Mbuf->ol_flags = PKT_TX_IPV4 | PKT_TX_IP_CKSUM | PKT_TX_UDP_CKSUM;
-    Packet->Mbuf->l2_len = 14;
-    Packet->Mbuf->l3_len = 20;
 
     DPDK_DATAPATH* Dpdk = Packet->Dpdk;
     if (unlikely(rte_ring_mp_enqueue(Dpdk->TxRingBuffer, Packet->Mbuf) != 0)) {

@@ -327,18 +327,19 @@ CxPlatDpRawParseEthernet(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint16_t
-CxPlatDpRawParseCalculateHeaderBackFill(
+HEADER_BACKFILL
+CxPlatDpRawCalculateHeaderBackFill(
     _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
-    CXPLAT_DBG_ASSERT(
-        Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
-    if (Family == QUIC_ADDRESS_FAMILY_INET) {
-        return sizeof(UDP_HEADER) + sizeof(IPV4_HEADER) + sizeof(ETHERNET_HEADER);
-    } else {
-        return sizeof(UDP_HEADER) + sizeof(IPV6_HEADER) + sizeof(ETHERNET_HEADER);
-    }
+    HEADER_BACKFILL HeaderBackFill;
+    HeaderBackFill.TransportLayer = sizeof(UDP_HEADER);
+    HeaderBackFill.NetworkLayer =
+        Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(IPV4_HEADER) : sizeof(IPV6_HEADER);
+    HeaderBackFill.LinkLayer = sizeof(ETHERNET_HEADER);
+    HeaderBackFill.AllLayer =
+        HeaderBackFill.TransportLayer + HeaderBackFill.NetworkLayer + HeaderBackFill.LinkLayer;
+    return HeaderBackFill;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

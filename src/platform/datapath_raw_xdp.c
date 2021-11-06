@@ -694,15 +694,15 @@ CxPlatDpRawTxAlloc(
     //
     XDP_QUEUE* Queue = &Xdp->Queues[0];
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
-    uint16_t HeaderBackfill = CxPlatDpRawParseCalculateHeaderBackFill(Family);
 
     UNREFERENCED_PARAMETER(ECN);
 
     if (Packet) {
-        CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill);
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family);
+        CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = MaxPacketSize;
-        Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill];
+        Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->Family = Family;
     }
 

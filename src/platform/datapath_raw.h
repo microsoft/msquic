@@ -81,12 +81,19 @@ CxPlatDpRawGenerateCpuTable(
     _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
+typedef struct HEADER_BACKFILL {
+    uint16_t TransportLayer;
+    uint16_t NetworkLayer;
+    uint16_t LinkLayer;
+    uint16_t AllLayer; // Sum of the above three.
+} HEADER_BACKFILL;
+
 //
 // Calculate how much space we should reserve for headers.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint16_t
-CxPlatDpRawParseCalculateHeaderBackFill(
+HEADER_BACKFILL
+CxPlatDpRawCalculateHeaderBackFill(
     _In_ QUIC_ADDRESS_FAMILY Family
     );
 
@@ -240,6 +247,12 @@ typedef enum PACKET_TYPE {
     L4_TYPE_TCP,
     L4_TYPE_UDP,
 } PACKET_TYPE;
+
+typedef enum HEADER_TYPE {
+    HEADER_ALL,
+    HEADER_L2,
+    HEADER_L3,
+} HEADER_TYPE;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
