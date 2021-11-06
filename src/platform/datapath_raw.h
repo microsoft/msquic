@@ -39,7 +39,6 @@ typedef struct CXPLAT_DATAPATH {
 typedef struct CXPLAT_SEND_DATA {
 
     QUIC_BUFFER Buffer;
-    QUIC_ADDRESS_FAMILY Family;
 
 } CXPLAT_SEND_DATA;
 
