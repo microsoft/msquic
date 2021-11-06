@@ -703,7 +703,6 @@ CxPlatDpRawTxAlloc(
         Packet->Queue = Queue;
         Packet->Buffer.Length = MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
-        Packet->Family = Family;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;

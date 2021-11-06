@@ -254,6 +254,5 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _Inout_ QUIC_BUFFER* Buffer,
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _Inout_ QUIC_BUFFER* Buffer
     );

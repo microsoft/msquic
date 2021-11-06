@@ -568,7 +568,6 @@ CxPlatDpRawTxAlloc(
             Packet->Buffer.Buffer = ((uint8_t*)Packet->Mbuf->buf_addr) + HeaderFill.AllLayer;
             Packet->Mbuf->l2_len = HeaderFill.LinkLayer;
             Packet->Mbuf->l3_len = HeaderFill.NetworkLayer;
-            Packet->Family = Family;
         } else {
             CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
             Packet = NULL;

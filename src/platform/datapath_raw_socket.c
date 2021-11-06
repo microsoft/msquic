@@ -348,14 +348,14 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _Inout_ QUIC_BUFFER* Buffer,
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _Inout_ QUIC_BUFFER* Buffer
     )
 {
     UDP_HEADER* UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
     ETHERNET_HEADER* Ethernet;
     uint16_t EthType;
     uint16_t IpHeaderLen;
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(RemoteAddress);
 
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
