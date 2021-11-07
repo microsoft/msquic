@@ -829,11 +829,5 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
         }
     }
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-    while (CxPlatRunExecutionContexts(ThreadID)) {
-        // no-op
-    }
-#endif
-
     return 0;
 }
