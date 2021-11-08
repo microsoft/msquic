@@ -1,0 +1,49 @@
+name: WAN Perf
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release
+    - uses: actions/upload-artifact@v2
+      with:
+        name: bin
+        path: |
+          artifacts/bin
+          !artifacts/bin/**/*.ilk
+          !artifacts/bin/**/*.cer
+          !artifacts/bin/**/*.exp
+          !artifacts/bin/**/*.lastcodeanalysissucceeded
+  wan-perf:
+    name: Run Perf Test
+    runs-on: windows-latest
+    needs: build
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -Configuration Test -DuoNic
+    - uses: actions/download-artifact@v2
+      with:
+        name: bin
+        path: artifacts/bin
+    - name: Run WAN Perf
+      shell: pwsh
+      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations 3 -BottleneckMbps 100 -BottleneckQueueRatio 1 -DurationMs 10000 -RttMs 50 -Pacing 1 -RandomLossDenominator 0 -RandomReorderDenominator 0 -ReorderDelayDeltaMs 0 -BaseRandomSeed '""' -LogProfile None -Config Release
