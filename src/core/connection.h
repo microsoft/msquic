@@ -1458,7 +1458,7 @@ QuicConnGetMaxMtuForPath(
     if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
         RemoteMtu =
             PacketSizeFromUdpPayloadSize(
-                QuicAddrGetFamily(&Path->RemoteAddress),
+                QuicAddrGetFamily(&Path->Route.RemoteAddress),
                 (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize);
     }
     uint16_t SettingsMtu = Connection->Settings.MaximumMtu;
