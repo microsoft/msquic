@@ -11,7 +11,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_ _Pre_defensive_ HQUIC Configuration,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -24,10 +23,6 @@ QUIC_STATUS
 `Registration`
 
 The valid handle to an open registration object.
-
-`Configuration`
-
-The valid handle to an open configuration object.
 
 `Handler`
 
