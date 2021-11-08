@@ -19,10 +19,10 @@ jobs:
       uses: actions/checkout@v2
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules
+      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Extra "-DisableTest -DisableTools"
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/build.ps1 -Config Release
+      run: scripts/build.ps1 -Config Release -Extra "-DisableTest -DisableTools"
     - uses: actions/upload-artifact@v2
       with:
         name: bin
@@ -36,6 +36,10 @@ jobs:
     name: Run Perf Test
     runs-on: windows-2022
     needs: build
+    strategy:
+      matrix:
+        rate: [5, 10, 50, 100]
+        rtt: [5, 50, 200, 500]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -48,4 +52,4 @@ jobs:
         path: artifacts/bin
     - name: Run WAN Perf
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations 3 -BottleneckMbps 100 -BottleneckQueueRatio 1 -DurationMs 10000 -RttMs 50 -Pacing 1 -RandomLossDenominator 0 -RandomReorderDenominator 0 -ReorderDelayDeltaMs 0 -BaseRandomSeed '""' -LogProfile None -Config Release
+      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations 3 -DurationMs 10000 -Pacing 1 -BottleneckMbps ${{ matrix.rate }} -BottleneckQueueRatio 1 -RttMs ${{ matrix.rtt }} -RandomLossDenominator 0 -RandomReorderDenominator 0 -ReorderDelayDeltaMs 0
