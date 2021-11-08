@@ -62,3 +62,7 @@ jobs:
     - name: Run WAN Perf
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ matrix.loss }} -BaseRandomSeed ${{ env.seed }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: results
+        path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
