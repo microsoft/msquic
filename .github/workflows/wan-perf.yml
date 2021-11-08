@@ -40,8 +40,8 @@ env:
   delay: "(0,5,10)"
 
 jobs:
-  build:
-    name: Build
+  build-perf:
+    name: Build Perf
     runs-on: windows-latest
     steps:
     - name: Checkout repository
@@ -64,9 +64,9 @@ jobs:
           !artifacts/bin/**/*.pgd
           !artifacts/bin/**/*.lib
   wan-perf:
-    name: Test
+    name: Run Tests
     runs-on: windows-2022
-    needs: build
+    needs: build-perf
     strategy:
       fail-fast: false
       matrix:
