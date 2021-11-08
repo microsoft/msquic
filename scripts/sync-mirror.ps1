@@ -27,6 +27,9 @@ if ($null -eq $Env:AzDO_PAT -or "" -eq $Env:AzDO_PAT) {
     Write-Error "PAT for Azure DevOps Repo doesn't exist!"
 }
 
+# Add the AzDO repo as a remote.
+git remote add azdo-mirror "https://nibanks:$Env:AzDO_PAT@mscodehub.visualstudio.com/msquic/_git/msquic"
+
 $SourceName = "" # The name of the branch or tag
 
 if ($Source.StartsWith("refs/heads/")) {
@@ -52,8 +55,9 @@ if ($Source.StartsWith("refs/heads/")) {
     Write-Error "Unsupported source: " + $Source
 }
 
-# Add the AzDO repo as a remote.
-git remote add azdo-mirror "https://nibanks:$Env:AzDO_PAT@mscodehub.visualstudio.com/msquic/_git/msquic"
+# Some extra info for debugging failures.
+git log -5
+git status
 
 # Push to the AzDO repo.
 try {
