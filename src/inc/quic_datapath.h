@@ -142,6 +142,16 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
+// Structure to represent a network route.
+//
+typedef struct CXPLAT_ROUTE {
+
+    QUIC_ADDR RemoteAddress;
+    QUIC_ADDR LocalAddress;
+
+} CXPLAT_ROUTE;
+
+//
 // Structure to represent data buffers received.
 //
 typedef struct CXPLAT_TUPLE {
