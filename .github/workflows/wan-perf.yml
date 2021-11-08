@@ -15,6 +15,7 @@ env:
   iterations: 3
   duration: 10000
   pacing: 1
+  loss: "(0,1000,10000)"
   reorder: "(0,1000,10000)"
   delay: "(0,5,10)"
 
@@ -50,7 +51,6 @@ jobs:
         rate: [5, 10, 20, 50, 100, 200]
         rtt: [5, 50, 200, 500]
         queueRatio: [0.2, 1, 5]
-        loss: [0, 1000, 10000]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -63,7 +63,7 @@ jobs:
         path: artifacts/bin
     - name: Run WAN Perf
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ matrix.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
     - uses: actions/upload-artifact@v2
       with:
         name: results
