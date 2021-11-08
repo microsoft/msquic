@@ -5,10 +5,30 @@ on:
     branches:
     - main
     - release/*
+    paths-ignore:
+    - .azure/*
+    - docs/*
+    - src/cs/*
+    - src/distribution/*
+    - src/plugins/*
+    - src/tools/*
+    - src/lib.rs
+    - Cargo.toml
+    - README.md
   pull_request:
     branches:
     - main
     - release/*
+    paths-ignore:
+    - .azure/*
+    - docs/*
+    - src/cs/*
+    - src/distribution/*
+    - src/plugins/*
+    - src/tools/*
+    - src/lib.rs
+    - Cargo.toml
+    - README.md
 
 env:
   seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
