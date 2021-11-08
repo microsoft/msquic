@@ -10,6 +10,12 @@ on:
     - main
     - release/*
 
+env:
+  seed: 41473a2e60b6958500ec0add7dcfb9
+  iterations: 3
+  duration: 10000
+  pacing: 1
+
 jobs:
   build:
     name: Build
@@ -37,9 +43,12 @@ jobs:
     runs-on: windows-2022
     needs: build
     strategy:
+      fail-fast: false
       matrix:
         rate: [5, 10, 50, 100]
         rtt: [5, 50, 200, 500]
+        queueRatio: [0.25, 1.0]
+        loss: [0, 1000]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -52,4 +61,4 @@ jobs:
         path: artifacts/bin
     - name: Run WAN Perf
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations 3 -DurationMs 10000 -Pacing 1 -BottleneckMbps ${{ matrix.rate }} -BottleneckQueueRatio 1 -RttMs ${{ matrix.rtt }} -RandomLossDenominator 0 -RandomReorderDenominator 0 -ReorderDelayDeltaMs 0
+      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ matrix.loss }} -BaseRandomSeed ${{ env.seed }}
