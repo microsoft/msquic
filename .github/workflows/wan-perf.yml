@@ -11,7 +11,7 @@ on:
     - release/*
 
 env:
-  seed: 41473a2e60b6958500ec0add7dcfb9
+  seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
   iterations: 3
   duration: 10000
   pacing: 1
@@ -41,6 +41,8 @@ jobs:
           !artifacts/bin/**/*.cer
           !artifacts/bin/**/*.exp
           !artifacts/bin/**/*.lastcodeanalysissucceeded
+          !artifacts/bin/**/*.pgd
+          !artifacts/bin/**/*.lib
   wan-perf:
     name: Test
     runs-on: windows-2022
@@ -51,6 +53,10 @@ jobs:
         rate: [5, 10, 20, 50, 100, 200]
         rtt: [5, 50, 200, 500]
         queueRatio: [0.2, 1, 5]
+        exclude:
+        - rate: 5
+          rtt: 5
+          queueRatio: 0.2 # Results in sub-packet limit
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -66,5 +72,6 @@ jobs:
       run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
     - uses: actions/upload-artifact@v2
       with:
-        name: results
+        name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
+  # TODO - Download and merge data files
