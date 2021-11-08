@@ -22,7 +22,7 @@ jobs:
       run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Extra "-DisableTest -DisableTools"
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Extra "-DisableTest -DisableTools"
+      run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
     - uses: actions/upload-artifact@v2
       with:
         name: bin
