@@ -75,15 +75,15 @@ tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
                     DatapathRecv,
                     "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
                     Socket,
-                    Packet->BufferLength,
-                    Packet->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress));
+                    Packets[i]->BufferLength,
+                    Packets[i]->BufferLength,
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress));
 // arg2 = arg2 = Socket
-// arg3 = arg3 = Packet->BufferLength
-// arg4 = arg4 = Packet->BufferLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->LocalAddress), &Packet->Tuple->LocalAddress)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Tuple->RemoteAddress), &Packet->Tuple->RemoteAddress)
+// arg3 = arg3 = Packets[i]->BufferLength
+// arg4 = arg4 = Packets[i]->BufferLength
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress)
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress)
 ----------------------------------------------------------*/
 #define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
 tracepoint(CLOG_DATAPATH_RAW_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\

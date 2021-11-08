@@ -236,7 +236,9 @@ protected:
 
                 ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
 
-                auto ServerSendData = CxPlatSendDataAlloc(Socket, RecvContext->EcnType, 0);
+                auto ServerSendData =
+                    CxPlatSendDataAlloc(
+                        Socket, RecvContext->EcnType, 0, QuicAddrGetFamily(&RecvData->Tuple->RemoteAddress));
                 ASSERT_NE(nullptr, ServerSendData);
                 auto ServerBuffer = CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerBuffer);
@@ -620,7 +622,9 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+    auto ClientSendData =
+        CxPlatSendDataAlloc(
+            Client, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&RecvContext.DestinationAddress));
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -653,7 +657,9 @@ TEST_P(DataPathTest, UdpDataRebind)
         VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
         ASSERT_NE(nullptr, Client.Socket);
 
-        auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+        auto ClientSendData =
+            CxPlatSendDataAlloc(
+                Client, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&RecvContext.DestinationAddress));
         ASSERT_NE(nullptr, ClientSendData);
         auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
         ASSERT_NE(nullptr, ClientBuffer);
@@ -669,7 +675,9 @@ TEST_P(DataPathTest, UdpDataRebind)
         VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
         ASSERT_NE(nullptr, Client.Socket);
 
-        auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+        auto ClientSendData =
+            CxPlatSendDataAlloc(
+                Client, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&RecvContext.DestinationAddress));
         ASSERT_NE(nullptr, ClientSendData);
         auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
         ASSERT_NE(nullptr, ClientBuffer);
@@ -703,7 +711,9 @@ TEST_P(DataPathTest, UdpDataECT0)
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_ECT_0, 0);
+    auto ClientSendData =
+        CxPlatSendDataAlloc(
+            Client, CXPLAT_ECN_ECT_0, 0, QuicAddrGetFamily(&RecvContext.DestinationAddress));
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -749,7 +759,9 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
     VERIFY_QUIC_SUCCESS(Client2.GetInitStatus());
 
-    auto ClientSendData = CxPlatSendDataAlloc(Client1, CXPLAT_ECN_NON_ECT, 0);
+    auto ClientSendData =
+        CxPlatSendDataAlloc(
+            Client1, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&RecvContext.DestinationAddress));
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -760,7 +772,9 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
     CxPlatEventReset(RecvContext.ClientCompletion);
 
-    ClientSendData = CxPlatSendDataAlloc(Client2, CXPLAT_ECN_NON_ECT, 0);
+    ClientSendData =
+        CxPlatSendDataAlloc(
+            Client2, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&RecvContext.DestinationAddress));
     ASSERT_NE(nullptr, ClientSendData);
     ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -880,7 +894,7 @@ TEST_P(DataPathTest, TcpDataClient)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    auto SendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+    auto SendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&serverAddress.SockAddr));
     ASSERT_NE(nullptr, SendData);
     auto SendBuffer = CxPlatSendDataAllocBuffer(SendData, ExpectedDataSize);
     ASSERT_NE(nullptr, SendBuffer);
@@ -918,14 +932,14 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    auto SendData = CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0);
+    QUIC_ADDR ServerAddress = Listener.GetLocalAddress();
+    QUIC_ADDR ClientAddress = Client.GetLocalAddress();
+
+    auto SendData = CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0, QuicAddrGetFamily(&ClientAddress));
     ASSERT_NE(nullptr, SendData);
     auto SendBuffer = CxPlatSendDataAllocBuffer(SendData, ExpectedDataSize);
     ASSERT_NE(nullptr, SendBuffer);
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
-
-    QUIC_ADDR ServerAddress = Listener.GetLocalAddress();
-    QUIC_ADDR ClientAddress = Client.GetLocalAddress();
 
     VERIFY_QUIC_SUCCESS(
         CxPlatSocketSend(

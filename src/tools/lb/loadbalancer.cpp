@@ -64,13 +64,13 @@ struct LbInterface {
         CXPLAT_SEND_DATA* Send = nullptr;
         while (RecvDataChain) {
             if (!Send) {
-                Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH);
+                Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH, QuicAddrGetFamily(PeerAddress));
             }
             if (Send) {
                 auto Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
                 if (!Buffer) {
                     (void)CxPlatSocketSend(Socket, &LocalAddress, PeerAddress, Send, 0);
-                    Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH);
+                    Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH, QuicAddrGetFamily(PeerAddress));
                     if (Send) {
                         Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
                     }

@@ -80,8 +80,24 @@ CxPlatDpRawGenerateCpuTable(
     _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
+typedef struct HEADER_BACKFILL {
+    uint16_t TransportLayer;
+    uint16_t NetworkLayer;
+    uint16_t LinkLayer;
+    uint16_t AllLayer; // Sum of the above three.
+} HEADER_BACKFILL;
+
 //
-// Upcall from raw datapath to allow for parsing of a received Ethernet packet.
+// Calculate how much space we should reserve for headers.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+HEADER_BACKFILL
+CxPlatDpRawCalculateHeaderBackFill(
+    _In_ QUIC_ADDRESS_FAMILY Family
+    );
+
+//
+// Upcall from raw datapath to indicate a received chain of packets.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -122,7 +138,8 @@ CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _In_ QUIC_ADDRESS_FAMILY Family
     );
 
 //

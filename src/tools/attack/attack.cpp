@@ -116,7 +116,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
-                Binding, CXPLAT_ECN_NON_ECT, Length);
+                Binding, CXPLAT_ECN_NON_ECT, Length, QuicAddrGetFamily(&ServerAddress));
         if (SendData == nullptr) {
             printf("CxPlatSendDataAlloc failed\n");
             return;
@@ -220,7 +220,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
-                Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
+                Binding, CXPLAT_ECN_NON_ECT, DatagramLength, QuicAddrGetFamily(&ServerAddress));
         VERIFY(SendData);
 
         while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&

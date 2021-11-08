@@ -7,10 +7,10 @@
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "XDP RX Buffers",
-            Xdp->RxBufferCount * RxPacketSize);
-// arg2 = arg2 = "XDP RX Buffers"
-// arg3 = arg3 = Xdp->RxBufferCount * RxPacketSize
+            "XDP Queues",
+            Xdp->QueueCount * sizeof(*Xdp->Queues));
+// arg2 = arg2 = "XDP Queues"
+// arg3 = arg3 = Xdp->QueueCount * sizeof(*Xdp->Queues)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
     TP_ARGS(
@@ -28,10 +28,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "XskCreate");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskCreate");
 // arg2 = arg2 = Status
 // arg3 = arg3 = "XskCreate"
 ----------------------------------------------------------*/

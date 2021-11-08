@@ -813,7 +813,8 @@ QuicBindingProcessStatelessOperation(
         CxPlatSendDataAlloc(
             Binding->Socket,
             CXPLAT_ECN_NON_ECT,
-            0);
+            0,
+            QuicAddrGetFamily(&RecvDatagram->Tuple->RemoteAddress));
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
