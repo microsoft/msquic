@@ -40,7 +40,7 @@ if ($Source.StartsWith("refs/heads/")) {
     # Reset branch to origin.
     git reset --hard origin/$SourceName
 
-} else if ($Source.StartsWith("refs/tags/")) {
+} elseif ($Source.StartsWith("refs/tags/")) {
 
     # Remove the 'refs/tags/' prefix.
     $SourceName = $Source.Substring(10)
