@@ -102,7 +102,10 @@ param (
     [switch]$Periodic = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ForceBranchName = $null
+    [string]$ForceBranchName = $null,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$MergeDataFiles = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -177,6 +180,25 @@ function Find-MatchingTest([TestResult]$TestResult, [Object]$RemoteResults) {
     return $null;
 }
 
+function Find-MatchingTest2([Object]$TestResult, [Object]$RemoteResults) {
+    foreach ($Remote in $RemoteResults) {
+        if (
+            $TestResult.RttMs -eq $Remote.RttMs -and
+            $TestResult.BottleneckMbps -eq $Remote.BottleneckMbps -and
+            $TestResult.BottleneckBufferPackets -eq $Remote.BottleneckBufferPackets -and
+            $TestResult.RandomLossDenominator -eq $Remote.RandomLossDenominator -and
+            $TestResult.RandomReorderDenominator -eq $Remote.RandomReorderDenominator -and
+            $TestResult.ReorderDelayDeltaMs -eq $Remote.ReorderDelayDeltaMs -and
+            $TestResult.Tcp -eq $Remote.Tcp -and
+            $TestResult.DurationMs -eq $Remote.DurationMs -and
+            $TestResult.Pacing -eq $Remote.Pacing
+        ) {
+            return $Remote
+        }
+    }
+    return $null;
+}
+
 function Get-CurrentBranch {
     param($RepoDir)
     $CurrentLoc = Get-Location
@@ -231,21 +253,41 @@ function Get-LatestWanTestResult([string]$Branch, [string]$CommitHash) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# See if we are an AZP PR
-$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
-if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
-    # Mainline build, just get branch name
-    $AzpBranchName = $env:BUILD_SOURCEBRANCH
-    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
-        # Non azure build
-        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
     } else {
-        # Azure Build
-        $BranchName = $AzpBranchName.Substring(11);
+        $Tls = "openssl"
     }
+}
+
+$Platform = $IsWindows ? "windows" : "linux"
+$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    # Forcing a specific branch.
+    $BranchName = $ForceBranchName
+
+} elseif (![string]::IsNullOrWhiteSpace($env:SYSTEM_PULLREQUEST_TARGETBRANCH)) {
+    # We are in a (AZP) pull request build.
+    $BranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+
+} elseif (![string]::IsNullOrWhiteSpace($env:GITHUB_BASE_REF)) {
+    # We are in a (GitHub Action) pull request build.
+    $BranchName = $env:GITHUB_BASE_REF.Substring(11)
+
+} elseif (![string]::IsNullOrWhiteSpace($env:BUILD_SOURCEBRANCH)) {
+    # We are in a (AZP) main build.
+    $BranchName = $env:BUILD_SOURCEBRANCH.Substring(11)
+
+} elseif (![string]::IsNullOrWhiteSpace($env:GITHUB_REF_NAME)) {
+    # We are in a (GitHub Action) main build.
+    $BranchName = $env:GITHUB_REF_NAME.Substring(11)
+
 } else {
-    # PR Build
-    $BranchName = $PrBranchName
+    # Fallback to the current branch.
+    $BranchName = Get-CurrentBranch -RepoDir $RootDir
 }
 
 if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
@@ -255,13 +297,68 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
 $LastCommitHash = Get-LatestCommitHash -Branch $BranchName
 $PreviousResults = Get-LatestWanTestResult -Branch $BranchName -CommitHash $LastCommitHash
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
+$RemoteResults = ""
+if ($PreviousResults -ne "") {
+    try {
+        $RemoteResults = $PreviousResults.$PlatformName
+    } catch {
+        Write-Debug "Failed to get $PlatformName from previous results"
     }
+}
+
+# Path to the output data.
+$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
+
+if ($MergeDataFiles) {
+    # The merged output data
+    $MergedData = "<table>`n"
+    $MergedData += "<tr>"
+    $MergedData += "<td>Network (Mbps)</td>"
+    $MergedData += "<td>RTT (ms)</td>"
+    $MergedData += "<td>Queue (pkts)</td>"
+    $MergedData += "<td>Loss (1/N)</td>"
+    $MergedData += "<td>Reorder (1/N)</td>"
+    $MergedData += "<td>Reorder Delay (ms)</td>"
+    #$MergedData += "<td>Tcp</td>"
+    $MergedData += "<td>Bottleneck %</td>"
+    $MergedData += "<td>Goodput (kbps)</td>"
+    $MergedData += "<td>Previous Goodput (kbps)</td>"
+    $MergedData += "</tr>`n"
+
+    # Load all json files in the output directory.
+    $DataFiles = Get-ChildItem -Path $OutputDir -Filter "*.json"
+    $DataFiles | ForEach-Object {
+        $Data = Get-Content $_ | ConvertFrom-Json
+        # Process each run in the json data, converting it to a table row.
+        $Data.Runs | ForEach-Object {
+            $RemoteRate = 0
+            if ($RemoteResults -ne "") {
+                $RemoteResult = Find-MatchingTest2 -TestResult $_ -RemoteResults $RemoteResults
+                if ($null -ne $RemoteResult) {
+                    $RemoteRate = $RemoteResult.RateKbps
+                }
+            }
+
+            $BottleneckPercentage = ($_.RateKbps / $_.BottleneckMbps) / 10
+
+            $MergedData += "<tr>"
+            $MergedData += "<td>$($_.BottleneckMbps)</td>"
+            $MergedData += "<td>$($_.RttMs)</td>"
+            $MergedData += "<td>$($_.BottleneckBufferPackets)</td>"
+            $MergedData += "<td>$($_.RandomLossDenominator)</td>"
+            $MergedData += "<td>$($_.RandomReorderDenominator)</td>"
+            $MergedData += "<td>$($_.ReorderDelayDeltaMs)</td>"
+            #$MergedData += "<td>$($_.Tcp)</td>"
+            $MergedData += "<td>$BottleneckPercentage</td>"
+            $MergedData += "<td>$($_.RateKbps)</td>"
+            $MergedData += "<td>$RemoteRate</td>"
+            $MergedData += "</tr>`n"
+        }
+    }
+
+    $MergedData += "</table>`n"
+    $MergedData | Out-File ($OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" "WanPerf.html")
+    return
 }
 
 # Script for controlling loggings.
@@ -278,9 +375,6 @@ if ($LogProfile -ne "None") {
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
     Get-ChildItem $LogScript | Write-Debug
 }
-
-$Platform = $IsWindows ? "windows" : "linux"
-$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
 
 if ($BaseRandomSeed -eq "") {
     for ($i = 0; $i -lt 3; $i++) {
@@ -320,7 +414,6 @@ $p.Start() | Out-Null
 # Wait for the server(s) to come up.
 Start-Sleep -Seconds 1
 
-$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 $UniqueId = New-Guid
 $OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
@@ -341,15 +434,6 @@ Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -No
 Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 
 $RunResults = [Results]::new($PlatformName)
-
-$RemoteResults = ""
-if ($PreviousResults -ne "") {
-    try {
-        $RemoteResults = $PreviousResults.$PlatformName
-    } catch {
-        Write-Debug "Failed to get $PlatformName from previous results"
-    }
-}
 
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {

@@ -94,4 +94,21 @@ jobs:
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
-  # TODO - Download and merge data files
+  merge-data:
+    name: Merge Results
+    runs-on: windows-2022
+    needs: wan-perf
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: data
+        path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN
+    - name: Merge Data Files
+      shell: pwsh
+      run: scripts/emulated-performance.ps1 -MergeDataFiles
+    - uses: actions/upload-artifact@v2
+      with:
+        name: results
+        path: artifacts/PerfDataResults/WanPerf.html
