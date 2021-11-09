@@ -271,23 +271,23 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
 
 } elseif (![string]::IsNullOrWhiteSpace($env:SYSTEM_PULLREQUEST_TARGETBRANCH)) {
     # We are in a (AZP) pull request build.
-    Write-Host "Using $env:SYSTEM_PULLREQUEST_TARGETBRANCH to compute branch"
+    Write-Host "Using SYSTEM_PULLREQUEST_TARGETBRANCH=$env:SYSTEM_PULLREQUEST_TARGETBRANCH to compute branch"
     $BranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
 
 } elseif (![string]::IsNullOrWhiteSpace($env:GITHUB_BASE_REF)) {
     # We are in a (GitHub Action) pull request build.
-    Write-Host "Using $env:GITHUB_BASE_REF to compute branch"
-    $BranchName = $env:GITHUB_BASE_REF.Substring(11)
+    Write-Host "Using GITHUB_BASE_REF=$env:GITHUB_BASE_REF to compute branch"
+    $BranchName = $env:GITHUB_BASE_REF
 
 } elseif (![string]::IsNullOrWhiteSpace($env:BUILD_SOURCEBRANCH)) {
     # We are in a (AZP) main build.
-    Write-Host "Using $env:BUILD_SOURCEBRANCH to compute branch"
+    Write-Host "Using BUILD_SOURCEBRANCH=$env:BUILD_SOURCEBRANCH to compute branch"
     $BranchName = $env:BUILD_SOURCEBRANCH.Substring(11)
 
 } elseif (![string]::IsNullOrWhiteSpace($env:GITHUB_REF_NAME)) {
     # We are in a (GitHub Action) main build.
-    Write-Host "Using $env:GITHUB_REF_NAME to compute branch"
-    $BranchName = $env:GITHUB_REF_NAME.Substring(11)
+    Write-Host "Using GITHUB_REF_NAME=$env:GITHUB_REF_NAME to compute branch"
+    $BranchName = $env:GITHUB_REF_NAME
 
 } else {
     # Fallback to the current branch.
