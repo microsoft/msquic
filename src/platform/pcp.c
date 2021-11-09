@@ -422,11 +422,13 @@ CxPlatPcpSendMapRequestInternal(
         Request->MAP.SuggestedExternalIpAddress,
         sizeof(Request->MAP.SuggestedExternalIpAddress));
 
+    CXPLAT_ROUTE Route;
+    Route.LocalAddress = LocalAddress;
+    Route.RemoteAddress = RemoteAddress;
     QUIC_STATUS Status =
         CxPlatSocketSend(
             Socket,
-            &LocalAddress,
-            &RemoteAddress,
+            &Route,
             SendData,
             (uint16_t)CxPlatProcCurrentNumber());
     if (QUIC_FAILED(Status)) {
@@ -528,11 +530,13 @@ CxPlatPcpSendPeerRequestInternal(
         sizeof(Request->PEER.RemotePeerIpAddress));
     Request->PEER.RemotePeerPort = RemotePeerMappedAddress.Ipv6.sin6_port;
 
+    CXPLAT_ROUTE Route;
+    Route.LocalAddress = LocalAddress;
+    Route.RemoteAddress = RemoteAddress;
     QUIC_STATUS Status =
         CxPlatSocketSend(
             Socket,
-            &LocalAddress,
-            &RemoteAddress,
+            &Route,
             SendData,
             (uint16_t)CxPlatProcCurrentNumber());
     if (QUIC_FAILED(Status)) {

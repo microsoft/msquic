@@ -242,11 +242,13 @@ protected:
                 ASSERT_NE(nullptr, ServerBuffer);
                 memcpy(ServerBuffer->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
+                CXPLAT_ROUTE Route;
+                Route.LocalAddress = RecvData->Tuple->LocalAddress;
+                Route.RemoteAddress = RecvData->Tuple->RemoteAddress;
                 VERIFY_QUIC_SUCCESS(
                     CxPlatSocketSend(
                         Socket,
-                        &RecvData->Tuple->LocalAddress,
-                        &RecvData->Tuple->RemoteAddress,
+                        &Route,
                         ServerSendData,
                         0));
 
@@ -506,11 +508,13 @@ struct CxPlatSocket {
         _In_ uint16_t PartitionId = 0
         ) const noexcept
     {
+        CXPLAT_ROUTE Route;
+        Route.LocalAddress = LocalAddress;
+        Route.RemoteAddress = RemoteAddress;
         return
             CxPlatSocketSend(
                 Socket,
-                &LocalAddress,
-                &RemoteAddress,
+                &Route,
                 SendData,
                 PartitionId);
     }
@@ -924,14 +928,14 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, SendBuffer);
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    QUIC_ADDR ServerAddress = Listener.GetLocalAddress();
-    QUIC_ADDR ClientAddress = Client.GetLocalAddress();
+    CXPLAT_ROUTE Route;
+    Route.LocalAddress = Listener.GetLocalAddress();
+    Route.RemoteAddress = Client.GetLocalAddress();
 
     VERIFY_QUIC_SUCCESS(
         CxPlatSocketSend(
             ListenerContext.Server,
-            &ServerAddress,
-            &ClientAddress,
+            &Route,
             SendData, 0));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 }

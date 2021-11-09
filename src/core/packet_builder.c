@@ -971,8 +971,7 @@ QuicPacketBuilderSendBatch(
 
     QuicBindingSend(
         Builder->Path->Binding,
-        &Builder->Path->Route.LocalAddress,
-        &Builder->Path->Route.RemoteAddress,
+        &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,
         Builder->TotalCountDatagrams,

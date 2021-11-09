@@ -194,9 +194,6 @@ struct DrillSender {
         CXPLAT_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
-        QUIC_ADDR LocalAddress;
-        CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
-
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
                 Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
@@ -215,11 +212,14 @@ struct DrillSender {
         //
         memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
 
+        CXPLAT_ROUTE Route;
+        CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
+        Route.RemoteAddress = ServerAddress;
+
         Status =
             CxPlatSocketSend(
                 Binding,
-                &LocalAddress,
-                &ServerAddress,
+                &Route,
                 SendData,
                 0);
 
