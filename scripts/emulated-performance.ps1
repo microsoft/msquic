@@ -111,6 +111,49 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+class FormattedResult {
+    [double]$Usage;
+    [int]$NetMbps;
+    [int]$RttMs;
+    [int]$QueuePkts;
+    [int]$Loss;
+    [int]$Reorder;
+    [int]$DelayMs;
+    #[int]$DurationMs;
+    #[bool]$Pacing;
+    [int]$RateKbps;
+    [int]$PrevKbps;
+    [bool]$Tcp;
+
+    FormattedResult (
+        [int]$RttMs,
+        [int]$BottleneckMbps,
+        [int]$BottleneckBufferPackets,
+        [int]$RandomLossDenominator,
+        [int]$RandomReorderDenominator,
+        [int]$ReorderDelayDeltaMs,
+        [bool]$Tcp,
+        [int]$DurationMs,
+        [bool]$Pacing,
+        [int]$RateKbps,
+        [int]$RemoteKbps,
+        [double]$BottleneckPercentage
+    ) {
+        $this.Tcp = $Tcp;
+        $this.RttMs = $RttMs;
+        $this.NetMbps = $BottleneckMbps;
+        $this.QueuePkts = $BottleneckBufferPackets;
+        $this.Loss = $RandomLossDenominator;
+        $this.Reorder = $RandomReorderDenominator;
+        $this.DelayMs = $ReorderDelayDeltaMs;
+        #$this.DurationMs = $DurationMs;
+        #$this.Pacing = $Pacing;
+        $this.RateKbps = $RateKbps;
+        $this.PrevKbps = $RemoteKbps;
+        $this.Usage = $BottleneckPercentage;
+    }
+}
+
 class TestResult {
     [int]$RttMs;
     [int]$BottleneckMbps;
@@ -314,20 +357,7 @@ if ($PreviousResults -ne "") {
 $OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 
 if ($MergeDataFiles) {
-    # The merged output data
-    $MergedData = "<table>`n"
-    $MergedData += "<tr>"
-    $MergedData += "<td>Network (Mbps)</td>"
-    $MergedData += "<td>RTT (ms)</td>"
-    $MergedData += "<td>Queue (pkts)</td>"
-    $MergedData += "<td>Loss (1/N)</td>"
-    $MergedData += "<td>Reorder (1/N)</td>"
-    $MergedData += "<td>Reorder Delay (ms)</td>"
-    #$MergedData += "<td>Tcp</td>"
-    $MergedData += "<td>Bottleneck %</td>"
-    $MergedData += "<td>Goodput (kbps)</td>"
-    $MergedData += "<td>Previous Goodput (kbps)</td>"
-    $MergedData += "</tr>`n"
+    $MergedResults = [System.Collections.Generic.List[FormattedResult]]::new()
 
     # Load all json files in the output directory.
     $DataFiles = Get-ChildItem -Path $OutputDir -Filter "*.json"
@@ -335,6 +365,7 @@ if ($MergeDataFiles) {
         $Data = Get-Content $_ | ConvertFrom-Json
         # Process each run in the json data, converting it to a table row.
         $Data.Runs | ForEach-Object {
+
             $RemoteRate = 0
             if ($RemoteResults -ne "") {
                 $RemoteResult = Find-MatchingTest2 -TestResult $_ -RemoteResults $RemoteResults
@@ -344,24 +375,12 @@ if ($MergeDataFiles) {
             }
 
             $BottleneckPercentage = ($_.RateKbps / $_.BottleneckMbps) / 10
-
-            $MergedData += "<tr>"
-            $MergedData += "<td>$($_.BottleneckMbps)</td>"
-            $MergedData += "<td>$($_.RttMs)</td>"
-            $MergedData += "<td>$($_.BottleneckBufferPackets)</td>"
-            $MergedData += "<td>$($_.RandomLossDenominator)</td>"
-            $MergedData += "<td>$($_.RandomReorderDenominator)</td>"
-            $MergedData += "<td>$($_.ReorderDelayDeltaMs)</td>"
-            #$MergedData += "<td>$($_.Tcp)</td>"
-            $MergedData += "<td>$BottleneckPercentage</td>"
-            $MergedData += "<td>$($_.RateKbps)</td>"
-            $MergedData += "<td>$RemoteRate</td>"
-            $MergedData += "</tr>`n"
+            $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate, $BottleneckPercentage);
+            $MergedResults.Add($Run)
         }
     }
 
-    $MergedData += "</table>`n"
-    $MergedData | Out-File ($OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" "WanPerf.html")
+    $MergedResults | Sort-Object -Property Usage | Format-Table -AutoSize
     return
 }
 

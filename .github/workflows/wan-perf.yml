@@ -108,7 +108,3 @@ jobs:
     - name: Merge Data Files
       shell: pwsh
       run: scripts/emulated-performance.ps1 -MergeDataFiles
-    - uses: actions/upload-artifact@v2
-      with:
-        name: results
-        path: artifacts/PerfDataResults/WanPerf.html
