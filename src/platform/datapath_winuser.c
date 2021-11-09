@@ -3958,16 +3958,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
 {
     CXPLAT_DBG_ASSERT(
-        Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL &&
-        SendData->WsaBufferCount != 0);
+        Socket != NULL && Route != NULL &&
+        SendData != NULL && SendData->WsaBufferCount != 0);
 
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc =
@@ -3988,20 +3986,20 @@ CxPlatSocketSend(
         return
             CxPlatSocketSendInline(
                 SocketProc,
-                LocalAddress,
-                RemoteAddress,
+                &Route->LocalAddress,
+                &Route->RemoteAddress,
                 SendData);
     }
 
     CxPlatCopyMemory(
         &SendData->LocalAddress,
-        LocalAddress,
-        sizeof(*LocalAddress));
+        &Route->LocalAddress,
+        sizeof(Route->LocalAddress));
 
     CxPlatCopyMemory(
         &SendData->RemoteAddress,
-        RemoteAddress,
-        sizeof(*RemoteAddress));
+        &Route->RemoteAddress,
+        sizeof(Route->RemoteAddress));
 
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
     BOOL Result =
@@ -4029,8 +4027,8 @@ CxPlatSocketSend(
     return
         CxPlatSocketSendInline(
             SocketProc,
-            LocalAddress,
-            RemoteAddress,
+            &Route->LocalAddress,
+            &Route->RemoteAddress,
             SendData);
 
 #endif // CXPLAT_DATAPATH_QUEUE_SENDS
