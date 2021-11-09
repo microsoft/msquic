@@ -116,6 +116,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, LocalCloseStopSending,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for TreatFinAsReset
+// [strm][%p] Treating FIN after receive abort as reset
+// QuicTraceLogStreamInfo(
+                TreatFinAsReset,
+                Stream,
+                "Treating FIN after receive abort as reset");
+// arg1 = arg1 = Stream
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, TreatFinAsReset,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for QueueRecvFlush
 // [strm][%p] Queuing recv flush
 // QuicTraceLogStreamVerbose(
@@ -190,6 +209,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerReceiveAborted,
 // arg1 = arg1 = Stream
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterClose,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IgnoreRecvAfterAbort
+// [strm][%p] Ignoring received frame after receive abort
+// QuicTraceLogStreamVerbose(
+                IgnoreRecvAfterAbort,
+                Stream,
+                "Ignoring received frame after receive abort");
+// arg1 = arg1 = Stream
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(

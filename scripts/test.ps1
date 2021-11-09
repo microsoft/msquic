@@ -139,6 +139,9 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$EnableTcpipVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
@@ -288,6 +291,9 @@ if ($NoProgress) {
 }
 if ($EnableAppVerifier) {
     $TestArguments += " -EnableAppVerifier"
+}
+if ($EnableTcpipVerifier) {
+    $TestArguments += " -EnableTcpipVerifier"
 }
 if ($CodeCoverage) {
     $TestArguments += " -CodeCoverage"

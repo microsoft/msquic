@@ -436,6 +436,148 @@ tracepoint(CLOG_CRYPT_OPENSSL_C, AllocFailure , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Crypt Hash Context",
+            sizeof(CXPLAT_HASH) + SaltLength);
+// arg2 = arg2 = "Crypt Hash Context"
+// arg3 = arg3 = sizeof(CXPLAT_HASH) + SaltLength
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_fetch failed");
+// arg2 = arg2 = "EVP_MAC_fetch failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_CTX_new failed");
+// arg2 = arg2 = "EVP_MAC_CTX_new failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_CTX_set_params failed");
+// arg2 = arg2 = "EVP_MAC_CTX_set_params failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_init failed");
+// arg2 = arg2 = "EVP_MAC_init failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_update failed");
+// arg2 = arg2 = "EVP_MAC_update failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_final failed");
+// arg2 = arg2 = "EVP_MAC_final failed"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 
 

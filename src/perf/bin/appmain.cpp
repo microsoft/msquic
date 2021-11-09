@@ -39,14 +39,15 @@ QuicHandleRpsClient(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     uint32_t RunTime;
-    uint32_t CachedCompletedRequests;
+    uint64_t CachedCompletedRequests;
     CxPlatCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
     ExtraData += sizeof(RunTime);
     CxPlatCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
     ExtraData += sizeof(CachedCompletedRequests);
+    CXPLAT_FRE_ASSERT(CachedCompletedRequests <= UINT32_MAX);
     uint32_t RestOfBufferLength = Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
-    uint32_t MaxCount = CXPLAT_MIN(CachedCompletedRequests, RestOfBufferLength);
+    uint32_t MaxCount = CXPLAT_MIN((uint32_t)CachedCompletedRequests, RestOfBufferLength);
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
     if (RPS == 0) {

@@ -130,7 +130,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_STATELESS_CTX             'C3cQ' // Qc3C - QUIC Stateless Context
 #define QUIC_POOL_OPER                      'D3cQ' // Qc3D - QUIC Operation
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
-#define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
+#define QUIC_POOL_TLS_PFX                   'F3cQ' // Qc3F - QUIC Platform PFX
 #define QUIC_POOL_DESIRED_VER_LIST          '04cQ' // Qc40 - QUIC App-supplied desired versions list
 #define QUIC_POOL_DEFAULT_COMPAT_VER_LIST   '14cQ' // Qc41 - QUIC Default compatible versions list
 #define QUIC_POOL_VERSION_INFO              '24cQ' // Qc42 - QUIC Version info
@@ -250,6 +250,16 @@ CxPlatListIsEmpty(
     )
 {
     return (BOOLEAN)(ListHead->Flink == ListHead);
+}
+
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN
+CxPlatListIsEmptyNoFence(
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
+    )
+{
+    return (BOOLEAN)(QuicReadPtrNoFence((void**)&ListHead->Flink) == ListHead);
 }
 
 FORCEINLINE
@@ -403,6 +413,33 @@ CxPlatGetAllocFailDenominator(
 #define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
 #endif
 
+//
+// General purpose execution context abstraction layer. Used for driving worker
+// loops.
+//
+
+typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
+
+//
+// Returns FALSE when it's time to cleanup.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(*CXPLAT_EXECUTION_FN)(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ uint64_t* TimeNowUs,    // The current time, in microseconds.
+    _In_ CXPLAT_THREAD_ID ThreadID  // The current thread ID.
+    );
+
+typedef struct CXPLAT_EXECUTION_CONTEXT {
+
+    void* Context;
+    CXPLAT_EXECUTION_FN Callback;
+    uint64_t NextTimeUs;
+    BOOLEAN Ready;
+
+} CXPLAT_EXECUTION_CONTEXT;
 
 //
 // Test Interface for loading a self-signed certificate.

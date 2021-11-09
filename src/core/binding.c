@@ -1058,10 +1058,13 @@ QuicBindingProcessStatelessOperation(
         goto Exit;
     }
 
+    CXPLAT_ROUTE Route;
+    Route.LocalAddress = RecvDatagram->Tuple->LocalAddress;
+    Route.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
+
     QuicBindingSend(
         Binding,
-        &RecvDatagram->Tuple->LocalAddress,
-        &RecvDatagram->Tuple->RemoteAddress,
+        &Route,
         SendData,
         SendDatagram->Length,
         1,
@@ -1756,8 +1759,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend,
@@ -1770,12 +1772,12 @@ QuicBindingSend(
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
     if (Hooks != NULL) {
 
-        QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
-        QUIC_ADDR LocalAddressCopy = *LocalAddress;
+        CXPLAT_ROUTE RouteCopy = *Route;
+
         BOOLEAN Drop =
             Hooks->Send(
-                &RemoteAddressCopy,
-                &LocalAddressCopy,
+                &RouteCopy.RemoteAddress,
+                &RouteCopy.LocalAddress,
                 SendData);
 
         if (Drop) {
@@ -1789,8 +1791,7 @@ QuicBindingSend(
             Status =
                 CxPlatSocketSend(
                     Binding->Socket,
-                    &LocalAddressCopy,
-                    &RemoteAddressCopy,
+                    &RouteCopy,
                     SendData,
                     IdealProcessor);
             if (QUIC_FAILED(Status)) {
@@ -1806,8 +1807,7 @@ QuicBindingSend(
         Status =
             CxPlatSocketSend(
                 Binding->Socket,
-                LocalAddress,
-                RemoteAddress,
+                Route,
                 SendData,
                 IdealProcessor);
         if (QUIC_FAILED(Status)) {

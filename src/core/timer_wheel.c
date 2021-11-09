@@ -389,38 +389,6 @@ QuicTimerWheelUpdateConnection(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-uint64_t
-QuicTimerWheelGetWaitTime(
-    _In_ QUIC_TIMER_WHEEL* TimerWheel,
-    _In_ uint64_t TimeNow
-    )
-{
-    uint64_t Delay;
-    if (TimerWheel->NextExpirationTime != UINT64_MAX) {
-        if (TimerWheel->NextExpirationTime <= TimeNow) {
-            //
-            // The next timer is already in the past. It needs to be processed
-            // immediately.
-            //
-            Delay = 0;
-        } else {
-            //
-            // Convert the absolute expiration time to a relative delay. Add one
-            // to the delay to ensure we don't end up expiring our wait too
-            // early.
-            //
-            Delay = US_TO_MS(TimerWheel->NextExpirationTime - TimeNow) + 1;
-        }
-    } else {
-        //
-        // No timers in the timer wheel currently.
-        //
-        Delay = UINT64_MAX;
-    }
-    return Delay;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTimerWheelGetExpired(
     _Inout_ QUIC_TIMER_WHEEL* TimerWheel,

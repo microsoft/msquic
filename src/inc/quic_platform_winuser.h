@@ -424,6 +424,12 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #endif
 
+#ifdef QUIC_RESTRICTED_BUILD
+#define QuicReadPtrNoFence(p) ((void*)(*p))
+#else
+#define QuicReadPtrNoFence ReadPointerNoFence
+#endif
+
 typedef LONG_PTR CXPLAT_REF_COUNT;
 
 inline

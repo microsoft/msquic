@@ -181,21 +181,21 @@ QuicConnAlloc(
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
 
-        Path->LocalAddress = Datagram->Tuple->LocalAddress;
+        Path->Route.LocalAddress = Datagram->Tuple->LocalAddress;
         Connection->State.LocalAddressSet = TRUE;
         QuicTraceEvent(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
-        Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
+        Path->Route.RemoteAddress = Datagram->Tuple->RemoteAddress;
         Connection->State.RemoteAddressSet = TRUE;
         QuicTraceEvent(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
 
         Path->DestCid =
             QuicCidNewDestination(Packet->SourceCidLen, Packet->SourceCid);
@@ -609,14 +609,14 @@ QuicConnTraceRundownOper(
                     ConnLocalAddrAdded,
                      "[conn][%p] New Local IP: %!ADDR!",
                     Connection,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].LocalAddress), &Connection->Paths[i].LocalAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].Route.LocalAddress), &Connection->Paths[i].Route.LocalAddress));
             }
             if (Connection->State.RemoteAddressSet || i != 0) {
                 QuicTraceEvent(
                     ConnRemoteAddrAdded,
                     "[conn][%p] New Remote IP: %!ADDR!",
                     Connection,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].RemoteAddress), &Connection->Paths[i].RemoteAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].Route.RemoteAddress), &Connection->Paths[i].Route.RemoteAddress));
             }
         }
         for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
@@ -1774,7 +1774,7 @@ QuicConnStart(
     if (!Connection->State.RemoteAddressSet) {
 
         CXPLAT_DBG_ASSERT(ServerName != NULL);
-        QuicAddrSetFamily(&Path->RemoteAddress, Family);
+        QuicAddrSetFamily(&Path->Route.RemoteAddress, Family);
 
 #ifdef QUIC_COMPARTMENT_ID
         BOOLEAN RevertCompartmentId = FALSE;
@@ -1800,7 +1800,7 @@ QuicConnStart(
             CxPlatDataPathResolveAddress(
                 MsQuicLib.Datapath,
                 ServerName,
-                &Path->RemoteAddress);
+                &Path->Route.RemoteAddress);
 
 #ifdef QUIC_COMPARTMENT_ID
         if (RevertCompartmentId) {
@@ -1815,18 +1815,18 @@ QuicConnStart(
         Connection->State.RemoteAddressSet = TRUE;
     }
 
-    QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
+    QuicAddrSetPort(&Path->Route.RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!ADDR!",
         Connection,
-        CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
 
     CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL;
-    UdpConfig.RemoteAddress = &Path->RemoteAddress;
+    UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->Route.LocalAddress : NULL;
+    UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
-    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
+    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
 #endif
@@ -1883,12 +1883,12 @@ QuicConnStart(
     }
 
     Connection->State.LocalAddressSet = TRUE;
-    QuicBindingGetLocalAddress(Path->Binding, &Path->LocalAddress);
+    QuicBindingGetLocalAddress(Path->Binding, &Path->Route.LocalAddress);
     QuicTraceEvent(
         ConnLocalAddrAdded,
         "[conn][%p] New Local IP: %!ADDR!",
         Connection,
-        CASTED_CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
     //
     // Save the server name.
@@ -3534,7 +3534,7 @@ QuicConnRecvHeader(
             }
 
             CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
-            CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.Encrypted.RemoteAddress));
+            CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->Route.RemoteAddress, &Token.Encrypted.RemoteAddress));
             CXPLAT_DBG_ASSERT(Connection->OrigDestCID == NULL);
 
             Connection->OrigDestCID =
@@ -5034,11 +5034,11 @@ QuicConnRecvPostProcessing(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].RemoteAddress), &Connection->Paths[0].RemoteAddress)); // TODO - Addr removed event?
+            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.RemoteAddress), &Connection->Paths[0].Route.RemoteAddress)); // TODO - Addr removed event?
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;
-        Event.PEER_ADDRESS_CHANGED.Address = &(*Path)->RemoteAddress;
+        Event.PEER_ADDRESS_CHANGED.Address = &(*Path)->Route.RemoteAddress;
         QuicTraceLogConnVerbose(
             IndicatePeerAddrChanged,
             Connection,
@@ -5529,7 +5529,7 @@ QuicConnProcessUdpUnreachable(
             Connection,
             "Ignoring received unreachable event");
 
-    } else if (QuicAddrCompare(&Connection->Paths[0].RemoteAddress, RemoteAddress)) {
+    } else if (QuicAddrCompare(&Connection->Paths[0].Route.RemoteAddress, RemoteAddress)) {
         QuicTraceLogConnInfo(
             Unreachable,
             Connection,
@@ -5700,12 +5700,12 @@ QuicConnParamSet(
         }
 
         Connection->State.LocalAddressSet = TRUE;
-        CxPlatCopyMemory(&Connection->Paths[0].LocalAddress, Buffer, sizeof(QUIC_ADDR));
+        CxPlatCopyMemory(&Connection->Paths[0].Route.LocalAddress, Buffer, sizeof(QUIC_ADDR));
         QuicTraceEvent(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
 
         if (Connection->State.Started) {
 
@@ -5717,7 +5717,7 @@ QuicConnParamSet(
 
             CXPLAT_UDP_CONFIG UdpConfig = {0};
             UdpConfig.LocalAddress = LocalAddress;
-            UdpConfig.RemoteAddress = &Connection->Paths[0].RemoteAddress;
+            UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
             UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
             UdpConfig.InterfaceIndex = 0;
 #ifdef QUIC_COMPARTMENT_ID
@@ -5748,17 +5748,17 @@ QuicConnParamSet(
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
 
             QuicBindingGetLocalAddress(
                 Connection->Paths[0].Binding,
-                &Connection->Paths[0].LocalAddress);
+                &Connection->Paths[0].Route.LocalAddress);
 
             QuicTraceEvent(
                 ConnLocalAddrAdded,
                 "[conn][%p] New Local IP: %!ADDR!",
                 Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
         }
@@ -5785,7 +5785,7 @@ QuicConnParamSet(
         }
 
         Connection->State.RemoteAddressSet = TRUE;
-        CxPlatCopyMemory(&Connection->Paths[0].RemoteAddress, Buffer, sizeof(QUIC_ADDR));
+        CxPlatCopyMemory(&Connection->Paths[0].Route.RemoteAddress, Buffer, sizeof(QUIC_ADDR));
         //
         // Don't log new Remote address added here because it is logged when
         // the connection is started.
@@ -6018,13 +6018,13 @@ QuicConnParamSet(
         }
 
         Connection->State.LocalInterfaceSet = TRUE;
-        Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id = *(uint32_t*)Buffer;
+        Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id = *(uint32_t*)Buffer;
 
         QuicTraceLogConnInfo(
             LocalInterfaceSet,
             Connection,
             "Local interface set to %u",
-            Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id);
+            Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6207,7 +6207,7 @@ QuicConnParamGet(
         *BufferLength = sizeof(QUIC_ADDR);
         CxPlatCopyMemory(
             Buffer,
-            &Connection->Paths[0].LocalAddress,
+            &Connection->Paths[0].Route.LocalAddress,
             sizeof(QUIC_ADDR));
 
         Status = QUIC_STATUS_SUCCESS;
@@ -6234,7 +6234,7 @@ QuicConnParamGet(
         *BufferLength = sizeof(QUIC_ADDR);
         CxPlatCopyMemory(
             Buffer,
-            &Connection->Paths[0].RemoteAddress,
+            &Connection->Paths[0].Route.RemoteAddress,
             sizeof(QUIC_ADDR));
 
         Status = QUIC_STATUS_SUCCESS;

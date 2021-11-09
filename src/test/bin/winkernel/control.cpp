@@ -448,6 +448,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(INT32),
     0,
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1113,6 +1115,14 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS:
         QuicTestCtlRun(QuicTestConnectInvalidAddress());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_ABORT_RECV_FIN_RACE:
+        QuicTestCtlRun(QuicTestStreamAbortRecvFinRace());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL:
+        QuicTestCtlRun(QuicTestStreamAbortConnFlowControl());
         break;
 
     default:

@@ -26,11 +26,11 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64", "")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "universal", "")]
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("gamecore-console", "uwp", "windows", "linux", "macos", "android", "ios", "")] # For future expansion
+    [ValidateSet("gamecore_console", "uwp", "windows", "linux", "macos", "android", "ios", "")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]

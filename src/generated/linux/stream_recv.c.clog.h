@@ -157,6 +157,27 @@ tracepoint(CLOG_STREAM_RECV_C, LocalCloseStopSending , arg1);\
 
 
 
+#ifndef _clog_3_ARGS_TRACE_TreatFinAsReset
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for TreatFinAsReset
+// [strm][%p] Treating FIN after receive abort as reset
+// QuicTraceLogStreamInfo(
+                TreatFinAsReset,
+                Stream,
+                "Treating FIN after receive abort as reset");
+// arg1 = arg1 = Stream
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_TreatFinAsReset(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, TreatFinAsReset , arg1);\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_QueueRecvFlush
 
 
@@ -239,6 +260,27 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerReceiveAborted , arg1, arg3);\
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_IgnoreRecvAfterClose(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterClose , arg1);\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_IgnoreRecvAfterAbort
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IgnoreRecvAfterAbort
+// [strm][%p] Ignoring received frame after receive abort
+// QuicTraceLogStreamVerbose(
+                IgnoreRecvAfterAbort,
+                Stream,
+                "Ignoring received frame after receive abort");
+// arg1 = arg1 = Stream
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_IgnoreRecvAfterAbort(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort , arg1);\
 
 #endif
 
