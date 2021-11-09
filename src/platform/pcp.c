@@ -268,7 +268,7 @@ CxPlatPcpProcessDatagram(
     CXPLAT_PCP_EVENT Event = {0};
     CxPlatCopyMemory(Event.FAILURE.Nonce, Response->MAP.MappingNonce, CXPLAT_PCP_NONCE_LENGTH);
     QUIC_ADDR InternalAddress;
-    CxPlatCopyMemory(&InternalAddress, &Datagram->Tuple->LocalAddress, sizeof(QUIC_ADDR));
+    CxPlatCopyMemory(&InternalAddress, &Datagram->Route->LocalAddress, sizeof(QUIC_ADDR));
     InternalAddress.Ipv6.sin6_port = Response->MAP.InternalPort;
     QUIC_ADDR ExternalAddress = {0};
     QUIC_ADDR RemotePeerAddress = {0};

@@ -2372,7 +2372,7 @@ CxPlatDataPathSocketReceive(
             }
 
             Datagram->BufferLength = MessageLength;
-            Datagram->Tuple = &RecvContext->Tuple;
+            Datagram->Route = &RecvContext->Route;
 
             //
             // Add the datagram to the end of the current chain.

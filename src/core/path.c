@@ -178,10 +178,10 @@ QuicConnGetPathForDatagram(
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
         if (!QuicAddrCompare(
-                &Datagram->Tuple->LocalAddress,
+                &Datagram->Route->LocalAddress,
                 &Connection->Paths[i].Route.LocalAddress) ||
             !QuicAddrCompare(
-                &Datagram->Tuple->RemoteAddress,
+                &Datagram->Route->RemoteAddress,
                 &Connection->Paths[i].Route.RemoteAddress)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
@@ -203,9 +203,9 @@ QuicConnGetPathForDatagram(
         //
         for (uint8_t i = Connection->PathsCount - 1; i > 0; i--) {
             if (!Connection->Paths[i].IsActive
-                && QuicAddrGetFamily(&Datagram->Tuple->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompareIp(&Datagram->Tuple->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompare(&Datagram->Tuple->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
+                && QuicAddrGetFamily(&Datagram->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompareIp(&Datagram->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompare(&Datagram->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
                 QuicPathRemove(Connection, i);
             }
         }
@@ -237,8 +237,8 @@ QuicConnGetPathForDatagram(
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
     Path->Binding = Connection->Paths[0].Binding;
-    Path->Route.LocalAddress = Datagram->Tuple->LocalAddress;
-    Path->Route.RemoteAddress = Datagram->Tuple->RemoteAddress;
+    Path->Route.LocalAddress = Datagram->Route->LocalAddress;
+    Path->Route.RemoteAddress = Datagram->Route->RemoteAddress;
     QuicPathValidate(Path);
 
     return Path;

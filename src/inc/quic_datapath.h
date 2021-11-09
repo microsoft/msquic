@@ -172,9 +172,9 @@ typedef struct CXPLAT_RECV_DATA {
     struct CXPLAT_RECV_DATA* Next;
 
     //
-    // Contains the 4 tuple.
+    // Contains the network route.
     //
-    CXPLAT_TUPLE* Tuple;
+    CXPLAT_ROUTE* Route;
 
     //
     // The data buffer containing the received bytes.

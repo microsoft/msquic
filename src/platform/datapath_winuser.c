@@ -3253,7 +3253,7 @@ CxPlatDataPathUdpRecvComplete(
             Datagram->Next = NULL;
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
-            Datagram->Tuple = &RecvContext->Tuple;
+            Datagram->Route = &RecvContext->Route;
             Datagram->PartitionIndex = DatapathProc->Index;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
@@ -3414,7 +3414,7 @@ CxPlatDataPathTcpRecvComplete(
         Data->Next = NULL;
         Data->Buffer = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
         Data->BufferLength = NumberOfBytesTransferred;
-        Data->Tuple = &RecvContext->Tuple;
+        Data->Route = &RecvContext->Route;
         Data->PartitionIndex = DatapathProc->Index;
         Data->TypeOfService = 0;
         Data->Allocated = TRUE;
