@@ -428,7 +428,7 @@ CxPlatFramingWriteHeaders(
     //
     UDP->DestinationPort = RemoteAddress->Ipv4.sin_port;
     UDP->SourcePort = LocalAddress->Ipv4.sin_port;
-    UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length);
+    UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
     UDP->Checksum = 0;
 
     //
@@ -453,7 +453,7 @@ CxPlatFramingWriteHeaders(
         UDP->Checksum =
             CxPlatFramingUdpChecksum(
                 IPv4->Source, IPv4->Destination,
-                sizeof(LocalAddress->Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, Buffer->Length);
+                sizeof(LocalAddress->Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
     } else {
         IPV6_HEADER* IPv6 = (IPV6_HEADER*)(((uint8_t*)UDP) - sizeof(IPV6_HEADER));
         //
@@ -487,7 +487,7 @@ CxPlatFramingWriteHeaders(
         UDP->Checksum =
             CxPlatFramingUdpChecksum(
                 IPv6->Source, IPv6->Destination,
-                sizeof(LocalAddress->Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, Buffer->Length);
+                sizeof(LocalAddress->Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
     }
 
     //
