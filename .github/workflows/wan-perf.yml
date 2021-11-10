@@ -1,0 +1,110 @@
+name: WAN Perf
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+    paths-ignore:
+    - .azure/*
+    - docs/*
+    - src/cs/*
+    - src/distribution/*
+    - src/plugins/*
+    - src/tools/*
+    - src/lib.rs
+    - Cargo.toml
+    - README.md
+  pull_request:
+    branches:
+    - main
+    - release/*
+    paths-ignore:
+    - .azure/*
+    - docs/*
+    - src/cs/*
+    - src/distribution/*
+    - src/plugins/*
+    - src/tools/*
+    - src/lib.rs
+    - Cargo.toml
+    - README.md
+
+env:
+  seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
+  iterations: 3
+  duration: 10000
+  pacing: 1
+  loss: "(0,1000,10000)"
+  reorder: "(0,1000,10000)"
+  delay: "(0,5,10)"
+
+jobs:
+  build-perf:
+    name: Build Perf
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Extra "-DisableTest -DisableTools"
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
+    - uses: actions/upload-artifact@v2
+      with:
+        name: bin
+        path: |
+          artifacts/bin
+          !artifacts/bin/**/*.ilk
+          !artifacts/bin/**/*.cer
+          !artifacts/bin/**/*.exp
+          !artifacts/bin/**/*.lastcodeanalysissucceeded
+          !artifacts/bin/**/*.pgd
+          !artifacts/bin/**/*.lib
+  wan-perf:
+    name: Run Tests
+    runs-on: windows-2022
+    needs: build-perf
+    strategy:
+      fail-fast: false
+      matrix:
+        rate: [5, 10, 20, 50, 100, 200]
+        rtt: [5, 50, 200, 500]
+        queueRatio: [0.2, 1, 5]
+        exclude:
+        - rate: 5
+          rtt: 5
+          queueRatio: 0.2 # Results in sub-packet limit
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -Configuration Test -DuoNic -NoCodeCoverage
+    - uses: actions/download-artifact@v2
+      with:
+        name: bin
+        path: artifacts/bin
+    - name: Run WAN Perf
+      shell: pwsh
+      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: data
+        path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
+  merge-data:
+    name: Merge Results
+    runs-on: windows-2022
+    needs: wan-perf
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: data
+        path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN
+    - name: Merge Data Files
+      shell: pwsh
+      run: scripts/emulated-performance.ps1 -MergeDataFiles

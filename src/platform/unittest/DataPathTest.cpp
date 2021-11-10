@@ -232,13 +232,13 @@ protected:
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
             ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
-            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+            if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
                 ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
 
                 auto ServerSendData =
                     CxPlatSendDataAlloc(
-                        Socket, RecvContext->EcnType, 0, QuicAddrGetFamily(&RecvData->Tuple->RemoteAddress));
+                        Socket, RecvContext->EcnType, 0, QuicAddrGetFamily(&RecvData->Route->RemoteAddress));
                 ASSERT_NE(nullptr, ServerSendData);
                 auto ServerBuffer = CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerBuffer);
@@ -247,12 +247,11 @@ protected:
                 VERIFY_QUIC_SUCCESS(
                     CxPlatSocketSend(
                         Socket,
-                        &RecvData->Tuple->LocalAddress,
-                        &RecvData->Tuple->RemoteAddress,
+                        RecvData->Route,
                         ServerSendData,
                         0));
 
-            } else if (RecvData->Tuple->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+            } else if (RecvData->Route->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
                 CxPlatEventSet(RecvContext->ClientCompletion);
 
             } else {
@@ -508,11 +507,13 @@ struct CxPlatSocket {
         _In_ uint16_t PartitionId = 0
         ) const noexcept
     {
+        CXPLAT_ROUTE Route;
+        Route.LocalAddress = LocalAddress;
+        Route.RemoteAddress = RemoteAddress;
         return
             CxPlatSocketSend(
                 Socket,
-                &LocalAddress,
-                &RemoteAddress,
+                &Route,
                 SendData,
                 PartitionId);
     }
@@ -941,11 +942,14 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, SendBuffer);
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
+    CXPLAT_ROUTE Route;
+    Route.LocalAddress = Listener.GetLocalAddress();
+    Route.RemoteAddress = Client.GetLocalAddress();
+
     VERIFY_QUIC_SUCCESS(
         CxPlatSocketSend(
             ListenerContext.Server,
-            &ServerAddress,
-            &ClientAddress,
+            &Route,
             SendData, 0));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 }

@@ -102,11 +102,57 @@ param (
     [switch]$Periodic = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ForceBranchName = $null
+    [string]$ForceBranchName = $null,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$MergeDataFiles = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+class FormattedResult {
+    [double]$Usage;
+    [int]$NetMbps;
+    [int]$RttMs;
+    [int]$QueuePkts;
+    [int]$Loss;
+    [int]$Reorder;
+    [int]$DelayMs;
+    #[int]$DurationMs;
+    #[bool]$Pacing;
+    [int]$RateKbps;
+    [int]$PrevKbps;
+    [bool]$Tcp;
+
+    FormattedResult (
+        [int]$RttMs,
+        [int]$BottleneckMbps,
+        [int]$BottleneckBufferPackets,
+        [int]$RandomLossDenominator,
+        [int]$RandomReorderDenominator,
+        [int]$ReorderDelayDeltaMs,
+        [bool]$Tcp,
+        [int]$DurationMs,
+        [bool]$Pacing,
+        [int]$RateKbps,
+        [int]$RemoteKbps,
+        [double]$BottleneckPercentage
+    ) {
+        $this.Tcp = $Tcp;
+        $this.RttMs = $RttMs;
+        $this.NetMbps = $BottleneckMbps;
+        $this.QueuePkts = $BottleneckBufferPackets;
+        $this.Loss = $RandomLossDenominator;
+        $this.Reorder = $RandomReorderDenominator;
+        $this.DelayMs = $ReorderDelayDeltaMs;
+        #$this.DurationMs = $DurationMs;
+        #$this.Pacing = $Pacing;
+        $this.RateKbps = $RateKbps;
+        $this.PrevKbps = $RemoteKbps;
+        $this.Usage = $BottleneckPercentage;
+    }
+}
 
 class TestResult {
     [int]$RttMs;
@@ -159,6 +205,25 @@ class Results {
 }
 
 function Find-MatchingTest([TestResult]$TestResult, [Object]$RemoteResults) {
+    foreach ($Remote in $RemoteResults) {
+        if (
+            $TestResult.RttMs -eq $Remote.RttMs -and
+            $TestResult.BottleneckMbps -eq $Remote.BottleneckMbps -and
+            $TestResult.BottleneckBufferPackets -eq $Remote.BottleneckBufferPackets -and
+            $TestResult.RandomLossDenominator -eq $Remote.RandomLossDenominator -and
+            $TestResult.RandomReorderDenominator -eq $Remote.RandomReorderDenominator -and
+            $TestResult.ReorderDelayDeltaMs -eq $Remote.ReorderDelayDeltaMs -and
+            $TestResult.Tcp -eq $Remote.Tcp -and
+            $TestResult.DurationMs -eq $Remote.DurationMs -and
+            $TestResult.Pacing -eq $Remote.Pacing
+        ) {
+            return $Remote
+        }
+    }
+    return $null;
+}
+
+function Find-MatchingTest2([Object]$TestResult, [Object]$RemoteResults) {
     foreach ($Remote in $RemoteResults) {
         if (
             $TestResult.RttMs -eq $Remote.RttMs -and
@@ -231,21 +296,45 @@ function Get-LatestWanTestResult([string]$Branch, [string]$CommitHash) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# See if we are an AZP PR
-$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
-if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
-    # Mainline build, just get branch name
-    $AzpBranchName = $env:BUILD_SOURCEBRANCH
-    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
-        # Non azure build
-        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
     } else {
-        # Azure Build
-        $BranchName = $AzpBranchName.Substring(11);
+        $Tls = "openssl"
     }
+}
+
+$Platform = $IsWindows ? "windows" : "linux"
+$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    # Forcing a specific branch.
+    $BranchName = $ForceBranchName
+
+} elseif (![string]::IsNullOrWhiteSpace($env:SYSTEM_PULLREQUEST_TARGETBRANCH)) {
+    # We are in a (AZP) pull request build.
+    Write-Host "Using SYSTEM_PULLREQUEST_TARGETBRANCH=$env:SYSTEM_PULLREQUEST_TARGETBRANCH to compute branch"
+    $BranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+
+} elseif (![string]::IsNullOrWhiteSpace($env:GITHUB_BASE_REF)) {
+    # We are in a (GitHub Action) pull request build.
+    Write-Host "Using GITHUB_BASE_REF=$env:GITHUB_BASE_REF to compute branch"
+    $BranchName = $env:GITHUB_BASE_REF
+
+} elseif (![string]::IsNullOrWhiteSpace($env:BUILD_SOURCEBRANCH)) {
+    # We are in a (AZP) main build.
+    Write-Host "Using BUILD_SOURCEBRANCH=$env:BUILD_SOURCEBRANCH to compute branch"
+    $BranchName = $env:BUILD_SOURCEBRANCH.Substring(11)
+
+} elseif (![string]::IsNullOrWhiteSpace($env:GITHUB_REF_NAME)) {
+    # We are in a (GitHub Action) main build.
+    Write-Host "Using GITHUB_REF_NAME=$env:GITHUB_REF_NAME to compute branch"
+    $BranchName = $env:GITHUB_REF_NAME
+
 } else {
-    # PR Build
-    $BranchName = $PrBranchName
+    # Fallback to the current branch.
+    $BranchName = Get-CurrentBranch -RepoDir $RootDir
 }
 
 if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
@@ -255,13 +344,44 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
 $LastCommitHash = Get-LatestCommitHash -Branch $BranchName
 $PreviousResults = Get-LatestWanTestResult -Branch $BranchName -CommitHash $LastCommitHash
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
+$RemoteResults = ""
+if ($PreviousResults -ne "") {
+    try {
+        $RemoteResults = $PreviousResults.$PlatformName
+    } catch {
+        Write-Debug "Failed to get $PlatformName from previous results"
     }
+}
+
+# Path to the output data.
+$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
+
+if ($MergeDataFiles) {
+    $MergedResults = [System.Collections.Generic.List[FormattedResult]]::new()
+
+    # Load all json files in the output directory.
+    $DataFiles = Get-ChildItem -Path $OutputDir -Filter "*.json"
+    $DataFiles | ForEach-Object {
+        $Data = Get-Content $_ | ConvertFrom-Json
+        # Process each run in the json data, converting it to a table row.
+        $Data.Runs | ForEach-Object {
+
+            $RemoteRate = 0
+            if ($RemoteResults -ne "") {
+                $RemoteResult = Find-MatchingTest2 -TestResult $_ -RemoteResults $RemoteResults
+                if ($null -ne $RemoteResult) {
+                    $RemoteRate = $RemoteResult.RateKbps
+                }
+            }
+
+            $BottleneckPercentage = ($_.RateKbps / $_.BottleneckMbps) / 10
+            $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate, $BottleneckPercentage);
+            $MergedResults.Add($Run)
+        }
+    }
+
+    $MergedResults | Sort-Object -Property Usage | Format-Table -AutoSize
+    return
 }
 
 # Script for controlling loggings.
@@ -278,9 +398,6 @@ if ($LogProfile -ne "None") {
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
     Get-ChildItem $LogScript | Write-Debug
 }
-
-$Platform = $IsWindows ? "windows" : "linux"
-$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
 
 if ($BaseRandomSeed -eq "") {
     for ($i = 0; $i -lt 3; $i++) {
@@ -320,7 +437,6 @@ $p.Start() | Out-Null
 # Wait for the server(s) to come up.
 Start-Sleep -Seconds 1
 
-$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 $UniqueId = New-Guid
 $OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
@@ -341,15 +457,6 @@ Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -No
 Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 
 $RunResults = [Results]::new($PlatformName)
-
-$RemoteResults = ""
-if ($PreviousResults -ne "") {
-    try {
-        $RemoteResults = $PreviousResults.$PlatformName
-    } catch {
-        Write-Debug "Failed to get $PlatformName from previous results"
-    }
-}
 
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
