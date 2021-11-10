@@ -625,7 +625,7 @@ QuicBindingCreateStatelessOperation(
     )
 {
     uint32_t TimeMs = CxPlatTimeMs32();
-    const QUIC_ADDR* RemoteAddress = &Datagram->Tuple->RemoteAddress;
+    const QUIC_ADDR* RemoteAddress = &Datagram->Route->RemoteAddress;
     uint32_t Hash = QuicAddrHash(RemoteAddress);
     QUIC_STATELESS_CONTEXT* StatelessCtx = NULL;
 
@@ -992,7 +992,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
         Token.Authenticated.Timestamp = CxPlatTimeEpochMs64();
 
-        Token.Encrypted.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
+        Token.Encrypted.RemoteAddress = RecvDatagram->Route->RemoteAddress;
         CxPlatCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
@@ -1058,13 +1058,9 @@ QuicBindingProcessStatelessOperation(
         goto Exit;
     }
 
-    CXPLAT_ROUTE Route;
-    Route.LocalAddress = RecvDatagram->Tuple->LocalAddress;
-    Route.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
-
     QuicBindingSend(
         Binding,
-        &Route,
+        RecvDatagram->Route,
         SendData,
         SendDatagram->Length,
         1,
@@ -1245,7 +1241,7 @@ QuicBindingValidateRetryToken(
 
     const CXPLAT_RECV_DATA* Datagram =
         CxPlatDataPathRecvPacketToRecvData(Packet);
-    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
+    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
         QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
         return FALSE;
     }
@@ -1360,7 +1356,7 @@ QuicBindingCreateConnection(
     if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,
             NewConnection,
-            &Datagram->Tuple->RemoteAddress,
+            &Datagram->Route->RemoteAddress,
             Packet->SourceCidLen,
             Packet->SourceCid,
             &Connection)) {
@@ -1472,7 +1468,7 @@ QuicBindingDeliverDatagrams(
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
-                &DatagramChain->Tuple->RemoteAddress,
+                &DatagramChain->Route->RemoteAddress,
                 Packet->SourceCidLen,
                 Packet->SourceCid);
     }

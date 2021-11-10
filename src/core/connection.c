@@ -165,15 +165,15 @@ QuicConnAlloc(
         Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
         if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
             CxPlatRandom(1, Connection->ServerID); // Randomize the first byte.
-            if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+            if (QuicAddrGetFamily(&Datagram->Route->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
                 CxPlatCopyMemory(
                     Connection->ServerID + 1,
-                    &Datagram->Tuple->LocalAddress.Ipv4.sin_addr,
+                    &Datagram->Route->LocalAddress.Ipv4.sin_addr,
                     4);
             } else {
                 CxPlatCopyMemory(
                     Connection->ServerID + 1,
-                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 12,
+                    ((uint8_t*)&Datagram->Route->LocalAddress.Ipv6.sin6_addr) + 12,
                     4);
             }
         }
@@ -181,7 +181,7 @@ QuicConnAlloc(
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
 
-        Path->Route.LocalAddress = Datagram->Tuple->LocalAddress;
+        Path->Route.LocalAddress = Datagram->Route->LocalAddress;
         Connection->State.LocalAddressSet = TRUE;
         QuicTraceEvent(
             ConnLocalAddrAdded,
@@ -189,7 +189,7 @@ QuicConnAlloc(
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
-        Path->Route.RemoteAddress = Datagram->Tuple->RemoteAddress;
+        Path->Route.RemoteAddress = Datagram->Route->RemoteAddress;
         Connection->State.RemoteAddressSet = TRUE;
         QuicTraceEvent(
             ConnRemoteAddrAdded,
