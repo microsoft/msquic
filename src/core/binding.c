@@ -1058,13 +1058,9 @@ QuicBindingProcessStatelessOperation(
         goto Exit;
     }
 
-    CXPLAT_ROUTE Route;
-    Route.LocalAddress = RecvDatagram->Route->LocalAddress;
-    Route.RemoteAddress = RecvDatagram->Route->RemoteAddress;
-
     QuicBindingSend(
         Binding,
-        &Route,
+        RecvDatagram->Route,
         SendData,
         SendDatagram->Length,
         1,

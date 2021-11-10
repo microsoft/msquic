@@ -126,9 +126,9 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
     ULONG ReferenceCount;
 
     //
-    // Contains the 4 tuple.
+    // Contains the network route.
     //
-    CXPLAT_TUPLE Tuple;
+    CXPLAT_ROUTE Route;
 
 } CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT;
 
@@ -2950,7 +2950,7 @@ CxPlatSocketHandleUnreachableError(
     )
 {
     PSOCKADDR_INET RemoteAddr =
-        &SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
+        &SocketProc->CurrentRecvContext->Route.RemoteAddress;
     UNREFERENCED_PARAMETER(ErrorCode);
 
     CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
@@ -3014,9 +3014,9 @@ CxPlatSocketStartReceive(
         sizeof(SocketProc->RecvWsaMsgHdr));
 
     SocketProc->RecvWsaMsgHdr.name =
-        (PSOCKADDR)&SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
+        (PSOCKADDR)&SocketProc->CurrentRecvContext->Route.RemoteAddress;
     SocketProc->RecvWsaMsgHdr.namelen =
-        sizeof(SocketProc->CurrentRecvContext->Tuple.RemoteAddress);
+        sizeof(SocketProc->CurrentRecvContext->Route.RemoteAddress);
 
     SocketProc->RecvWsaMsgHdr.lpBuffers = &SocketProc->RecvWsaBuf;
     SocketProc->RecvWsaMsgHdr.dwBufferCount = 1;
@@ -3112,8 +3112,8 @@ CxPlatDataPathUdpRecvComplete(
         SocketProc->CurrentRecvContext = NULL;
     }
 
-    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
-    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
+    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
+    PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
 
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
@@ -3360,8 +3360,8 @@ CxPlatDataPathTcpRecvComplete(
         SocketProc->CurrentRecvContext = NULL;
     }
 
-    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
-    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
+    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
+    PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
 
     if (IoResult == WSAENOTSOCK ||
         IoResult == WSA_OPERATION_ABORTED ||
@@ -4254,13 +4254,13 @@ CxPlatFuzzerReceiveInject(
         return;
     }
 
-    RecvContext->Tuple.RemoteAddress = *SourceAddress;
+    RecvContext->Route.RemoteAddress = *SourceAddress;
 
     CXPLAT_RECV_DATA* Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
 
     Datagram->Next = NULL;
     Datagram->BufferLength = PacketLength;
-    Datagram->Tuple = &RecvContext->Tuple;
+    Datagram->Route = &RecvContext->Route;
     Datagram->Allocated = TRUE;
     Datagram->QueuedOnConnection = FALSE;
     Datagram->Buffer = ((PUCHAR)RecvContext) + Socket->Socket->Datapath->RecvPayloadOffset;

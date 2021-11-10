@@ -129,9 +129,9 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
     ULONG ReferenceCount;
 
     //
-    // Contains the 4 tuple.
+    // Contains the network route.
     //
-    CXPLAT_TUPLE Tuple;
+    CXPLAT_ROUTE Route;
 
     int32_t DataIndicationSize;
 
@@ -2347,8 +2347,8 @@ CxPlatDataPathSocketReceive(
 
                 RecvContext->Binding = Binding;
                 RecvContext->ReferenceCount = 0;
-                RecvContext->Tuple.LocalAddress = LocalAddr;
-                RecvContext->Tuple.RemoteAddress = RemoteAddr;
+                RecvContext->Route.LocalAddress = LocalAddr;
+                RecvContext->Route.RemoteAddress = RemoteAddr;
                 Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
             }
 

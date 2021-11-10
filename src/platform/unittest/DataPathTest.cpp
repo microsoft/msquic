@@ -232,7 +232,7 @@ protected:
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
             ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
-            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+            if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
                 ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
 
@@ -242,17 +242,14 @@ protected:
                 ASSERT_NE(nullptr, ServerBuffer);
                 memcpy(ServerBuffer->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
-                CXPLAT_ROUTE Route;
-                Route.LocalAddress = RecvData->Tuple->LocalAddress;
-                Route.RemoteAddress = RecvData->Tuple->RemoteAddress;
                 VERIFY_QUIC_SUCCESS(
                     CxPlatSocketSend(
                         Socket,
-                        &Route,
+                        RecvData->Route,
                         ServerSendData,
                         0));
 
-            } else if (RecvData->Tuple->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+            } else if (RecvData->Route->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
                 CxPlatEventSet(RecvContext->ClientCompletion);
 
             } else {
