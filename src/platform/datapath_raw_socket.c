@@ -411,7 +411,9 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _Inout_ QUIC_BUFFER* Buffer
+    _Inout_ QUIC_BUFFER* Buffer,
+    _In_ BOOLEAN SkipNetworkLayerXsum,
+    _In_ BOOLEAN SkipTransportLayerXsum
     )
 {
     UDP_HEADER* UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
@@ -446,14 +448,16 @@ CxPlatFramingWriteHeaders(
         IPv4->HeaderChecksum = 0;
         CxPlatCopyMemory(IPv4->Source, &LocalAddress->Ipv4.sin_addr, sizeof(LocalAddress->Ipv4.sin_addr));
         CxPlatCopyMemory(IPv4->Destination, &RemoteAddress->Ipv4.sin_addr, sizeof(RemoteAddress->Ipv4.sin_addr));
-        IPv4->HeaderChecksum = ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0); // Must be after setting other fields.
+        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
         UDP->Checksum =
-            CxPlatFramingUdpChecksum(
-                IPv4->Source, IPv4->Destination,
-                sizeof(LocalAddress->Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+            SkipTransportLayerXsum ?
+                0 :
+                CxPlatFramingUdpChecksum(
+                    IPv4->Source, IPv4->Destination,
+                    sizeof(LocalAddress->Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
     } else {
         IPV6_HEADER* IPv6 = (IPV6_HEADER*)(((uint8_t*)UDP) - sizeof(IPV6_HEADER));
         //
@@ -485,9 +489,11 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
         UDP->Checksum =
-            CxPlatFramingUdpChecksum(
-                IPv6->Source, IPv6->Destination,
-                sizeof(LocalAddress->Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+            SkipTransportLayerXsum ?
+                0 :
+                CxPlatFramingUdpChecksum(
+                    IPv6->Source, IPv6->Destination,
+                    sizeof(LocalAddress->Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
     }
 
     //
