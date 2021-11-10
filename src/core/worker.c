@@ -435,11 +435,20 @@ QuicWorkerProcessConnection(
     QuicConfigurationAttachSilo(Connection->Configuration);
 
     if (Connection->Stats.Schedule.LastQueueTime != 0) {
-        QuicWorkerUpdateQueueDelay(
-            Worker,
+        uint32_t Delay =
             CxPlatTimeDiff32(
                 Connection->Stats.Schedule.LastQueueTime,
-                (uint32_t)*TimeNow));
+                (uint32_t)*TimeNow);
+        if (Delay >= (UINT32_MAX >> 1)) {
+            //
+            // Since we're using a cached time (to reduce the number of calls)
+            // it's possible that TimeNow is actually before LastQueueTime.
+            // Account for this and just set the delay to 0 if it happens.
+            //
+            Delay = 0;
+        }
+
+        QuicWorkerUpdateQueueDelay(Worker, Delay);
     }
 
     //
