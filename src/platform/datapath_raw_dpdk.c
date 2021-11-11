@@ -355,18 +355,22 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_IPV4_CKSUM) {
         printf("TX IPv4 Checksum Offload Enabled\n");
         PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_IPV4_CKSUM;
+        Dpdk->OffloadStatus.Transmit.NetworkLayerXsum = TRUE;
     }
     if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_UDP_CKSUM) {
         printf("TX UDP Checksum Offload Enabled\n");
         PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_UDP_CKSUM;
+        Dpdk->OffloadStatus.Transmit.TransportLayerXsum = TRUE;
     }
     if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_IPV4_CKSUM) {
         printf("RX IPv4 Checksum Offload Enabled\n");
         PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_IPV4_CKSUM;
+        Dpdk->OffloadStatus.Receive.NetworkLayerXsum = TRUE;
     }
     if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_UDP_CKSUM) {
         printf("RX UDP Checksum Offload Enabled\n");
         PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_UDP_CKSUM;
+        Dpdk->OffloadStatus.Receive.TransportLayerXsum = TRUE;
     }
 
     ret = rte_eth_dev_configure(Port, rx_rings, tx_rings, &PortConfig);

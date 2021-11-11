@@ -343,11 +343,76 @@ CxPlatDpRawCalculateHeaderBackFill(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+uint16_t
+CxPlatFramingChecksum(
+    _In_reads_(Length) uint8_t* Data,
+    _In_ uint32_t Length,
+    _In_ uint64_t InitialChecksum
+    )
+{
+    //
+    // Checksum is calculated in reverse order.
+    // 1. Add the odd byte to the checksum if the length is odd.
+    // 2. If the length is divisible by 2 but not 4, add the last 2 bytes.
+    // 3. Sum up the rest as 32-bit words.
+    //
+
+    if ((Length & 1) != 0) {
+        --Length;
+        InitialChecksum += Data[Length];
+    }
+
+    if ((Length & 2) != 0) {
+        Length -= 2;
+        InitialChecksum += *((uint16_t*)(&Data[Length]));
+    }
+
+    while (Length != 0) {
+        Length -= 4;
+        InitialChecksum += *((uint32_t*)(&Data[Length]));
+    }
+
+    //
+    // Fold all carries into the final checksum.
+    //
+    while (InitialChecksum >> 16) {
+        InitialChecksum = (InitialChecksum & 0xffff) + (InitialChecksum >> 16);
+    }
+
+    return (uint16_t)InitialChecksum;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint16_t
+CxPlatFramingUdpChecksum(
+    _In_reads_(AddrLength) uint8_t* SrcAddr,
+    _In_reads_(AddrLength) uint8_t* DstAddr,
+    _In_ uint32_t AddrLength,
+    _In_ uint16_t NextHeader,
+    _In_reads_(IPPayloadLength) uint8_t* UDP,
+    _In_ uint32_t IPPayloadLength
+    )
+{
+    uint64_t Checksum =
+        CxPlatFramingChecksum(SrcAddr, AddrLength, 0) +
+        CxPlatFramingChecksum(DstAddr, AddrLength, 0);
+    Checksum += CxPlatByteSwapUint16(NextHeader);
+    Checksum += CxPlatByteSwapUint16((uint16_t)IPPayloadLength);
+
+    //
+    // Pseudoheader is always in 32-bit words. So, cross 16-bit boundary adjustment isn't needed.
+    //
+    return ~CxPlatFramingChecksum(UDP, IPPayloadLength, Checksum);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _Inout_ QUIC_BUFFER* Buffer
+    _Inout_ QUIC_BUFFER* Buffer,
+    _In_ BOOLEAN SkipNetworkLayerXsum,
+    _In_ BOOLEAN SkipTransportLayerXsum
     )
 {
     UDP_HEADER* UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
@@ -364,7 +429,8 @@ CxPlatFramingWriteHeaders(
     //
     UDP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
     UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
-    UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length);
+    UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
+    UDP->Checksum = 0;
 
     //
     // Fill IPv4/IPv6 header.
@@ -379,11 +445,18 @@ CxPlatFramingWriteHeaders(
         IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
         IPv4->Protocol = IPPROTO_UDP;
         IPv4->HeaderChecksum = 0;
-        CxPlatCopyMemory(IPv4->Destination, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
         CxPlatCopyMemory(IPv4->Source, &Route->LocalAddress.Ipv4.sin_addr, sizeof(Route->LocalAddress.Ipv4.sin_addr));
+        CxPlatCopyMemory(IPv4->Destination, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
+        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
+        if (!SkipTransportLayerXsum) {
+            UDP->Checksum =
+                CxPlatFramingUdpChecksum(
+                    IPv4->Source, IPv4->Destination,
+                    sizeof(Route->LocalAddress.Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+        }
     } else {
         IPV6_HEADER* IPv6 = (IPV6_HEADER*)(((uint8_t*)UDP) - sizeof(IPV6_HEADER));
         //
@@ -409,11 +482,17 @@ CxPlatFramingWriteHeaders(
         IPv6->PayloadLength = htons(sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
         IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
         IPv6->NextHeader = IPPROTO_UDP;
-        CxPlatCopyMemory(IPv6->Destination, &Route->RemoteAddress.Ipv6.sin6_addr, sizeof(Route->RemoteAddress.Ipv6.sin6_addr));
         CxPlatCopyMemory(IPv6->Source, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
+        CxPlatCopyMemory(IPv6->Destination, &Route->RemoteAddress.Ipv6.sin6_addr, sizeof(Route->RemoteAddress.Ipv6.sin6_addr));
         EthType = ETHERNET_TYPE_IPV6;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
+        if (!SkipTransportLayerXsum) {
+            UDP->Checksum =
+                CxPlatFramingUdpChecksum(
+                    IPv6->Source, IPv6->Destination,
+                    sizeof(Route->LocalAddress.Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+        }
     }
 
     //

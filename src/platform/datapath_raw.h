@@ -34,6 +34,17 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t CpuTableSize;
     uint16_t CpuTable[64];
 
+    struct {
+        struct {
+            BOOLEAN NetworkLayerXsum : 1;
+            BOOLEAN TransportLayerXsum : 1;
+        } Transmit;
+        struct {
+            BOOLEAN NetworkLayerXsum : 1;
+            BOOLEAN TransportLayerXsum : 1;
+        } Receive;
+    } OffloadStatus;
+
 } CXPLAT_DATAPATH;
 
 typedef struct CXPLAT_SEND_DATA {
@@ -260,5 +271,7 @@ void
 CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _Inout_ QUIC_BUFFER* Buffer
+    _Inout_ QUIC_BUFFER* Buffer,
+    _In_ BOOLEAN SkipNetworkLayerXsum,
+    _In_ BOOLEAN SkipTransportLayerXsum
     );

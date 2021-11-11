@@ -435,7 +435,10 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-    CxPlatFramingWriteHeaders(Socket, Route, &SendData->Buffer);
+    CxPlatFramingWriteHeaders(
+        Socket, Route, &SendData->Buffer,
+        Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,
+        Socket->Datapath->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
