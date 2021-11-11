@@ -1,0 +1,50 @@
+[package]
+name = "msquic"
+version = "1.10.0-alpha8"
+edition = "2018"
+authors = ["Microsoft"]
+description = "Microsoft implementation of the IETF QUIC protocol"
+readme = "README.md"
+repository = "https://github.com/microsoft/msquic/"
+license = "MIT"
+categories = ["network-programming", "asynchronous"]
+keywords = ["quic", "network", "secure"]
+build = "scripts/build.rs"
+include = [
+    "*/*.md",
+    "/*.toml",
+    "/cmake",
+    "/CMakeLists.txt",
+    "/LICENSE",
+    "/submodules/CMakeLists.txt",
+    "/submodules/openssl/*.*",
+    "/submodules/openssl/apps",
+    "/submodules/openssl/config",
+    "/submodules/openssl/Configure",
+    "/submodules/openssl/Configurations",
+    "/submodules/openssl/crypto",
+    "/submodules/openssl/engines",
+    "/submodules/openssl/external",
+    "/submodules/openssl/include",
+    "/submodules/openssl/ms",
+    "/submodules/openssl/os-dep",
+    "/submodules/openssl/ssl",
+    "/submodules/openssl/util",
+    "/submodules/openssl/VMS",
+    "/scripts/build.rs",
+    "/src/*.rs",
+    "/src/bin",
+    "/src/core",
+    "/src/inc",
+    "/src/generated",
+    "/src/manifest",
+    "/src/platform",
+    "/THIRD-PARTY-NOTICES",
+]
+
+[build-dependencies]
+cmake = "0.1"
+
+[dependencies]
+libc = "0.2.0"
+serde = { version = "1.0.117", features = ["derive"] }

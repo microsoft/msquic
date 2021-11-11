@@ -957,6 +957,15 @@ TEST_P(WithFamilyArgs, Unreachable) {
     }
 }
 
+TEST(HandshakeTest, InvalidAddress) {
+    TestLogger Logger("QuicTestConnectInvalidAddress");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_INVALID_ADDRESS));
+    } else {
+        QuicTestConnectInvalidAddress();
+    }
+}
+
 TEST_P(WithFamilyArgs, BadALPN) {
     TestLoggerT<ParamType> Logger("QuicTestConnectBadAlpn", GetParam());
     if (TestingKernelMode) {
@@ -1475,6 +1484,24 @@ TEST(Misc, StreamDifferentAbortErrors) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_DIFFERENT_ABORT_ERRORS));
     } else {
         QuicTestStreamDifferentAbortErrors();
+    }
+}
+
+TEST(Misc, StreamAbortRecvFinRace) {
+    TestLogger Logger("StreamAbortRecvFinRace");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_RECV_FIN_RACE));
+    } else {
+        QuicTestStreamAbortRecvFinRace();
+    }
+}
+
+TEST(Misc, StreamAbortConnFlowControl) {
+    TestLogger Logger("StreamAbortConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL));
+    } else {
+        QuicTestStreamAbortConnFlowControl();
     }
 }
 

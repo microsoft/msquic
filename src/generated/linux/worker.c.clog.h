@@ -52,9 +52,9 @@ tracepoint(CLOG_WORKER_C, IndicateIdealProcChanged , arg1);\
 // Decoder Ring for AbandonOnLibShutdown
 // [conn][%p] Abandoning on shutdown
 // QuicTraceLogConnVerbose(
-                    AbandonOnLibShutdown,
-                    Connection,
-                    "Abandoning on shutdown");
+                AbandonOnLibShutdown,
+                Connection,
+                "Abandoning on shutdown");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_AbandonOnLibShutdown(uniqueId, arg1, encoded_arg_string)\
@@ -225,31 +225,6 @@ tracepoint(CLOG_WORKER_C, ConnScheduleState , arg2, arg3);\
 
 
 
-#ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for WorkerActivityStateUpdated
-// [wrkr][%p] IsActive = %hhu, Arg = %u
-// QuicTraceEvent(
-        WorkerActivityStateUpdated,
-        "[wrkr][%p] IsActive = %hhu, Arg = %u",
-        Worker,
-        Worker->IsActive,
-        Arg);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->IsActive
-// arg4 = arg4 = Arg
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_WorkerActivityStateUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_WORKER_C, WorkerActivityStateUpdated , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
 #ifndef _clog_4_ARGS_TRACE_WorkerQueueDelayUpdated
 
 
@@ -355,6 +330,55 @@ tracepoint(CLOG_WORKER_C, WorkerQueueDelayUpdated , arg2, arg3);\
 // arg3 = arg3 = QUIC_SCHEDULE_IDLE
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_ConnScheduleState(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WorkerActivityStateUpdated
+// [wrkr][%p] IsActive = %hhu, Arg = %u
+// QuicTraceEvent(
+            WorkerActivityStateUpdated,
+            "[wrkr][%p] IsActive = %hhu, Arg = %u",
+            Worker,
+            Worker->IsActive,
+            1);
+// arg2 = arg2 = Worker
+// arg3 = arg3 = Worker->IsActive
+// arg4 = arg4 = 1
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_WorkerActivityStateUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_WORKER_C, WorkerActivityStateUpdated , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WorkerActivityStateUpdated
+// [wrkr][%p] IsActive = %hhu, Arg = %u
+// QuicTraceEvent(
+        WorkerActivityStateUpdated,
+        "[wrkr][%p] IsActive = %hhu, Arg = %u",
+        Worker,
+        Worker->IsActive,
+        UINT32_MAX);
+// arg2 = arg2 = Worker
+// arg3 = arg3 = Worker->IsActive
+// arg4 = arg4 = UINT32_MAX
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_WorkerActivityStateUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
 #endif
 

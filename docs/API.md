@@ -124,7 +124,7 @@ Streams are the primary means of exchanging app data over a connection. Streams 
 
 A stream handle represents a single QUIC stream. It can be locally created by a call to [StreamOpen](api/StreamOpen.md) or remotely created and then indicated to the app via the connection's callback handler via a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event. Locally created streams must be started (via [StreamStart](api/StreamStart.md)) before they can send or receive data. Remote streams are already started when indicated to the app.
 
-Once the stream handle is available and started, the app can start receiving events on its callback handler (such as `QUIC_STREAM_EVENT_RECV`) and start sending on the stream (via [StreamSend](api/StreamSend.md)). For more details see [Using Streams](Streams.md).
+Once the stream handle is available and started, the app can start receiving events on its callback handler (such as `QUIC_STREAM_EVENT_RECEIVE`) and start sending on the stream (via [StreamSend](api/StreamSend.md)). For more details see [Using Streams](Streams.md).
 
 ## Datagrams
 

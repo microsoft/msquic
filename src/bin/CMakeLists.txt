@@ -11,7 +11,7 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings logging)
+    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
 else()
     add_library(msquic_static STATIC static/empty.c)
@@ -133,19 +133,14 @@ else()
             OUTPUT ${QUIC_DEPS_FILE}
             CONTENT "${DEPS_STRING}"
         )
-        add_custom_target(
-            msquic_linker_inputs
-            DEPENDS ${QUIC_DEPS_FILE}
-        )
-        add_dependencies(msquic_linker_inputs msquic_static)
-        set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
         # Run archiver tool
-        add_custom_target(
-            msquic_lib
+        add_custom_command(
+            OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-            COMMAND libtool -static -o \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmsquic.a\" @${QUIC_DEPS_FILE}
+            COMMAND libtool -static -o \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\" @${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
+            DEPENDS msquic_static
         )
     elseif(WIN32)
         set(NODEFAULTS "")
@@ -164,53 +159,51 @@ else()
         file(
             GENERATE
             OUTPUT ${QUIC_DEPS_FILE}
-            CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib\" ${DEPS_STRING} ${NODEFAULTS}"
+            CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\" ${DEPS_STRING} ${NODEFAULTS}"
         )
-        add_custom_target(
-            msquic_linker_inputs
-            DEPENDS ${QUIC_DEPS_FILE}
-        )
-        add_dependencies(msquic_linker_inputs msquic_static)
-        set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
         # Run archiver tool (lib.exe) on our generated linker args
-        add_custom_target(
-            msquic_lib
+        add_custom_command(
+            OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
             DEPENDS ${QUIC_DEPS_FILE}
+            DEPENDS msquic_static
         )
     else()
         # Emit all linker inputs at build time to resolve generator expressions
         set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
         set(DEPS_LINES "")
         foreach(line ${DEPS_LIST})
-            message(STATUS ${line})
+            # message(STATUS ${line})
             set(DEPS_LINES "${DEPS_LINES}addlib ${line}\n")
         endforeach(line)
         file(
             GENERATE
             OUTPUT ${QUIC_DEPS_FILE}
-            CONTENT "create \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmsquic.a\"\n${DEPS_LINES}save\nend\n"
+            CONTENT "create \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\"\n${DEPS_LINES}save\nend\n"
         )
-        add_custom_target(
-            msquic_linker_inputs
-            DEPENDS ${QUIC_DEPS_FILE}
-        )
-        add_dependencies(msquic_linker_inputs msquic_static)
-        set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
         # Run archiver tool
-        add_custom_target(
-            msquic_lib
+        add_custom_command(
+            OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND ${CMAKE_AR} -M < ${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
+            DEPENDS msquic_static
         )
     endif()
-    add_dependencies(msquic_lib msquic_linker_inputs)
+
+    add_custom_target(
+        msquic_lib
+        DEPENDS
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
+    )
+
     set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+    message(STATUS "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
     # Provide interface library to link the monolithic library
     # NOTE: It is important that this interface library NOT link directly to
@@ -222,7 +215,6 @@ else()
     target_link_libraries(msquic
         INTERFACE
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
-        inc
     )
     if (CX_PLATFORM STREQUAL "darwin")
         target_link_libraries(msquic INTERFACE "-framework CoreFoundation" "-framework Security")

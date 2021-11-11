@@ -554,6 +554,8 @@ QuicSendWriteFrames(
             Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
             (void)QuicPacketBuilderAddFrame(
                 Builder, IsApplicationClose ? QUIC_FRAME_CONNECTION_CLOSE_1 : QUIC_FRAME_CONNECTION_CLOSE, FALSE);
+        } else {
+            return FALSE; // Ran out of room.
         }
 
         return TRUE;
@@ -769,7 +771,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
@@ -820,7 +822,7 @@ QuicSendWriteFrames(
             if (!HasMoreCidsToSend) {
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID;
             }
-            if (MaxFrameLimitHit || RanOutOfRoom) {
+            if (MaxFrameLimitHit) {
                 return TRUE;
             }
         }
@@ -1018,7 +1020,7 @@ QuicSendPathChallenges(
             //
             Builder.MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
-                    QuicAddrGetFamily(&Builder.Path->RemoteAddress),
+                    QuicAddrGetFamily(&Builder.Path->Route.RemoteAddress),
                     Builder.Path->Mtu);
 
             if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {

@@ -48,6 +48,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
+| PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -233,5 +234,24 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Enable macOS core dump collection in automation (#1969).
 - Xbox GameCore build support (#1947).
 - Various test code fixes (#1970, #1974).
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.9 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.9](https://github.com/microsoft/msquic/releases/tag/v1.9.0) is a prerelease so there is no expected shipping vehicle. Signed Windows binaries are available. Some noted changes in this release include:
+
+- Xbox GameCore Support (#1973, #2005, #2084)
+- Adds performance counters around path changes (#1990)
+- Bug Fix: Fix shutdown bug by cleaning up all sends (#1850)
+- Additional connetion event documentation (#1996)
+- Add UWP nuget package support (#2002)
+- Improve client certificate validation (#1966)
+- Support non-RSA keys in OpenSSL-CAPI abstraction (#2000)
+- Bug Fix: Fix stream abort bug (#2049)
+- Bug Fix: Fix connection FC handling on stream abort (#2070)
+- Bug Fix: Fix rare endless loop in send path (#2082)
 
 Official (v1) RFC and draft-29 are supported by this release.

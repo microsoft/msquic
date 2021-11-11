@@ -603,7 +603,7 @@ QuicLossDetectionOnPacketAcknowledged(
     if (Path != NULL) {
         uint16_t PacketMtu =
             PacketSizeFromUdpPayloadSize(
-                QuicAddrGetFamily(&Path->RemoteAddress),
+                QuicAddrGetFamily(&Path->Route.RemoteAddress),
                 Packet->PacketLength);
         BOOLEAN ChangedMtu = FALSE;
         if (!Path->IsMinMtuValidated &&
@@ -870,7 +870,7 @@ QuicLossDetectionOnPacketDiscarded(
             if (Path != NULL) {
                 uint16_t PacketMtu =
                     PacketSizeFromUdpPayloadSize(
-                        QuicAddrGetFamily(&Path->RemoteAddress),
+                        QuicAddrGetFamily(&Path->Route.RemoteAddress),
                         Packet->PacketLength);
                 QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
             }

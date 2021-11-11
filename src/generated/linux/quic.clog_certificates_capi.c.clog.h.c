@@ -4,4 +4,4 @@
 #else
 #define TRACEPOINT_DEFINE
 #endif
-#include "cert_capi_openssl.c.clog.h"
+#include "certificates_capi.c.clog.h"

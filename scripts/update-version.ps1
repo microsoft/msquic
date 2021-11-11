@@ -26,6 +26,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
 $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
+$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "create-vpack.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
 $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
@@ -59,6 +60,11 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
     -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
     -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
     Out-File $CreatePackageFilePath
+(Get-Content $CreateVPackFilePath) `
+    -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
+    -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
+    -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
+    Out-File $CreateVPackFilePath
 (Get-Content $QnsFilePath) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $QnsFilePath
