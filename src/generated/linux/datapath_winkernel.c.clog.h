@@ -1292,14 +1292,14 @@ tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathRecv , arg2, arg3, arg4, arg5_len,
         SendData->TotalSize,
         SendData->WskBufferCount,
         SendData->SegmentSize,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 // arg2 = arg2 = Binding
 // arg3 = arg3 = SendData->TotalSize
 // arg4 = arg4 = SendData->WskBufferCount
 // arg5 = arg5 = SendData->SegmentSize
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress)
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress)
 ----------------------------------------------------------*/
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
 tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\

@@ -320,8 +320,8 @@ CxPlatDpRawRxEthernet(
             Socket =
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
-                    &PacketChain->Tuple->LocalAddress,
-                    &PacketChain->Tuple->RemoteAddress);
+                    &PacketChain->Route->LocalAddress,
+                    &PacketChain->Route->RemoteAddress);
         }
         if (Socket) {
             //
@@ -334,12 +334,12 @@ CxPlatDpRawRxEthernet(
                     Socket,
                     Packets[i]->BufferLength,
                     Packets[i]->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
                 if (i == PacketCount - 1 ||
                     Packets[i+1]->Reserved != L4_TYPE_UDP ||
-                    Packets[i+1]->Tuple->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                    !CxPlatSocketCompare(Socket, &Packets[i+1]->Tuple->LocalAddress, &Packets[i+1]->Tuple->RemoteAddress)) {
+                    Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                    !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
                     break;
                 }
                 Packets[i]->Next = Packets[i+1];
@@ -421,8 +421,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
@@ -434,10 +433,10 @@ CxPlatSocketSend(
         SendData->Buffer.Length,
         1,
         (uint16_t)SendData->Buffer.Length,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CxPlatFramingWriteHeaders(
-        Socket, LocalAddress, RemoteAddress, &SendData->Buffer,
+        Socket, Route, &SendData->Buffer,
         Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,
         Socket->Datapath->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);

@@ -60,7 +60,10 @@ param (
     [switch]$SignCode,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DuoNic
+    [switch]$DuoNic,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoCodeCoverage
 )
 
 #Requires -RunAsAdministrator
@@ -325,7 +328,7 @@ if ($IsWindows) {
             }
         }
         # Install OpenCppCoverage on test machines
-        if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        if (!$NoCodeCoverage -and !(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
             # Download the installer.
             $Installer = $null
             if ([System.Environment]::Is64BitOperatingSystem) {

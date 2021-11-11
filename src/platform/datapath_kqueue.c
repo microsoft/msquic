@@ -54,10 +54,9 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
     CXPLAT_RECV_DATA RecvPacket;
 
     //
-    // Represents the address (source and destination) information of the
-    // packet.
+    // Represents the network route.
     //
-    CXPLAT_TUPLE Tuple;
+    CXPLAT_ROUTE Route;
 
     //
     // Buffer that actually stores the UDP payload.
@@ -1112,13 +1111,13 @@ CxPlatSocketContextPrepareReceive(
 
     SocketContext->RecvIov.iov_base = SocketContext->CurrentRecvBlock->RecvPacket.Buffer;
     SocketContext->CurrentRecvBlock->RecvPacket.BufferLength = SocketContext->RecvIov.iov_len;
-    SocketContext->CurrentRecvBlock->RecvPacket.Tuple = &SocketContext->CurrentRecvBlock->Tuple;
+    SocketContext->CurrentRecvBlock->RecvPacket.Route = &SocketContext->CurrentRecvBlock->Route;
 
     CxPlatZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     CxPlatZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
 
-    SocketContext->RecvMsgHdr.msg_name = &SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress;
-    SocketContext->RecvMsgHdr.msg_namelen = sizeof(SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress);
+    SocketContext->RecvMsgHdr.msg_name = &SocketContext->CurrentRecvBlock->RecvPacket.Route->RemoteAddress;
+    SocketContext->RecvMsgHdr.msg_namelen = sizeof(SocketContext->CurrentRecvBlock->RecvPacket.Route->RemoteAddress);
     SocketContext->RecvMsgHdr.msg_iov = &SocketContext->RecvIov;
     SocketContext->RecvMsgHdr.msg_iovlen = 1;
     SocketContext->RecvMsgHdr.msg_control = SocketContext->RecvMsgControl;
@@ -1191,11 +1190,11 @@ CxPlatSocketContextRecvComplete(
 
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
-    QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
+    QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
     if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
         LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
+    QUIC_ADDR* RemoteAddr = &RecvPacket->Route->RemoteAddress;
     if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
         RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
@@ -2238,8 +2237,7 @@ Exit:
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
@@ -2248,8 +2246,8 @@ CxPlatSocketSend(
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             Socket,
-            LocalAddress,
-            RemoteAddress,
+            &Route->LocalAddress,
+            &Route->RemoteAddress,
             SendData,
             FALSE);
     if (Status == QUIC_STATUS_PENDING) {

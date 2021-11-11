@@ -33,13 +33,13 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
                     Socket,
                     Packets[i]->BufferLength,
                     Packets[i]->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
 // arg2 = arg2 = Socket
 // arg3 = arg3 = Packets[i]->BufferLength
 // arg4 = arg4 = Packets[i]->BufferLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->LocalAddress), &Packets[i]->Tuple->LocalAddress)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Tuple->RemoteAddress), &Packets[i]->Tuple->RemoteAddress)
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress)
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
     TP_ARGS(
@@ -73,14 +73,14 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
         SendData->Buffer.Length,
         1,
         (uint16_t)SendData->Buffer.Length,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 // arg2 = arg2 = Socket
 // arg3 = arg3 = SendData->Buffer.Length
 // arg4 = arg4 = 1
 // arg5 = arg5 = (uint16_t)SendData->Buffer.Length
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress)
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathSend,
     TP_ARGS(

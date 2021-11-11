@@ -76,7 +76,7 @@ typedef struct XDP_DATAPATH {
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
     CXPLAT_RECV_DATA;
-    CXPLAT_TUPLE IP;
+    CXPLAT_ROUTE RouteStorage;
     XDP_QUEUE* Queue;
     // Followed by:
     // uint8_t ClientContext[...];
@@ -585,7 +585,7 @@ CxPlatXdpRx(
         uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
-        Packet->Tuple = &Packet->IP;
+        Packet->Route = &Packet->RouteStorage;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,

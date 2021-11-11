@@ -56,7 +56,7 @@ typedef struct DPDK_DATAPATH {
 
 typedef struct DPDK_RX_PACKET {
     CXPLAT_RECV_DATA;
-    CXPLAT_TUPLE IP;
+    CXPLAT_ROUTE RouteStorage;
     struct rte_mbuf* Mbuf;
     CXPLAT_POOL* OwnerPool;
 } DPDK_RX_PACKET;
@@ -506,7 +506,7 @@ CxPlatDpdkRx(
 
     DPDK_RX_PACKET Packet; // Working space
     CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
-    Packet.Tuple = &Packet.IP;
+    Packet.Route = &Packet.RouteStorage;
 
     uint16_t PacketCount = 0;
     for (uint16_t i = 0; i < BuffersCount; i++) {
@@ -524,7 +524,7 @@ CxPlatDpdkRx(
             NewPacket->Allocated = TRUE;
             NewPacket->Mbuf = Buffer;
             NewPacket->OwnerPool = &Dpdk->AdditionalInfoPool;
-            NewPacket->Tuple = &NewPacket->IP;
+            NewPacket->Route = &NewPacket->RouteStorage;
             Buffers[PacketCount++] = NewPacket;
         } else {
             rte_pktmbuf_free(Buffer);

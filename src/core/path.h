@@ -88,14 +88,9 @@ typedef struct QUIC_PATH {
     QUIC_BINDING* Binding;
 
     //
-    // The locally bound source IP address.
+    // The network route.
     //
-    QUIC_ADDR LocalAddress;
-
-    //
-    // The peer's source IP address.
-    //
-    QUIC_ADDR RemoteAddress;
+    CXPLAT_ROUTE Route;
 
     //
     // The destination CID used for sending on this path.

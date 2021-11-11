@@ -206,13 +206,13 @@ CxPlatDpRawParseUdp(
     Length -= sizeof(UDP_HEADER);
     Packet->Reserved = L4_TYPE_UDP;
 
-    Packet->Tuple->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
-    Packet->Tuple->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
+    Packet->Route->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
+    Packet->Route->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = Length;
 
-    //const uint32_t Hash = CxPlatHashSimple(sizeof(*Packet->Tuple), (uint8_t*)Packet->Tuple);
+    //const uint32_t Hash = CxPlatHashSimple(sizeof(*Packet->Route), (uint8_t*)Packet->Route);
     const uint32_t Hash = Udp->SourcePort + Udp->DestinationPort;
     Packet->PartitionIndex = Datapath->CpuTable[Hash % Datapath->CpuTableSize];
 }
@@ -233,10 +233,10 @@ CxPlatDpRawParseIPv4(
     }
     Length -= sizeof(IPV4_HEADER);
 
-    Packet->Tuple->RemoteAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->Tuple->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
-    Packet->Tuple->LocalAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->Tuple->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
+    Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
+    Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
+    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == IPPROTO_UDP) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
@@ -265,10 +265,10 @@ CxPlatDpRawParseIPv6(
     }
     Length -= sizeof(IPV6_HEADER);
 
-    Packet->Tuple->RemoteAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->Tuple->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
-    Packet->Tuple->LocalAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->Tuple->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
+    Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
+    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
+    Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
+    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == IPPROTO_UDP) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, ntohs(IP->PayloadLength));
@@ -409,8 +409,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum
@@ -420,7 +419,7 @@ CxPlatFramingWriteHeaders(
     ETHERNET_HEADER* Ethernet;
     uint16_t EthType;
     uint16_t IpHeaderLen;
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(RemoteAddress);
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
 
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
@@ -428,8 +427,8 @@ CxPlatFramingWriteHeaders(
     //
     // Fill UDP header.
     //
-    UDP->DestinationPort = RemoteAddress->Ipv4.sin_port;
-    UDP->SourcePort = LocalAddress->Ipv4.sin_port;
+    UDP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
+    UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
     UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
     UDP->Checksum = 0;
 
@@ -446,8 +445,8 @@ CxPlatFramingWriteHeaders(
         IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
         IPv4->Protocol = IPPROTO_UDP;
         IPv4->HeaderChecksum = 0;
-        CxPlatCopyMemory(IPv4->Source, &LocalAddress->Ipv4.sin_addr, sizeof(LocalAddress->Ipv4.sin_addr));
-        CxPlatCopyMemory(IPv4->Destination, &RemoteAddress->Ipv4.sin_addr, sizeof(RemoteAddress->Ipv4.sin_addr));
+        CxPlatCopyMemory(IPv4->Source, &Route->LocalAddress.Ipv4.sin_addr, sizeof(Route->LocalAddress.Ipv4.sin_addr));
+        CxPlatCopyMemory(IPv4->Destination, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
         IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
@@ -457,7 +456,7 @@ CxPlatFramingWriteHeaders(
                 0 :
                 CxPlatFramingUdpChecksum(
                     IPv4->Source, IPv4->Destination,
-                    sizeof(LocalAddress->Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+                    sizeof(Route->LocalAddress.Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
     } else {
         IPV6_HEADER* IPv6 = (IPV6_HEADER*)(((uint8_t*)UDP) - sizeof(IPV6_HEADER));
         //
@@ -483,8 +482,8 @@ CxPlatFramingWriteHeaders(
         IPv6->PayloadLength = htons(sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
         IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
         IPv6->NextHeader = IPPROTO_UDP;
-        CxPlatCopyMemory(IPv6->Source, &LocalAddress->Ipv6.sin6_addr, sizeof(LocalAddress->Ipv6.sin6_addr));
-        CxPlatCopyMemory(IPv6->Destination, &RemoteAddress->Ipv6.sin6_addr, sizeof(RemoteAddress->Ipv6.sin6_addr));
+        CxPlatCopyMemory(IPv6->Source, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
+        CxPlatCopyMemory(IPv6->Destination, &Route->RemoteAddress.Ipv6.sin6_addr, sizeof(Route->RemoteAddress.Ipv6.sin6_addr));
         EthType = ETHERNET_TYPE_IPV6;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
@@ -493,7 +492,7 @@ CxPlatFramingWriteHeaders(
                 0 :
                 CxPlatFramingUdpChecksum(
                     IPv6->Source, IPv6->Destination,
-                    sizeof(LocalAddress->Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+                    sizeof(Route->LocalAddress.Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
     }
 
     //
