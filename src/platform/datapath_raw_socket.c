@@ -353,7 +353,7 @@ CxPlatFramingChecksum(
     //
     // Checksum is calculated in reverse order.
     // 1. Add the odd byte to the checksum if the length is odd.
-    // 2. If the length is divided by 2 but not 4, add the last 2 bytes.
+    // 2. If the length is divisible by 2 but not 4, add the last 2 bytes.
     // 3. Sum up the rest as 32-bit words.
     //
 
