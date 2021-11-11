@@ -451,12 +451,12 @@ CxPlatFramingWriteHeaders(
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
-        UDP->Checksum =
-            SkipTransportLayerXsum ?
-                0 :
+        if (!SkipTransportLayerXsum) {
+            UDP->Checksum =
                 CxPlatFramingUdpChecksum(
                     IPv4->Source, IPv4->Destination,
                     sizeof(Route->LocalAddress.Ipv4.sin_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+        }
     } else {
         IPV6_HEADER* IPv6 = (IPV6_HEADER*)(((uint8_t*)UDP) - sizeof(IPV6_HEADER));
         //
@@ -487,12 +487,12 @@ CxPlatFramingWriteHeaders(
         EthType = ETHERNET_TYPE_IPV6;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
-        UDP->Checksum =
-            SkipTransportLayerXsum ?
-                0 :
+        if (!SkipTransportLayerXsum) {
+            UDP->Checksum =
                 CxPlatFramingUdpChecksum(
                     IPv6->Source, IPv6->Destination,
                     sizeof(Route->LocalAddress.Ipv6.sin6_addr), IPPROTO_UDP, (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+        }
     }
 
     //
