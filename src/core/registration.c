@@ -105,6 +105,10 @@ MsQuicRegistrationOpen(
         break;
     }
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    Registration->NoPartitioning = TRUE; // Force one worker
+#endif
+
     //
     // TODO - Figure out how to check to see if hyper-threading was enabled
     // first

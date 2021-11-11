@@ -471,3 +471,42 @@ CxPlatSocketGetParam(
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+
+// TODO - Add synchronization around this stuff.
+uint32_t ExecutionContextCount = 0;
+CXPLAT_EXECUTION_CONTEXT* ExecutionContexts[8];
+
+void CxPlatAddExecutionContext(CXPLAT_EXECUTION_CONTEXT* Context)
+{
+    CXPLAT_FRE_ASSERT(ExecutionContextCount < ARRAYSIZE(ExecutionContexts));
+    ExecutionContexts[ExecutionContextCount] = Context;
+    ExecutionContextCount++;
+}
+
+BOOLEAN CxPlatRunExecutionContexts(_In_ CXPLAT_THREAD_ID ThreadID)
+{
+    if (ExecutionContextCount == 0) {
+        return FALSE;
+    }
+
+    uint64_t TimeNow = CxPlatTimeUs64();
+    for (uint32_t i = 0; i < ExecutionContextCount; i++) {
+        CXPLAT_EXECUTION_CONTEXT* Context = ExecutionContexts[i];
+        if (Context->Ready || Context->NextTimeUs <= TimeNow) {
+            if (!Context->Callback(Context->Context, &TimeNow, ThreadID)) {
+                // Remove the context from the array.
+                if (i + 1 < ExecutionContextCount) {
+                    ExecutionContexts[i] = ExecutionContexts[--ExecutionContextCount];
+                } else {
+                    ExecutionContextCount--;
+                }
+            }
+        }
+    }
+
+    return TRUE;
+}
+
+#endif

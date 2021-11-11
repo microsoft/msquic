@@ -14,6 +14,8 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
+#define QUIC_USE_EXECUTION_CONTEXTS 1
+
 #include "datapath_raw.h"
 #ifdef QUIC_CLOG
 #include "datapath_raw_dpdk.c.clog.h"
@@ -648,9 +650,17 @@ CxPlatDpdkWorkerThread(
                Dpdk->Port);
     }
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
+#endif
+
     while (likely(Dpdk->Running)) {
         CxPlatDpdkRx(Dpdk, Core);
         CxPlatDpdkTx(Dpdk);
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+        (void)CxPlatRunExecutionContexts(ThreadID);
+#endif
     }
 
     return 0;

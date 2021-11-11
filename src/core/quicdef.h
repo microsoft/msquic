@@ -132,7 +132,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // If enabled, workers will poll the number of times before falling back to the
 // wait or delay state.
 //
-#define QUIC_WORKER_POLLING                     10000
+//#define QUIC_WORKER_POLLING                     10000
 
 //
 // The maximum amount of queue delay a worker should take on (in ms).
