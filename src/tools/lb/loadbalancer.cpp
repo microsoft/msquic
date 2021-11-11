@@ -151,8 +151,8 @@ struct LbPublicInterface : public LbInterface {
     void Receive(_In_ CXPLAT_RECV_DATA* RecvDataChain) {
         auto PrivateInterface =
             GetPrivateInterface(
-                &RecvDataChain->Tuple->LocalAddress,
-                &RecvDataChain->Tuple->RemoteAddress);
+                &RecvDataChain->Route->LocalAddress,
+                &RecvDataChain->Route->RemoteAddress);
         PrivateInterface->Send(RecvDataChain);
     }
 

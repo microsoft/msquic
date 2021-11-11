@@ -91,10 +91,9 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
     CXPLAT_RECV_DATA RecvPacket;
 
     //
-    // Represents the address (source and destination) information of the
-    // packet.
+    // Represents the network route.
     //
-    CXPLAT_TUPLE Tuple;
+    CXPLAT_ROUTE Route;
 
     //
     // Buffer that actually stores the UDP payload.
@@ -1422,10 +1421,10 @@ CxPlatSocketContextPrepareReceive(
 
         SocketContext->RecvIov[i].iov_base = CurrentBlock->RecvPacket.Buffer;
         CurrentBlock->RecvPacket.BufferLength = SocketContext->RecvIov[i].iov_len;
-        CurrentBlock->RecvPacket.Tuple = &CurrentBlock->Tuple;
+        CurrentBlock->RecvPacket.Route = &CurrentBlock->Route;
 
-        MsgHdr->msg_name = &CurrentBlock->RecvPacket.Tuple->RemoteAddress;
-        MsgHdr->msg_namelen = sizeof(CurrentBlock->RecvPacket.Tuple->RemoteAddress);
+        MsgHdr->msg_name = &CurrentBlock->RecvPacket.Route->RemoteAddress;
+        MsgHdr->msg_namelen = sizeof(CurrentBlock->RecvPacket.Route->RemoteAddress);
         MsgHdr->msg_iov = &SocketContext->RecvIov[i];
         MsgHdr->msg_iovlen = 1;
         MsgHdr->msg_control = &SocketContext->RecvMsgControl[i].Data;
@@ -1514,11 +1513,11 @@ CxPlatSocketContextRecvComplete(
 
         BOOLEAN FoundLocalAddr = FALSE;
         BOOLEAN FoundTOS = FALSE;
-        QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
+        QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
         if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
             LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
         }
-        QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
+        QUIC_ADDR* RemoteAddr = &RecvPacket->Route->RemoteAddress;
         if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
             RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
         }

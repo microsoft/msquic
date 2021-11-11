@@ -506,14 +506,14 @@ struct MtuDropHelper : public DatapathHook
         ) {
         uint16_t PacketMtu =
             PacketSizeFromUdpPayloadSize(
-                QuicAddrGetFamily(&Datagram->Tuple->RemoteAddress),
+                QuicAddrGetFamily(&Datagram->Route->RemoteAddress),
                 Datagram->BufferLength);
         if (ServerDropPacketSize != 0 && PacketMtu > ServerDropPacketSize &&
-            QuicAddrGetPort(&Datagram->Tuple->RemoteAddress) == ServerDropPort) {
+            QuicAddrGetPort(&Datagram->Route->RemoteAddress) == ServerDropPort) {
             return TRUE;
         }
         if (ClientDropPacketSize != 0 && PacketMtu > ClientDropPacketSize &&
-            QuicAddrGetPort(&Datagram->Tuple->RemoteAddress) != ServerDropPort) {
+            QuicAddrGetPort(&Datagram->Route->RemoteAddress) != ServerDropPort) {
             return TRUE;
         }
         return FALSE;
@@ -548,9 +548,9 @@ struct ReplaceAddressHelper : public DatapathHook
         _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
-                &Datagram->Tuple->RemoteAddress,
+                &Datagram->Route->RemoteAddress,
                 &Original)) {
-            Datagram->Tuple->RemoteAddress = New;
+            Datagram->Route->RemoteAddress = New;
             QuicTraceLogVerbose(
                 TestHookReplaceAddrRecv,
                 "[test][hook] Recv Addr :%hu => :%hu",
@@ -601,7 +601,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
         _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
-                &Datagram->Tuple->RemoteAddress,
+                &Datagram->Route->RemoteAddress,
                 &Original)) {
             if (AllowPacketCount == 0) {
                 QuicTraceLogVerbose(
@@ -610,7 +610,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
                 return TRUE; // Drop
             }
             AllowPacketCount--;
-            Datagram->Tuple->RemoteAddress = New;
+            Datagram->Route->RemoteAddress = New;
             QuicTraceLogVerbose(
                 TestHookReplaceAddrRecv,
                 "[test][hook] Recv Addr :%hu => :%hu",
@@ -708,9 +708,9 @@ struct LoadBalancerHelper : public DatapathHook
         ) {
         for (uint32_t i = 0; i < PrivateAddressesCount; ++i) {
             if (QuicAddrCompare(
-                    &Datagram->Tuple->RemoteAddress,
+                    &Datagram->Route->RemoteAddress,
                     &PrivateAddresses[i])) {
-                Datagram->Tuple->RemoteAddress = PublicAddress;
+                Datagram->Route->RemoteAddress = PublicAddress;
                 QuicTraceLogVerbose(
                     TestHookReplaceAddrRecv,
                     "[test][hook] Recv Addr :%hu => :%hu",

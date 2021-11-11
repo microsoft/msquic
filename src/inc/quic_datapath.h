@@ -152,16 +152,6 @@ typedef struct CXPLAT_ROUTE {
 } CXPLAT_ROUTE;
 
 //
-// Structure to represent data buffers received.
-//
-typedef struct CXPLAT_TUPLE {
-
-    QUIC_ADDR RemoteAddress;
-    QUIC_ADDR LocalAddress;
-
-} CXPLAT_TUPLE;
-
-//
 // Structure to represent received UDP datagrams or TCP data.
 //
 typedef struct CXPLAT_RECV_DATA {
@@ -172,9 +162,9 @@ typedef struct CXPLAT_RECV_DATA {
     struct CXPLAT_RECV_DATA* Next;
 
     //
-    // Contains the 4 tuple.
+    // Contains the network route.
     //
-    CXPLAT_TUPLE* Tuple;
+    CXPLAT_ROUTE* Route;
 
     //
     // The data buffer containing the received bytes.

@@ -276,12 +276,12 @@ tracepoint(CLOG_PACKET_C, AllocFailure , arg2, arg3);\
             ConnDropPacket,
             "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
 // arg5 = arg5 = Reason
 ----------------------------------------------------------*/
 #define _clog_8_ARGS_TRACE_ConnDropPacket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len, arg5)\
@@ -303,12 +303,12 @@ tracepoint(CLOG_PACKET_C, ConnDropPacket , arg2, arg3_len, arg3, arg4_len, arg4,
             BindingDropPacket,
             "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
 // arg5 = arg5 = Reason
 ----------------------------------------------------------*/
 #define _clog_8_ARGS_TRACE_BindingDropPacket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len, arg5)\
@@ -331,13 +331,13 @@ tracepoint(CLOG_PACKET_C, BindingDropPacket , arg2, arg3_len, arg3, arg4_len, ar
             "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Value,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner
 // arg3 = arg3 = Value
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
 // arg6 = arg6 = Reason
 ----------------------------------------------------------*/
 #define _clog_9_ARGS_TRACE_ConnDropPacketEx(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len, arg6)\
@@ -360,13 +360,13 @@ tracepoint(CLOG_PACKET_C, ConnDropPacketEx , arg2, arg3, arg4_len, arg4, arg5_le
             "[bind][%p] DROP packet %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
             Owner,
             Value,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner
 // arg3 = arg3 = Value
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
 // arg6 = arg6 = Reason
 ----------------------------------------------------------*/
 #define _clog_9_ARGS_TRACE_BindingDropPacketEx(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len, arg6)\
