@@ -12,16 +12,14 @@ using QuicTrace.DataModel;
 
 namespace QuicTrace
 {
-    public class QuicEventProcessor : CustomDataProcessorBaseWithSourceParser<QuicEvent, object, Guid>
+    public class QuicEventProcessor : CustomDataProcessorWithSourceParser<QuicEvent, object, Guid>
     {
         internal QuicEventProcessor(
             ISourceParser<QuicEvent, object, Guid> sourceParser,
             ProcessorOptions options,
             IApplicationEnvironment applicationEnvironment,
-            IProcessorEnvironment processorEnvironment,
-            IReadOnlyDictionary<TableDescriptor, Action<ITableBuilder, IDataExtensionRetrieval>> allTablesMapping,
-            IEnumerable<TableDescriptor> metadataTables)
-            : base(sourceParser, options, applicationEnvironment, processorEnvironment, allTablesMapping, metadataTables)
+            IProcessorEnvironment processorEnvironment)
+            : base(sourceParser, options, applicationEnvironment, processorEnvironment)
         {
         }
     }
