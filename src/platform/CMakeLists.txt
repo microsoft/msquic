@@ -43,7 +43,7 @@ add_library(platform STATIC ${SOURCES})
 
 target_link_libraries(platform PUBLIC inc)
 
-target_link_libraries(platform PRIVATE warnings)
+target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
