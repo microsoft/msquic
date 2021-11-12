@@ -351,7 +351,7 @@ CxPlatFramingChecksum(
     )
 {
     //
-    // Checksum is calculated in reverse order.
+    // Add up all bytes in 3 steps:
     // 1. Add the odd byte to the checksum if the length is odd.
     // 2. If the length is divisible by 2 but not 4, add the last 2 bytes.
     // 3. Sum up the rest as 32-bit words.
@@ -367,9 +367,8 @@ CxPlatFramingChecksum(
         InitialChecksum += *((uint16_t*)(&Data[Length]));
     }
 
-    while (Length != 0) {
-        Length -= 4;
-        InitialChecksum += *((uint32_t*)(&Data[Length]));
+    for (uint32_t i = 0; i < Length; i += 4) {
+        InitialChecksum += *((uint32_t*)(&Data[i]));
     }
 
     //
