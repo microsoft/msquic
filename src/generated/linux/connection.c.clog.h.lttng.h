@@ -814,9 +814,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
             LocalInterfaceSet,
             Connection,
             "Local interface set to %u",
-            Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id);
+            Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
 // arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[0].LocalAddress.Ipv6.sin6_scope_id
+// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
     TP_ARGS(
@@ -1628,9 +1628,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnCreated,
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 // arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrAdded,
     TP_ARGS(
@@ -1653,9 +1653,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrAdded,
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
+            CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
 // arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRemoteAddrAdded,
     TP_ARGS(
@@ -2182,9 +2182,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
+                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
 // arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress)
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
     TP_ARGS(

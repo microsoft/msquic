@@ -8216,6 +8216,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "WorkerQueueDelayUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[wrkr][%p] QueueDelay = %u",
+      "UniqueId": "WorkerQueueDelayUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "WorkerActivityStateUpdated": {
       "ModuleProperites": {},
       "TraceString": "[wrkr][%p] IsActive = %hhu, Arg = %u",
@@ -8232,22 +8248,6 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "WorkerQueueDelayUpdated": {
-      "ModuleProperites": {},
-      "TraceString": "[wrkr][%p] QueueDelay = %u",
-      "UniqueId": "WorkerQueueDelayUpdated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -12825,12 +12825,12 @@
         "TraceID": "ConnScheduleState"
       },
       {
-        "UniquenessHash": "c50d7d7b-5ea5-6f62-b2c8-8e06a5684266",
-        "TraceID": "WorkerActivityStateUpdated"
-      },
-      {
         "UniquenessHash": "e1a37301-aaf6-2912-f408-1d81199cc4e6",
         "TraceID": "WorkerQueueDelayUpdated"
+      },
+      {
+        "UniquenessHash": "c50d7d7b-5ea5-6f62-b2c8-8e06a5684266",
+        "TraceID": "WorkerActivityStateUpdated"
       },
       {
         "UniquenessHash": "be2a8e4f-7708-e894-48df-762d926dac26",

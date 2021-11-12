@@ -106,8 +106,9 @@ UdpUnreachCallback(
 
 void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 {
-    QUIC_ADDR LocalAddress;
-    CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
+    CXPLAT_ROUTE Route;
+    CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
+    Route.RemoteAddress = ServerAddress;
 
     uint64_t ConnectionId = 0;
     CxPlatRandom(sizeof(ConnectionId), &ConnectionId);
@@ -159,8 +160,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
         QUIC_SUCCEEDED(
         CxPlatSocketSend(
             Binding,
-            &LocalAddress,
-            &ServerAddress,
+            &Route,
             SendData,
             (uint16_t)CxPlatProcCurrentNumber())));
     }
@@ -185,8 +185,9 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 
-    QUIC_ADDR LocalAddress;
-    CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
+    CXPLAT_ROUTE Route;
+    CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
+    Route.RemoteAddress = ServerAddress;
 
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
@@ -290,8 +291,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
         QUIC_SUCCEEDED(
         CxPlatSocketSend(
             Binding,
-            &LocalAddress,
-            &ServerAddress,
+            &Route,
             SendData,
             (uint16_t)CxPlatProcCurrentNumber())));
     }
