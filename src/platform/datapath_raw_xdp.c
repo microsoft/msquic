@@ -208,7 +208,7 @@ CxPlatXdpReadConfig(
             Xdp->OffloadStatus.Transmit.TransportLayerXsum = State;
             Xdp->OffloadStatus.Receive.NetworkLayerXsum = State;
             Xdp->OffloadStatus.Receive.TransportLayerXsum = State;
-            printf("Checksums will not be calculated\n");
+            printf("SkipXsum: %u\n", State);
         }
     }
 
