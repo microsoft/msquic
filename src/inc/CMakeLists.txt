@@ -47,3 +47,8 @@ endif()
 
 add_library(warnings INTERFACE)
 target_compile_options(warnings INTERFACE ${QUIC_WARNING_FLAGS})
+
+add_library(main_binary_link_args INTERFACE)
+if (WIN32 AND NOT BUILD_SHARED_LIBS)
+    target_compile_options(main_binary_link_args INTERFACE /Zl)
+endif()
