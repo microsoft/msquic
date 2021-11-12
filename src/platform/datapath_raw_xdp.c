@@ -202,6 +202,13 @@ CxPlatXdpReadConfig(
              Xdp->TxRingSize = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "TxAlwaysPoke") == 0) {
              Xdp->TxAlwaysPoke = !!strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "SkipXsum") == 0) {
+            BOOLEAN State = !!strtoul(Value, NULL, 10);
+            Xdp->OffloadStatus.Transmit.NetworkLayerXsum = State;
+            Xdp->OffloadStatus.Transmit.TransportLayerXsum = State;
+            Xdp->OffloadStatus.Receive.NetworkLayerXsum = State;
+            Xdp->OffloadStatus.Receive.TransportLayerXsum = State;
+            printf("Checksums will not be calculated\n");
         }
     }
 

@@ -367,9 +367,8 @@ CxPlatFramingChecksum(
         InitialChecksum += *((uint16_t*)(&Data[Length]));
     }
 
-    while (Length != 0) {
-        Length -= 4;
-        InitialChecksum += *((uint32_t*)(&Data[Length]));
+    for (uint32_t i = 0; i < Length; i += 4) {
+        InitialChecksum += *((uint32_t*)(&Data[i]));
     }
 
     //
