@@ -213,7 +213,7 @@ if ($Generator -eq "") {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             Import-Module VSSetup
         }
-        $VsVersion = Get-VSSetupInstance -Prerelease | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
+        $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
         if ($VsVersion.Contains("2022")) {
             $Generator = "Visual Studio 17 2022"
         } else {
