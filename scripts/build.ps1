@@ -229,8 +229,6 @@ if ($Arch -ne "x64" -And ($Platform -eq "gamecore_console")) {
     exit
 }
 
-
-
 if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
