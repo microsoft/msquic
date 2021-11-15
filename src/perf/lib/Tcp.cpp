@@ -522,8 +522,11 @@ void TcpConnection::Process()
         }
     }
     if (BatchedSendData) {
+        CXPLAT_ROUTE Route;
+        Route.LocalAddress = LocalAddress;
+        Route.RemoteAddress = RemoteAddress;
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
+            CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
             IndicateDisconnect = true;
         }
         BatchedSendData = nullptr;
@@ -905,8 +908,11 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
+        CXPLAT_ROUTE Route;
+        Route.LocalAddress = LocalAddress;
+        Route.RemoteAddress = RemoteAddress;
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
+            CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
             return false;
         }

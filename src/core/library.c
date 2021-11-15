@@ -1801,7 +1801,7 @@ QuicLibraryGetWorker(
     CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
     return
         &MsQuicLib.StatelessRegistration->WorkerPool->Workers[
-            Datagram->PartitionIndex % MsQuicLib.PartitionCount];
+            Datagram->PartitionIndex % MsQuicLib.StatelessRegistration->WorkerPool->WorkerCount];
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -62,7 +62,7 @@ endif()
 
 target_link_libraries(core PUBLIC inc)
 
-target_link_libraries(core PRIVATE warnings)
+target_link_libraries(core PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET core PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
