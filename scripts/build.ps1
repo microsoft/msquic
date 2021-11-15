@@ -104,7 +104,7 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "arm64ec")]
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
@@ -229,6 +229,17 @@ if ($Arch -ne "x64" -And ($Platform -eq "gamecore_console")) {
     exit
 }
 
+
+
+if ($Arch -eq "arm64ec") {
+    if (!$IsWindows) {
+        Write-Error "Arm64EC is only supported on Windows"
+    }
+    if ($Tls -eq "openssl") {
+        Write-Error "Arm64EC does not support openssl"
+    }
+}
+
 if ($Platform -eq "ios" -and !$Static) {
     $Static = $true
     Write-Host "iOS can only be built as static"
@@ -296,6 +307,7 @@ function CMake-Generate {
                 "x64"   { $Arguments += "x64" }
                 "arm"   { $Arguments += "arm" }
                 "arm64" { $Arguments += "arm64" }
+                "arm64ec" { $Arguments += "arm64ec" }
             }
         } else {
             Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
