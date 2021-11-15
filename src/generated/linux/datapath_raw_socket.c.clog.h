@@ -30,9 +30,9 @@ extern "C" {
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->Protocol,
-            "unacceptable tranport");
+            "unacceptable v4 transport");
 // arg2 = arg2 = IP->Protocol
-// arg3 = arg3 = "unacceptable tranport"
+// arg3 = arg3 = "unacceptable v4 transport"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus , arg2, arg3);\
@@ -53,9 +53,9 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->NextHeader,
-            "unacceptable tranport");
+            "unacceptable v6 transport");
 // arg2 = arg2 = IP->NextHeader
-// arg3 = arg3 = "unacceptable tranport"
+// arg3 = arg3 = "unacceptable v6 transport"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 

@@ -359,7 +359,7 @@ CxPlatDpRawInitialize(
         XskRingInitialize(&Queue->RxRing, &RxRingInfo.rx);
 
         XDP_RULE RxRule = {
-            .Match = XDP_MATCH_ALL,
+            .Match = XDP_MATCH_UDP,
             .Action = XDP_PROGRAM_ACTION_REDIRECT,
             .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
             .Redirect.Target = Queue->RxXsk,

@@ -245,7 +245,7 @@ CxPlatDpRawParseIPv4(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->Protocol,
-            "unacceptable tranport");
+            "unacceptable v4 transport");
     }
 }
 
@@ -277,7 +277,7 @@ CxPlatDpRawParseIPv6(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->NextHeader,
-            "unacceptable tranport");
+            "unacceptable v6 transport");
     }
 }
 

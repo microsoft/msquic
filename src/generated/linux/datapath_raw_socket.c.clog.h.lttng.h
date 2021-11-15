@@ -8,9 +8,9 @@
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->Protocol,
-            "unacceptable tranport");
+            "unacceptable v4 transport");
 // arg2 = arg2 = IP->Protocol
-// arg3 = arg3 = "unacceptable tranport"
+// arg3 = arg3 = "unacceptable v4 transport"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus,
     TP_ARGS(

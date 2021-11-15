@@ -63,6 +63,9 @@ param (
     [switch]$DuoNic,
 
     [Parameter(Mandatory = $false)]
+    [switch]$Xdp,
+
+    [Parameter(Mandatory = $false)]
     [switch]$NoCodeCoverage
 )
 
@@ -150,6 +153,19 @@ function Download-CoreNet-Deps {
         $ZipPath = Join-Path $ArtifactsPath "corenet-ci.zip"
         Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
+        Remove-Item -Path $ZipPath
+    }
+}
+
+$XdpPath = Join-Path $ArtifactsPath "xdp"
+
+function Download-Xdp-Kit {
+    if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    if (!(Test-Path $XdpPath)) {
+        Write-Host "Downloading XDP Kit"
+        $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
+        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp.zip" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
 }
@@ -350,6 +366,10 @@ if ($IsWindows) {
         if ($DuoNic) {
             Install-DuoNic
         }
+    }
+
+    if ($Xdp) {
+        Download-Xdp-Kit
     }
 
 } elseif ($IsLinux) {
