@@ -157,8 +157,10 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    *Address = Datapath->ServerIP;
-    return QUIC_STATUS_SUCCESS;
+    if (QuicAddrFromString(HostName, 0, Address)) {
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED; // TODO - Support name resolution
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -182,6 +184,13 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
+    QuicTraceEvent(
+        DatapathCreated,
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        *NewSocket,
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+
     CxPlatZeroMemory(*NewSocket, sizeof(CXPLAT_SOCKET));
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
@@ -194,24 +203,17 @@ CxPlatSocketCreateUdp(
     }
 
     if (Config->LocalAddress) {
+        (*NewSocket)->LocalAddress = *Config->LocalAddress;
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
-            if ((*NewSocket)->Connected) {
-                (*NewSocket)->LocalAddress = Datapath->ClientIP;
-            } else {
+            if (!(*NewSocket)->Connected) {
                 (*NewSocket)->Wildcard = TRUE;
             }
         } else {
             CXPLAT_FRE_ASSERT((*NewSocket)->Connected); // Assumes only connected sockets fully specify local address
-            (*NewSocket)->LocalAddress = *Config->LocalAddress;
-        }
-        if (Config->LocalAddress->Ipv4.sin_port != 0) {
-            (*NewSocket)->LocalAddress.Ipv4.sin_port =
-                Config->LocalAddress->Ipv4.sin_port;
         }
     } else {
-        if ((*NewSocket)->Connected) {
-            (*NewSocket)->LocalAddress = Datapath->ClientIP;
-        } else {
+        QuicAddrSetFamily(&(*NewSocket)->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+        if (!(*NewSocket)->Connected) {
             (*NewSocket)->Wildcard = TRUE;
         }
     }

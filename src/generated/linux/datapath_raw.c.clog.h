@@ -64,6 +64,31 @@ tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
 
 
 
+#ifndef _clog_7_ARGS_TRACE_DatapathCreated
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathCreated
+// [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
+// QuicTraceEvent(
+        DatapathCreated,
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        *NewSocket,
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+// arg2 = arg2 = *NewSocket
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+----------------------------------------------------------*/
+#define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
+tracepoint(CLOG_DATAPATH_RAW_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
+
+#endif
+
+
+
+
 #ifndef _clog_9_ARGS_TRACE_DatapathRecv
 
 

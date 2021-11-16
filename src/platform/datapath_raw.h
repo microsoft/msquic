@@ -12,7 +12,6 @@ typedef struct CXPLAT_SOCKET_POOL {
 
     CXPLAT_RW_LOCK Lock;
     CXPLAT_HASHTABLE Sockets;
-    uint16_t NextLocalPort; // Host byte order
 
 } CXPLAT_SOCKET_POOL;
 
@@ -25,8 +24,6 @@ typedef struct CXPLAT_DATAPATH {
     // Hacks - Eventually shouldn't be necessary
     uint8_t ServerMac[6];
     uint8_t ClientMac[6];
-    QUIC_ADDR ServerIP;
-    QUIC_ADDR ClientIP;
 
     // RSS stuff
     uint16_t Cpu;
@@ -188,6 +185,7 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH* Datapath;
+    SOCKET AuxSocket;
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
