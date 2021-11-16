@@ -13,7 +13,7 @@ This script runs performance tests for LoLa and generates results in a table.
     Specifies -bind parameter for secnetperf.
 
 .PARAMETER ResponseSizes
-    Specifies the response sizes for testing.
+    Specifies -response parameter for secnetperf.
 
 .PARAMETER NumIterations
     Specifies the number of iterations to be run.
