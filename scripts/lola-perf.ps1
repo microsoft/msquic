@@ -17,7 +17,7 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$Bind,
     [Parameter(Mandatory = $false)]
-    [Int32[]]$ResponseSizes = @(512),
+    [Int32[]]$ResponseSizes = @(512, 1024, 4096, 8192, 16384, 32768, 65536),
     [Parameter(Mandatory = $false)]
     [Int32]$NumIterations = 3
 )
