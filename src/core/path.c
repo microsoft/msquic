@@ -289,3 +289,25 @@ QuicPathSetActive(
     CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
     CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
 }
+
+#ifdef QUIC_ROUTE_EXTRAS
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPathResolveRoute(
+    _Inout_ QUIC_PATH* Path
+    )
+{
+    QUIC_STATUS Status =
+        CxPlatDataPathResolveRoute(
+            MsQuicLib.Datapath,
+            &Path->Route);
+    if (QUIC_SUCCEEDED(Status)) {
+        Status =
+            CxPlatDataPathLookupNextHop(
+                MsQuicLib.Datapath,
+                &Path->Route,
+                FALSE);
+    }
+    return Status;
+}
+#endif

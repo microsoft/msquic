@@ -266,6 +266,36 @@ CxPlatRemoveSocket(
 }
 
 //
+// Route resolution and next hop selection.
+//
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathResolveRoute(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_ROUTE* Route
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(Route);
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathLookupNextHop(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ BOOLEAN ForceSolicitation
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(Route);
+    UNREFERENCED_PARAMETER(ForceSolicitation);
+    return QUIC_STATUS_SUCCESS;
+}
+
+//
 // Ethernet / IP Framing Logic
 //
 

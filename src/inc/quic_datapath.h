@@ -149,6 +149,10 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
+#ifdef QUIC_ROUTE_EXTRAS
+    // TODO - Add extra stuff necessary for route resolution and next hop lookup.
+#endif // QUIC_ROUTE_EXTRAS
+
 } CXPLAT_ROUTE;
 
 //
@@ -382,6 +386,31 @@ CxPlatDataPathResolveAddress(
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     );
+
+#ifdef QUIC_ROUTE_EXTRAS
+
+//
+// Resolves a route.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathResolveRoute(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_ROUTE* Route
+    );
+
+//
+// Resolves a route.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathLookupNextHop(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ BOOLEAN ForceSolicitation
+    );
+
+#endif // QUIC_ROUTE_EXTRAS
 
 //
 // Values from RFC 2863

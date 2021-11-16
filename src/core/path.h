@@ -216,6 +216,16 @@ QuicPathSetActive(
     _In_ QUIC_PATH* Path
     );
 
+#ifdef QUIC_ROUTE_EXTRAS
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPathResolveRoute(
+    _Inout_ QUIC_PATH* Path
+    );
+#else
+#define QuicPathResolveRoute(Path) TRUE
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 _Success_(return != NULL)

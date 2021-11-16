@@ -197,6 +197,10 @@ QuicConnAlloc(
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
 
+        if (QUIC_FAILED(QuicPathResolveRoute(Path))) {
+            goto Error;
+        }
+
         Path->DestCid =
             QuicCidNewDestination(Packet->SourceCidLen, Packet->SourceCid);
         if (Path->DestCid == NULL) {
@@ -1821,6 +1825,10 @@ QuicConnStart(
         "[conn][%p] New Remote IP: %!ADDR!",
         Connection,
         CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
+
+    if (QUIC_FAILED(Status = QuicPathResolveRoute(Path))) {
+        goto Exit;
+    }
 
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->Route.LocalAddress : NULL;
@@ -4995,6 +5003,10 @@ QuicConnRecvPostProcessing(
                 Connection->Paths[0].SendChallenge = TRUE;
                 Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs32();
                 CxPlatRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
+            }
+
+            if (QUIC_FAILED(QuicPathResolveRoute(*Path))) {
+                return;
             }
 
             QuicSendSetSendFlag(
