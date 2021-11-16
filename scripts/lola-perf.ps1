@@ -6,7 +6,7 @@ This script runs performance tests for LoLa using secnetperf and generates resul
 .PARAMETER SecNetPerfBinary
     Specifies the secnetperf binary to use.
 
-.PARAMETER Server
+.PARAMETER Target
     Specifies -target parameter for secnetperf.
 
 .PARAMETER Bind
