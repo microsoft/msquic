@@ -6,16 +6,26 @@ This script runs performance tests for LoLa and generates results in a table.
 .PARAMETER Binary
     Specifies the build configuration to use.
 
-#>
+.PARAMETER Server
+    Specifies -target parameter for secnetperf.
 
+.PARAMETER Bind
+    Specifies -bind parameter for secnetperf.
+
+.PARAMETER ResponseSizes
+    Specifies the response sizes for testing.
+
+.PARAMETER NumIterations
+    Specifies the number of iterations to be run.
+#>
 
 param (
     [Parameter(Mandatory = $true)]
     [string]$Binary,
     [Parameter(Mandatory = $false)]
     [string]$Server = "quic-server",
-    [Parameter(Mandatory = $true)]
-    [string]$Bind,
+    [Parameter(Mandatory = $false)]
+    [string]$Bind = "0.0.0.0",
     [Parameter(Mandatory = $false)]
     [Int32[]]$ResponseSizes = @(512, 1024, 4096, 8192, 16384, 32768, 65536),
     [Parameter(Mandatory = $false)]
