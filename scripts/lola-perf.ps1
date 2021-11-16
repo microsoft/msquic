@@ -12,7 +12,7 @@ This script runs performance tests for LoLa using secnetperf and generates resul
 .PARAMETER Bind
     Specifies -bind parameter for secnetperf.
 
-.PARAMETER ResponseSizes
+.PARAMETER Responses
     Specifies -response parameter for secnetperf.
 
 .PARAMETER NumIterations
@@ -27,7 +27,7 @@ param (
     [Parameter(Mandatory = $false)]
     [string]$Bind = "0.0.0.0",
     [Parameter(Mandatory = $false)]
-    [Int32[]]$ResponseSizes = @(512, 1024, 4096, 8192, 16384, 32768, 65536),
+    [Int32[]]$Responses = @(512, 1024, 4096, 8192, 16384, 32768, 65536),
     [Parameter(Mandatory = $false)]
     [Int32]$NumIterations = 3
 )
@@ -77,8 +77,8 @@ function RunTest (
 
 [System.Collections.ArrayList]$Results = @()
 
-foreach ($ResponseSize in $ResponseSizes) {
-    $Result = RunTest $ResponseSize $NumIterations
+foreach ($Response in $Responses) {
+    $Result = RunTest $Response $NumIterations
     $_ = $Results.Add($Result)
 }
 
