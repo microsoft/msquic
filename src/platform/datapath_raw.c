@@ -203,11 +203,7 @@ CxPlatSocketCreateUdp(
     if (Config->LocalAddress) {
         (*NewSocket)->LocalAddress = *Config->LocalAddress;
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
-            if ((*NewSocket)->Connected) {
-                (*NewSocket)->LocalAddress = Datapath->ClientIP; // TODO - Remove this now that the OS should return a local address?
-                (*NewSocket)->LocalAddress.Ipv4.sin_port =
-                    Config->LocalAddress->Ipv4.sin_port;
-            } else {
+            if (!(*NewSocket)->Connected) {
                 (*NewSocket)->Wildcard = TRUE;
             }
         } else {
@@ -215,9 +211,7 @@ CxPlatSocketCreateUdp(
         }
     } else {
         QuicAddrSetFamily(&(*NewSocket)->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
-        if ((*NewSocket)->Connected) {
-            (*NewSocket)->LocalAddress = Datapath->ClientIP; // TODO - Remove this now that the OS should return a local address?
-        } else {
+        if (!(*NewSocket)->Connected) {
             (*NewSocket)->Wildcard = TRUE;
         }
     }

@@ -147,8 +147,6 @@ CxPlatXdpReadConfig(
 
     const uint8_t DefaultClientMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
     CxPlatCopyMemory(Xdp->ClientMac, DefaultClientMac, 6);
-    Xdp->ClientIP.si_family = AF_INET;
-    Xdp->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
 
     Xdp->IfIndex = IFI_UNSPECIFIED;
     Xdp->QueueCount = 1;
@@ -184,8 +182,6 @@ CxPlatXdpReadConfig(
             ValueToMac(Value, Xdp->ClientMac);
         } else if (strcmp(Line, "ServerIP") == 0) {
              QuicAddrFromString(Value, 0, &Xdp->ServerIP);
-        } else if (strcmp(Line, "ClientIP") == 0) {
-             QuicAddrFromString(Value, 0, &Xdp->ClientIP);
         } else if (strcmp(Line, "CpuGroup") == 0) {
              Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
              Xdp->Affinitize = TRUE;

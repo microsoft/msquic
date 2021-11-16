@@ -25,7 +25,6 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t ServerMac[6];
     uint8_t ClientMac[6];
     QUIC_ADDR ServerIP;
-    QUIC_ADDR ClientIP;
 
     // RSS stuff
     uint16_t Cpu;
