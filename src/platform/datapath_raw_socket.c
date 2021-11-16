@@ -19,6 +19,12 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+#ifdef _WIN32
+#define SocketError() WSAGetLastError()
+#else
+#define SocketError() errno
+#endif // _WIN32
+
 //
 // Socket Pool Logic
 //
@@ -31,6 +37,19 @@ CxPlatSockPoolInitialize(
     if (!CxPlatHashtableInitializeEx(&Pool->Sockets, CXPLAT_HASH_MIN_SIZE)) {
         return FALSE;
     }
+#ifdef _WIN32
+    int WsaError;
+    WSADATA WsaData;
+    if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            WsaError,
+            "WSAStartup");
+        CxPlatHashtableUninitialize(&Pool->Sockets);
+        return FALSE;
+    }
+#endif // _WIN32
     CxPlatRwLockInitialize(&Pool->Lock);
     return TRUE;
 }
@@ -40,6 +59,9 @@ CxPlatSockPoolUninitialize(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
     )
 {
+#ifdef _WIN32
+    (void)WSACleanup();
+#endif // _WIN32
     CxPlatRwLockUninitialize(&Pool->Lock);
     CxPlatHashtableUninitialize(&Pool->Sockets);
 }
@@ -80,27 +102,27 @@ CxPlatTryAddSocket(
     BOOLEAN Success = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
+    QUIC_ADDR MappedAddress = {0};
 
     //
-    // Get (and reserve) a transport layer port from tcpip.sys by binding an auxiliary socket.
+    // Get (and reserve) a transport layer port from tcpip.sys by binding an
+    // auxiliary (dual stack) socket, and binding and connecting the socket to
+    // the desired addresses.
     //
 
     Socket->AuxSocket =
-        WSASocketW(
+        socket(
             AF_INET6,
             SOCK_DGRAM,
-            IPPROTO_UDP,
-            NULL,
-            0,
-            WSA_FLAG_OVERLAPPED);
+            IPPROTO_UDP);
     if (Socket->AuxSocket == INVALID_SOCKET) {
-        int WsaError = WSAGetLastError();
+        int Error = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            WsaError,
-            "WSASocketW");
+            Error,
+            "socket");
         goto Error;
     }
 
@@ -113,52 +135,89 @@ CxPlatTryAddSocket(
             (char*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        int WsaError = WSAGetLastError();
+        int Error = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            WsaError,
+            Error,
             "Set IPV6_V6ONLY");
         goto Error;
     }
+
+    CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
+#if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
+    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedAddress.Ipv6.sin6_family = AF_INET6;
+    }
+#endif
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
     Result =
         bind(
             Socket->AuxSocket,
-            (PSOCKADDR)&Socket->LocalAddress,
-            sizeof(Socket->LocalAddress));
+            (struct sockaddr*)&MappedAddress,
+            sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
-        int WsaError = WSAGetLastError();
+        int Error = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            WsaError,
+            Error,
             "bind");
         CxPlatRwLockReleaseExclusive(&Pool->Lock);
         goto Error;
+    }
+
+    if (Socket->Connected) {
+        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        CxPlatConvertToMappedV6(&Socket->RemoteAddress, &MappedAddress);
+
+#if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+#endif
+
+        Result =
+            connect(
+                Socket->AuxSocket,
+                (struct sockaddr*)&MappedAddress,
+                sizeof(MappedAddress));
+        if (Result == SOCKET_ERROR) {
+            int Error = SocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Error,
+                "connect failed");
+            CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            goto Error;
+        }
     }
 
     int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
     Result =
         getsockname(
             Socket->AuxSocket,
-            (PSOCKADDR)&Socket->LocalAddress,
+            (struct sockaddr*)&Socket->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
-        int WsaError = WSAGetLastError();
+        int Error = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            WsaError,
+            Error,
             "getsockname");
         CxPlatRwLockReleaseExclusive(&Pool->Lock);
         goto Error;
     }
+
+    CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
     Success = TRUE;
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
@@ -178,6 +237,10 @@ CxPlatTryAddSocket(
 
 Error:
 
+    if (!Success && Socket->AuxSocket != INVALID_SOCKET) {
+        closesocket(Socket->AuxSocket);
+    }
+
     return Success;
 }
 
@@ -191,12 +254,12 @@ CxPlatRemoveSocket(
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
 
     if (closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
-        int WsaError = WSAGetLastError();
+        int Error = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            WsaError,
+            Error,
             "closesocket");
     }
 
