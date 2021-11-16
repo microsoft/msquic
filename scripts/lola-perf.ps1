@@ -1,0 +1,75 @@
+<#
+
+.SYNOPSIS
+This script runs performance tests for LoLa and generates results in a table.
+
+.PARAMETER Binary
+    Specifies the build configuration to use.
+
+#>
+
+
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$Binary,
+    [Parameter(Mandatory = $false)]
+    [string]$Server = "quic-server",
+    [Parameter(Mandatory = $true)]
+    [string]$Bind,
+    [Parameter(Mandatory = $false)]
+    [Int32[]]$ResponseSizes = @(512, 1024, 4096, 8192, 16384, 32768, 65536),
+    [Parameter(Mandatory = $false)]
+    [Int32]$NumIterations = 3
+)
+
+class TestResult {
+    [string]$Name
+    [double]$Min
+    [double]$P50
+    [double]$P90
+    [double]$P99
+    [double]$P999
+    [double]$P9999
+}
+
+function RunTest (
+    [string]$ResponseSize,
+    [Int32]$NumIterations
+    )
+{
+    $Result = [TestResult]::new()
+
+    for ($i = 0; $i -lt $NumIterations; $i++) {
+        $Output = Invoke-Expression  "$Binary -test:rps -target:$Server -bind:$Bind -conns:1 -requests:1 -request:512 -response:$ResponseSize"
+        $MatchResults = $Output | Select-String -Pattern "Result: .*? RPS, Min: (.*?), Max: .*?, 50th: (.*?), 90th: (.*?), 99th: (.*?), 99.9th: (.*?), 99.99th: (.*?),"
+        if (!$MatchResults) {
+            Write-Error "Failed to parse secnetperf output"
+        }
+
+        $Result.Name = $ResponseSize
+        $Result.Min += $MatchResults.MatchResults.Groups[1].Value
+        $Result.P50 += $MatchResults.MatchResults.Groups[2].Value
+        $Result.P90 += $MatchResults.MatchResults.Groups[3].Value
+        $Result.P99 += $MatchResults.MatchResults.Groups[4].Value
+        $Result.P999 += $MatchResults.MatchResults.Groups[5].Value
+        $Result.P9999 += $MatchResults.MatchResults.Groups[6].Value
+    }
+
+    $Result.Min /= $NumIterations
+    $Result.P50 /= $NumIterations
+    $Result.P90 /= $NumIterations
+    $Result.P99 /= $NumIterations
+    $Result.P999 /= $NumIterations
+    $Result.P9999 /= $NumIterations
+
+    return $Result
+}
+
+[System.Collections.ArrayList]$Results = @()
+
+foreach ($ResponseSize in $ResponseSizes) {
+    $Result = RunTest $ResponseSize $NumIterations
+    $_ = $Results.Add($Result)
+}
+
+$Results | Format-Table -AutoSize
