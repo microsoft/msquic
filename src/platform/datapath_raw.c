@@ -157,8 +157,10 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    *Address = Datapath->ServerIP;
-    return QUIC_STATUS_SUCCESS;
+    if (QuicAddrFromString(HostName, 0, Address)) {
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED; // TODO - Support name resolution
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
