@@ -23,8 +23,6 @@ Abstract:
 // Socket Pool Logic
 //
 
-#define HARDCODED_SOCK_POOL_START_PORT 32768
-
 BOOLEAN
 CxPlatSockPoolInitialize(
     _Inout_ CXPLAT_SOCKET_POOL* Pool
@@ -34,7 +32,6 @@ CxPlatSockPoolInitialize(
         return FALSE;
     }
     CxPlatRwLockInitialize(&Pool->Lock);
-    Pool->NextLocalPort = HARDCODED_SOCK_POOL_START_PORT;
     return TRUE;
 }
 
@@ -79,20 +76,91 @@ CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    BOOLEAN Success = TRUE;
+    int Result;
+    BOOLEAN Success = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
 
-    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+    //
+    // Get (and reserve) a transport layer port from tcpip.sys by binding an auxiliary socket.
+    //
 
-    if (Socket->LocalAddress.Ipv4.sin_port == 0) {
-        Socket->LocalAddress.Ipv4.sin_port = CxPlatByteSwapUint16(Pool->NextLocalPort);
-        Pool->NextLocalPort++;
-        if (Pool->NextLocalPort == 0) {
-            Pool->NextLocalPort = HARDCODED_SOCK_POOL_START_PORT;
-        }
+    Socket->AuxSocket =
+        WSASocketW(
+            AF_INET6,
+            SOCK_DGRAM,
+            IPPROTO_UDP,
+            NULL,
+            0,
+            WSA_FLAG_OVERLAPPED);
+    if (Socket->AuxSocket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "WSASocketW");
+        goto Error;
     }
 
+    int Option = FALSE;
+    Result =
+        setsockopt(
+            Socket->AuxSocket,
+            IPPROTO_IPV6,
+            IPV6_V6ONLY,
+            (char*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "Set IPV6_V6ONLY");
+        goto Error;
+    }
+
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+
+    Result =
+        bind(
+            Socket->AuxSocket,
+            (PSOCKADDR)&Socket->LocalAddress,
+            sizeof(Socket->LocalAddress));
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "bind");
+        CxPlatRwLockReleaseExclusive(&Pool->Lock);
+        goto Error;
+    }
+
+    int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+    Result =
+        getsockname(
+            Socket->AuxSocket,
+            (PSOCKADDR)&Socket->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "getsockname");
+        CxPlatRwLockReleaseExclusive(&Pool->Lock);
+        goto Error;
+    }
+
+    Success = TRUE;
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
@@ -105,7 +173,11 @@ CxPlatTryAddSocket(
     if (Success) {
         CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
     }
+
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
+
+Error:
+
     return Success;
 }
 
@@ -117,6 +189,17 @@ CxPlatRemoveSocket(
 {
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
+
+    if (closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "closesocket");
+    }
+
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
