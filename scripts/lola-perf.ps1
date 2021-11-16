@@ -17,19 +17,19 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$Bind,
     [Parameter(Mandatory = $false)]
-    [Int32[]]$ResponseSizes = @(512, 1024, 4096, 8192, 16384, 32768, 65536),
+    [Int32[]]$ResponseSizes = @(512),
     [Parameter(Mandatory = $false)]
     [Int32]$NumIterations = 3
 )
 
 class TestResult {
     [string]$Name
-    [double]$Min
-    [double]$P50
-    [double]$P90
-    [double]$P99
-    [double]$P999
-    [double]$P9999
+    [Int32]$Min
+    [Int32]$P50
+    [Int32]$P90
+    [Int32]$P99
+    [Int32]$P999
+    [Int32]$P9999
 }
 
 function RunTest (
@@ -46,21 +46,21 @@ function RunTest (
             Write-Error "Failed to parse secnetperf output"
         }
 
-        $Result.Name = $ResponseSize
-        $Result.Min += $MatchResults.Matches.Groups[1].Value
-        $Result.P50 += $MatchResults.Matches.Groups[2].Value
-        $Result.P90 += $MatchResults.Matches.Groups[3].Value
-        $Result.P99 += $MatchResults.Matches.Groups[4].Value
-        $Result.P999 += $MatchResults.Matches.Groups[5].Value
-        $Result.P9999 += $MatchResults.Matches.Groups[6].Value
+        $Result.ResponseSize = $ResponseSize
+        $Result.Min += [Int32]$MatchResults.Matches.Groups[1].Value
+        $Result.P50 += [Int32]$MatchResults.Matches.Groups[2].Value
+        $Result.P90 += [Int32]$MatchResults.Matches.Groups[3].Value
+        $Result.P99 += [Int32]$MatchResults.Matches.Groups[4].Value
+        $Result.P999 += [Int32]$MatchResults.Matches.Groups[5].Value
+        $Result.P9999 += [Int32]$MatchResults.Matches.Groups[6].Value
     }
 
-    $Result.Min /= $NumIterations
-    $Result.P50 /= $NumIterations
-    $Result.P90 /= $NumIterations
-    $Result.P99 /= $NumIterations
-    $Result.P999 /= $NumIterations
-    $Result.P9999 /= $NumIterations
+    $Result.Min = $Result.Min / $NumIterations
+    $Result.P50 = $Result.P50 / $NumIterations
+    $Result.P90 = $Result.P90 / $NumIterations
+    $Result.P99 = $Result.P99 / $NumIterations
+    $Result.P999 = $Result.P999 / $NumIterations
+    $Result.P9999 = $Result.P9999 / $NumIterations
 
     return $Result
 }
