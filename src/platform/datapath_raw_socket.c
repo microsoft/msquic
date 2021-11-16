@@ -380,7 +380,7 @@ CxPlatDpRawParseIPv4(
             Datapath,
             Length,
             "packet is too small for an IPv4 header");
-        goto Done;
+        return;
     }
 
     if (IP->VersionAndHeaderLength != IPV4_DEFAULT_VERHLEN) {
@@ -390,7 +390,7 @@ CxPlatDpRawParseIPv4(
             Datapath,
             IP->VersionAndHeaderLength,
             "unexpected IPv4 header length and version");
-        goto Done;
+        return;
     }
 
     if (IP->Protocol == IPPROTO_UDP) {
@@ -404,7 +404,7 @@ CxPlatDpRawParseIPv4(
                 Datapath,
                 Length,
                 "unexpected IPv4 packet size");
-            goto Done;
+            return;
         }
 
         Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
@@ -419,11 +419,7 @@ CxPlatDpRawParseIPv4(
             Datapath,
             IP->Protocol,
             "unacceptable v4 transport");
-        goto Done;
     }
-
-Done:
-    return;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -445,7 +441,7 @@ CxPlatDpRawParseIPv6(
             Datapath,
             Length,
             "packet is too small for an IPv6 header");
-        goto Done;
+        return;
     }
 
     if (IP->NextHeader == IPPROTO_UDP) {
@@ -458,7 +454,7 @@ CxPlatDpRawParseIPv6(
                 Datapath,
                 IPPayloadLength,
                 "incorrect IP payload length");
-            goto Done;
+            return;
         }
 
         Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
@@ -473,11 +469,7 @@ CxPlatDpRawParseIPv6(
             Datapath,
             IP->NextHeader,
             "unacceptable v6 transport");
-        goto Done;
     }
-
-Done:
-    return;
 }
 
 BOOLEAN IsEthernetBroadcast(_In_reads_(6) const uint8_t Address[6])
