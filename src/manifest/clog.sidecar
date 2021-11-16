@@ -8821,26 +8821,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "DataPathParserError": {
-      "ModuleProperites": {},
-      "TraceString": "[DpParser] ERROR, %u, %u, %s.",
-      "UniqueId": "DataPathParserError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "DatapathOpenTcpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] RSS helper socket failed to open, 0x%x",
@@ -13003,10 +12983,6 @@
       {
         "UniquenessHash": "20cf52f5-ef36-a45b-6a54-29e5eaac7f19",
         "TraceID": "DatapathSend"
-      },
-      {
-        "UniquenessHash": "10505cad-5eb2-a690-d807-c61ec96c243a",
-        "TraceID": "DataPathParserError"
       },
       {
         "UniquenessHash": "6eeae539-95db-bea9-7e36-8635006dae40",

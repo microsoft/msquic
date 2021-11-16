@@ -242,20 +242,20 @@ CxPlatDpRawParseIPv4(
 {
     if (Length < sizeof(IPV4_HEADER)) {
         QuicTraceEvent(
-            DataPathParserError,
-            "[DpParser] ERROR, %u, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             Length,
-            sizeof(IPV4_HEADER),
             "packet is too small for an IPv4 header");
         goto Done;
     }
 
     if (IP->HeaderLength * sizeof(uint32_t) != sizeof(IPV4_HEADER)) {
         QuicTraceEvent(
-            DataPathParserError,
-            "[DpParser] ERROR, %u, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             IP->HeaderLength * sizeof(uint32_t),
-            sizeof(IPV4_HEADER),
             "unexpected IPv4 header size");
         goto Done;
     }
@@ -266,10 +266,10 @@ CxPlatDpRawParseIPv4(
 
         if (Length != IPTotalLength) {
             QuicTraceEvent(
-                DataPathParserError,
-                "[DpParser] ERROR, %u, %u, %s.",
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Datapath,
                 Length,
-                IPTotalLength,
                 "unexpected IPv4 packet size");
             goto Done;
         }
@@ -281,10 +281,10 @@ CxPlatDpRawParseIPv4(
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else {
         QuicTraceEvent(
-            DataPathParserError,
-            "[DpParser] ERROR, %u, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             IP->Protocol,
-            IPPROTO_UDP,
             "unacceptable v4 transport");
         goto Done;
     }
@@ -307,10 +307,10 @@ CxPlatDpRawParseIPv6(
 
     if (Length < sizeof(IPV6_HEADER)) {
         QuicTraceEvent(
-            DataPathParserError,
-            "[DpParser] ERROR, %u, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             Length,
-            sizeof(IPV6_HEADER),
             "packet is too small for an IPv6 header");
         goto Done;
     }
@@ -320,10 +320,10 @@ CxPlatDpRawParseIPv6(
         IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
         if (IPPayloadLength != Length - sizeof(IPV6_HEADER)) {
             QuicTraceEvent(
-                DataPathParserError,
-                "[DpParser] ERROR, %u, %u, %s.",
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Datapath,
                 IPPayloadLength,
-                Length - sizeof(IPV6_HEADER),
                 "incorrect IP payload length");
             goto Done;
         }
@@ -335,10 +335,10 @@ CxPlatDpRawParseIPv6(
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(
-            DataPathParserError,
-            "[DpParser] ERROR, %u, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             IP->NextHeader,
-            IPPROTO_UDP,
             "unacceptable v6 transport");
         goto Done;
     }
@@ -368,6 +368,12 @@ CxPlatDpRawParseEthernet(
     )
 {
     if (Length < sizeof(ETHERNET_HEADER)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for an ethernet header");
         return;
     }
 
@@ -376,6 +382,12 @@ CxPlatDpRawParseEthernet(
     const ETHERNET_HEADER* Ethernet = (const ETHERNET_HEADER*)Payload;
 
     if (IsEthernetBroadcast(Ethernet->Destination) || IsEthernetMulticast(Ethernet->Destination)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            0,
+            "not a unicast packet");
         return;
     }
 
@@ -386,10 +398,10 @@ CxPlatDpRawParseEthernet(
         CxPlatDpRawParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
     } else {
         QuicTraceEvent(
-            DataPathParserError,
-            "[DpParser] ERROR, %u, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             EthernetType,
-            0,
             "unacceptable ethernet type");
     }
 }
