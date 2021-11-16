@@ -106,8 +106,7 @@ CxPlatTryAddSocket(
 
     //
     // Get (and reserve) a transport layer port from the OS networking stack by
-    // binding an auxiliary (dual stack) socket, and binding and connecting the
-    // socket to the desired addresses.
+    // binding an auxiliary (dual stack) socket.
     //
 
     Socket->AuxSocket =
