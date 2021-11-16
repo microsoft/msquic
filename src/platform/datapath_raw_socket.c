@@ -280,20 +280,8 @@ typedef struct ETHERNET_HEADER {
 } ETHERNET_HEADER;
 
 typedef struct IPV4_HEADER {
-    union {
-        UINT8 VersionAndHeaderLength;   // Version and header length.
-        struct {
-            UINT8 HeaderLength : 4;
-            UINT8 Version : 4;
-        };
-    };
-    union {
-        UINT8 TypeOfServiceAndEcnField; // Type of service & ECN (RFC 3168).
-        struct {
-            UINT8 EcnField : 2;
-            UINT8 TypeOfService : 6;
-        };
-    };
+    UINT8 VersionAndHeaderLength;
+    UINT8 TypeOfServiceAndEcnField;
     uint16_t TotalLength;
     uint16_t Identification;
     uint16_t FlagsAndFragmentOffset;
@@ -395,13 +383,13 @@ CxPlatDpRawParseIPv4(
         goto Done;
     }
 
-    if (IP->HeaderLength * sizeof(uint32_t) != sizeof(IPV4_HEADER)) {
+    if (IP->VersionAndHeaderLength != IPV4_DEFAULT_VERHLEN) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Datapath,
-            IP->HeaderLength * sizeof(uint32_t),
-            "unexpected IPv4 header size");
+            IP->VersionAndHeaderLength,
+            "unexpected IPv4 header length and version");
         goto Done;
     }
 

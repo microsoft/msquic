@@ -222,11 +222,11 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Datapath,
-            IP->HeaderLength * sizeof(uint32_t),
-            "unexpected IPv4 header size");
+            IP->VersionAndHeaderLength,
+            "unexpected IPv4 header length and version");
 // arg2 = arg2 = Datapath
-// arg3 = arg3 = IP->HeaderLength * sizeof(uint32_t)
-// arg4 = arg4 = "unexpected IPv4 header size"
+// arg3 = arg3 = IP->VersionAndHeaderLength
+// arg4 = arg4 = "unexpected IPv4 header length and version"
 ----------------------------------------------------------*/
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
