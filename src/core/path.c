@@ -298,12 +298,12 @@ QuicPathResolveRoute(
     )
 {
     QUIC_STATUS Status =
-        CxPlatDataPathResolveRoute(
+        CxPlatDataPathLookupRoute(
             MsQuicLib.Datapath,
             &Path->Route);
     if (QUIC_SUCCEEDED(Status)) {
         Status =
-            CxPlatDataPathLookupNextHop(
+            CxPlatDataPathResolveNextHop(
                 MsQuicLib.Datapath,
                 &Path->Route,
                 FALSE);

@@ -394,7 +394,7 @@ CxPlatDataPathResolveAddress(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathResolveRoute(
+CxPlatDataPathLookupRoute(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_ROUTE* Route
     );
@@ -404,7 +404,7 @@ CxPlatDataPathResolveRoute(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathLookupNextHop(
+CxPlatDataPathResolveNextHop(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ BOOLEAN ForceSolicitation
