@@ -542,7 +542,7 @@ CxPlatDpRawUninitialize(
             uint32_t StatsSize = sizeof(Stats);
             Status = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize);
             if (QUIC_SUCCEEDED(Status)) {
-                printf("]%u]rxDropped: %llu\n", i, Stats.rxDropped);
+                printf("[%u]rxDropped: %llu\n", i, Stats.rxDropped);
                 printf("[%u]rxInvalidDescriptors: %llu\n", i, Stats.rxInvalidDescriptors);
             }
             CloseHandle(Queue->RxXsk);
