@@ -123,13 +123,8 @@ CxPlatDpdkReadConfig(
     // Default config
     const uint8_t DefaultServerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
     CxPlatCopyMemory(Dpdk->ServerMac, DefaultServerMac, 6);
-    Dpdk->ServerIP.si_family = AF_INET;
-    Dpdk->ServerIP.Ipv4.sin_addr.S_un.S_addr = 0x01FFFFFF;
-
     const uint8_t DefaultClientMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
     CxPlatCopyMemory(Dpdk->ClientMac, DefaultClientMac, 6);
-    Dpdk->ClientIP.si_family = AF_INET;
-    Dpdk->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
 
     Dpdk->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
 
@@ -153,10 +148,6 @@ CxPlatDpdkReadConfig(
             ValueToMac(Value, Dpdk->ServerMac);
         } else if (strcmp(Line, "ClientMac") == 0) {
             ValueToMac(Value, Dpdk->ClientMac);
-        } else if (strcmp(Line, "ServerIP") == 0) {
-             QuicAddrFromString(Value, 0, &Dpdk->ServerIP);
-        } else if (strcmp(Line, "ClientIP") == 0) {
-             QuicAddrFromString(Value, 0, &Dpdk->ClientIP);
         } else if (strcmp(Line, "CPU") == 0) {
              Dpdk->Cpu = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "DeviceName") == 0) {
