@@ -47,12 +47,12 @@ function RunTest (
         }
 
         $Result.Name = $ResponseSize
-        $Result.Min += $MatchResults.MatchResults.Groups[1].Value
-        $Result.P50 += $MatchResults.MatchResults.Groups[2].Value
-        $Result.P90 += $MatchResults.MatchResults.Groups[3].Value
-        $Result.P99 += $MatchResults.MatchResults.Groups[4].Value
-        $Result.P999 += $MatchResults.MatchResults.Groups[5].Value
-        $Result.P9999 += $MatchResults.MatchResults.Groups[6].Value
+        $Result.Min += $MatchResults.Matches.Groups[1].Value
+        $Result.P50 += $MatchResults.Matches.Groups[2].Value
+        $Result.P90 += $MatchResults.Matches.Groups[3].Value
+        $Result.P99 += $MatchResults.Matches.Groups[4].Value
+        $Result.P999 += $MatchResults.Matches.Groups[5].Value
+        $Result.P9999 += $MatchResults.Matches.Groups[6].Value
     }
 
     $Result.Min /= $NumIterations
