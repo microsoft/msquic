@@ -23,7 +23,7 @@ param (
 )
 
 class TestResult {
-    [string]$Name
+    [string]$ResponseSize
     [Int32]$Min
     [Int32]$P50
     [Int32]$P90
