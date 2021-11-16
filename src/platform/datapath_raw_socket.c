@@ -135,8 +135,20 @@ typedef struct ETHERNET_HEADER {
 } ETHERNET_HEADER;
 
 typedef struct IPV4_HEADER {
-    uint8_t VersionAndHeaderLength;
-    uint8_t TypeOfService;
+    union {
+        UINT8 VersionAndHeaderLength;   // Version and header length.
+        struct {
+            UINT8 HeaderLength : 4;
+            UINT8 Version : 4;
+        };
+    };
+    union {
+        UINT8 TypeOfServiceAndEcnField; // Type of service & ECN (RFC 3168).
+        struct {
+            UINT8 EcnField : 2;
+            UINT8 TypeOfService : 6;
+        };
+    };
     uint16_t TotalLength;
     uint16_t Identification;
     uint16_t FlagsAndFragmentOffset;
@@ -228,33 +240,40 @@ CxPlatDpRawParseIPv4(
     _In_ uint16_t Length
     )
 {
-    uint16_t IPTotalLength;
-
     if (Length < sizeof(IPV4_HEADER)) {
+        QuicTraceEvent(
+            DataPathParserError,
+            "[DpParser] ERROR, %u, %u, %s.",
+            Length,
+            sizeof(IPV4_HEADER),
+            "packet is too small for an IPv4 header");
         goto Done;
     }
 
-    IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
-
-    if (IPTotalLength * sizeof(uint32_t) != sizeof(IPV4_HEADER)) {
+    if (IP->HeaderLength * sizeof(uint32_t) != sizeof(IPV4_HEADER)) {
         QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            IPTotalLength,
+            DataPathParserError,
+            "[DpParser] ERROR, %u, %u, %s.",
+            IP->HeaderLength * sizeof(uint32_t),
+            sizeof(IPV4_HEADER),
             "unexpected IPv4 header size");
         goto Done;
     }
 
-    if (Length != IPTotalLength) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Length,
-            "unexpected IPv4 packet size");
-        goto Done;
-    }
-
     if (IP->Protocol == IPPROTO_UDP) {
+        uint16_t IPTotalLength;
+        IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
+
+        if (Length != IPTotalLength) {
+            QuicTraceEvent(
+                DataPathParserError,
+                "[DpParser] ERROR, %u, %u, %s.",
+                Length,
+                IPTotalLength,
+                "unexpected IPv4 packet size");
+            goto Done;
+        }
+
         Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
         CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
         Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
@@ -262,9 +281,10 @@ CxPlatDpRawParseIPv4(
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else {
         QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            DataPathParserError,
+            "[DpParser] ERROR, %u, %u, %s.",
             IP->Protocol,
+            IPPROTO_UDP,
             "unacceptable v4 transport");
         goto Done;
     }
@@ -287,10 +307,11 @@ CxPlatDpRawParseIPv6(
 
     if (Length < sizeof(IPV6_HEADER)) {
         QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            DataPathParserError,
+            "[DpParser] ERROR, %u, %u, %s.",
             Length,
-            "packet is too small for an IP header");
+            sizeof(IPV6_HEADER),
+            "packet is too small for an IPv6 header");
         goto Done;
     }
 
@@ -299,12 +320,14 @@ CxPlatDpRawParseIPv6(
         IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
         if (IPPayloadLength != Length - sizeof(IPV6_HEADER)) {
             QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
+                DataPathParserError,
+                "[DpParser] ERROR, %u, %u, %s.",
                 IPPayloadLength,
+                Length - sizeof(IPV6_HEADER),
                 "incorrect IP payload length");
             goto Done;
         }
+
         Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
         CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
         Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
@@ -312,9 +335,10 @@ CxPlatDpRawParseIPv6(
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            DataPathParserError,
+            "[DpParser] ERROR, %u, %u, %s.",
             IP->NextHeader,
+            IPPROTO_UDP,
             "unacceptable v6 transport");
         goto Done;
     }
@@ -346,6 +370,7 @@ CxPlatDpRawParseEthernet(
     if (Length < sizeof(ETHERNET_HEADER)) {
         return;
     }
+
     Length -= sizeof(ETHERNET_HEADER);
 
     const ETHERNET_HEADER* Ethernet = (const ETHERNET_HEADER*)Payload;
@@ -361,10 +386,11 @@ CxPlatDpRawParseEthernet(
         CxPlatDpRawParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
     } else {
         QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            DataPathParserError,
+            "[DpParser] ERROR, %u, %u, %s.",
             EthernetType,
-            "unacceptable Ethernet type");
+            0,
+            "unacceptable ethernet type");
     }
 }
 
@@ -479,7 +505,7 @@ CxPlatFramingWriteHeaders(
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPV4_HEADER* IPv4 = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
-        IPv4->TypeOfService = 0;
+        IPv4->TypeOfServiceAndEcnField = 0;
         IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
