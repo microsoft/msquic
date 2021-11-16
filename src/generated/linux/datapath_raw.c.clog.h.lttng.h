@@ -25,6 +25,37 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathCreated
+// [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
+// QuicTraceEvent(
+        DatapathCreated,
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        *NewSocket,
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+// arg2 = arg2 = *NewSocket
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathCreated,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecv
 // [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
 // QuicTraceEvent(

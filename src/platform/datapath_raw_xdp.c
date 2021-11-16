@@ -145,13 +145,8 @@ CxPlatXdpReadConfig(
     // Default config
     const uint8_t DefaultServerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
     CxPlatCopyMemory(Xdp->ServerMac, DefaultServerMac, 6);
-    Xdp->ServerIP.si_family = AF_INET;
-    Xdp->ServerIP.Ipv4.sin_addr.S_un.S_addr = 0x01FFFFFF;
-
     const uint8_t DefaultClientMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
     CxPlatCopyMemory(Xdp->ClientMac, DefaultClientMac, 6);
-    Xdp->ClientIP.si_family = AF_INET;
-    Xdp->ClientIP.Ipv4.sin_addr.S_un.S_addr = 0x02FFFFFF;
 
     Xdp->IfIndex = IFI_UNSPECIFIED;
     Xdp->QueueCount = 1;
@@ -185,10 +180,6 @@ CxPlatXdpReadConfig(
             ValueToMac(Value, Xdp->ServerMac);
         } else if (strcmp(Line, "ClientMac") == 0) {
             ValueToMac(Value, Xdp->ClientMac);
-        } else if (strcmp(Line, "ServerIP") == 0) {
-             QuicAddrFromString(Value, 0, &Xdp->ServerIP);
-        } else if (strcmp(Line, "ClientIP") == 0) {
-             QuicAddrFromString(Value, 0, &Xdp->ClientIP);
         } else if (strcmp(Line, "CpuGroup") == 0) {
              Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
              Xdp->Affinitize = TRUE;
@@ -364,7 +355,7 @@ CxPlatDpRawInitialize(
         XskRingInitialize(&Queue->RxRing, &RxRingInfo.rx);
 
         XDP_RULE RxRule = {
-            .Match = XDP_MATCH_ALL,
+            .Match = XDP_MATCH_UDP,
             .Action = XDP_PROGRAM_ACTION_REDIRECT,
             .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
             .Redirect.Target = Queue->RxXsk,

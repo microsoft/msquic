@@ -29,13 +29,180 @@ extern "C" {
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            IP->Protocol,
-            "unacceptable tranport");
-// arg2 = arg2 = IP->Protocol
-// arg3 = arg3 = "unacceptable tranport"
+            WsaError,
+            "WSAStartup");
+// arg2 = arg2 = WsaError
+// arg3 = arg3 = "WSAStartup"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "socket");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Error
+// arg4 = arg4 = "socket"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "Set IPV6_V6ONLY");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Error
+// arg4 = arg4 = "Set IPV6_V6ONLY"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "bind");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Error
+// arg4 = arg4 = "bind"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Error,
+                "connect failed");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Error
+// arg4 = arg4 = "connect failed"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "getsockname");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Error
+// arg4 = arg4 = "getsockname"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "closesocket");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Error
+// arg4 = arg4 = "closesocket"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            IP->Protocol,
+            "unacceptable v4 transport");
+// arg2 = arg2 = IP->Protocol
+// arg3 = arg3 = "unacceptable v4 transport"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 
@@ -53,9 +220,9 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus , arg2, arg3);\
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->NextHeader,
-            "unacceptable tranport");
+            "unacceptable v6 transport");
 // arg2 = arg2 = IP->NextHeader
-// arg3 = arg3 = "unacceptable tranport"
+// arg3 = arg3 = "unacceptable v6 transport"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
