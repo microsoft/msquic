@@ -1,10 +1,10 @@
 <#
 
 .SYNOPSIS
-This script runs performance tests for LoLa and generates results in a table.
+This script runs performance tests for LoLa using secnetperf and generates results in a table.
 
-.PARAMETER Binary
-    Specifies the build configuration to use.
+.PARAMETER SecNetPerfBinary
+    Specifies the secnetperf binary to use.
 
 .PARAMETER Server
     Specifies -target parameter for secnetperf.
@@ -21,9 +21,9 @@ This script runs performance tests for LoLa and generates results in a table.
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$Binary,
+    [string]$SecNetPerfBinary,
     [Parameter(Mandatory = $false)]
-    [string]$Server = "quic-server",
+    [string]$Target = "quic-server",
     [Parameter(Mandatory = $false)]
     [string]$Bind = "0.0.0.0",
     [Parameter(Mandatory = $false)]
@@ -50,7 +50,7 @@ function RunTest (
     $Result = [TestResult]::new()
 
     for ($i = 0; $i -lt $NumIterations; $i++) {
-        $Output = Invoke-Expression  "$Binary -test:rps -target:$Server -bind:$Bind -conns:1 -requests:1 -request:512 -response:$ResponseSize"
+        $Output = Invoke-Expression  "$SecNetPerfBinary -test:rps -target:$Target -bind:$Bind -conns:1 -requests:1 -request:512 -response:$ResponseSize"
         $MatchResults = $Output | Select-String -Pattern "Result: .*? RPS, Min: (.*?), Max: .*?, 50th: (.*?), 90th: (.*?), 99th: (.*?), 99.9th: (.*?), 99.99th: (.*?),"
         if (!$MatchResults) {
             Write-Error "Failed to parse secnetperf output"
