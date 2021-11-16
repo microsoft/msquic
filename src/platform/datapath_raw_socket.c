@@ -228,25 +228,49 @@ CxPlatDpRawParseIPv4(
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(IPV4_HEADER)) {
-        return;
-    }
-    Length -= sizeof(IPV4_HEADER);
+    uint16_t IPTotalLength;
 
-    Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
-    Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
+    if (Length < sizeof(IPV4_HEADER)) {
+        goto Done;
+    }
+
+    IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
+
+    if (IPTotalLength * sizeof(uint32_t) != sizeof(IPV4_HEADER)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            IPTotalLength,
+            "unexpected IPv4 header size");
+        goto Done;
+    }
+
+    if (Length != IPTotalLength) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Length,
+            "unexpected IPv4 packet size");
+        goto Done;
+    }
 
     if (IP->Protocol == IPPROTO_UDP) {
-        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, Length);
+        Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
+        CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
+        Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
+        CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
+        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->Protocol,
             "unacceptable v4 transport");
+        goto Done;
     }
+
+Done:
+    return;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -260,25 +284,43 @@ CxPlatDpRawParseIPv6(
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(IPV6_HEADER)) {
-        return;
-    }
-    Length -= sizeof(IPV6_HEADER);
 
-    Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
-    Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
+    if (Length < sizeof(IPV6_HEADER)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Length,
+            "packet is too small for an IP header");
+        goto Done;
+    }
 
     if (IP->NextHeader == IPPROTO_UDP) {
-        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, ntohs(IP->PayloadLength));
+        uint16_t IPPayloadLength;
+        IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
+        if (IPPayloadLength != Length - sizeof(IPV6_HEADER)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                IPPayloadLength,
+                "incorrect IP payload length");
+            goto Done;
+        }
+        Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
+        CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
+        Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
+        CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
+        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             IP->NextHeader,
             "unacceptable v6 transport");
+        goto Done;
     }
+
+Done:
+    return;
 }
 
 BOOLEAN IsEthernetBroadcast(_In_reads_(6) const uint8_t Address[6])
