@@ -42,12 +42,23 @@ class TestResult {
     [Int32]$P9999
 }
 
+[Int32]$script:TotalNumTestCases = 0
+[Int32]$script:NumTestCasesCompleted = 0
+
 function RunTest (
     [string]$ResponseSize,
     [Int32]$NumIterations
     )
 {
     $Result = [TestResult]::new()
+    $Result.ResponseSize = $ResponseSize
+
+    [System.Collections.ArrayList]$Min = @()
+    [System.Collections.ArrayList]$P50 = @();
+    [System.Collections.ArrayList]$P90 = @();
+    [System.Collections.ArrayList]$P99 = @();
+    [System.Collections.ArrayList]$P999 = @();
+    [System.Collections.ArrayList]$P9999 = @();
 
     for ($i = 0; $i -lt $NumIterations; $i++) {
         $Output = Invoke-Expression  "$SecNetPerfBinary -test:rps -target:$Target -bind:$Bind -conns:1 -requests:1 -request:512 -response:$ResponseSize"
@@ -56,26 +67,30 @@ function RunTest (
             Write-Error "Failed to parse secnetperf output"
         }
 
-        $Result.ResponseSize = $ResponseSize
-        $Result.Min += [Int32]$MatchResults.Matches.Groups[1].Value
-        $Result.P50 += [Int32]$MatchResults.Matches.Groups[2].Value
-        $Result.P90 += [Int32]$MatchResults.Matches.Groups[3].Value
-        $Result.P99 += [Int32]$MatchResults.Matches.Groups[4].Value
-        $Result.P999 += [Int32]$MatchResults.Matches.Groups[5].Value
-        $Result.P9999 += [Int32]$MatchResults.Matches.Groups[6].Value
+        $_ = $Min.Add([Int32]$MatchResults.Matches.Groups[1].Value)
+        $_ = $P50.Add([Int32]$MatchResults.Matches.Groups[2].Value)
+        $_ = $P90.Add([Int32]$MatchResults.Matches.Groups[3].Value)
+        $_ = $P99.Add([Int32]$MatchResults.Matches.Groups[4].Value)
+        $_ = $P999.Add([Int32]$MatchResults.Matches.Groups[5].Value)
+        $_ = $P9999.Add([Int32]$MatchResults.Matches.Groups[6].Value)
+
+        $script:NumTestCasesCompleted += 1
+        Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete (($script:NumTestCasesCompleted / $script:TotalNumTestCases) * 100)
     }
 
-    $Result.Min = $Result.Min / $NumIterations
-    $Result.P50 = $Result.P50 / $NumIterations
-    $Result.P90 = $Result.P90 / $NumIterations
-    $Result.P99 = $Result.P99 / $NumIterations
-    $Result.P999 = $Result.P999 / $NumIterations
-    $Result.P9999 = $Result.P9999 / $NumIterations
+    $Result.Min = $Min[$Min.Count / 2]
+    $Result.P50 = $P50[$Min.Count / 2]
+    $Result.P90 = $P90[$Min.Count / 2]
+    $Result.P99 = $P99[$Min.Count / 2]
+    $Result.P999 = $P999[$Min.Count / 2]
+    $Result.P9999 = $P9999[$Min.Count / 2]
 
     return $Result
 }
 
 [System.Collections.ArrayList]$Results = @()
+
+$script:TotalNumTestCases = $Responses.Count * $NumIterations
 
 foreach ($Response in $Responses) {
     $Result = RunTest $Response $NumIterations
