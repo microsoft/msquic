@@ -390,7 +390,7 @@ CxPlatDataPathResolveAddress(
 #ifdef QUIC_ROUTE_EXTRAS
 
 //
-// Resolves a route.
+// Look up a route.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -400,7 +400,7 @@ CxPlatDataPathLookupRoute(
     );
 
 //
-// Resolves a route.
+// Resolves a next hop.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
