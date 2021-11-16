@@ -58,6 +58,7 @@ typedef struct XDP_DATAPATH {
 
     BOOLEAN Running;
     CXPLAT_THREAD WorkerThread;
+    CXPLAT_THREAD ExtraWorkerThreads[64];
     XDP_QUEUE* Queues;
 
     // Constants
@@ -70,6 +71,7 @@ typedef struct XDP_DATAPATH {
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
     uint32_t QueueCount;
+    uint32_t ExtraThreads;
     BOOL Affinitize;
     BOOL TxAlwaysPoke;
 } XDP_DATAPATH;
@@ -107,6 +109,7 @@ CxPlatDataPathRecvDataToRecvPacket(
 }
 
 CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context);
+CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context);
 
 // TODO: common with DPDK and/or UDP/IP/ETH lib.
 void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
@@ -202,6 +205,15 @@ CxPlatXdpReadConfig(
              Xdp->TxRingSize = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "TxAlwaysPoke") == 0) {
              Xdp->TxAlwaysPoke = !!strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "SkipXsum") == 0) {
+            BOOLEAN State = !!strtoul(Value, NULL, 10);
+            Xdp->OffloadStatus.Transmit.NetworkLayerXsum = State;
+            Xdp->OffloadStatus.Transmit.TransportLayerXsum = State;
+            Xdp->OffloadStatus.Receive.NetworkLayerXsum = State;
+            Xdp->OffloadStatus.Receive.TransportLayerXsum = State;
+            printf("SkipXsum: %u\n", State);
+        } else if (strcmp(Line, "ExtraThreads") == 0) {
+            Xdp->ExtraThreads = strtoul(Value, NULL, 10);
         }
     }
 
@@ -488,6 +500,19 @@ CxPlatDpRawInitialize(
             Status,
             "CxPlatThreadCreate");
         goto Error;
+    }
+
+    Config.Callback = CxPlatXdpExtraWorkerThread;
+    for (uint32_t i = 0; i < Xdp->ExtraThreads; ++i) {
+        Status = CxPlatThreadCreate(&Config, &Xdp->ExtraWorkerThreads[i]);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatThreadCreate");
+            goto Error;
+        }
     }
 
 Error:
@@ -828,6 +853,25 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
         (void)CxPlatRunExecutionContexts(ThreadID);
 #endif
         }
+    }
+
+    return 0;
+}
+
+CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context)
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
+
+    if (Xdp->Affinitize) {
+        GROUP_AFFINITY Affinity = {0};
+
+        Affinity.Group = Xdp->DatapathCpuGroup;
+        Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
+        SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
+    }
+
+    while (Xdp->Running) {
+        CxPlatTimeUs64();
     }
 
     return 0;
