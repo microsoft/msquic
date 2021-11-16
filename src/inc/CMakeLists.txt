@@ -43,6 +43,9 @@ endif()
 
 if(WIN32)
     target_link_libraries(base_link INTERFACE ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
+    if (_MSVC_CXX_ARCHITECTURE_FAMILY STREQUAL "ARM64EC")
+        target_link_libraries(base_link INTERFACE softintrin)
+    endif()
 endif()
 
 add_library(warnings INTERFACE)
