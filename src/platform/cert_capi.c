@@ -698,6 +698,177 @@ Exit:
 }
 
 _Success_(return != 0)
+QUIC_STATUS
+CxPlatGetPortableCertificate(
+    _In_ QUIC_CERTIFICATE* Certificate,
+    _Out_ QUIC_BUFFER* PortableCertificate,
+    _Out_ QUIC_BUFFER* CertificateChain
+    )
+{
+    QUIC_STATUS Status;
+    DWORD LastError;
+    CERT_CHAIN_PARA ChainPara;
+    CERT_ENHKEY_USAGE EnhKeyUsage;
+    CERT_USAGE_MATCH CertUsage;
+    PCCERT_CHAIN_CONTEXT ChainContext;
+    PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
+    HCERTSTORE TempCertStore = NULL;
+    CERT_BLOB Blob = {0};
+
+    PortableCertificate->Buffer = CertCtx->pbCertEncoded;
+    PortableCertificate->Length = CertCtx->cbCertEncoded;
+    CertificateChain->Buffer = NULL;
+    CertificateChain->Length = 0;
+
+    EnhKeyUsage.cUsageIdentifier = 0;
+    EnhKeyUsage.rgpszUsageIdentifier = NULL;
+    CertUsage.dwType = USAGE_MATCH_TYPE_AND;
+    CertUsage.Usage = EnhKeyUsage;
+    ChainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+    ChainPara.RequestedUsage = CertUsage;
+
+    if (!CertGetCertificateChain(
+            NULL,  // default chain engine
+            CertCtx,
+            NULL,
+            NULL,
+            &ChainPara,
+            0,
+            NULL,
+            &ChainContext)) {
+        LastError = GetLastError();
+        Status = LastError;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertGetCertificateChain failed");
+        goto Exit;
+    }
+
+    TempCertStore =
+        CertOpenStore(
+            CERT_STORE_PROV_MEMORY,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_STORE_ENUM_ARCHIVED_FLAG,
+            NULL);
+    if (NULL == TempCertStore) {
+        LastError = GetLastError();
+        Status = LastError;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertOpenStore failed");
+        goto Exit;
+    }
+
+    for (DWORD i = 0; i < ChainContext->cChain; ++i) {
+        PCERT_SIMPLE_CHAIN SimpleChain = ChainContext->rgpChain[i];
+        for (DWORD j = 0; j < SimpleChain->cElement; ++j) {
+            PCERT_CHAIN_ELEMENT Element = SimpleChain->rgpElement[j];
+            PCCERT_CONTEXT EncodedCert = Element->pCertContext;
+            if (!CertAddCertificateLinkToStore(
+                    TempCertStore,
+                    EncodedCert,
+                    CERT_STORE_ADD_ALWAYS,
+                    NULL)) {
+                LastError = GetLastError();
+                Status = LastError;
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    LastError,
+                    "CertAddCertificateLinkToStore failed");
+                goto Exit;
+            }
+        }
+    }
+
+    if (!CertSaveStore(
+            TempCertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            CERT_STORE_SAVE_AS_PKCS7,
+            CERT_STORE_SAVE_TO_MEMORY,
+            &Blob,
+            0)) {
+        LastError = GetLastError();
+        Status = LastError;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertSaveStore failed");
+        goto Exit;
+    }
+
+    Blob.pbData = CXPLAT_ALLOC_NONPAGED(Blob.cbData, QUIC_POOL_TLS_PFX);
+    if (Blob.pbData == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PKCS7 data",
+            Blob.cbData);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+
+    if (!CertSaveStore(
+            TempCertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            CERT_STORE_SAVE_AS_PKCS7,
+            CERT_STORE_SAVE_TO_MEMORY,
+            &Blob,
+            0)) {
+        LastError = GetLastError();
+        Status = LastError;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertSaveStore failed");
+        goto Exit;
+    }
+
+    CertificateChain->Length = Blob.cbData;
+    CertificateChain->Buffer = Blob.pbData;
+
+    Blob.pbData = NULL;
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+
+    if (Blob.pbData != NULL) {
+        CXPLAT_FREE(Blob.pbData, QUIC_POOL_TLS_PFX);
+    }
+
+    if (TempCertStore != NULL) {
+        CertCloseStore(TempCertStore, 0);
+    }
+
+    if (ChainContext != NULL) {
+        CertFreeCertificateChain(ChainContext);
+    }
+
+    return Status;
+}
+
+void
+CxPlatFreePortableCertificate(
+    _In_ QUIC_BUFFER* PortableCertificate,
+    _In_ QUIC_BUFFER* CertificateChain
+    )
+{
+    UNREFERENCED_PARAMETER(PortableCertificate);
+    if (CertificateChain->Buffer != NULL) {
+        CXPLAT_FREE(CertificateChain->Buffer, QUIC_POOL_TLS_PFX);
+    }
+}
+
+_Success_(return != 0)
 size_t
 CxPlatCertFormat(
     _In_opt_ QUIC_CERTIFICATE* Certificate,

@@ -947,9 +947,11 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+#ifdef _KERNEL_MODE
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
-       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported yet.
+       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported in kernel mode.
     }
+#endif
 
     switch (CredConfig->Type) {
     case QUIC_CREDENTIAL_TYPE_NONE:
@@ -2072,6 +2074,22 @@ CxPlatTlsWriteDataToSchannel(
                 }
 #ifndef _KERNEL_MODE
                 CXPLAT_DBG_ASSERT(PeerCert != NULL);
+                QUIC_BUFFER PortableCertificate = {0};
+                QUIC_BUFFER PortableChain = {0};
+
+                if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+                    QUIC_STATUS Status =
+                        CxPlatGetPortableCertificate(
+                            (QUIC_CERTIFICATE*)PeerCert,
+                            &PortableCertificate,
+                            &PortableChain);
+                    if (QUIC_FAILED(Status)) {
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                        break;
+                    }
+                }
+
 #endif
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
@@ -2079,8 +2097,8 @@ CxPlatTlsWriteDataToSchannel(
                         (QUIC_CERTIFICATE*)&PeerCert,
                         (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
 #else
-                        (QUIC_CERTIFICATE*)PeerCert,
-                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
+                        (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE*)&PortableCertificate : (QUIC_CERTIFICATE*)PeerCert,
+                        (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)PeerCert->hCertStore,
 #endif
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
@@ -2091,6 +2109,7 @@ CxPlatTlsWriteDataToSchannel(
                         "Indicate certificate received failed");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
                     State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                    }
                     break;
                 }
 
@@ -2099,6 +2118,7 @@ CxPlatTlsWriteDataToSchannel(
                     FreeContextBuffer(PeerCert.pbCertificateChain);
                 }
 #else
+                CxPlatFreePortableCertificate(&PortableCertificate, &PortableChain);
                 if (PeerCert != NULL) {
                     CertFreeCertificateContext(PeerCert);
                 }

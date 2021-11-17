@@ -61,6 +61,26 @@ CxPlatCertParseChain(
     );
 
 //
+// Gets a portable certificate and chain in PKCS7 format.
+//
+_Success_(return != 0)
+QUIC_STATUS
+CxPlatGetPortableCertificate(
+    _In_ QUIC_CERTIFICATE* Certificate,
+    _Out_ QUIC_BUFFER* PortableCertificate,
+    _Out_ QUIC_BUFFER* CertificateChain
+    );
+
+//
+// Frees a portable certificate and chain returned from CxPlatGetPortableCertificate
+//
+void
+CxPlatFreePortableCertificate(
+    _In_ QUIC_BUFFER* PortableCertificate,
+    _In_ QUIC_BUFFER* CertificateChain
+    );
+
+//
 // Converts a certificate to the wireformat. Returns the length of the encoded
 // data.
 //
