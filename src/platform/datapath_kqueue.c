@@ -1440,8 +1440,8 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const CXPLAT_ROUTE* Route = Config->Route;
-    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.si_family != AF_UNSPEC;
-    const BOOLEAN HasLocalAddr = Route->LocalAddress.si_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
+    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.Ip.sa_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = Route->LocalAddress.Ip.sa_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
     const BOOLEAN IsServerSocket = !HasRemoteAddr;
     int32_t SuccessfulStartReceives = -1;
 

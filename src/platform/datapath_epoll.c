@@ -985,8 +985,8 @@ CxPlatSocketContextInitialize(
     int Option = 0;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
-    const BOOLEAN HasRemoteAddr = RemoteAddress->si_family != AF_UNSPEC;
-    const BOOLEAN HasLocalAddr = LocalAddress->si_family != AF_UNSPEC || LocalAddress->Ipv4.sin_port != 0;
+    const BOOLEAN HasRemoteAddr = RemoteAddress->Ip.sa_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = LocalAddress->Ip.sa_family != AF_UNSPEC || LocalAddress->Ipv4.sin_port != 0;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
@@ -1834,8 +1834,8 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const CXPLAT_ROUTE* Route = Config->Route;
-    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.si_family != AF_UNSPEC;
-    const BOOLEAN HasLocalAddr = Route->LocalAddress.si_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
+    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.Ip.sa_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = Route->LocalAddress.Ip.sa_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
     BOOLEAN IsServerSocket = !HasRemoteAddr;
     int32_t SuccessfulStartReceives = -1;
 
@@ -1873,8 +1873,8 @@ CxPlatSocketCreateUdp(
     Binding->HasFixedRemoteAddress = HasRemoteAddr;
     Binding->Mtu = CXPLAT_MAX_MTU;
     CxPlatRundownInitialize(&Binding->Rundown);
-    if (Config->LocalAddress) {
-        CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
+    if (HasLocalAddr) {
+        CxPlatConvertToMappedV6(&Route->LocalAddress, &Binding->LocalAddress);
     } else {
         Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
