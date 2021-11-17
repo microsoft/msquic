@@ -28,6 +28,7 @@ Abstract:
 #include <rte_lcore.h>
 #include <rte_debug.h>
 #include <rte_ethdev.h>
+#include <rte_mbuf_core.h>
 
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
@@ -505,11 +506,22 @@ CxPlatDpdkRx(
     for (uint16_t i = 0; i < BuffersCount; i++) {
         struct rte_mbuf* Buffer = (struct rte_mbuf*)Buffers[i];
         Packet.Buffer = NULL;
-        CxPlatDpRawParseEthernet(
-            (CXPLAT_DATAPATH*)Dpdk,
-            (CXPLAT_RECV_DATA*)&Packet,
-            ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
-            Buffer->pkt_len);
+        if ((Buffer->ol_flags & (PKT_RX_IP_CKSUM_BAD | PKT_RX_L4_CKSUM_BAD)) == 0) {
+            CxPlatDpRawParseEthernet(
+                (CXPLAT_DATAPATH*)Dpdk,
+                (CXPLAT_RECV_DATA*)&Packet,
+                ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
+                Buffer->pkt_len);
+        } else {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Buffer->ol_flags,
+                "L3/L4 checksum incorrect");
+            CXPLAT_DBG_ASSERT(
+                Dpdk->OffloadStatus.Receive.NetworkLayerXsum != 0 ||
+                Dpdk->OffloadStatus.Receive.TransportLayerXsum != 0);
+        }
 
         DPDK_RX_PACKET* NewPacket;
         if (likely(Packet.Buffer && (NewPacket = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool)) != NULL)) {
