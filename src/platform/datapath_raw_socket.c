@@ -266,7 +266,7 @@ CxPlatRemoveSocket(
 }
 
 //
-// Route resolution and next hop selection.
+// Route lookup and next hop resolution.
 //
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

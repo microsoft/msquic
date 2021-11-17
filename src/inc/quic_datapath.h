@@ -150,7 +150,7 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR LocalAddress;
 
 #ifdef QUIC_ROUTE_EXTRAS
-    // TODO - Add extra stuff necessary for route resolution and next hop lookup.
+    // TODO - Add extra stuff necessary for route lookup and next hop resolution.
 #endif // QUIC_ROUTE_EXTRAS
 
 } CXPLAT_ROUTE;
