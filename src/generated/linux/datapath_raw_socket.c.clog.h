@@ -187,66 +187,240 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for an IPv4 header");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = Length
+// arg4 = arg4 = "packet is too small for an IPv4 header"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            IP->VersionAndHeaderLength,
+            "unexpected IPv4 header length and version");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = IP->VersionAndHeaderLength
+// arg4 = arg4 = "unexpected IPv4 header length and version"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Datapath,
+                Length,
+                "unexpected IPv4 packet size");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = Length
+// arg4 = arg4 = "unexpected IPv4 packet size"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             IP->Protocol,
             "unacceptable v4 transport");
-// arg2 = arg2 = IP->Protocol
-// arg3 = arg3 = "unacceptable v4 transport"
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = IP->Protocol
+// arg4 = arg4 = "unacceptable v4 transport"
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
 #endif
 
 
 
 
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for an IPv6 header");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = Length
+// arg4 = arg4 = "packet is too small for an IPv6 header"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Datapath,
+                IPPayloadLength,
+                "incorrect IP payload length");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = IPPayloadLength
+// arg4 = arg4 = "incorrect IP payload length"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
             IP->NextHeader,
             "unacceptable v6 transport");
-// arg2 = arg2 = IP->NextHeader
-// arg3 = arg3 = "unacceptable v6 transport"
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = IP->NextHeader
+// arg4 = arg4 = "unacceptable v6 transport"
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
 #endif
 
 
 
 
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            EthernetType,
-            "unacceptable Ethernet type");
-// arg2 = arg2 = EthernetType
-// arg3 = arg3 = "unacceptable Ethernet type"
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for an ethernet header");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = Length
+// arg4 = arg4 = "packet is too small for an ethernet header"
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            0,
+            "not a unicast packet");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = 0
+// arg4 = arg4 = "not a unicast packet"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            EthernetType,
+            "unacceptable ethernet type");
+// arg2 = arg2 = Datapath
+// arg3 = arg3 = EthernetType
+// arg4 = arg4 = "unacceptable ethernet type"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
 #endif
 
