@@ -1588,6 +1588,83 @@ CxPlatTlsUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsIndicateCertificateReceived(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_PROCESS_STATE* State,
+    _In_ SecPkgContext_CertificateValidationResult* CertValidationResult
+    )
+{
+    SECURITY_STATUS SecStatus;
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
+
+#ifdef _KERNEL_MODE
+    SecPkgContext_Certificates PeerCert;
+    CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
+    SecStatus =
+        QueryContextAttributesW(
+            &TlsContext->SchannelContext,
+            SECPKG_ATTR_REMOTE_CERTIFICATES,
+            (PVOID)&PeerCert);
+#else
+    PCCERT_CONTEXT PeerCert = NULL;
+    SecStatus =
+        QueryContextAttributesW(
+            &TlsContext->SchannelContext,
+            SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+            (PVOID)&PeerCert);
+#endif
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "Query peer cert");
+        Result |= CXPLAT_TLS_RESULT_ERROR;
+        State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+        goto Exit;
+    }
+#ifndef _KERNEL_MODE
+    CXPLAT_DBG_ASSERT(PeerCert != NULL);
+#endif
+    if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+#ifdef _KERNEL_MODE
+            (QUIC_CERTIFICATE*)&PeerCert,
+            (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
+#else
+            (QUIC_CERTIFICATE*)PeerCert,
+            (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
+#endif
+            CertValidationResult->dwChainErrorStatus,
+            (QUIC_STATUS)CertValidationResult->hrVerifyChainStatus)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        Result |= CXPLAT_TLS_RESULT_ERROR;
+        State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+        goto Exit;
+    }
+
+Exit:
+
+#ifdef _KERNEL_MODE
+    if (PeerCert.pbCertificateChain != NULL) {
+        FreeContextBuffer(PeerCert.pbCertificateChain);
+    }
+#else
+    if (PeerCert != NULL) {
+        CertFreeCertificateContext(PeerCert);
+    }
+#endif
+
+    return Result;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsWriteDataToSchannel(
     _In_ CXPLAT_TLS* TlsContext,
     _In_reads_(*InBufferLength)
@@ -2045,69 +2122,11 @@ CxPlatTlsWriteDataToSchannel(
             }
 
             if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
-
-#ifdef _KERNEL_MODE
-                SecPkgContext_Certificates PeerCert;
-                CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
-                SecStatus =
-                    QueryContextAttributesW(
-                        &TlsContext->SchannelContext,
-                        SECPKG_ATTR_REMOTE_CERTIFICATES,
-                        (PVOID)&PeerCert);
-#else
-                PCCERT_CONTEXT PeerCert = NULL;
-                SecStatus =
-                    QueryContextAttributesW(
-                        &TlsContext->SchannelContext,
-                        SECPKG_ATTR_REMOTE_CERT_CONTEXT,
-                        (PVOID)&PeerCert);
-#endif
-                if (SecStatus != SEC_E_OK) {
-                    QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "Query peer cert");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
-                    goto IndicateReceivedCleanup;
-                }
-#ifndef _KERNEL_MODE
-                CXPLAT_DBG_ASSERT(PeerCert != NULL);
-#endif
-                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                        TlsContext->Connection,
-#ifdef _KERNEL_MODE
-                        (QUIC_CERTIFICATE*)&PeerCert,
-                        (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
-#else
-                        (QUIC_CERTIFICATE*)PeerCert,
-                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
-#endif
-                        CertValidationResult.dwChainErrorStatus,
-                        (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Indicate certificate received failed");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
-                    goto IndicateReceivedCleanup;
-                }
-
-IndicateReceivedCleanup:
-
-#ifdef _KERNEL_MODE
-                if (PeerCert.pbCertificateChain != NULL) {
-                    FreeContextBuffer(PeerCert.pbCertificateChain);
-                }
-#else
-                if (PeerCert != NULL) {
-                    CertFreeCertificateContext(PeerCert);
-                }
-#endif
+                Result |=
+                     CxPlatTlsIndicateCertificateReceived(
+                        TlsContext,
+                        State,
+                        &CertValidationResult);
                 if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
                     break;
                 }
