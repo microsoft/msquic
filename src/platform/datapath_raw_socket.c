@@ -280,8 +280,8 @@ typedef struct ETHERNET_HEADER {
 } ETHERNET_HEADER;
 
 typedef struct IPV4_HEADER {
-    UINT8 VersionAndHeaderLength;
-    UINT8 TypeOfServiceAndEcnField;
+    uint8_t VersionAndHeaderLength;
+    uint8_t TypeOfServiceAndEcnField;
     uint16_t TotalLength;
     uint16_t Identification;
     uint16_t FlagsAndFragmentOffset;
