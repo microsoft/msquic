@@ -232,7 +232,7 @@ protected:
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
             ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
-            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+            if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
                 ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
 
@@ -245,12 +245,11 @@ protected:
                 VERIFY_QUIC_SUCCESS(
                     CxPlatSocketSend(
                         Socket,
-                        &RecvData->Tuple->LocalAddress,
-                        &RecvData->Tuple->RemoteAddress,
+                        RecvData->Route,
                         ServerSendData,
                         0));
 
-            } else if (RecvData->Tuple->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
+            } else if (RecvData->Route->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
                 CxPlatEventSet(RecvContext->ClientCompletion);
 
             } else {
@@ -506,11 +505,13 @@ struct CxPlatSocket {
         _In_ uint16_t PartitionId = 0
         ) const noexcept
     {
+        CXPLAT_ROUTE Route;
+        Route.LocalAddress = LocalAddress;
+        Route.RemoteAddress = RemoteAddress;
         return
             CxPlatSocketSend(
                 Socket,
-                &LocalAddress,
-                &RemoteAddress,
+                &Route,
                 SendData,
                 PartitionId);
     }
@@ -924,14 +925,14 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, SendBuffer);
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    QUIC_ADDR ServerAddress = Listener.GetLocalAddress();
-    QUIC_ADDR ClientAddress = Client.GetLocalAddress();
+    CXPLAT_ROUTE Route;
+    Route.LocalAddress = Listener.GetLocalAddress();
+    Route.RemoteAddress = Client.GetLocalAddress();
 
     VERIFY_QUIC_SUCCESS(
         CxPlatSocketSend(
             ListenerContext.Server,
-            &ServerAddress,
-            &ClientAddress,
+            &Route,
             SendData, 0));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 }
