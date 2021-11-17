@@ -2069,6 +2069,9 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         SecStatus,
                         "Query peer cert");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                    goto IndicateReceivedCleanup;
                 }
 #ifndef _KERNEL_MODE
                 CXPLAT_DBG_ASSERT(PeerCert != NULL);
@@ -2091,8 +2094,10 @@ CxPlatTlsWriteDataToSchannel(
                         "Indicate certificate received failed");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
                     State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
-                    break;
+                    goto IndicateReceivedCleanup;
                 }
+
+IndicateReceivedCleanup:
 
 #ifdef _KERNEL_MODE
                 if (PeerCert.pbCertificateChain != NULL) {
@@ -2103,6 +2108,9 @@ CxPlatTlsWriteDataToSchannel(
                     CertFreeCertificateContext(PeerCert);
                 }
 #endif
+                if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
+                    break;
+                }
             }
 
             if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
