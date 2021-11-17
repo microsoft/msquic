@@ -436,8 +436,14 @@ struct CxPlatSocket {
         ) noexcept
     {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
-        UdpConfig.LocalAddress = LocalAddress;
-        UdpConfig.RemoteAddress = RemoteAddress;
+        CXPLAT_ROUTE Route = {0};
+        if (LocalAddress) {
+            Route.LocalAddress = *LocalAddress;
+        }
+        if (RemoteAddress) {
+            Route.RemoteAddress = *RemoteAddress;
+        }
+        UdpConfig.Route = &Route;
         UdpConfig.Flags = InternalFlags;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = CallbackContext;

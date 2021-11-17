@@ -1823,8 +1823,7 @@ QuicConnStart(
         CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
 
     CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->Route.LocalAddress : NULL;
-    UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
+    UdpConfig.Route = &Path->Route;
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
 #ifdef QUIC_COMPARTMENT_ID
@@ -5704,8 +5703,7 @@ QuicConnParamSet(
             QUIC_BINDING* OldBinding = Connection->Paths[0].Binding;
 
             CXPLAT_UDP_CONFIG UdpConfig = {0};
-            UdpConfig.LocalAddress = LocalAddress;
-            UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
+            UdpConfig.Route = &Connection->Paths[0].Route;
             UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
             UdpConfig.InterfaceIndex = 0;
 #ifdef QUIC_COMPARTMENT_ID

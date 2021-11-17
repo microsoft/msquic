@@ -440,8 +440,7 @@ CxPlatDataPathGetGatewayAddresses(
 #define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
 
 typedef struct CXPLAT_UDP_CONFIG {
-    const QUIC_ADDR* LocalAddress;      // optional
-    const QUIC_ADDR* RemoteAddress;     // optional
+    CXPLAT_ROUTE* Route;                // in/out
     uint32_t Flags;                     // CXPLAT_SOCKET_FLAG_*
     uint32_t InterfaceIndex;            // 0 means any/all
     void* CallbackContext;              // optional

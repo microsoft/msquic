@@ -58,7 +58,9 @@ QuicBindingInitialize(
     Binding->RefCount = 0; // No refs until it's added to the library's list
     Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
-    Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
+    Binding->Connected =
+        (QuicAddrGetFamily(&UdpConfig->Route->RemoteAddress) == QUIC_ADDRESS_FAMILY_UNSPEC) ?
+            FALSE : TRUE;
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
@@ -101,28 +103,16 @@ QuicBindingInitialize(
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
-    CXPLAT_UDP_CONFIG HookUdpConfig = *UdpConfig;
     if (Hooks != NULL) {
-        QUIC_ADDR RemoteAddressCopy;
-        if (UdpConfig->RemoteAddress != NULL) {
-            RemoteAddressCopy = *UdpConfig->RemoteAddress;
-        }
-        QUIC_ADDR LocalAddressCopy;
-        if (UdpConfig->LocalAddress != NULL) {
-            LocalAddressCopy = *UdpConfig->LocalAddress;
-        }
-        Hooks->Create(
-            UdpConfig->RemoteAddress != NULL ? &RemoteAddressCopy : NULL,
-            UdpConfig->LocalAddress != NULL ? &LocalAddressCopy : NULL);
-
-        HookUdpConfig.LocalAddress = (UdpConfig->LocalAddress != NULL) ? &LocalAddressCopy : NULL;
-        HookUdpConfig.RemoteAddress = (UdpConfig->RemoteAddress != NULL) ? &RemoteAddressCopy : NULL;
-        HookUdpConfig.CallbackContext = Binding;
+        CXPLAT_UDP_CONFIG UdpConfigCopy = *UdpConfig;
+        CXPLAT_ROUTE RouteCopy = *UdpConfig->Route;
+        UdpConfigCopy.Route = &RouteCopy;
+        UdpConfigCopy.CallbackContext = Binding;
 
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
-                &HookUdpConfig,
+                &UdpConfigCopy,
                 &Binding->Socket);
     } else {
 #endif

@@ -1408,8 +1408,11 @@ CxPlatSocketCreateUdp(
     QUIC_STATUS Status;
     int Result;
     int Option;
-    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    const CXPLAT_ROUTE* Route = Config->Route;
+    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.si_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = Route->LocalAddress.si_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
+    const BOOLEAN IsServerSocket = !HasRemoteAddr;
+    const uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1430,17 +1433,17 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(HasLocalAddr ? sizeof(Route->LocalAddress) : 0, &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(HasRemoteAddr ? sizeof(Route->RemoteAddress) : 0, &Route->RemoteAddress));
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
     Socket->ClientContext = Config->CallbackContext;
-    Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
+    Socket->HasFixedRemoteAddress = HasRemoteAddr;
     Socket->Internal = FALSE;
     Socket->Type = CXPLAT_SOCKET_UDP;
-    if (Config->LocalAddress) {
-        CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
+    if (Route->LocalAddress.si_family != AF_UNSPEC) {
+        CxPlatConvertToMappedV6(&Route->LocalAddress, &Socket->LocalAddress);
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
@@ -1510,7 +1513,7 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
-        if (Config->RemoteAddress == NULL) {
+        if (HasRemoteAddr) {
             uint16_t Processor = i; // API only supports 16-bit proc index.
             Result =
                 WSAIoctl(
@@ -1723,7 +1726,7 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
-        if (Config->RemoteAddress != NULL) {
+        if (HasRemoteAddr) {
             AffinitizedProcessor =
                 ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
             Socket->ProcessorAffinity = AffinitizedProcessor;
@@ -1806,9 +1809,9 @@ QUIC_DISABLED_BY_FUZZER_START;
             goto Error;
         }
 
-        if (Config->RemoteAddress != NULL) {
+        if (HasRemoteAddr) {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
-            CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedRemoteAddress);
+            CxPlatConvertToMappedV6(&Route->RemoteAddress, &MappedRemoteAddress);
 
             Result =
                 connect(
@@ -1854,8 +1857,8 @@ QUIC_DISABLED_BY_FUZZER_START;
                 goto Error;
             }
 
-            if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
-                CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+            if (HasLocalAddr && Route->LocalAddress.Ipv4.sin_port != 0) {
+                CXPLAT_DBG_ASSERT(Route->LocalAddress.Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
             }
         }
 
@@ -1864,8 +1867,8 @@ QUIC_DISABLED_BY_FUZZER_END;
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-    if (Config->RemoteAddress != NULL) {
-        Socket->RemoteAddress = *Config->RemoteAddress;
+    if (HasRemoteAddr) {
+        Socket->RemoteAddress = Route->RemoteAddress;
     } else {
         Socket->RemoteAddress.Ipv4.sin_port = 0;
     }

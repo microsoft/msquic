@@ -774,7 +774,8 @@ CxPlatSocketContextInitialize(
     int Result = 0;
     int Option = 0;
     int Flags = 0;
-    int ForceIpv4 = RemoteAddress && RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
+    const BOOLEAN HasRemoteAddr = RemoteAddress->Ip.sa_family != AF_UNSPEC;
+    int ForceIpv4 = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
@@ -830,7 +831,7 @@ CxPlatSocketContextInitialize(
     // afterward and there is no ask for particular source address or port.
     // connect() will resolve that together in single system call.
     //
-    if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
+    if (!HasRemoteAddr || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
         CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
             MappedAddress.Ipv6.sin6_family = AF_INET6;
@@ -869,7 +870,7 @@ CxPlatSocketContextInitialize(
     //
     // connect to RemoteAddress if provided.
     //
-    if (RemoteAddress != NULL) {
+    if (HasRemoteAddr) {
         CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
         CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
 
@@ -921,7 +922,7 @@ CxPlatSocketContextInitialize(
     }
     CxPlatConvertToMappedV6(&MappedAddress, &Binding->LocalAddress);
 
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+    if (LocalAddress->Ipv4.sin_port != 0) {
         CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
     }
 
@@ -1438,7 +1439,10 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    const CXPLAT_ROUTE* Route = Config->Route;
+    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.si_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = Route->LocalAddress.si_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
+    const BOOLEAN IsServerSocket = !HasRemoteAddr;
     int32_t SuccessfulStartReceives = -1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -1466,17 +1470,17 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(HasLocalAddr ? sizeof(Route->LocalAddress) : 0, &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(HasRemoteAddr ? sizeof(Route->RemoteAddress) : 0, &Route->RemoteAddress));
 
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = Config->CallbackContext;
-    Binding->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
+    Binding->HasFixedRemoteAddress = HasRemoteAddr;
     Binding->Mtu = CXPLAT_MAX_MTU;
     CxPlatRundownInitialize(&Binding->Rundown);
-    if (Config->LocalAddress) {
-        CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
+    if (HasLocalAddr) {
+        CxPlatConvertToMappedV6(&Route->LocalAddress, &Binding->LocalAddress);
     } else {
         Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
@@ -1500,8 +1504,8 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                Config->LocalAddress,
-                Config->RemoteAddress);
+                &Route->LocalAddress,
+                &Route->RemoteAddress);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -1510,8 +1514,8 @@ CxPlatSocketCreateUdp(
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
     Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
 
-    if (Config->RemoteAddress != NULL) {
-        Binding->RemoteAddress = *Config->RemoteAddress;
+    if (HasRemoteAddr) {
+        Binding->RemoteAddress = Route->RemoteAddress;
     } else {
         Binding->RemoteAddress.Ipv4.sin_port = 0;
     }

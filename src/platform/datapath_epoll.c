@@ -985,6 +985,8 @@ CxPlatSocketContextInitialize(
     int Option = 0;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
+    const BOOLEAN HasRemoteAddr = RemoteAddress->si_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = LocalAddress->si_family != AF_UNSPEC || LocalAddress->Ipv4.sin_port != 0;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
@@ -1232,7 +1234,7 @@ CxPlatSocketContextInitialize(
     // Only set SO_REUSEPORT on a server socket, otherwise the client could be
     // assigned a server port (unless it's forcing sharing).
     //
-    if (ForceShare || RemoteAddress == NULL) {
+    if (ForceShare || !HasRemoteAddr) {
         //
         // The port is shared across processors.
         //
@@ -1277,7 +1279,7 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    if (RemoteAddress != NULL) {
+    if (HasRemoteAddr) {
         CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
         CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
 
@@ -1327,9 +1329,9 @@ CxPlatSocketContextInitialize(
     }
 
 #if DEBUG
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+    if (HasLocalAddr && LocalAddress->Ipv4.sin_port != 0) {
         CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    } else if (RemoteAddress && LocalAddress && LocalAddress->Ipv4.sin_port == 0) {
+    } else if (HasRemoteAddr && HasLocalAddr && LocalAddress->Ipv4.sin_port == 0) {
         //
         // A client socket being assigned the same port as a remote socket causes issues later
         // in the datapath and binding paths. Check to make sure this case was not given to us.
@@ -1831,7 +1833,10 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    const CXPLAT_ROUTE* Route = Config->Route;
+    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.si_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = Route->LocalAddress.si_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
+    BOOLEAN IsServerSocket = !HasRemoteAddr;
     int32_t SuccessfulStartReceives = -1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -1859,13 +1864,13 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(HasLocalAddr ? sizeof(Route->LocalAddress) : 0, &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(HasRemoteAddr ? sizeof(Route->RemoteAddress) : 0, &Route->RemoteAddress));
 
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = Config->CallbackContext;
-    Binding->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
+    Binding->HasFixedRemoteAddress = HasRemoteAddr;
     Binding->Mtu = CXPLAT_MAX_MTU;
     CxPlatRundownInitialize(&Binding->Rundown);
     if (Config->LocalAddress) {
@@ -1896,8 +1901,8 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                Config->LocalAddress,
-                Config->RemoteAddress,
+                &Route->LocalAddress,
+                &Route->RemoteAddress,
                 Config->Flags & CXPLAT_SOCKET_FLAG_SHARE);
         if (QUIC_FAILED(Status)) {
             goto Exit;
@@ -1917,8 +1922,8 @@ CxPlatSocketCreateUdp(
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
     Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
 
-    if (Config->RemoteAddress != NULL) {
-        Binding->RemoteAddress = *Config->RemoteAddress;
+    if (HasRemoteAddr) {
+        Binding->RemoteAddress = Route->RemoteAddress;
     } else {
         Binding->RemoteAddress.Ipv4.sin_port = 0;
     }

@@ -136,8 +136,9 @@ QuicMainStart(
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
         CXPLAT_UDP_CONFIG UdpConfig = {0};
-        UdpConfig.LocalAddress = &LocalAddress.SockAddr;
-        UdpConfig.RemoteAddress = nullptr;
+        CXPLAT_ROUTE Route = {0};
+        Route.LocalAddress = LocalAddress.SockAddr;
+        UdpConfig.Route = &Route;
         UdpConfig.Flags = 0;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = StopEvent;

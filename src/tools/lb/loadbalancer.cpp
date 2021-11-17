@@ -30,16 +30,16 @@ struct LbInterface {
 
     LbInterface(_In_ const QUIC_ADDR* Address, bool IsPublic) : IsPublic(IsPublic) {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
-        UdpConfig.LocalAddress = nullptr;
-        UdpConfig.RemoteAddress = nullptr;
+        CXPLAT_ROUTE Route = {0};
+        UdpConfig.Route = &Route;
         UdpConfig.Flags = 0;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
         if (IsPublic) {
-            UdpConfig.LocalAddress = Address;
+            Route.LocalAddress = *Address;
             CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
         } else {
-            UdpConfig.RemoteAddress = Address;
+            Route.RemoteAddress = *Address;
             CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
         }
         if (!Socket) {

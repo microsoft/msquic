@@ -165,7 +165,7 @@ MsQuicListenerStart(
     uint8_t* AlpnList;
     uint32_t AlpnListLength;
     BOOLEAN PortUnspecified;
-    QUIC_ADDR BindingLocalAddress = {0};
+    CXPLAT_ROUTE Route = {0};
 
     QuicTraceEvent(
         ApiEnter,
@@ -249,8 +249,8 @@ MsQuicListenerStart(
     // (if available) UDP port and then manually filter on the specific address
     // (if available) at the QUIC layer.
     //
-    QuicAddrSetFamily(&BindingLocalAddress, QUIC_ADDRESS_FAMILY_INET6);
-    QuicAddrSetPort(&BindingLocalAddress,
+    QuicAddrSetFamily(&Route.LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+    QuicAddrSetPort(&Route.LocalAddress,
         PortUnspecified ? 0 : QuicAddrGetPort(LocalAddress));
 
     if (!QuicLibraryOnListenerRegistered(Listener)) {
@@ -259,8 +259,7 @@ MsQuicListenerStart(
     }
 
     CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = &BindingLocalAddress;
-    UdpConfig.RemoteAddress = NULL;
+    UdpConfig.Route = &Route;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_SHARE | CXPLAT_SOCKET_SERVER_OWNED; // Listeners always share the binding.
     UdpConfig.InterfaceIndex = 0;
 #ifdef QUIC_COMPARTMENT_ID
@@ -299,10 +298,10 @@ MsQuicListenerStart(
     }
 
     if (PortUnspecified) {
-        QuicBindingGetLocalAddress(Listener->Binding, &BindingLocalAddress);
+        QuicBindingGetLocalAddress(Listener->Binding, &Route.LocalAddress);
         QuicAddrSetPort(
             &Listener->LocalAddress,
-            QuicAddrGetPort(&BindingLocalAddress));
+            QuicAddrGetPort(&Route.LocalAddress));
     }
 
     QuicTraceEvent(

@@ -173,6 +173,10 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
+    const CXPLAT_ROUTE* Route = Config->Route;
+    const BOOLEAN HasRemoteAddr = Route->RemoteAddress.si_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = Route->LocalAddress.si_family != AF_UNSPEC || Route->LocalAddress.Ipv4.sin_port != 0;
+
     *NewSocket = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_SOCKET), QUIC_POOL_SOCKET);
     if (*NewSocket == NULL) {
         QuicTraceEvent(
@@ -188,23 +192,22 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         *NewSocket,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(HasLocalAddr ? sizeof(Route->LocalAddress) : 0, &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(HasRemoteAddr ? sizeof(Route->RemoteAddress) : 0, &Route->RemoteAddress));
 
     CxPlatZeroMemory(*NewSocket, sizeof(CXPLAT_SOCKET));
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
 
-    if (Config->RemoteAddress) {
-        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
+    if (HasRemoteAddr) {
         (*NewSocket)->Connected = TRUE;
-        (*NewSocket)->RemoteAddress = *Config->RemoteAddress;
+        (*NewSocket)->RemoteAddress = Route->RemoteAddress;
     }
 
-    if (Config->LocalAddress) {
-        (*NewSocket)->LocalAddress = *Config->LocalAddress;
-        if (QuicAddrIsWildCard(Config->LocalAddress)) {
+    if (HasLocalAddr) {
+        (*NewSocket)->LocalAddress = Route->LocalAddress;
+        if (QuicAddrIsWildCard(&Route->LocalAddress)) {
             if (!(*NewSocket)->Connected) {
                 (*NewSocket)->Wildcard = TRUE;
             }
@@ -225,6 +228,8 @@ CxPlatSocketCreateUdp(
         Status = QUIC_STATUS_ADDRESS_IN_USE;
         goto Error;
     }
+
+    // TODO - Resolve the rest of the route
 
 Error:
 
