@@ -24,10 +24,26 @@ Abstract:
 #include "worker.c.clog.h"
 #endif
 
+BOOLEAN
+QuicWorkerLoop(
+    _Inout_ struct CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ uint64_t* TimeNow,
+    _In_ CXPLAT_THREAD_ID ThreadID
+    );
+
 //
 // Thread callback for processing the work queued for the worker.
 //
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context);
+
+void
+QuicWorkerThreadWake(
+    _In_ QUIC_WORKER* Worker
+    )
+{
+    Worker->ExecutionContext.Ready = TRUE; // Run the execution context
+    CxPlatEventSet(Worker->Ready);
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -56,6 +72,11 @@ QuicWorkerInitialize(
     Worker->Enabled = TRUE;
     Worker->IdealProcessor = IdealProcessor;
     CxPlatDispatchLockInitialize(&Worker->Lock);
+    Worker->ExecutionContext.Context = Worker;
+    Worker->ExecutionContext.Callback = QuicWorkerLoop;
+    Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
+    Worker->ExecutionContext.Ready = TRUE;
+    CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
     CxPlatListInitializeHead(&Worker->Operations);
@@ -94,6 +115,7 @@ QuicWorkerInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
+        CxPlatEventSet(Worker->Done);
         QuicWorkerUninitialize(Worker);
     }
 
@@ -112,18 +134,21 @@ QuicWorkerUninitialize(
         Worker);
 
     //
-    // Prevent the thread from processing any more operations.
+    // Clean up the worker execution context.
     //
     Worker->Enabled = FALSE;
+    QuicWorkerThreadWake(Worker);
+    CxPlatEventWaitForever(Worker->Done);
+    CxPlatEventUninitialize(Worker->Done);
 
     //
     // Wait for the thread to finish.
     //
-    CxPlatEventSet(Worker->Ready);
     if (Worker->Thread) {
         CxPlatThreadWait(&Worker->Thread);
         CxPlatThreadDelete(&Worker->Thread);
     }
+    CxPlatEventUninitialize(Worker->Ready);
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
@@ -135,7 +160,6 @@ QuicWorkerUninitialize(
     CxPlatPoolUninitialize(&Worker->ApiContextPool);
     CxPlatPoolUninitialize(&Worker->StatelessContextPool);
     CxPlatPoolUninitialize(&Worker->OperPool);
-    CxPlatEventUninitialize(Worker->Ready);
     CxPlatDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
 
@@ -208,7 +232,7 @@ QuicWorkerQueueConnection(
     }
 
     if (WakeWorkerThread) {
-        CxPlatEventSet(Worker->Ready);
+        QuicWorkerThreadWake(Worker);
     }
 }
 
@@ -239,7 +263,7 @@ QuicWorkerMoveConnection(
     CxPlatDispatchLockRelease(&Worker->Lock);
 
     if (WakeWorkerThread) {
-        CxPlatEventSet(Worker->Ready);
+        QuicWorkerThreadWake(Worker);
     }
 }
 
@@ -277,27 +301,8 @@ QuicWorkerQueueOperation(
         QuicPacketLogDrop(Binding, Packet, "Worker operation limit reached");
         QuicOperationFree(Worker, Operation);
     } else if (WakeWorkerThread) {
-        CxPlatEventSet(Worker->Ready);
+        QuicWorkerThreadWake(Worker);
     }
-}
-
-//
-// Called when a worker changes between the idle and active state.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicWorkerToggleActivityState(
-    _In_ QUIC_WORKER* Worker,
-    _In_ uint32_t Arg
-    )
-{
-    Worker->IsActive = !Worker->IsActive;
-    QuicTraceEvent(
-        WorkerActivityStateUpdated,
-        "[wrkr][%p] IsActive = %hhu, Arg = %u",
-        Worker,
-        Worker->IsActive,
-        Arg);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -335,14 +340,12 @@ QuicWorkerGetNextConnection(
     _In_ QUIC_WORKER* Worker
     )
 {
-    QUIC_CONNECTION* Connection;
+    QUIC_CONNECTION* Connection = NULL;
 
-    if (Worker->Enabled) {
+    if (Worker->Enabled &&
+        !CxPlatListIsEmptyNoFence(&Worker->Connections)) {
         CxPlatDispatchLockAcquire(&Worker->Lock);
-
-        if (CxPlatListIsEmpty(&Worker->Connections)) {
-            Connection = NULL;
-        } else {
+        if (!CxPlatListIsEmpty(&Worker->Connections)) {
             Connection =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
@@ -352,10 +355,7 @@ QuicWorkerGetNextConnection(
             Connection->WorkerProcessing = TRUE;
             QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
         }
-
         CxPlatDispatchLockRelease(&Worker->Lock);
-    } else {
-        Connection = NULL;
     }
 
     return Connection;
@@ -367,27 +367,19 @@ QuicWorkerGetNextOperation(
     _In_ QUIC_WORKER* Worker
     )
 {
-    QUIC_OPERATION* Operation;
+    QUIC_OPERATION* Operation = NULL;
 
-    if (Worker->Enabled) {
+    if (Worker->Enabled && Worker->OperationCount != 0) {
         CxPlatDispatchLockAcquire(&Worker->Lock);
-
-        if (Worker->OperationCount == 0) {
-            Operation = NULL;
-        } else {
-            Operation =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+        Operation =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
 #if DEBUG
-            Operation->Link.Flink = NULL;
+        Operation->Link.Flink = NULL;
 #endif
-            Worker->OperationCount--;
-            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
-        }
-
+        Worker->OperationCount--;
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
         CxPlatDispatchLockRelease(&Worker->Lock);
-    } else {
-        Operation = NULL;
     }
 
     return Operation;
@@ -397,7 +389,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerProcessTimers(
     _In_ QUIC_WORKER* Worker,
-    _In_ CXPLAT_THREAD_ID ThreadID
+    _In_ CXPLAT_THREAD_ID ThreadID,
+    _In_ uint64_t TimeNow
     )
 {
     //
@@ -405,7 +398,6 @@ QuicWorkerProcessTimers(
     //
     CXPLAT_LIST_ENTRY ExpiredTimers;
     CxPlatListInitializeHead(&ExpiredTimers);
-    uint64_t TimeNow = CxPlatTimeUs64();
     QuicTimerWheelGetExpired(&Worker->TimerWheel, TimeNow, &ExpiredTimers);
 
     //
@@ -431,7 +423,8 @@ void
 QuicWorkerProcessConnection(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_CONNECTION* Connection,
-    _In_ CXPLAT_THREAD_ID ThreadID
+    _In_ CXPLAT_THREAD_ID ThreadID,
+    _Inout_ uint64_t* TimeNow
     )
 {
     QuicTraceEvent(
@@ -442,11 +435,20 @@ QuicWorkerProcessConnection(
     QuicConfigurationAttachSilo(Connection->Configuration);
 
     if (Connection->Stats.Schedule.LastQueueTime != 0) {
-        QuicWorkerUpdateQueueDelay(
-            Worker,
+        uint32_t Delay =
             CxPlatTimeDiff32(
                 Connection->Stats.Schedule.LastQueueTime,
-                CxPlatTimeUs32()));
+                (uint32_t)*TimeNow);
+        if (Delay >= (UINT32_MAX >> 1)) {
+            //
+            // Since we're using a cached time (to reduce the number of calls)
+            // it's possible that TimeNow is actually before LastQueueTime.
+            // Account for this and just set the delay to 0 if it happens.
+            //
+            Delay = 0;
+        }
+
+        QuicWorkerUpdateQueueDelay(Worker, Delay);
     }
 
     //
@@ -548,100 +550,108 @@ QuicWorkerProcessConnection(
     }
 }
 
-typedef enum QUIC_WORKER_LOOP_STATE {
-    QUIC_WORKER_LOOP_EXIT,
-    QUIC_WORKER_LOOP_CONTINUE,
-    QUIC_WORKER_LOOP_WAIT,
-    QUIC_WORKER_LOOP_WAIT_TIMER,
-} QUIC_WORKER_LOOP_STATE;
-
-typedef enum QUIC_WORKER_LOOP_REASON {
-    QUIC_WORKER_LOOP_REASON_NORMAL,
-    QUIC_WORKER_LOOP_REASON_WAIT,
-    QUIC_WORKER_LOOP_REASON_TIMER,
-} QUIC_WORKER_LOOP_REASON;
-
-//
-// Runs one iteration of the worker loop.
-//
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_WORKER_LOOP_STATE
-QuicWorkerLoop(
-    _In_ QUIC_WORKER* Worker,
-    _In_ CXPLAT_THREAD_ID ThreadID,
-    _In_ QUIC_WORKER_LOOP_REASON Reason,
-    _When_(return==QUIC_WORKER_LOOP_WAIT_TIMER, _Out_)
-        uint64_t* Delay
+void
+QuicWorkerLoopCleanup(
+    _In_ QUIC_WORKER* Worker
     )
 {
     //
-    // TODO - Review how often CxPlatTimeUs64() is called in the thread. Perhaps
-    // we can get it down to once per loop, passing the value along.
+    // Because the registration layer only waits for the rundown to complete,
+    // and because the connection releases the rundown on handle close,
+    // not free, it's possible that the worker thread still had the connection
+    // in it's list by the time clean up started. So it needs to release any
+    // remaining references on connections.
     //
+    int64_t Dequeue = 0;
+    while (!CxPlatListIsEmpty(&Worker->Connections)) {
+        QUIC_CONNECTION* Connection =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
+        if (!Connection->State.ExternalOwner) {
+            //
+            // If there is no external owner, shut down the connection so
+            // that it's not leaked.
+            //
+            QuicTraceLogConnVerbose(
+                AbandonOnLibShutdown,
+                Connection,
+                "Abandoning on shutdown");
+            QuicConnOnShutdownComplete(Connection);
+        }
+        QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
+        --Dequeue;
+    }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
+
+    Dequeue = 0;
+    while (!CxPlatListIsEmpty(&Worker->Operations)) {
+        QUIC_OPERATION* Operation =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+#if DEBUG
+        Operation->Link.Flink = NULL;
+#endif
+        QuicOperationFree(Worker, Operation);
+        --Dequeue;
+    }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
+}
+
+//
+// Runs one iteration of the worker loop. Returns FALSE when it's time to exit.
+//
+BOOLEAN
+QuicWorkerLoop(
+    _Inout_ struct CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ uint64_t* TimeNow,
+    _In_ CXPLAT_THREAD_ID ThreadID
+    )
+{
+    QUIC_WORKER* Worker = (QUIC_WORKER*)Context->Context;
+
+    if (!Worker->Enabled) {
+        QuicWorkerLoopCleanup(Worker);
+        CxPlatEventSet(Worker->Done);
+        return FALSE;
+    }
+
+    if (!Worker->IsActive) {
+        Worker->IsActive = TRUE;
+        QuicTraceEvent(
+            WorkerActivityStateUpdated,
+            "[wrkr][%p] IsActive = %hhu, Arg = %u",
+            Worker,
+            Worker->IsActive,
+            1);
+    }
+
+    Context->Ready = FALSE;
+
+    //
+    // Opportunistically try to snap-shot performance counters and do some
+    // validation.
+    //
+    QuicPerfCounterTrySnapShot(*TimeNow);
 
     //
     // For every loop of the worker thread, in an attempt to balance things,
-    // a single connection will be processed (if available), followed by a
-    // single stateless operation (if available), and then by any expired
-    // timers (which just queue more operations on connections).
+    // first the timer wheel is checked and any expired timers are processed.
+    // Then, a single connection will be processed (if available), followed by a
+    // single stateless operation (if available).
     //
 
-    if (Reason == QUIC_WORKER_LOOP_REASON_WAIT) {
-        QuicWorkerToggleActivityState(Worker, TRUE);
-
-    } else if (Reason == QUIC_WORKER_LOOP_REASON_TIMER) {
-        QuicWorkerToggleActivityState(Worker, FALSE);
-        QuicWorkerProcessTimers(Worker, ThreadID);
-    }
-
-    if (!Worker->Enabled) {
-        //
-        // Because the registration layer only waits for the rundown to complete,
-        // and because the connection releases the rundown on handle close,
-        // not free, it's possible that the worker thread still had the connection
-        // in it's list by the time clean up started. So it needs to release any
-        // remaining references on connections.
-        //
-        int64_t Dequeue = 0;
-        while (!CxPlatListIsEmpty(&Worker->Connections)) {
-            QUIC_CONNECTION* Connection =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
-            if (!Connection->State.ExternalOwner) {
-                //
-                // If there is no external owner, shut down the connection so
-                // that it's not leaked.
-                //
-                QuicTraceLogConnVerbose(
-                    AbandonOnLibShutdown,
-                    Connection,
-                    "Abandoning on shutdown");
-                QuicConnOnShutdownComplete(Connection);
-            }
-            QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
-            --Dequeue;
-        }
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
-
-        Dequeue = 0;
-        while (!CxPlatListIsEmpty(&Worker->Operations)) {
-            QUIC_OPERATION* Operation =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
-#if DEBUG
-            Operation->Link.Flink = NULL;
-#endif
-            QuicOperationFree(Worker, Operation);
-            --Dequeue;
-        }
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
-
-        return QUIC_WORKER_LOOP_EXIT;
+    if (Worker->TimerWheel.NextExpirationTime != UINT64_MAX &&
+        Worker->TimerWheel.NextExpirationTime <= *TimeNow) {
+        QuicWorkerProcessTimers(Worker, ThreadID, *TimeNow);
+        *TimeNow = CxPlatTimeUs64();
     }
 
     QUIC_CONNECTION* Connection = QuicWorkerGetNextConnection(Worker);
     if (Connection != NULL) {
-        QuicWorkerProcessConnection(Worker, Connection, ThreadID);
+        QuicWorkerProcessConnection(Worker, Connection, ThreadID, TimeNow);
+        Context->Ready = TRUE;
+        *TimeNow = CxPlatTimeUs64();
     }
 
     QUIC_OPERATION* Operation = QuicWorkerGetNextOperation(Worker);
@@ -651,92 +661,72 @@ QuicWorkerLoop(
             Operation->STATELESS.Context);
         QuicOperationFree(Worker, Operation);
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
+        Context->Ready = TRUE;
+        *TimeNow = CxPlatTimeUs64();
     }
 
-    uint64_t TimeNow = CxPlatTimeUs64();
-
-    //
-    // Opportunistically try to snap-shot performance counters and do
-    // some validation.
-    //
-    QuicPerfCounterTrySnapShot(TimeNow);
-
-    //
-    // Get the delay until the next timer expires. Check to see if any timers
-    // have expired; if so, process them. If not, only wait for the next timer
-    // if we have run out of connections and stateless operations to process.
-    //
-    *Delay = QuicTimerWheelGetWaitTime(&Worker->TimerWheel, TimeNow);
-
-    if (*Delay == 0) {
+    if (Context->Ready) {
         //
-        // Timers are ready to be processed.
+        // There is more work to be done.
         //
-        QuicWorkerProcessTimers(Worker, ThreadID);
-        return QUIC_WORKER_LOOP_CONTINUE;
+        return TRUE;
     }
 
-    if (Connection != NULL || Operation != NULL) {
+#ifdef QUIC_WORKER_POLLING
+    if (Worker->PollCount++ < QUIC_WORKER_POLLING) {
         //
-        // There still may be more connections or stateless operations to be
-        // processed. Continue processing until there are no more. Then the
-        // thread can wait for the timer delay.
+        // Busy loop for a while to keep the thread hot in case new work comes
+        // in.
         //
-        return QUIC_WORKER_LOOP_CONTINUE;
+        Context->Ready = TRUE;
+        *TimeNow = CxPlatTimeUs64();
+        return TRUE;
     }
-
-    if (*Delay != UINT64_MAX) {
-        //
-        // Since we have no connections and no stateless operations to process
-        // at the moment, we need to wait for the ready event or the next timer
-        // to expire.
-        //
-        if (*Delay >= (uint64_t)UINT32_MAX) {
-            *Delay = UINT32_MAX - 1; // Max has special meaning for most platforms.
-        }
-        QuicWorkerToggleActivityState(Worker, (uint32_t)*Delay);
-        QuicWorkerResetQueueDelay(Worker);
-        return QUIC_WORKER_LOOP_WAIT_TIMER;
-    }
+    Worker->PollCount = 0; // Reset the counter.
+#endif // QUIC_WORKER_POLLING
 
     //
-    // No active timers running, so just wait for the ready event.
+    // We have no other work to process at the moment. Wait for work to come in
+    // or any timer to expire.
     //
-    QuicWorkerToggleActivityState(Worker, UINT32_MAX);
+    Worker->IsActive = FALSE;
+    Context->NextTimeUs = Worker->TimerWheel.NextExpirationTime;
+    QuicTraceEvent(
+        WorkerActivityStateUpdated,
+        "[wrkr][%p] IsActive = %hhu, Arg = %u",
+        Worker,
+        Worker->IsActive,
+        UINT32_MAX);
     QuicWorkerResetQueueDelay(Worker);
-    return QUIC_WORKER_LOOP_WAIT;
+    return TRUE;
 }
 
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
-    CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
-    QUIC_WORKER_LOOP_REASON LoopReason = QUIC_WORKER_LOOP_REASON_NORMAL;
-    QUIC_WORKER_LOOP_STATE LoopState;
-    uint64_t Delay = 0;
+    CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
+    const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
 
-    Worker->IsActive = TRUE;
     QuicTraceEvent(
         WorkerStart,
         "[wrkr][%p] Start",
         Worker);
 
-    //
-    // Keep looping until the exit result. Wait on the ready event as necessary.
-    //
-    while ((LoopState = QuicWorkerLoop(Worker, ThreadID, LoopReason, &Delay)) != QUIC_WORKER_LOOP_EXIT) {
+    uint64_t TimeNow = CxPlatTimeUs64();
+    while (QuicWorkerLoop(EC, &TimeNow, ThreadID)) {
+        if (!EC->Ready) {
+            if (EC->NextTimeUs == UINT64_MAX) {
+                CxPlatEventWaitForever(Worker->Ready);
+                TimeNow = CxPlatTimeUs64();
 
-        if (LoopState == QUIC_WORKER_LOOP_CONTINUE) {
-            LoopReason = QUIC_WORKER_LOOP_REASON_NORMAL;
-
-        } else if (LoopState == QUIC_WORKER_LOOP_WAIT) {
-            CxPlatEventWaitForever(Worker->Ready);
-            LoopReason = QUIC_WORKER_LOOP_REASON_WAIT;
-
-        } else {
-            LoopReason =
-                CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay) ?
-                    QUIC_WORKER_LOOP_REASON_WAIT : QUIC_WORKER_LOOP_REASON_TIMER;
+            } else if (EC->NextTimeUs > TimeNow) {
+                uint64_t Delay = US_TO_MS(EC->NextTimeUs - TimeNow) + 1;
+                if (Delay >= (uint64_t)UINT32_MAX) {
+                    Delay = UINT32_MAX - 1; // Max has special meaning for most platforms.
+                }
+                CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
+                TimeNow = CxPlatTimeUs64();
+            }
         }
     }
 

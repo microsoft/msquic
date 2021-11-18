@@ -1751,8 +1751,8 @@ QuicCryptoProcessData(
             QuicCryptoValidate(Crypto);
 
             Info.QuicVersion = Connection->Stats.QuicVersion;
-            Info.LocalAddress = &Connection->Paths[0].LocalAddress;
-            Info.RemoteAddress = &Connection->Paths[0].RemoteAddress;
+            Info.LocalAddress = &Connection->Paths[0].Route.LocalAddress;
+            Info.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
             Info.CryptoBufferLength = Buffer.Length;
             Info.CryptoBuffer = Buffer.Buffer;
 

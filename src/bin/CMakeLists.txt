@@ -11,14 +11,14 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link)
+    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link main_binary_link_args)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
     if (NOT WIN32)
         set_target_properties(msquic PROPERTIES SOVERSION ${QUIC_MAJOR_VERSION} VERSION ${QUIC_FULL_VERSION})
     endif()
 else()
     add_library(msquic_static STATIC static/empty.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc logging)
+    target_link_libraries(msquic_static PRIVATE core platform inc logging main_binary_link_args)
     target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
@@ -153,7 +153,7 @@ else()
 
         # Exclude libraries for the corresponding msvcrts
         # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
-        string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
+        string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib /NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:libcmtd.lib")
         # Uncomment to inspect which libraries will have referenced symbols ignored
         # message(STATUS "NODEFAULTS: ${NODEFAULTS}")
 

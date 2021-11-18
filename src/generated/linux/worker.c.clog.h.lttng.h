@@ -24,9 +24,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, IndicateIdealProcChanged,
 // Decoder Ring for AbandonOnLibShutdown
 // [conn][%p] Abandoning on shutdown
 // QuicTraceLogConnVerbose(
-                    AbandonOnLibShutdown,
-                    Connection,
-                    "Abandoning on shutdown");
+                AbandonOnLibShutdown,
+                Connection,
+                "Abandoning on shutdown");
 // arg1 = arg1 = Connection
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
@@ -178,33 +178,6 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, ConnScheduleState,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WorkerActivityStateUpdated
-// [wrkr][%p] IsActive = %hhu, Arg = %u
-// QuicTraceEvent(
-        WorkerActivityStateUpdated,
-        "[wrkr][%p] IsActive = %hhu, Arg = %u",
-        Worker,
-        Worker->IsActive,
-        Arg);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->IsActive
-// arg4 = arg4 = Arg
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerActivityStateUpdated,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned char, arg3,
-        unsigned int, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned char, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for WorkerQueueDelayUpdated
 // [wrkr][%p] QueueDelay = %u
 // QuicTraceEvent(
@@ -222,6 +195,33 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerQueueDelayUpdated,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for WorkerActivityStateUpdated
+// [wrkr][%p] IsActive = %hhu, Arg = %u
+// QuicTraceEvent(
+            WorkerActivityStateUpdated,
+            "[wrkr][%p] IsActive = %hhu, Arg = %u",
+            Worker,
+            Worker->IsActive,
+            1);
+// arg2 = arg2 = Worker
+// arg3 = arg3 = Worker->IsActive
+// arg4 = arg4 = 1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerActivityStateUpdated,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 

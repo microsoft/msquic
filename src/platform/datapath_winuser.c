@@ -126,9 +126,9 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
     ULONG ReferenceCount;
 
     //
-    // Contains the 4 tuple.
+    // Contains the network route.
     //
-    CXPLAT_TUPLE Tuple;
+    CXPLAT_ROUTE Route;
 
 } CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT;
 
@@ -2950,7 +2950,7 @@ CxPlatSocketHandleUnreachableError(
     )
 {
     PSOCKADDR_INET RemoteAddr =
-        &SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
+        &SocketProc->CurrentRecvContext->Route.RemoteAddress;
     UNREFERENCED_PARAMETER(ErrorCode);
 
     CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
@@ -3014,9 +3014,9 @@ CxPlatSocketStartReceive(
         sizeof(SocketProc->RecvWsaMsgHdr));
 
     SocketProc->RecvWsaMsgHdr.name =
-        (PSOCKADDR)&SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
+        (PSOCKADDR)&SocketProc->CurrentRecvContext->Route.RemoteAddress;
     SocketProc->RecvWsaMsgHdr.namelen =
-        sizeof(SocketProc->CurrentRecvContext->Tuple.RemoteAddress);
+        sizeof(SocketProc->CurrentRecvContext->Route.RemoteAddress);
 
     SocketProc->RecvWsaMsgHdr.lpBuffers = &SocketProc->RecvWsaBuf;
     SocketProc->RecvWsaMsgHdr.dwBufferCount = 1;
@@ -3112,8 +3112,8 @@ CxPlatDataPathUdpRecvComplete(
         SocketProc->CurrentRecvContext = NULL;
     }
 
-    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
-    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
+    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
+    PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
 
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
@@ -3253,7 +3253,7 @@ CxPlatDataPathUdpRecvComplete(
             Datagram->Next = NULL;
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
-            Datagram->Tuple = &RecvContext->Tuple;
+            Datagram->Route = &RecvContext->Route;
             Datagram->PartitionIndex = DatapathProc->Index;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
@@ -3360,8 +3360,8 @@ CxPlatDataPathTcpRecvComplete(
         SocketProc->CurrentRecvContext = NULL;
     }
 
-    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
-    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
+    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
+    PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
 
     if (IoResult == WSAENOTSOCK ||
         IoResult == WSA_OPERATION_ABORTED ||
@@ -3414,7 +3414,7 @@ CxPlatDataPathTcpRecvComplete(
         Data->Next = NULL;
         Data->Buffer = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
         Data->BufferLength = NumberOfBytesTransferred;
-        Data->Tuple = &RecvContext->Tuple;
+        Data->Route = &RecvContext->Route;
         Data->PartitionIndex = DatapathProc->Index;
         Data->TypeOfService = 0;
         Data->Allocated = TRUE;
@@ -3958,16 +3958,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
 {
     CXPLAT_DBG_ASSERT(
-        Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL &&
-        SendData->WsaBufferCount != 0);
+        Socket != NULL && Route != NULL &&
+        SendData != NULL && SendData->WsaBufferCount != 0);
 
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc =
@@ -3988,20 +3986,20 @@ CxPlatSocketSend(
         return
             CxPlatSocketSendInline(
                 SocketProc,
-                LocalAddress,
-                RemoteAddress,
+                &Route->LocalAddress,
+                &Route->RemoteAddress,
                 SendData);
     }
 
     CxPlatCopyMemory(
         &SendData->LocalAddress,
-        LocalAddress,
-        sizeof(*LocalAddress));
+        &Route->LocalAddress,
+        sizeof(Route->LocalAddress));
 
     CxPlatCopyMemory(
         &SendData->RemoteAddress,
-        RemoteAddress,
-        sizeof(*RemoteAddress));
+        &Route->RemoteAddress,
+        sizeof(Route->RemoteAddress));
 
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
     BOOL Result =
@@ -4029,8 +4027,8 @@ CxPlatSocketSend(
     return
         CxPlatSocketSendInline(
             SocketProc,
-            LocalAddress,
-            RemoteAddress,
+            &Route->LocalAddress,
+            &Route->RemoteAddress,
             SendData);
 
 #endif // CXPLAT_DATAPATH_QUEUE_SENDS
@@ -4256,13 +4254,13 @@ CxPlatFuzzerReceiveInject(
         return;
     }
 
-    RecvContext->Tuple.RemoteAddress = *SourceAddress;
+    RecvContext->Route.RemoteAddress = *SourceAddress;
 
     CXPLAT_RECV_DATA* Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
 
     Datagram->Next = NULL;
     Datagram->BufferLength = PacketLength;
-    Datagram->Tuple = &RecvContext->Tuple;
+    Datagram->Route = &RecvContext->Route;
     Datagram->Allocated = TRUE;
     Datagram->QueuedOnConnection = FALSE;
     Datagram->Buffer = ((PUCHAR)RecvContext) + Socket->Socket->Datapath->RecvPayloadOffset;
