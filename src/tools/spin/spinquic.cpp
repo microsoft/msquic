@@ -856,7 +856,7 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
     CXPLAT_THREAD_RETURN(0);
 }
 
-void QUIC_API DatapathHookCreateCallback(_Inout_opt_ QUIC_ADDR* /* RemoteAddress */, _Inout_opt_ QUIC_ADDR* /* LocalAddress */)
+void QUIC_API DatapathHookCreateCallback(_Inout_ CXPLAT_ROUTE* /* Route */)
 {
 }
 

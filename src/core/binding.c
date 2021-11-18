@@ -109,6 +109,8 @@ QuicBindingInitialize(
         UdpConfigCopy.Route = &RouteCopy;
         UdpConfigCopy.CallbackContext = Binding;
 
+        Hooks->Create(&RouteCopy);
+
         Status =
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,

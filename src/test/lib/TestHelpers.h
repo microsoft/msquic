@@ -161,8 +161,7 @@ struct DatapathHook
     _IRQL_requires_max_(PASSIVE_LEVEL)
     void
     Create(
-        _Inout_opt_ QUIC_ADDR* /* RemoteAddress */,
-        _Inout_opt_ QUIC_ADDR* /* LocalAddress */
+        _Inout_ CXPLAT_ROUTE* /* Route */
         ) {
     }
 
@@ -215,10 +214,9 @@ class DatapathHooks
     void
     QUIC_API
     CreateCallback(
-        _Inout_opt_ QUIC_ADDR* RemoteAddress,
-        _Inout_opt_ QUIC_ADDR* LocalAddress
+        _Inout_ CXPLAT_ROUTE* Route
         ) {
-        return Instance->Create(RemoteAddress, LocalAddress);
+        return Instance->Create(Route);
     }
 
     static
@@ -309,13 +307,12 @@ class DatapathHooks
 
     void
     Create(
-        _Inout_opt_ QUIC_ADDR* RemoteAddress,
-        _Inout_opt_ QUIC_ADDR* LocalAddress
+        _Inout_ CXPLAT_ROUTE* Route
         ) {
         CxPlatDispatchLockAcquire(&Lock);
         DatapathHook* Iter = Hooks;
         while (Iter) {
-            Iter->Create(RemoteAddress, LocalAddress);
+            Iter->Create(Route);
             Iter = Iter->Next;
         }
         CxPlatDispatchLockRelease(&Lock);
@@ -668,17 +665,17 @@ struct LoadBalancerHelper : public DatapathHook
     _IRQL_requires_max_(PASSIVE_LEVEL)
     void
     Create(
-        _Inout_opt_ QUIC_ADDR* RemoteAddress,
-        _Inout_opt_ QUIC_ADDR* LocalAddress
+        _Inout_ CXPLAT_ROUTE* Route
         ) {
-        if (RemoteAddress && LocalAddress &&
-            QuicAddrCompare(RemoteAddress, &PublicAddress)) {
-            *RemoteAddress = MapSendToPublic(LocalAddress);
+        if (QuicAddrGetFamily(&Route->RemoteAddress) != QUIC_ADDRESS_FAMILY_UNSPEC &&
+            QuicAddrGetFamily(&Route->LocalAddress) != QUIC_ADDRESS_FAMILY_UNSPEC &&
+            QuicAddrCompare(&Route->RemoteAddress, &PublicAddress)) {
+            Route->RemoteAddress = MapSendToPublic(&Route->LocalAddress);
             QuicTraceLogVerbose(
                 TestHookReplaceCreateSend,
                 "[test][hook] Create (remote) Addr :%hu => :%hu",
                 QuicAddrGetPort(&PublicAddress),
-                QuicAddrGetPort(RemoteAddress));
+                QuicAddrGetPort(&Route->RemoteAddress));
         }
     }
     _IRQL_requires_max_(PASSIVE_LEVEL)

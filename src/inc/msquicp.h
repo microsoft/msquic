@@ -22,13 +22,13 @@ extern "C" {
 
 typedef struct CXPLAT_RECV_DATA CXPLAT_RECV_DATA;
 typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
+typedef struct CXPLAT_ROUTE CXPLAT_ROUTE;
 
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 (QUIC_API * QUIC_TEST_DATAPATH_CREATE_HOOK)(
-    _Inout_opt_ QUIC_ADDR* RemoteAddress,
-    _Inout_opt_ QUIC_ADDR* LocalAddress
+    _Inout_ CXPLAT_ROUTE* Route
     );
 
 typedef
