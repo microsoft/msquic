@@ -306,6 +306,28 @@ tracepoint(CLOG_DATAPATH_RAW_DPDK_C, LibraryErrorStatus , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Buffer->ol_flags,
+                "L3/L4 checksum incorrect");
+// arg2 = arg2 = Buffer->ol_flags
+// arg3 = arg3 = "L3/L4 checksum incorrect"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
