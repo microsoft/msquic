@@ -1622,6 +1622,14 @@ CxPlatTlsIndicateCertificateReceived(
             TlsContext->Connection,
             SecStatus,
             "Query peer cert");
+        if (!TlsContext->IsServer ||
+            TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+            goto Exit;
+        } else {
+            goto Exit;
+        }
     } else {
 #ifdef _KERNEL_MODE
         Certificate = (QUIC_CERTIFICATE*)&PeerCert;

@@ -276,7 +276,7 @@ This event indicates a certificate has been received from the peer.
 
 `Certificate`
 
-Pointer to a platform/TLS specific certificate. Valid only during the callback. Can be NULL on error.
+Pointer to a platform/TLS specific certificate. Valid only during the callback.
 
 `DeferredErrorFlags`
 
@@ -288,7 +288,7 @@ Most severe error status when doing deferred validation of the certificate. Vali
 
 `Chain`
 
-Pointer to a platform/TLS specific certificate chain. Valid only during the callback. Can be NULL on error.
+Pointer to a platform/TLS specific certificate chain. Valid only during the callback.
 
 # See Also
 
