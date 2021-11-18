@@ -986,6 +986,7 @@ CxPlatSocketContextInitialize(
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
     const BOOLEAN HasRemoteAddr = RemoteAddress->Ip.sa_family != AF_UNSPEC;
+    const BOOLEAN HasLocalAddr = LocalAddress->Ip.sa_family != AF_UNSPEC || LocalAddress->Ipv4.sin_port != 0;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
@@ -1338,7 +1339,7 @@ CxPlatSocketContextInitialize(
         CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != RemoteAddress->Ipv4.sin_port);
     }
 #else
-    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(HasLocalAddr);
 #endif
 
     if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
