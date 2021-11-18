@@ -63,10 +63,10 @@ param (
     [switch]$DuoNic,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Xdp,
+    [switch]$NoCodeCoverage,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoCodeCoverage
+    [switch]$Xdp
 )
 
 #Requires -RunAsAdministrator

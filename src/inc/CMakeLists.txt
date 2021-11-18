@@ -43,7 +43,15 @@ endif()
 
 if(WIN32)
     target_link_libraries(base_link INTERFACE ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
+    if (_MSVC_CXX_ARCHITECTURE_FAMILY STREQUAL "ARM64EC")
+        target_link_libraries(base_link INTERFACE softintrin)
+    endif()
 endif()
 
 add_library(warnings INTERFACE)
 target_compile_options(warnings INTERFACE ${QUIC_WARNING_FLAGS})
+
+add_library(main_binary_link_args INTERFACE)
+if (WIN32 AND NOT BUILD_SHARED_LIBS)
+    target_compile_options(main_binary_link_args INTERFACE /Zl)
+endif()
