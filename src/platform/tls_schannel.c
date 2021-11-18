@@ -1596,6 +1596,8 @@ CxPlatTlsIndicateCertificateReceived(
 {
     SECURITY_STATUS SecStatus;
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
+    QUIC_CERTIFICATE* Certificate = NULL;
+    QUIC_CERTIFICATE_CHAIN* CertificateChain = NULL;
 
 #ifdef _KERNEL_MODE
     SecPkgContext_Certificates PeerCert;
@@ -1620,22 +1622,20 @@ CxPlatTlsIndicateCertificateReceived(
             TlsContext->Connection,
             SecStatus,
             "Query peer cert");
-        Result |= CXPLAT_TLS_RESULT_ERROR;
-        State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
-        goto Exit;
-    }
-#ifndef _KERNEL_MODE
-    CXPLAT_DBG_ASSERT(PeerCert != NULL);
+    } else {
+#ifdef _KERNEL_MODE
+        Certificate = (QUIC_CERTIFICATE*)&PeerCert;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCert;
+#else
+        CXPLAT_DBG_ASSERT(PeerCert != NULL);
+        Certificate = (QUIC_CERTIFICATE*)PeerCert;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
 #endif
+    }
     if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
-#ifdef _KERNEL_MODE
-            (QUIC_CERTIFICATE*)&PeerCert,
-            (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
-#else
-            (QUIC_CERTIFICATE*)PeerCert,
-            (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
-#endif
+            Certificate,
+            CertificateChain,
             CertValidationResult->dwChainErrorStatus,
             (QUIC_STATUS)CertValidationResult->hrVerifyChainStatus)) {
         QuicTraceEvent(
