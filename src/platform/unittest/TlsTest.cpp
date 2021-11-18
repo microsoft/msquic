@@ -1373,6 +1373,17 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
     }
 }
 
+TEST_F(TlsTest, CustomCertificateValidationServerIndicate)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(ClientCertParams);
+    CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, false);
+}
+
 TEST_F(TlsTest, ExtraCertificateValidation)
 {
     CxPlatClientSecConfig ClientConfig(
