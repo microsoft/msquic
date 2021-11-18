@@ -277,6 +277,7 @@ This event indicates a certificate has been received from the peer.
 `Certificate`
 
 Pointer to a platform/TLS specific certificate. Valid only during the callback.
+
 `DeferredErrorFlags`
 
 Bit flag of errors encountered when doing deferring validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront. Only supported with Schannel currently.
