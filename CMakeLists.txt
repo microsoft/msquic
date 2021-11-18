@@ -170,7 +170,7 @@ if (QUIC_SOURCE_LINK AND MSVC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
     else()
-        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
+        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019 or greater!")
     endif()
 endif()
 
