@@ -1350,28 +1350,26 @@ TEST_F(TlsTest, CustomCertificateValidationAllow)
 
 TEST_F(TlsTest, CustomCertificateValidationReject)
 {
-    while (true) {
-        CxPlatClientSecConfig ClientConfig(
-            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
-            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
-        CxPlatServerSecConfig ServerConfig;
-        TlsContext ServerContext, ClientContext;
-        ClientContext.InitializeClient(ClientConfig);
-        ServerContext.InitializeServer(ServerConfig);
-        ClientContext.OnPeerCertReceivedResult = FALSE;
-        {
-            auto Result = ClientContext.ProcessData(nullptr);
-            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ClientContext.OnPeerCertReceivedResult = FALSE;
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
-            Result = ServerContext.ProcessData(&ClientContext.State);
-            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
-            ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
-            Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-            ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
-            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-            ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
-        }
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
 }
 
