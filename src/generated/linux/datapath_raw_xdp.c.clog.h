@@ -395,6 +395,28 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatThreadCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatThreadCreate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif
