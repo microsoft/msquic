@@ -2006,8 +2006,7 @@ ValidateSecConfigStatusOpenSsl(
 
 TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
 {
-    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION,
-        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES }) {
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION }) {
 
         QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
@@ -2040,6 +2039,70 @@ TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
                 &ServerSecConfig,
                 OpenSslSecConfigCreateComplete);
         ValidateSecConfigStatusOpenSsl(Status, ServerSecConfig);
+    }
+}
+
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+static void
+QUIC_API
+PortableCertFlagsSecConfigCreateComplete(
+    _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
+)
+{
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, SecConfig);
+    *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
+}
+
+void
+ValidateSecConfigStatusPortableCert(
+    _In_ QUIC_STATUS Status,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig
+)
+{
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, SecConfig);
+    CxPlatTlsSecConfigDelete(SecConfig);
+}
+
+TEST_F(TlsTest, PortableCertFlags)
+{
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES }) {
+
+        QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
+            QUIC_CREDENTIAL_TYPE_NONE,
+            TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            QUIC_ALLOWED_CIPHER_SUITE_NONE
+        };
+        CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
+
+        QUIC_STATUS Status =
+            CxPlatTlsSecConfigCreate(
+                &TestClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ClientSecConfig,
+                PortableCertFlagsSecConfigCreateComplete);
+        ValidateSecConfigStatusPortableCert(Status, ClientSecConfig);
+
+        SelfSignedCertParams->Flags = TestFlag;
+        CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
+
+        Status =
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ServerSecConfig,
+                PortableCertFlagsSecConfigCreateComplete);
+        ValidateSecConfigStatusPortableCert(Status, ServerSecConfig);
     }
 }
 
