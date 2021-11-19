@@ -811,7 +811,6 @@ CxPlatGetPortableCertificate(
         goto Exit;
     }
 
-
     if (!CertSaveStore(
             TempCertStore,
             X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
