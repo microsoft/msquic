@@ -701,8 +701,7 @@ _Success_(return != 0)
 QUIC_STATUS
 CxPlatGetPortableCertificate(
     _In_ QUIC_CERTIFICATE* Certificate,
-    _Out_ QUIC_BUFFER* PortableCertificate,
-    _Out_ QUIC_BUFFER* CertificateChain
+    _Out_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
     )
 {
     QUIC_STATUS Status;
@@ -712,13 +711,11 @@ CxPlatGetPortableCertificate(
     CERT_USAGE_MATCH CertUsage;
     PCCERT_CHAIN_CONTEXT ChainContext;
     PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
+    PCCERT_CONTEXT DuplicateCtx;
     HCERTSTORE TempCertStore = NULL;
     CERT_BLOB Blob = {0};
 
-    PortableCertificate->Buffer = CertCtx->pbCertEncoded;
-    PortableCertificate->Length = CertCtx->cbCertEncoded;
-    CertificateChain->Buffer = NULL;
-    CertificateChain->Length = 0;
+    PortableCertificate->PlatformCertificate = NULL;
 
     EnhKeyUsage.cUsageIdentifier = 0;
     EnhKeyUsage.rgpszUsageIdentifier = NULL;
@@ -832,10 +829,29 @@ CxPlatGetPortableCertificate(
         goto Exit;
     }
 
-    CertificateChain->Length = Blob.cbData;
-    CertificateChain->Buffer = Blob.pbData;
+    DuplicateCtx = CertDuplicateCertificateContext(CertCtx);
+    if (DuplicateCtx == NULL) {
+        LastError = GetLastError();
+        Status = LastError;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertDuplicateCertificateContext failed");
+        goto Exit;
+    }
 
+    PortableCertificate->PortableChain.Length = Blob.cbData;
+    PortableCertificate->PortableChain.Buffer = Blob.pbData;
     Blob.pbData = NULL;
+
+    PortableCertificate->PortableCertificate.Length =
+        DuplicateCtx->cbCertEncoded;
+    PortableCertificate->PortableCertificate.Buffer =
+        DuplicateCtx->pbCertEncoded;
+
+    PortableCertificate->PlatformCertificate =
+        (QUIC_CERTIFICATE*)DuplicateCtx;
 
     Status = QUIC_STATUS_SUCCESS;
 
@@ -858,13 +874,16 @@ Exit:
 
 void
 CxPlatFreePortableCertificate(
-    _In_ QUIC_BUFFER* PortableCertificate,
-    _In_ QUIC_BUFFER* CertificateChain
+    _In_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
     )
 {
-    UNREFERENCED_PARAMETER(PortableCertificate);
-    if (CertificateChain->Buffer != NULL) {
-        CXPLAT_FREE(CertificateChain->Buffer, QUIC_POOL_TLS_PFX);
+    if (PortableCertificate->PlatformCertificate) {
+        CertFreeCertificateContext(
+            (PCCERT_CONTEXT)PortableCertificate->PlatformCertificate);
+
+        CXPLAT_FREE(
+            PortableCertificate->PortableChain.Buffer,
+            QUIC_POOL_TLS_PFX);
     }
 }
 

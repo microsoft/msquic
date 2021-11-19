@@ -18,6 +18,12 @@ Environment:
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
 typedef void QUIC_CERTIFICATE;
 
+typedef struct QUIC_PORTABLE_CERTIFICATE {
+    QUIC_CERTIFICATE* PlatformCertificate;
+    QUIC_BUFFER PortableCertificate;
+    QUIC_BUFFER PortableChain;
+} QUIC_PORTABLE_CERTIFICATE;
+
 //
 // Gets the certificate from the input configuration.
 //
@@ -67,8 +73,7 @@ _Success_(return != 0)
 QUIC_STATUS
 CxPlatGetPortableCertificate(
     _In_ QUIC_CERTIFICATE* Certificate,
-    _Out_ QUIC_BUFFER* PortableCertificate,
-    _Out_ QUIC_BUFFER* CertificateChain
+    _Out_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
     );
 
 //
@@ -76,8 +81,7 @@ CxPlatGetPortableCertificate(
 //
 void
 CxPlatFreePortableCertificate(
-    _In_ QUIC_BUFFER* PortableCertificate,
-    _In_ QUIC_BUFFER* CertificateChain
+    _In_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
     );
 
 //

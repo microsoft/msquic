@@ -1601,8 +1601,7 @@ CxPlatTlsIndicateCertificateReceived(
     QUIC_CERTIFICATE* Certificate = NULL;
     QUIC_CERTIFICATE_CHAIN* CertificateChain = NULL;
 #ifndef _KERNEL_MODE
-    QUIC_BUFFER PortableCertificate = {0};
-    QUIC_BUFFER PortableChain = {0};
+    QUIC_PORTABLE_CERTIFICATE PortableCertificate = {0};
 #endif
 
 #ifdef _KERNEL_MODE
@@ -1647,15 +1646,14 @@ CxPlatTlsIndicateCertificateReceived(
             QUIC_STATUS Status =
                 CxPlatGetPortableCertificate(
                     (QUIC_CERTIFICATE*)PeerCert,
-                    &PortableCertificate,
-                    &PortableChain);
+                    &PortableCertificate);
             if (QUIC_FAILED(Status)) {
                 Result |= CXPLAT_TLS_RESULT_ERROR;
                 State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
                 goto Exit;
             }
-            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate;
-            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableChain;
+            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
         } else {
             Certificate = (QUIC_CERTIFICATE*)PeerCert;
             CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
@@ -1686,7 +1684,7 @@ Exit:
     }
 #else
 
-    CxPlatFreePortableCertificate(&PortableCertificate, &PortableChain);
+    CxPlatFreePortableCertificate(&PortableCertificate);
 
     if (PeerCert != NULL) {
         CertFreeCertificateContext(PeerCert);
