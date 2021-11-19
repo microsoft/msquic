@@ -435,6 +435,7 @@ CxPlatResolveRoute(
     //
     // Find the best next hop IP address.
     //
+    uint16_t SavedLocalPort = Route->LocalAddress.Ipv4.sin_port;
     Status =
         GetBestRoute2(
             NULL, // InterfaceLuid
@@ -444,6 +445,7 @@ CxPlatResolveRoute(
             0, // AddressSortOptions
             &IpforwardRow,
             &Route->LocalAddress); // BestSourceAddress
+    Route->LocalAddress.Ipv4.sin_port = SavedLocalPort;
     if (Status != ERROR_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -477,7 +479,11 @@ CxPlatResolveRoute(
     //
     MIB_IPNET_ROW2 IpnetRow = {0};
     IpnetRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
-    IpnetRow.Address = IpforwardRow.NextHop;
+    if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
+        IpnetRow.Address = Route->RemoteAddress;
+    } else {
+        IpnetRow.Address = IpforwardRow.NextHop;
+    }
     Status = GetIpNetEntry2(&IpnetRow);
     if (Status != ERROR_SUCCESS) {
         Status =
