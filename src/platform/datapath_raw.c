@@ -484,8 +484,14 @@ CxPlatResolveRoute(
     } else {
         IpnetRow.Address = IpforwardRow.NextHop;
     }
+    //
+    // First call GetIpNetEntry2 to see if there's already a cached neighbor. If there
+    // isn't one, or if the cached neighbor's state is unreachable (which, NB, can happen
+    // in the case where a route lookup resulted in a dummy neighbor entry being created
+    // in TCPIP.sys) or incomplete, then do a solicitation.
+    //
     Status = GetIpNetEntry2(&IpnetRow);
-    if (Status != ERROR_SUCCESS) {
+    if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
         Status =
             ResolveIpNetEntry2(
                 &IpnetRow,
