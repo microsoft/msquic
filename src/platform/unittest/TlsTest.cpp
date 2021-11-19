@@ -1415,7 +1415,7 @@ TEST_F(TlsTest, PortableCertificateValidation)
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
         QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
-        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES);
+        QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES);
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
@@ -2070,7 +2070,7 @@ ValidateSecConfigStatusPortableCert(
 
 TEST_F(TlsTest, PortableCertFlags)
 {
-    for (auto TestFlag : { QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES }) {
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES }) {
 
         QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
