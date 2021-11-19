@@ -111,31 +111,6 @@ CxPlatDataPathRecvDataToRecvPacket(
 CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context);
 CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context);
 
-// TODO: common with DPDK and/or UDP/IP/ETH lib.
-void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
-{
-    uint8_t* MacPtr = Mac;
-    uint8_t* End = Mac + 6;
-    char* ValuePtr = Value;
-
-    *Mac = 0; // satisfy compiler.
-
-    while (MacPtr < End) {
-        if (*ValuePtr == '\0') {
-            break;
-        }
-
-        if (*ValuePtr == ':') {
-            ValuePtr++;
-        }
-
-        if (MacPtr < End) {
-            *MacPtr = (uint8_t)strtoul(ValuePtr, &ValuePtr, 16);
-            MacPtr++;
-        }
-    }
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
@@ -143,11 +118,6 @@ CxPlatXdpReadConfig(
     )
 {
     // Default config
-    const uint8_t DefaultServerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
-    CxPlatCopyMemory(Xdp->ServerMac, DefaultServerMac, 6);
-    const uint8_t DefaultClientMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
-    CxPlatCopyMemory(Xdp->ClientMac, DefaultClientMac, 6);
-
     Xdp->IfIndex = IFI_UNSPECIFIED;
     Xdp->QueueCount = 1;
     Xdp->RxBufferCount = 4096;
@@ -176,10 +146,6 @@ CxPlatXdpReadConfig(
             Xdp->IfIndex = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "QueueCount") == 0) {
             Xdp->QueueCount = strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "ServerMac") == 0) {
-            ValueToMac(Value, Xdp->ServerMac);
-        } else if (strcmp(Line, "ClientMac") == 0) {
-            ValueToMac(Value, Xdp->ClientMac);
         } else if (strcmp(Line, "CpuGroup") == 0) {
              Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
              Xdp->Affinitize = TRUE;

@@ -2959,7 +2959,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
-    _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )

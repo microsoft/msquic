@@ -703,14 +703,8 @@ CxPlatFramingWriteHeaders(
     // Fill Ethernet header.
     //
     Ethernet->Type = EthType;
-
-    if (Socket->Connected) {
-        CxPlatCopyMemory(Ethernet->Destination, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
-        CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ClientMac, sizeof(Socket->Datapath->ClientMac));
-    } else {
-        CxPlatCopyMemory(Ethernet->Destination, Socket->Datapath->ClientMac, sizeof(Socket->Datapath->ClientMac));
-        CxPlatCopyMemory(Ethernet->Source, Socket->Datapath->ServerMac, sizeof(Socket->Datapath->ServerMac));
-    }
+    CxPlatCopyMemory(Ethernet->Destination, Route->NextHopLinkLayerAddress, sizeof(Route->NextHopLinkLayerAddress));
+    CxPlatCopyMemory(Ethernet->Source, Route->LocalLinkLayerAddress, sizeof(Route->LocalLinkLayerAddress));
 
     Buffer->Length += sizeof(UDP_HEADER) + IpHeaderLen + sizeof(ETHERNET_HEADER);
     Buffer->Buffer -= sizeof(UDP_HEADER) + IpHeaderLen + sizeof(ETHERNET_HEADER);

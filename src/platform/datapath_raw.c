@@ -420,14 +420,109 @@ CxPlatSendDataIsFull(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route
+    )
+{
+    NETIO_STATUS Status = 0;
+    MIB_IPFORWARD_ROW2 IpforwardRow = {0};
+
+    CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
+
+    //
+    // Find the best next hop IP address.
+    //
+    Status =
+        GetBestRoute2(
+            NULL, // InterfaceLuid
+            IFI_UNSPECIFIED, // InterfaceIndex
+            &Route->LocalAddress, // SourceAddress
+            &Route->RemoteAddress, // DestinationAddress
+            0, // AddressSortOptions
+            &IpforwardRow,
+            &Route->LocalAddress); // BestSourceAddress
+    if (Status != ERROR_SUCCESS) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetBestRoute2");
+        goto Done;
+    }
+
+    //
+    // Look up the source interface link-layer address.
+    //
+    MIB_IF_ROW2 IfRow = {0};
+    IfRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
+    Status = GetIfEntry2(&IfRow);
+    if (Status != ERROR_SUCCESS) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetIfEntry2");
+        goto Done;
+    }
+    CXPLAT_FRE_ASSERT(IfRow.PhysicalAddressLength == sizeof(Route->LocalLinkLayerAddress));
+    CxPlatCopyMemory(&Route->LocalLinkLayerAddress, IfRow.PhysicalAddress, sizeof(Route->LocalLinkLayerAddress));
+
+    //
+    // Map the next hop IP address to a link-layer address.
+    //
+    MIB_IPNET_ROW2 IpnetRow = {0};
+    IpnetRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
+    IpnetRow.Address = IpforwardRow.NextHop;
+    Status = GetIpNetEntry2(&IpnetRow);
+    if (Status != ERROR_SUCCESS) {
+        Status =
+            ResolveIpNetEntry2(
+                &IpnetRow,
+                &Route->LocalAddress);
+        if (Status != 0) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Status,
+                "ResolveIpNetEntry2");
+            goto Done;
+        }
+    }
+    CXPLAT_FRE_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
+    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
+
+    Route->Resolved = TRUE;
+
+Done:
+
+    // TODO: convert NETIO_STATUS to QUIC_STATUS
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!Route->Resolved) {
+        Status = CxPlatResolveRoute(Socket, Route);
+        if (QUIC_FAILED(Status)) {
+            goto Done;
+        }
+    }
+
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -437,12 +532,16 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer,
         Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,
         Socket->Datapath->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);
-    return QUIC_STATUS_SUCCESS;
+
+Done:
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

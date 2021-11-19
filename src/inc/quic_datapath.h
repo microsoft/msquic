@@ -149,6 +149,10 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
+    BOOLEAN Resolved; // When TRUE, LocalLinkLayerAddress and NextHopLinkLayerAddress are valid.
+    uint8_t LocalLinkLayerAddress[6];
+    uint8_t NextHopLinkLayerAddress[6];
+
 } CXPLAT_ROUTE;
 
 //
@@ -605,7 +609,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t PartitionId
     );

@@ -93,40 +93,12 @@ CxPlatDataPathRecvDataToRecvPacket(
     return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(DPDK_RX_PACKET));
 }
 
-void ValueToMac(_In_z_ char* Value, _Out_ uint8_t Mac[6])
-{
-    uint8_t* MacPtr = Mac;
-    uint8_t* End = Mac + 6;
-    char* ValuePtr = Value;
-
-    while (MacPtr < End) {
-        if (*ValuePtr == '\0') {
-            break;
-        }
-
-        if (*ValuePtr == ':') {
-            ValuePtr++;
-        }
-
-        if (MacPtr < End) {
-            *MacPtr = (uint8_t)strtoul(ValuePtr, &ValuePtr, 16);
-            MacPtr++;
-        }
-    }
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpdkReadConfig(
     _Inout_ DPDK_DATAPATH* Dpdk
     )
 {
-    // Default config
-    const uint8_t DefaultServerMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x80 };
-    CxPlatCopyMemory(Dpdk->ServerMac, DefaultServerMac, 6);
-    const uint8_t DefaultClientMac[] = { 0x04, 0x3f, 0x72, 0xd8, 0x20, 0x59 };
-    CxPlatCopyMemory(Dpdk->ClientMac, DefaultClientMac, 6);
-
     Dpdk->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
 
     FILE *File = fopen("dpdk.ini", "r");
@@ -145,11 +117,7 @@ CxPlatDpdkReadConfig(
             Value[strlen(Value) - 1] = '\0';
         }
 
-        if (strcmp(Line, "ServerMac") == 0) {
-            ValueToMac(Value, Dpdk->ServerMac);
-        } else if (strcmp(Line, "ClientMac") == 0) {
-            ValueToMac(Value, Dpdk->ClientMac);
-        } else if (strcmp(Line, "CPU") == 0) {
+        if (strcmp(Line, "CPU") == 0) {
              Dpdk->Cpu = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "DeviceName") == 0) {
              strcpy(Dpdk->DeviceName, Value);

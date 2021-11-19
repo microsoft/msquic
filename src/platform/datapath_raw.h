@@ -21,10 +21,6 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_SOCKET_POOL SocketPool;
 
-    // Hacks - Eventually shouldn't be necessary
-    uint8_t ServerMac[6];
-    uint8_t ClientMac[6];
-
     // RSS stuff
     uint16_t Cpu;
     uint8_t NumaNode;
