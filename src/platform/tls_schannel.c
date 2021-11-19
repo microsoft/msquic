@@ -948,7 +948,7 @@ CxPlatTlsSecConfigCreate(
     }
 
 #ifdef _KERNEL_MODE
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
        return QUIC_STATUS_NOT_SUPPORTED;    // Not supported in kernel mode.
     }
 #endif
@@ -1642,7 +1642,7 @@ CxPlatTlsIndicateCertificateReceived(
 #else
         CXPLAT_DBG_ASSERT(PeerCert != NULL);
 
-        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
             QUIC_STATUS Status =
                 CxPlatGetPortableCertificate(
                     (QUIC_CERTIFICATE*)PeerCert,
