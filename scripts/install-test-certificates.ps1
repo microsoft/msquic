@@ -129,7 +129,13 @@ function CreateLeafCert($Signer) {
         <# pathLengthConstraint #> 0,
         <# critical #> $true)
 
+    $SanBuilder = [System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder]::new()
+    $SanBuilder.AddDnsName("localhost")
+    $SanBuilder.AddIpAddress([System.Net.IPAddress]::Parse("127.0.0.1"))
+    $SanBuilder.AddIpAddress([System.Net.IPAddress]::Parse("::1"))
+
     $Extensions = [System.Collections.Generic.List[System.Security.Cryptography.X509Certificates.X509Extension]]::new()
+    $Extensions.Add($SanBuilder.Build())
     $Extensions.Add($KeyUsage)
     $Extensions.Add($EnhancedKeyUsages)
     $Extensions.Add($BasicConstraints)
