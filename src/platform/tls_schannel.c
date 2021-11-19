@@ -947,9 +947,11 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+#ifdef _KERNEL_MODE
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
-       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported yet.
+       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported in kernel mode.
     }
+#endif
 
     switch (CredConfig->Type) {
     case QUIC_CREDENTIAL_TYPE_NONE:
@@ -1598,6 +1600,9 @@ CxPlatTlsIndicateCertificateReceived(
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
     QUIC_CERTIFICATE* Certificate = NULL;
     QUIC_CERTIFICATE_CHAIN* CertificateChain = NULL;
+#ifndef _KERNEL_MODE
+    QUIC_PORTABLE_CERTIFICATE PortableCertificate = {0};
+#endif
 
 #ifdef _KERNEL_MODE
     SecPkgContext_Certificates PeerCert;
@@ -1622,14 +1627,37 @@ CxPlatTlsIndicateCertificateReceived(
             TlsContext->Connection,
             SecStatus,
             "Query peer cert");
+        if (!TlsContext->IsServer ||
+            TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+            goto Exit;
+        } else {
+            goto Exit;
+        }
     } else {
 #ifdef _KERNEL_MODE
         Certificate = (QUIC_CERTIFICATE*)&PeerCert;
         CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCert;
 #else
         CXPLAT_DBG_ASSERT(PeerCert != NULL);
-        Certificate = (QUIC_CERTIFICATE*)PeerCert;
-        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
+
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+            QUIC_STATUS Status =
+                CxPlatGetPortableCertificate(
+                    (QUIC_CERTIFICATE*)PeerCert,
+                    &PortableCertificate);
+            if (QUIC_FAILED(Status)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                goto Exit;
+            }
+            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
+        } else {
+            Certificate = (QUIC_CERTIFICATE*)PeerCert;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
+        }
 #endif
     }
     if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
@@ -1655,6 +1683,9 @@ Exit:
         FreeContextBuffer(PeerCert.pbCertificateChain);
     }
 #else
+
+    CxPlatFreePortableCertificate(&PortableCertificate);
+
     if (PeerCert != NULL) {
         CertFreeCertificateContext(PeerCert);
     }

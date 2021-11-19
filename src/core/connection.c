@@ -181,16 +181,16 @@ QuicConnAlloc(
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
 
-        Path->Route.LocalAddress = Datagram->Route->LocalAddress;
+        Path->Route = *Datagram->Route;
         Connection->State.LocalAddressSet = TRUE;
+        Connection->State.RemoteAddressSet = TRUE;
+
         QuicTraceEvent(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
-        Path->Route.RemoteAddress = Datagram->Route->RemoteAddress;
-        Connection->State.RemoteAddressSet = TRUE;
         QuicTraceEvent(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
@@ -2882,8 +2882,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnPeerCertReceived(
     _In_ QUIC_CONNECTION* Connection,
-    _In_opt_ QUIC_CERTIFICATE* Certificate,
-    _In_opt_ QUIC_CERTIFICATE_CHAIN* Chain,
+    _In_ QUIC_CERTIFICATE* Certificate,
+    _In_ QUIC_CERTIFICATE_CHAIN* Chain,
     _In_ uint32_t DeferredErrorFlags,
     _In_ QUIC_STATUS DeferredStatus
     )

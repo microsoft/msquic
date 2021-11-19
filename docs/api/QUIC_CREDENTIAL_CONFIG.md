@@ -134,7 +134,7 @@ Enables which cipher suites are available for negotiation via the `AllowedCipher
 `QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES`
 
 Provide the entire certificate chain to the application as a PKCS7 binary blob in the `QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED` event.
-Only supported by OpenSSL.
+Not supported in kernel mode.
 
 #### `CertificateHash`
 
