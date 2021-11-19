@@ -401,6 +401,28 @@ tracepoint(CLOG_CERT_CAPI_C, AllocFailure , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertDuplicateCertificateContext failed");
+// arg2 = arg2 = LastError
+// arg3 = arg3 = "CertDuplicateCertificateContext failed"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
