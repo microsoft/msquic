@@ -249,6 +249,12 @@ CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET* Socket
     );
 
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route
+    );
+
 //
 // Network framing helpers. Used for Ethernet, IP (v4 & v6) and UDP.
 //

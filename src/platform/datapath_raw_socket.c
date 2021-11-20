@@ -265,6 +265,107 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route
+    )
+{
+#ifdef _WIN32
+    NETIO_STATUS Status = 0;
+    MIB_IPFORWARD_ROW2 IpforwardRow = {0};
+
+    CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
+
+    //
+    // Find the best next hop IP address. If not cached, this may result in (and
+    // block on) network IO.
+    //
+    uint16_t SavedLocalPort = Route->LocalAddress.Ipv4.sin_port;
+    Status =
+        GetBestRoute2(
+            NULL, // InterfaceLuid
+            IFI_UNSPECIFIED, // InterfaceIndex
+            &Route->LocalAddress, // SourceAddress
+            &Route->RemoteAddress, // DestinationAddress
+            0, // AddressSortOptions
+            &IpforwardRow,
+            &Route->LocalAddress); // BestSourceAddress
+    Route->LocalAddress.Ipv4.sin_port = SavedLocalPort;
+    if (Status != ERROR_SUCCESS) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetBestRoute2");
+        goto Done;
+    }
+
+    //
+    // Look up the source interface link-layer address.
+    //
+    MIB_IF_ROW2 IfRow = {0};
+    IfRow.InterfaceLuid = IpforwardRow.InterfaceLuid;
+    Status = GetIfEntry2(&IfRow);
+    if (Status != ERROR_SUCCESS) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetIfEntry2");
+        goto Done;
+    }
+    CXPLAT_DBG_ASSERT(IfRow.PhysicalAddressLength == sizeof(Route->LocalLinkLayerAddress));
+    CxPlatCopyMemory(&Route->LocalLinkLayerAddress, IfRow.PhysicalAddress, sizeof(Route->LocalLinkLayerAddress));
+
+    //
+    // Map the next hop IP address to a link-layer address.
+    //
+    MIB_IPNET_ROW2 IpnetRow = {0};
+    IpnetRow.InterfaceLuid = IpforwardRow.InterfaceLuid;
+    if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
+        IpnetRow.Address = Route->RemoteAddress;
+    } else {
+        IpnetRow.Address = IpforwardRow.NextHop;
+    }
+
+    //
+    // First call GetIpNetEntry2 to see if there's already a cached neighbor. If there
+    // isn't one, or if the cached neighbor's state is unreachable (which, NB, can happen
+    // in the case where a route lookup resulted in a dummy neighbor entry being created
+    // in TCPIP.sys) or incomplete, then do a solicitation.
+    //
+    Status = GetIpNetEntry2(&IpnetRow);
+    if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
+        Status =
+            ResolveIpNetEntry2(
+                &IpnetRow,
+                &Route->LocalAddress);
+        if (Status != 0) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Status,
+                "ResolveIpNetEntry2");
+            goto Done;
+        }
+    }
+    CXPLAT_DBG_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
+    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
+
+    Route->Resolved = TRUE;
+
+Done:
+
+    return HRESULT_FROM_WIN32(Status);
+#else // _WIN32
+    return QUIC_STATUS_NOT_SUPPORTED;
+#endif // _WIN32
+}
+
 //
 // Ethernet / IP Framing Logic
 //
@@ -515,6 +616,10 @@ CxPlatDpRawParseEthernet(
             "not a unicast packet");
         return;
     }
+
+    Packet->Route->Resolved = TRUE;
+    CxPlatCopyMemory(Packet->Route->LocalLinkLayerAddress, Ethernet->Destination, sizeof(Ethernet->Destination));
+    CxPlatCopyMemory(Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 
     uint16_t EthernetType = Ethernet->Type;
     if (EthernetType == ETHERNET_TYPE_IPV4) {

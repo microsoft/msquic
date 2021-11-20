@@ -420,104 +420,6 @@ CxPlatSendDataIsFull(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
-    )
-{
-    NETIO_STATUS Status = 0;
-    MIB_IPFORWARD_ROW2 IpforwardRow = {0};
-
-    CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
-
-    //
-    // Find the best next hop IP address.
-    //
-    uint16_t SavedLocalPort = Route->LocalAddress.Ipv4.sin_port;
-    Status =
-        GetBestRoute2(
-            NULL, // InterfaceLuid
-            IFI_UNSPECIFIED, // InterfaceIndex
-            &Route->LocalAddress, // SourceAddress
-            &Route->RemoteAddress, // DestinationAddress
-            0, // AddressSortOptions
-            &IpforwardRow,
-            &Route->LocalAddress); // BestSourceAddress
-    Route->LocalAddress.Ipv4.sin_port = SavedLocalPort;
-    if (Status != ERROR_SUCCESS) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Status,
-            "GetBestRoute2");
-        goto Done;
-    }
-
-    //
-    // Look up the source interface link-layer address.
-    //
-    MIB_IF_ROW2 IfRow = {0};
-    IfRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
-    Status = GetIfEntry2(&IfRow);
-    if (Status != ERROR_SUCCESS) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Status,
-            "GetIfEntry2");
-        goto Done;
-    }
-    CXPLAT_FRE_ASSERT(IfRow.PhysicalAddressLength == sizeof(Route->LocalLinkLayerAddress));
-    CxPlatCopyMemory(&Route->LocalLinkLayerAddress, IfRow.PhysicalAddress, sizeof(Route->LocalLinkLayerAddress));
-
-    //
-    // Map the next hop IP address to a link-layer address.
-    //
-    MIB_IPNET_ROW2 IpnetRow = {0};
-    IpnetRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
-    if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
-        IpnetRow.Address = Route->RemoteAddress;
-    } else {
-        IpnetRow.Address = IpforwardRow.NextHop;
-    }
-    //
-    // First call GetIpNetEntry2 to see if there's already a cached neighbor. If there
-    // isn't one, or if the cached neighbor's state is unreachable (which, NB, can happen
-    // in the case where a route lookup resulted in a dummy neighbor entry being created
-    // in TCPIP.sys) or incomplete, then do a solicitation.
-    //
-    Status = GetIpNetEntry2(&IpnetRow);
-    if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
-        Status =
-            ResolveIpNetEntry2(
-                &IpnetRow,
-                &Route->LocalAddress);
-        if (Status != 0) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                Status,
-                "ResolveIpNetEntry2");
-            goto Done;
-        }
-    }
-    CXPLAT_FRE_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
-    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
-
-    Route->Resolved = TRUE;
-
-Done:
-
-    // TODO: convert NETIO_STATUS to QUIC_STATUS
-    return Status;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
@@ -526,15 +428,6 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    if (!Route->Resolved) {
-        Status = CxPlatResolveRoute(Socket, Route);
-        if (QUIC_FAILED(Status)) {
-            goto Done;
-        }
-    }
-
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -545,15 +438,20 @@ CxPlatSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 
+    if (!Route->Resolved) {
+        QUIC_STATUS Status = CxPlatResolveRoute(Socket, Route);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+    }
+
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer,
         Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,
         Socket->Datapath->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);
 
-Done:
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

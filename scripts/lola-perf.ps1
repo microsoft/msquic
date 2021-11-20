@@ -67,23 +67,27 @@ function RunTest (
             Write-Error "Failed to parse secnetperf output"
         }
 
-        $_ = $Min.Add([Int32]$MatchResults.Matches.Groups[1].Value)
-        $_ = $P50.Add([Int32]$MatchResults.Matches.Groups[2].Value)
-        $_ = $P90.Add([Int32]$MatchResults.Matches.Groups[3].Value)
-        $_ = $P99.Add([Int32]$MatchResults.Matches.Groups[4].Value)
-        $_ = $P999.Add([Int32]$MatchResults.Matches.Groups[5].Value)
-        $_ = $P9999.Add([Int32]$MatchResults.Matches.Groups[6].Value)
+        $Groups = $MatchResults.Matches.Groups
+
+        Write-Debug "$ResponseSize,$([Int32]$Groups[1].Value),$([Int32]$Groups[2].Value),$([Int32]$Groups[3].Value),$([Int32]$Groups[4].Value),$([Int32]$Groups[5].Value),$([Int32]$Groups[6].Value)"
+
+        $_ = $Min.Add([Int32]$Groups[1].Value)
+        $_ = $P50.Add([Int32]$Groups[2].Value)
+        $_ = $P90.Add([Int32]$Groups[3].Value)
+        $_ = $P99.Add([Int32]$Groups[4].Value)
+        $_ = $P999.Add([Int32]$Groups[5].Value)
+        $_ = $P9999.Add([Int32]$Groups[6].Value)
 
         $script:NumTestCasesCompleted += 1
         Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete (($script:NumTestCasesCompleted / $script:TotalNumTestCases) * 100)
     }
 
-    $Result.Min = $Min[$Min.Count / 2]
-    $Result.P50 = $P50[$Min.Count / 2]
-    $Result.P90 = $P90[$Min.Count / 2]
-    $Result.P99 = $P99[$Min.Count / 2]
-    $Result.P999 = $P999[$Min.Count / 2]
-    $Result.P9999 = $P9999[$Min.Count / 2]
+    $Result.Min = ($Min | Sort-Object)[$Min.Count / 2]
+    $Result.P50 = ($P50 | Sort-Object)[$Min.Count / 2]
+    $Result.P90 = ($P90 | Sort-Object)[$Min.Count / 2]
+    $Result.P99 = ($P99 | Sort-Object)[$Min.Count / 2]
+    $Result.P999 = ($P999 | Sort-Object)[$Min.Count / 2]
+    $Result.P9999 = ($P9999 | Sort-Object)[$Min.Count / 2]
 
     return $Result
 }
@@ -91,6 +95,8 @@ function RunTest (
 [System.Collections.ArrayList]$Results = @()
 
 $script:TotalNumTestCases = $Responses.Count * $NumIterations
+
+Write-Debug "ResponseSize,Min,P50,P90,P99,P999,P9999"
 
 foreach ($Response in $Responses) {
     $Result = RunTest $Response $NumIterations
