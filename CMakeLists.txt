@@ -63,13 +63,14 @@ elseif (UNIX)
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
-if(WIN32)
-    # On Windows, we just need to set the destination variables
-    # This will allow the build to be picked up by other projects
-    set(msquic_dest ${CMAKE_INSTALL_PREFIX})
-    set(main_lib_dest lib)
-    set(include_dest include)
-else()
+# Set install path
+
+# On Windows, we just need to set the destination variables
+# This will allow the build to be picked up by other projects
+set(msquic_dest ${CMAKE_INSTALL_PREFIX})
+set(main_lib_dest lib)
+set(include_dest include)
+if(NOT WIN32)
     # On unix platforms, we need to do rpath manipulation for the shared library
     # In addition, we install into a subfolder of install to not polute the global namespace
 
@@ -85,21 +86,17 @@ else()
     # Once this is fixed, also fix the shim in build-config-user.yml
     #set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
-    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
     # Add the automatically determined parts of the RPATH
     # which point to directories outside the build tree to the install RPATH
     #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
     # The RPATH to be used when installing, but only if it's not a system directory
-    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
+    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
     if("${isSystemDir}" STREQUAL "-1")
-    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
     endif("${isSystemDir}" STREQUAL "-1")
-
-    set(msquic_dest msquic)
-    set(main_lib_dest msquic/lib)
-    set(include_dest msquic/include)
 endif()
 
 set(FILENAME_DEP_REPLACE "get_filename_component(SELF_DIR \"$\{CMAKE_CURRENT_LIST_FILE\}\" PATH)")
