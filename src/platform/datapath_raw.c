@@ -372,11 +372,14 @@ CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize,
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _Inout_ CXPLAT_ROUTE* Route
     )
 {
+    if (!Route->Resolved && QUIC_FAILED(CxPlatResolveRoute(Socket, Route))) {
+        return NULL;
+    }
     return CxPlatDpRawTxAlloc(
-        Socket->Datapath, ECN, MaxPacketSize, Family);
+        Socket->Datapath, ECN, MaxPacketSize, QuicAddrGetFamily(&Route->RemoteAddress));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -423,7 +426,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
@@ -437,20 +440,12 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-
-    if (!Route->Resolved) {
-        QUIC_STATUS Status = CxPlatResolveRoute(Socket, Route);
-        if (QUIC_FAILED(Status)) {
-            return Status;
-        }
-    }
-
+    CXPLAT_DBG_ASSERT(Route->Resolved);
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer,
         Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,
         Socket->Datapath->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);
-
     return QUIC_STATUS_SUCCESS;
 }
 

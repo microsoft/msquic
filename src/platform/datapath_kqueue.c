@@ -1749,10 +1749,10 @@ CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize,
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _Inout_ CXPLAT_ROUTE* Route
     )
 {
-    UNREFERENCED_PARAMETER(Family);
+    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =
@@ -2237,7 +2237,7 @@ Exit:
 QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t IdealProcessor
     )
