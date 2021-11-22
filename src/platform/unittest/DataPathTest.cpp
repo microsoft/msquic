@@ -236,9 +236,7 @@ protected:
 
                 ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
 
-                auto ServerSendData =
-                    CxPlatSendDataAlloc(
-                        Socket, RecvContext->EcnType, 0, RecvData->Route);
+                auto ServerSendData = CxPlatSendDataAlloc(Socket, RecvContext->EcnType, 0, RecvData->Route);
                 ASSERT_NE(nullptr, ServerSendData);
                 auto ServerBuffer = CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerBuffer);
@@ -630,9 +628,7 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData =
-        CxPlatSendDataAlloc(
-            Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
+    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -665,9 +661,7 @@ TEST_P(DataPathTest, UdpDataRebind)
         VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
         ASSERT_NE(nullptr, Client.Socket);
 
-        auto ClientSendData =
-            CxPlatSendDataAlloc(
-                Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
+        auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
         ASSERT_NE(nullptr, ClientSendData);
         auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
         ASSERT_NE(nullptr, ClientBuffer);
@@ -683,9 +677,7 @@ TEST_P(DataPathTest, UdpDataRebind)
         VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
         ASSERT_NE(nullptr, Client.Socket);
 
-        auto ClientSendData =
-            CxPlatSendDataAlloc(
-                Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
+        auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
         ASSERT_NE(nullptr, ClientSendData);
         auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
         ASSERT_NE(nullptr, ClientBuffer);
@@ -719,9 +711,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
-    auto ClientSendData =
-        CxPlatSendDataAlloc(
-            Client, CXPLAT_ECN_ECT_0, 0, &Client.Route);
+    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_ECT_0, 0, &Client.Route);
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -767,9 +757,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
     VERIFY_QUIC_SUCCESS(Client2.GetInitStatus());
 
-    auto ClientSendData =
-        CxPlatSendDataAlloc(
-            Client1, CXPLAT_ECN_NON_ECT, 0, &Client1.Route);
+    auto ClientSendData = CxPlatSendDataAlloc(Client1, CXPLAT_ECN_NON_ECT, 0, &Client1.Route);
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
@@ -780,9 +768,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
     CxPlatEventReset(RecvContext.ClientCompletion);
 
-    ClientSendData =
-        CxPlatSendDataAlloc(
-            Client2, CXPLAT_ECN_NON_ECT, 0, &Client2.Route);
+    ClientSendData = CxPlatSendDataAlloc(Client2, CXPLAT_ECN_NON_ECT, 0, &Client2.Route);
     ASSERT_NE(nullptr, ClientSendData);
     ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
