@@ -310,7 +310,13 @@ if (!$Kernel -and !$SkipUnitTests) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }
-Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
+try {
+    Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
+} catch {
+    $_
+    Write-Host $_
+    throw $_
+}
 
 if ($CodeCoverage) {
     # Merge code coverage results
