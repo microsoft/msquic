@@ -375,6 +375,9 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
+    if (!Route->Resolved && QUIC_FAILED(CxPlatResolveRoute(Socket, Route))) {
+        return NULL;
+    }
     return CxPlatDpRawTxAlloc(
         Socket->Datapath, ECN, MaxPacketSize, QuicAddrGetFamily(&Route->RemoteAddress));
 }
@@ -437,6 +440,7 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+    CXPLAT_DBG_ASSERT(Route->Resolved);
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer,
         Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,

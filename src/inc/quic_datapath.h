@@ -149,6 +149,10 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
+    uint8_t LocalLinkLayerAddress[6];
+    uint8_t NextHopLinkLayerAddress[6];
+    BOOLEAN Resolved; // When TRUE, LocalLinkLayerAddress and NextHopLinkLayerAddress are valid.
+
 } CXPLAT_ROUTE;
 
 //
