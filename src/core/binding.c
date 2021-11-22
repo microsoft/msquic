@@ -813,7 +813,8 @@ QuicBindingProcessStatelessOperation(
         CxPlatSendDataAlloc(
             Binding->Socket,
             CXPLAT_ECN_NON_ECT,
-            0);
+            0,
+            RecvDatagram->Route);
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
