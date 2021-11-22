@@ -2969,6 +2969,10 @@ CxPlatSocketSend(
     CXPLAT_DBG_ASSERT(
         Binding != NULL && Route != NULL && SendData != NULL);
 
+    if (SendData->WskBufferCount == 0) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
     //
     // Initialize IRP and MDLs for sending.
     //
