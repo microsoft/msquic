@@ -2694,10 +2694,6 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    if (SendData->BufferCount == 0) {
-        return QUIC_STATUS_SUCCESS;
-    }
-
     UNREFERENCED_PARAMETER(IdealProcessor);
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(

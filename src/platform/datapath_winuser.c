@@ -3967,10 +3967,6 @@ CxPlatSocketSend(
         Socket != NULL && Route != NULL &&
         SendData != NULL);
 
-    if (SendData->WsaBufferCount == 0) {
-        return QUIC_STATUS_SUCCESS;
-    }
-
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc =
         &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
