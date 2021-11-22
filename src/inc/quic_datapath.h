@@ -556,7 +556,7 @@ CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize,
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _Inout_ CXPLAT_ROUTE* Route
     );
 
 //
