@@ -272,15 +272,9 @@ QuicMainGetExtraData(
     return TestToRun->GetExtraData(Data, Length);
 }
 
-typedef struct ShutdownData {
-    unsigned long  Data1;
-    unsigned short Data2;
-    unsigned short Data3;
-    unsigned char  Data4[ 8 ];
-} ShutdownData;
-
-const ShutdownData SecNetPerfShutdownGuid = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
-    0xff15e657,0x4f26,0x570e,0x88,0xab,0x07,0x96,0xb2,0x58,0xd1,0x1c};
+const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
+    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
 
 void
 DatapathReceive(
@@ -292,8 +286,7 @@ DatapathReceive(
     if (Data->BufferLength != sizeof(SecNetPerfShutdownGuid)) {
         return;
     }
-    ShutdownData* ReceivedData = reinterpret_cast<ShutdownData*>(Data->Buffer);
-    if (memcmp(ReceivedData, &SecNetPerfShutdownGuid, sizeof(ShutdownData))) {
+    if (memcmp(Data->Buffer, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid))) {
         return;
     }
     CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
