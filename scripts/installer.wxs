@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+ <Product Name='MsQuic' Id='5dcc73f2-5470-4685-a239-2f3a7d50b683'
+  UpgradeCode='a2dc346b-5e87-4a6f-8a0d-5f70eb831fdb'
+  Language='1033' Version='1.9.0' Manufacturer='Microsoft Corporation'>
+
+  <Package Id='*' InstallerVersion='200' InstallScope='perMachine'
+   Compressed='yes' Manufacturer='Microsoft Corporation' />
+
+  <Media Id='1' Cabinet='MsQuic.cab' EmbedCab='yes' />
+
+  <MajorUpgrade
+   DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+  <Directory Id='TARGETDIR' Name='SourceDir'>
+   <Directory Id='SystemFolder64'>
+    <Component Id='Library' Guid='c47d3ade-2017-4200-a32b-d5bd9e185ad9'>
+     <File Id='MsQuicLib' Name='msquic.dll' Source='msquic.dll' Vital='yes' />
+    </Component>
+   </Directory>
+  </Directory>
+
+  <Feature Id='Complete' Level="1">
+   <ComponentRef Id='Library' />
+  </Feature>
+
+ </Product>
+</Wix>
