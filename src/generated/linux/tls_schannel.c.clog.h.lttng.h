@@ -482,14 +482,14 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsError,
 // Decoder Ring for TlsErrorStatus
 // [ tls][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Convert SNI to unicode");
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "Query peer cert");
 // arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Convert SNI to unicode"
+// arg3 = arg3 = SecStatus
+// arg4 = arg4 = "Query peer cert"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsErrorStatus,
     TP_ARGS(

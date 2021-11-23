@@ -899,6 +899,53 @@ tracepoint(CLOG_TLS_SCHANNEL_C, TlsError , arg2, arg3);\
 // Decoder Ring for TlsErrorStatus
 // [ tls][%p] ERROR, %u, %s.
 // QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "Query peer cert");
+// arg2 = arg2 = TlsContext->Connection
+// arg3 = arg3 = SecStatus
+// arg4 = arg4 = "Query peer cert"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_TLS_SCHANNEL_C, TlsErrorStatus , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_TlsError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for TlsError
+// [ tls][%p] ERROR, %s.
+// QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+// arg2 = arg2 = TlsContext->Connection
+// arg3 = arg3 = "Indicate certificate received failed"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for TlsErrorStatus
+// [ tls][%p] ERROR, %u, %s.
+// QuicTraceEvent(
                     TlsErrorStatus,
                     "[ tls][%p] ERROR, %u, %s.",
                     TlsContext->Connection,
@@ -909,7 +956,6 @@ tracepoint(CLOG_TLS_SCHANNEL_C, TlsError , arg2, arg3);\
 // arg4 = arg4 = "Convert SNI to unicode"
 ----------------------------------------------------------*/
 #define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_TLS_SCHANNEL_C, TlsErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
@@ -1074,52 +1120,6 @@ tracepoint(CLOG_TLS_SCHANNEL_C, TlsErrorStatus , arg2, arg3, arg4);\
 // arg4 = arg4 = "query session info"
 ----------------------------------------------------------*/
 #define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "Query peer cert");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = SecStatus
-// arg4 = arg4 = "Query peer cert"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Indicate certificate received failed");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Indicate certificate received failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

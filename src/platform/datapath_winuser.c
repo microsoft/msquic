@@ -3500,9 +3500,11 @@ CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _Inout_ CXPLAT_ROUTE* Route
     )
 {
+    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC* DatapathProc =
@@ -3965,7 +3967,7 @@ CxPlatSocketSend(
 {
     CXPLAT_DBG_ASSERT(
         Socket != NULL && Route != NULL &&
-        SendData != NULL && SendData->WsaBufferCount != 0);
+        SendData != NULL);
 
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc =

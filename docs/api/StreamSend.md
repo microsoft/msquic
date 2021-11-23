@@ -48,7 +48,7 @@ Value | Meaning
 
 `ClientSendContext`
 
-The valid handle to an open stream object.
+The app context pointer (possibly null) to be associated with the send.
 
 # Return Value
 
