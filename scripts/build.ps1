@@ -421,14 +421,6 @@ function CMake-Generate {
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
-
-    if ($PGO -and $Config -eq "Release") {
-        # Manually edit project file, since CMake doesn't seem to have a way to do it.
-        $FindText = "  <PropertyGroup Label=`"UserMacros`" />"
-        $ReplaceText = "  <PropertyGroup Label=`"UserMacros`" />`r`n  <PropertyGroup><LibraryPath>`$(LibraryPath);`$(VC_LibraryPath_VC_$($Arch)_Desktop)</LibraryPath></PropertyGroup>"
-        $ProjectFile = Join-Path $BuildDir "src\bin\msquic.vcxproj"
-        (Get-Content $ProjectFile) -replace $FindText, $ReplaceText | Out-File $ProjectFile
-    }
 }
 
 # Uses cmake to generate the build configuration files.
