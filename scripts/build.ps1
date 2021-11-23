@@ -207,19 +207,7 @@ $Arch = $BuildConfig.Arch
 $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
-    if ($IsWindows) {
-        $SetupModule = Get-Module -Name "VSSetup"
-        if ($null -eq $SetupModule) {
-            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
-            Import-Module VSSetup
-        }
-        $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
-        if ($VsVersion.Contains("2022")) {
-            $Generator = "Visual Studio 17 2022"
-        } else {
-            $Generator = "Visual Studio 16 2019"
-        }
-    } else {
+    if (!$IsWindows) {
         $Generator = "Unix Makefiles"
     }
 }
@@ -301,15 +289,18 @@ function CMake-Execute([String]$Arguments) {
 
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
-    $Arguments = "-G"
+    $Arguments = ""
 
     if ($Generator.Contains(" ")) {
         $Generator = """$Generator"""
     }
 
     if ($IsWindows) {
-        if ($Generator.Contains("Visual Studio")) {
-            $Arguments += " $Generator -A "
+        if ($Generator.Contains("Visual Studio") -or [string]::IsNullOrWhiteSpace($Generator)) {
+            if ($Generator.Contains("Visual Studio")) {
+                $Arguments += " -G $Generator"
+            }
+            $Arguments += " -A "
             switch ($Arch) {
                 "x86"   { $Arguments += "Win32" }
                 "x64"   { $Arguments += "x64" }
@@ -319,7 +310,7 @@ function CMake-Generate {
             }
         } else {
             Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
-            $Arguments += " $Generator"
+            $Arguments += " -G $Generator"
         }
     } else {
         $Arguments += " $Generator"
@@ -431,6 +422,7 @@ function CMake-Generate {
     }
 }
 
+
 # Uses cmake to generate the build configuration files.
 function CMake-Build {
     $Arguments = "--build ."
@@ -450,12 +442,11 @@ function CMake-Build {
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
-            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
-            Import-Module VSSetup
-            $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
-            $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
-            $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
-            if (Test-Path $VCToolsPath) {
+            $CacheFile = Join-Path $BuildDir "CMakeCache.txt"
+            $LinkerMatches = Select-String -Path $CacheFile -Pattern "CMAKE_LINKER:FILEPATH=(.+)"
+            if ($LinkerMatches.Matches.Length -eq 1 -and $LinkerMatches.Matches[0].Groups.Count -eq 2) {
+                $Linker = $LinkerMatches.Matches[0].Groups[1].Value
+                $VCToolsPath = Split-Path -Path $Linker -Parent
                 if ($PGO) {
                     Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
