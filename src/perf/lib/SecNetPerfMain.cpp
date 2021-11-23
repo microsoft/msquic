@@ -272,13 +272,23 @@ QuicMainGetExtraData(
     return TestToRun->GetExtraData(Data, Length);
 }
 
+const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
+    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
+
 void
 DatapathReceive(
     _In_ CXPLAT_SOCKET*,
     _In_ void* Context,
-    _In_ CXPLAT_RECV_DATA*
+    _In_ CXPLAT_RECV_DATA* Data
     )
 {
+    if (Data->BufferLength != sizeof(SecNetPerfShutdownGuid)) {
+        return;
+    }
+    if (memcmp(Data->Buffer, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid))) {
+        return;
+    }
     CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
     CxPlatEventSet(*Event);
 }

@@ -23,7 +23,7 @@ if(QUIC_ENABLE_LOGGING)
         target_link_libraries(msquic.lttng PRIVATE ${LTTNGUST_LIBRARIES})
         set_target_properties(msquic.lttng PROPERTIES SOVERSION ${QUIC_FULL_VERSION} VERSION ${QUIC_FULL_VERSION})
 
-        install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
+        install(TARGETS msquic.lttng DESTINATION lib)
     endif()
 else()
     add_library(logging INTERFACE)

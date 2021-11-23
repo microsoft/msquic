@@ -66,45 +66,6 @@ elseif (UNIX)
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
-if(WIN32)
-    # On Windows, we just need to set the destination variables
-    # This will allow the build to be picked up by other projects
-    set(msquic_dest ${CMAKE_INSTALL_PREFIX})
-    set(main_lib_dest lib)
-    set(include_dest include)
-else()
-    # On unix platforms, we need to do rpath manipulation for the shared library
-    # In addition, we install into a subfolder of install to not polute the global namespace
-
-    # Setup for Install. We set this up in here rather then in the main library folder for future use.
-    # i.e. don't skip the full RPATH for the build tree
-    #set(CMAKE_SKIP_BUILD_RPATH FALSE)
-
-    # When building, don't use the install RPATH already
-    # (but later on when installing)
-    #set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-
-    # Azure is not liking this argument. I think its a bug in their configuration
-    # Once this is fixed, also fix the shim in build-config-user.yml
-    #set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-
-    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
-
-    # Add the automatically determined parts of the RPATH
-    # which point to directories outside the build tree to the install RPATH
-    #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-    # The RPATH to be used when installing, but only if it's not a system directory
-    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
-    if("${isSystemDir}" STREQUAL "-1")
-    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
-    endif("${isSystemDir}" STREQUAL "-1")
-
-    set(msquic_dest msquic)
-    set(main_lib_dest msquic/lib)
-    set(include_dest msquic/include)
-endif()
-
 set(FILENAME_DEP_REPLACE "get_filename_component(SELF_DIR \"$\{CMAKE_CURRENT_LIST_FILE\}\" PATH)")
 set(SELF_DIR "$\{SELF_DIR\}")
 
@@ -173,7 +134,7 @@ if (QUIC_SOURCE_LINK AND MSVC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
     else()
-        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
+        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019 or greater!")
     endif()
 endif()
 
@@ -329,8 +290,6 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
     message(STATUS "Disabling PFX tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
-    message(STATUS "Disabling portable certificate tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PORTABLE_CERTIFICATE_TESTS)
     message(STATUS "Disabling 0-RTT support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     message(STATUS "Disabling ChaCha20 support")

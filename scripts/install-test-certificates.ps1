@@ -15,6 +15,10 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$OutputFile = ""
 )
+
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 [System.DateTimeOffset]$NotBefore = [System.DateTimeOffset]::Now.AddDays(-1)
 [System.DateTimeOffset]$NotAfter = [System.DateTimeOffset]::Now.AddDays(365)
 
@@ -129,7 +133,13 @@ function CreateLeafCert($Signer) {
         <# pathLengthConstraint #> 0,
         <# critical #> $true)
 
+    $SanBuilder = [System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder]::new()
+    $SanBuilder.AddDnsName("localhost")
+    $SanBuilder.AddIpAddress([System.Net.IPAddress]::Parse("127.0.0.1"))
+    $SanBuilder.AddIpAddress([System.Net.IPAddress]::Parse("::1"))
+
     $Extensions = [System.Collections.Generic.List[System.Security.Cryptography.X509Certificates.X509Extension]]::new()
+    $Extensions.Add($SanBuilder.Build())
     $Extensions.Add($KeyUsage)
     $Extensions.Add($EnhancedKeyUsages)
     $Extensions.Add($BasicConstraints)
@@ -168,7 +178,7 @@ $Leaf = CreateLeafCert $IntermediateSigner
 
 $Collection = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
 
-$Collection.Add($Leaf[1]) # TODO(AnRossi):Why is $Leaf an array of an Int and the Cert?
+$Collection.Add($Leaf[1]) | Out-Null # TODO(AnRossi):Why is $Leaf an array of an Int and the Cert?
 #Export the intermediate and root certs and then import them to drop their private keys.
 $Collection.Import($IntermediateSigner.rawData)
 $Collection.Import($Root.rawData)

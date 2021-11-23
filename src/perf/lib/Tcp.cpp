@@ -319,23 +319,23 @@ TcpConnection::TcpConnection(
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
-    QuicAddrSetFamily(&RemoteAddress, Family);
+    QuicAddrSetFamily(&Route.RemoteAddress, Family);
     if (QUIC_FAILED(
         CxPlatDataPathResolveAddress(
             Engine->Datapath,
             ServerName,
-            &RemoteAddress))) {
+            &Route.RemoteAddress))) {
         WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
         return;
     }
-    QuicAddrSetPort(&RemoteAddress, ServerPort);
+    QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
     Engine->AddConnection(this, 0); // TODO - Correct index
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
             Engine->Datapath,
             LocalAddress,
-            &RemoteAddress,
+            &Route.RemoteAddress,
             this,
             &Socket))) {
         Initialized = false;
@@ -522,9 +522,6 @@ void TcpConnection::Process()
         }
     }
     if (BatchedSendData) {
-        CXPLAT_ROUTE Route;
-        Route.LocalAddress = LocalAddress;
-        Route.RemoteAddress = RemoteAddress;
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
             IndicateDisconnect = true;
@@ -892,7 +889,7 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
     if (!BatchedSendData) {
-        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE);
+        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE, &Route);
         if (!BatchedSendData) { return nullptr; }
     }
     return CxPlatSendDataAllocBuffer(BatchedSendData, TLS_BLOCK_SIZE);
@@ -908,9 +905,6 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
-        CXPLAT_ROUTE Route;
-        Route.LocalAddress = LocalAddress;
-        Route.RemoteAddress = RemoteAddress;
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
