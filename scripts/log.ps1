@@ -144,9 +144,11 @@ function Log-Cancel {
         Write-Host "Cancel last exit code: $LASTEXITCODE"
         try {
             wpr.exe -cancel -instancename $InstanceName 2>&1
+            $global:LASTEXITCODE = 0
         } catch {
             $global:LASTEXITCODE = 0
         }
+        Write-Host "After cancel last exit code: $LASTEXITCODE"
     } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempDir)) {
