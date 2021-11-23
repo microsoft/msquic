@@ -141,9 +141,11 @@ function Log-Start {
 # Cancels log collection, discarding any logs.
 function Log-Cancel {
     if ($IsWindows) {
+        Write-Host "Cancel last exit code: $LASTEXITCODE"
         try {
             wpr.exe -cancel -instancename $InstanceName 2>&1
         } catch {
+            $global:LASTEXITCODE = 0
         }
     } elseif ($IsMacOS) {
     } else {

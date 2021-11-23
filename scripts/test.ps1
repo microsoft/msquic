@@ -245,6 +245,8 @@ if ($Kernel) {
     }
 }
 
+Write-Host " Last PS Exit Code $? "
+
 $PfxFile = Join-Path $RootArtifactDir "selfsignedservercert.pfx"
 if (!(Test-Path $PfxFile)) {
     $MyPath = Split-Path -Path $PSCommandPath -Parent
