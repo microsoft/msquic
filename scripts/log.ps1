@@ -143,10 +143,9 @@ function Log-Cancel {
     if ($IsWindows) {
         try {
             wpr.exe -cancel -instancename $InstanceName 2>&1
-            $global:LASTEXITCODE = 0
         } catch {
-            $global:LASTEXITCODE = 0
         }
+        $global:LASTEXITCODE = 0
     } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempDir)) {
