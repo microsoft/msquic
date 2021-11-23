@@ -312,7 +312,14 @@ if (!$Kernel -and !$SkipUnitTests) {
 }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
+Write-Host "After Last Invoke Expression"
+
+Write-Host "Last Exit Code $LASTEXITCODE"
+
+Write-Host " Last PS Exit Code $? "
+
 if ($CodeCoverage) {
+    Write-Host "Somehow in code coverage?"
     # Merge code coverage results
     $CoverageMergeParams = ""
 
@@ -329,3 +336,6 @@ if ($CodeCoverage) {
         Write-Warning "No coverage results to merge!"
     }
 }
+
+Write-Host "Made it to end of script"
+Get-Error
