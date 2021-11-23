@@ -66,6 +66,9 @@ param (
     [switch]$NoCodeCoverage,
 
     [Parameter(Mandatory = $false)]
+    [switch]$Dpdk,
+
+    [Parameter(Mandatory = $false)]
     [switch]$Xdp
 )
 
@@ -157,10 +160,21 @@ function Download-CoreNet-Deps {
     }
 }
 
-$XdpPath = Join-Path $ArtifactsPath "xdp"
+function Download-Dpdk-Kit {
+    if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    $DpdkPath = Join-Path $ArtifactsPath "dpdk"
+    if (!(Test-Path $DpdkPath)) {
+        Write-Host "Downloading XDP Kit"
+        $ZipPath = Join-Path $ArtifactsPath "dpdk.zip"
+        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/dpdk.zip" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $DpdkPath -Force
+        Remove-Item -Path $ZipPath
+    }
+}
 
 function Download-Xdp-Kit {
     if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP Kit"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
@@ -366,6 +380,10 @@ if ($IsWindows) {
         if ($DuoNic) {
             Install-DuoNic
         }
+    }
+
+    if ($Dpdk) {
+        Download-Dpdk-Kit
     }
 
     if ($Xdp) {
