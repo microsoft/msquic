@@ -164,7 +164,7 @@ function Download-Dpdk-Kit {
     if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
     $DpdkPath = Join-Path $ArtifactsPath "dpdk"
     if (!(Test-Path $DpdkPath)) {
-        Write-Host "Downloading XDP Kit"
+        Write-Host "Downloading DPDK Kit"
         $ZipPath = Join-Path $ArtifactsPath "dpdk.zip"
         Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/dpdk.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $DpdkPath -Force
