@@ -267,6 +267,12 @@ install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 
 configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 
+install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
+
+if(BUILD_SHARED_LIBS)
+    install(EXPORT msquic DESTINATION ${msquic_dest})
+endif()
+
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)
     target_compile_options(msquic PRIVATE /analyze)
 endif()
