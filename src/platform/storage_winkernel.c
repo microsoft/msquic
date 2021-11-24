@@ -248,9 +248,6 @@ CxPlatStorageOpen(
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
             NULL,
             NULL);
-
-        goto Exit;
-
     } else {
         InitializeObjectAttributes(
             &Attributes,
