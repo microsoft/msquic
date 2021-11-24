@@ -159,6 +159,69 @@ CxPlatConvertUtf8ToUnicode(
 
 DECLARE_CONST_UNICODE_STRING(BaseKeyPath, CXPLAT_BASE_REG_PATH);
 
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageCreateAppKey(
+    _In_z_ const char* Utf8String,
+    _Out_ PUNICODE_STRING * NewUnicodeString
+    )
+{
+    size_t Utf8Length = strlen(Utf8String);
+    if (Utf8Length > MAXUINT16) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    ULONG UnicodeLength; // In Bytes
+
+    QUIC_STATUS Status =
+        RtlUTF8ToUnicodeN(
+            NULL,
+            0,
+            &UnicodeLength,
+            Utf8String,
+            (ULONG)Utf8Length);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    UnicodeLength += BaseKeyPath.Length;
+
+    if (UnicodeLength > MAXUINT16) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    PUNICODE_STRING UnicodeString =
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (UnicodeString == NULL) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    UnicodeString->Buffer = (PWCH)(UnicodeString + 1);
+    UnicodeString->MaximumLength = (USHORT)UnicodeLength;
+    UnicodeString->Length = 0;
+
+    RtlCopyUnicodeString(
+        UnicodeString,
+        &BaseKeyPath);
+
+    Status =
+        RtlUTF8ToUnicodeN(
+            UnicodeString->Buffer + UnicodeString->Length,
+            UnicodeString->MaximumLength - UnicodeString->Length,
+            &UnicodeLength,
+            Utf8String,
+            (ULONG)Utf8Length);
+    if (QUIC_FAILED(Status)) {
+        CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        return Status;
+    }
+
+    *NewUnicodeString = UnicodeString;
+
+    return Status;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
@@ -174,7 +237,7 @@ CxPlatStorageOpen(
     CXPLAT_STORAGE* Storage = NULL;
 
     if (Path != NULL) {
-        Status = CxPlatConvertUtf8ToUnicode(Path, &PathUnicode);
+        Status = CxPlatStorageCreateAppKey(Path, &PathUnicode);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -186,7 +249,6 @@ CxPlatStorageOpen(
             NULL,
             NULL);
 
-        Status = QUIC_STATUS_NOT_SUPPORTED; // TODO
         goto Exit;
 
     } else {
