@@ -10,7 +10,7 @@ can be started by going to the command palette (View -> Command Palette) and run
 This UI is a bit awkward to use, to set a field you have to click on another field. If you click out of the window it
 won't save.
 
-For User Mode, the following defines need to be added to the configuration.
+For User Mode (Windows, Linux or macOS), the following defines need to be added to the configuration.
 
 ```
 "_DEBUG",
@@ -53,3 +53,58 @@ You will have to switch between configurations depending on if you want kernel m
 while youre in a c or cpp file the status bar on the buttom right will have the configuration mode. For user it will
 be called `Win32` and for kernel it will be called `Kernel`. To switch contexts, click the text, and you'll get a drop
 down to select other configurations.
+
+
+
+In the end, your c_cpp_properties.json file (in the .vscode folder) should look similar to the following. Some paths might be different, but they're trivially fixable.
+
+```
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "QUIC_EVENTS_STUB",
+                "QUIC_LOGS_STUB"
+            ],
+            "windowsSdkVersion": "10.0.22000.0",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.30.30705/bin/Hostx64/x64/cl.exe"
+        },
+        {
+            "name": "Kernel",
+            "includePath": [
+                "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22000.0\\km",
+                "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\wdf\\kmdf\\1.33",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "QUIC_EVENTS_STUB",
+                "QUIC_LOGS_STUB",
+                "_AMD64_",
+                "_WIN32_WINNT=0x0A00"
+            ],
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.30.30705/bin/Hostx64/x64/cl.exe",
+            "windowsSdkVersion": "10.0.22000.0",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerArgs": [
+                "/kernel"
+            ]
+        }
+    ],
+    "version": 4
+}
+```
