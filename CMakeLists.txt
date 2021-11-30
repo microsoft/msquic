@@ -436,6 +436,7 @@ if(WIN32)
             message(STATUS "/GENPROFILE")
             set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
         endif()
+        set(CMAKE_VS_SDK_LIBRARY_DIRECTORIES "$(LibraryPath);$(VC_LibraryPath_VC_${SYSTEM_PROCESSOR}_Desktop)")
     else()
         # Just doing a normal build. Use the PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
