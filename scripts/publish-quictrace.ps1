@@ -32,20 +32,27 @@ foreach ($RID in $RIDs) {
 
     $FullOutputFile = Join-Path $BinFolder "Release/net6.0/$RID/publish/$ExeName"
 
-    # Publish Non Trimmed
-    dotnet publish $ToolDir -r $RID -c Release -p:PublishSingleFile=true --self-contained true -p:EnableCompressionInSingleFile=true
+    # Publish Non Trimmed Non Single File
+    dotnet publish $ToolDir -r $RID -c Release --self-contained true
 
     $ArtifactFolder = Join-Path $RootOutputFolder $RID
     if (!(Test-Path $ArtifactFolder)) { New-Item -Path $ArtifactFolder -ItemType Directory -Force | Out-Null }
     Copy-Item $FullOutputFile $ArtifactFolder
 
-    # Clear out bin folder
-    if (Test-Path $BinFolder) { Remove-Item $BinFolder -Recurse -Force | Out-Null }
+    # # Publish Non Trimmed
+    # dotnet publish $ToolDir -r $RID -c Release -p:PublishSingleFile=true --self-contained true -p:EnableCompressionInSingleFile=true
 
-    # Publish Trimmed
-    dotnet publish $ToolDir -r $RID -c Release -p:PublishSingleFile=true --self-contained true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true
+    # $ArtifactFolder = Join-Path $RootOutputFolder $RID
+    # if (!(Test-Path $ArtifactFolder)) { New-Item -Path $ArtifactFolder -ItemType Directory -Force | Out-Null }
+    # Copy-Item $FullOutputFile $ArtifactFolder
 
-    $TrimmedArtifactFolder = Join-Path $ArtifactFolder "trimmed"
-    if (!(Test-Path $TrimmedArtifactFolder)) { New-Item -Path $TrimmedArtifactFolder -ItemType Directory -Force | Out-Null }
-    Copy-Item $FullOutputFile $TrimmedArtifactFolder
+    # # Clear out bin folder
+    # if (Test-Path $BinFolder) { Remove-Item $BinFolder -Recurse -Force | Out-Null }
+
+    # # Publish Trimmed
+    # dotnet publish $ToolDir -r $RID -c Release -p:PublishSingleFile=true --self-contained true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true
+
+    # $TrimmedArtifactFolder = Join-Path $ArtifactFolder "trimmed"
+    # if (!(Test-Path $TrimmedArtifactFolder)) { New-Item -Path $TrimmedArtifactFolder -ItemType Directory -Force | Out-Null }
+    # Copy-Item $FullOutputFile $TrimmedArtifactFolder
 }
