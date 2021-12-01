@@ -159,7 +159,7 @@ CxPlatGetInterfaceRssQueueCount(
         return hRes;
     }
 
-    // Step 3: ---------------------------------------------------
+    // Step 2: ---------------------------------------------------
     // Obtain the initial locator to WMI -------------------------
     hRes = CoCreateInstance(
         &CLSID_WbemLocator,
@@ -175,7 +175,7 @@ CxPlatGetInterfaceRssQueueCount(
         goto Cleanup;
     }
 
-    // Step 4: -----------------------------------------------------
+    // Step 3: -----------------------------------------------------
     // Connect to WMI through the IWbemLocator::ConnectServer method
     // Connect to the root\cimv2 namespace with
     // the current user and obtain pointer pSvc
@@ -201,7 +201,7 @@ CxPlatGetInterfaceRssQueueCount(
         goto Cleanup;
     }
 
-    // Step 5: --------------------------------------------------
+    // Step 4: --------------------------------------------------
     // Set security levels on the proxy -------------------------
     hRes = CoSetProxyBlanket(
        (IUnknown*)pSvc,             // Indicates the proxy to set
@@ -222,7 +222,7 @@ CxPlatGetInterfaceRssQueueCount(
         goto Cleanup;
     }
 
-    // Step 6: --------------------------------------------------
+    // Step 5: --------------------------------------------------
     // Use the IWbemServices pointer to make requests of WMI ----
     wchar_t query[512] = { '\0' };
     (void)wcscat_s(query, 512, L"SELECT * FROM MSFT_NetAdapterRssSettingData WHERE Name='");
@@ -250,7 +250,7 @@ CxPlatGetInterfaceRssQueueCount(
         goto Cleanup;
     }
 
-    // Step 7: -------------------------------------------------
+    // Step 6: -------------------------------------------------
     // Get the data from the query in step 6 -------------------
     IWbemClassObject *pclsObj = NULL;
     ULONG uReturn = 0;
@@ -811,7 +811,7 @@ CxPlatXdpRx(
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
-        Packet->RouteStorage.Queue = QueueId;
+        Packet->RouteStorage.QueueId = QueueId;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -916,7 +916,7 @@ CxPlatDpRawTxAlloc(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
 
-    XDP_QUEUE* Queue = &Xdp->Queues[Route->Queue];
+    XDP_QUEUE* Queue = &Xdp->Queues[Route->QueueId];
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     UNREFERENCED_PARAMETER(ECN);

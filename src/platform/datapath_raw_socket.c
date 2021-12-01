@@ -356,7 +356,7 @@ CxPlatResolveRoute(
     CXPLAT_DBG_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
     CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
 
-    Route->Queue = 0; // TODO - Any way figure this out upfront?
+    Route->QueueId = 0; // TODO - Any way figure this out upfront?
 
     Route->Resolved = TRUE;
 

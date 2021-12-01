@@ -197,6 +197,78 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetBestRoute2");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Status
+// arg4 = arg4 = "GetBestRoute2"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetIfEntry2");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Status
+// arg4 = arg4 = "GetIfEntry2"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Status,
+                "ResolveIpNetEntry2");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = Status
+// arg4 = arg4 = "ResolveIpNetEntry2"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
             Datapath,
             Length,
             "packet is too small for an IPv4 header");
