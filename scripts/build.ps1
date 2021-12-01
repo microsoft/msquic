@@ -353,7 +353,11 @@ function CMake-Generate {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
     if (!$IsWindows) {
-        $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
+        $ConfigToBuild = $Config;
+        if ($Config -eq "Release") {
+            $ConfigToBuild = "RelWithDebInfo"
+        }
+        $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
         $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
