@@ -1045,11 +1045,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 
             CxPlatXdpRx(Xdp, Queue);
             CxPlatXdpTx(Xdp, Queue);
+        }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
         (void)CxPlatRunExecutionContexts(ThreadID);
 #endif
-        }
     }
 
     return 0;
