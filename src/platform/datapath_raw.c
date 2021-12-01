@@ -378,8 +378,7 @@ CxPlatSendDataAlloc(
     if (!Route->Resolved && QUIC_FAILED(CxPlatResolveRoute(Socket, Route))) {
         return NULL;
     }
-    return CxPlatDpRawTxAlloc(
-        Socket->Datapath, ECN, MaxPacketSize, QuicAddrGetFamily(&Route->RemoteAddress));
+    return CxPlatDpRawTxAlloc(Socket->Datapath, ECN, MaxPacketSize, Route);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -19,6 +19,183 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "ConvertInterfaceIndexToLuid");
+// arg2 = arg2 = ret
+// arg3 = arg3 = "ConvertInterfaceIndexToLuid"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "ConvertInterfaceLuidToAlias");
+// arg2 = arg2 = ret
+// arg3 = arg3 = "ConvertInterfaceLuidToAlias"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "CoInitializeEx");
+// arg2 = arg2 = hRes
+// arg3 = arg3 = "CoInitializeEx"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "CoCreateInstance IWbemLocator");
+// arg2 = arg2 = hRes
+// arg3 = arg3 = "CoCreateInstance IWbemLocator"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "ConnectServer");
+// arg2 = arg2 = hRes
+// arg3 = arg3 = "ConnectServer"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "CoSetProxyBlanket");
+// arg2 = arg2 = hRes
+// arg3 = arg3 = "CoSetProxyBlanket"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "ExecQuery");
+// arg2 = arg2 = hRes
+// arg3 = arg3 = "ExecQuery"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hRes,
+                        "QueryInterface");
+// arg2 = arg2 = hRes
+// arg3 = arg3 = "QueryInterface"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
@@ -80,7 +257,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, AllocFailure , arg2, arg3);\
 // arg3 = arg3 = "XskCreate"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
