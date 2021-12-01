@@ -207,7 +207,7 @@ CxPlatStorageCreateAppKey(
 
     Status =
         RtlUTF8ToUnicodeN(
-            UnicodeString->Buffer + UnicodeString->Length,
+            (char*)UnicodeString->Buffer + UnicodeString->Length,
             UnicodeString->MaximumLength - UnicodeString->Length,
             &UnicodeLength,
             Utf8String,
