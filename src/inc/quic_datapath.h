@@ -152,6 +152,7 @@ typedef struct CXPLAT_ROUTE {
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
     BOOLEAN Resolved; // When TRUE, LocalLinkLayerAddress and NextHopLinkLayerAddress are valid.
+    uint8_t Queue;
 
 } CXPLAT_ROUTE;
 

@@ -71,7 +71,7 @@ typedef struct XDP_DATAPATH {
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
-    uint32_t QueueCount;
+    uint8_t QueueCount;
     uint32_t ExtraThreads;
     BOOL Affinitize;
     BOOL TxAlwaysPoke;
@@ -115,7 +115,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context);
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
     _In_ uint32_t InterfaceIndex,
-    _Out_ uint32_t* Count
+    _Out_ uint8_t* Count
     )
 {
     HRESULT hRes;
@@ -123,7 +123,7 @@ CxPlatGetInterfaceRssQueueCount(
     IEnumWbemClassObject *pEnum = NULL;
     IWbemServices *pSvc = NULL;
     DWORD ret = 0;
-    UINT32 cnt = 0;
+    uint8_t cnt = 0;
     NET_LUID if_luid = { 0 };
     WCHAR if_alias[256 + 1] = { 0 };
 
@@ -269,6 +269,7 @@ CxPlatGetInterfaceRssQueueCount(
         if ((vtProp.vt == VT_NULL) || (vtProp.vt == VT_EMPTY)) {
             //AF_XDP_LOG(INFO, "No RSS indirection table, assuming 1 default queue\n");
             cnt++;
+            CXPLAT_FRE_ASSERT(cnt != 0);
         } else if ((vtProp.vt & VT_ARRAY) == 0) {
             //AF_XDP_LOG(ERR, "not ARRAY\n");
         } else {
@@ -322,6 +323,7 @@ CxPlatGetInterfaceRssQueueCount(
                     if (rssIndicesBitset[i] & (1 << j)) {
                         //AF_XDP_LOG(INFO, "detected active RSS queue %u on proc index %llu\n", cnt, (i*8 + j));
                         cnt++;
+                        CXPLAT_FRE_ASSERT(cnt != 0);
                     }
                 }
             }
@@ -790,7 +792,7 @@ static
 void
 CxPlatXdpRx(
     _In_ XDP_DATAPATH* Xdp,
-    _In_ XDP_QUEUE *Queue
+    _In_ uint8_t QueueId
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -798,6 +800,7 @@ CxPlatXdpRx(
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
+    XDP_QUEUE* Queue = &Xdp->Queues[QueueId];
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
     for (uint32_t i = 0; i < BuffersCount; i++) {
@@ -808,6 +811,7 @@ CxPlatXdpRx(
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
+        Packet->RouteStorage.Queue = QueueId;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -906,21 +910,19 @@ CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_ECN_TYPE ECN, // unused currently
     _In_ uint16_t MaxPacketSize,
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _Inout_ CXPLAT_ROUTE* Route
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
 
-    //
-    // TODO: TX spreading.
-    //
-    XDP_QUEUE* Queue = &Xdp->Queues[0];
+    XDP_QUEUE* Queue = &Xdp->Queues[Route->Queue];
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     UNREFERENCED_PARAMETER(ECN);
 
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family);
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = MaxPacketSize;
@@ -957,13 +959,14 @@ static
 void
 CxPlatXdpTx(
     _In_ XDP_DATAPATH* Xdp,
-    _In_ XDP_QUEUE* Queue
+    _In_ uint8_t QueueId
     )
 {
     uint32_t ProdCount = 0;
     uint32_t CompCount = 0;
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
+    XDP_QUEUE* Queue = &Xdp->Queues[QueueId];
 
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
         ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
@@ -1040,11 +1043,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
     }
 
     while (Xdp->Running) {
-        for (uint32_t i = 0; i < Xdp->QueueCount; i++) {
-            XDP_QUEUE* Queue = &Xdp->Queues[i];
-
-            CxPlatXdpRx(Xdp, Queue);
-            CxPlatXdpTx(Xdp, Queue);
+        for (uint8_t i = 0; i < Xdp->QueueCount; i++) {
+            CxPlatXdpRx(Xdp, i);
+            CxPlatXdpTx(Xdp, i);
         }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
