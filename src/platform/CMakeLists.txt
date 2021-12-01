@@ -72,6 +72,7 @@ elseif(QUIC_USE_XDP)
         platform
         PUBLIC
         inc
+        wbemuuid
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
 else()
     target_link_libraries(platform PUBLIC inc)

@@ -16,6 +16,7 @@ Abstract:
 #include "datapath_raw_xdp.c.clog.h"
 #endif
 
+#include <wbemidl.h>
 #include <afxdp_helper.h>
 #include <xdpapi.h>
 #include <stdio.h>
@@ -111,6 +112,246 @@ CxPlatDataPathRecvDataToRecvPacket(
 CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context);
 CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context);
 
+QUIC_STATUS
+CxPlatGetInterfaceRssQueueCount(
+    _In_ uint32_t InterfaceIndex,
+    _Out_ uint32_t* Count
+    )
+{
+    HRESULT hRes;
+    IWbemLocator *pLoc = NULL;
+    IEnumWbemClassObject *pEnum = NULL;
+    IWbemServices *pSvc = NULL;
+    DWORD ret = 0;
+    UINT32 cnt = 0;
+    NET_LUID if_luid = { 0 };
+    WCHAR if_alias[256 + 1] = { 0 };
+
+    ret = ConvertInterfaceIndexToLuid(InterfaceIndex, &if_luid);
+    if (ret != NO_ERROR) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "ConvertInterfaceIndexToLuid");
+        return HRESULT_FROM_WIN32(ret);
+    }
+
+    ret = ConvertInterfaceLuidToAlias(&if_luid, if_alias, RTL_NUMBER_OF(if_alias));
+    if (ret != NO_ERROR) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ret,
+            "ConvertInterfaceLuidToAlias");
+        return HRESULT_FROM_WIN32(ret);
+    }
+
+    // Step 1: --------------------------------------------------
+    // Initialize COM. ------------------------------------------
+    hRes =  CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hRes)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "CoInitializeEx");
+        return hRes;
+    }
+
+    // Step 3: ---------------------------------------------------
+    // Obtain the initial locator to WMI -------------------------
+    hRes = CoCreateInstance(
+        &CLSID_WbemLocator,
+        0,
+        CLSCTX_INPROC_SERVER,
+        &IID_IWbemLocator, (LPVOID *) &pLoc);
+    if (FAILED(hRes)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "CoCreateInstance IWbemLocator");
+        goto Cleanup;
+    }
+
+    // Step 4: -----------------------------------------------------
+    // Connect to WMI through the IWbemLocator::ConnectServer method
+    // Connect to the root\cimv2 namespace with
+    // the current user and obtain pointer pSvc
+    // to make IWbemServices calls.
+    BSTR Namespace = SysAllocString(L"ROOT\\STANDARDCIMV2");
+    hRes = pLoc->lpVtbl->ConnectServer(pLoc,
+         Namespace,               // Object path of WMI namespace
+         NULL,                    // User name. NULL = current user
+         NULL,                    // User password. NULL = current
+         0,                       // Locale. NULL indicates current
+         0,                       // Security flags.
+         0,                       // Authority (for example, Kerberos)
+         0,                       // Context object
+         &pSvc                    // pointer to IWbemServices proxy
+         );
+    SysFreeString(Namespace);
+    if (FAILED(hRes)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "ConnectServer");
+        goto Cleanup;
+    }
+
+    // Step 5: --------------------------------------------------
+    // Set security levels on the proxy -------------------------
+    hRes = CoSetProxyBlanket(
+       (IUnknown*)pSvc,             // Indicates the proxy to set
+       RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
+       RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
+       NULL,                        // Server principal name
+       RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx
+       RPC_C_IMP_LEVEL_IMPERSONATE, // RPC_C_IMP_LEVEL_xxx
+       NULL,                        // client identity
+       EOAC_NONE                    // proxy capabilities
+    );
+    if (FAILED(hRes)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "CoSetProxyBlanket");
+        goto Cleanup;
+    }
+
+    // Step 6: --------------------------------------------------
+    // Use the IWbemServices pointer to make requests of WMI ----
+    wchar_t query[512] = { '\0' };
+    (void)wcscat_s(query, 512, L"SELECT * FROM MSFT_NetAdapterRssSettingData WHERE Name='");
+    (void)wcscat_s(query, 512, if_alias);
+    (void)wcscat_s(query, 512, L"'");
+    //AF_XDP_LOG(INFO, "WMI query = \"%ws\"\n", query);
+
+    BSTR Language = SysAllocString(L"WQL");
+    BSTR Query = SysAllocString(query);
+    hRes = pSvc->lpVtbl->ExecQuery(pSvc,
+        Language,
+        Query,
+        WBEM_FLAG_FORWARD_ONLY,         // Flags
+        0,                              // Context
+        &pEnum
+        );
+    SysFreeString(Query);
+    SysFreeString(Language);
+    if (FAILED(hRes)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hRes,
+            "ExecQuery");
+        goto Cleanup;
+    }
+
+    // Step 7: -------------------------------------------------
+    // Get the data from the query in step 6 -------------------
+    IWbemClassObject *pclsObj = NULL;
+    ULONG uReturn = 0;
+    while (pEnum) {
+        HRESULT hr = pEnum->lpVtbl->Next(pEnum, WBEM_INFINITE, 1,
+            &pclsObj, &uReturn);
+
+        if (0 == uReturn) {
+            break;
+        }
+
+        VARIANT vtProp;
+
+        // Get the value of the IndirectionTable property
+        hr = pclsObj->lpVtbl->Get(pclsObj, L"IndirectionTable", 0, &vtProp, 0, 0);
+        if ((vtProp.vt == VT_NULL) || (vtProp.vt == VT_EMPTY)) {
+            //AF_XDP_LOG(INFO, "No RSS indirection table, assuming 1 default queue\n");
+            cnt++;
+        } else if ((vtProp.vt & VT_ARRAY) == 0) {
+            //AF_XDP_LOG(ERR, "not ARRAY\n");
+        } else {
+            long lLower, lUpper;
+            SAFEARRAY *pSafeArray = vtProp.parray;
+            UINT8 *rssIndicesBitset = NULL;
+            DWORD rssIndicesBitsetBytes;
+            DWORD numberOfProcs;
+
+            SafeArrayGetLBound(pSafeArray, 1, &lLower);
+            SafeArrayGetUBound(pSafeArray, 1, &lUpper);
+
+            IUnknown** rawArray;
+            SafeArrayAccessData(pSafeArray, (void**)&rawArray);
+
+            // Set up the RSS bitset according to number of processors
+            numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+            rssIndicesBitsetBytes = (numberOfProcs / 8) + 1;
+            rssIndicesBitset = malloc(rssIndicesBitsetBytes);
+            memset(rssIndicesBitset, 0, rssIndicesBitsetBytes);
+
+            for (long i = lLower; i <= lUpper; i++)
+            {
+                IUnknown* pIUnk = rawArray[i];
+                IWbemClassObject *obj = NULL;
+                pIUnk->lpVtbl->QueryInterface(pIUnk, &IID_IWbemClassObject, (void **)&obj);
+                if (obj == NULL) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hRes,
+                        "QueryInterface");
+                    //AF_XDP_LOG(ERR, "QueryInterface failed\n");
+                    free(rssIndicesBitset);
+                    goto Cleanup;
+                }
+
+                hr = obj->lpVtbl->Get(obj, L"ProcessorNumber", 0, &vtProp, 0, 0);
+                UINT32 index = vtProp.iVal / (sizeof(rssIndicesBitset[0])*8);
+                UINT32 offset = vtProp.iVal % (sizeof(rssIndicesBitset[0])*8);
+                rssIndicesBitset[index] |= 1 << offset;
+
+                VariantClear(&vtProp);
+                obj->lpVtbl->Release(obj);
+            }
+
+            SafeArrayUnaccessData(pSafeArray);
+
+            for (DWORD i = 0; i < numberOfProcs/(sizeof(rssIndicesBitset[0])*8) + 1; i++) {
+                for (SIZE_T j = 0; j < sizeof(rssIndicesBitset[0])*8; j++) {
+                    if (rssIndicesBitset[i] & (1 << j)) {
+                        //AF_XDP_LOG(INFO, "detected active RSS queue %u on proc index %llu\n", cnt, (i*8 + j));
+                        cnt++;
+                    }
+                }
+            }
+
+            free(rssIndicesBitset);
+        }
+
+        VariantClear(&vtProp);
+        pclsObj->lpVtbl->Release(pclsObj);
+    }
+
+    //AF_XDP_LOG(INFO, "counted %u active queues on %s\n", cnt, if_name);
+    *Count = cnt;
+
+Cleanup:
+
+    if (pEnum != NULL) {
+        pEnum->lpVtbl->Release(pEnum);
+    }
+    if (pSvc != NULL) {
+        pSvc->lpVtbl->Release(pSvc);
+    }
+    if (pLoc != NULL) {
+        pLoc->lpVtbl->Release(pLoc);
+    }
+    CoUninitialize();
+
+    return hRes;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
@@ -144,8 +385,7 @@ CxPlatXdpReadConfig(
 
         if (strcmp(Line, "IfIndex") == 0) {
             Xdp->IfIndex = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "QueueCount") == 0) {
-            Xdp->QueueCount = strtoul(Value, NULL, 10);
+            (void)CxPlatGetInterfaceRssQueueCount(Xdp->IfIndex, &Xdp->QueueCount);
         } else if (strcmp(Line, "CpuGroup") == 0) {
              Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
              Xdp->Affinitize = TRUE;
@@ -293,7 +533,7 @@ CxPlatDpRawInitialize(
             goto Error;
         }
 
-        uint32_t QueueId = 0;   // TODO: support more than one RSS queue.
+        uint32_t QueueId = QueueIndex;
         uint32_t Flags = 0;     // TODO: support native/generic forced flags.
         Status = XskBind(Queue->RxXsk, Xdp->IfIndex, QueueId, Flags, NULL);
         if (QUIC_FAILED(Status)) {
