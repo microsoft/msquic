@@ -61,8 +61,10 @@ namespace QuicTrace
             //
             // Create our runtime environment, add file, enable cookers, and process.
             //
-            var runtime = Engine.Create();
-            runtime.AddFile(filePath);
+            using var dataSources = DataSourceSet.Create();
+            dataSources.AddFile(filePath);
+            var info = new EngineCreateInfo(dataSources.AsReadOnly());
+            using var runtime = Engine.Create(info);
             runtime.EnableCooker(QuicEventCooker.CookerPath);
             Console.WriteLine("Processing...");
             var results = runtime.Process();
