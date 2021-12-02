@@ -338,6 +338,8 @@ typedef struct QUIC_CONNECTION {
     //
     long RefCount;
 
+    long ExternalRefCount;
+
 #if DEBUG
     //
     // Detailed ref counts

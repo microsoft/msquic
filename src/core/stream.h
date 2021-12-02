@@ -196,6 +196,8 @@ typedef struct QUIC_STREAM {
     //
     CXPLAT_REF_COUNT RefCount;
 
+    long ExternalRefCount;
+
 #if DEBUG
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
 #endif

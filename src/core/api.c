@@ -84,6 +84,82 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicConnectionAddRef(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    )
+{
+    QUIC_CONNECTION* Connection;
+
+    CXPLAT_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_ADDREF,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle)) {
+        goto Error;
+    }
+
+    #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    InterlockedIncrement((volatile long*)&Connection->ExternalRefCount);
+
+Error:
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicConnectionRelease(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    )
+{
+    QUIC_CONNECTION* Connection;
+
+    CXPLAT_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_RELEASE,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle)) {
+        goto Error;
+    }
+
+    #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    if (InterlockedDecrement((volatile long*)&Connection->ExternalRefCount) == 0) {
+        MsQuicConnectionClose(Handle);
+    }
+
+Error:
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+}
+
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand the free happens on the worker
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -662,6 +738,82 @@ Error:
         Status);
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicStreamAddRef(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    )
+{
+    QUIC_STREAM* Stream;
+
+    CXPLAT_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_STREAM_ADDREF,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle)) {
+        goto Error;
+    }
+
+    #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Stream = (QUIC_STREAM*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+
+    InterlockedIncrement((volatile long*)&Stream->ExternalRefCount);
+
+Error:
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicStreamRelease(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    )
+{
+    QUIC_STREAM* Stream;
+
+    CXPLAT_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_RELEASE,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle)) {
+        goto Error;
+    }
+
+    #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Stream = (QUIC_STREAM*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+
+    if (InterlockedDecrement((volatile long*)&Stream->ExternalRefCount) == 0) {
+        MsQuicStreamClose(Handle);
+    }
+
+Error:
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 #pragma warning(push)
