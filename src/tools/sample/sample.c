@@ -659,7 +659,12 @@ ClientSend(
 
 Error:
 
+    if (QUIC_FAILED(Status)) {
+        MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_NONE, 0);
+    }
+
     MsQuic->StreamRelease(Stream);
+
     if (QUIC_FAILED(Status)) {
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
     }
@@ -845,7 +850,13 @@ RunClient(
 
 Error:
 
-    MsQuic->ConnectionRelease(Connection);
+    if (QUIC_FAILED(Status) && Connection != NULL) {
+        MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    }
+
+    if (Connection != NULL) {
+        MsQuic->ConnectionRelease(Connection);
+    }
 }
 
 int
