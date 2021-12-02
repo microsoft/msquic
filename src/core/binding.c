@@ -1212,45 +1212,6 @@ QuicBindingPreprocessDatagram(
 }
 
 //
-// Returns TRUE if the retry token was successfully decrypted and validated.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicBindingValidateRetryToken(
-    _In_ const QUIC_BINDING* const Binding,
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_ uint16_t TokenLength,
-    _In_reads_(TokenLength)
-        const uint8_t* TokenBuffer
-    )
-{
-    if (TokenLength != sizeof(QUIC_RETRY_TOKEN_CONTENTS)) {
-        QuicPacketLogDrop(Binding, Packet, "Invalid Retry Token Length");
-        return FALSE;
-    }
-
-    QUIC_RETRY_TOKEN_CONTENTS Token;
-    if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
-        QuicPacketLogDrop(Binding, Packet, "Retry Token Decryption Failure");
-        return FALSE;
-    }
-
-    if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
-        QuicPacketLogDrop(Binding, Packet, "Invalid Retry Token OrigConnId Length");
-        return FALSE;
-    }
-
-    const CXPLAT_RECV_DATA* Datagram =
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
-        QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-//
 // Returns TRUE if we should respond to the connection attempt with a Retry
 // packet.
 //
@@ -1277,7 +1238,7 @@ QuicBindingShouldRetryConnection(
         //
         // Must always validate the token when provided by the client.
         //
-        if (QuicBindingValidateRetryToken(Binding, Packet, TokenLength, Token)) {
+        if (QuicPacketValidateRetryToken(Binding, Packet, TokenLength, Token)) {
             Packet->ValidToken = TRUE;
         } else {
             *DropPacket = TRUE;
