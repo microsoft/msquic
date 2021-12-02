@@ -1013,7 +1013,7 @@ void
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 (QUIC_API * QUIC_CONNECTION_RELEASE_FN)(
     _In_ _Pre_defensive_
         HQUIC Connection
@@ -1188,7 +1188,7 @@ void
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 (QUIC_API * QUIC_STREAM_RELEASE_FN)(
     _In_ _Pre_defensive_
         HQUIC Stream

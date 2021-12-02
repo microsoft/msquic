@@ -122,7 +122,7 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QUIC_API
 MsQuicConnectionRelease(
     _In_ _Pre_defensive_
@@ -130,6 +130,7 @@ MsQuicConnectionRelease(
     )
 {
     QUIC_CONNECTION* Connection;
+    BOOLEAN WasClosed = FALSE;
 
     CXPLAT_PASSIVE_CODE();
 
@@ -151,6 +152,7 @@ MsQuicConnectionRelease(
 
     if (InterlockedDecrement((volatile long*)&Connection->ExternalRefCount) == 0) {
         MsQuicConnectionClose(Handle);
+        WasClosed = TRUE;
     }
 
 Error:
@@ -158,6 +160,8 @@ Error:
     QuicTraceEvent(
         ApiExit,
         "[ api] Exit");
+
+    return WasClosed;
 }
 
 #pragma warning(push)
@@ -778,7 +782,7 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QUIC_API
 MsQuicStreamRelease(
     _In_ _Pre_defensive_
@@ -786,6 +790,7 @@ MsQuicStreamRelease(
     )
 {
     QUIC_STREAM* Stream;
+    BOOLEAN WasClosed = FALSE;
 
     CXPLAT_PASSIVE_CODE();
 
@@ -807,6 +812,7 @@ MsQuicStreamRelease(
 
     if (InterlockedDecrement((volatile long*)&Stream->ExternalRefCount) == 0) {
         MsQuicStreamClose(Handle);
+        WasClosed = TRUE;
     }
 
 Error:
@@ -814,6 +820,8 @@ Error:
     QuicTraceEvent(
         ApiExit,
         "[ api] Exit");
+
+    return WasClosed;
 }
 
 #pragma warning(push)
