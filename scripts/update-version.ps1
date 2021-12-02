@@ -25,7 +25,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Relevant file paths used by this script.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
-$CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
+$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "create-vpack.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 
 # Get the current version number from the msquic.ver file.
@@ -47,11 +47,11 @@ Write-Host "    New version: $Version"
     -replace "($OriginalVersion)", "$($Version[0]),$($Version[1]),$($Version[2])" `
     -replace "($OriginalVersion2)", "$($Version[0]).$($Version[1]).$($Version[2])" |`
     Out-File $MsQuicVerFilePath
-(Get-Content $CreatePackageFilePath) `
-    -replace "majorVer: (.*)", "majorVer: $($Version[0])" `
-    -replace "minorVer: (.*)", "minorVer: $($Version[1])" `
-    -replace "patchVer: (.*)", "patchVer: $($Version[2])" |`
-    Out-File $CreatePackageFilePath
+(Get-Content $CreateVPackFilePath) `
+    -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
+    -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
+    -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
+    Out-File $CreateVPackFilePath
 (Get-Content $QnsFilePath) `
     -replace "($OriginalVersion)", "$($Version[0]),$($Version[1]),$($Version[2])" `
     -replace "($OriginalVersion2)", "$($Version[0]).$($Version[1]).$($Version[2])" |`
