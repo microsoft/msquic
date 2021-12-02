@@ -62,8 +62,13 @@ private:
 
     struct StreamContext {
         StreamContext(_In_ ThroughputClient* Client) : Client{Client} { }
+        ~StreamContext() noexcept {
+            if (Stream) {
+                MsQuic->StreamRelease(Stream);
+            }
+        }
         ThroughputClient* Client;
-        StreamScope Stream;
+        HQUIC Stream;
         uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t OutstandingBytes{0};
         uint64_t BytesSent{0};

@@ -226,6 +226,7 @@ ThroughputClient::StartQuic()
         ~QuicShutdownWrapper() {
             if (ConnHandle) {
                 MsQuic->ConnectionShutdown(ConnHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+                MsQuic->ConnectionRelease(ConnHandle);
             }
         }
     } Shutdown;
@@ -308,7 +309,7 @@ ThroughputClient::StartQuic()
                         (StreamContext*)Context);
             },
             StrmContext,
-            &StrmContext->Stream.Handle);
+            &StrmContext->Stream);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamOpen 0x%x\n", Status);
         StreamContextAllocator.Free(StrmContext);
@@ -317,7 +318,7 @@ ThroughputClient::StartQuic()
 
     Status =
         MsQuic->StreamStart(
-            StrmContext->Stream.Handle,
+            StrmContext->Stream,
             QUIC_STREAM_START_FLAG_NONE);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamStart 0x%x\n", Status);
@@ -327,7 +328,7 @@ ThroughputClient::StartQuic()
 
     if (DownloadLength) {
         MsQuic->StreamSend(
-            StrmContext->Stream.Handle,
+            StrmContext->Stream,
             DataBuffer,
             1,
             QUIC_SEND_FLAG_FIN,
@@ -349,6 +350,7 @@ ThroughputClient::StartQuic()
         return Status;
     }
 
+    MsQuic->ConnectionRelease(Shutdown.ConnHandle);
     Shutdown.ConnHandle = nullptr;
     return Status;
 }
@@ -383,7 +385,7 @@ ThroughputClient::SendQuicData(
         Context->BytesSent += DataLength;
         Context->OutstandingBytes += DataLength;
 
-        MsQuic->StreamSend(Context->Stream.Handle, Buffer, 1, Flags, Buffer);
+        MsQuic->StreamSend(Context->Stream, Buffer, 1, Flags, Buffer);
     }
 }
 
@@ -504,7 +506,7 @@ ThroughputClient::ConnectionCallback(
         if (PrintStats) {
             QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
         }
-        MsQuic->ConnectionClose(ConnectionHandle);
+        MsQuic->ConnectionRelease(ConnectionHandle);
         CxPlatEventSet(*StopEvent);
         break;
     default:
@@ -548,7 +550,9 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        WriteOutput("Shutdown complete\n");
         OnStreamShutdownComplete(StrmContext);
+        MsQuic->StreamRelease(StrmContext->Stream);
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (UploadLength &&

@@ -758,7 +758,7 @@ MsQuicStreamAddRef(
         QUIC_TRACE_API_STREAM_ADDREF,
         Handle);
 
-    if (!IS_CONN_HANDLE(Handle)) {
+    if (!IS_STREAM_HANDLE(Handle)) {
         goto Error;
     }
 
@@ -792,10 +792,10 @@ MsQuicStreamRelease(
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_RELEASE,
+        QUIC_TRACE_API_STREAM_RELEASE,
         Handle);
 
-    if (!IS_CONN_HANDLE(Handle)) {
+    if (!IS_STREAM_HANDLE(Handle)) {
         goto Error;
     }
 
