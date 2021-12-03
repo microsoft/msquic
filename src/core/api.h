@@ -120,7 +120,7 @@ MsQuicConnectionAddRef(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QUIC_API
 MsQuicConnectionRelease(
     _In_ _Pre_defensive_
@@ -196,7 +196,7 @@ MsQuicStreamAddRef(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QUIC_API
 MsQuicStreamRelease(
     _In_ _Pre_defensive_

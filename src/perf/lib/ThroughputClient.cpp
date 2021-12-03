@@ -221,15 +221,33 @@ ThroughputClient::GetExtraData(
 QUIC_STATUS
 ThroughputClient::StartQuic()
 {
+
     struct QuicShutdownWrapper {
         HQUIC ConnHandle {nullptr};
-        ~QuicShutdownWrapper() {
-            if (ConnHandle) {
-                MsQuic->ConnectionShutdown(ConnHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-                MsQuic->ConnectionRelease(ConnHandle);
+        StreamContext* StrmContext {nullptr};
+        bool Errored = true;
+        ThroughputClient& Client;
+        QuicShutdownWrapper(ThroughputClient& Client) : Client{Client} {
+            StrmContext = Client.StreamContextAllocator.Alloc(Client);
+        }
+        ~QuicShutdownWrapper() noexcept {
+            if (Errored) {
+                if (StrmContext->Stream) {
+                    MsQuic->StreamShutdown(StrmContext->Stream, QUIC_STREAM_SHUTDOWN_FLAG_NONE, 0);
+                }
+                if (ConnHandle) {
+                    MsQuic->ConnectionShutdown(ConnHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+                }
+            }
+
+            if (StrmContext->Stream) {
+                MsQuic->StreamRelease(StrmContext->Stream);
+            }
+            if (ConnHandle && MsQuic->ConnectionRelease(ConnHandle)) {
+                Client.StreamContextAllocator.Free(StrmContext);
             }
         }
-    } Shutdown;
+    } Shutdown{*this};
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
@@ -292,9 +310,8 @@ ThroughputClient::StartQuic()
             &LocalIpAddr);
     }
 
-    StreamContext* StrmContext = StreamContextAllocator.Alloc(this);
     if (UseSendBuffer) {
-        StrmContext->IdealSendBuffer = 1; // Hack to use only 1 send buffer
+        Shutdown.StrmContext->IdealSendBuffer = 1; // Hack to use only 1 send buffer
     }
 
     Status =
@@ -302,40 +319,38 @@ ThroughputClient::StartQuic()
             Shutdown.ConnHandle,
             QUIC_STREAM_OPEN_FLAG_NONE,
             [](HQUIC Handle, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
-                return ((StreamContext*)Context)->Client->
+                return ((StreamContext*)Context)->Client.
                     StreamCallback(
                         Handle,
                         Event,
                         (StreamContext*)Context);
             },
-            StrmContext,
-            &StrmContext->Stream);
+            Shutdown.StrmContext,
+            &Shutdown.StrmContext->Stream);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamOpen 0x%x\n", Status);
-        StreamContextAllocator.Free(StrmContext);
         return Status;
     }
 
     Status =
         MsQuic->StreamStart(
-            StrmContext->Stream,
+            Shutdown.StrmContext->Stream,
             QUIC_STREAM_START_FLAG_NONE);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamStart 0x%x\n", Status);
-        StreamContextAllocator.Free(StrmContext);
         return Status;
     }
 
     if (DownloadLength) {
         MsQuic->StreamSend(
-            StrmContext->Stream,
+            Shutdown.StrmContext->Stream,
             DataBuffer,
             1,
             QUIC_SEND_FLAG_FIN,
             DataBuffer);
     } else {
         CXPLAT_DBG_ASSERT(UploadLength != 0);
-        SendQuicData(StrmContext);
+        SendQuicData(Shutdown.StrmContext);
     }
 
     Status =
@@ -350,8 +365,7 @@ ThroughputClient::StartQuic()
         return Status;
     }
 
-    MsQuic->ConnectionRelease(Shutdown.ConnHandle);
-    Shutdown.ConnHandle = nullptr;
+    Shutdown.Errored = false;
     return Status;
 }
 
@@ -410,7 +424,7 @@ ThroughputClient::StartTcp()
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    TcpStrmContext = StreamContextAllocator.Alloc(this);
+    TcpStrmContext = StreamContextAllocator.Alloc(*this);
     TcpStrmContext->IdealSendBuffer = 1; // TCP uses send buffering, so just set to 1.
 
     if (DownloadLength) {
@@ -492,8 +506,6 @@ ThroughputClient::OnStreamShutdownComplete(
     } else {
         WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
     }
-
-    StreamContextAllocator.Free(StrmContext);
 }
 
 QUIC_STATUS
@@ -524,7 +536,7 @@ ThroughputClient::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         StrmContext->BytesCompleted += Event->RECEIVE.TotalBufferLength;
-        if (StrmContext->Client->TimedTransfer) {
+        if (StrmContext->Client.TimedTransfer) {
             if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(DownloadLength)) {
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
                 StrmContext->Complete = true;
@@ -552,7 +564,9 @@ ThroughputClient::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         WriteOutput("Shutdown complete\n");
         OnStreamShutdownComplete(StrmContext);
-        MsQuic->StreamRelease(StrmContext->Stream);
+        if (MsQuic->StreamRelease(StrmContext->Stream)) {
+            StreamContextAllocator.Free(StrmContext);
+        }
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (UploadLength &&
@@ -582,6 +596,7 @@ ThroughputClient::OnTcpConnectionComplete(
 
     if (Stream) {
         OnStreamShutdownComplete(Stream);
+        StreamContextAllocator.Free(Stream);
     }
     if (Connection) {
         Connection->Close();
