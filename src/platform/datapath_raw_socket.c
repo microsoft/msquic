@@ -356,8 +356,31 @@ CxPlatResolveRoute(
     CXPLAT_DBG_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
     CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
 
-    Route->QueueId = 0; // TODO - Any way figure this out upfront?
 
+    //
+    // Find the interface that matches the route we just looked up.
+    //
+    CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
+    for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
+        CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
+        if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
+            Route->Interface = Interface;
+            break;
+        }
+    }
+
+    if (Route->Interface == NULL) {
+        Status = ERROR_NOT_FOUND;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            ERROR_NOT_FOUND,
+            "no matching interface");
+        goto Done;
+    }
+
+    Route->QueueId = 0; // TODO - Any way figure this out upfront?
     Route->Resolved = TRUE;
 
 Done:

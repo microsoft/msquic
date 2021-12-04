@@ -440,10 +440,12 @@ CxPlatSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->Resolved);
+    CXPLAT_DBG_ASSERT(Route->Interface != NULL);
+    CXPLAT_INTERFACE* Interface = Route->Interface;
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer,
-        Socket->Datapath->OffloadStatus.Transmit.NetworkLayerXsum,
-        Socket->Datapath->OffloadStatus.Transmit.TransportLayerXsum);
+        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
+        Interface->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }

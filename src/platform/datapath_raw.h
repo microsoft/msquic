@@ -27,16 +27,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t CpuTableSize;
     uint16_t CpuTable[64];
 
-    struct {
-        struct {
-            BOOLEAN NetworkLayerXsum : 1;
-            BOOLEAN TransportLayerXsum : 1;
-        } Transmit;
-        struct {
-            BOOLEAN NetworkLayerXsum : 1;
-            BOOLEAN TransportLayerXsum : 1;
-        } Receive;
-    } OffloadStatus;
+    CXPLAT_LIST_ENTRY Interfaces;
 
 } CXPLAT_DATAPATH;
 
