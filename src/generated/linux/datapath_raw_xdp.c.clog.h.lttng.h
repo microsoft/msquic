@@ -44,3 +44,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "no XDP capable interface");
+// arg2 = arg2 = "no XDP capable interface"
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
