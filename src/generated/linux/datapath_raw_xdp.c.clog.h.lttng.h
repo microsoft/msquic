@@ -31,9 +31,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "XDP Queues",
-            Xdp->QueueCount * sizeof(*Xdp->Queues));
+            Interface->QueueCount * sizeof(*Interface->Queues));
 // arg2 = arg2 = "XDP Queues"
-// arg3 = arg3 = Xdp->QueueCount * sizeof(*Xdp->Queues)
+// arg3 = arg3 = Interface->QueueCount * sizeof(*Interface->Queues)
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
     TP_ARGS(

@@ -269,6 +269,30 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
+            Socket,
+            ERROR_NOT_FOUND,
+            "no matching interface");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = ERROR_NOT_FOUND
+// arg4 = arg4 = "no matching interface"
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+
+#endif
+
+
+
+
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
             Datapath,
             Length,
             "packet is too small for an IPv4 header");
