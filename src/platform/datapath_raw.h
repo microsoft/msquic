@@ -31,6 +31,22 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+typedef struct CXPLAT_INTERFACE {
+    CXPLAT_LIST_ENTRY Link;
+    uint32_t IfIndex;
+    UCHAR PhysicalAddress[6];
+    struct {
+        struct {
+            BOOLEAN NetworkLayerXsum : 1;
+            BOOLEAN TransportLayerXsum : 1;
+        } Transmit;
+        struct {
+            BOOLEAN NetworkLayerXsum : 1;
+            BOOLEAN TransportLayerXsum : 1;
+        } Receive;
+    } OffloadStatus;
+} CXPLAT_INTERFACE;
+
 typedef struct CXPLAT_SEND_DATA {
 
     QUIC_BUFFER Buffer;

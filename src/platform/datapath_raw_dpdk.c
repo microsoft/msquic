@@ -512,7 +512,7 @@ CxPlatDpdkRx(
     DPDK_RX_PACKET Packet; // Working space
     CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
     Packet.Route = &Packet.RouteStorage;
-    Packet.Route->Interface = Interface;
+    Packet.Route->Interface = (CXPLAT_INTERFACE*)Interface;
 
     uint16_t PacketCount = 0;
     for (uint16_t i = 0; i < BuffersCount; i++) {
@@ -579,7 +579,7 @@ CxPlatDpRawTxAlloc(
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
-    DPDK_INTERFACE* Interface = Route->Interface;
+    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Route->Interface;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;

@@ -434,7 +434,6 @@ CxPlatDpRawInterfaceUninitialize(
     _Inout_ XDP_INTERFACE* Interface
     )
 {
-
     #pragma warning(push)
     #pragma warning(disable:6001) // Using uninitialized memory
 
@@ -507,11 +506,6 @@ CxPlatDpRawInterfaceInitialize(
 
     Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "XDP Queues",
-            Interface->QueueCount * sizeof(*Interface->Queues));
         goto Error;
     }
 
@@ -828,7 +822,7 @@ CxPlatDpRawInitialize(
                     "Allocation of '%s' failed. (%llu bytes)",
                     "XDP interface",
                     sizeof(*Interface));
-                continue;
+                goto Error;
             }
 
             CxPlatZeroMemory(Interface, sizeof(*Interface));

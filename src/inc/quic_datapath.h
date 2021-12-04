@@ -141,21 +141,7 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 //
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
-typedef struct CXPLAT_INTERFACE {
-    CXPLAT_LIST_ENTRY Link;
-    uint32_t IfIndex;
-    UCHAR PhysicalAddress[6];
-    struct {
-        struct {
-            BOOLEAN NetworkLayerXsum : 1;
-            BOOLEAN TransportLayerXsum : 1;
-        } Transmit;
-        struct {
-            BOOLEAN NetworkLayerXsum : 1;
-            BOOLEAN TransportLayerXsum : 1;
-        } Receive;
-    } OffloadStatus;
-} CXPLAT_INTERFACE;
+typedef struct CXPLAT_INTERFACE CXPLAT_INTERFACE;
 
 //
 // Structure to represent a network route.

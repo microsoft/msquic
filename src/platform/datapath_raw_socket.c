@@ -372,10 +372,9 @@ CxPlatResolveRoute(
     if (Route->Interface == NULL) {
         Status = ERROR_NOT_FOUND;
         QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
+            DatapathError,
+            "[data][%p] ERROR, %s.",
             Socket,
-            ERROR_NOT_FOUND,
             "no matching interface");
         goto Done;
     }
