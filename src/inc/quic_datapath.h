@@ -144,6 +144,7 @@ typedef struct QUIC_BUFFER QUIC_BUFFER;
 typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
+    UCHAR PhysicalAddress[6];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;

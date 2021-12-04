@@ -802,7 +802,25 @@ CxPlatDpRawInitialize(
             !IfRow->InterfaceAndOperStatusFlags.NotMediaConnected &&
             !IfRow->InterfaceAndOperStatusFlags.Paused &&
             IfRow->OperStatus == IfOperStatusUp &&
-            IfRow->MediaType == NdisMedium802_3) {
+            IfRow->MediaType == NdisMedium802_3 &&
+            IfRow->PhysicalAddressLength == 6) {
+
+            BOOLEAN FoundMacAddress = FALSE;
+            for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+                if (memcmp(Interface->PhysicalAddress, IfRow->PhysicalAddress, 6) == 0) {
+                    FoundMacAddress = TRUE;
+                    break;
+                }
+            }
+
+            if (FoundMacAddress) {
+#if DEBUG
+                printf("Skipping interface %u with matching MAC address\n", IfRow->InterfaceIndex);
+#endif
+                continue; // Skip interfaces that have matching MAC addresses.
+            }
+
             XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
             if (Interface == NULL) {
                 QuicTraceEvent(
@@ -814,6 +832,7 @@ CxPlatDpRawInitialize(
             }
 
             CxPlatZeroMemory(Interface, sizeof(*Interface));
+            memcpy(Interface->PhysicalAddress, IfRow->PhysicalAddress, 6);
 
             Status =
                 CxPlatDpRawInterfaceInitialize(
@@ -828,7 +847,9 @@ CxPlatDpRawInitialize(
                 continue;
             }
 
+#if DEBUG
             printf("Bound XDP to interface %u\n", IfRow->InterfaceIndex);
+#endif
             CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
         }
     }
