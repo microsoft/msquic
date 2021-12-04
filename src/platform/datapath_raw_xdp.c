@@ -24,6 +24,7 @@ Abstract:
 #define RX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
 
+#define ADAPTER_TAG 'ApdX' // XdpA
 #define IF_TAG     'IpdX' // XdpI
 #define QUEUE_TAG     'QpdX' // XdpQ
 #define RX_BUFFER_TAG 'RpdX' // XdpR
@@ -772,80 +773,104 @@ CxPlatDpRawInitialize(
         0, 0, "XdpDatapathWorker", CxPlatXdpWorkerThread, Xdp
     };
     QUIC_STATUS Status;
-    MIB_IF_TABLE2* IfTable;
-    MIB_IF_ROW2* IfRow;
 
     CxPlatXdpReadConfig(Xdp);
     Datapath->Cpu = Xdp->DatapathCpuNumber;
     CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
 
-    Status = GetIfTable2(&IfTable);
-    if (QUIC_FAILED(Status)) {
+    PIP_ADAPTER_ADDRESSES Adapters = NULL;
+    ULONG Error;
+    ULONG AdaptersBufferSize = 15000; // 15 KB buffer for GAA to start with.
+    ULONG Iterations = 0;
+    ULONG flags = // skip info that we don't need.
+        GAA_FLAG_INCLUDE_PREFIX |
+        GAA_FLAG_SKIP_UNICAST |
+        GAA_FLAG_SKIP_ANYCAST |
+        GAA_FLAG_SKIP_MULTICAST |
+        GAA_FLAG_SKIP_DNS_SERVER |
+        GAA_FLAG_SKIP_DNS_INFO;
+
+    do {
+        Adapters = (IP_ADAPTER_ADDRESSES*)CxPlatAlloc(AdaptersBufferSize, ADAPTER_TAG);
+        if (Adapters == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "XDP interface",
+                AdaptersBufferSize);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+
+        Error =
+            GetAdaptersAddresses(AF_UNSPEC, flags, NULL, Adapters, &AdaptersBufferSize);
+        if (Error == ERROR_BUFFER_OVERFLOW) {
+            CxPlatFree(Adapters, ADAPTER_TAG);
+            Adapters = NULL;
+        } else {
+            break;
+        }
+
+        Iterations++;
+    } while ((Error == ERROR_BUFFER_OVERFLOW) && (Iterations < 3)); // retry up to 3 times.
+
+    if (Error == NO_ERROR) {
+        for (PIP_ADAPTER_ADDRESSES Adapter = Adapters; Adapter != NULL; Adapter = Adapter->Next) {
+            if (Adapter->IfType == IF_TYPE_ETHERNET_CSMACD &&
+                Adapter->OperStatus == IfOperStatusUp &&
+                Adapter->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
+                XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
+                if (Interface == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "XDP interface",
+                        sizeof(*Interface));
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Error;
+                }
+
+                CxPlatZeroMemory(Interface, sizeof(*Interface));
+                memcpy(
+                    Interface->PhysicalAddress, Adapter->PhysicalAddress,
+                    sizeof(Interface->PhysicalAddress));
+
+                Status =
+                    CxPlatDpRawInterfaceInitialize(
+                        Xdp, Interface, Adapter->IfIndex, ClientRecvContextLength);
+                if (QUIC_FAILED(Status)) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        Status,
+                        "CxPlatDpRawInterfaceInitialize");
+                    CxPlatFree(Interface, IF_TAG);
+                    continue;
+                }
+#if DEBUG
+                printf("Bound XDP to interface %u (%wS)\n", Adapter->IfIndex, Adapter->Description);
+#endif
+                CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
+            }
+        }
+    } else {
+        Status = HRESULT_FROM_WIN32(Error);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "GetIfTable2");
+            "CxPlatThreadCreate");
         goto Error;
     }
 
-    for (uint32_t i = 0; i < IfTable->NumEntries; i++) {
-        IfRow = (MIB_IF_ROW2 *)&IfTable->Table[i];
-        if (!IfRow->InterfaceAndOperStatusFlags.FilterInterface &&
-            !IfRow->InterfaceAndOperStatusFlags.NotMediaConnected &&
-            !IfRow->InterfaceAndOperStatusFlags.Paused &&
-            IfRow->OperStatus == IfOperStatusUp &&
-            IfRow->MediaType == NdisMedium802_3 &&
-            IfRow->PhysicalAddressLength == 6) {
-
-            BOOLEAN FoundMacAddress = FALSE;
-            for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-                if (memcmp(Interface->PhysicalAddress, IfRow->PhysicalAddress, 6) == 0) {
-                    FoundMacAddress = TRUE;
-                    break;
-                }
-            }
-
-            if (FoundMacAddress) {
-#if DEBUG
-                printf("Skipping interface %u with matching MAC address\n", IfRow->InterfaceIndex);
-#endif
-                continue; // Skip interfaces that have matching MAC addresses.
-            }
-
-            XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
-            if (Interface == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "XDP interface",
-                    sizeof(*Interface));
-                goto Error;
-            }
-
-            CxPlatZeroMemory(Interface, sizeof(*Interface));
-            memcpy(Interface->PhysicalAddress, IfRow->PhysicalAddress, 6);
-
-            Status =
-                CxPlatDpRawInterfaceInitialize(
-                    Xdp, Interface, IfRow->InterfaceIndex, ClientRecvContextLength);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "CxPlatDpRawInterfaceInitialize");
-                CxPlatFree(Interface, IF_TAG);
-                continue;
-            }
-
-#if DEBUG
-            printf("Bound XDP to interface %u\n", IfRow->InterfaceIndex);
-#endif
-            CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
-        }
+    if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "no XDP capable interface");
+        Status = QUIC_STATUS_NOT_FOUND;
+        goto Error;
     }
 
     Xdp->Running = TRUE;
@@ -896,9 +921,10 @@ CxPlatDpRawUninitialize(
     }
 
     while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
-        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Xdp->Interfaces);
-        XDP_INTERFACE* Interface = (XDP_INTERFACE*)CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        XDP_INTERFACE* Interface =
+            CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
         CxPlatDpRawInterfaceUninitialize(Interface);
+        CxPlatFree(Interface, IF_TAG);
     }
 }
 

@@ -370,7 +370,7 @@ CxPlatResolveRoute(
     }
 
     if (Route->Interface == NULL) {
-        Status = ERROR_NOT_FOUND;
+        Status = QUIC_STATUS_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
