@@ -440,6 +440,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
             !IfRow->InterfaceAndOperStatusFlags.Paused &&
             IfRow->OperStatus == IfOperStatusUp &&
             IfRow->MediaType == NdisMedium802_3 &&
+            IfRow->PhysicalAddressLength == 6 &&
             memcmp(IfRow->PhysicalAddress, addr.addr_bytes, IfRow->PhysicalAddressLength) == 0) {
             Dpdk->Interface.IfIndex = IfRow->InterfaceIndex;
             break;
