@@ -72,7 +72,6 @@ typedef struct XDP_DATAPATH {
     // Constants
     DECLSPEC_CACHEALIGN
     uint16_t DatapathCpuGroup;
-    uint8_t DatapathCpuNumber;
     //
     // Currently, all XDP interfaces share the same config.
     //
@@ -375,6 +374,8 @@ CxPlatXdpReadConfig(
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
     Xdp->TxAlwaysPoke = FALSE;
+    Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+    Xdp->Affinitize = TRUE;
 
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
@@ -394,10 +395,8 @@ CxPlatXdpReadConfig(
 
         if (strcmp(Line, "CpuGroup") == 0) {
              Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
-             Xdp->Affinitize = TRUE;
         } else if (strcmp(Line, "CpuNumber") == 0) {
-             Xdp->DatapathCpuNumber = (uint8_t)strtoul(Value, NULL, 10);
-             Xdp->Affinitize = TRUE;
+             Xdp->Cpu = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxBufferCount") == 0) {
              Xdp->RxBufferCount = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxRingSize") == 0) {
@@ -408,6 +407,9 @@ CxPlatXdpReadConfig(
              Xdp->TxRingSize = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "TxAlwaysPoke") == 0) {
              Xdp->TxAlwaysPoke = !!strtoul(Value, NULL, 10);
+        } else if (strcmp(Line, "Affinitize") == 0) {
+            BOOLEAN State = !!strtoul(Value, NULL, 10);
+            Xdp->Affinitize = State;
         } else if (strcmp(Line, "SkipXsum") == 0) {
             BOOLEAN State = !!strtoul(Value, NULL, 10);
             Xdp->SkipXsum = State;
@@ -442,6 +444,7 @@ CxPlatDpRawInterfaceUninitialize(
         XDP_QUEUE *Queue = &Interface->Queues[i];
 
         if (Queue->TxXsk != NULL) {
+#if DEBUG
             QUIC_STATUS Status;
             XSK_STATISTICS Stats;
             uint32_t StatsSize = sizeof(Stats);
@@ -449,6 +452,7 @@ CxPlatDpRawInterfaceUninitialize(
             if (QUIC_SUCCEEDED(Status)) {
                 printf("[%u-%u]txInvalidDescriptors: %llu\n", Interface->IfIndex, i, Stats.txInvalidDescriptors);
             }
+#endif
             CloseHandle(Queue->TxXsk);
         }
 
@@ -461,6 +465,7 @@ CxPlatDpRawInterfaceUninitialize(
         }
 
         if (Queue->RxXsk != NULL) {
+#if DEBUG
             QUIC_STATUS Status;
             XSK_STATISTICS Stats;
             uint32_t StatsSize = sizeof(Stats);
@@ -469,6 +474,7 @@ CxPlatDpRawInterfaceUninitialize(
                 printf("[%u-%u]rxDropped: %llu\n", Interface->IfIndex, i, Stats.rxDropped);
                 printf("[%u-%u]rxInvalidDescriptors: %llu\n", Interface->IfIndex, i, Stats.rxInvalidDescriptors);
             }
+#endif
             CloseHandle(Queue->RxXsk);
         }
 
@@ -775,7 +781,6 @@ CxPlatDpRawInitialize(
     QUIC_STATUS Status;
 
     CxPlatXdpReadConfig(Xdp);
-    Datapath->Cpu = Xdp->DatapathCpuNumber;
     CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
 
@@ -1180,9 +1185,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 
     if (Xdp->Affinitize) {
         GROUP_AFFINITY Affinity = {0};
-
         Affinity.Group = Xdp->DatapathCpuGroup;
-        Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
+        Affinity.Mask = (ULONG_PTR)1 << Xdp->Cpu;
         SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
     }
 
@@ -1209,9 +1213,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context)
 
     if (Xdp->Affinitize) {
         GROUP_AFFINITY Affinity = {0};
-
         Affinity.Group = Xdp->DatapathCpuGroup;
-        Affinity.Mask = (ULONG_PTR)1 << Xdp->DatapathCpuNumber;
+        Affinity.Mask = (ULONG_PTR)1 << Xdp->Cpu;
         SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
     }
 
