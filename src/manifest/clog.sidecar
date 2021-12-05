@@ -8821,6 +8821,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "DatapathError": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] ERROR, %s.",
+      "UniqueId": "DatapathError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "DatapathOpenTcpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] RSS helper socket failed to open, 0x%x",
@@ -12983,6 +12999,10 @@
       {
         "UniquenessHash": "20cf52f5-ef36-a45b-6a54-29e5eaac7f19",
         "TraceID": "DatapathSend"
+      },
+      {
+        "UniquenessHash": "2b127bfd-4623-d1ad-f438-977d808c9514",
+        "TraceID": "DatapathError"
       },
       {
         "UniquenessHash": "6eeae539-95db-bea9-7e36-8635006dae40",

@@ -27,6 +27,16 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t CpuTableSize;
     uint16_t CpuTable[64];
 
+    CXPLAT_LIST_ENTRY Interfaces;
+
+} CXPLAT_DATAPATH;
+
+#define ETH_MAC_ADDR_LEN 6
+
+typedef struct CXPLAT_INTERFACE {
+    CXPLAT_LIST_ENTRY Link;
+    uint32_t IfIndex;
+    UCHAR PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;
@@ -37,8 +47,7 @@ typedef struct CXPLAT_DATAPATH {
             BOOLEAN TransportLayerXsum : 1;
         } Receive;
     } OffloadStatus;
-
-} CXPLAT_DATAPATH;
+} CXPLAT_INTERFACE;
 
 typedef struct CXPLAT_SEND_DATA {
 

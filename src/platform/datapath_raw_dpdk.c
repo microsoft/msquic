@@ -36,6 +36,19 @@ Abstract:
 #define TX_BURST_SIZE 16
 #define TX_RING_SIZE 1024
 
+typedef struct DPDK_INTERFACE {
+
+    CXPLAT_INTERFACE;
+
+    uint16_t Port;
+    CXPLAT_LOCK TxLock;
+    struct rte_mempool* MemoryPool;
+    struct rte_ring* TxRingBuffer;
+
+    // Constants
+    char DeviceName[32];
+} DPDK_INTERFACE;
+
 typedef struct DPDK_DATAPATH {
 
     CXPLAT_DATAPATH;
@@ -47,13 +60,7 @@ typedef struct DPDK_DATAPATH {
 
     CXPLAT_POOL AdditionalInfoPool;
 
-    uint16_t Port;
-    CXPLAT_LOCK TxLock;
-    struct rte_mempool* MemoryPool;
-    struct rte_ring* TxRingBuffer;
-
-    // Constants
-    char DeviceName[32];
+    DPDK_INTERFACE Interface; // TODO: support multiple NIC interfaces.
 
 } DPDK_DATAPATH;
 
@@ -68,6 +75,7 @@ typedef struct DPDK_TX_PACKET {
     CXPLAT_SEND_DATA;
     struct rte_mbuf* Mbuf;
     DPDK_DATAPATH* Dpdk;
+    DPDK_INTERFACE* Interface;
 } DPDK_TX_PACKET;
 
 CXPLAT_STATIC_ASSERT(
@@ -120,7 +128,7 @@ CxPlatDpdkReadConfig(
         if (strcmp(Line, "CPU") == 0) {
              Dpdk->Cpu = (uint16_t)strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "DeviceName") == 0) {
-             strcpy(Dpdk->DeviceName, Value);
+             strcpy(Dpdk->Interface.DeviceName, Value);
         }
     }
 
@@ -156,7 +164,9 @@ CxPlatDpRawInitialize(
     BOOLEAN CleanUpThread = FALSE;
     CxPlatEventInitialize(&Dpdk->StartComplete, TRUE, FALSE);
     CxPlatPoolInitialize(FALSE, AdditionalBufferSize, QUIC_POOL_DATAPATH, &Dpdk->AdditionalInfoPool);
-    CxPlatLockInitialize(&Dpdk->TxLock);
+    CxPlatLockInitialize(&Dpdk->Interface.TxLock);
+    CxPlatListInitializeHead(&Dpdk->Interfaces);
+    CxPlatListInsertTail(&Dpdk->Interfaces, &Dpdk->Interface.Link);
 
     //
     // This starts a new thread to do all the DPDK initialization because DPDK
@@ -183,7 +193,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (CleanUpThread) {
-            CxPlatLockUninitialize(&Dpdk->TxLock);
+            CxPlatLockUninitialize(&Dpdk->Interface.TxLock);
             CxPlatPoolUninitialize(&Dpdk->AdditionalInfoPool);
             CxPlatThreadWait(&Dpdk->DpdkThread);
             CxPlatThreadDelete(&Dpdk->DpdkThread);
@@ -202,7 +212,7 @@ CxPlatDpRawUninitialize(
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     Dpdk->Running = FALSE;
-    CxPlatLockUninitialize(&Dpdk->TxLock);
+    CxPlatLockUninitialize(&Dpdk->Interface.TxLock);
     CxPlatPoolUninitialize(&Dpdk->AdditionalInfoPool);
     CxPlatThreadWait(&Dpdk->DpdkThread);
     CxPlatThreadDelete(&Dpdk->DpdkThread);
@@ -254,14 +264,15 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
     }
     CleanUpRte = TRUE;
 
-    if (Dpdk->DeviceName[0] != '\0') {
-        ret = rte_eth_dev_get_port_by_name(Dpdk->DeviceName, &Port);
+    if (Dpdk->Interface.DeviceName[0] != '\0') {
+        ret = rte_eth_dev_get_port_by_name(Dpdk->Interface.DeviceName, &Port);
     } else {
         ret = rte_eth_dev_get_port_by_name("0000:81:00.0", &Port);
         if (ret < 0) {
             ret = rte_eth_dev_get_port_by_name("0000:81:00.1", &Port);
         }
     }
+
     if (ret < 0) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -271,13 +282,13 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
-    Dpdk->Port = Port;
 
-    Dpdk->MemoryPool =
+    Dpdk->Interface.Port = Port;
+    Dpdk->Interface.MemoryPool =
         rte_pktmbuf_pool_create(
             "MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
             RTE_MBUF_DEFAULT_BUF_SIZE, rte_eth_dev_socket_id(Port));
-    if (Dpdk->MemoryPool == NULL) {
+    if (Dpdk->Interface.MemoryPool == NULL) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -287,11 +298,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         goto Error;
     }
 
-    Dpdk->TxRingBuffer =
+    Dpdk->Interface.TxRingBuffer =
         rte_ring_create(
             "TxRing", TX_RING_SIZE, rte_eth_dev_socket_id(Port),
             RING_F_MP_HTS_ENQ | RING_F_SC_DEQ);
-    if (Dpdk->TxRingBuffer == NULL) {
+    if (Dpdk->Interface.TxRingBuffer == NULL) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -312,25 +323,27 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         goto Error;
     }
 
+    Dpdk->Interface.IfIndex = DeviceInfo.if_index;
+
     if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_IPV4_CKSUM) {
         printf("TX IPv4 Checksum Offload Enabled\n");
         PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_IPV4_CKSUM;
-        Dpdk->OffloadStatus.Transmit.NetworkLayerXsum = TRUE;
+        Dpdk->Interface.OffloadStatus.Transmit.NetworkLayerXsum = TRUE;
     }
     if (DeviceInfo.tx_offload_capa & DEV_TX_OFFLOAD_UDP_CKSUM) {
         printf("TX UDP Checksum Offload Enabled\n");
         PortConfig.txmode.offloads |= DEV_TX_OFFLOAD_UDP_CKSUM;
-        Dpdk->OffloadStatus.Transmit.TransportLayerXsum = TRUE;
+        Dpdk->Interface.OffloadStatus.Transmit.TransportLayerXsum = TRUE;
     }
     if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_IPV4_CKSUM) {
         printf("RX IPv4 Checksum Offload Enabled\n");
         PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_IPV4_CKSUM;
-        Dpdk->OffloadStatus.Receive.NetworkLayerXsum = TRUE;
+        Dpdk->Interface.OffloadStatus.Receive.NetworkLayerXsum = TRUE;
     }
     if (DeviceInfo.rx_offload_capa & DEV_RX_OFFLOAD_UDP_CKSUM) {
         printf("RX UDP Checksum Offload Enabled\n");
         PortConfig.rxmode.offloads |= DEV_RX_OFFLOAD_UDP_CKSUM;
-        Dpdk->OffloadStatus.Receive.TransportLayerXsum = TRUE;
+        Dpdk->Interface.OffloadStatus.Receive.TransportLayerXsum = TRUE;
     }
 
     ret = rte_eth_dev_configure(Port, rx_rings, tx_rings, &PortConfig);
@@ -357,7 +370,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
 
     rxconf = DeviceInfo.default_rxconf;
     for (uint16_t q = 0; q < rx_rings; q++) {
-        ret = rte_eth_rx_queue_setup(Port, q, nb_rxd, rte_eth_dev_socket_id(Port), &rxconf, Dpdk->MemoryPool);
+        ret = rte_eth_rx_queue_setup(Port, q, nb_rxd, rte_eth_dev_socket_id(Port), &rxconf, Dpdk->Interface.MemoryPool);
         if (ret < 0) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -406,10 +419,39 @@ CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
         goto Error;
     }
 
-    printf("\nStarting Port %hu, %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
-            Dpdk->Port,
-            addr.addr_bytes[0], addr.addr_bytes[1], addr.addr_bytes[2],
-            addr.addr_bytes[3], addr.addr_bytes[4], addr.addr_bytes[5]);
+    //
+    // Retrieve ifindex of the interface to which DPDK is binding.
+    //
+    MIB_IF_TABLE2* IfTable;
+    Status = GetIfTable2(&IfTable);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "GetIfTable2");
+        goto Error;
+    }
+
+    for (uint32_t i = 0; i < IfTable->NumEntries; i++) {
+        MIB_IF_ROW2* IfRow = (MIB_IF_ROW2*)&IfTable->Table[i];
+        if (!IfRow->InterfaceAndOperStatusFlags.FilterInterface &&
+            !IfRow->InterfaceAndOperStatusFlags.NotMediaConnected &&
+            !IfRow->InterfaceAndOperStatusFlags.Paused &&
+            IfRow->OperStatus == IfOperStatusUp &&
+            IfRow->MediaType == NdisMedium802_3 &&
+            IfRow->PhysicalAddressLength == 6 &&
+            memcmp(IfRow->PhysicalAddress, addr.addr_bytes, IfRow->PhysicalAddressLength) == 0) {
+            Dpdk->Interface.IfIndex = IfRow->InterfaceIndex;
+            break;
+        }
+    }
+
+    printf(
+        "\nStarting Port %hu on Interface %u, %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n",
+        Dpdk->Interface.Port, Dpdk->Interface.IfIndex,
+        addr.addr_bytes[0], addr.addr_bytes[1], addr.addr_bytes[2],
+        addr.addr_bytes[3], addr.addr_bytes[4], addr.addr_bytes[5]);
 
     Dpdk->Running = TRUE;
     ret = rte_eal_mp_remote_launch(CxPlatDpdkWorkerThread, Dpdk, SKIP_MAIN);
@@ -437,12 +479,12 @@ Error:
         CxPlatEventSet(Dpdk->StartComplete);
     }
 
-    if (Dpdk->TxRingBuffer) {
-        rte_ring_free(Dpdk->TxRingBuffer);
+    if (Dpdk->Interface.TxRingBuffer) {
+        rte_ring_free(Dpdk->Interface.TxRingBuffer);
     }
 
-    if (Dpdk->MemoryPool) {
-        rte_mempool_free(Dpdk->MemoryPool);
+    if (Dpdk->Interface.MemoryPool) {
+        rte_mempool_free(Dpdk->Interface.MemoryPool);
     }
 
     if (CleanUpRte) {
@@ -456,12 +498,13 @@ static
 void
 CxPlatDpdkRx(
     _In_ DPDK_DATAPATH* Dpdk,
-    _In_ const uint16_t Core
+    _In_ const uint16_t Core,
+    _In_ DPDK_INTERFACE* Interface
     )
 {
     void* Buffers[RX_BURST_SIZE];
     const uint16_t BuffersCount =
-        rte_eth_rx_burst(Dpdk->Port, 0, (struct rte_mbuf**)Buffers, RX_BURST_SIZE);
+        rte_eth_rx_burst(Interface->Port, 0, (struct rte_mbuf**)Buffers, RX_BURST_SIZE);
     if (unlikely(BuffersCount == 0)) {
         return;
     }
@@ -469,6 +512,7 @@ CxPlatDpdkRx(
     DPDK_RX_PACKET Packet; // Working space
     CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
     Packet.Route = &Packet.RouteStorage;
+    Packet.Route->Interface = (CXPLAT_INTERFACE*)Interface;
 
     uint16_t PacketCount = 0;
     for (uint16_t i = 0; i < BuffersCount; i++) {
@@ -487,8 +531,8 @@ CxPlatDpdkRx(
                 Buffer->ol_flags,
                 "L3/L4 checksum incorrect");
             CXPLAT_DBG_ASSERT(
-                Dpdk->OffloadStatus.Receive.NetworkLayerXsum != 0 ||
-                Dpdk->OffloadStatus.Receive.TransportLayerXsum != 0);
+                Interface->OffloadStatus.Receive.NetworkLayerXsum != 0 ||
+                Interface->OffloadStatus.Receive.TransportLayerXsum != 0);
         }
 
         DPDK_RX_PACKET* NewPacket;
@@ -535,9 +579,11 @@ CxPlatDpRawTxAlloc(
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
+    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Route->Interface;
 
     if (likely(Packet)) {
-        Packet->Mbuf = rte_pktmbuf_alloc(Dpdk->MemoryPool);
+        Packet->Interface = Interface;
+        Packet->Mbuf = rte_pktmbuf_alloc(Interface->MemoryPool);
         if (likely(Packet->Mbuf)) {
             HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
             Packet->Dpdk = Dpdk;
@@ -572,11 +618,12 @@ CxPlatDpRawTxEnqueue(
     )
 {
     DPDK_TX_PACKET* Packet = (DPDK_TX_PACKET*)SendData;
+    DPDK_INTERFACE* Interface = Packet->Interface;
     Packet->Mbuf->data_len = (uint16_t)Packet->Buffer.Length;
     Packet->Mbuf->ol_flags = PKT_TX_IPV4 | PKT_TX_IP_CKSUM | PKT_TX_UDP_CKSUM;
 
     DPDK_DATAPATH* Dpdk = Packet->Dpdk;
-    if (unlikely(rte_ring_mp_enqueue(Dpdk->TxRingBuffer, Packet->Mbuf) != 0)) {
+    if (unlikely(rte_ring_mp_enqueue(Interface->TxRingBuffer, Packet->Mbuf) != 0)) {
         rte_pktmbuf_free(Packet->Mbuf);
         QuicTraceEvent(
             LibraryError,
@@ -590,18 +637,19 @@ CxPlatDpRawTxEnqueue(
 static
 void
 CxPlatDpdkTx(
-    _In_ DPDK_DATAPATH* Dpdk
+    _In_ DPDK_DATAPATH* Dpdk,
+    _In_ DPDK_INTERFACE* Interface
     )
 {
     struct rte_mbuf* Buffers[TX_BURST_SIZE];
     const uint16_t BufferCount =
         (uint16_t)rte_ring_sc_dequeue_burst(
-            Dpdk->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, NULL);
+            Interface->TxRingBuffer, (void**)Buffers, TX_BURST_SIZE, NULL);
     if (unlikely(BufferCount == 0)) {
         return;
     }
 
-    const uint16_t TxCount = rte_eth_tx_burst(Dpdk->Port, 0, Buffers, BufferCount);
+    const uint16_t TxCount = rte_eth_tx_burst(Interface->Port, 0, Buffers, BufferCount);
     if (unlikely(TxCount < BufferCount)) {
         for (uint16_t buf = TxCount; buf < BufferCount; buf++) {
             rte_pktmbuf_free(Buffers[buf]);
@@ -617,13 +665,16 @@ CxPlatDpdkWorkerThread(
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Context;
     const uint16_t Core = (uint16_t)rte_lcore_id();
+    CXPLAT_LIST_ENTRY* Entry;
 
     printf("Core %u worker running...\n", Core);
-    if (rte_eth_dev_socket_id(Dpdk->Port) > 0 &&
-        rte_eth_dev_socket_id(Dpdk->Port) != (int)rte_socket_id()) {
-        printf("\nWARNING, port %u is on remote NUMA node to polling thread.\n"
-               "\tPerformance will not be optimal.\n\n",
-               Dpdk->Port);
+    for (Entry = Dpdk->Interfaces.Flink; Entry != &Dpdk->Interfaces; Entry = Entry->Flink) {
+        if (rte_eth_dev_socket_id(Dpdk->Interface.Port) > 0 &&
+            rte_eth_dev_socket_id(Dpdk->Interface.Port) != (int)rte_socket_id()) {
+            printf("\nWARNING, port %u is on remote NUMA node to polling thread.\n"
+                "\tPerformance will not be optimal.\n\n",
+                Dpdk->Interface.Port);
+        }
     }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
@@ -631,8 +682,11 @@ CxPlatDpdkWorkerThread(
 #endif
 
     while (likely(Dpdk->Running)) {
-        CxPlatDpdkRx(Dpdk, Core);
-        CxPlatDpdkTx(Dpdk);
+        for (Entry = Dpdk->Interfaces.Flink; Entry != &Dpdk->Interfaces; Entry = Entry->Flink) {
+            DPDK_INTERFACE* Interface = CONTAINING_RECORD(Entry, DPDK_INTERFACE, Link);
+            CxPlatDpdkRx(Dpdk, Core, Interface);
+            CxPlatDpdkTx(Dpdk, Interface);
+        }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
         (void)CxPlatRunExecutionContexts(ThreadID);

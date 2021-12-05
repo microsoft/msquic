@@ -207,9 +207,9 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "XDP Queues",
-            Xdp->QueueCount * sizeof(*Xdp->Queues));
+            Interface->QueueCount * sizeof(*Interface->Queues));
 // arg2 = arg2 = "XDP Queues"
-// arg3 = arg3 = Xdp->QueueCount * sizeof(*Xdp->Queues)
+// arg3 = arg3 = Interface->QueueCount * sizeof(*Interface->Queues)
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_C, AllocFailure , arg2, arg3);\
@@ -543,6 +543,115 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, AllocFailure , arg2, arg3);\
 // arg3 = arg3 = "XskGetSockopt(XSK_SOCKOPT_RING_INFO)"
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "XDP interface",
+                AdaptersBufferSize);
+// arg2 = arg2 = "XDP interface"
+// arg3 = arg3 = AdaptersBufferSize
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "XDP interface",
+                        sizeof(*Interface));
+// arg2 = arg2 = "XDP interface"
+// arg3 = arg3 = sizeof(*Interface)
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        Status,
+                        "CxPlatDpRawInterfaceInitialize");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatDpRawInterfaceInitialize"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Status
+// arg3 = arg3 = "CxPlatThreadCreate"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "no XDP capable interface");
+// arg2 = arg2 = "no XDP capable interface"
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryError , arg2);\
 
 #endif
 

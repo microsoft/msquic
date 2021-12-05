@@ -141,6 +141,8 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 //
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
+typedef struct CXPLAT_INTERFACE CXPLAT_INTERFACE;
+
 //
 // Structure to represent a network route.
 //
@@ -153,7 +155,7 @@ typedef struct CXPLAT_ROUTE {
     uint8_t NextHopLinkLayerAddress[6];
     BOOLEAN Resolved; // When TRUE, LocalLinkLayerAddress and NextHopLinkLayerAddress are valid.
     uint8_t QueueId;
-
+    CXPLAT_INTERFACE* Interface;
 } CXPLAT_ROUTE;
 
 //

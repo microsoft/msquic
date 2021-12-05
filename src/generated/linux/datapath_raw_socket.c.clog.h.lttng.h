@@ -48,3 +48,26 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
         ctf_string(arg4, arg4)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathError
+// [data][%p] ERROR, %s.
+// QuicTraceEvent(
+            DatapathError,
+            "[data][%p] ERROR, %s.",
+            Socket,
+            "no matching interface");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = "no matching interface"
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathError,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)

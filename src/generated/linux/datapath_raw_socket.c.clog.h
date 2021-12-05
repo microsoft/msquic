@@ -259,6 +259,29 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_DatapathError
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathError
+// [data][%p] ERROR, %s.
+// QuicTraceEvent(
+            DatapathError,
+            "[data][%p] ERROR, %s.",
+            Socket,
+            "no matching interface");
+// arg2 = arg2 = Socket
+// arg3 = arg3 = "no matching interface"
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_DatapathError(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathError , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 
 
