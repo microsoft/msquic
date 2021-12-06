@@ -9,7 +9,6 @@ namespace QuicTrace
     {
         private readonly string CurrentExePath = Environment.ProcessPath!;
 
-
         public bool SupportsIsolation => false;
 
         public bool IsAssembly(string path)
