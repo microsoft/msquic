@@ -114,22 +114,6 @@ MsQuicConnectionOpen(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
-MsQuicConnectionAddRef(
-    _In_ _Pre_defensive_
-        HQUIC Handle
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QUIC_API
-MsQuicConnectionRelease(
-    _In_ _Pre_defensive_
-        HQUIC Handle
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
 MsQuicConnectionClose(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Handle
@@ -185,22 +169,6 @@ MsQuicStreamOpen(
     _In_opt_ void* Context,
     _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC *Stream
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicStreamAddRef(
-    _In_ _Pre_defensive_
-        HQUIC Handle
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QUIC_API
-MsQuicStreamRelease(
-    _In_ _Pre_defensive_
-        HQUIC Handle
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -283,6 +251,22 @@ MsQuicGetParam(
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicHandleAddRef(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QUIC_API
+MsQuicHandleRelease(
+    _In_ _Pre_defensive_
+        HQUIC Handle
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

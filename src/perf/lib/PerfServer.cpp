@@ -135,7 +135,7 @@ PerfServer::ConnectionCallback(
                 QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
             }
         }
-        MsQuic->ConnectionRelease(ConnectionHandle);
+        MsQuic->Release(ConnectionHandle);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         auto Context =
@@ -210,7 +210,7 @@ PerfServer::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        MsQuic->StreamRelease(StreamHandle);
+        MsQuic->Release(StreamHandle);
         StreamContextAllocator.Free(Context);
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:

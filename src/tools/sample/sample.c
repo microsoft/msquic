@@ -274,7 +274,7 @@ ServerStreamCallback(
         // with the stream. It can now be safely cleaned up.
         //
         printf("[strm][%p] All done\n", Stream);
-        MsQuic->StreamRelease(Stream);
+        MsQuic->Release(Stream);
         break;
     default:
         break;
@@ -328,7 +328,7 @@ ServerConnectionCallback(
         // safely cleaned up.
         //
         printf("[conn][%p] All done\n", Connection);
-        MsQuic->ConnectionRelease(Connection);
+        MsQuic->Release(Connection);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         //
@@ -593,7 +593,7 @@ ClientStreamCallback(
         // with the stream. It can now be safely cleaned up.
         //
         printf("[strm][%p] All done\n", Stream);
-        MsQuic->StreamRelease(Stream);
+        MsQuic->Release(Stream);
         break;
     default:
         break;
@@ -663,7 +663,7 @@ Error:
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_NONE, 0);
     }
 
-    MsQuic->StreamRelease(Stream);
+    MsQuic->Release(Stream);
 
     if (QUIC_FAILED(Status)) {
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
@@ -718,7 +718,7 @@ ClientConnectionCallback(
         //
         printf("[conn][%p] All done\n", Connection);
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
-            MsQuic->ConnectionRelease(Connection);
+            MsQuic->Release(Connection);
         }
         break;
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
@@ -855,7 +855,7 @@ Error:
     }
 
     if (Connection != NULL) {
-        MsQuic->ConnectionRelease(Connection);
+        MsQuic->Release(Connection);
     }
 }
 

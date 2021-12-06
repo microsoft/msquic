@@ -1371,10 +1371,8 @@ MsQuicOpen(
 
     Api->DatagramSend = MsQuicDatagramSend;
 
-    Api->ConnectionAddRef = MsQuicConnectionAddRef;
-    Api->ConnectionRelease = MsQuicConnectionRelease;
-    Api->StreamAddRef = MsQuicStreamAddRef;
-    Api->StreamRelease = MsQuicStreamRelease;
+    Api->AddRef = MsQuicHandleAddRef;
+    Api->Release = MsQuicHandleRelease;
 
     *QuicApi = Api;
 

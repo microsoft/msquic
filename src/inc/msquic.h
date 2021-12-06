@@ -712,6 +712,28 @@ QUIC_STATUS
     );
 
 //
+// Adds a connection or stream handle external reference.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_ADDREF_FN)(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    );
+
+//
+// Releases a connection or stream handle external reference.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(QUIC_API * QUIC_RELEASE_FN)(
+    _In_ _Pre_defensive_
+        HQUIC Handle
+    );
+
+//
 // Registration Context Interface.
 //
 
@@ -998,28 +1020,6 @@ QUIC_STATUS
     );
 
 //
-// Adds a connection handle reference.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_API * QUIC_CONNECTION_ADDREF_FN)(
-    _In_ _Pre_defensive_
-        HQUIC Connection
-    );
-
-//
-// Releases a connection handle reference.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-(QUIC_API * QUIC_CONNECTION_RELEASE_FN)(
-    _In_ _Pre_defensive_
-        HQUIC Connection
-    );
-
-//
 // Closes an existing connection.
 //
 typedef
@@ -1173,28 +1173,6 @@ QUIC_STATUS
     );
 
 //
-// Adds a stream handle reference.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_API * QUIC_STREAM_ADDREF_FN)(
-    _In_ _Pre_defensive_
-        HQUIC Stream
-    );
-
-//
-// Releases a connection handle reference.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-(QUIC_API * QUIC_STREAM_RELEASE_FN)(
-    _In_ _Pre_defensive_
-        HQUIC Stream
-    );
-
-//
 // Closes a stream handle.
 //
 typedef
@@ -1332,11 +1310,8 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
-    QUIC_CONNECTION_ADDREF_FN           ConnectionAddRef;
-    QUIC_CONNECTION_RELEASE_FN          ConnectionRelease;
-
-    QUIC_STREAM_ADDREF_FN               StreamAddRef;
-    QUIC_STREAM_RELEASE_FN              StreamRelease;
+    QUIC_ADDREF_FN                      AddRef;
+    QUIC_RELEASE_FN                     Release;
 
 } QUIC_API_TABLE;
 

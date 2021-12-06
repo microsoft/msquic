@@ -241,9 +241,9 @@ ThroughputClient::StartQuic()
             }
 
             if (StrmContext->Stream) {
-                MsQuic->StreamRelease(StrmContext->Stream);
+                MsQuic->Release(StrmContext->Stream);
             }
-            if (ConnHandle && MsQuic->ConnectionRelease(ConnHandle)) {
+            if (ConnHandle && MsQuic->Release(ConnHandle)) {
                 Client.StreamContextAllocator.Free(StrmContext);
             }
         }
@@ -518,7 +518,7 @@ ThroughputClient::ConnectionCallback(
         if (PrintStats) {
             QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
         }
-        MsQuic->ConnectionRelease(ConnectionHandle);
+        MsQuic->Release(ConnectionHandle);
         CxPlatEventSet(*StopEvent);
         break;
     default:
@@ -564,7 +564,7 @@ ThroughputClient::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         WriteOutput("Shutdown complete\n");
         OnStreamShutdownComplete(StrmContext);
-        if (MsQuic->StreamRelease(StrmContext->Stream)) {
+        if (MsQuic->Release(StrmContext->Stream)) {
             StreamContextAllocator.Free(StrmContext);
         }
         break;
