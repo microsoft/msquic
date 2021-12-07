@@ -28,7 +28,7 @@ foreach ($Platform in $Platforms) {
         if (!(Test-Path $PlatBuild.FullName -PathType Container)) {
             continue;
         }
-        if ($PlatBuild.FullName -eq "_manifest") {
+        if ($PlatBuild.Name -eq "_manifest") {
             continue;
         }
         $AllBuilds += $PlatBuild
