@@ -1,8 +1,27 @@
+param (
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("Debug", "Release")]
+    [string]$Config = "Debug",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64", "arm64ec")]
+    [string]$Arch = "",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("gamecore_console", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
+    [string]$Platform = "",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("schannel", "openssl")]
+    [string]$Tls = ""
+)
+
 Set-StrictMode -Version "Latest";
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop";
 
-# Root directory of the project.
-$RootDir = Split-Path $PSScriptRoot -Parent;
+$BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Platform $Platform -Tls $Tls -Arch $Arch -ExtraArtifactDir "" -Config $Config
+
+$ArtifactsDir = $BuildConfig.ArtifactsDir
 
 $SourceVersion = $env:BUILD_SOURCEVERSION;
 $SourceBranch = $env:BUILD_SOURCEBRANCH;
@@ -23,12 +42,6 @@ class BuildData {
 
 $Data = [BuildData]::new($SourceVersion, $SourceBranch, $VersionNumber)
 
-$OutputDirectory = Join-Path $RootDir artifacts versions
-
-if (!(Test-Path $OutputDirectory)) {
-    New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
-}
-
-$OutputFile = Join-Path $OutputDirectory versions.json
+$OutputFile = Join-Path $ArtifactsDir versions.json
 
 $Data | ConvertTo-Json -Depth 100 | Out-File $OutputFile
