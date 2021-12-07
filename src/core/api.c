@@ -1611,7 +1611,7 @@ MsQuicHandleAddRef(
 
         InterlockedIncrement((volatile long*)&Stream->ExternalRefCount);
     } else {
-        CXPLAT_DBG_ASSERTMSG(FALSE, "Only supported for Connection and Stream handles!");
+        CXPLAT_FRE_ASSERTMSG(FALSE, "Only supported for Connection and Stream handles!");
     }
 
     QuicTraceEvent(
@@ -1660,7 +1660,7 @@ MsQuicHandleRelease(
             WasClosed = TRUE;
         }
     } else {
-        CXPLAT_DBG_ASSERTMSG(FALSE, "Only supported for Connection and Stream handles!");
+        CXPLAT_FRE_ASSERTMSG(FALSE, "Only supported for Connection and Stream handles!");
     }
 
     QuicTraceEvent(

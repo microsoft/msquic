@@ -567,7 +567,6 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        WriteOutput("Shutdown complete\n");
         OnStreamShutdownComplete(ConnContext);
         MsQuic->Release(StreamHandle);
         break;
