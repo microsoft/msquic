@@ -1610,6 +1610,8 @@ MsQuicHandleAddRef(
         CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
         InterlockedIncrement((volatile long*)&Stream->ExternalRefCount);
+    } else {
+        CXPLAT_DBG_ASSERTMSG(FALSE, "Only supported for Connection and Stream handles!");
     }
 
     QuicTraceEvent(
@@ -1653,10 +1655,12 @@ MsQuicHandleRelease(
         CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
         CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
-        if (InterlockedIncrement((volatile long*)&Stream->ExternalRefCount) == 0) {
+        if (InterlockedDecrement((volatile long*)&Stream->ExternalRefCount) == 0) {
             MsQuicStreamClose(Handle);
             WasClosed = TRUE;
         }
+    } else {
+        CXPLAT_DBG_ASSERTMSG(FALSE, "Only supported for Connection and Stream handles!");
     }
 
     QuicTraceEvent(

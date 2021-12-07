@@ -60,10 +60,9 @@ public:
 
 private:
 
-    struct StreamContext {
-        StreamContext(_In_ ThroughputClient& Client) : Client{Client} { }
+    struct ConnectionContext {
+        ConnectionContext(_In_ ThroughputClient& Client) : Client{Client} { }
         ThroughputClient& Client;
-        HQUIC Stream {nullptr};
         uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t OutstandingBytes{0};
         uint64_t BytesSent{0};
@@ -79,6 +78,7 @@ private:
     QUIC_STATUS
     ConnectionCallback(
         _In_ HQUIC ConnectionHandle,
+        _In_ ConnectionContext* ConnContext,
         _Inout_ QUIC_CONNECTION_EVENT* Event
         );
 
@@ -86,14 +86,15 @@ private:
     StreamCallback(
         _In_ HQUIC StreamHandle,
         _Inout_ QUIC_STREAM_EVENT* Event,
-        _Inout_ StreamContext* StrmData
+        _Inout_ ConnectionContext* StrmData
         );
 
     QUIC_STATUS StartQuic();
 
     void
     SendQuicData(
-        _In_ StreamContext* Context
+        _In_ HQUIC StreamHandle,
+        _In_ ConnectionContext* Context
         );
 
     QUIC_STATUS StartTcp();
@@ -101,10 +102,10 @@ private:
     void
     SendTcpData(
         _In_ TcpConnection* Connection,
-        _In_ StreamContext* Context
+        _In_ ConnectionContext* Context
         );
 
-    void OnStreamShutdownComplete(_In_ StreamContext* Context);
+    void OnStreamShutdownComplete(_In_ ConnectionContext* Context);
 
     MsQuicRegistration Registration {
         "secnetperf-client-tput",
@@ -118,7 +119,7 @@ private:
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
-    QuicPoolAllocator<StreamContext> StreamContextAllocator;
+    QuicPoolAllocator<ConnectionContext> ConnectionContextAllocator;
     UniquePtr<char[]> TargetData;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
@@ -138,7 +139,7 @@ private:
     TcpEngine Engine;
     CXPLAT_LOCK TcpLock;
     TcpConnection* TcpConn{nullptr};
-    StreamContext* TcpStrmContext{nullptr};
+    ConnectionContext* TcpConnContext{nullptr};
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
     void

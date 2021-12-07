@@ -130,10 +130,8 @@ PerfServer::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
-            if (PrintStats) {
-                QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
-            }
+        if (PrintStats) {
+            QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
         }
         MsQuic->Release(ConnectionHandle);
         break;
