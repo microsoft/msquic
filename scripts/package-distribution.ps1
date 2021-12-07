@@ -23,12 +23,12 @@ $WindowsBuilds = @()
 $AllBuilds = @()
 
 foreach ($Platform in $Platforms) {
-    if ($Platform.FullName -eq "_manifest") {
-        continue;
-    }
     $PlatBuilds = Get-ChildItem -Path $Platform.FullName
     foreach ($PlatBuild in $PlatBuilds) {
         if (!(Test-Path $PlatBuild.FullName -PathType Container)) {
+            continue;
+        }
+        if ($PlatBuild.FullName -eq "_manifest") {
             continue;
         }
         $AllBuilds += $PlatBuild
