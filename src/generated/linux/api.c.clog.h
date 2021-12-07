@@ -1054,6 +1054,86 @@ tracepoint(CLOG_API_C, LibraryError , arg2);\
 // QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_ADDREF,
+        Handle);
+// arg2 = arg2 = QUIC_TRACE_API_ADDREF
+// arg3 = arg3 = Handle
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_2_ARGS_TRACE_ApiExit
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExit
+// [ api] Exit
+// QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
+// QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_RELEASE,
+        Handle);
+// arg2 = arg2 = QUIC_TRACE_API_RELEASE
+// arg3 = arg3 = Handle
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_2_ARGS_TRACE_ApiExit
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExit
+// [ api] Exit
+// QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
+// QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_DATAGRAM_SEND,
         Handle);
 // arg2 = arg2 = QUIC_TRACE_API_DATAGRAM_SEND
