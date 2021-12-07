@@ -26,21 +26,23 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 $SourceVersion = $env:BUILD_SOURCEVERSION;
 $SourceBranch = $env:BUILD_SOURCEBRANCH;
 $BuildId = $env:BUILD_BUILDID;
-$VersionNumber = "1.10.0-$BuildId";
+$VersionNumber = "1.10.0";
 
 class BuildData {
     [string]$SourceVersion;
     [string]$SourceBranch;
     [string]$VersionNumber;
+    [string]$BuildId;
 
-    BuildData($SourceVersion, $SourceBranch, $VersionNumber) {
+    BuildData($SourceVersion, $SourceBranch, $VersionNumber, $BuildId) {
         $this.SourceVersion = $SourceVersion;
         $this.SourceBranch = $SourceBranch;
         $this.VersionNumber = $VersionNumber;
+        $this.BuildId = $BuildId;
     }
 }
 
-$Data = [BuildData]::new($SourceVersion, $SourceBranch, $VersionNumber)
+$Data = [BuildData]::new($SourceVersion, $SourceBranch, $VersionNumber, $BuildId)
 
 $OutputFile = Join-Path $ArtifactsDir versions.json
 
