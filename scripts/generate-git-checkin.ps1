@@ -68,6 +68,22 @@ $CheckinFile = Join-Path $ArtifactsDir package GitCheckin.json
 
 $Checkin | ConvertTo-Json -Depth 100 | Out-File $CheckinFile
 
+$FakeCheckin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $PRTitle)
+$FakeCheckin.Branch[0].CheckinFiles = @()
+
+$Platforms = @("amd64", "arm64", "arm", "chpe", "x86")
+$BuildTypes = @("fre", "chk")
+
+foreach ($Plat in $Platforms) {
+    foreach ($Type in $BuildTypes) {
+        $FakeManFile = Join-Path $ArtifactsDir package "msquic.$Plat$Type.man"
+        $FakeCheckin.Branch[0].CheckinFiles += [CheckinFile]::new($FakeManFile)
+    }
+}
+
+$FakeCheckinFile = Join-Path $ArtifactsDir package FakeGitCheckin.json
+$FakeCheckin | ConvertTo-Json -Depth 100 | Out-File $FakeCheckinFile
+
 $Manifest = @"
 ### StartMeta
 # Manifest_Format_Version=2
