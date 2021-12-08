@@ -25,7 +25,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Relevant file paths used by this script.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
-$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "create-vpack.yml"
+$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "push-vpack.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
 $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
