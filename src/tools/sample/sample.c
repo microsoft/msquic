@@ -627,8 +627,7 @@ ClientSend(
     // Starts the bidirectional stream. By default, the peer is not notified of
     // the stream being started until data is sent on the stream.
     //
-    if (QUIC_FAILED(Status = MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_NONE))) {
-        MsQuic->Release(Stream);
+    if (QUIC_FAILED(Status = MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
         printf("StreamStart failed, 0x%x!\n", Status);
         goto Error;
     }

@@ -337,9 +337,8 @@ ThroughputClient::StartQuic()
     Status =
         MsQuic->StreamStart(
             Shutdown.StreamHandle,
-            QUIC_STREAM_START_FLAG_NONE);
+            QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL);
     if (QUIC_FAILED(Status)) {
-        MsQuic->Release(Shutdown.StreamHandle);
         WriteOutput("Failed StreamStart 0x%x\n", Status);
         return Status;
     }
