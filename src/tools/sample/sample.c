@@ -619,6 +619,7 @@ ClientSend(
         printf("StreamOpen failed, 0x%x!\n", Status);
         goto Error;
     }
+    MsQuic->AddRef(Stream);
 
     printf("[strm][%p] Starting...\n", Stream);
 
@@ -627,6 +628,7 @@ ClientSend(
     // the stream being started until data is sent on the stream.
     //
     if (QUIC_FAILED(Status = MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_NONE))) {
+        MsQuic->Release(Stream);
         printf("StreamStart failed, 0x%x!\n", Status);
         goto Error;
     }

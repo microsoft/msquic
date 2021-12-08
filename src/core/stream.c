@@ -56,7 +56,7 @@ QuicStreamInitialize(
     Stream->Flags.ReceiveEnabled = TRUE;
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
-    Stream->ExternalRefCount = OpenedRemotely ? 1 : 2;
+    Stream->ExternalRefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
     Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);

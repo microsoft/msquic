@@ -332,12 +332,14 @@ ThroughputClient::StartQuic()
         WriteOutput("Failed StreamOpen 0x%x\n", Status);
         return Status;
     }
+    MsQuic->AddRef(Shutdown.StreamHandle);
 
     Status =
         MsQuic->StreamStart(
             Shutdown.StreamHandle,
             QUIC_STREAM_START_FLAG_NONE);
     if (QUIC_FAILED(Status)) {
+        MsQuic->Release(Shutdown.StreamHandle);
         WriteOutput("Failed StreamStart 0x%x\n", Status);
         return Status;
     }
