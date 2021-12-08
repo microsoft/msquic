@@ -41,11 +41,12 @@ class CheckinBranch {
     [string]$pullRequestTitle;
     [CheckinFile[]]$CheckinFiles;
 
-    CheckinBranch($ManifestFile, $BranchToPushTo, $MSRCNumber) {
+    CheckinBranch($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber) {
         $this.collection = "microsoft";
         $this.project = "OS";
         $this.repo = "os.2020";
         $this.name = $BranchToPushTo;
+        $this.pullRequestTitle = $PRTitle;
         $this.CheckinFiles = @([CheckinFile]::new($ManifestFile, $MSRCNumber));
     }
 }
@@ -53,14 +54,14 @@ class CheckinBranch {
 class GitCheckin {
     [CheckinBranch[]]$Branch;
 
-    GitCheckin($ManifestFile, $BranchToPushTo, $MSRCNumber) {
-        $this.Branch = @([CheckinBranch]::new($ManifestFile, $BranchToPushTo, $MSRCNumber));
+    GitCheckin($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber) {
+        $this.Branch = @([CheckinBranch]::new($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber));
     }
 }
 
 $ManifestFile = Join-Path $ArtifactsDir package msquic.man
 
-$Checkin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $MSRCNumber)
+$Checkin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber)
 
 $CheckinFile = Join-Path $ArtifactsDir package GitCheckin.json
 
