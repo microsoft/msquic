@@ -28,6 +28,9 @@ foreach ($Platform in $Platforms) {
         if (!(Test-Path $PlatBuild -PathType Container)) {
             continue;
         }
+        if ($PlatBuild.Name -eq "_manifest") {
+            continue;
+        }
         $AllBuilds += $PlatBuild
         if ($Platform.Name -eq "windows") {
             $WindowsBuilds += $PlatBuild
