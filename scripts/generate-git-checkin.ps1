@@ -22,13 +22,9 @@ class CheckinFile {
     [string]$Path;
     [string]$Type = "File";
 
-    CheckinFile($ManifestFile, $MSRCNumber) {
+    CheckinFile($ManifestFile) {
         $this.Source = $ManifestFile;
-        $outputFile = "msquic.man"
-        if (![string]::IsNullOrWhiteSpace($MSRCNumber)) {
-            $outputFile = "msquic-msrc-$MSRCNumber.man"
-        }
-        $this.Path = "minio/netio/quic/msquic/$outputFile";
+        $this.Path = "minio/netio/quic/msquic";
     }
 }
 
@@ -41,27 +37,32 @@ class CheckinBranch {
     [string]$pullRequestTitle;
     [CheckinFile[]]$CheckinFiles;
 
-    CheckinBranch($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber) {
+    CheckinBranch($ManifestFile, $BranchToPushTo, $PRTitle) {
         $this.collection = "microsoft";
         $this.project = "OS";
         $this.repo = "os.2020";
         $this.name = $BranchToPushTo;
         $this.pullRequestTitle = $PRTitle;
-        $this.CheckinFiles = @([CheckinFile]::new($ManifestFile, $MSRCNumber));
+        $this.CheckinFiles = @([CheckinFile]::new($ManifestFile));
     }
 }
 
 class GitCheckin {
     [CheckinBranch[]]$Branch;
 
-    GitCheckin($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber) {
-        $this.Branch = @([CheckinBranch]::new($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber));
+    GitCheckin($ManifestFile, $BranchToPushTo, $PRTitle) {
+        $this.Branch = @([CheckinBranch]::new($ManifestFile, $BranchToPushTo, $PRTitle));
     }
 }
 
-$ManifestFile = Join-Path $ArtifactsDir package msquic.man
+$outputFile = "msquic.man"
+if (![string]::IsNullOrWhiteSpace($MSRCNumber)) {
+    $outputFile = "msquic-msrc-$MSRCNumber.man"
+}
 
-$Checkin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $PRTitle, $MSRCNumber)
+$ManifestFile = Join-Path $ArtifactsDir package $outputFile
+
+$Checkin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $PRTitle)
 
 $CheckinFile = Join-Path $ArtifactsDir package GitCheckin.json
 
