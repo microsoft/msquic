@@ -494,6 +494,25 @@ Error:
     CXPLAT_THREAD_RETURN(0);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawAssignQueue(
+    _In_ const CXPLAT_INTERFACE* Interface,
+    _Inout_ CXPLAT_ROUTE* Route
+    )
+{
+    Route->Queue = Interface;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+const CXPLAT_INTERFACE*
+CxPlatDpRawGetInterfaceFromQueue(
+    _In_ const void* Queue
+    )
+{
+    return (const CXPLAT_INTERFACE*)Queue;
+}
+
 static
 void
 CxPlatDpdkRx(
@@ -512,7 +531,7 @@ CxPlatDpdkRx(
     DPDK_RX_PACKET Packet; // Working space
     CxPlatZeroMemory(&Packet, sizeof(DPDK_RX_PACKET));
     Packet.Route = &Packet.RouteStorage;
-    Packet.Route->Interface = (CXPLAT_INTERFACE*)Interface;
+    Packet.Route->Queue = Interface;
 
     uint16_t PacketCount = 0;
     for (uint16_t i = 0; i < BuffersCount; i++) {
@@ -579,7 +598,7 @@ CxPlatDpRawTxAlloc(
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
-    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Route->Interface;
+    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Route->Queue;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;

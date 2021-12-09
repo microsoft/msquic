@@ -93,6 +93,19 @@ CxPlatDpRawGenerateCpuTable(
     _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawAssignQueue(
+    _In_ const CXPLAT_INTERFACE* Interface,
+    _Inout_ CXPLAT_ROUTE* Route
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+const CXPLAT_INTERFACE*
+CxPlatDpRawGetInterfaceFromQueue(
+    _In_ const void* Queue
+    );
+
 typedef struct HEADER_BACKFILL {
     uint16_t TransportLayer;
     uint16_t NetworkLayer;
@@ -115,7 +128,7 @@ CxPlatDpRawCalculateHeaderBackFill(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawParseEthernet(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const uint8_t* Payload,
@@ -128,7 +141,7 @@ CxPlatDpRawParseEthernet(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawRxEthernet(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
         CXPLAT_RECV_DATA** Packets,
     _In_ uint16_t PacketCount
@@ -241,7 +254,7 @@ CxPlatSocketCompare(
 //
 CXPLAT_SOCKET*
 CxPlatGetSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     );
