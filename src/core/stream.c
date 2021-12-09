@@ -459,6 +459,8 @@ QuicStreamIndicateShutdownComplete(
         Event.SHUTDOWN_COMPLETE.ConnectionShutdown =
             Stream->Connection->State.ClosedLocally ||
             Stream->Connection->State.ClosedRemotely;
+        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
+            Stream->Flags.HandleClosed;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
