@@ -53,6 +53,7 @@ class CheckinBranch {
     [string]$name;
     [string]$completePR = "False";
     [string]$pullRequestTitle;
+    [string]$workitem = "37338822"
     [CheckinFile[]]$CheckinFiles;
 
     CheckinBranch($ManifestFile, $BranchToPushTo, $PRTitle) {
