@@ -61,8 +61,23 @@ namespace QuicTrace
             //
             // Create our runtime environment, add file, enable cookers, and process.
             //
-            var runtime = Engine.Create();
-            runtime.AddFile(filePath);
+
+            PluginSet pluginSet;
+
+            if (string.IsNullOrWhiteSpace(typeof(QuicEtwSource).Assembly.Location))
+            {
+                // Single File EXE
+                pluginSet = PluginSet.Load(new[] { Environment.CurrentDirectory }, new SingleFileAssemblyLoader());
+            }
+            else
+            {
+                pluginSet = PluginSet.Load();
+            }
+
+            using var dataSources = DataSourceSet.Create(pluginSet);
+            dataSources.AddFile(filePath);
+            var info = new EngineCreateInfo(dataSources.AsReadOnly());
+            using var runtime = Engine.Create(info);
             runtime.EnableCooker(QuicEventCooker.CookerPath);
             Console.WriteLine("Processing...");
             var results = runtime.Process();

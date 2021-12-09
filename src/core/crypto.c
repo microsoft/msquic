@@ -1693,7 +1693,7 @@ QuicCryptoProcessData(
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
         Buffer.Length =
-            QuicCrytpoTlsGetCompleteTlsMessagesLength(
+            QuicCryptoTlsGetCompleteTlsMessagesLength(
                 Buffer.Buffer, Buffer.Length);
         if (Buffer.Length == 0) {
             QuicTraceLogConnVerbose(

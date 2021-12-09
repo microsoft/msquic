@@ -184,7 +184,7 @@ namespace QuicTrace.DataModel
     //
     // The base class for all QUIC events.
     //
-    public class QuicEvent : IKeyedDataType<Guid>
+    public class QuicEvent : IKeyedDataType<Guid>, IComparable<Guid>
     {
         //
         // Global configuration to control how parsing works. Defaults to WPA filter mode.

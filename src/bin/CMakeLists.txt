@@ -225,14 +225,6 @@ endif()
 set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
-    if(QUIC_UWP_BUILD)
-        target_link_libraries(msquic PUBLIC OneCoreUAP)
-    elseif(QUIC_GAMECORE_BUILD)
-        target_link_options(inc INTERFACE ${Console_LinkOptions})
-        target_compile_options(inc INTERFACE ${Console_ArchOptions})
-        target_link_directories(inc INTERFACE ${Console_EndpointLibRoot})
-        target_link_libraries(inc INTERFACE xgameplatform.lib)
-    endif()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
 elseif (CX_PLATFORM STREQUAL "linux")
@@ -262,15 +254,15 @@ set(PUBLIC_HEADERS
     ../inc/msquic_posix.h
     ../inc/quic_sal_stub.h)
 
-install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
-install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
+install(TARGETS msquic EXPORT msquic DESTINATION lib)
+install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
 configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 
-install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
+install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
 if(BUILD_SHARED_LIBS)
-    install(EXPORT msquic DESTINATION ${msquic_dest})
+    install(EXPORT msquic DESTINATION share/msquic)
 endif()
 
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)

@@ -3967,7 +3967,7 @@ CxPlatSocketSend(
 {
     CXPLAT_DBG_ASSERT(
         Socket != NULL && Route != NULL &&
-        SendData != NULL && SendData->WsaBufferCount != 0);
+        SendData != NULL);
 
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc =

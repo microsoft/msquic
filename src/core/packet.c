@@ -473,6 +473,45 @@ QuicPacketDecodeRetryTokenV1(
     *TokenLength = (uint16_t)TokenLengthVarInt;
 }
 
+//
+// Returns TRUE if the retry token was successfully decrypted and validated.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicPacketValidateRetryToken(
+    _In_ const void* const Owner,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ uint16_t TokenLength,
+    _In_reads_(TokenLength)
+        const uint8_t* TokenBuffer
+    )
+{
+    if (TokenLength != sizeof(QUIC_RETRY_TOKEN_CONTENTS)) {
+        QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token Length");
+        return FALSE;
+    }
+
+    QUIC_RETRY_TOKEN_CONTENTS Token;
+    if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
+        QuicPacketLogDrop(Owner, Packet, "Retry Token Decryption Failure");
+        return FALSE;
+    }
+
+    if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
+        QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token OrigConnId Length");
+        return FALSE;
+    }
+
+    const CXPLAT_RECV_DATA* Datagram =
+        CxPlatDataPathRecvPacketToRecvData(Packet);
+    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
+        QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
