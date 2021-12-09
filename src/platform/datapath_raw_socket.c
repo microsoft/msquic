@@ -68,7 +68,7 @@ CxPlatSockPoolUninitialize(
 
 CXPLAT_SOCKET*
 CxPlatGetSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -76,7 +76,7 @@ CxPlatGetSocket(
     CXPLAT_SOCKET* Socket = NULL;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
-    CxPlatRwLockAcquireShared(&Pool->Lock);
+    CxPlatRwLockAcquireShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
@@ -88,7 +88,7 @@ CxPlatGetSocket(
         }
         Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
     }
-    CxPlatRwLockReleaseShared(&Pool->Lock);
+    CxPlatRwLockReleaseShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     return Socket;
 }
 
@@ -356,7 +356,6 @@ CxPlatResolveRoute(
     CXPLAT_DBG_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
     CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
 
-
     //
     // Find the interface that matches the route we just looked up.
     //
@@ -364,22 +363,21 @@ CxPlatResolveRoute(
     for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
         CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
-            Route->Interface = Interface;
+            CxPlatDpRawAssignQueue(Interface, Route);
             break;
         }
     }
 
-    if (Route->Interface == NULL) {
+    if (Route->Queue == NULL) {
         Status = QUIC_STATUS_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
             Socket,
-            "no matching interface");
+            "no matching interface/queue");
         goto Done;
     }
 
-    Route->QueueId = 0; // TODO - Any way figure this out upfront?
     Route->Resolved = TRUE;
 
 Done:
@@ -463,7 +461,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseUdp(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const UDP_HEADER* Udp,
@@ -491,7 +489,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseIPv4(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const IPV4_HEADER* IP,
@@ -551,7 +549,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatDpRawParseIPv6(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const IPV6_HEADER* IP,
@@ -610,7 +608,7 @@ BOOLEAN IsEthernetMulticast(_In_reads_(6) const uint8_t Address[6])
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawParseEthernet(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
         const uint8_t* Payload,

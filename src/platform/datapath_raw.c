@@ -307,7 +307,7 @@ CxPlatSocketGetRemoteAddress(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawRxEthernet(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
         CXPLAT_RECV_DATA** Packets,
     _In_ uint16_t PacketCount
@@ -440,8 +440,8 @@ CxPlatSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->Resolved);
-    CXPLAT_DBG_ASSERT(Route->Interface != NULL);
-    CXPLAT_INTERFACE* Interface = Route->Interface;
+    CXPLAT_DBG_ASSERT(Route->Queue != NULL);
+    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,

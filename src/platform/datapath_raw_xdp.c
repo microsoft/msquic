@@ -24,13 +24,17 @@ Abstract:
 #define RX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
 
-#define ADAPTER_TAG 'ApdX' // XdpA
-#define IF_TAG     'IpdX' // XdpI
-#define QUEUE_TAG     'QpdX' // XdpQ
+#define ADAPTER_TAG   'ApdX' // XdpA
+#define IF_TAG        'IpdX' // XdpI
+#define FLOW_TAG      'FpdX' // XdpF
 #define RX_BUFFER_TAG 'RpdX' // XdpR
 #define TX_BUFFER_TAG 'TpdX' // XdpT
 
+typedef struct XDP_FLOW XDP_FLOW;
+typedef struct XDP_INTERFACE XDP_INTERFACE;
+
 typedef struct _XDP_QUEUE {
+    const XDP_FLOW* Flow;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
     XSK_RING RxFillRing;
@@ -56,10 +60,17 @@ typedef struct _XDP_QUEUE {
     CXPLAT_LIST_ENTRY TxQueue;
 } XDP_QUEUE;
 
+typedef struct XDP_FLOW {
+    const XDP_INTERFACE* Interface;
+    CXPLAT_LIST_ENTRY Link;
+    XDP_QUIC_FLOW Descriptor;
+    XDP_QUEUE Queues[0];
+} XDP_FLOW;
+
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
-    uint8_t QueueCount;
-    XDP_QUEUE* Queues;
+    uint8_t RssQueueCount;
+    CXPLAT_LIST_ENTRY Flows;
 } XDP_INTERFACE;
 
 typedef struct XDP_DATAPATH {
@@ -71,6 +82,7 @@ typedef struct XDP_DATAPATH {
 
     // Constants
     DECLSPEC_CACHEALIGN
+    uint32_t ClientRecvContextLength;
     uint16_t DatapathCpuGroup;
     //
     // Currently, all XDP interfaces share the same config.
@@ -433,15 +445,17 @@ CxPlatDpRawGetDapathSize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawInterfaceUninitialize(
-    _Inout_ XDP_INTERFACE* Interface
+CxPlatDpRawFlowUninitialize(
+    _In_ XDP_FLOW* Flow
     )
 {
-    #pragma warning(push)
-    #pragma warning(disable:6001) // Using uninitialized memory
+    const XDP_INTERFACE* Interface = Flow->Interface;
 
-    for (uint32_t i = 0; Interface->Queues != NULL && i < Interface->QueueCount; i++) {
-        XDP_QUEUE *Queue = &Interface->Queues[i];
+#pragma warning(push)
+#pragma warning(disable:6001) // Using uninitialized memory
+
+    for (uint32_t i = 0; i < Interface->RssQueueCount; i++) {
+        XDP_QUEUE *Queue = &Flow->Queues[i];
 
         if (Queue->TxXsk != NULL) {
 #if DEBUG
@@ -485,53 +499,43 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatLockUninitialize(&Queue->TxLock);
     }
 
-    if (Interface->Queues != NULL) {
-        CxPlatFree(Interface->Queues, QUEUE_TAG);
-    }
+#pragma warning(pop)
 
-    #pragma warning(pop)
+    CxPlatFree(Flow, FLOW_TAG);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDpRawInterfaceInitialize(
-    _In_ XDP_DATAPATH* Xdp,
-    _Out_ XDP_INTERFACE* Interface,
-    _In_ uint32_t IfIndex,
-    _In_ uint32_t ClientRecvContextLength
+CxPlatDpRawFlowInitialize(
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ const XDP_INTERFACE* Interface,
+    _Out_ XDP_FLOW** NewFlow
     )
 {
-    const uint32_t RxHeadroom = sizeof(XDP_RX_PACKET) + ALIGN_UP(ClientRecvContextLength, uint32_t);
+    const uint32_t RxHeadroom = sizeof(XDP_RX_PACKET) + ALIGN_UP(Xdp->ClientRecvContextLength, uint32_t);
     const uint32_t RxPacketSize = ALIGN_UP(RxHeadroom + MAX_ETH_FRAME_SIZE, XDP_RX_PACKET);
+    const uint32_t FlowSize = sizeof(XDP_FLOW) + Interface->RssQueueCount * sizeof(XDP_QUEUE);
+
     QUIC_STATUS Status;
-
-    Interface->IfIndex = IfIndex;
-    Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
-
-    Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-    Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
-    if (Interface->Queues == NULL) {
+    XDP_FLOW* Flow = CxPlatAlloc(FlowSize, FLOW_TAG);
+    if (Flow == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "XDP Queues",
-            Interface->QueueCount * sizeof(*Interface->Queues));
+            "XDP Flow",
+            FlowSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    CxPlatZeroMemory(Interface->Queues, Interface->QueueCount * sizeof(*Interface->Queues));
+    CxPlatZeroMemory(Flow, FlowSize);
+    Flow->Interface = Interface;
 
-    for (uint32_t QueueIndex = 0; QueueIndex < Interface->QueueCount; QueueIndex++) {
-        XDP_QUEUE* Queue = &Interface->Queues[QueueIndex];
+    CXPLAT_DBG_ASSERT(Interface->RssQueueCount > 0);
+    for (uint32_t QueueIndex = 0; QueueIndex < Interface->RssQueueCount; QueueIndex++) {
+        XDP_QUEUE* Queue = &Flow->Queues[QueueIndex];
 
+        Queue->Flow = Flow;
         InitializeSListHead(&Queue->RxPool);
         InitializeSListHead(&Queue->TxPool);
         CxPlatLockInitialize(&Queue->TxLock);
@@ -604,9 +608,8 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        uint32_t QueueId = QueueIndex;
         uint32_t Flags = 0;     // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->RxXsk, Interface->IfIndex, QueueId, Flags, NULL);
+        Status = XskBind(Queue->RxXsk, Interface->IfIndex, QueueIndex, Flags, NULL);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -646,7 +649,7 @@ CxPlatDpRawInterfaceInitialize(
 
         Flags = 0; // TODO: support native/generic forced flags.
         Status =
-            XdpCreateProgram(Interface->IfIndex, &RxHook, QueueId, Flags, &RxRule, 1, &Queue->RxProgram);
+            XdpCreateProgram(Interface->IfIndex, &RxHook, QueueIndex, Flags, &RxRule, 1, &Queue->RxProgram);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -728,7 +731,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Flags = 0; // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->TxXsk, Interface->IfIndex, QueueId, Flags, NULL);
+        Status = XskBind(Queue->TxXsk, Interface->IfIndex, QueueIndex, Flags, NULL);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -759,9 +762,14 @@ CxPlatDpRawInterfaceInitialize(
         }
     }
 
+    *NewFlow = Flow;
+    Flow = NULL;
+    Status = QUIC_STATUS_SUCCESS;
+
 Error:
-    if (QUIC_FAILED(Status)) {
-        CxPlatDpRawInterfaceUninitialize(Interface);
+
+    if (Flow) {
+        CxPlatDpRawFlowUninitialize(Flow);
     }
 
     return Status;
@@ -780,6 +788,7 @@ CxPlatDpRawInitialize(
     };
     QUIC_STATUS Status;
 
+    Xdp->ClientRecvContextLength = ClientRecvContextLength;
     CxPlatXdpReadConfig(Xdp);
     CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
@@ -837,22 +846,32 @@ CxPlatDpRawInitialize(
                 }
 
                 CxPlatZeroMemory(Interface, sizeof(*Interface));
+
+                Interface->IfIndex = Adapter->IfIndex;
                 memcpy(
                     Interface->PhysicalAddress, Adapter->PhysicalAddress,
                     sizeof(Interface->PhysicalAddress));
+                Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
+                Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
+                Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
+                Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
+                CxPlatListInitializeHead(&Interface->Flows);
 
-                Status =
-                    CxPlatDpRawInterfaceInitialize(
-                        Xdp, Interface, Adapter->IfIndex, ClientRecvContextLength);
+                Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->RssQueueCount);
                 if (QUIC_FAILED(Status)) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        Status,
-                        "CxPlatDpRawInterfaceInitialize");
                     CxPlatFree(Interface, IF_TAG);
                     continue;
                 }
+
+                // TODO - Don't hard code flows. Dynamically create them in response
+                // to sockets getting created. Will be done in follow up PR.
+                XDP_FLOW* Flow;
+                Status = CxPlatDpRawFlowInitialize(Xdp, Interface, &Flow);
+                if (QUIC_FAILED(Status)) {
+                    CxPlatFree(Interface, IF_TAG);
+                    continue;
+                }
+                CxPlatListInsertTail(&Interface->Flows, &Flow->Link);
 #if DEBUG
                 printf("Bound XDP to interface %u (%wS)\n", Adapter->IfIndex, Adapter->Description);
 #endif
@@ -928,17 +947,60 @@ CxPlatDpRawUninitialize(
     while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
         XDP_INTERFACE* Interface =
             CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
-        CxPlatDpRawInterfaceUninitialize(Interface);
+        while (!CxPlatListIsEmpty(&Interface->Flows)) {
+            XDP_FLOW* Flow =
+                CONTAINING_RECORD(CxPlatListRemoveHead(&Interface->Flows), XDP_FLOW, Link);
+            CxPlatDpRawFlowUninitialize(Flow);
+        }
         CxPlatFree(Interface, IF_TAG);
     }
 }
 
 static
+BOOLEAN
+XdpFlowMatchesRoute(
+    _In_ const XDP_FLOW* Flow,
+    _In_ const CXPLAT_ROUTE* Route
+    )
+{
+    UNREFERENCED_PARAMETER(Flow);
+    UNREFERENCED_PARAMETER(Route);
+    return TRUE; // TODO - implement
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawAssignQueue(
+    _In_ const CXPLAT_INTERFACE* _Interface,
+    _Inout_ CXPLAT_ROUTE* Route
+    )
+{
+    const XDP_INTERFACE* Interface = (const XDP_INTERFACE*)_Interface;
+    for (CXPLAT_LIST_ENTRY* Entry = Interface->Flows.Flink;
+        Entry != &Interface->Flows;
+        Entry = Entry->Flink) {
+        const XDP_FLOW* Flow = CONTAINING_RECORD(Entry, XDP_FLOW, Link);
+        if (XdpFlowMatchesRoute(Flow, Route)) {
+            Route->Queue = (void*)&Flow->Queues[0]; // TODO - pick the right one?
+            return;
+        }
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+const CXPLAT_INTERFACE*
+CxPlatDpRawGetInterfaceFromQueue(
+    _In_ const void* Queue
+    )
+{
+    return (const CXPLAT_INTERFACE*)(((XDP_QUEUE*)Queue)->Flow->Interface);
+}
+
+static
 void
 CxPlatXdpRx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint8_t QueueId,
-    _In_ XDP_INTERFACE* Interface
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -946,7 +1008,6 @@ CxPlatXdpRx(
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
-    XDP_QUEUE* Queue = &Interface->Queues[QueueId];
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
     for (uint32_t i = 0; i < BuffersCount; i++) {
@@ -957,11 +1018,10 @@ CxPlatXdpRx(
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
-        Packet->RouteStorage.QueueId = QueueId;
-        Packet->RouteStorage.Interface = (CXPLAT_INTERFACE*)Interface;
+        Packet->RouteStorage.Queue = Queue;
 
         CxPlatDpRawParseEthernet(
-            (CXPLAT_DATAPATH*)Xdp,
+            (const CXPLAT_DATAPATH*)Xdp,
             (CXPLAT_RECV_DATA*)Packet,
             FrameBuffer,
             (uint16_t)Buffer->length);
@@ -1000,7 +1060,7 @@ CxPlatXdpRx(
     }
 
     if (PacketCount > 0) {
-        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
+        CxPlatDpRawRxEthernet((const CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
     }
 
     if (XskRingError(&Queue->RxRing) && !Queue->Error) {
@@ -1061,8 +1121,7 @@ CxPlatDpRawTxAlloc(
     )
 {
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
-    XDP_INTERFACE* Interface = (XDP_INTERFACE*)Route->Interface;
-    XDP_QUEUE* Queue = &Interface->Queues[Route->QueueId];
+    XDP_QUEUE* Queue = Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     UNREFERENCED_PARAMETER(ECN);
@@ -1105,16 +1164,14 @@ CxPlatDpRawTxEnqueue(
 static
 void
 CxPlatXdpTx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint8_t QueueId,
-    _In_ XDP_INTERFACE* Interface
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue
     )
 {
     uint32_t ProdCount = 0;
     uint32_t CompCount = 0;
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
-    XDP_QUEUE* Queue = &Interface->Queues[QueueId];
 
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
         ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
@@ -1176,8 +1233,8 @@ CxPlatXdpTx(
 
 CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
 {
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
-    CXPLAT_LIST_ENTRY* Entry;
+    const XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
+    CXPLAT_LIST_ENTRY* Entry, *Entry2;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
     const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
@@ -1193,9 +1250,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
     while (Xdp->Running) {
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-            for (uint8_t QueueId = 0; QueueId < Interface->QueueCount; QueueId++) {
-                CxPlatXdpRx(Xdp, QueueId, Interface);
-                CxPlatXdpTx(Xdp, QueueId, Interface);
+            for (uint8_t i = 0; i < Interface->RssQueueCount; i++) {
+                for (Entry2 = Interface->Flows.Flink; Entry2 != &Interface->Flows; Entry2 = Entry2->Flink) {
+                    XDP_FLOW* Flow = CONTAINING_RECORD(Entry2, XDP_FLOW, Link);
+                    CxPlatXdpRx(Xdp, &Flow->Queues[i]);
+                    CxPlatXdpTx(Xdp, &Flow->Queues[i]);
+                }
             }
         }
 
