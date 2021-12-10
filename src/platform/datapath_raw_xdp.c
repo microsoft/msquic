@@ -27,6 +27,7 @@ Abstract:
 #define ADAPTER_TAG   'ApdX' // XdpA
 #define IF_TAG        'IpdX' // XdpI
 #define QUEUE_TAG     'QpdX' // XdpQ
+#define RULE_TAG      'UpdX' // XdpU
 #define RX_BUFFER_TAG 'RpdX' // XdpR
 #define TX_BUFFER_TAG 'TpdX' // XdpT
 
@@ -62,6 +63,9 @@ typedef struct _XDP_QUEUE {
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
     uint8_t QueueCount;
+    uint8_t RuleCount;
+    CXPLAT_LOCK RuleLock;
+    XDP_RULE* Rules;
     XDP_QUEUE* Queues;
 } XDP_INTERFACE;
 
@@ -492,6 +496,12 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatFree(Interface->Queues, QUEUE_TAG);
     }
 
+    if (Interface->Rules != NULL) {
+        CxPlatFree(Interface->Rules, RULE_TAG);
+    }
+
+    CxPlatLockUninitialize(&Interface->RuleLock);
+
     #pragma warning(pop)
 }
 
@@ -507,6 +517,7 @@ CxPlatDpRawInterfaceInitialize(
     const uint32_t RxPacketSize = ALIGN_UP(RxHeadroom + MAX_ETH_FRAME_SIZE, XDP_RX_PACKET);
     QUIC_STATUS Status;
 
+    CxPlatLockInitialize(&Interface->RuleLock);
     Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
@@ -743,6 +754,7 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Requires_lock_held_(Interface->RuleLock)
 void
 CxPlatDpRawInterfaceUpdateRules(
     _In_ XDP_INTERFACE* Interface
@@ -754,23 +766,25 @@ CxPlatDpRawInterfaceUpdateRules(
         .SubLayer = XDP_HOOK_INSPECT,
     };
 
-    XDP_RULE RxRule = {
-        .Match = XDP_MATCH_UDP,
-        .Action = XDP_PROGRAM_ACTION_REDIRECT,
-        .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-        .Redirect.Target = NULL,
-    };
+    const UINT32 Flags = 0; // TODO: support native/generic forced flags.
 
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
-        UINT32 Flags = 0; // TODO: support native/generic forced flags.
-        HANDLE NewRxProgram;
         XDP_QUEUE* Queue = &Interface->Queues[i];
-        RxRule.Redirect.Target = Queue->RxXsk;
+        for (uint8_t j = 0; j < Interface->RuleCount; j++) {
+            Interface->Rules[j].Redirect.Target = Queue->RxXsk;
+        }
 
+        HANDLE NewRxProgram;
         QUIC_STATUS Status =
             XdpCreateProgram(
-                Interface->IfIndex, &RxHook, i, Flags, &RxRule, 1, &NewRxProgram);
+                Interface->IfIndex,
+                &RxHook,
+                i,
+                Flags,
+                Interface->Rules,
+                Interface->RuleCount,
+                &NewRxProgram);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -786,6 +800,93 @@ CxPlatDpRawInterfaceUpdateRules(
 
         Queue->RxProgram = NewRxProgram;
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawInterfaceAddRule(
+    _In_ XDP_INTERFACE* Interface,
+    _In_ const XDP_RULE* NewRule
+    )
+{
+#pragma warning(push)
+#pragma warning(disable:6386) // Buffer overrun while writing to 'NewRules' - FALSE POSITIVE
+
+    CxPlatLockAcquire(&Interface->RuleLock);
+    // TODO - Don't always allocate a new array?
+
+    if (Interface->RuleCount + 1 == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No more room for rules");
+        CxPlatLockRelease(&Interface->RuleLock);
+        return;
+    }
+
+    const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
+    const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + 1);
+
+    XDP_RULE* NewRules = CxPlatAlloc(NewSize, RULE_TAG);
+    if (NewRules == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP_RULE",
+            NewSize);
+        CxPlatLockRelease(&Interface->RuleLock);
+        return;
+    }
+
+    if (Interface->RuleCount > 0) {
+        memcpy(NewRules, Interface->Rules, OldSize);
+    }
+    NewRules[Interface->RuleCount] = *NewRule;
+    Interface->RuleCount++;
+
+    if (Interface->Rules != NULL) {
+        CxPlatFree(Interface->Rules, RULE_TAG);
+    }
+    Interface->Rules = NewRules;
+
+    CxPlatDpRawInterfaceUpdateRules(Interface);
+
+    CxPlatLockRelease(&Interface->RuleLock);
+
+#pragma warning(pop)
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawInterfaceRemoveRule(
+    _In_ XDP_INTERFACE* Interface,
+    _In_ const XDP_RULE* NewRule
+    )
+{
+    CxPlatLockAcquire(&Interface->RuleLock);
+
+    for (uint8_t i = 0; i < Interface->RuleCount; i++) {
+        if (Interface->Rules[i].Match != NewRule->Match) {
+            continue;
+        }
+
+        if (NewRule->Match == XDP_MATCH_UDP_DST) {
+            if (NewRule->Pattern.Port != Interface->Rules[i].Pattern.Port) {
+                continue;
+            }
+        } else {
+            CXPLAT_FRE_ASSERT(FALSE); // Should not be possible!
+        }
+
+        if (i < Interface->RuleCount - 1) {
+            memmove(&Interface->Rules[i], &Interface->Rules[i + 1], sizeof(XDP_RULE) * (Interface->RuleCount - i - 1));
+        }
+        Interface->RuleCount--;
+        CxPlatDpRawInterfaceUpdateRules(Interface);
+        break;
+    }
+
+    CxPlatLockRelease(&Interface->RuleLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -879,8 +980,6 @@ CxPlatDpRawInitialize(
                 printf("Bound XDP to interface %u (%wS)\n", Adapter->IfIndex, Adapter->Description);
 #endif
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
-
-                CxPlatDpRawInterfaceUpdateRules(Interface); // TODO - Call this dynamically with socket creation.
             }
         }
     } else {
@@ -954,6 +1053,61 @@ CxPlatDpRawUninitialize(
             CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
         CxPlatDpRawInterfaceUninitialize(Interface);
         CxPlatFree(Interface, IF_TAG);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawOnSocketStateChange(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN IsCreated
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+
+    if (Socket->Wildcard) {
+        const XDP_RULE Rule = {
+            .Match = XDP_MATCH_UDP_DST,
+            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port, // TODO - Check on on byte order
+            .Action = XDP_PROGRAM_ACTION_REDIRECT,
+            .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+            .Redirect.Target = NULL,
+        };
+
+        CXPLAT_LIST_ENTRY* Entry;
+        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+            if (IsCreated) {
+                CxPlatDpRawInterfaceAddRule(Interface, &Rule);
+            } else {
+                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule);
+            }
+        }
+
+    } else {
+
+        //
+        // TODO - Need to do this (1) for the 4-tuple and (2) only on the right
+        // interface. But for now, copy the listener pattern.
+        //
+
+        const XDP_RULE Rule = {
+            .Match = XDP_MATCH_UDP_DST,
+            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port, // TODO - Check on on byte order
+            .Action = XDP_PROGRAM_ACTION_REDIRECT,
+            .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+            .Redirect.Target = NULL,
+        };
+
+        CXPLAT_LIST_ENTRY* Entry;
+        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+            if (IsCreated) {
+                CxPlatDpRawInterfaceAddRule(Interface, &Rule);
+            } else {
+                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule);
+            }
+        }
     }
 }
 

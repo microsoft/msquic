@@ -496,6 +496,18 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+CxPlatDpRawOnSocketStateChange(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN IsCreated
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(IsCreated);
+    // no-op currently since DPDK simply steals all traffic
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 CxPlatDpRawAssignQueue(
     _In_ const CXPLAT_INTERFACE* Interface,
     _Inout_ CXPLAT_ROUTE* Route
