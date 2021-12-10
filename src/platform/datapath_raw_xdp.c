@@ -861,18 +861,18 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawInterfaceRemoveRule(
     _In_ XDP_INTERFACE* Interface,
-    _In_ const XDP_RULE* NewRule
+    _In_ const XDP_RULE* Rule
     )
 {
     CxPlatLockAcquire(&Interface->RuleLock);
 
     for (uint8_t i = 0; i < Interface->RuleCount; i++) {
-        if (Interface->Rules[i].Match != NewRule->Match) {
+        if (Interface->Rules[i].Match != Rule->Match) {
             continue;
         }
 
-        if (NewRule->Match == XDP_MATCH_UDP_DST) {
-            if (NewRule->Pattern.Port != Interface->Rules[i].Pattern.Port) {
+        if (Rule->Match == XDP_MATCH_UDP_DST) {
+            if (Rule->Pattern.Port != Interface->Rules[i].Pattern.Port) {
                 continue;
             }
         } else {
@@ -1059,7 +1059,7 @@ CxPlatDpRawUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawOnSocketStateChange(
+CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ BOOLEAN IsCreated
     )
@@ -1069,7 +1069,7 @@ CxPlatDpRawOnSocketStateChange(
     if (Socket->Wildcard) {
         const XDP_RULE Rule = {
             .Match = XDP_MATCH_UDP_DST,
-            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port, // TODO - Check on on byte order
+            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
             .Action = XDP_PROGRAM_ACTION_REDIRECT,
             .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
             .Redirect.Target = NULL,
@@ -1094,7 +1094,7 @@ CxPlatDpRawOnSocketStateChange(
 
         const XDP_RULE Rule = {
             .Match = XDP_MATCH_UDP_DST,
-            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port, // TODO - Check on on byte order
+            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
             .Action = XDP_PROGRAM_ACTION_REDIRECT,
             .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
             .Redirect.Target = NULL,

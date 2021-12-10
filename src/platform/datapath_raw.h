@@ -99,7 +99,7 @@ CxPlatDpRawGenerateCpuTable(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawOnSocketStateChange(
+CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ BOOLEAN IsCreated
     );
