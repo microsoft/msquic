@@ -544,6 +544,7 @@ CxPlatDpRawInterfaceInitialize(
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
+        Queue->Interface = Interface;
         InitializeSListHead(&Queue->RxPool);
         InitializeSListHead(&Queue->TxPool);
         CxPlatLockInitialize(&Queue->TxLock);
