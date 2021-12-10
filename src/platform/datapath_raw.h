@@ -105,17 +105,6 @@ CxPlatDpRawOnSocketStateChange(
     );
 
 //
-// Called on deletion of a socket. It indicates to the raw datapath that it
-// should update any filtering rules as necessary.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawOnSocketRemoved(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_SOCKET* Socket
-    );
-
-//
 // Assigns a raw datapath queue to a new route.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
