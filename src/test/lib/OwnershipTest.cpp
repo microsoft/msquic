@@ -46,6 +46,8 @@ OwnershipConnCallback(
             InterlockedIncrement((volatile long*)&State->ShutdownCount);
             State->StateEvent.Set();
             break;
+        default:
+            break;
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -210,7 +212,7 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
             Conn.Connection,
             ClientConfiguration,
             QUIC_ADDRESS_FAMILY_INET,
-            QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()),
+            QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
             ServerLocalAddr.GetPort());
     TEST_TRUE(State.StateEvent.WaitTimeout(2000));
     State.StateEvent.Reset();

@@ -551,10 +551,12 @@ QuicConnRegister(
             Connection->Registration);
     }
 
+    BOOLEAN Success = CxPlatRundownAcquire(&Registration->Rundown);
+    if (!Success) {
+        return FALSE;
+    }
     Connection->State.Registered = TRUE;
     Connection->Registration = Registration;
-    BOOLEAN Success = CxPlatRundownAcquire(&Registration->Rundown);
-    CXPLAT_DBG_ASSERT(Success); UNREFERENCED_PARAMETER(Success);
 #ifdef CxPlatVerifierEnabledByAddr
     Connection->State.IsVerifying = Registration->IsVerifying;
 #endif
