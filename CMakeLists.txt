@@ -402,7 +402,7 @@ if(WIN32)
         message(STATUS "Configuring for manifested ETW tracing")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
     else()
-        message(STATUS "Disabling tracing")
+        message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -507,7 +507,7 @@ else() #!WIN32
             include(FindLTTngUST)
         endif()
     else()
-        message(STATUS "Disabling tracing")
+        message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
