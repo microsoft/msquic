@@ -1967,10 +1967,10 @@ tracepoint(CLOG_CONNECTION_C, ConnHandleClosed , arg2);\
 // Decoder Ring for ConnRegistered
 // [conn][%p] Registered with %p
 // QuicTraceEvent(
-        ConnRegistered,
-        "[conn][%p] Registered with %p",
-        Connection,
-        Registration);
+            ConnRegistered,
+            "[conn][%p] Registered with %p",
+            Connection,
+            Registration);
 // arg2 = arg2 = Connection
 // arg3 = arg3 = Registration
 ----------------------------------------------------------*/
