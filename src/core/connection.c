@@ -260,7 +260,9 @@ QuicConnAlloc(
     }
 
     QuicPathValidate(Path);
-    QuicConnRegister(Connection, Registration);
+    if (!QuicConnRegister(Connection, Registration)) {
+        goto Error;
+    }
 
     return Connection;
 
@@ -282,6 +284,14 @@ Error:
                 Link),
             QUIC_POOL_CIDHASH);
         Connection->SourceCids.Next = NULL;
+    }
+    while (!CxPlatListIsEmpty(&Connection->DestCids)) {
+        QUIC_CID_LIST_ENTRY *CID =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Connection->DestCids),
+                QUIC_CID_LIST_ENTRY,
+                Link);
+        CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
     }
     QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
@@ -412,9 +422,14 @@ void
 QuicConnShutdown(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
-    _In_ QUIC_VAR_INT ErrorCode
+    _In_ QUIC_VAR_INT ErrorCode,
+    _In_ BOOLEAN ShutdownFromRegistration
     )
 {
+    if (ShutdownFromRegistration && !Connection->State.Started) {
+        return;
+    }
+
     uint32_t CloseFlags = QUIC_CLOSE_APPLICATION;
     if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT ||
         (!Connection->State.Started && QuicConnIsClient(Connection))) {
@@ -442,7 +457,8 @@ QuicConnUninitialize(
     QuicConnShutdown(
         Connection,
         QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-        QUIC_ERROR_NO_ERROR);
+        QUIC_ERROR_NO_ERROR,
+        FALSE);
 
     //
     // Remove all entries in the binding's lookup tables so we don't get any
@@ -516,7 +532,7 @@ QuicConnCloseHandle(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration
@@ -542,16 +558,28 @@ QuicConnRegister(
 #ifdef CxPlatVerifierEnabledByAddr
     Connection->State.IsVerifying = Registration->IsVerifying;
 #endif
+    BOOLEAN RegistrationShuttingDown;
 
     CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
-    CxPlatListInsertTail(&Registration->Connections, &Connection->RegistrationLink);
+    RegistrationShuttingDown = Registration->ShuttingDown;
+    if (!RegistrationShuttingDown) {
+        CxPlatListInsertTail(&Registration->Connections, &Connection->RegistrationLink);
+    }
     CxPlatDispatchLockRelease(&Registration->ConnectionLock);
 
-    QuicTraceEvent(
-        ConnRegistered,
-        "[conn][%p] Registered with %p",
-        Connection,
-        Registration);
+    if (RegistrationShuttingDown) {
+        Connection->State.Registered = FALSE;
+        Connection->Registration = NULL;
+        CxPlatRundownRelease(&Registration->Rundown);
+    } else {
+        QuicTraceEvent(
+            ConnRegistered,
+            "[conn][%p] Registered with %p",
+            Connection,
+            Registration);
+    }
+
+    return !RegistrationShuttingDown;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1763,6 +1791,23 @@ QuicConnStart(
     CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
+        if (ServerName != NULL) {
+            CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
+        }
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    BOOLEAN RegistrationShutingDown;
+    uint64_t ShutdownErrorCode;
+    QUIC_CONNECTION_SHUTDOWN_FLAGS ShutdownFlags;
+    CxPlatDispatchLockAcquire(&Connection->Registration->ConnectionLock);
+    ShutdownErrorCode = Connection->Registration->ShutdownErrorCode;
+    ShutdownFlags = Connection->Registration->ShutdownFlags;
+    RegistrationShutingDown = Connection->Registration->ShuttingDown;
+    CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
+
+    if (RegistrationShutingDown) {
+        QuicConnShutdown(Connection, ShutdownFlags, ShutdownErrorCode, FALSE);
         if (ServerName != NULL) {
             CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
         }
@@ -6653,7 +6698,8 @@ QuicConnProcessApiOperation(
         QuicConnShutdown(
             Connection,
             ApiCtx->CONN_SHUTDOWN.Flags,
-            ApiCtx->CONN_SHUTDOWN.ErrorCode);
+            ApiCtx->CONN_SHUTDOWN.ErrorCode,
+            ApiCtx->CONN_SHUTDOWN.RegistrationShutdown);
         break;
 
     case QUIC_API_TYPE_CONN_START:

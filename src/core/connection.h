@@ -997,7 +997,7 @@ QuicConnRelease(
 // Registers the connection with a registration.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration

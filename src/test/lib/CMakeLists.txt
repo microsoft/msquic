@@ -10,6 +10,7 @@ set(SOURCES
     EventTest.cpp
     HandshakeTest.cpp
     MtuTest.cpp
+    OwnershipTest.cpp
     PathTest.cpp
     QuicDrill.cpp
     TestConnection.cpp

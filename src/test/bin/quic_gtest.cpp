@@ -214,6 +214,42 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
+    TestLogger Logger("RegistrationShutdownBeforeConnOpen");
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_API));
+    } else {
+        QuicTestRegistrationShutdownBeforeConnOpen();
+    }
+}
+
+TEST(OwnershipValidation, RegistrationShutdownAfterConnOpen) {
+    TestLogger Logger("RegistrationShutdownAfterConnOpen");
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_API));
+    } else {
+        QuicTestRegistrationShutdownAfterConnOpen();
+    }
+}
+
+TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart) {
+    TestLogger Logger("RegistrationShutdownAfterConnOpenBeforeStart");
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_API));
+    } else {
+        QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
+    }
+}
+
+TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
+    TestLogger Logger("RegistrationShutdownAfterConnOpenAndStart");
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_API));
+    } else {
+        QuicTestRegistrationShutdownAfterConnOpenAndStart();
+    }
+}
+
 TEST_P(WithBool, ValidateStream) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
     if (TestingKernelMode) {

@@ -94,6 +94,7 @@ typedef struct QUIC_API_CONTEXT {
         } CONN_CLOSED;
         struct {
             QUIC_CONNECTION_SHUTDOWN_FLAGS Flags;
+            BOOLEAN RegistrationShutdown;
             QUIC_VAR_INT ErrorCode;
         } CONN_SHUTDOWN;
         struct {

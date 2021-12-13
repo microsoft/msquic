@@ -39,6 +39,14 @@ void QuicTestDesiredVersionSettings();
 void QuicTestValidateParamApi();
 
 //
+// Ownership tests
+//
+void QuicTestRegistrationShutdownBeforeConnOpen();
+void QuicTestRegistrationShutdownAfterConnOpen();
+void QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
+void QuicTestRegistrationShutdownAfterConnOpenAndStart();
+
+//
 // Rejection Tests
 //
 void QuicTestConnectionRejection(bool RejectByClosing);
