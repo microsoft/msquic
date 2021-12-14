@@ -5,10 +5,9 @@ use cmake::Config;
 use std::path::Path;
 
 fn main() {
-    let mut path_extra = "msquic/lib";
+    let path_extra = "lib";
     let mut logging_enabled = "off";
     if cfg!(windows) {
-        path_extra = "lib";
         logging_enabled = "on";
     }
 

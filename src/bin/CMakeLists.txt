@@ -11,11 +11,11 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link)
+    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link main_binary_link_args)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
 else()
     add_library(msquic_static STATIC static/empty.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc logging)
+    target_link_libraries(msquic_static PRIVATE core platform inc logging main_binary_link_args)
     target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
@@ -150,7 +150,7 @@ else()
 
         # Exclude libraries for the corresponding msvcrts
         # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
-        string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
+        string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib /NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:libcmtd.lib")
         # Uncomment to inspect which libraries will have referenced symbols ignored
         # message(STATUS "NODEFAULTS: ${NODEFAULTS}")
 
@@ -225,14 +225,6 @@ endif()
 set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
-    if(QUIC_UWP_BUILD)
-        target_link_libraries(msquic PUBLIC OneCoreUAP)
-    elseif(QUIC_GAMECORE_BUILD)
-        target_link_options(inc INTERFACE ${Console_LinkOptions})
-        target_compile_options(inc INTERFACE ${Console_ArchOptions})
-        target_link_directories(inc INTERFACE ${Console_EndpointLibRoot})
-        target_link_libraries(inc INTERFACE xgameplatform.lib)
-    endif()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
 elseif (CX_PLATFORM STREQUAL "linux")
@@ -262,15 +254,15 @@ set(PUBLIC_HEADERS
     ../inc/msquic_posix.h
     ../inc/quic_sal_stub.h)
 
-install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
-install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
+install(TARGETS msquic EXPORT msquic DESTINATION lib)
+install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
 configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 
-install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
+install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
 if(BUILD_SHARED_LIBS)
-    install(EXPORT msquic DESTINATION ${msquic_dest})
+    install(EXPORT msquic DESTINATION share/msquic)
 endif()
 
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)

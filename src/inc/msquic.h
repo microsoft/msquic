@@ -108,7 +108,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK             = 0x00000800, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE              = 0x00001000, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES              = 0x00002000,
-    QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES             = 0x00004000, // OpenSSL only currently
+    QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES             = 0x00004000, // OpenSSL only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -1116,6 +1116,8 @@ typedef struct QUIC_STREAM_EVENT {
         } SEND_SHUTDOWN_COMPLETE;
         struct {
             BOOLEAN ConnectionShutdown;
+            BOOLEAN AppCloseInProgress  : 1;
+            BOOLEAN RESERVED            : 7;
         } SHUTDOWN_COMPLETE;
         struct {
             uint64_t ByteCount;

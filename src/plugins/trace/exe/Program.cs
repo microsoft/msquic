@@ -62,14 +62,28 @@ namespace QuicTrace
 
         static QuicState[] ProcessTraceFiles(IEnumerable<string> filePaths)
         {
+            PluginSet pluginSet;
+
+            if (string.IsNullOrWhiteSpace(typeof(QuicEtwSource).Assembly.Location))
+            {
+                // Single File EXE
+                pluginSet = PluginSet.Load(new[] { Environment.CurrentDirectory }, new SingleFileAssemblyLoader());
+            }
+            else
+            {
+                pluginSet = PluginSet.Load();
+            }
+
             var quicStates = new List<QuicState>();
             foreach (var filePath in filePaths)
             {
                 //
                 // Create our runtime environment, add file, enable cookers, and process.
                 //
-                var runtime = Engine.Create();
-                runtime.AddFile(filePath);
+                using var dataSources = DataSourceSet.Create(pluginSet);
+                dataSources.AddFile(filePath);
+                var info = new EngineCreateInfo(dataSources.AsReadOnly());
+                using var runtime = Engine.Create(info);
                 runtime.EnableCooker(QuicEventCooker.CookerPath);
                 Console.WriteLine("Processing...");
                 var results = runtime.Process();
@@ -80,6 +94,7 @@ namespace QuicTrace
                 //
                 quicStates.Add(results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State")));
             }
+
             return quicStates.ToArray();
         }
 

@@ -104,7 +104,7 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "arm64ec")]
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
@@ -207,9 +207,7 @@ $Arch = $BuildConfig.Arch
 $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
-    if ($IsWindows) {
-        $Generator = "Visual Studio 16 2019"
-    } else {
+    if (!$IsWindows) {
         $Generator = "Unix Makefiles"
     }
 }
@@ -227,6 +225,15 @@ if (!$IsWindows -And ($Platform -eq "gamecore_console")) {
 if ($Arch -ne "x64" -And ($Platform -eq "gamecore_console")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore for non-x64 platforms"
     exit
+}
+
+if ($Arch -eq "arm64ec") {
+    if (!$IsWindows) {
+        Write-Error "Arm64EC is only supported on Windows"
+    }
+    if ($Tls -eq "openssl") {
+        Write-Error "Arm64EC does not support openssl"
+    }
 }
 
 if ($Platform -eq "ios" -and !$Static) {
@@ -282,24 +289,28 @@ function CMake-Execute([String]$Arguments) {
 
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
-    $Arguments = "-G"
+    $Arguments = ""
 
     if ($Generator.Contains(" ")) {
         $Generator = """$Generator"""
     }
 
     if ($IsWindows) {
-        if ($Generator.Contains("Visual Studio")) {
-            $Arguments += " $Generator -A "
+        if ($Generator.Contains("Visual Studio") -or [string]::IsNullOrWhiteSpace($Generator)) {
+            if ($Generator.Contains("Visual Studio")) {
+                $Arguments += " -G $Generator"
+            }
+            $Arguments += " -A "
             switch ($Arch) {
                 "x86"   { $Arguments += "Win32" }
                 "x64"   { $Arguments += "x64" }
                 "arm"   { $Arguments += "arm" }
                 "arm64" { $Arguments += "arm64" }
+                "arm64ec" { $Arguments += "arm64ec" }
             }
         } else {
             Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
-            $Arguments += " $Generator"
+            $Arguments += " -G $Generator"
         }
     } else {
         $Arguments += " $Generator"
@@ -342,7 +353,11 @@ function CMake-Generate {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
     if (!$IsWindows) {
-        $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
+        $ConfigToBuild = $Config;
+        if ($Config -eq "Release") {
+            $ConfigToBuild = "RelWithDebInfo"
+        }
+        $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
         $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
@@ -401,15 +416,8 @@ function CMake-Generate {
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
-
-    if ($PGO -and $Config -eq "Release") {
-        # Manually edit project file, since CMake doesn't seem to have a way to do it.
-        $FindText = "  <PropertyGroup Label=`"UserMacros`" />"
-        $ReplaceText = "  <PropertyGroup Label=`"UserMacros`" />`r`n  <PropertyGroup><LibraryPath>`$(LibraryPath);`$(VC_LibraryPath_VC_$($Arch)_Desktop)</LibraryPath></PropertyGroup>"
-        $ProjectFile = Join-Path $BuildDir "src\bin\msquic.vcxproj"
-        (Get-Content $ProjectFile) -replace $FindText, $ReplaceText | Out-File $ProjectFile
-    }
 }
+
 
 # Uses cmake to generate the build configuration files.
 function CMake-Build {
@@ -430,11 +438,11 @@ function CMake-Build {
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
-            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
-            $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
-            $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
-            $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
-            if (Test-Path $VCToolsPath) {
+            $CacheFile = Join-Path $BuildDir "CMakeCache.txt"
+            $LinkerMatches = Select-String -Path $CacheFile -Pattern "CMAKE_LINKER:FILEPATH=(.+)"
+            if ($LinkerMatches.Matches.Length -eq 1 -and $LinkerMatches.Matches[0].Groups.Count -eq 2) {
+                $Linker = $LinkerMatches.Matches[0].Groups[1].Value
+                $VCToolsPath = Split-Path -Path $Linker -Parent
                 if ($PGO) {
                     Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir

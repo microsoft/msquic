@@ -181,16 +181,16 @@ QuicConnAlloc(
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
 
-        Path->Route.LocalAddress = Datagram->Route->LocalAddress;
+        Path->Route = *Datagram->Route;
         Connection->State.LocalAddressSet = TRUE;
+        Connection->State.RemoteAddressSet = TRUE;
+
         QuicTraceEvent(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
-        Path->Route.RemoteAddress = Datagram->Route->RemoteAddress;
-        Connection->State.RemoteAddressSet = TRUE;
         QuicTraceEvent(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
@@ -3519,10 +3519,23 @@ QuicConnRecvHeader(
         }
 
         QUIC_PATH* Path = &Connection->Paths[0];
-        if (!Path->IsPeerValidated && Packet->ValidToken) {
+        if (!Path->IsPeerValidated && (Packet->ValidToken || TokenLength != 0)) {
 
-            CXPLAT_DBG_ASSERT(TokenBuffer == NULL);
-            QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
+            if (Packet->ValidToken) {
+                CXPLAT_DBG_ASSERT(TokenBuffer == NULL);
+                CXPLAT_DBG_ASSERT(TokenLength == 0);
+                QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
+            } else {
+                CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
+                if (!QuicPacketValidateRetryToken(
+                        Connection,
+                        Packet,
+                        TokenLength,
+                        TokenBuffer)) {
+                    return FALSE;
+                }
+            }
+
             CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
             CXPLAT_DBG_ASSERT(TokenLength == sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
@@ -3581,7 +3594,6 @@ QuicConnRecvHeader(
                 Connection->OrigDestCID->Data,
                 Packet->DestCid,
                 Packet->DestCidLen);
-
         }
 
         Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);

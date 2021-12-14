@@ -257,7 +257,8 @@ QuicPacketBuilderPrepare(
                         0 :
                         MaxUdpPayloadSizeForFamily(
                             QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                            DatagramSize));
+                            DatagramSize),
+                    &Builder->Path->Route);
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,

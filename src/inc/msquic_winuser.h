@@ -313,13 +313,15 @@ QuicAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == NO_ERROR) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
     } else if (RtlIpv6StringToAddressExA(AddrStr, &Addr->Ipv6.sin6_addr, &Addr->Ipv6.sin6_scope_id, &Addr->Ipv6.sin6_port) == NO_ERROR) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET6;
     } else {
         return FALSE;
+    }
+    if (Addr->Ipv4.sin_port == 0) {
+        Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     }
     return TRUE;
 }

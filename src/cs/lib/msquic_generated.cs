@@ -53,7 +53,7 @@ namespace Microsoft.Quic
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK = 0x00000800,
         QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE = 0x00001000,
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES = 0x00002000,
-        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES = 0x00004000,
+        QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES = 0x00004000,
     }
 
     public enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
@@ -2008,6 +2008,36 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("BOOLEAN")]
                 public byte Graceful;
+
+                public byte _bitfield;
+
+                [NativeTypeName("BOOLEAN : 1")]
+                public byte AppCloseInProgress
+                {
+                    get
+                    {
+                        return (byte)(_bitfield & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 7")]
+                public byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 1) & 0x7Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
+                    }
+                }
             }
 
             public partial struct _SHUTDOWN_COMPLETE_e__Struct

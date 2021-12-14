@@ -284,6 +284,16 @@ QuicPacketDecodeRetryTokenV1(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicPacketValidateRetryToken(
+    _In_ const void* const Owner,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ uint16_t TokenLength,
+    _In_reads_(TokenLength)
+        const uint8_t* TokenBuffer
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
