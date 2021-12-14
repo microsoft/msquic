@@ -875,6 +875,20 @@ CxPlatDpRawInterfaceRemoveRule(
             if (Rule->Pattern.Port != Interface->Rules[i].Pattern.Port) {
                 continue;
             }
+        } else if (Rule->Match == XDP_MATCH_IPV4_UDP_TUPLE) {
+            if (Rule->Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
+                Rule->Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
+                memcmp(&Rule->Pattern.Tuple.DestinationAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv4, sizeof(IN_ADDR)) != 0 ||
+                memcmp(&Rule->Pattern.Tuple.SourceAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv4, sizeof(IN_ADDR)) != 0) {
+                continue;
+            }
+        } else if (Rule->Match == XDP_MATCH_IPV6_UDP_TUPLE) {
+            if (Rule->Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
+                Rule->Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
+                memcmp(&Rule->Pattern.Tuple.DestinationAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv6, sizeof(IN6_ADDR)) != 0 ||
+                memcmp(&Rule->Pattern.Tuple.SourceAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv6, sizeof(IN6_ADDR)) != 0) {
+                continue;
+            }
         } else {
             CXPLAT_FRE_ASSERT(FALSE); // Should not be possible!
         }
@@ -1087,18 +1101,28 @@ CxPlatDpRawPlumbRulesOnSocket(
 
     } else {
 
-        //
-        // TODO - Need to do this (1) for the 4-tuple and (2) only on the right
-        // interface. But for now, copy the listener pattern.
-        //
 
-        const XDP_RULE Rule = {
-            .Match = XDP_MATCH_UDP_DST,
-            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
+        XDP_RULE Rule = {
+            .Pattern.Tuple.SourcePort = Socket->RemoteAddress.Ipv4.sin_port,
+            .Pattern.Tuple.DestinationPort = Socket->LocalAddress.Ipv4.sin_port,
             .Action = XDP_PROGRAM_ACTION_REDIRECT,
             .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
             .Redirect.Target = NULL,
         };
+
+        if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
+            Rule.Match = XDP_MATCH_IPV4_UDP_TUPLE;
+            Rule.Pattern.Tuple.SourceAddress.Ipv4 = Socket->RemoteAddress.Ipv4.sin_addr;
+            Rule.Pattern.Tuple.DestinationAddress.Ipv4 = Socket->LocalAddress.Ipv4.sin_addr;
+        } else {
+            Rule.Match = XDP_MATCH_IPV6_UDP_TUPLE;
+            Rule.Pattern.Tuple.SourceAddress.Ipv6 = Socket->RemoteAddress.Ipv6.sin6_addr;
+            Rule.Pattern.Tuple.DestinationAddress.Ipv6 = Socket->LocalAddress.Ipv6.sin6_addr;
+        }
+
+        //
+        // TODO - Optimization: apply only to the correct interface.
+        //
 
         CXPLAT_LIST_ENTRY* Entry;
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
