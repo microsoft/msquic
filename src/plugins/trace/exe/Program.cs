@@ -62,24 +62,24 @@ namespace QuicTrace
 
         static QuicState[] ProcessTraceFiles(IEnumerable<string> filePaths)
         {
-            PluginSet pluginSet;
-
-            if (string.IsNullOrWhiteSpace(typeof(QuicEtwSource).Assembly.Location))
-            {
-                // Single File EXE
-                pluginSet = PluginSet.Load(new[] { Environment.CurrentDirectory }, new SingleFileAssemblyLoader());
-            }
-            else
-            {
-                pluginSet = PluginSet.Load();
-            }
-
             var quicStates = new List<QuicState>();
             foreach (var filePath in filePaths)
             {
                 //
                 // Create our runtime environment, add file, enable cookers, and process.
                 //
+                PluginSet pluginSet;
+
+                if (string.IsNullOrWhiteSpace(typeof(QuicEtwSource).Assembly.Location))
+                {
+                    // Single File EXE
+                    pluginSet = PluginSet.Load(new[] { Environment.CurrentDirectory }, new SingleFileAssemblyLoader());
+                }
+                else
+                {
+                    pluginSet = PluginSet.Load();
+                }
+
                 using var dataSources = DataSourceSet.Create(pluginSet);
                 dataSources.AddFile(filePath);
                 var info = new EngineCreateInfo(dataSources.AsReadOnly());
@@ -183,13 +183,15 @@ namespace QuicTrace
 
             public ulong StreamID = ulong.MaxValue;
 
-            public bool IsIncomplete { get { return StreamAlloc == 0 || PacketWrite == 0 || PacketEncrypt == 0 || PacketFinalize == 0 || PacketSend == 0 || PacketReceive == 0 || PacketDecrypt == 0 || PacketRead == 0 || StreamFlush == 0 || StreamDelete == 0 || StreamID == ulong.MaxValue; } }
+            public ulong[] ToArray() { return new ulong[] { StreamAlloc, PacketWrite, PacketEncrypt, PacketFinalize, PacketSend, PacketReceive, PacketDecrypt, PacketRead, StreamFlush, StreamDelete }; }
+
+            public bool IsIncomplete { get { return ToArray().Min() == 0 || StreamID == ulong.MaxValue; } }
 
             public bool IsServer {  get { return PacketReceive < StreamAlloc; } }
 
             public ulong Latency { get { return StreamDelete - StreamAlloc; } }
 
-            public ulong Min { get { return Math.Min(Math.Min(Math.Min(Math.Min(Math.Min(Math.Min(Math.Min(Math.Min(Math.Min(StreamAlloc, PacketWrite), PacketEncrypt), PacketFinalize), PacketSend), PacketReceive), PacketDecrypt), PacketRead), StreamFlush), StreamDelete); } }
+            public ulong Min { get { return ToArray().Min(); } }
 
             public ulong QueueTime { get { return PacketWrite - StreamAlloc; } }
             public ulong WriteTime { get { return PacketEncrypt - PacketWrite; } }
@@ -197,8 +199,8 @@ namespace QuicTrace
             public ulong FinalizeTime { get { return PacketSend - PacketFinalize; } }
             public ulong PeerTime { get { return Peer == null ? 0 : Peer.PacketSend - Peer.PacketReceive; } }
             public ulong RecvTime { get { return PacketDecrypt - PacketReceive; } }
-            public ulong DecryptTime { get { return PacketRead - PacketDecrypt; } }
-            public ulong ReadTime { get { return StreamFlush - PacketRead; } }
+            public ulong DecryptTime { get { return PacketRead > PacketDecrypt ? PacketRead - PacketDecrypt : 0; } }
+            public ulong ReadTime { get { return StreamFlush > PacketRead ? StreamFlush - PacketRead : 0; } }
             public ulong FlushTime { get { return StreamDelete - StreamFlush; } }
 
             public ulong UdpTime { get { return (PacketReceive - PacketSend) - PeerTime; } }
@@ -228,7 +230,7 @@ namespace QuicTrace
             {
                 Console.WriteLine(
                     "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10}",
-                    0,
+                    Latency,
                     QueueTime,
                     WriteTime,
                     EncryptTime,
@@ -485,21 +487,30 @@ namespace QuicTrace
                         {
                             //Console.WriteLine("PacketReceive {0}", evt.ObjectPointer);
                             var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Packet.PacketReceive = (ulong)evt.TimeStamp.ToNanoseconds;
+                            if (Packet.PacketReceive == 0)
+                            {
+                                Packet.PacketReceive = (ulong)evt.TimeStamp.ToNanoseconds;
+                            }
                             break;
                         }
                         case QuicEventId.PacketDecrypt:
                         {
                             //Console.WriteLine("PacketDecrypt {0}", evt.ObjectPointer);
                             var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Packet.PacketDecrypt = (ulong)evt.TimeStamp.ToNanoseconds;
+                            if (Packet.PacketDecrypt == 0)
+                            {
+                                Packet.PacketDecrypt = (ulong)evt.TimeStamp.ToNanoseconds;
+                            }
                             break;
                         }
                         case QuicEventId.StreamReceiveFrame:
                         {
                             //Console.WriteLine("StreamReceiveFrame {0} in {1}", evt.ObjectPointer, (evt as QuicStreamReceiveFrameEvent)!.ID);
                             var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Stream.Timings.PacketRead = (ulong)evt.TimeStamp.ToNanoseconds;
+                            if (Stream.Timings.PacketRead == 0)
+                            {
+                                Stream.Timings.PacketRead = (ulong)evt.TimeStamp.ToNanoseconds;
+                            }
                             Stream.RecvPacket = PacketSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
                             break;
                         }
@@ -567,7 +578,7 @@ namespace QuicTrace
 
             var clientRequestCount = ClientRequests.Count;
             var serverRequestCount = ServerRequests.Count;
-            Console.WriteLine("{0} client and {1} server compelte requests found.", clientRequestCount, serverRequestCount);
+            Console.WriteLine("{0} client and {1} server compelete requests found.\n", clientRequestCount, serverRequestCount);
 
             if (clientRequestCount == 0)
             {
@@ -600,18 +611,19 @@ namespace QuicTrace
             var readTimes = ClientRequests.OrderBy(t => t.ReadTime);
             var flushTimes = ClientRequests.OrderBy(t => t.FlushTime);
 
-            /*Console.WriteLine("Alloc, Write, Encrypt, Finalize, Send, Receive, Decrypt, Read, Flush, Delete");
+            Console.WriteLine("Total, Queue, Write, Encrypt, Finalize, Peer, Udp, Receive, Decrypt, Read, Flush");
             foreach (var timing in sortedRequests)
             {
-                timing.WriteLine();
-            }*/
+                timing.WriteLine2();
+            }
+            Console.WriteLine("");
 
-            Console.WriteLine("Alloc, Queue, Write, Encrypt, Finalize, Peer, Udp, Receive, Decrypt, Read, Flush");
-            var Percentiles = new List<double>() { 0, 90, 99, 99.9, 99.99, 99.999 };
+            Console.WriteLine("Percentile, Total, Queue, Write, Encrypt, Finalize, Peer, Udp, Receive, Decrypt, Read, Flush");
+            var Percentiles = new List<double>() { 0, 50, 90, 99, 99.9, 99.99, 99.999 };
             foreach (var percentile in Percentiles)
             {
                 var t = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
-                Console.WriteLine("{0}th {1}", percentile, t.Latency);
+                Console.Write("{0}th,", percentile);
                 t.WriteLine2();
             }
 
