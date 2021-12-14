@@ -787,6 +787,11 @@ CxPlatDpRawInterfaceUpdateRules(
                 Interface->RuleCount,
                 &NewRxProgram);
         if (QUIC_FAILED(Status)) {
+            //
+            // TODO - Figure out how to better handle failure and revert changes.
+            // This will likely require working with XDP to get an improved API;
+            // possibly to update all queues at once.
+            //
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
@@ -1100,7 +1105,6 @@ CxPlatDpRawPlumbRulesOnSocket(
         }
 
     } else {
-
 
         XDP_RULE Rule = {
             .Pattern.Tuple.SourcePort = Socket->RemoteAddress.Ipv4.sin_port,
