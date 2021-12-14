@@ -226,6 +226,8 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
+    CxPlatDpRawPlumbRulesOnSocket(*NewSocket, TRUE);
+
 Error:
 
     if (QUIC_FAILED(Status)) {
@@ -270,6 +272,7 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);

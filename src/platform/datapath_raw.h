@@ -93,6 +93,20 @@ CxPlatDpRawGenerateCpuTable(
     _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
+//
+// Called on creation and deletion of a socket. It indicates to the raw datapath
+// that it should update any filtering rules as necessary.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawPlumbRulesOnSocket(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN IsCreated
+    );
+
+//
+// Assigns a raw datapath queue to a new route.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawAssignQueue(
@@ -100,6 +114,9 @@ CxPlatDpRawAssignQueue(
     _Inout_ CXPLAT_ROUTE* Route
     );
 
+//
+// Returns the raw interface for a given queue.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 const CXPLAT_INTERFACE*
 CxPlatDpRawGetInterfaceFromQueue(
