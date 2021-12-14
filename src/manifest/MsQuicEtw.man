@@ -2229,7 +2229,7 @@
               value="5122"
               />
           <event
-              keywords="ut:Connection ut:Scheduling"
+              keywords="ut:Connection ut:Scheduling ut:RPS"
               level="win:Informational"
               message="$(string.Etw.ConnScheduleState)"
               opcode="Connection"

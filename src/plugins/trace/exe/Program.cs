@@ -181,6 +181,8 @@ namespace QuicTrace
             public ulong StreamFlush = 0;
             public ulong StreamDelete = 0;
 
+            public ulong ConnectionQueueTime = 0;
+
             public ulong StreamID = ulong.MaxValue;
 
             public ulong[] ToArray() { return new ulong[] { StreamAlloc, PacketWrite, PacketEncrypt, PacketFinalize, PacketSend, PacketReceive, PacketDecrypt, PacketRead, StreamFlush, StreamDelete }; }
@@ -261,6 +263,9 @@ namespace QuicTrace
             public uint ProcessId { get; }
 
             public QuicRequestConn? Peer = null;
+
+            public QuicScheduleState LastProcessingState = QuicScheduleState.Idle;
+            public ulong LastProcessingTime = 0;
 
             internal QuicRequestConn(ulong pointer, uint processId)
             {
@@ -387,6 +392,14 @@ namespace QuicTrace
                 {
                     switch (evt.EventId)
                     {
+                        case QuicEventId.ConnScheduleState:
+                        {
+                            var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            Conn.LastProcessingState = (evt as QuicConnectionScheduleStateEvent)!.ScheduleState;
+                            Conn.LastProcessingTime = (ulong)evt.TimeStamp.ToNanoseconds;
+                            //Console.WriteLine("ConnScheduleState {0} {1}", evt.ObjectPointer, Conn.LastProcessingState);
+                            break;
+                        }
                         case QuicEventId.ConnSourceCidAdded:
                         {
                             //Console.WriteLine("ConnSourceCidAdded {0}", evt.ObjectPointer);
@@ -459,6 +472,15 @@ namespace QuicTrace
                             {
                                 Stream.Timings.PacketWrite = (ulong)evt.TimeStamp.ToNanoseconds;
                                 Stream.SendPacket = PacketSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
+                                if (Stream.Timings.Connection == null || Stream.Timings.Connection.LastProcessingState != QuicScheduleState.Processing ||
+                                    Stream.Timings.StreamAlloc > Stream.Timings.Connection.LastProcessingTime)
+                                {
+                                    Stream.Timings.ConnectionQueueTime += Stream.Timings.PacketWrite - Stream.Timings.StreamAlloc;
+                                }
+                                else
+                                {
+                                    Stream.Timings.ConnectionQueueTime += Stream.Timings.Connection.LastProcessingTime - Stream.Timings.StreamAlloc;
+                                }
                             }
                             break;
                         }
