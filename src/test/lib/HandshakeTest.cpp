@@ -83,7 +83,7 @@ QuicTestPrimeResumption(
             }
         }
 
-        Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
     }
 }
 
