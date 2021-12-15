@@ -435,7 +435,9 @@ QuicConnShutdown(
     _In_ BOOLEAN ShutdownFromRegistration
     )
 {
-    if (ShutdownFromRegistration && !Connection->State.Started) {
+    if (ShutdownFromRegistration &&
+        !Connection->State.Started &&
+        QuicConnIsClient(Connection)) {
         return;
     }
 
