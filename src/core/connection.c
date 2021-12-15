@@ -56,17 +56,20 @@ QuicConnApplyNewSettings(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-__drv_allocatesMem(Mem)
 _Must_inspect_result_
-_Success_(return != NULL)
-QUIC_CONNECTION*
+_Success_(return == QUIC_STATUS_SUCCESS)
+QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
-    _In_opt_ const CXPLAT_RECV_DATA* const Datagram
+    _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
+        QUIC_CONNECTION** NewConnection
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
     uint32_t CurProcIndex = CxPlatProcCurrentNumber();
+    *NewConnection = NULL;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     //
     // For client, the datapath partitioning info is not known yet, so just use
@@ -88,7 +91,7 @@ QuicConnAlloc(
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
             sizeof(QUIC_CONNECTION));
-        return NULL;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     CxPlatZeroMemory(Connection, sizeof(QUIC_CONNECTION));
@@ -138,11 +141,12 @@ QuicConnAlloc(
         &Connection->DecodedAckRanges);
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
-        if (QUIC_FAILED(
+        Status =
             QuicPacketSpaceInitialize(
                 Connection,
                 (QUIC_ENCRYPT_LEVEL)i,
-                &Connection->Packets[i]))) {
+                &Connection->Packets[i]);
+        if (QUIC_FAILED(Status)) {
             goto Error;
         }
     }
@@ -200,6 +204,7 @@ QuicConnAlloc(
         Path->DestCid =
             QuicCidNewDestination(Packet->SourceCidLen, Packet->SourceCid);
         if (Path->DestCid == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
         QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
@@ -215,6 +220,7 @@ QuicConnAlloc(
         QUIC_CID_HASH_ENTRY* SourceCid =
             QuicCidNewSource(Connection, Packet->DestCidLen, Packet->DestCid);
         if (SourceCid == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
         SourceCid->CID.IsInitial = TRUE;
@@ -239,6 +245,7 @@ QuicConnAlloc(
 
         Path->DestCid = QuicCidNewRandomDestination();
         if (Path->DestCid == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
         QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
@@ -261,10 +268,12 @@ QuicConnAlloc(
 
     QuicPathValidate(Path);
     if (!QuicConnRegister(Connection, Registration)) {
+        Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
 
-    return Connection;
+    *NewConnection = Connection;
+    return QUIC_STATUS_SUCCESS;
 
 Error:
 
@@ -295,7 +304,7 @@ Error:
     }
     QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
-    return NULL;
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -532,6 +541,7 @@ QuicConnCloseHandle(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
 BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,

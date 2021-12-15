@@ -252,6 +252,11 @@ MsQuicRegistrationShutdown(
 
         CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
+        if (Registration->ShuttingDown) {
+            CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+            goto Exit;
+        }
+
         Registration->ShutdownErrorCode = ErrorCode;
         Registration->ShutdownFlags = Flags;
         Registration->ShuttingDown = TRUE;
@@ -281,6 +286,8 @@ MsQuicRegistrationShutdown(
 
         CxPlatDispatchLockRelease(&Registration->ConnectionLock);
     }
+
+Exit:
 
     QuicTraceEvent(
         ApiExit,

@@ -878,13 +878,14 @@ QuicConnRemoveOutFlowBlockedReason(
 // a datagram is the cause of the creation, and is passed in.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-__drv_allocatesMem(Mem)
 _Must_inspect_result_
-_Success_(return != NULL)
-QUIC_CONNECTION*
+_Success_(return == QUIC_STATUS_SUCCESS)
+QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
-    _In_opt_ const CXPLAT_RECV_DATA* const Datagram
+    _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
+        QUIC_CONNECTION** NewConnection
     );
 
 //
@@ -997,6 +998,7 @@ QuicConnRelease(
 // Registers the connection with a registration.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
 BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,

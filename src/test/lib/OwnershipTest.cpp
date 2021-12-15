@@ -67,7 +67,7 @@ void QuicTestRegistrationShutdownBeforeConnOpen()
             nullptr,
             &Connection);
 
-    TEST_QUIC_STATUS(QUIC_STATUS_OUT_OF_MEMORY, Status);
+    TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE, Status);
 }
 
 void QuicTestRegistrationShutdownAfterConnOpen()
@@ -146,6 +146,7 @@ void QuicTestRegistrationShutdownAfterConnOpenBeforeStart()
             QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4454);
+    TEST_QUIC_SUCCEEDED(Status);
 
     StatsSize = sizeof(Stats);
     Status =

@@ -61,8 +61,12 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
-    if ((Connection = QuicConnAlloc(Registration, NULL)) == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    Status =
+        QuicConnAlloc(
+            Registration,
+            NULL,
+            &Connection);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
