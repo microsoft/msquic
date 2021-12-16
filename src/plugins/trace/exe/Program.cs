@@ -566,7 +566,20 @@ namespace QuicTrace
 
                             Stream.SendPacket.Streams.Add(Stream);
                             Stream.PacketWrite = (ulong)evt.TimeStamp.ToNanoseconds;
-                            if (Stream.Timings.State == RequestState.Send)
+
+                            if (Stream.Timings.State == RequestState.QueueSend)
+                            {
+                                if (Stream.Timings.Connection.LastScheduleTime < Stream.Timings.LastStateChangeTime)
+                                {
+                                    Stream.Timings.State = RequestState.ProcessSend;
+                                }
+                                else
+                                {
+                                    Stream.Timings.UpdateToState(RequestState.ProcessSend, Stream.Timings.Connection.LastScheduleTime);
+                                }
+                                Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
+                            }
+                            else if (Stream.Timings.State == RequestState.Send)
                             {
                                 Stream.Timings.State = RequestState.Frame;
                             }
@@ -576,7 +589,6 @@ namespace QuicTrace
                                 Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
                             }
                             else if (Stream.Timings.State == RequestState.ProcessSend ||
-                                     Stream.Timings.State == RequestState.QueueSend ||
                                      Stream.Timings.State == RequestState.Idle)
                             {
                                 Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
@@ -718,22 +730,40 @@ namespace QuicTrace
 
                             if (Stream.Timings.FirstPacketRecv == 0)
                             {
-                                    Stream.Timings.FirstPacketRecv = Stream.RecvPacket.PacketReceive;
+                                Stream.Timings.FirstPacketRecv = Stream.RecvPacket.PacketReceive;
                             }
 
                             if (Stream.PacketRead == 0)
                             {
                                 Stream.PacketRead = (ulong)evt.TimeStamp.ToNanoseconds;
                                 if (Stream.StreamAlloc > Stream.RecvPacket.PacketReceive)
-                                {
-                                    Stream.Timings.State = RequestState.QueueRecv;
-                                    Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
+                                    {
+                                    if (Stream.Timings.Connection!.LastScheduleTime < Stream.RecvPacket.PacketReceive)
+                                    {
+                                        Stream.Timings.State = RequestState.ProcessRecv;
+                                        Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
+                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.RecvPacket.PacketReceive);
+                                    }
+                                    else
+                                    {
+                                        Stream.Timings.State = RequestState.QueueRecv;
+                                        Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
+                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime);
+                                    }
                                     Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
                                     Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
                                 }
                                 else
                                 {
-                                    Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive); // TODO - Compare to last processing time
+                                    if (Stream.Timings.Connection!.LastScheduleTime < Stream.RecvPacket.PacketReceive)
+                                    {
+                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.RecvPacket.PacketReceive);
+                                    }
+                                    else
+                                    {
+                                        Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive);
+                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime);
+                                    }
                                     Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
                                     Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
                                 }
