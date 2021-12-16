@@ -70,7 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rate: [5, 10, 20, 50, 100, 200]
+        rate: [5, 10, 20, 50, 100, 200, 1000]
         rtt: [5, 50, 200, 500]
         queueRatio: [0.2, 1, 5]
         exclude:
