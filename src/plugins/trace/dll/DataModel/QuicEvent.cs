@@ -156,7 +156,9 @@ namespace QuicTrace.DataModel
         StreamAlloc,
         StreamWriteFrames,
         StreamReceiveFrame,
-        StreamFlushRecv,
+        StreamAppReceive,
+        StreamAppReceiveComplete,
+        StreamAppSend,
 
         BindingCreated = 7168,
         BindingRundown,
@@ -184,11 +186,10 @@ namespace QuicTrace.DataModel
         LogInfo,
         LogVerbose,
 
-        PacketBatchCreate = 11264,
-        PacketCreated,
+        PacketCreated = 11264,
         PacketEncrypt,
         PacketFinalize,
-        PacketBatchSend,
+        PacketBatchSent,
         PacketReceive,
         PacketDecrypt
     }

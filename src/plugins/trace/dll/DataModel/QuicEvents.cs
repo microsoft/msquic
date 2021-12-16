@@ -919,10 +919,26 @@ namespace QuicTrace.DataModel
         }
     }
 
-    public class QuicStreamFlushRecvEvent : QuicEvent
+    public class QuicStreamAppReceiveEvent : QuicEvent
     {
-        internal QuicStreamFlushRecvEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
-            base(QuicEventId.StreamFlushRecv, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        internal QuicStreamAppReceiveEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamAppReceive, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
+    public class QuicStreamAppReceiveCompleteEvent : QuicEvent
+    {
+        internal QuicStreamAppReceiveCompleteEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamAppReceiveComplete, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
+    public class QuicStreamAppSendEvent : QuicEvent
+    {
+        internal QuicStreamAppSendEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamAppSend, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
         }
     }
@@ -1044,16 +1060,6 @@ namespace QuicTrace.DataModel
 
     #region Packet Events
 
-    public class QuicPacketBatchCreateEvent : QuicEvent
-    {
-        public ulong ID => ObjectPointer;
-
-        internal QuicPacketBatchCreateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
-            base(QuicEventId.PacketBatchCreate, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
-        {
-        }
-    }
-
     public class QuicPacketCreatedEvent : QuicEvent
     {
         public ulong ID => ObjectPointer;
@@ -1087,12 +1093,12 @@ namespace QuicTrace.DataModel
         }
     }
 
-    public class QuicPacketBatchSendEvent : QuicEvent
+    public class QuicPacketBatchSentEvent : QuicEvent
     {
         public ulong ID => ObjectPointer;
 
-        internal QuicPacketBatchSendEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
-            base(QuicEventId.PacketBatchSend, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        internal QuicPacketBatchSentEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
+            base(QuicEventId.PacketBatchSent, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
         {
         }
     }

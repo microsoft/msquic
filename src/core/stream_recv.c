@@ -751,11 +751,6 @@ QuicStreamRecvFlush(
         return;
     }
 
-    QuicTraceEvent(
-        StreamFlushRecv,
-        "[strm][%p] Flushing receive",
-        Stream);
-
     CXPLAT_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
     CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
 
@@ -816,10 +811,10 @@ QuicStreamRecvFlush(
         Stream->Flags.ReceiveCallPending = TRUE;
         Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
 
-        QuicTraceLogStreamVerbose(
-            IndicateReceive,
+        QuicTraceEvent(
+            StreamAppReceive,
+            "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
             Stream,
-            "Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
             Event.RECEIVE.TotalBufferLength,
             Event.RECEIVE.BufferCount,
             Event.RECEIVE.Flags);
@@ -910,10 +905,11 @@ QuicStreamReceiveComplete(
         "App overflowed read buffer!");
 
     Stream->Flags.ReceiveCallPending = FALSE;
-    QuicTraceLogStreamVerbose(
-        ReceiveComplete,
+
+    QuicTraceEvent(
+        StreamAppReceiveComplete,
+        "[strm][%p] Receive complete [%llu bytes]",
         Stream,
-        "Recv complete (%llu bytes)",
         BufferLength);
 
     //

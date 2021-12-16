@@ -1411,7 +1411,7 @@
                 name="Connection"
                 />
           </template>
-          <template tid="tid_STREAM_ID">
+          <template tid="tid_STREAM_U64">
             <data
                 inType="win:Pointer"
                 name="Stream"
@@ -1419,6 +1419,24 @@
             <data
                 inType="win:UInt64"
                 name="ID"
+                />
+          </template>
+          <template tid="tid_STREAM_RECV">
+            <data
+                inType="win:Pointer"
+                name="Stream"
+                />
+            <data
+                inType="win:UInt64"
+                name="BufLength"
+                />
+            <data
+                inType="win:UInt32"
+                name="BufCount"
+                />
+            <data
+                inType="win:UInt32"
+                name="Flags"
                 />
           </template>
           <template tid="tid_BINDING">
@@ -2883,7 +2901,7 @@
               message="$(string.Etw.StreamWriteFrames)"
               opcode="Stream"
               symbol="QuicStreamWriteFrames"
-              template="tid_STREAM_ID"
+              template="tid_STREAM_U64"
               value="6157"
               />
           <event
@@ -2892,17 +2910,35 @@
               message="$(string.Etw.StreamReceiveFrame)"
               opcode="Stream"
               symbol="QuicStreamReceiveFrame"
-              template="tid_STREAM_ID"
+              template="tid_STREAM_U64"
               value="6158"
               />
           <event
               keywords="ut:Stream ut:RPS"
               level="win:Verbose"
-              message="$(string.Etw.StreamFlushRecv)"
+              message="$(string.Etw.StreamAppReceive)"
               opcode="Stream"
-              symbol="QuicStreamFlushRecv"
-              template="tid_STREAM"
+              symbol="QuicStreamAppReceive"
+              template="tid_STREAM_RECV"
               value="6159"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppReceiveComplete)"
+              opcode="Stream"
+              symbol="QuicStreamAppReceiveComplete"
+              template="tid_STREAM_U64"
+              value="6160"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppSend)"
+              opcode="Stream"
+              symbol="QuicStreamAppSend"
+              template="tid_STREAM_RECV"
+              value="6161"
               />
           <!-- 7168 - 8191 | Binding Events -->
           <event
@@ -3110,20 +3146,11 @@
           <event
               keywords="ut:RPS"
               level="win:Verbose"
-              message="$(string.Etw.PacketBatchCreate)"
-              opcode="Global"
-              symbol="QuicPacketBatchCreate"
-              template="tid_ID"
-              value="11264"
-              />
-          <event
-              keywords="ut:RPS"
-              level="win:Verbose"
               message="$(string.Etw.PacketCreated)"
               opcode="Global"
               symbol="QuicPacketCreated"
               template="tid_ID_ID"
-              value="11265"
+              value="11264"
               />
           <event
               keywords="ut:RPS"
@@ -3132,7 +3159,7 @@
               opcode="Global"
               symbol="QuicPacketEncrypt"
               template="tid_ID"
-              value="11266"
+              value="11265"
               />
           <event
               keywords="ut:RPS"
@@ -3141,16 +3168,16 @@
               opcode="Global"
               symbol="QuicPacketFinalize"
               template="tid_ID"
-              value="11267"
+              value="11266"
               />
           <event
               keywords="ut:RPS"
               level="win:Verbose"
-              message="$(string.Etw.PacketBatchSend)"
+              message="$(string.Etw.PacketBatchSent)"
               opcode="Global"
-              symbol="QuicPacketBatchSend"
+              symbol="QuicPacketBatchSent"
               template="tid_ID"
-              value="11268"
+              value="11267"
               />
           <event
               keywords="ut:RPS"
@@ -3159,7 +3186,7 @@
               opcode="Global"
               symbol="QuicPacketReceive"
               template="tid_ID"
-              value="11269"
+              value="11268"
               />
           <event
               keywords="ut:RPS"
@@ -3168,7 +3195,7 @@
               opcode="Global"
               symbol="QuicPacketDecrypt"
               template="tid_ID"
-              value="11270"
+              value="11269"
               />
         </events>
       </provider>
@@ -3451,8 +3478,16 @@
             value="[strm][%1] Processing frame in packet %2"
             />
         <string
-            id="Etw.StreamFlushRecv"
-            value="[strm][%1] Flushing receive"
+            id="Etw.StreamAppReceive"
+            value="[strm][%1] Indicating QUIC_STREAM_EVENT_RECEIVE [%2 bytes, %3 buffers, %4 flags]"
+            />
+        <string
+            id="Etw.StreamAppReceiveComplete"
+            value="[strm][%1] Receive complete [%2 bytes]"
+            />
+        <string
+            id="Etw.StreamAppSend"
+            value="[strm][%1] App queuing send [%2 bytes, %3 buffers, %4 flags]"
             />
         <string
             id="Etw.WorkerCreated"
@@ -3711,10 +3746,6 @@
             value="[ lib] Version %1.%2.%3.%4"
             />
         <string
-            id="Etw.PacketBatchCreate"
-            value="[pack][%1] Batch created"
-            />
-        <string
             id="Etw.PacketCreated"
             value="[pack][%1] Created in batch %2"
             />
@@ -3727,8 +3758,8 @@
             value="[pack][%1] Finalizing"
             />
         <string
-            id="Etw.PacketBatchSend"
-            value="[pack][%1] Sending batch"
+            id="Etw.PacketBatchSent"
+            value="[pack][%1] Batch sent"
             />
         <string
             id="Etw.PacketReceive"

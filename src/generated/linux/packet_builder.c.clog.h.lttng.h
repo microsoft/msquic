@@ -90,25 +90,6 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnError,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketBatchCreate
-// [pack][%llu] Batch created
-// QuicTraceEvent(
-                PacketBatchCreate,
-                "[pack][%llu] Batch created",
-                Builder->BatchId);
-// arg2 = arg2 = Builder->BatchId
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBatchCreate,
-    TP_ARGS(
-        unsigned long long, arg2), 
-    TP_FIELDS(
-        ctf_integer(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -251,15 +232,15 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnPacketSent,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketBatchSend
-// [pack][%llu] Sending batch
+// Decoder Ring for PacketBatchSent
+// [pack][%llu] Batch sent
 // QuicTraceEvent(
-                PacketBatchSend,
-                "[pack][%llu] Sending batch",
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
                 Builder->BatchId);
 // arg2 = arg2 = Builder->BatchId
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBatchSend,
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBatchSent,
     TP_ARGS(
         unsigned long long, arg2), 
     TP_FIELDS(

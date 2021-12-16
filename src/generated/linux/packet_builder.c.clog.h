@@ -117,27 +117,6 @@ tracepoint(CLOG_PACKET_BUILDER_C, ConnError , arg2, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_PacketBatchCreate
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PacketBatchCreate
-// [pack][%llu] Batch created
-// QuicTraceEvent(
-                PacketBatchCreate,
-                "[pack][%llu] Batch created",
-                Builder->BatchId);
-// arg2 = arg2 = Builder->BatchId
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_PacketBatchCreate(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_PACKET_BUILDER_C, PacketBatchCreate , arg2);\
-
-#endif
-
-
-
-
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
@@ -300,21 +279,21 @@ tracepoint(CLOG_PACKET_BUILDER_C, ConnPacketSent , arg2, arg3, arg4, arg5);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_PacketBatchSend
+#ifndef _clog_3_ARGS_TRACE_PacketBatchSent
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketBatchSend
-// [pack][%llu] Sending batch
+// Decoder Ring for PacketBatchSent
+// [pack][%llu] Batch sent
 // QuicTraceEvent(
-                PacketBatchSend,
-                "[pack][%llu] Sending batch",
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
                 Builder->BatchId);
 // arg2 = arg2 = Builder->BatchId
 ----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_PacketBatchSend(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_PACKET_BUILDER_C, PacketBatchSend , arg2);\
+#define _clog_3_ARGS_TRACE_PacketBatchSent(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketBatchSent , arg2);\
 
 #endif
 

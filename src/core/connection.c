@@ -4975,7 +4975,7 @@ QuicConnRecvPostProcessing(
                 // rebinding happens? Should we support using the same CID over?
                 //
                 QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
-                if (NewDestCid== NULL) {
+                if (NewDestCid == NULL) {
                     QuicTraceEvent(
                         ConnError,
                         "[conn][%p] ERROR, %s.",

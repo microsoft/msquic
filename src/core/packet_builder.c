@@ -245,10 +245,6 @@ QuicPacketBuilderPrepare(
         if (Builder->SendData == NULL) {
             Builder->BatchId =
                 ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
-            QuicTraceEvent(
-                PacketBatchCreate,
-                "[pack][%llu] Batch created",
-                Builder->BatchId);
             Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
@@ -951,13 +947,13 @@ Exit:
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }
-            QuicTraceEvent(
-                PacketBatchSend,
-                "[pack][%llu] Sending batch",
-                Builder->BatchId);
             CXPLAT_DBG_ASSERT(Builder->TotalCountDatagrams > 0);
             QuicPacketBuilderSendBatch(Builder);
             CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount == 0);
+            QuicTraceEvent(
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
+                Builder->BatchId);
         }
 
         if (Builder->PacketType == QUIC_RETRY) {

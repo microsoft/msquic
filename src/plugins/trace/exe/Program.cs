@@ -168,81 +168,136 @@ namespace QuicTrace
             //
         }
 
+        public enum RequestState
+        {
+            Idle,
+            QueueSend,
+            ProcessSend,
+            Frame,
+            Write,
+            Encrypt,
+            Send,
+            Udp,
+            AwaitPeer,
+            QueueRecv,
+            ProcessRecv,
+            Decrypt,
+            Read,
+            AppRecv,
+            Complete,
+            COUNT
+        };
+
         internal class RequestTiming
         {
-            public ulong StreamAlloc = 0;
-            public ulong PacketWrite = 0;
-            public ulong PacketEncrypt = 0;
-            public ulong PacketFinalize = 0;
-            public ulong PacketSend = 0;
-            public ulong PacketReceive = 0;
-            public ulong PacketDecrypt = 0;
-            public ulong PacketRead = 0;
-            public ulong StreamFlush = 0;
-            public ulong StreamDelete = 0;
+            //
+            // The time spent in each RequestState.
+            //
+            public ulong[] Times = new ulong[(int)RequestState.COUNT];
 
-            public ulong ConnectionQueueTime = 0;
+            //
+            // The current state of the request.
+            //
+            public RequestState State = RequestState.Idle;
 
-            public ulong StreamID = ulong.MaxValue;
+            //
+            // The last time State was updated.
+            //
+            public ulong LastStateChangeTime = 0;
 
-            public ulong[] ToArray() { return new ulong[] { StreamAlloc, PacketWrite, PacketEncrypt, PacketFinalize, PacketSend, PacketReceive, PacketDecrypt, PacketRead, StreamFlush, StreamDelete }; }
-
-            public bool IsIncomplete { get { return ToArray().Min() == 0 || StreamID == ulong.MaxValue; } }
-
-            public bool IsServer {  get { return PacketReceive < StreamAlloc; } }
-
-            public ulong Latency { get { return StreamDelete - StreamAlloc; } }
-
-            public ulong Min { get { return ToArray().Min(); } }
-
-            public ulong QueueTime { get { return PacketWrite - StreamAlloc; } }
-            public ulong WriteTime { get { return PacketEncrypt - PacketWrite; } }
-            public ulong EncryptTime { get { return PacketFinalize - PacketEncrypt; } }
-            public ulong FinalizeTime { get { return PacketSend - PacketFinalize; } }
-            public ulong PeerTime { get { return Peer == null ? 0 : Peer.PacketSend - Peer.PacketReceive; } }
-            public ulong RecvTime { get { return PacketDecrypt - PacketReceive; } }
-            public ulong DecryptTime { get { return PacketRead > PacketDecrypt ? PacketRead - PacketDecrypt : 0; } }
-            public ulong ReadTime { get { return StreamFlush > PacketRead ? StreamFlush - PacketRead : 0; } }
-            public ulong FlushTime { get { return StreamDelete - StreamFlush; } }
-
-            public ulong UdpTime { get { return (PacketReceive - PacketSend) - PeerTime; } }
-
-            public QuicRequestConn? Connection = null;
-
-            public RequestTiming? Peer = null;
-
-            public void WriteLine()
+            //
+            // Triggers a state change and updates variables accordingly.
+            //
+            public void UpdateToState(RequestState state, ulong time)
             {
-                ulong min = Min;
-                Console.WriteLine(
-                    "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9}",
-                    StreamAlloc - min,
-                    PacketWrite - min,
-                    PacketEncrypt - min,
-                    PacketFinalize - min,
-                    PacketSend - min,
-                    PacketReceive - min,
-                    PacketDecrypt - min,
-                    PacketRead - min,
-                    StreamFlush - min,
-                    StreamDelete - min);
+                if (EncounteredError) return;
+                if (time < LastStateChangeTime)
+                {
+                    Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, state);
+                    EncounteredError = true;
+                    return;
+                }
+                Times[(int)State] += (time - LastStateChangeTime);
+                LastStateChangeTime = time;
+                State = state;
             }
 
-            public void WriteLine2()
+            /*
+            public ulong TotalTime = 0;                 // Alloc to Delete. Overlaps all other timings below.
+
+            public ulong StreamInitTime = 0;            // Stream Alloc to Stream App Send
+            public ulong StreamSendQueueTime = 0;       // Stream App Send to Processing
+            public ulong ConnSendProcessingTime = 0;    // Processing to FIRST Packet Create
+            public ulong PacketCreationTime = 0;        // [Packet Create or LAST Packet Finalize] to FIRST Stream Write
+            public ulong StreamWriteTime = 0;           // FIRST Stream Write to Packet Encrypt
+            public ulong PacketEncryptionTime = 0;      // Packet Encrypt to Packet Finalize
+            public ulong PacketSendTime = 0;            // LAST Packet Finalize to Batch Sent
+
+            public ulong PeerProcessingTime = 0;        // LAST Batch Sent to FIRST Packet Receive
+                                                        // TODO - Expand this out into separate layers
+
+            public ulong PacketReceiveQueueTime = 0;    // Packet Receive to Processing
+            public ulong ConnRecvProcessingTime = 0;    // Processing to Packet Decrypt
+            public ulong PacketDecryptionTime = 0;      // Packet Decrypt to FIRST Stream Read
+            public ulong StreamReadTime = 0;            // FIRST Stream Read to [NEXT Packet Decrypt, or Stream App Recv]
+            public ulong StreamAppRecvTime = 0;         // Stream App Recv to Stream App Recv Complete
+            public ulong StreamCleanupTime = 0;         // LAST Stream App Recv Complete to Stream Delete
+            */
+
+            //
+            // Returns the sum of all the calculated times for individual layers.
+            //
+            public ulong TotalTime { get { return Times.Aggregate((temp, x) => temp + x); } }
+
+            //
+            // The connection used for this request.
+            //
+            public QuicRequestConn? Connection = null;
+
+            //
+            // The corresponding peer's timings.
+            //
+            public RequestTiming? Peer = null;
+
+            //
+            // The stream identifier for this request.
+            //
+            public ulong StreamID = ulong.MaxValue;
+
+            //
+            // Indicates if this timings is for the client or server side.
+            //
+            public bool IsServer = false;
+
+            public ulong FirstPacketRecv = 0;
+            public ulong FirstPacketSend = 0;
+
+            //
+            // Indicates if an error or unexpected state occurred while processing this request.
+            //
+            public bool EncounteredError = false;
+
+            //
+            // Writes the header for the CSV data.
+            //
+            public static void WriteCsvHeader()
             {
-                Console.WriteLine(
-                    "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10}",
-                    Latency,
-                    QueueTime,
-                    WriteTime,
-                    EncryptTime,
-                    FinalizeTime,
-                    PeerTime,
-                    UdpTime,
-                    RecvTime,
-                    DecryptTime,
-                    ReadTime,
-                    FlushTime);
+                Console.Write("Total");
+                foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
+                {
+                    if (state == RequestState.COUNT) break;
+                    Console.Write(",{0}", state);
+                }
+                Console.WriteLine();
+            }
+
+            //
+            // Writes all the times in comma seperated vector format.
+            //
+            public void WriteCsv()
+            {
+                Console.Write("{0},", TotalTime);
+                Console.WriteLine(String.Join(",", Times));
             }
         }
 
@@ -250,7 +305,7 @@ namespace QuicTrace
         {
             public static QuicRequestConn New(ulong pointer, uint processId) => new QuicRequestConn(pointer, processId);
 
-            public static ushort CreateEventId => (ushort)QuicEventId.ConnSourceCidAdded;
+            public static ushort CreateEventId => (ushort)QuicEventId.ConnCreated;
 
             public static ushort DestroyedEventId => 0;
 
@@ -264,8 +319,8 @@ namespace QuicTrace
 
             public QuicRequestConn? Peer = null;
 
-            public QuicScheduleState LastProcessingState = QuicScheduleState.Idle;
-            public ulong LastProcessingTime = 0;
+            public QuicScheduleState SchedulingState = QuicScheduleState.Idle;
+            public ulong LastScheduleTime = 0;
 
             internal QuicRequestConn(ulong pointer, uint processId)
             {
@@ -279,7 +334,7 @@ namespace QuicTrace
         {
             public static QuicPacketBatch New(ulong pointer, uint processId) => new QuicPacketBatch(pointer, processId);
 
-            public static ushort CreateEventId => (ushort)QuicEventId.PacketBatchCreate;
+            public static ushort CreateEventId => (ushort)QuicEventId.PacketCreated;
 
             public static ushort DestroyedEventId => 0;
 
@@ -289,7 +344,9 @@ namespace QuicTrace
 
             public uint ProcessId { get; }
 
-            public ulong PacketSend = 0;
+            public ulong BatchSent = 0;
+
+            public List<QuicPacket> Packets = new List<QuicPacket> { };
 
             internal QuicPacketBatch(ulong pointer, uint processId)
             {
@@ -315,11 +372,13 @@ namespace QuicTrace
 
             public QuicPacketBatch? Batch = null;
 
+            public List<QuicStreamRequest> Streams = new List<QuicStreamRequest> { };
+
+            public ulong PacketCreate = 0;
             public ulong PacketEncrypt = 0;
             public ulong PacketFinalize = 0;
             public ulong PacketReceive = 0;
             public ulong PacketDecrypt = 0;
-            public ulong PacketRead = 0;
 
             internal QuicPacket(ulong pointer, uint processId)
             {
@@ -350,6 +409,15 @@ namespace QuicTrace
             public QuicPacket? SendPacket = null;
 
             public QuicPacket? RecvPacket = null;
+
+            public ulong StreamAlloc = 0;
+            public ulong StreamCreate = 0;
+            public ulong StreamSend = 0;
+            public ulong StreamDelete = 0;
+            public ulong PacketWrite = 0;
+            public ulong PacketRead = 0;
+            public ulong AppRecv = 0;
+            public ulong AppRecvComplete = 0;
 
             internal QuicStreamRequest(ulong pointer, uint processId)
             {
@@ -384,8 +452,6 @@ namespace QuicTrace
             var ClientRequests = new List<RequestTiming>();
             var ServerRequests = new List<RequestTiming>();
 
-            //Console.WriteLine("StreamAlloc, PacketWrite, PacketEncrypt, PacketFinalize, PacketSend, PacketReceive, PacketDecrypt, PacketRead, StreamFlush, StreamDelete");
-
             foreach (var quicState in quicStates)
             {
                 foreach (var evt in quicState.Events)
@@ -395,9 +461,9 @@ namespace QuicTrace
                         case QuicEventId.ConnScheduleState:
                         {
                             var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Conn.LastProcessingState = (evt as QuicConnectionScheduleStateEvent)!.ScheduleState;
-                            Conn.LastProcessingTime = (ulong)evt.TimeStamp.ToNanoseconds;
-                            //Console.WriteLine("ConnScheduleState {0} {1}", evt.ObjectPointer, Conn.LastProcessingState);
+                            Conn.SchedulingState = (evt as QuicConnectionScheduleStateEvent)!.ScheduleState;
+                            Conn.LastScheduleTime = (ulong)evt.TimeStamp.ToNanoseconds;
+                            //Console.WriteLine("ConnScheduleState {0} {1}", evt.ObjectPointer, Conn.SchedulingState);
                             break;
                         }
                         case QuicEventId.ConnSourceCidAdded:
@@ -430,31 +496,40 @@ namespace QuicTrace
                         {
                             //Console.WriteLine("StreamAlloc {0}", evt.ObjectPointer);
                             var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Stream.Timings.StreamAlloc = (ulong)evt.TimeStamp.ToNanoseconds;
-                            if (Stream.Timings.Connection == null)
-                            {
-                                Stream.Timings.Connection = ConnSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamAllocEvent)!.Connection, evt.ProcessId));
-                                //Console.WriteLine("Conn Set {0}", evt.ObjectPointer);
-                            }
+                            if (Stream.Timings.EncounteredError) break;
+
+                            Stream.Timings.Connection = ConnSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamAllocEvent)!.Connection, evt.ProcessId));
+                            //Console.WriteLine("Set Conn {0}", (evt as QuicStreamAllocEvent)!.Connection);
+                            Stream.StreamAlloc = (ulong)evt.TimeStamp.ToNanoseconds;
+                            Stream.Timings.LastStateChangeTime = (ulong)evt.TimeStamp.ToNanoseconds;
                             break;
                         }
                         case QuicEventId.StreamCreated:
                         {
                             //Console.WriteLine("StreamCreated {0}", evt.ObjectPointer);
-                            var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
                             Stream.Timings.StreamID = (evt as QuicStreamCreatedEvent)!.StreamID;
-                            //Stream.Timings.StreamAlloc = (ulong)evt.TimeStamp.ToNanoseconds;
-                            if (Stream.Timings.Connection == null)
-                            {
-                                Stream.Timings.Connection = ConnSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamCreatedEvent)!.Connection, evt.ProcessId));
-                                //Console.WriteLine("Conn Set {0}", evt.ObjectPointer);
-                            }
+                            Stream.Timings.IsServer = (evt as QuicStreamCreatedEvent)!.IsLocalOwned == 0;
+                            Stream.StreamCreate = (ulong)evt.TimeStamp.ToNanoseconds;
                             break;
                         }
-                        case QuicEventId.PacketBatchCreate:
+                        case QuicEventId.StreamAppSend:
                         {
-                            //Console.WriteLine("PacketBatchCreate {0}", evt.ObjectPointer);
-                            PacketBatchSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            //Console.WriteLine("StreamAppSend {0}", evt.ObjectPointer);
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            Stream.StreamSend = (ulong)evt.TimeStamp.ToNanoseconds;
+                            if (Stream.Timings.State == RequestState.Idle)
+                            {
+                                Stream.Timings.UpdateToState(RequestState.QueueSend, (ulong)evt.TimeStamp.ToNanoseconds);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Stream in unexpected state {0} for Send", Stream.Timings.State);
+                            }
                             break;
                         }
                         case QuicEventId.PacketCreated:
@@ -462,63 +537,158 @@ namespace QuicTrace
                             //Console.WriteLine("PacketCreated {0} in {1}", evt.ObjectPointer, (evt as QuicPacketCreatedEvent)!.BatchID);
                             var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
                             Packet.Batch = PacketBatchSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicPacketCreatedEvent)!.BatchID, evt.ProcessId));
+                            Packet.Batch.Packets.Add(Packet);
+                            Packet.PacketCreate = (ulong)evt.TimeStamp.ToNanoseconds;
                             break;
                         }
                         case QuicEventId.StreamWriteFrames:
                         {
                             //Console.WriteLine("StreamWriteFrames {0} in {1}", evt.ObjectPointer, (evt as QuicStreamWriteFramesEvent)!.ID);
-                            var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            if (Stream.Timings.State == RequestState.Write) break; // Already in the Write state
+
+                            if (Stream.Timings.Connection!.SchedulingState != QuicScheduleState.Processing)
+                            {
+                                Console.WriteLine("ERROR: Connection not in processing state for Write");
+                                Stream.Timings.EncounteredError = true;
+                                break;
+                            }
+
+                            Stream.SendPacket = PacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
                             if (Stream.SendPacket == null)
                             {
-                                Stream.Timings.PacketWrite = (ulong)evt.TimeStamp.ToNanoseconds;
-                                Stream.SendPacket = PacketSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
-                                if (Stream.Timings.Connection == null || Stream.Timings.Connection.LastProcessingState != QuicScheduleState.Processing ||
-                                    Stream.Timings.StreamAlloc > Stream.Timings.Connection.LastProcessingTime)
-                                {
-                                    Stream.Timings.ConnectionQueueTime += Stream.Timings.PacketWrite - Stream.Timings.StreamAlloc;
-                                }
-                                else
-                                {
-                                    Stream.Timings.ConnectionQueueTime += Stream.Timings.Connection.LastProcessingTime - Stream.Timings.StreamAlloc;
-                                }
+                                Console.WriteLine("ERROR: Failed to find Packet {0} for Write", (evt as QuicStreamWriteFramesEvent)!.ID);
+                                Stream.Timings.EncounteredError = true;
+                                break;
                             }
+
+                            Stream.SendPacket.Streams.Add(Stream);
+                            Stream.PacketWrite = (ulong)evt.TimeStamp.ToNanoseconds;
+                            if (Stream.Timings.State == RequestState.Send)
+                            {
+                                Stream.Timings.State = RequestState.Frame;
+                            }
+                            else if (Stream.Timings.State == RequestState.Complete)
+                            {
+                                Stream.Timings.State = RequestState.QueueSend;
+                                Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
+                            }
+                            else if (Stream.Timings.State == RequestState.ProcessSend ||
+                                     Stream.Timings.State == RequestState.QueueSend ||
+                                     Stream.Timings.State == RequestState.Idle)
+                            {
+                                Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Stream in unexpected state {0} for Write", Stream.Timings.State);
+                            }
+                            Stream.Timings.UpdateToState(RequestState.Write, (ulong)evt.TimeStamp.ToNanoseconds);
                             break;
                         }
                         case QuicEventId.PacketEncrypt:
                         {
                             //Console.WriteLine("PacketEncrypt {0}", evt.ObjectPointer);
-                            var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Packet = PacketSet.FindActive(new QuicObjectKey(evt));
+                            if (Packet == null)
+                            {
+                                Console.WriteLine("ERROR: Failed to find Packet {0} for Encrypt", (evt as QuicPacketEncryptEvent)!.ID);
+                                break;
+                            }
                             Packet.PacketEncrypt = (ulong)evt.TimeStamp.ToNanoseconds;
+
+                            foreach (var Stream in Packet.Streams)
+                            {
+                                if (Stream.Timings.State != RequestState.Write)
+                                {
+                                    Console.WriteLine("ERROR: Stream in {0} state for Encrypt", Stream.Timings.State);
+                                    Stream.Timings.EncounteredError = true;
+                                    continue;
+                                }
+
+                                Stream.Timings.UpdateToState(RequestState.Encrypt, (ulong)evt.TimeStamp.ToNanoseconds);
+                            }
                             break;
                         }
                         case QuicEventId.PacketFinalize:
                         {
                             //Console.WriteLine("PacketFinalize {0}", evt.ObjectPointer);
-                            var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Packet = PacketSet.FindActive(new QuicObjectKey(evt));
+                            if (Packet == null)
+                            {
+                                Console.WriteLine("ERROR: Failed to find Packet {0} for Finalize", (evt as QuicPacketFinalizeEvent)!.ID);
+                                break;
+                            }
                             Packet.PacketFinalize = (ulong)evt.TimeStamp.ToNanoseconds;
+
+                            foreach (var Stream in Packet.Streams)
+                            {
+                                if (Stream.Timings.State != RequestState.Encrypt)
+                                {
+                                    Console.WriteLine("ERROR: Stream in state {0} for Finalize", Stream.Timings.State);
+                                    Stream.Timings.EncounteredError = true;
+                                    continue;
+                                }
+
+                                if (Stream.Timings.FirstPacketSend == 0)
+                                {
+                                    Stream.Timings.FirstPacketSend = (ulong)evt.TimeStamp.ToNanoseconds;
+                                }
+
+                                Stream.SendPacket = null;
+                                Stream.Timings.UpdateToState(RequestState.Send, (ulong)evt.TimeStamp.ToNanoseconds);
+                            }
                             break;
                         }
-                        case QuicEventId.PacketBatchSend:
+                        case QuicEventId.PacketBatchSent:
                         {
-                            //Console.WriteLine("PacketBatchSend {0}", evt.ObjectPointer);
-                            var Batch = PacketBatchSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Batch.PacketSend = (ulong)evt.TimeStamp.ToNanoseconds;
+                            //Console.WriteLine("PacketBatchSent {0}", evt.ObjectPointer);
+                            var Batch = PacketBatchSet.FindActive(new QuicObjectKey(evt));
+                            if (Batch == null) break;
+                            Batch.BatchSent = (ulong)evt.TimeStamp.ToNanoseconds;
+
+                            foreach (var Packet in Batch.Packets)
+                            {
+                                foreach (var Stream in Packet.Streams)
+                                {
+                                    if (Stream.Timings.State == RequestState.Send)
+                                    {
+                                        if (Stream.Timings.IsServer)
+                                        {
+                                            Stream.Timings.UpdateToState(RequestState.Idle, (ulong)evt.TimeStamp.ToNanoseconds);
+                                        }
+                                        else
+                                        {
+                                            Stream.Timings.UpdateToState(RequestState.AwaitPeer, (ulong)evt.TimeStamp.ToNanoseconds);
+                                        }
+                                    }
+                                    else if (Stream.Timings.State != RequestState.Idle && Stream.Timings.State != RequestState.AwaitPeer)
+                                    {
+                                        Console.WriteLine("ERROR: Stream in state {0} for BatchSent", Stream.Timings.State);
+                                        Stream.Timings.EncounteredError = true;
+                                    }
+                                }
+                            }
                             break;
                         }
                         case QuicEventId.PacketReceive:
                         {
                             //Console.WriteLine("PacketReceive {0}", evt.ObjectPointer);
                             var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            if (Packet.PacketReceive == 0)
-                            {
-                                Packet.PacketReceive = (ulong)evt.TimeStamp.ToNanoseconds;
-                            }
+                            Packet.PacketReceive = (ulong)evt.TimeStamp.ToNanoseconds;
                             break;
                         }
                         case QuicEventId.PacketDecrypt:
                         {
                             //Console.WriteLine("PacketDecrypt {0}", evt.ObjectPointer);
-                            var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Packet = PacketSet.FindActive(new QuicObjectKey(evt));
+                            if (Packet == null)
+                            {
+                                Console.WriteLine("ERROR: Failed to find Packet {0} for Decrypt", (evt as QuicPacketDecryptEvent)!.ID);
+                                break;
+                            }
                             if (Packet.PacketDecrypt == 0)
                             {
                                 Packet.PacketDecrypt = (ulong)evt.TimeStamp.ToNanoseconds;
@@ -528,68 +698,106 @@ namespace QuicTrace
                         case QuicEventId.StreamReceiveFrame:
                         {
                             //Console.WriteLine("StreamReceiveFrame {0} in {1}", evt.ObjectPointer, (evt as QuicStreamReceiveFrameEvent)!.ID);
-                            var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            if (Stream.Timings.PacketRead == 0)
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            Stream.RecvPacket = PacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
+                            if (Stream.RecvPacket == null)
                             {
-                                Stream.Timings.PacketRead = (ulong)evt.TimeStamp.ToNanoseconds;
+                                Console.WriteLine("ERROR: Failed to find Packet {0} for Read", (evt as QuicStreamReceiveFrameEvent)!.ID);
+                                Stream.Timings.EncounteredError = true;
+                                break;
                             }
-                            Stream.RecvPacket = PacketSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
+
+                            if (Stream.RecvPacket.PacketDecrypt == 0)
+                            {
+                                Console.WriteLine("ERROR: No PacketDecrypt for Read");
+                                Stream.Timings.EncounteredError = true;
+                                break;
+                            }
+
+                            if (Stream.Timings.FirstPacketRecv == 0)
+                            {
+                                    Stream.Timings.FirstPacketRecv = Stream.RecvPacket.PacketReceive;
+                            }
+
+                            if (Stream.PacketRead == 0)
+                            {
+                                Stream.PacketRead = (ulong)evt.TimeStamp.ToNanoseconds;
+                                if (Stream.StreamAlloc > Stream.RecvPacket.PacketReceive)
+                                {
+                                    Stream.Timings.State = RequestState.QueueRecv;
+                                    Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
+                                    Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
+                                    Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
+                                }
+                                else
+                                {
+                                    Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive); // TODO - Compare to last processing time
+                                    Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
+                                    Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
+                                }
+                            }
                             break;
                         }
-                        case QuicEventId.StreamFlushRecv:
+                        case QuicEventId.StreamAppReceive:
                         {
-                            //Console.WriteLine("StreamFlushRecv {0}", evt.ObjectPointer);
-                            var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            Stream.Timings.StreamFlush = (ulong)evt.TimeStamp.ToNanoseconds;
+                            //Console.WriteLine("StreamAppReceive {0}", evt.ObjectPointer);
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            Stream.AppRecv = (ulong)evt.TimeStamp.ToNanoseconds;
+                            Stream.Timings.UpdateToState(RequestState.AppRecv, (ulong)evt.TimeStamp.ToNanoseconds);
+                            break;
+                        }
+                        case QuicEventId.StreamAppReceiveComplete:
+                        {
+                            //Console.WriteLine("StreamAppReceiveComplete {0}", evt.ObjectPointer);
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            if (Stream.Timings.StreamID == ulong.MaxValue)
+                            {
+                                Console.WriteLine("ERROR: Missing StreamID for AppRecvComplete");
+                                Stream.Timings.EncounteredError = true;
+                                break;
+                            }
+
+                            Stream.AppRecvComplete = (ulong)evt.TimeStamp.ToNanoseconds;
+                            if (Stream.Timings.IsServer)
+                            {
+                                Stream.Timings.UpdateToState(RequestState.Idle, (ulong)evt.TimeStamp.ToNanoseconds);
+                            }
+                            else
+                            {
+                                Stream.Timings.UpdateToState(RequestState.Complete, (ulong)evt.TimeStamp.ToNanoseconds);
+                            }
                             break;
                         }
                         case QuicEventId.StreamDestroyed:
                         {
                             //Console.WriteLine("StreamDestroyed {0}", evt.ObjectPointer);
-                            var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
-                            if (Stream.SendPacket == null)
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            if (Stream.Timings.StreamID == ulong.MaxValue)
                             {
-                                Console.WriteLine("Missing send packet");
+                                Console.WriteLine("ERROR: Missing StreamID for StreamDestroyed");
+                                Stream.Timings.EncounteredError = true;
                                 break;
                             }
-                            if (Stream.SendPacket.Batch == null)
+
+                            Stream.Timings.UpdateToState(RequestState.Idle, (ulong)evt.TimeStamp.ToNanoseconds);
+
+                            if (Stream.Timings.IsServer)
                             {
-                                Console.WriteLine("Missing send packet batch");
-                                break;
+                                //Console.WriteLine("Added server-side request");
+                                ServerRequests.Add(Stream.Timings);
                             }
-                            if (Stream.RecvPacket == null)
+                            else
                             {
-                                Console.WriteLine("Missing recv packet");
-                                break;
-                            }
-                            if (Stream.Timings.Connection == null)
-                            {
-                                Console.WriteLine("Missing connection");
-                                break;
-                            }
-                            /*if (Stream.Timings.Connection.Peer == null)
-                            {
-                                Console.WriteLine("Missing connection peer");
-                                break;
-                            }*/
-                            Stream.Timings.PacketEncrypt = Stream.SendPacket.PacketEncrypt;
-                            Stream.Timings.PacketFinalize = Stream.SendPacket.PacketFinalize;
-                            Stream.Timings.PacketSend = Stream.SendPacket.Batch.PacketSend;
-                            Stream.Timings.PacketReceive = Stream.RecvPacket.PacketReceive;
-                            Stream.Timings.PacketDecrypt = Stream.RecvPacket.PacketDecrypt;
-                            Stream.Timings.StreamDelete = (ulong)evt.TimeStamp.ToNanoseconds;
-                            if (!Stream.Timings.IsIncomplete)
-                            {
-                                if (Stream.Timings.IsServer)
-                                {
-                                    //Console.WriteLine("Added server-side request");
-                                    ServerRequests.Add(Stream.Timings);
-                                }
-                                else
-                                {
-                                    //Console.WriteLine("Added client-side request");
-                                    ClientRequests.Add(Stream.Timings);
-                                }
+                                //Console.WriteLine("Added client-side request");
+                                ClientRequests.Add(Stream.Timings);
                             }
                             break;
                         }
@@ -611,18 +819,29 @@ namespace QuicTrace
             var ServerDict = ServerRequests.ToDictionary(x => ( x.Connection!.Pointer, x.StreamID ) );
             foreach (var timing in ClientRequests)
             {
-                if (timing.Connection!.Peer != null &&
-                    ServerDict.TryGetValue(( timing.Connection!.Peer.Pointer, timing.StreamID ), out var peer))
+                if (timing.Connection!.Peer == null)
+                {
+                    Console.WriteLine("WARNING: Missing connection peer!");
+                }
+                else if(!ServerDict.TryGetValue(( timing.Connection!.Peer.Pointer, timing.StreamID ), out var peer))
+                {
+                    Console.WriteLine("WARNING: Cannot find matching peer timings!");
+                }
+                else
                 {
                     timing.Peer = peer;
                     peer.Peer = timing;
                     //Console.WriteLine("Request Peer Set {0}", timing.StreamID);
+
+                    var PeerResponseTime = timing.Peer.FirstPacketSend - timing.Peer.FirstPacketRecv;
+                    timing.Times[(int)RequestState.Udp] = timing.Times[(int)RequestState.AwaitPeer] - PeerResponseTime;
+                    timing.Times[(int)RequestState.AwaitPeer] = PeerResponseTime;
                 }
             }
 
-            var sortedRequests = ClientRequests.OrderBy(t => t.Latency);
+            var sortedRequests = ClientRequests.OrderBy(t => t.TotalTime);
 
-            var queueTimes = ClientRequests.OrderBy(t => t.QueueTime);
+            /*var queueTimes = ClientRequests.OrderBy(t => t.QueueTime);
             var writeTimes = ClientRequests.OrderBy(t => t.WriteTime);
             var encryptTimes = ClientRequests.OrderBy(t => t.EncryptTime);
             var finalizeTimes = ClientRequests.OrderBy(t => t.FinalizeTime);
@@ -631,25 +850,27 @@ namespace QuicTrace
             var recvTimes = ClientRequests.OrderBy(t => t.RecvTime);
             var decryptTimes = ClientRequests.OrderBy(t => t.DecryptTime);
             var readTimes = ClientRequests.OrderBy(t => t.ReadTime);
-            var flushTimes = ClientRequests.OrderBy(t => t.FlushTime);
+            var flushTimes = ClientRequests.OrderBy(t => t.FlushTime);*/
 
-            Console.WriteLine("Total, Queue, Write, Encrypt, Finalize, Peer, Udp, Receive, Decrypt, Read, Flush");
+            RequestTiming.WriteCsvHeader();
             foreach (var timing in sortedRequests)
             {
-                timing.WriteLine2();
+                timing.WriteCsv();
             }
-            Console.WriteLine("");
+            Console.WriteLine();
 
-            Console.WriteLine("Percentile, Total, Queue, Write, Encrypt, Finalize, Peer, Udp, Receive, Decrypt, Read, Flush");
+            Console.Write("Percentile,");
+            RequestTiming.WriteCsvHeader();
             var Percentiles = new List<double>() { 0, 50, 90, 99, 99.9, 99.99, 99.999 };
             foreach (var percentile in Percentiles)
             {
                 var t = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
                 Console.Write("{0}th,", percentile);
-                t.WriteLine2();
+                t.WriteCsv();
             }
+            Console.WriteLine();
 
-            Console.WriteLine("\nPercentile, Queue, Write, Encrypt, Finalize, Peer, Udp, Recv, Decrypt, Read, Flush");
+            /*Console.WriteLine("\nPercentile, Queue, Write, Encrypt, Finalize, Peer, Udp, Recv, Decrypt, Read, Flush");
             foreach (var percentile in Percentiles)
             {
                 var i = (int)((clientRequestCount * percentile) / 100);
@@ -666,7 +887,7 @@ namespace QuicTrace
                     decryptTimes.ElementAt(i).DecryptTime,
                     readTimes.ElementAt(i).ReadTime,
                     flushTimes.ElementAt(i).FlushTime);
-            }
+            }*/
         }
 
         static void RunCommand(QuicState[] quicStates, string[] args)
