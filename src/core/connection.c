@@ -5022,13 +5022,14 @@ QuicConnRecvPostProcessing(
             // sent back out.
             //
 
-            if (PeerUpdatedCid || (*Path)->DestCid == NULL) {
+            if ((*Path)->DestCid == NULL ||
+                (PeerUpdatedCid && (*Path)->DestCid->CID.Length != 0)) {
                 //
                 // TODO - What if the peer (client) only sends a single CID and
                 // rebinding happens? Should we support using the same CID over?
                 //
                 QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
-                if (NewDestCid== NULL) {
+                if (NewDestCid == NULL) {
                     QuicTraceEvent(
                         ConnError,
                         "[conn][%p] ERROR, %s.",
