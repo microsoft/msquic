@@ -46,20 +46,22 @@ QuicTestPrimeResumption(
     *ResumptionTicket = nullptr;
 
     struct PrimeResumption {
-        _Function_class_(NEW_CONNECTION_CALLBACK) static bool
-        ListenerAccept(_In_ TestListener* /* Listener */, _In_ HQUIC ConnectionHandle) {
-            auto NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
-            if (NewConnection == nullptr || !NewConnection->IsValid()) {
-                TEST_FAILURE("Failed to accept new TestConnection.");
-                delete NewConnection;
-                return false;
+        CxPlatEvent ShutdownEvent;
+        MsQuicConnection* Connection {nullptr};
+
+        static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+            PrimeResumption* Ctx = static_cast<PrimeResumption*>(Context);
+            Ctx->Connection = Conn;
+            if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+                Ctx->Connection = nullptr;
+                Ctx->ShutdownEvent.Set();
             }
-            NewConnection->SetAutoDelete();
-            return true;
+            return QUIC_STATUS_SUCCESS;
         }
     };
 
-    TestListener Listener(Registration, PrimeResumption::ListenerAccept, ServerConfiguration);
+    PrimeResumption Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PrimeResumption::ConnCallback, &Context);
     TEST_TRUE(Listener.IsValid());
 
     QuicAddr ServerLocalAddr;
@@ -83,7 +85,10 @@ QuicTestPrimeResumption(
             }
         }
 
-        Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        TEST_NOT_EQUAL(nullptr, Context.Connection);
+        Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        Context.Connection->Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
+        Context.ShutdownEvent.WaitTimeout(2000);
     }
 }
 
