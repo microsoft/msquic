@@ -85,9 +85,9 @@ namespace QuicTrace
                 var info = new EngineCreateInfo(dataSources.AsReadOnly());
                 using var runtime = Engine.Create(info);
                 runtime.EnableCooker(QuicEventCooker.CookerPath);
-                Console.WriteLine("Processing...");
+                //Console.Write("Processing {0}...", filePath);
                 var results = runtime.Process();
-                Console.WriteLine("Done.\n");
+                //Console.WriteLine("Done.\n");
 
                 //
                 // Return our 'cooked' data.
@@ -208,13 +208,20 @@ namespace QuicTrace
             //
             // Triggers a state change and updates variables accordingly.
             //
-            public void UpdateToState(RequestState state, ulong time)
+            public void UpdateToState(RequestState state, ulong time, bool allowPrevious = false)
             {
                 if (EncounteredError) return;
                 if (time < LastStateChangeTime)
                 {
-                    Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, state);
-                    EncounteredError = true;
+                    if (allowPrevious)
+                    {
+                        State = state; // Just treat it as if we entered this new state instead of the old one
+                    }
+                    else
+                    {
+                        Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, state);
+                        EncounteredError = true;
+                    }
                     return;
                 }
                 Times[(int)State] += (time - LastStateChangeTime);
@@ -280,9 +287,9 @@ namespace QuicTrace
             //
             // Writes the header for the CSV data.
             //
-            public static void WriteCsvHeader()
+            public static void WriteCsvHeader(bool withTotal = true)
             {
-                Console.Write("Total");
+                if (withTotal) Console.Write("Total");
                 foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
                 {
                     if (state == RequestState.COUNT) break;
@@ -569,28 +576,18 @@ namespace QuicTrace
 
                             if (Stream.Timings.State == RequestState.QueueSend)
                             {
-                                if (Stream.Timings.Connection.LastScheduleTime < Stream.Timings.LastStateChangeTime)
-                                {
-                                    Stream.Timings.State = RequestState.ProcessSend;
-                                }
-                                else
-                                {
-                                    Stream.Timings.UpdateToState(RequestState.ProcessSend, Stream.Timings.Connection.LastScheduleTime);
-                                }
+                                Stream.Timings.UpdateToState(RequestState.ProcessSend, Stream.Timings.Connection.LastScheduleTime, true);
                                 Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
                             }
                             else if (Stream.Timings.State == RequestState.Send)
                             {
                                 Stream.Timings.State = RequestState.Frame;
                             }
-                            else if (Stream.Timings.State == RequestState.Complete)
-                            {
-                                Stream.Timings.State = RequestState.QueueSend;
-                                Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
-                            }
-                            else if (Stream.Timings.State == RequestState.ProcessSend ||
+                            else if (Stream.Timings.State == RequestState.Complete ||
+                                     Stream.Timings.State == RequestState.AwaitPeer ||
                                      Stream.Timings.State == RequestState.Idle)
                             {
+                                Stream.Timings.State = RequestState.ProcessSend; // TODO - What state should we consider this?
                                 Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
                             }
                             else
@@ -737,33 +734,17 @@ namespace QuicTrace
                             {
                                 Stream.PacketRead = (ulong)evt.TimeStamp.ToNanoseconds;
                                 if (Stream.StreamAlloc > Stream.RecvPacket.PacketReceive)
-                                    {
-                                    if (Stream.Timings.Connection!.LastScheduleTime < Stream.RecvPacket.PacketReceive)
-                                    {
-                                        Stream.Timings.State = RequestState.ProcessRecv;
-                                        Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
-                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.RecvPacket.PacketReceive);
-                                    }
-                                    else
-                                    {
-                                        Stream.Timings.State = RequestState.QueueRecv;
-                                        Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
-                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime);
-                                    }
+                                {
+                                    Stream.Timings.State = RequestState.QueueRecv;
+                                    Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
+                                    Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime, true);
                                     Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
                                     Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
                                 }
                                 else
                                 {
-                                    if (Stream.Timings.Connection!.LastScheduleTime < Stream.RecvPacket.PacketReceive)
-                                    {
-                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.RecvPacket.PacketReceive);
-                                    }
-                                    else
-                                    {
-                                        Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive);
-                                        Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime);
-                                    }
+                                    Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive, true);
+                                    Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime, true);
                                     Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
                                     Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
                                 }
@@ -838,13 +819,12 @@ namespace QuicTrace
 
             var clientRequestCount = ClientRequests.Count;
             var serverRequestCount = ServerRequests.Count;
-            Console.WriteLine("{0} client and {1} server compelete requests found.\n", clientRequestCount, serverRequestCount);
-
             if (clientRequestCount == 0)
             {
-                Console.WriteLine("No complete client requests!");
+                Console.WriteLine("No complete client requests! Found {0} server requests.", serverRequestCount);
                 return;
             }
+            Console.WriteLine("{0} client and {1} server complete requests found.\n", clientRequestCount, serverRequestCount);
 
             var ServerDict = ServerRequests.ToDictionary(x => ( x.Connection!.Pointer, x.StreamID ) );
             foreach (var timing in ClientRequests)
@@ -864,6 +844,10 @@ namespace QuicTrace
                     //Console.WriteLine("Request Peer Set {0}", timing.StreamID);
 
                     var PeerResponseTime = timing.Peer.FirstPacketSend - timing.Peer.FirstPacketRecv;
+                    if (PeerResponseTime > timing.Times[(int)RequestState.AwaitPeer])
+                    {
+                        PeerResponseTime = timing.Times[(int)RequestState.AwaitPeer];
+                    }
                     timing.Times[(int)RequestState.Udp] = timing.Times[(int)RequestState.AwaitPeer] - PeerResponseTime;
                     timing.Times[(int)RequestState.AwaitPeer] = PeerResponseTime;
                 }
@@ -871,23 +855,12 @@ namespace QuicTrace
 
             var sortedRequests = ClientRequests.OrderBy(t => t.TotalTime);
 
-            /*var queueTimes = ClientRequests.OrderBy(t => t.QueueTime);
-            var writeTimes = ClientRequests.OrderBy(t => t.WriteTime);
-            var encryptTimes = ClientRequests.OrderBy(t => t.EncryptTime);
-            var finalizeTimes = ClientRequests.OrderBy(t => t.FinalizeTime);
-            var peerTimes = ClientRequests.OrderBy(t => t.PeerTime);
-            var udpTimes = ClientRequests.OrderBy(t => t.UdpTime);
-            var recvTimes = ClientRequests.OrderBy(t => t.RecvTime);
-            var decryptTimes = ClientRequests.OrderBy(t => t.DecryptTime);
-            var readTimes = ClientRequests.OrderBy(t => t.ReadTime);
-            var flushTimes = ClientRequests.OrderBy(t => t.FlushTime);*/
-
-            RequestTiming.WriteCsvHeader();
+            /*RequestTiming.WriteCsvHeader();
             foreach (var timing in sortedRequests)
             {
                 timing.WriteCsv();
             }
-            Console.WriteLine();
+            Console.WriteLine();*/
 
             Console.Write("Percentile,");
             RequestTiming.WriteCsvHeader();
@@ -900,24 +873,27 @@ namespace QuicTrace
             }
             Console.WriteLine();
 
-            /*Console.WriteLine("\nPercentile, Queue, Write, Encrypt, Finalize, Peer, Udp, Recv, Decrypt, Read, Flush");
+            var layerTimes = new List<IOrderedEnumerable<RequestTiming>>();
+            foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
+            {
+                if (state == RequestState.COUNT) break;
+                layerTimes.Add(ClientRequests.OrderBy(t => t.Times[(int)state]));
+            }
+
+            Console.Write("Percentile");
+            RequestTiming.WriteCsvHeader(false);
             foreach (var percentile in Percentiles)
             {
                 var i = (int)((clientRequestCount * percentile) / 100);
-                Console.WriteLine(
-                    "{0}th,{1},{2},{3},{4},{5},{6},{7},{8},{9},{10}",
-                    percentile,
-                    queueTimes.ElementAt(i).QueueTime,
-                    writeTimes.ElementAt(i).WriteTime,
-                    encryptTimes.ElementAt(i).EncryptTime,
-                    finalizeTimes.ElementAt(i).FinalizeTime,
-                    peerTimes.ElementAt(i).PeerTime,
-                    udpTimes.ElementAt(i).UdpTime,
-                    recvTimes.ElementAt(i).RecvTime,
-                    decryptTimes.ElementAt(i).DecryptTime,
-                    readTimes.ElementAt(i).ReadTime,
-                    flushTimes.ElementAt(i).FlushTime);
-            }*/
+                Console.Write("{0}th", percentile);
+                foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
+                {
+                    if (state == RequestState.COUNT) break;
+                    Console.Write(",{0}", layerTimes[(int)state].ElementAt(i).Times[(int)state]);
+                }
+                Console.WriteLine();
+            }
+            Console.WriteLine();
         }
 
         static void RunCommand(QuicState[] quicStates, string[] args)
