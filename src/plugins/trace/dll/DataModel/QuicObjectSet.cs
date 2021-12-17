@@ -36,17 +36,15 @@ namespace QuicTrace.DataModel
             }
         }
 
-#pragma warning disable CA1062 // Validate arguments of public methods
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
         public QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
-#pragma warning restore CA1062 // Validate arguments of public methods
         {
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1801:Review unused parameters", Justification = "<Pending>")]
         public QuicObjectKey(int pointerSize, ulong pointer, uint processId)
         {
             Pointer = pointer;
-            ProcessId = /* IsKernelMemory(pointerSize, pointer) ? 4 : */processId;
+            ProcessId = IsKernelMemory(pointerSize, pointer) ? 4 : processId;
         }
 
         public override bool Equals(object? obj)

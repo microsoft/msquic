@@ -229,28 +229,6 @@ namespace QuicTrace
                 State = state;
             }
 
-            /*
-            public ulong TotalTime = 0;                 // Alloc to Delete. Overlaps all other timings below.
-
-            public ulong StreamInitTime = 0;            // Stream Alloc to Stream App Send
-            public ulong StreamSendQueueTime = 0;       // Stream App Send to Processing
-            public ulong ConnSendProcessingTime = 0;    // Processing to FIRST Packet Create
-            public ulong PacketCreationTime = 0;        // [Packet Create or LAST Packet Finalize] to FIRST Stream Write
-            public ulong StreamWriteTime = 0;           // FIRST Stream Write to Packet Encrypt
-            public ulong PacketEncryptionTime = 0;      // Packet Encrypt to Packet Finalize
-            public ulong PacketSendTime = 0;            // LAST Packet Finalize to Batch Sent
-
-            public ulong PeerProcessingTime = 0;        // LAST Batch Sent to FIRST Packet Receive
-                                                        // TODO - Expand this out into separate layers
-
-            public ulong PacketReceiveQueueTime = 0;    // Packet Receive to Processing
-            public ulong ConnRecvProcessingTime = 0;    // Processing to Packet Decrypt
-            public ulong PacketDecryptionTime = 0;      // Packet Decrypt to FIRST Stream Read
-            public ulong StreamReadTime = 0;            // FIRST Stream Read to [NEXT Packet Decrypt, or Stream App Recv]
-            public ulong StreamAppRecvTime = 0;         // Stream App Recv to Stream App Recv Complete
-            public ulong StreamCleanupTime = 0;         // LAST Stream App Recv Complete to Stream Delete
-            */
-
             //
             // Returns the sum of all the calculated times for individual layers.
             //
