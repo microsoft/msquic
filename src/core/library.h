@@ -66,6 +66,10 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     CXPLAT_HASH* ResetTokenHash;
     CXPLAT_LOCK ResetTokenLock;
 
+    uint64_t SendBatchId;
+    uint64_t SendPacketId;
+    uint64_t ReceivePacketId;
+
     //
     // Per-processor performance counters.
     //

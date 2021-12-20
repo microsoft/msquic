@@ -457,6 +457,29 @@ tracepoint(CLOG_STREAM_SEND_C, StreamSendState , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_StreamWriteFrames
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamWriteFrames
+// [strm][%p] Writing frames to packet %llu
+// QuicTraceEvent(
+        StreamWriteFrames,
+        "[strm][%p] Writing frames to packet %llu",
+        Stream,
+        Builder->Metadata->PacketId);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = Builder->Metadata->PacketId
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_StreamWriteFrames(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_SEND_C, StreamWriteFrames , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_StreamSendState
 
 

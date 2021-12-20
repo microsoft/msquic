@@ -582,6 +582,27 @@ tracepoint(CLOG_BINDING_C, BindingExecOper , arg2, arg3);\
 
 
 
+#ifndef _clog_3_ARGS_TRACE_PacketReceive
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketReceive
+// [pack][%llu] Received
+// QuicTraceEvent(
+            PacketReceive,
+            "[pack][%llu] Received",
+            Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_PacketReceive(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_BINDING_C, PacketReceive , arg2);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

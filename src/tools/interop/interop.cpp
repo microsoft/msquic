@@ -340,7 +340,7 @@ class InteropConnection {
     char* NegotiatedAlpn;
     const uint8_t* ResumptionTicket;
     uint32_t ResumptionTicketLength;
-    CXPLAT_TLS_SECRETS TlsSecrets;
+    QUIC_TLS_SECRETS TlsSecrets;
     const char* SslKeyLogFile;
 public:
     bool VersionUnsupported : 1;

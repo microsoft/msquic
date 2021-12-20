@@ -1089,6 +1089,14 @@ MsQuicStreamSend(
         goto Exit;
     }
 
+    QuicTraceEvent(
+        StreamAppSend,
+        "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
+        Stream,
+        TotalLength,
+        BufferCount,
+        Flags);
+
     SendRequest->Next = NULL;
     SendRequest->Buffers = Buffers;
     SendRequest->BufferCount = BufferCount;

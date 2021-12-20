@@ -402,67 +402,6 @@ tracepoint(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed , arg1);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_ConnLossDetectionTimerCancel
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLossDetectionTimerCancel
-// [conn][%p] Cancelling loss detection timer.
-// QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnLossDetectionTimerCancel(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerCancel , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnLossDetectionTimerCancel
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLossDetectionTimerCancel
-// [conn][%p] Cancelling loss detection timer.
-// QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnLossDetectionTimerCancel(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnLossDetectionTimerCancel
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLossDetectionTimerCancel
-// [conn][%p] Cancelling loss detection timer.
-// QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnLossDetectionTimerCancel(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
 #ifndef _clog_6_ARGS_TRACE_ConnLossDetectionTimerSet
 
 

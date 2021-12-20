@@ -91,7 +91,6 @@ option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build" OFF)
 option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
-option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
@@ -271,10 +270,6 @@ endif()
 
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
-
-if(QUIC_TLS_SECRETS_SUPPORT)
-    list(APPEND QUIC_COMMON_DEFINES CXPLAT_TLS_SECRETS_SUPPORT=1)
-endif()
 
 if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)

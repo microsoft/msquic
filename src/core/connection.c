@@ -1170,7 +1170,14 @@ QuicConnTimerSet(
     _In_ uint64_t Delay
     )
 {
-    uint64_t NewExpirationTime = CxPlatTimeUs64() + MS_TO_US(Delay);
+    const uint64_t NewExpirationTime = CxPlatTimeUs64() + MS_TO_US(Delay);
+
+    QuicTraceEvent(
+        ConnSetTimer,
+        "[conn][%p] Setting %hhu, delay=%llu us",
+        Connection,
+        (uint8_t)Type,
+        Delay);
 
     //
     // Find the current and new index in the timer array for this timer.
@@ -1244,6 +1251,12 @@ QuicConnTimerCancel(
         //
 
         if (Connection->Timers[i].Type == Type) {
+
+            QuicTraceEvent(
+                ConnCancelTimer,
+                "[conn][%p] Canceling %hhu",
+                Connection,
+                (uint8_t)Type);
 
             if (Connection->Timers[i].ExpirationTime != UINT64_MAX) {
 
@@ -1325,20 +1338,11 @@ QuicConnTimerExpired(
     }
 
     for (uint32_t j = 0; j < i; ++j) {
-        const char* TimerNames[] = {
-            "PACING",
-            "ACK_DELAY",
-            "LOSS_DETECTION",
-            "KEEP_ALIVE",
-            "IDLE",
-            "SHUTDOWN",
-            "INVALID"
-        };
-        QuicTraceLogConnVerbose(
-            TimerExpired,
+        QuicTraceEvent(
+            ConnExpiredTimer,
+            "[conn][%p] %hhu expired",
             Connection,
-            "%s timer expired",
-            TimerNames[Temp[j].Type]);
+            (uint8_t)Temp[j].Type);
         if (Temp[j].Type == QUIC_CONN_TIMER_ACK_DELAY) {
             QuicTraceEvent(
                 ConnExecTimerOper,
@@ -3864,10 +3868,16 @@ QuicConnRecvDecryptAndAuthenticate(
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
 
+    CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
+    QuicTraceEvent(
+        PacketDecrypt,
+        "[pack][%llu] Decrypting",
+        Packet->PacketId);
+
     uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(
         Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->Iv,
-        (uint8_t*) &Packet->PacketNumber,
+        (uint8_t*)&Packet->PacketNumber,
         Iv);
 
     //
@@ -4417,7 +4427,7 @@ QuicConnRecvFrames(
                 QUIC_STATUS Status =
                     QuicStreamRecv(
                         Stream,
-                        Packet->EncryptedWith0Rtt,
+                        Packet,
                         FrameType,
                         PayloadLength,
                         Payload,
@@ -5160,6 +5170,7 @@ QuicConnRecvDatagramBatch(
         CXPLAT_DBG_ASSERT(Datagrams[i]->Allocated);
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = CxPlatDataPathRecvDataToRecvPacket(Datagrams[i]);
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
@@ -5259,6 +5270,7 @@ QuicConnRecvDatagrams(
         CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CXPLAT_DBG_ASSERT(Packet != NULL);
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
 
         CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
         Packet->ReleaseDeferred = FALSE;
@@ -6089,6 +6101,23 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_TLS_SECRETS:
+
+        if (BufferLength != sizeof(QUIC_TLS_SECRETS) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->TlsSecrets = (QUIC_TLS_SECRETS*)Buffer;
+        CxPlatZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     //
     // Private
     //
@@ -6169,27 +6198,6 @@ QuicConnParamSet(
             Connection->TestTransportParameter.Length);
 
         Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_TLS_SECRETS:
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
-
-        if (BufferLength != sizeof(CXPLAT_TLS_SECRETS) || Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (Connection->State.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->TlsSecrets = (CXPLAT_TLS_SECRETS*)Buffer;
-        CxPlatZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
-        Status = QUIC_STATUS_SUCCESS;
-#else
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-#endif
         break;
 
     case QUIC_PARAM_CONN_KEEP_ALIVE_PADDING:
