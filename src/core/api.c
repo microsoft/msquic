@@ -111,8 +111,9 @@ MsQuicConnectionClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Connection = (QUIC_CONNECTION*)Handle;
 
-    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
     CXPLAT_TEL_ASSERT(!Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
 
     if (IsWorkerThread && Connection->State.HandleClosed) {
         //
@@ -124,9 +125,9 @@ MsQuicConnectionClose(
         goto Error;
     }
 
-    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -704,8 +705,11 @@ MsQuicStreamClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
     CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+    Connection = Stream->Connection;
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection, !Stream->Flags.HandleClosed);
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
 
     if (IsWorkerThread && Stream->Flags.HandleClosed) {
         //
@@ -718,10 +722,6 @@ MsQuicStreamClose(
     }
 
     CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
-
-    Connection = Stream->Connection;
-
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
     if (IsWorkerThread) {
         //
