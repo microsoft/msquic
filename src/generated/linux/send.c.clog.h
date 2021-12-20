@@ -75,47 +75,6 @@ tracepoint(CLOG_SEND_C, ClearSendFlags , arg1, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_CancelAckDelayTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            QuicSendGetConnection(Send),
-            "Canceling ACK_DELAY timer");
-// arg1 = arg1 = QuicSendGetConnection(Send)
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_CancelAckDelayTimer(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_SEND_C, CancelAckDelayTimer , arg1);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CancelAckDelayTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            Connection,
-            "Canceling ACK_DELAY timer");
-// arg1 = arg1 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_CancelAckDelayTimer(uniqueId, arg1, encoded_arg_string)\
-
-#endif
-
-
-
-
 #ifndef _clog_5_ARGS_TRACE_ScheduleSendFlags
 
 
@@ -164,49 +123,6 @@ tracepoint(CLOG_SEND_C, RemoveSendFlagsMsg , arg1, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_CancelAckDelayTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-                CancelAckDelayTimer,
-                Connection,
-                "Canceling ACK_DELAY timer");
-// arg1 = arg1 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_CancelAckDelayTimer(uniqueId, arg1, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_FlushSend
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for FlushSend
-// [conn][%p] Flushing send. Allowance=%u bytes
-// QuicTraceLogConnVerbose(
-        FlushSend,
-        Connection,
-        "Flushing send. Allowance=%u bytes",
-        Builder.SendAllowance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Builder.SendAllowance
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_FlushSend(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_SEND_C, FlushSend , arg1, arg3);\
-
-#endif
-
-
-
-
 #ifndef _clog_3_ARGS_TRACE_AmplificationProtectionBlocked
 
 
@@ -222,29 +138,6 @@ tracepoint(CLOG_SEND_C, FlushSend , arg1, arg3);\
 ----------------------------------------------------------*/
 #define _clog_3_ARGS_TRACE_AmplificationProtectionBlocked(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_SEND_C, AmplificationProtectionBlocked , arg1);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SetPacingTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SetPacingTimer
-// [conn][%p] Setting delayed send (PACING) timer for %u ms
-// QuicTraceLogConnVerbose(
-                        SetPacingTimer,
-                        Connection,
-                        "Setting delayed send (PACING) timer for %u ms",
-                        QUIC_SEND_PACING_INTERVAL);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = QUIC_SEND_PACING_INTERVAL
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_SetPacingTimer(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_SEND_C, SetPacingTimer , arg1, arg3);\
 
 #endif
 
@@ -314,6 +207,29 @@ tracepoint(CLOG_SEND_C, StartAckDelayTimer , arg1, arg3);\
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_ConnQueueSendFlush(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_SEND_C, ConnQueueSendFlush , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_ConnFlushSend
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnFlushSend
+// [conn][%p] Flushing Send. Allowance=%u bytes
+// QuicTraceEvent(
+        ConnFlushSend,
+        "[conn][%p] Flushing Send. Allowance=%u bytes",
+        Connection,
+        Builder.SendAllowance);
+// arg2 = arg2 = Connection
+// arg3 = arg3 = Builder.SendAllowance
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_ConnFlushSend(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_SEND_C, ConnFlushSend , arg2, arg3);\
 
 #endif
 

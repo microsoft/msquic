@@ -980,29 +980,6 @@ tracepoint(CLOG_CONNECTION_C, ZeroLengthCidRetire , arg1);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_TimerExpired
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TimerExpired
-// [conn][%p] %s timer expired
-// QuicTraceLogConnVerbose(
-            TimerExpired,
-            Connection,
-            "%s timer expired",
-            TimerNames[Temp[j].Type]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TimerNames[Temp[j].Type]
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TimerExpired(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, TimerExpired , arg1, arg3);\
-
-#endif
-
-
-
-
 #ifndef _clog_4_ARGS_TRACE_IndicateShutdownByPeer
 
 
@@ -2346,6 +2323,77 @@ tracepoint(CLOG_CONNECTION_C, ConnDestCidRemoved , arg2, arg3, arg4_len, arg4);\
 
 
 
+#ifndef _clog_5_ARGS_TRACE_ConnSetTimer
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnSetTimer
+// [conn][%p] Setting %hhu, delay=%llu us
+// QuicTraceEvent(
+        ConnSetTimer,
+        "[conn][%p] Setting %hhu, delay=%llu us",
+        Connection,
+        (uint8_t)Type,
+        Delay);
+// arg2 = arg2 = Connection
+// arg3 = arg3 = (uint8_t)Type
+// arg4 = arg4 = Delay
+----------------------------------------------------------*/
+#define _clog_5_ARGS_TRACE_ConnSetTimer(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, ConnSetTimer , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_ConnCancelTimer
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnCancelTimer
+// [conn][%p] Canceling %hhu
+// QuicTraceEvent(
+                ConnCancelTimer,
+                "[conn][%p] Canceling %hhu",
+                Connection,
+                (uint8_t)Type);
+// arg2 = arg2 = Connection
+// arg3 = arg3 = (uint8_t)Type
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_ConnCancelTimer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnCancelTimer , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_4_ARGS_TRACE_ConnExpiredTimer
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnExpiredTimer
+// [conn][%p] %hhu expired
+// QuicTraceEvent(
+            ConnExpiredTimer,
+            "[conn][%p] %hhu expired",
+            Connection,
+            (uint8_t)Temp[j].Type);
+// arg2 = arg2 = Connection
+// arg3 = arg3 = (uint8_t)Temp[j].Type
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_ConnExpiredTimer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnExpiredTimer , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_ConnExecTimerOper
 
 
@@ -3062,6 +3110,27 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeStart , arg2);\
 // arg3 = arg3 = sizeof(QUIC_CID) + Packet->DestCidLen
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_PacketDecrypt
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketDecrypt
+// [pack][%llu] Decrypting
+// QuicTraceEvent(
+        PacketDecrypt,
+        "[pack][%llu] Decrypting",
+        Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_PacketDecrypt(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
 
 #endif
 

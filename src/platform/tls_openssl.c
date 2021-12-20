@@ -131,13 +131,11 @@ typedef struct CXPLAT_TLS {
     //
     QUIC_CONNECTION* Connection;
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
     //
-    CXPLAT_TLS_SECRETS* TlsSecrets;
-#endif
+    QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS;
 
@@ -461,7 +459,6 @@ CxPlatTlsSetEncryptionSecretsCallback(
         }
     }
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsContext->TlsSecrets != NULL) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
@@ -501,7 +498,6 @@ CxPlatTlsSetEncryptionSecretsCallback(
             break;
         }
     }
-#endif
 
     return 1;
 }
@@ -1624,9 +1620,7 @@ CxPlatTlsInitialize(
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
-#endif
 
     QuicTraceLogConnVerbose(
         OpenSslContextCreated,

@@ -52,6 +52,11 @@
         <Keyword Value="0xE0000800"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_MsQuicEtw_RPS" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0x00002000"/>
+      </Keywords>
+    </EventProvider>
 
     <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
     <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
@@ -84,6 +89,17 @@
       </Collectors>
     </Profile>
     <Profile Id="Stacks.Light.Memory" Base="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="Memory" DetailLevel="Light"/>
+
+    <Profile Id="RPS.Light.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <EventCollectorId Value="EC_HighVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_MsQuicEtw_RPS" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="RPS.Light.Memory" Base="RPS.Light.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="Memory" DetailLevel="Light"/>
 
     <Profile Id="Performance.Light.File" Name="Performance" Description="Perf related MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>

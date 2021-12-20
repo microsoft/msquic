@@ -101,6 +101,7 @@ typedef struct QUIC_SENT_PACKET_METADATA {
 
     struct QUIC_SENT_PACKET_METADATA *Next;
 
+    uint64_t PacketId;
     uint64_t PacketNumber;
     uint32_t SentTime; // In microseconds
     uint16_t PacketLength;

@@ -86,10 +86,6 @@ QuicSendReset(
     Send->SendFlags = 0;
     Send->LastFlushTime = 0;
     if (Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            QuicSendGetConnection(Send),
-            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(QuicSendGetConnection(Send), QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
@@ -290,10 +286,6 @@ QuicSendSetSendFlag(
         !QuicConnIsClosed(Connection) || IsCloseFrame;
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            Connection,
-            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
@@ -359,10 +351,6 @@ QuicSendUpdateAckState(
             CXPLAT_DBG_ASSERT(!Send->DelayedAckTimerActive);
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK;
         } else if (Send->DelayedAckTimerActive) {
-            QuicTraceLogConnVerbose(
-                CancelAckDelayTimer,
-                Connection,
-                "Canceling ACK_DELAY timer");
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
             Send->DelayedAckTimerActive = FALSE;
         }
@@ -1125,10 +1113,10 @@ QuicSendFlush(
     }
     _Analysis_assume_(Builder.Metadata != NULL);
 
-    QuicTraceLogConnVerbose(
-        FlushSend,
+    QuicTraceEvent(
+        ConnFlushSend,
+        "[conn][%p] Flushing Send. Allowance=%u bytes",
         Connection,
-        "Flushing send. Allowance=%u bytes",
         Builder.SendAllowance);
 
 #if DEBUG
@@ -1174,11 +1162,6 @@ QuicSendFlush(
                     //
                     QuicConnAddOutFlowBlockedReason(
                         Connection, QUIC_FLOW_BLOCKED_PACING);
-                    QuicTraceLogConnVerbose(
-                        SetPacingTimer,
-                        Connection,
-                        "Setting delayed send (PACING) timer for %u ms",
-                        QUIC_SEND_PACING_INTERVAL);
                     QuicConnTimerSet(
                         Connection,
                         QUIC_CONN_TIMER_PACING,

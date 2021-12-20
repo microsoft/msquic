@@ -92,7 +92,7 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -497,12 +497,12 @@ $LocalDataCache = LocalSetup
 
 if ($Record -and $IsWindows) {
     try {
-        wpr.exe -cancel 2> $null
+        wpr.exe -cancel -instancename msquicperf 2> $null
     } catch {
     }
     Invoke-TestCommand -Session $Session -ScriptBlock {
         try {
-            wpr.exe -cancel 2> $null
+            wpr.exe -cancel -instancename msquicperf 2> $null
         } catch {
         }
     }

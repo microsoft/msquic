@@ -146,6 +146,29 @@ tracepoint(CLOG_STREAM_C, IndicateStreamShutdownComplete , arg1, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_StreamAlloc
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamAlloc
+// [strm][%p] Allocated, Conn=%p
+// QuicTraceEvent(
+        StreamAlloc,
+        "[strm][%p] Allocated, Conn=%p",
+        Stream,
+        Connection);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = Connection
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_StreamAlloc(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_C, StreamAlloc , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifndef _clog_3_ARGS_TRACE_StreamDestroyed
 
 
