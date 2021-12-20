@@ -1126,22 +1126,6 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "TimerExpired": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] %s timer expired",
-      "UniqueId": "TimerExpired",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
     "IndicateShutdownByPeer": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER [0x%llx]",
@@ -1814,6 +1798,58 @@
         {
           "DefinationEncoding": "!CID!",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnSetTimer": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Setting %hhu, delay=%llu us",
+      "UniqueId": "ConnSetTimer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnCancelTimer": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Canceling %hhu",
+      "UniqueId": "ConnCancelTimer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnExpiredTimer": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] %hhu expired",
+      "UniqueId": "ConnExpiredTimer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -5412,18 +5448,6 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "ConnLossDetectionTimerCancel": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Cancelling loss detection timer.",
-      "UniqueId": "ConnLossDetectionTimerCancel",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnLossDetectionTimerSet": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
@@ -6220,18 +6244,6 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "CancelAckDelayTimer": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Canceling ACK_DELAY timer",
-      "UniqueId": "CancelAckDelayTimer",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Scheduling flags 0x%x to 0x%x",
@@ -6268,22 +6280,6 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "FlushSend": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Flushing send. Allowance=%u bytes",
-      "UniqueId": "FlushSend",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
     "AmplificationProtectionBlocked": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Cannot send any more because of amplification protection",
@@ -6292,22 +6288,6 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "SetPacingTimer": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Setting delayed send (PACING) timer for %u ms",
-      "UniqueId": "SetPacingTimer",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -6348,6 +6328,22 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queueing send flush, reason=%u",
       "UniqueId": "ConnQueueSendFlush",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnFlushSend": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Flushing Send. Allowance=%u bytes",
+      "UniqueId": "ConnFlushSend",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -11173,10 +11169,6 @@
         "TraceID": "ZeroLengthCidRetire"
       },
       {
-        "UniquenessHash": "b1be65a8-cd8b-15bc-63f4-2505106e5960",
-        "TraceID": "TimerExpired"
-      },
-      {
         "UniquenessHash": "5bda6698-e21b-b6c6-8eeb-1345b5b6fdb5",
         "TraceID": "IndicateShutdownByPeer"
       },
@@ -11347,6 +11339,18 @@
       {
         "UniquenessHash": "8f204a2e-9160-ae42-2cdd-4f8e8eab10c5",
         "TraceID": "ConnDestCidRemoved"
+      },
+      {
+        "UniquenessHash": "6eb1d989-e1ad-a6e1-76cc-26fe4a23a56e",
+        "TraceID": "ConnSetTimer"
+      },
+      {
+        "UniquenessHash": "3cb11d31-f785-9082-29ff-ca3a505762e4",
+        "TraceID": "ConnCancelTimer"
+      },
+      {
+        "UniquenessHash": "337abaeb-0cc0-11c8-523a-e6b816a8a3ed",
+        "TraceID": "ConnExpiredTimer"
       },
       {
         "UniquenessHash": "43def263-b39e-5ace-4ab9-9318c5382766",
@@ -12153,10 +12157,6 @@
         "TraceID": "KeyChangeConfirmed"
       },
       {
-        "UniquenessHash": "ec1df2bc-58d0-6ba3-a0ed-0ea6117c7fe7",
-        "TraceID": "ConnLossDetectionTimerCancel"
-      },
-      {
         "UniquenessHash": "dc75d9a9-d321-f77d-bb01-bf9cbcccfdb5",
         "TraceID": "ConnLossDetectionTimerSet"
       },
@@ -12301,10 +12301,6 @@
         "TraceID": "ClearSendFlags"
       },
       {
-        "UniquenessHash": "5ce88c6c-6ea0-1f73-2a1f-15301e6565c2",
-        "TraceID": "CancelAckDelayTimer"
-      },
-      {
         "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
         "TraceID": "ScheduleSendFlags"
       },
@@ -12313,16 +12309,8 @@
         "TraceID": "RemoveSendFlagsMsg"
       },
       {
-        "UniquenessHash": "4a595158-b864-777b-d90a-dbb944e765ac",
-        "TraceID": "FlushSend"
-      },
-      {
         "UniquenessHash": "908d186e-4adc-6428-393d-cb3f4a90bdb3",
         "TraceID": "AmplificationProtectionBlocked"
-      },
-      {
-        "UniquenessHash": "cd4142bd-57bd-ddd1-d16b-d811201c3d9f",
-        "TraceID": "SetPacingTimer"
       },
       {
         "UniquenessHash": "6068f77b-96f9-706f-e3c0-02193c9c1c2a",
@@ -12335,6 +12323,10 @@
       {
         "UniquenessHash": "1774df63-d849-a89c-4a88-bf2ff1002e15",
         "TraceID": "ConnQueueSendFlush"
+      },
+      {
+        "UniquenessHash": "2b385c1c-47fa-6f41-f11b-97d8b31aca2b",
+        "TraceID": "ConnFlushSend"
       },
       {
         "UniquenessHash": "537b9c54-10f5-965c-b3e5-6e6e5c66dc85",
