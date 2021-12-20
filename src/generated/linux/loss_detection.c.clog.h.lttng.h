@@ -355,25 +355,6 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnLossDetectionTimerCancel
-// [conn][%p] Cancelling loss detection timer.
-// QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerCancel,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnLossDetectionTimerSet
 // [conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)
 // QuicTraceEvent(
