@@ -588,13 +588,11 @@ typedef struct CXPLAT_TLS {
     //
     uint8_t* PeerTransportParams;
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
     //
-    CXPLAT_TLS_SECRETS* TlsSecrets;
-#endif
+    QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS;
 
@@ -1491,9 +1489,7 @@ CxPlatTlsInitialize(
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
-#endif
 
     QuicTraceLogConnVerbose(
         SchannelContextCreated,
@@ -2256,7 +2252,6 @@ CxPlatTlsWriteDataToSchannel(
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2273,7 +2268,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
                         }
                     }
-#endif
                 } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!QuicPacketKeyCreate(
                             TlsContext,
@@ -2289,7 +2283,6 @@ CxPlatTlsWriteDataToSchannel(
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2306,7 +2299,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
                         }
                     }
-#endif
                 }
             }
         }
@@ -2318,7 +2310,6 @@ CxPlatTlsWriteDataToSchannel(
             Result |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
             if (NewOwnTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                 CXPLAT_FRE_ASSERT(!TlsContext->IsServer);
                 if (TlsContext->TlsSecrets != NULL) {
                     TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
@@ -2328,7 +2319,6 @@ CxPlatTlsWriteDataToSchannel(
                         NewOwnTrafficSecrets[i]->TrafficSecretSize);
                     TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
                 }
-#endif
             } else {
                 if (State->WriteKey == QUIC_PACKET_KEY_INITIAL) {
                     if (!QuicPacketKeyCreate(
@@ -2350,7 +2340,6 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2367,7 +2356,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
                         }
                     }
-#endif
                 } else if (State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!TlsContext->IsServer && State->BufferOffsetHandshake == State->BufferOffset1Rtt) {
                         State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
@@ -2390,7 +2378,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                         if (TlsContext->TlsSecrets != NULL) {
                             TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                             if (TlsContext->IsServer) {
@@ -2407,20 +2394,17 @@ CxPlatTlsWriteDataToSchannel(
                                 TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
                             }
                         }
-#endif
                     }
                 }
             }
         }
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
         if (SecStatus == SEC_E_OK) {
             //
             // We're done with the TlsSecrets.
             //
             TlsContext->TlsSecrets = NULL;
         }
-#endif
 
         if (OutputTokenBuffer != NULL && OutputTokenBuffer->cbBuffer > 0) {
             //

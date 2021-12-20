@@ -14,7 +14,7 @@ RUN     chmod +x /src/scripts/install-powershell-docker.sh
 RUN     /src/scripts/install-powershell-docker.sh
 ENV     PATH="/root/.dotnet/tools:${PATH}"
 RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF \
-            -DQUIC_ENABLE_LOGGING=on -DQUIC_TLS_SECRETS_SUPPORT=on \
+            -DQUIC_ENABLE_LOGGING=on \
             -DQUIC_DISABLE_POSIX_GSO=on ..
 RUN     cmake --build .
 
