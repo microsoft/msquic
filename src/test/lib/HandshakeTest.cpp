@@ -55,6 +55,8 @@ QuicTestPrimeResumption(
             if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
                 Ctx->Connection = nullptr;
                 Ctx->ShutdownEvent.Set();
+            } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                MsQuic->ConnectionSendResumptionTicket(Conn->Handle, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
             }
             return QUIC_STATUS_SUCCESS;
         }
