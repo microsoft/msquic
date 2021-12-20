@@ -157,6 +157,7 @@ void QuicTestRegistrationShutdownAfterConnOpenBeforeStart()
             &StatsSize,
             &Stats);
     TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, Status);
+    TEST_TRUE(State.StateEvent.WaitTimeout(2000));
     TEST_EQUAL(1, State.ShutdownCount);
 }
 
