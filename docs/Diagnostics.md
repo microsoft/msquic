@@ -27,7 +27,7 @@ netsh.exe trace stop
 To convert the trace, you can use the following command:
 
 ```
-netsh.exe trace convert quic.etl
+netsh.exe trace convert quic.etl overwrite=yes
 ```
 
 If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. To solve this issue, newer versions of Windows (11 and Server 2022) support a `manpath` flag that can be used to manually specify a manifest. This will likely always be needed for apps using MsQuic in user mode.

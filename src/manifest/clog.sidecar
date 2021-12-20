@@ -111,6 +111,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "StreamAppSend": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
+      "UniqueId": "StreamAppSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -366,6 +390,18 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketReceive": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Received",
+      "UniqueId": "PacketReceive",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -1969,6 +2005,18 @@
       "splitArgs": [
         {
           "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketDecrypt": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Decrypting",
+      "UniqueId": "PacketDecrypt",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg2"
         }
       ],
@@ -6056,6 +6104,46 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "PacketCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Created in batch %llu",
+      "UniqueId": "PacketCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketEncrypt": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Encrypting",
+      "UniqueId": "PacketEncrypt",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketFinalize": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Finalizing",
+      "UniqueId": "PacketFinalize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnPacketSent": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p][TX][%llu] %hhu (%hu bytes)",
@@ -6076,6 +6164,18 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PacketBatchSent": {
+      "ModuleProperites": {},
+      "TraceString": "[pack][%llu] Batch sent",
+      "UniqueId": "PacketBatchSent",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -6900,6 +7000,22 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "StreamAlloc": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Allocated, Conn=%p",
+      "UniqueId": "StreamAlloc",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "StreamDestroyed": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Destroyed",
@@ -7264,14 +7380,42 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "IndicateReceive": {
+    "IndicatePeerSendShutdown": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
-      "UniqueId": "IndicateReceive",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
+      "UniqueId": "IndicatePeerSendShutdown",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "StreamReceiveFrame": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Processing frame in packet %llu",
+      "UniqueId": "StreamReceiveFrame",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "StreamAppReceive": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
+      "UniqueId": "StreamAppReceive",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
         },
         {
           "DefinationEncoding": "llu",
@@ -7286,35 +7430,23 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": "QuicTraceLogStreamVerbose"
+      "macroName": "QuicTraceEvent"
     },
-    "ReceiveComplete": {
+    "StreamAppReceiveComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Recv complete (%llu bytes)",
-      "UniqueId": "ReceiveComplete",
+      "TraceString": "[strm][%p] Receive complete [%llu bytes]",
+      "UniqueId": "StreamAppReceiveComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
+          "MacroVariableName": "arg2"
         },
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "IndicatePeerSendShutdown": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
-      "UniqueId": "IndicatePeerSendShutdown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
+      "macroName": "QuicTraceEvent"
     },
     "IndicateSendShutdownComplete": {
       "ModuleProperites": {},
@@ -7595,6 +7727,22 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "StreamWriteFrames": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Writing frames to packet %llu",
+      "UniqueId": "StreamWriteFrames",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "NotAccepted": {
       "ModuleProperites": {},
@@ -10901,6 +11049,10 @@
         "TraceID": "StreamError"
       },
       {
+        "UniquenessHash": "a35cb953-343e-6914-a737-cd53044edb92",
+        "TraceID": "StreamAppSend"
+      },
+      {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
         "TraceID": "LibraryError"
       },
@@ -10963,6 +11115,10 @@
       {
         "UniquenessHash": "3726f8cb-fca2-1ea3-208b-0f223c09aae2",
         "TraceID": "BindingExecOper"
+      },
+      {
+        "UniquenessHash": "f1741ac1-9c6a-e567-0c1c-9dc411e88b49",
+        "TraceID": "PacketReceive"
       },
       {
         "UniquenessHash": "c020fe47-4ec6-93b0-03db-ec72593a14b5",
@@ -11379,6 +11535,10 @@
       {
         "UniquenessHash": "01d5a727-8287-c441-9ff0-0ebbd899549f",
         "TraceID": "ConnHandshakeStart"
+      },
+      {
+        "UniquenessHash": "b27efe89-6500-60ee-bdbb-b417ecce6d62",
+        "TraceID": "PacketDecrypt"
       },
       {
         "UniquenessHash": "af137df5-1055-7424-de16-65895d8d276b",
@@ -12257,8 +12417,24 @@
         "TraceID": "PacketBuilderSendBatch"
       },
       {
+        "UniquenessHash": "e0aaacd6-02f1-c4f2-571b-290d53b0ebf7",
+        "TraceID": "PacketCreated"
+      },
+      {
+        "UniquenessHash": "040e32a3-ba11-8989-d6d4-57d7c799c359",
+        "TraceID": "PacketEncrypt"
+      },
+      {
+        "UniquenessHash": "e1679e26-ce08-f741-23b6-23fa6f1de264",
+        "TraceID": "PacketFinalize"
+      },
+      {
         "UniquenessHash": "8acd91f1-3c17-7458-fb5b-e3453f2825d3",
         "TraceID": "ConnPacketSent"
+      },
+      {
+        "UniquenessHash": "64d69663-eb58-98c9-1c06-2b1fa209874b",
+        "TraceID": "PacketBatchSent"
       },
       {
         "UniquenessHash": "607e449d-59a9-9d66-fcd1-b0a2e12f1dc1",
@@ -12501,6 +12677,10 @@
         "TraceID": "IndicateStreamShutdownComplete"
       },
       {
+        "UniquenessHash": "cbc983bb-6d04-149e-6eda-09d855f77d4c",
+        "TraceID": "StreamAlloc"
+      },
+      {
         "UniquenessHash": "cfaab7b3-b77b-3a94-a433-4c9b57907696",
         "TraceID": "StreamDestroyed"
       },
@@ -12597,16 +12777,20 @@
         "TraceID": "IgnoreRecvFlush"
       },
       {
-        "UniquenessHash": "e4987d94-23ad-702c-46c0-5e0ae549c4b7",
-        "TraceID": "IndicateReceive"
-      },
-      {
-        "UniquenessHash": "ce1008cb-0d5e-dd9c-0714-8d37be5b7d60",
-        "TraceID": "ReceiveComplete"
-      },
-      {
         "UniquenessHash": "7b23cd90-0d41-8339-9622-e84277f95b5d",
         "TraceID": "IndicatePeerSendShutdown"
+      },
+      {
+        "UniquenessHash": "aaf00b3c-6719-7619-1362-6058d0d3be90",
+        "TraceID": "StreamReceiveFrame"
+      },
+      {
+        "UniquenessHash": "e6e8eceb-d044-4536-96cc-97d53de7e620",
+        "TraceID": "StreamAppReceive"
+      },
+      {
+        "UniquenessHash": "92e805e6-d2f5-68d3-fdcd-f56c490ed368",
+        "TraceID": "StreamAppReceiveComplete"
       },
       {
         "UniquenessHash": "e7d79111-7d5f-45a3-50b8-e4ca6de3c081",
@@ -12667,6 +12851,10 @@
       {
         "UniquenessHash": "b5af9a64-4d59-3aa3-f0d4-abcbbbfd0329",
         "TraceID": "SendDumpAck"
+      },
+      {
+        "UniquenessHash": "cc7f8746-a729-760b-90cc-8f3973b3fde2",
+        "TraceID": "StreamWriteFrames"
       },
       {
         "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",

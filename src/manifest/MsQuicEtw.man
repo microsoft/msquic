@@ -106,6 +106,10 @@
               mask="0x0000000000001000"
               name="ut:Log"
               />
+          <keyword
+              mask="0x0000000000002000"
+              name="ut:RPS"
+              />
           <!-- High bits are operation category. -->
           <keyword
               mask="0x0000000080000000"
@@ -1433,6 +1437,44 @@
                 name="Message"
                 />
           </template>
+          <template tid="tid_STREAM_CONN">
+            <data
+                inType="win:Pointer"
+                name="Stream"
+                />
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+          </template>
+          <template tid="tid_STREAM_U64">
+            <data
+                inType="win:Pointer"
+                name="Stream"
+                />
+            <data
+                inType="win:UInt64"
+                name="ID"
+                />
+          </template>
+          <template tid="tid_STREAM_RECV">
+            <data
+                inType="win:Pointer"
+                name="Stream"
+                />
+            <data
+                inType="win:UInt64"
+                name="BufLength"
+                />
+            <data
+                inType="win:UInt32"
+                name="BufCount"
+                />
+            <data
+                inType="win:UInt32"
+                name="Flags"
+                />
+          </template>
           <template tid="tid_BINDING">
             <data
                 inType="win:Pointer"
@@ -1777,6 +1819,22 @@
                 length="RemoteAddrLength"
                 name="RemoteAddr"
                 outType="win:SocketAddress"
+                />
+          </template>
+          <template tid="tid_ID">
+            <data
+                inType="win:UInt64"
+                name="ID"
+                />
+          </template>
+          <template tid="tid_ID_ID">
+            <data
+                inType="win:UInt64"
+                name="ID"
+                />
+            <data
+                inType="win:UInt64"
+                name="ID2"
                 />
           </template>
         </templates>
@@ -2225,7 +2283,7 @@
               value="5122"
               />
           <event
-              keywords="ut:Connection ut:Scheduling"
+              keywords="ut:Connection ut:Scheduling ut:RPS"
               level="win:Informational"
               message="$(string.Etw.ConnScheduleState)"
               opcode="Connection"
@@ -2450,7 +2508,7 @@
               value="5147"
               />
           <event
-              keywords="ut:Connection ut:LowVolume"
+              keywords="ut:Connection ut:LowVolume ut:RPS"
               level="win:Verbose"
               message="$(string.Etw.ConnSourceCidAdd)"
               opcode="Connection"
@@ -2459,7 +2517,7 @@
               value="5148"
               />
           <event
-              keywords="ut:Connection ut:LowVolume"
+              keywords="ut:Connection ut:LowVolume ut:RPS"
               level="win:Verbose"
               message="$(string.Etw.ConnDestCidAdd)"
               opcode="Connection"
@@ -2793,7 +2851,7 @@
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
-              keywords="ut:Stream ut:LowVolume"
+              keywords="ut:Stream ut:LowVolume ut:RPS"
               level="win:Informational"
               message="$(string.Etw.StreamCreated)"
               opcode="Stream"
@@ -2802,7 +2860,7 @@
               value="6144"
               />
           <event
-              keywords="ut:Stream ut:LowVolume"
+              keywords="ut:Stream ut:LowVolume ut:RPS"
               level="win:Informational"
               message="$(string.Etw.StreamDestroyed)"
               opcode="Stream"
@@ -2899,6 +2957,60 @@
               symbol="QuicStreamLogVerbose"
               template="tid_STREAM_MESSAGE"
               value="6155"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAlloc)"
+              opcode="Stream"
+              symbol="QuicStreamAlloc"
+              template="tid_STREAM_CONN"
+              value="6156"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamWriteFrames)"
+              opcode="Stream"
+              symbol="QuicStreamWriteFrames"
+              template="tid_STREAM_U64"
+              value="6157"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamReceiveFrame)"
+              opcode="Stream"
+              symbol="QuicStreamReceiveFrame"
+              template="tid_STREAM_U64"
+              value="6158"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppReceive)"
+              opcode="Stream"
+              symbol="QuicStreamAppReceive"
+              template="tid_STREAM_RECV"
+              value="6159"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppReceiveComplete)"
+              opcode="Stream"
+              symbol="QuicStreamAppReceiveComplete"
+              template="tid_STREAM_U64"
+              value="6160"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppSend)"
+              opcode="Stream"
+              symbol="QuicStreamAppSend"
+              template="tid_STREAM_RECV"
+              value="6161"
               />
           <!-- 7168 - 8191 | Binding Events -->
           <event
@@ -3101,6 +3213,61 @@
               symbol="QuicLogVerbose"
               template="tid_MESSAGE"
               value="10243"
+              />
+          <!-- 11264 - 12287 | Packet Events -->
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketCreated)"
+              opcode="Global"
+              symbol="QuicPacketCreated"
+              template="tid_ID_ID"
+              value="11264"
+              />
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketEncrypt)"
+              opcode="Global"
+              symbol="QuicPacketEncrypt"
+              template="tid_ID"
+              value="11265"
+              />
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketFinalize)"
+              opcode="Global"
+              symbol="QuicPacketFinalize"
+              template="tid_ID"
+              value="11266"
+              />
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketBatchSent)"
+              opcode="Global"
+              symbol="QuicPacketBatchSent"
+              template="tid_ID"
+              value="11267"
+              />
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketReceive)"
+              opcode="Global"
+              symbol="QuicPacketReceive"
+              template="tid_ID"
+              value="11268"
+              />
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketDecrypt)"
+              opcode="Global"
+              symbol="QuicPacketDecrypt"
+              template="tid_ID"
+              value="11269"
               />
         </events>
       </provider>
@@ -3371,6 +3538,30 @@
             value="[strm][%1] %2"
             />
         <string
+            id="Etw.StreamAlloc"
+            value="[strm][%1] Allocated, Conn=%2"
+            />
+        <string
+            id="Etw.StreamWriteFrames"
+            value="[strm][%1] Writing frames to packet %2"
+            />
+        <string
+            id="Etw.StreamReceiveFrame"
+            value="[strm][%1] Processing frame in packet %2"
+            />
+        <string
+            id="Etw.StreamAppReceive"
+            value="[strm][%1] Indicating QUIC_STREAM_EVENT_RECEIVE [%2 bytes, %3 buffers, %4 flags]"
+            />
+        <string
+            id="Etw.StreamAppReceiveComplete"
+            value="[strm][%1] Receive complete [%2 bytes]"
+            />
+        <string
+            id="Etw.StreamAppSend"
+            value="[strm][%1] App queuing send [%2 bytes, %3 buffers, %4 flags]"
+            />
+        <string
             id="Etw.WorkerCreated"
             value="[wrkr][%1] Created, IdealProc=%2 Owner=%3"
             />
@@ -3625,6 +3816,30 @@
         <string
             id="Etw.LibraryVersion"
             value="[ lib] Version %1.%2.%3.%4"
+            />
+        <string
+            id="Etw.PacketCreated"
+            value="[pack][%1] Created in batch %2"
+            />
+        <string
+            id="Etw.PacketEncrypt"
+            value="[pack][%1] Encrypting"
+            />
+        <string
+            id="Etw.PacketFinalize"
+            value="[pack][%1] Finalizing"
+            />
+        <string
+            id="Etw.PacketBatchSent"
+            value="[pack][%1] Batch sent"
+            />
+        <string
+            id="Etw.PacketReceive"
+            value="[pack][%1] Received"
+            />
+        <string
+            id="Etw.PacketDecrypt"
+            value="[pack][%1] Decrypting"
             />
         <!-- Map/enum strings -->
         <string
