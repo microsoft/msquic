@@ -26,7 +26,7 @@ Abstract:
 
 BOOLEAN
 QuicWorkerLoop(
-    _Inout_ struct CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ struct QUIC_EXECUTION_CONTEXT* Context,
     _Inout_ uint64_t* TimeNow,
     _In_ CXPLAT_THREAD_ID ThreadID
     );
@@ -42,7 +42,11 @@ QuicWorkerThreadWake(
     )
 {
     Worker->ExecutionContext.Ready = TRUE; // Run the execution context
-    CxPlatEventSet(Worker->Ready);
+    if (MsQuicLib.CustomEC) {
+        MsQuicLib.ECController.Ready(&Worker->ExecutionContext);
+    } else {
+        CxPlatEventSet(Worker->Ready);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -93,23 +97,37 @@ QuicWorkerInitialize(
         goto Error;
     }
 
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        ThreadFlags,
-        IdealProcessor,
-        "quic_worker",
-        QuicWorkerThread,
-        Worker
-    };
+    if (MsQuicLib.CustomEC) {
+        Status = MsQuicLib.ECController.Create(&Worker->ExecutionContext);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                WorkerErrorStatus,
+                "[wrkr][%p] ERROR, %u, %s.",
+                Worker,
+                Status,
+                "EC Create");
+            goto Error;
+        }
 
-    Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            WorkerErrorStatus,
-            "[wrkr][%p] ERROR, %u, %s.",
-            Worker,
-            Status,
-            "CxPlatThreadCreate");
-        goto Error;
+    } else {
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            ThreadFlags,
+            IdealProcessor,
+            "quic_worker",
+            QuicWorkerThread,
+            Worker
+        };
+
+        Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                WorkerErrorStatus,
+                "[wrkr][%p] ERROR, %u, %s.",
+                Worker,
+                Status,
+                "CxPlatThreadCreate");
+            goto Error;
+        }
     }
 
 Error:
@@ -603,7 +621,7 @@ QuicWorkerLoopCleanup(
 //
 BOOLEAN
 QuicWorkerLoop(
-    _Inout_ struct CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ struct QUIC_EXECUTION_CONTEXT* Context,
     _Inout_ uint64_t* TimeNow,
     _In_ CXPLAT_THREAD_ID ThreadID
     )
@@ -612,6 +630,9 @@ QuicWorkerLoop(
 
     if (!Worker->Enabled) {
         QuicWorkerLoopCleanup(Worker);
+        if (MsQuicLib.CustomEC) {
+            MsQuicLib.ECController.Delete(Context); // TODO - Is this really necessary?
+        }
         CxPlatEventSet(Worker->Done);
         return FALSE;
     }
@@ -704,7 +725,7 @@ QuicWorkerLoop(
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
-    CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
+    QUIC_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
     const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
 
     QuicTraceEvent(

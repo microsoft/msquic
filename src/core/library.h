@@ -95,6 +95,11 @@ typedef struct QUIC_LIBRARY {
 #endif
 
     //
+    // Indicated if a custom execution context controller has been set.
+    //
+    BOOLEAN CustomEC : 1;
+
+    //
     // Tracks whether the library has started being used, either by a listener
     // or a client connection being started. Once this state is set, some
     // global settings are not allowed to change.
@@ -115,6 +120,11 @@ typedef struct QUIC_LIBRARY {
     // Current binary version.
     //
     uint32_t Version[4];
+
+    //
+    // Custom execution context controller.
+    //
+    QUIC_EXECUTION_CONTEXT_CONTROLLER ECController;
 
     //
     // Configurable (app & registry) settings.

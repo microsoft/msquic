@@ -70,14 +70,14 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCreated,
 // Decoder Ring for WorkerErrorStatus
 // [wrkr][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            WorkerErrorStatus,
-            "[wrkr][%p] ERROR, %u, %s.",
-            Worker,
-            Status,
-            "CxPlatThreadCreate");
+                WorkerErrorStatus,
+                "[wrkr][%p] ERROR, %u, %s.",
+                Worker,
+                Status,
+                "EC Create");
 // arg2 = arg2 = Worker
 // arg3 = arg3 = Status
-// arg4 = arg4 = "CxPlatThreadCreate"
+// arg4 = arg4 = "EC Create"
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerErrorStatus,
     TP_ARGS(

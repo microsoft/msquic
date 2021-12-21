@@ -25,6 +25,8 @@ Environment:
 #include <ntstatus.h>
 #include <basetsd.h>
 
+typedef ULONG_PTR CXPLAT_THREAD_ID;
+
 typedef INT8 int8_t;
 typedef INT16 int16_t;
 typedef INT32 int32_t;

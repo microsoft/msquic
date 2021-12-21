@@ -11,11 +11,6 @@
 typedef struct QUIC_CACHEALIGN QUIC_WORKER {
 
     //
-    // Context for execution callbacks and state management.
-    //
-    CXPLAT_EXECUTION_CONTEXT ExecutionContext;
-
-    //
     // Event to signal when the execution context (i.e. worker thread) is
     // complete.
     //
@@ -87,6 +82,11 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     CXPLAT_POOL ApiContextPool; // QUIC_API_CONTEXT
     CXPLAT_POOL StatelessContextPool; // QUIC_STATELESS_CONTEXT
     CXPLAT_POOL OperPool; // QUIC_OPERATION
+
+    //
+    // Context for execution callbacks and state management.
+    //
+    QUIC_EXECUTION_CONTEXT ExecutionContext;
 
 } QUIC_WORKER;
 

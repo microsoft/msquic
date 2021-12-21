@@ -216,6 +216,25 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetSettings );\
 
 
 
+#ifndef _clog_2_ARGS_TRACE_LibrarySetECController
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetECController
+// [ lib] Setting custom EC controller
+// QuicTraceLogInfo(
+            LibrarySetECController,
+            "[ lib] Setting custom EC controller");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_LibrarySetECController(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetECController );\
+
+#endif
+
+
+
+
 #ifndef _clog_2_ARGS_TRACE_LibraryInUse
 
 
@@ -345,6 +364,25 @@ tracepoint(CLOG_LIBRARY_C, LibraryMsQuicClose );\
 ----------------------------------------------------------*/
 #define _clog_2_ARGS_TRACE_LibraryLoadBalancingModeSetAfterInUse(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
+
+#endif
+
+
+
+
+#ifndef _clog_2_ARGS_TRACE_LibraryECControllerAfterInUse
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryECControllerAfterInUse
+// [ lib] Tried to set custom EC controller after library in use!
+// QuicTraceLogError(
+                LibraryECControllerAfterInUse,
+                "[ lib] Tried to set custom EC controller after library in use!");
+----------------------------------------------------------*/
+#define _clog_2_ARGS_TRACE_LibraryECControllerAfterInUse(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryECControllerAfterInUse );\
 
 #endif
 

@@ -582,6 +582,88 @@ typedef struct QUIC_TLS_SECRETS {
 } QUIC_TLS_SECRETS;
 
 //
+// Abstractions for QUIC execution contexts. Allows for applications to drive
+// the QUIC work from their own thread(s).
+//
+
+typedef struct QUIC_EXECUTION_CONTEXT QUIC_EXECUTION_CONTEXT;
+
+//
+// Called when a new execution context is created.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(*QUIC_EC_CREATE_FN)(
+    _Inout_ QUIC_EXECUTION_CONTEXT* Context
+    );
+
+//
+// Called when an execution context is ready for processing.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+(*QUIC_EC_READY_FN)(
+    _Inout_ QUIC_EXECUTION_CONTEXT* Context
+    );
+
+//
+// Called when an execution context is being deleted.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+(*QUIC_EC_DELETE_FN)(
+    _Inout_ QUIC_EXECUTION_CONTEXT* Context
+    );
+
+//
+// Called by the app to process any ready work for the execution context.
+// Returns FALSE when it's time to cleanup.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(*QUIC_EXECUTION_FN)(
+    _Inout_ QUIC_EXECUTION_CONTEXT* Context,
+    _Inout_ uint64_t* TimeNowUs,    // The current time, in microseconds.
+    _In_ CXPLAT_THREAD_ID ThreadID  // The current thread ID.
+    );
+
+typedef struct QUIC_EXECUTION_CONTEXT {
+
+    //
+    // Internal context pointer.
+    //
+    void* Context;
+
+    //
+    // Function pointer to execute the work.
+    //
+    QUIC_EXECUTION_FN Callback;
+
+    //
+    // The time, in microseconds, by which the callback should be invoked.
+    //
+    uint64_t NextTimeUs; // TODO - Requires CxPlatTimeUs64() usage
+
+    //
+    // Flag that indicates there is work to be done.
+    //
+    BOOLEAN Ready;
+
+} QUIC_EXECUTION_CONTEXT;
+
+typedef struct QUIC_EXECUTION_CONTEXT_CONTROLLER {
+
+    QUIC_EC_CREATE_FN Create;
+    QUIC_EC_READY_FN Ready;
+    QUIC_EC_DELETE_FN Delete;
+
+} QUIC_EXECUTION_CONTEXT_CONTROLLER;
+
+//
 // Functions for associating application contexts with QUIC handles. MsQuic
 // provides no explicit synchronization between parallel calls to these
 // functions.
@@ -643,6 +725,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x4000003   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      0x4000004   // QUIC_SETTINGS
 #define QUIC_PARAM_GLOBAL_VERSION                       0x4000005   // uint32_t[4]
+#define QUIC_PARAM_GLOBAL_EXECUTION_CONTEXT             0x4000006   // QUIC_EXECUTION_CONTEXT_CONTROLLER
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.

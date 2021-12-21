@@ -4810,6 +4810,13 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibrarySetECController": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting custom EC controller",
+      "UniqueId": "LibrarySetECController",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryInUse": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Now in use.",
@@ -4861,6 +4868,13 @@
       "ModuleProperites": {},
       "TraceString": "[ lib] Tried to change load balancing mode after library in use!",
       "UniqueId": "LibraryLoadBalancingModeSetAfterInUse",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibraryECControllerAfterInUse": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Tried to set custom EC controller after library in use!",
+      "UniqueId": "LibraryECControllerAfterInUse",
       "splitArgs": [],
       "macroName": "QuicTraceLogError"
     },
@@ -12129,6 +12143,10 @@
         "TraceID": "LibrarySetSettings"
       },
       {
+        "UniquenessHash": "ad762b92-280c-bafa-02ce-365c6cab2b84",
+        "TraceID": "LibrarySetECController"
+      },
+      {
         "UniquenessHash": "80830820-d84f-0303-c862-a7d195fbca03",
         "TraceID": "LibraryInUse"
       },
@@ -12155,6 +12173,10 @@
       {
         "UniquenessHash": "e6c3b194-e19d-d568-1157-675aba101620",
         "TraceID": "LibraryLoadBalancingModeSetAfterInUse"
+      },
+      {
+        "UniquenessHash": "987b705d-047a-060a-2907-5ff699be84c8",
+        "TraceID": "LibraryECControllerAfterInUse"
       },
       {
         "UniquenessHash": "8f218f73-51d3-e674-6f43-937ce1e861c9",

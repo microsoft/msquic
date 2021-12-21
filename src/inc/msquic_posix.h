@@ -36,6 +36,8 @@ Environment:
 #include <errno.h>
 #include "quic_sal_stub.h"
 
+typedef uint32_t CXPLAT_THREAD_ID;
+
 #ifdef __cplusplus
 extern "C++" {
 template <size_t S> struct _ENUM_FLAG_INTEGER_FOR_SIZE;

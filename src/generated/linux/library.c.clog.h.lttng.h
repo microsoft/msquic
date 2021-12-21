@@ -161,6 +161,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibrarySetECController
+// [ lib] Setting custom EC controller
+// QuicTraceLogInfo(
+            LibrarySetECController,
+            "[ lib] Setting custom EC controller");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetECController,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -267,6 +283,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicClose,
                 "[ lib] Tried to change load balancing mode after library in use!");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryECControllerAfterInUse
+// [ lib] Tried to set custom EC controller after library in use!
+// QuicTraceLogError(
+                LibraryECControllerAfterInUse,
+                "[ lib] Tried to set custom EC controller after library in use!");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryECControllerAfterInUse,
     TP_ARGS(
 ), 
     TP_FIELDS(

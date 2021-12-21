@@ -35,6 +35,8 @@ Environment:
 
 #include <stdint.h>
 
+typedef uint32_t CXPLAT_THREAD_ID;
+
 #define SUCCESS_HRESULT_FROM_WIN32(x) \
     ((HRESULT)(((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16)))
 

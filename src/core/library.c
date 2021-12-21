@@ -824,6 +824,31 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_EXECUTION_CONTEXT:
+
+        if (BufferLength != sizeof(QUIC_EXECUTION_CONTEXT_CONTROLLER)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse) {
+            QuicTraceLogError(
+                LibraryECControllerAfterInUse,
+                "[ lib] Tried to set custom EC controller after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QuicTraceLogInfo(
+            LibrarySetECController,
+            "[ lib] Setting custom EC controller");
+
+        MsQuicLib.CustomEC = TRUE;
+        MsQuicLib.ECController = *(QUIC_EXECUTION_CONTEXT_CONTROLLER*)Buffer;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
