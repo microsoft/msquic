@@ -3552,7 +3552,10 @@ QuicConnRecvHeader(
 
             CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
             CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->Route.RemoteAddress, &Token.Encrypted.RemoteAddress));
-            CXPLAT_DBG_ASSERT(Connection->OrigDestCID == NULL);
+
+            if (Connection->OrigDestCID != NULL) {
+                CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
+            }
 
             Connection->OrigDestCID =
                 CXPLAT_ALLOC_NONPAGED(

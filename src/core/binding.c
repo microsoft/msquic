@@ -1470,6 +1470,7 @@ QuicBindingDeliverDatagrams(
 
         CXPLAT_DBG_ASSERT(QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version));
 
+        BOOLEAN IsInitial = FALSE;
         //
         // Only Initial (version specific) packets are processed from here on.
         //
@@ -1477,7 +1478,8 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            if (Packet->LH->Type != QUIC_INITIAL) {
+            IsInitial = Packet->LH->Type == QUIC_INITIAL;
+            if (!IsInitial && Packet->LH->Type != QUIC_0_RTT_PROTECTED) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
                 return FALSE;
             }
@@ -1506,10 +1508,13 @@ QuicBindingDeliverDatagrams(
         BOOLEAN DropPacket = FALSE;
         if (QuicBindingShouldRetryConnection(
                 Binding, Packet, TokenLength, Token, &DropPacket)) {
-            return
-                QuicBindingQueueStatelessOperation(
-                    Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
-
+            if (IsInitial) {
+                return
+                    QuicBindingQueueStatelessOperation(
+                        Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
+            }
+            QuicPacketLogDrop(Binding, Packet, "Reject non-initial packet during retry.");
+            return FALSE;
         }
 
         if (!DropPacket) {
