@@ -1513,7 +1513,7 @@ QuicBindingDeliverDatagrams(
                     QuicBindingQueueStatelessOperation(
                         Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
             }
-            QuicPacketLogDrop(Binding, Packet, "Reject non-initial packet during retry.");
+            QuicPacketLogDrop(Binding, Packet, "Non-initial packet during retry.");
             return FALSE;
         }
 
