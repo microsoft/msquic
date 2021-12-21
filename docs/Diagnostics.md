@@ -10,7 +10,7 @@ For debugging issues, logging is generally the best way to diagnose problems. Ms
 
 ### Windows
 
-On Windows, MsQuic leverages manifested [ETW](https://docs.microsoft.com/en-us/windows/win32/etw/event-tracing-portal) for its logging.
+On Windows, MsQuic leverages manifested [ETW](https://docs.microsoft.com/en-us/windows/win32/etw/event-tracing-portal) for its logging. All dependencies should be included with Windows; nothing additional should be required.
 
 ### Linux
 
