@@ -5834,7 +5834,9 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started || QuicConnIsServer(Connection)) {
+        if (Connection->State.Started ||
+            Connection->State.ClosedLocally ||
+            QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
