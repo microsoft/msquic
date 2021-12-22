@@ -240,7 +240,7 @@ QuicTestCtlEvtFileCreate(
     PAGED_CODE();
 
     KeEnterGuardedRegion();
-    ExfAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
+    ExAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
 
     do
     {
@@ -283,7 +283,7 @@ QuicTestCtlEvtFileCreate(
     }
     while (false);
 
-    ExfReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
+    ExReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
     KeLeaveGuardedRegion();
 
     WdfRequestComplete(Request, Status);
@@ -313,7 +313,7 @@ QuicTestCtlEvtFileCleanup(
     QUIC_TEST_CLIENT* Client = QuicTestCtlGetFileContext(FileObject);
     if (Client != nullptr) {
 
-        ExfAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
+        ExAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
 
         //
         // Remove the device client from the list
@@ -321,7 +321,7 @@ QuicTestCtlEvtFileCleanup(
         RemoveEntryList(&Client->Link);
         QuicTestCtlExtension->ClientListSize--;
 
-        ExfReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
+        ExReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
 
         QuicTraceLogInfo(
             TestControlClientCleaningUp,
