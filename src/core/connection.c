@@ -5676,6 +5676,8 @@ QuicConnUpdatePeerPacketTolerance(
     }
 }
 
+#define QUIC_CONN_BAD_START_STATE(CONN) (CONN->State.Started || CONN->State.ClosedLocally)
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamSet(
@@ -5697,7 +5699,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (QuicConnIsServer(Connection)) {
+        if (Connection->State.ClosedLocally || QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -5795,7 +5797,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started) {
+        if (QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -5837,7 +5839,8 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started || QuicConnIsServer(Connection)) {
+        if (QUIC_CONN_BAD_START_STATE(Connection) ||
+            QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -5928,7 +5931,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started) {
+        if (QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -5952,7 +5955,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started) {
+        if (QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -5986,7 +5989,8 @@ QuicConnParamSet(
         //
         // Must be set before the client connection is started.
         //
-        if (QuicConnIsServer(Connection) || Connection->State.Started) {
+        if (QuicConnIsServer(Connection) ||
+            QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -6028,7 +6032,8 @@ QuicConnParamSet(
             break;
         }
 
-        if (QuicConnIsServer(Connection) || Connection->State.Started) {
+        if (QuicConnIsServer(Connection) ||
+            QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -6052,7 +6057,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started) {
+        if (QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -6125,7 +6130,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->State.Started) {
+        if (QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
