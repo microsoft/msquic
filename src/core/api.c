@@ -111,10 +111,23 @@ MsQuicConnectionClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Connection = (QUIC_CONNECTION*)Handle;
 
+    CXPLAT_TEL_ASSERT(!Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (IsWorkerThread && Connection->State.HandleClosed) {
+        //
+        // Close being called from worker thread after being closed by app
+        // thread. This is an app programming bug, and they should be checking
+        // the AppCloseInProgress flag, but as the handle is stil valid here
+        // we can just make this a no-op.
+        //
+        goto Error;
+    }
+
+    CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
+
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -692,14 +705,25 @@ MsQuicStreamClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
     CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
-
     Connection = Stream->Connection;
-
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection, !Stream->Flags.HandleClosed);
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (IsWorkerThread && Stream->Flags.HandleClosed) {
+        //
+        // Close being called from worker thread after being closed by app
+        // thread. This is an app programming bug, and they should be checking
+        // the AppCloseInProgress flag, but as the handle is stil valid here
+        // we can just make this a no-op.
+        //
+        goto Error;
+    }
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
