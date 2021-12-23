@@ -19,6 +19,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 3. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
 4. [Why is this API failing?](#why-is-this-api-failing)
 5. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
+6. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
 
 ## Understanding Error Codes
 
@@ -183,6 +184,26 @@ As you can see, the last event/log on the MsQuic worker thread was an indication
 
 The solution here is that the app **must not** hold the lock when it calls into the blocking API, if that lock may also be acquired on the MsQuic thread.
 
+## Trouble Shooting SMB over QUIC issues
+
+To troubleshoot any SMB over QUIC issues on windows platforms, the best way is to collect SMB and QUIC traces and sharing it with SMB developers. Following are the steps:
+
+```
+Copy msquic/scripts/t.cmd to a local folder.
+
+For SMB Client (a.k.a. RDR) WPP traces
+t.cmd clion
+// repro and get the relevant error.
+t.cmd off
+ 
+For SMB Server WPP traces
+t.cmd srvon
+// repro and get the relevant error.
+t.cmd off
+
+Share the generated cab file with SMB developers.
+```
+
 # Trouble Shooting a Performance Issue
 
 1. [Is it a problem with just a single (or very few) connection?](#why-in-performance-bad-for-my-connection)
@@ -321,3 +342,4 @@ IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     
 ```
 
 The output above indicates RSS is configured with 8 queues, so there should be spreading of the incoming flows to 8 different CPUs (and then passed to 8 different workers) instead of just the 1 that we are seeing. So, finally, in cases where everything seems to be configured correctly, but things **still** aren't working, that usually indicates a problem with the network card driver. Make sure the driver is up to date with the latest version available. If that still doesn't fix the problem, you will likely need to contact support from the network card vendor.
+
