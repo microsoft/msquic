@@ -49,6 +49,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
+| SAC | [release/1.10](https://github.com/microsoft/msquic/tree/release/1.10) | None | Jan ? 2022 | Jan ? 2022 | Jul ? 2022 |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -253,5 +254,22 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Bug Fix: Fix stream abort bug (#2049)
 - Bug Fix: Fix connection FC handling on stream abort (#2070)
 - Bug Fix: Fix rare endless loop in send path (#2082)
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v1.10 (SAC)
+
+[MsQuic v1.10](https://github.com/microsoft/msquic/releases/tag/v1.10.0) is an official release.. Signed Windows binaries are available. Some noted changes in this release include:
+
+- Various Linux build and packaging improvements (#2090, #2092, #2097)
+- Various OpenSSL improvements and refactoring (#2098, #2083, #2111, #2154)
+- Various certificate handling improvements and refactoring (#2155, #2158, #2160, #2164, )
+- Mirroring and OneBranch build infrastructure improvements (#2093, #2097, #2125, #2127, #2128, #2129)
+- Datapath refactoring for low latency work (#2107, #2122, #2130, #2132, #2134, #2161, #2168)
+- Performance tool improvements (#2110, #2113, #2166)
+- Visual Studio 2022 support (#2119)
+- Interop layers for Rust and C# (#1832, #2100, #1917)
+- Update OpenSSL to 1.1.1m (#2229)
+- Various documentation improvements
 
 Official (v1) RFC and draft-29 are supported by this release.
