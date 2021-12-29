@@ -1512,7 +1512,6 @@ QuicBindingDeliverDatagrams(
             return
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
-
         }
 
         if (!DropPacket) {
