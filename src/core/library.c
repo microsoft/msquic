@@ -342,10 +342,11 @@ MsQuicLibraryInitialize(
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "connection pools",
-            MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
+            MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CxPlatZeroMemory(MsQuicLib.PerProc, MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
 
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
