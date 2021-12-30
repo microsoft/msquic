@@ -263,6 +263,7 @@ ThroughputClient::StartQuic()
         WriteOutput("Failed ConnectionOpen 0x%x\n", Status);
         return Status;
     }
+    MsQuic->AddRef(Shutdown.ConnHandle);
 
     if (!UseSendBuffer || !UsePacing) {
         QUIC_SETTINGS Settings{0};
@@ -522,9 +523,12 @@ ThroughputClient::ConnectionCallback(
         if (PrintStats) {
             QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
         }
-        if (MsQuic->Release(ConnectionHandle)) {
-            ConnectionContextAllocator.Free(ConnContext);
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            if (MsQuic->Release(ConnectionHandle)) {
+                ConnectionContextAllocator.Free(ConnContext);
+            }
         }
+
         CxPlatEventSet(*StopEvent);
         break;
     default:
@@ -569,7 +573,9 @@ ThroughputClient::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         OnStreamShutdownComplete(ConnContext);
-        MsQuic->Release(StreamHandle);
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            MsQuic->Release(StreamHandle);
+        }
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (UploadLength &&

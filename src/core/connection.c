@@ -112,7 +112,7 @@ QuicConnAlloc(
         Connection->Stats.CorrelationId);
 
     Connection->RefCount = 1;
-    Connection->ExternalRefCount = IsServer ? 1 : 2;
+    Connection->ExternalRefCount = 1;
 #if DEBUG
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif

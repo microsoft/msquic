@@ -1681,10 +1681,9 @@ MsQuicHandleRelease(
         QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
         QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-        long refCount = InterlockedDecrement((volatile long*)&Connection->ExternalRefCount);
-        CXPLAT_FRE_ASSERT(refCount >= 0);
+        long RefCount = InterlockedDecrement((volatile long*)&Connection->ExternalRefCount);
 
-        if (refCount == 0) {
+        if (RefCount <= 0) {
             MsQuicConnectionClose(Handle);
             WasClosed = TRUE;
         }
@@ -1695,10 +1694,9 @@ MsQuicHandleRelease(
         CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
         CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
-        long refCount = InterlockedDecrement((volatile long*)&Stream->ExternalRefCount);
-        CXPLAT_FRE_ASSERT(refCount >= 0);
+        long RefCount = InterlockedDecrement((volatile long*)&Stream->ExternalRefCount);
 
-        if (refCount == 0) {
+        if (RefCount <= 0) {
             MsQuicStreamClose(Handle);
             WasClosed = TRUE;
         }

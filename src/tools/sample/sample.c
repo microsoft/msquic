@@ -817,6 +817,7 @@ RunClient(
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
+    MsQuic->AddRef(Connection);
 
     if ((ResumptionTicketString = GetValue(argc, argv, "ticket")) != NULL) {
         //
