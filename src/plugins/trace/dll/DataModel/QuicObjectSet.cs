@@ -36,7 +36,8 @@ namespace QuicTrace.DataModel
             }
         }
 
-        internal QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
+        public QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
         {
         }
 

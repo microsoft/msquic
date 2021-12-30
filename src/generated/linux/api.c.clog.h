@@ -713,6 +713,33 @@ tracepoint(CLOG_API_C, StreamError , arg2, arg3);\
 
 
 
+#ifndef _clog_6_ARGS_TRACE_StreamAppSend
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamAppSend
+// [strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]
+// QuicTraceEvent(
+        StreamAppSend,
+        "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
+        Stream,
+        TotalLength,
+        BufferCount,
+        Flags);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = TotalLength
+// arg4 = arg4 = BufferCount
+// arg5 = arg5 = Flags
+----------------------------------------------------------*/
+#define _clog_6_ARGS_TRACE_StreamAppSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_API_C, StreamAppSend , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 

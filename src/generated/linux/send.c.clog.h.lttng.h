@@ -52,25 +52,6 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ClearSendFlags,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            QuicSendGetConnection(Send),
-            "Canceling ACK_DELAY timer");
-// arg1 = arg1 = QuicSendGetConnection(Send)
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SEND_C, CancelAckDelayTimer,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ScheduleSendFlags
 // [conn][%p] Scheduling flags 0x%x to 0x%x
 // QuicTraceLogConnVerbose(
@@ -121,29 +102,6 @@ TRACEPOINT_EVENT(CLOG_SEND_C, RemoveSendFlagsMsg,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FlushSend
-// [conn][%p] Flushing send. Allowance=%u bytes
-// QuicTraceLogConnVerbose(
-        FlushSend,
-        Connection,
-        "Flushing send. Allowance=%u bytes",
-        Builder.SendAllowance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Builder.SendAllowance
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SEND_C, FlushSend,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AmplificationProtectionBlocked
 // [conn][%p] Cannot send any more because of amplification protection
 // QuicTraceLogConnVerbose(
@@ -157,29 +115,6 @@ TRACEPOINT_EVENT(CLOG_SEND_C, AmplificationProtectionBlocked,
         const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SetPacingTimer
-// [conn][%p] Setting delayed send (PACING) timer for %u ms
-// QuicTraceLogConnVerbose(
-                        SetPacingTimer,
-                        Connection,
-                        "Setting delayed send (PACING) timer for %u ms",
-                        QUIC_SEND_PACING_INTERVAL);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = QUIC_SEND_PACING_INTERVAL
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SEND_C, SetPacingTimer,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -243,6 +178,29 @@ TRACEPOINT_EVENT(CLOG_SEND_C, StartAckDelayTimer,
 // arg3 = arg3 = Reason
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_C, ConnQueueSendFlush,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnFlushSend
+// [conn][%p] Flushing Send. Allowance=%u bytes
+// QuicTraceEvent(
+        ConnFlushSend,
+        "[conn][%p] Flushing Send. Allowance=%u bytes",
+        Connection,
+        Builder.SendAllowance);
+// arg2 = arg2 = Connection
+// arg3 = arg3 = Builder.SendAllowance
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SEND_C, ConnFlushSend,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3), 

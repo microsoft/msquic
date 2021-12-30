@@ -117,6 +117,29 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamAlloc
+// [strm][%p] Allocated, Conn=%p
+// QuicTraceEvent(
+        StreamAlloc,
+        "[strm][%p] Allocated, Conn=%p",
+        Stream,
+        Connection);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = Connection
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, StreamAlloc,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamDestroyed
 // [strm][%p] Destroyed
 // QuicTraceEvent(

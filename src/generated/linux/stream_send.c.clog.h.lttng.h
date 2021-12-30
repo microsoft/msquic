@@ -406,3 +406,26 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, StreamSendState,
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamWriteFrames
+// [strm][%p] Writing frames to packet %llu
+// QuicTraceEvent(
+        StreamWriteFrames,
+        "[strm][%p] Writing frames to packet %llu",
+        Stream,
+        Builder->Metadata->PacketId);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = Builder->Metadata->PacketId
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, StreamWriteFrames,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)

@@ -392,3 +392,22 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingExecOper,
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketReceive
+// [pack][%llu] Received
+// QuicTraceEvent(
+            PacketReceive,
+            "[pack][%llu] Received",
+            Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_BINDING_C, PacketReceive,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)

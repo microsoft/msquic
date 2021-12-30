@@ -122,6 +122,37 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamError,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamAppSend
+// [strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]
+// QuicTraceEvent(
+        StreamAppSend,
+        "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
+        Stream,
+        TotalLength,
+        BufferCount,
+        Flags);
+// arg2 = arg2 = Stream
+// arg3 = arg3 = TotalLength
+// arg4 = arg4 = BufferCount
+// arg5 = arg5 = Flags
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned long long, arg3,
+        unsigned int, arg4,
+        unsigned int, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer(unsigned int, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(

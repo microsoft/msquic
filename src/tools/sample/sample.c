@@ -593,7 +593,9 @@ ClientStreamCallback(
         // with the stream. It can now be safely cleaned up.
         //
         printf("[strm][%p] All done\n", Stream);
-        MsQuic->Release(Stream);
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            MsQuic->Release(Stream);
+        }
         break;
     default:
         break;

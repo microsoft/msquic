@@ -162,6 +162,50 @@ tracepoint(CLOG_PACKET_BUILDER_C, AllocFailure , arg2, arg3);\
 
 
 
+#ifndef _clog_4_ARGS_TRACE_PacketCreated
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketCreated
+// [pack][%llu] Created in batch %llu
+// QuicTraceEvent(
+            PacketCreated,
+            "[pack][%llu] Created in batch %llu",
+            Builder->Metadata->PacketId,
+            Builder->BatchId);
+// arg2 = arg2 = Builder->Metadata->PacketId
+// arg3 = arg3 = Builder->BatchId
+----------------------------------------------------------*/
+#define _clog_4_ARGS_TRACE_PacketCreated(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketCreated , arg2, arg3);\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_PacketEncrypt
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketEncrypt
+// [pack][%llu] Encrypting
+// QuicTraceEvent(
+            PacketEncrypt,
+            "[pack][%llu] Encrypting",
+            Builder->Metadata->PacketId);
+// arg2 = arg2 = Builder->Metadata->PacketId
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_PacketEncrypt(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketEncrypt , arg2);\
+
+#endif
+
+
+
+
 #ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 
 
@@ -181,6 +225,27 @@ tracepoint(CLOG_PACKET_BUILDER_C, AllocFailure , arg2, arg3);\
 ----------------------------------------------------------*/
 #define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_PACKET_BUILDER_C, ConnErrorStatus , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_PacketFinalize
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketFinalize
+// [pack][%llu] Finalizing
+// QuicTraceEvent(
+        PacketFinalize,
+        "[pack][%llu] Finalizing",
+        Builder->Metadata->PacketId);
+// arg2 = arg2 = Builder->Metadata->PacketId
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_PacketFinalize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketFinalize , arg2);\
 
 #endif
 
@@ -208,6 +273,27 @@ tracepoint(CLOG_PACKET_BUILDER_C, ConnErrorStatus , arg2, arg3, arg4);\
 ----------------------------------------------------------*/
 #define _clog_6_ARGS_TRACE_ConnPacketSent(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_PACKET_BUILDER_C, ConnPacketSent , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+#ifndef _clog_3_ARGS_TRACE_PacketBatchSent
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketBatchSent
+// [pack][%llu] Batch sent
+// QuicTraceEvent(
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
+                Builder->BatchId);
+// arg2 = arg2 = Builder->BatchId
+----------------------------------------------------------*/
+#define _clog_3_ARGS_TRACE_PacketBatchSent(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketBatchSent , arg2);\
 
 #endif
 

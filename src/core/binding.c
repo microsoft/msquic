@@ -1148,7 +1148,7 @@ QuicBindingPreprocessDatagram(
     )
 {
     CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
+    CxPlatZeroMemory(&Packet->PacketNumber, sizeof(CXPLAT_RECV_PACKET) - sizeof(uint64_t));
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
 
@@ -1278,11 +1278,13 @@ QuicBindingCreateConnection(
     }
 
     QUIC_CONNECTION* Connection = NULL;
-    QUIC_CONNECTION* NewConnection =
+    QUIC_CONNECTION* NewConnection;
+    QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
-            Datagram);
-    if (NewConnection == NULL) {
+            Datagram,
+            &NewConnection);
+    if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
@@ -1355,6 +1357,7 @@ Exit:
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             QuicConnQueueOper(NewConnection, Oper);
         }
 #pragma warning(pop)
@@ -1509,7 +1512,6 @@ QuicBindingDeliverDatagrams(
             return
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
-
         }
 
         if (!DropPacket) {
@@ -1560,6 +1562,9 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
+    uint32_t Proc = CxPlatProcCurrentNumber();
+    uint64_t ProcShifted = ((uint64_t)Proc) << 40;
+
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         TotalChainLength++;
@@ -1574,8 +1579,16 @@ QuicBindingReceive(
         CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
+        Packet->PacketId =
+            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
+
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
+        QuicTraceEvent(
+            PacketReceive,
+            "[pack][%llu] Received",
+            Packet->PacketId);
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
         //

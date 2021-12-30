@@ -1027,6 +1027,12 @@ QuicStreamSendWrite(
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT);
     CXPLAT_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
 
+    QuicTraceEvent(
+        StreamWriteFrames,
+        "[strm][%p] Writing frames to packet %llu",
+        Stream,
+        Builder->Metadata->PacketId);
+
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_MAX_DATA) {
 
         QUIC_MAX_STREAM_DATA_EX Frame = { Stream->ID, Stream->MaxAllowedRecvOffset };

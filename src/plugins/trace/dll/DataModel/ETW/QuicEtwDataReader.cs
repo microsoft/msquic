@@ -42,6 +42,11 @@ namespace QuicTrace.DataModel.ETW
             return PointerSize == 8 ? ReadValue<ulong>() : ReadValue<uint>();
         }
 
+        internal ReadOnlySpan<byte> ReadBytes()
+        {
+            return Data.Slice(0, ReadValue<byte>());
+        }
+
         internal string ReadString()
         {
             var chars = new List<char>();

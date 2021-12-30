@@ -383,9 +383,9 @@ tracepoint(CLOG_LIBRARY_C, AllocFailure , arg2, arg3);\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "connection pools",
-            MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
+            MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
 // arg2 = arg2 = "connection pools"
-// arg3 = arg3 = MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP)
+// arg3 = arg3 = MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP)
 ----------------------------------------------------------*/
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 
