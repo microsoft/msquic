@@ -346,12 +346,12 @@ MsQuicLibraryInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CxPlatZeroMemory(MsQuicLib.PerProc, MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
 
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
 
     for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+        CxPlatZeroMemory(&MsQuicLib.PerProc[i], sizeof(QUIC_LIBRARY_PP));
         CxPlatPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
