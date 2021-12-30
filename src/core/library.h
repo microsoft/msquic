@@ -221,9 +221,9 @@ typedef struct QUIC_LIBRARY {
     QUIC_REGISTRATION* StatelessRegistration;
 
     //
-    // Per-processor storage. Count of `PartitionCount`.
+    // Per-processor storage. Count of `ProcessorCount`.
     //
-    _Field_size_(PartitionCount)
+    _Field_size_(ProcessorCount)
     QUIC_LIBRARY_PP* PerProc;
 
     //
