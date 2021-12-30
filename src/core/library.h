@@ -223,7 +223,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Per-processor storage. Count of `ProcessorCount`.
     //
-    _Field_size_full_(ProcessorCount)
+    _Field_size_(ProcessorCount)
     QUIC_LIBRARY_PP* PerProc;
 
     //
