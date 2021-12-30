@@ -960,7 +960,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %lu ms",
+                        "[%c][TX][%llu] Lost: RACK %u ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
@@ -1536,7 +1536,7 @@ QuicLossDetectionScheduleProbe(
     QuicTraceLogConnInfo(
         ScheduleProbe,
         Connection,
-        "probe round %lu",
+        "probe round %hu",
         LossDetection->ProbeCount);
 
     //

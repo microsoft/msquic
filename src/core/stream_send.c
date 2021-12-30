@@ -770,7 +770,7 @@ QuicStreamWriteOneFrame(
     QuicTraceLogStreamVerbose(
         AddFrame,
         Stream,
-        "Built stream frame, offset=%llu len=%lu fin=%hhu",
+        "Built stream frame, offset=%llu len=%hu fin=%hhu",
         Frame.Offset,
         (uint16_t)Frame.Length,
         Frame.Fin);

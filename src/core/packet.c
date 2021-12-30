@@ -595,12 +595,12 @@ QuicPacketLogHeader(
         case QUIC_VERSION_VER_NEG: {
             QuicTraceLogVerbose(
                 LogPacketVersionNegotiation,
-                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
+                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)",
                 PtkConnPre(Connection),
                 (uint8_t)PktRxPre(Rx),
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                (uint16_t)(PacketLength - Offset));
+                (uint32_t)(PacketLength - Offset));
 
             while (Offset < PacketLength) {
                 QuicTraceLogVerbose(
@@ -621,7 +621,7 @@ QuicPacketLogHeader(
                 (const QUIC_LONG_HEADER_V1 * const)Packet;
 
             QUIC_VAR_INT TokenLength;
-            QUIC_VAR_INT Length;
+            QUIC_VAR_INT Length = 0;
 
             if (LongHdr->Type == QUIC_INITIAL) {
                 if (!QuicVarIntDecode(
