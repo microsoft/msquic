@@ -575,7 +575,10 @@ QuicListenerAcceptConnection(
         return;
     }
 
-    QuicConnRegister(Connection, Listener->Registration);
+    if (!QuicConnRegister(Connection, Listener->Registration)) {
+        return;
+    }
+
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
         return;
     }

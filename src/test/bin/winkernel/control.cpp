@@ -450,6 +450,10 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
+    0,
+    0,
+    0
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1123,6 +1127,22 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL:
         QuicTestCtlRun(QuicTestStreamAbortConnFlowControl());
+        break;
+
+    case IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN:
+        QuicTestCtlRun(QuicTestRegistrationShutdownBeforeConnOpen());
+        break;
+
+    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN:
+        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpen());
+        break;
+
+    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START:
+        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenBeforeStart());
+        break;
+
+    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START:
+        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenAndStart());
         break;
 
     default:

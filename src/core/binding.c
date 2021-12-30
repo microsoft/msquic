@@ -1278,11 +1278,13 @@ QuicBindingCreateConnection(
     }
 
     QUIC_CONNECTION* Connection = NULL;
-    QUIC_CONNECTION* NewConnection =
+    QUIC_CONNECTION* NewConnection;
+    QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
-            Datagram);
-    if (NewConnection == NULL) {
+            Datagram,
+            &NewConnection);
+    if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
@@ -1355,6 +1357,7 @@ Exit:
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             QuicConnQueueOper(NewConnection, Oper);
         }
 #pragma warning(pop)
