@@ -114,11 +114,6 @@ if ($InitSubmodules) {
     }
 }
 
-
-    Write-Host "Initializing CLOG submodule"
-    git submodule init submodules/clog
-    git submodule update
-
 $ArtifactsPath = Join-Path $RootDir "artifacts"
 $CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
 $SetupPath = Join-Path $CoreNetCiPath "vm-setup"
@@ -157,10 +152,6 @@ function Install-DuoNic {
     $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
     if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
     Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
-}
-
-if (($Configuration -eq "Dev")) {
-    Install-ClogTool "Microsoft.Logging.CLOG"
 }
 
 if ($IsWindows) {
@@ -216,10 +207,6 @@ if ($IsWindows) {
             Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
-    }
-
-    if (($Configuration -eq "Dev") -or ($Configuration -eq "Test")) {
-        Install-ClogTool "Microsoft.Logging.CLOG2Text.Windows"
     }
 
     if ($Configuration -eq "Test") {
