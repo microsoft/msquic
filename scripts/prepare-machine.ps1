@@ -114,6 +114,10 @@ if ($InitSubmodules) {
     }
 }
 
+Write-Host "Initializing clog submodule"
+git submodule init submodules/clog
+git submodule update
+
 $ArtifactsPath = Join-Path $RootDir "artifacts"
 $CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
 $SetupPath = Join-Path $CoreNetCiPath "vm-setup"
