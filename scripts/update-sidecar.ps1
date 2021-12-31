@@ -15,6 +15,9 @@ class SimpleStringComparer:Collections.Generic.IComparer[string] {
     }
 }
 
+# Change directory to the same directory as this script;  storing our original directory for later
+$OrigDir = Get-Location
+Set-Location $PSScriptRoot
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
@@ -62,3 +65,7 @@ Invoke-Expression "${ClogDir}/clog -p windows_kernel --scopePrefix quic.clog -s 
 Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
+
+
+# Return to where we started
+Set-Location $OrigDir
