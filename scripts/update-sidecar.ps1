@@ -20,12 +20,11 @@ $SrcDir = Join-Path $RootDir "src"
 
 $OutputDir = Join-Path $RootDir "src" "generated"
 
-# Remove the linux and linuxDiagTrace directories - so that we delete files that have been abandoned
+# Remove the linux directories - so that we delete files that have been abandoned
 if (Test-Path $OutputDir) {
 
     if (Test-Path (Join-Path $OutputDir linux)) {
         Remove-Item (Join-Path $OutputDir linux) -Recurse -Force
-        Remove-Item (Join-Path $OutputDir linuxDiagTrace) -Recurse -Force
     }
 }
 
@@ -38,7 +37,6 @@ $ClogDir = Join-Path $RootDir "build" "clog"
 # Create directories
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $OutputDir linux) -ItemType Directory -Force | Out-Null
-New-Item -Path (Join-Path $OutputDir linuxDiagTrace) -ItemType Directory -Force | Out-Null
 
 # Build CLOG, placing results into the CLOG directory under our build directory
 dotnet publish ../submodules/clog/src/clog -o ${ClogDir} -f net5.0
@@ -63,5 +61,4 @@ Invoke-Expression "${ClogDir}/clog -p windows --scopePrefix quic.clog -s $Sideca
 Invoke-Expression "${ClogDir}/clog -p windows_kernel --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
-Invoke-Expression "${ClogDir}/clog -p linuxDiagTrace --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linuxDiagTrace) --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
