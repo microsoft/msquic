@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_TCP_CPP
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_PerfTcpCreateClient
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PerfTcpCreateClient
 // [perf][tcp][%p] Client created
@@ -30,17 +28,14 @@ extern "C" {
         PerfTcpCreateClient,
         "[perf][tcp][%p] Client created",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpCreateClient
 #define _clog_3_ARGS_TRACE_PerfTcpCreateClient(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpCreateClient , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpCreateServer
 
 
 
@@ -51,17 +46,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpCreateClient , arg2);\
         PerfTcpCreateServer,
         "[perf][tcp][%p] Server created",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpCreateServer
 #define _clog_3_ARGS_TRACE_PerfTcpCreateServer(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpCreateServer , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpDestroyed
 
 
 
@@ -72,17 +64,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpCreateServer , arg2);\
         PerfTcpDestroyed,
         "[perf][tcp][%p] Destroyed",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpDestroyed
 #define _clog_3_ARGS_TRACE_PerfTcpDestroyed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpDestroyed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PerfTcpConnectCallback
 
 
 
@@ -94,18 +83,15 @@ tracepoint(CLOG_TCP_CPP, PerfTcpDestroyed , arg2);\
         "[perf][tcp][%p] Connect callback %hhu",
         This,
         Connected);
-// arg2 = arg2 = This
-// arg3 = arg3 = Connected
+// arg2 = arg2 = This = arg2
+// arg3 = arg3 = Connected = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PerfTcpConnectCallback
 #define _clog_4_ARGS_TRACE_PerfTcpConnectCallback(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TCP_CPP, PerfTcpConnectCallback , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpReceiveCallback
 
 
 
@@ -116,17 +102,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpConnectCallback , arg2, arg3);\
         PerfTcpReceiveCallback,
         "[perf][tcp][%p] Receive callback",
         This);
-// arg2 = arg2 = This
+// arg2 = arg2 = This = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpReceiveCallback
 #define _clog_3_ARGS_TRACE_PerfTcpReceiveCallback(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpReceiveCallback , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpSendCompleteCallback
 
 
 
@@ -137,17 +120,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpReceiveCallback , arg2);\
         PerfTcpSendCompleteCallback,
         "[perf][tcp][%p] SendComplete callback",
         This);
-// arg2 = arg2 = This
+// arg2 = arg2 = This = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpSendCompleteCallback
 #define _clog_3_ARGS_TRACE_PerfTcpSendCompleteCallback(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpSendCompleteCallback , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpAppAccept
 
 
 
@@ -158,17 +138,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpSendCompleteCallback , arg2);\
             PerfTcpAppAccept,
             "[perf][tcp][%p] App Accept",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpAppAccept
 #define _clog_3_ARGS_TRACE_PerfTcpAppAccept(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppAccept , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpAppConnect
 
 
 
@@ -179,17 +156,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppAccept , arg2);\
             PerfTcpAppConnect,
             "[perf][tcp][%p] App Connect",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpAppConnect
 #define _clog_3_ARGS_TRACE_PerfTcpAppConnect(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppConnect , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpStartTls
 
 
 
@@ -200,17 +174,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppConnect , arg2);\
             PerfTcpStartTls,
             "[perf][tcp][%p] Start TLS",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpStartTls
 #define _clog_3_ARGS_TRACE_PerfTcpStartTls(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpStartTls , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpAppDisconnect
 
 
 
@@ -221,17 +192,14 @@ tracepoint(CLOG_TCP_CPP, PerfTcpStartTls , arg2);\
             PerfTcpAppDisconnect,
             "[perf][tcp][%p] App Disconnect",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpAppDisconnect
 #define _clog_3_ARGS_TRACE_PerfTcpAppDisconnect(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppDisconnect , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_PerfTcpAppReceive
 
 
 
@@ -246,21 +214,18 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppDisconnect , arg2);\
             (uint8_t)StreamFrame->Open,
             (uint8_t)StreamFrame->Fin,
             (uint8_t)StreamFrame->Abort);
-// arg2 = arg2 = this
-// arg3 = arg3 = (uint16_t)(Frame->Length - sizeof(TcpStreamFrame))
-// arg4 = arg4 = (uint8_t)StreamFrame->Open
-// arg5 = arg5 = (uint8_t)StreamFrame->Fin
-// arg6 = arg6 = (uint8_t)StreamFrame->Abort
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = (uint16_t)(Frame->Length - sizeof(TcpStreamFrame)) = arg3
+// arg4 = arg4 = (uint8_t)StreamFrame->Open = arg4
+// arg5 = arg5 = (uint8_t)StreamFrame->Fin = arg5
+// arg6 = arg6 = (uint8_t)StreamFrame->Abort = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_PerfTcpAppReceive
 #define _clog_7_ARGS_TRACE_PerfTcpAppReceive(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppReceive , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_PerfTcpSendFrame
 
 
 
@@ -275,21 +240,18 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppReceive , arg2, arg3, arg4, arg5, arg6);\
                 (uint8_t)StreamFrame->Open,
                 (uint8_t)StreamFrame->Fin,
                 (uint8_t)StreamFrame->Abort);
-// arg2 = arg2 = this
-// arg3 = arg3 = (uint16_t)StreamLength
-// arg4 = arg4 = (uint8_t)StreamFrame->Open
-// arg5 = arg5 = (uint8_t)StreamFrame->Fin
-// arg6 = arg6 = (uint8_t)StreamFrame->Abort
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = (uint16_t)StreamLength = arg3
+// arg4 = arg4 = (uint8_t)StreamFrame->Open = arg4
+// arg5 = arg5 = (uint8_t)StreamFrame->Fin = arg5
+// arg6 = arg6 = (uint8_t)StreamFrame->Abort = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_PerfTcpSendFrame
 #define _clog_7_ARGS_TRACE_PerfTcpSendFrame(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_TCP_CPP, PerfTcpSendFrame , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PerfTcpAppSendComplete
 
 
 
@@ -301,18 +263,15 @@ tracepoint(CLOG_TCP_CPP, PerfTcpSendFrame , arg2, arg3, arg4, arg5, arg6);\
             "[perf][tcp][%p] App Send complete %u bytes",
             this,
             Data->Length);
-// arg2 = arg2 = this
-// arg3 = arg3 = Data->Length
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = Data->Length = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PerfTcpAppSendComplete
 #define _clog_4_ARGS_TRACE_PerfTcpAppSendComplete(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppSendComplete , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_PerfTcpAppSend
 
 
 
@@ -327,21 +286,18 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppSendComplete , arg2, arg3);\
         (uint8_t)Data->Open,
         (uint8_t)Data->Fin,
         (uint8_t)Data->Abort);
-// arg2 = arg2 = this
-// arg3 = arg3 = Data->Length
-// arg4 = arg4 = (uint8_t)Data->Open
-// arg5 = arg5 = (uint8_t)Data->Fin
-// arg6 = arg6 = (uint8_t)Data->Abort
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = Data->Length = arg3
+// arg4 = arg4 = (uint8_t)Data->Open = arg4
+// arg5 = arg5 = (uint8_t)Data->Fin = arg5
+// arg6 = arg6 = (uint8_t)Data->Abort = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_PerfTcpAppSend
 #define _clog_7_ARGS_TRACE_PerfTcpAppSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppSend , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PerfTcpAppClose
 
 
 
@@ -352,8 +308,9 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppSend , arg2, arg3, arg4, arg5, arg6);\
         PerfTcpAppClose,
         "[perf][tcp][%p] App Close",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PerfTcpAppClose
 #define _clog_3_ARGS_TRACE_PerfTcpAppClose(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TCP_CPP, PerfTcpAppClose , arg2);\
 

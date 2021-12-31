@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CRYPT_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_5_ARGS_TRACE_TlsLogSecret
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TlsLogSecret
 // [ tls] %s[%u]: %s
@@ -36,19 +34,16 @@ extern "C" {
         Prefix,
         Length,
         SecretStr);
-// arg2 = arg2 = Prefix
-// arg3 = arg3 = Length
-// arg4 = arg4 = SecretStr
+// arg2 = arg2 = Prefix = arg2
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = SecretStr = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_TlsLogSecret
 #define _clog_5_ARGS_TRACE_TlsLogSecret(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CRYPT_C, TlsLogSecret , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -60,9 +55,10 @@ tracepoint(CLOG_CRYPT_C, TlsLogSecret , arg2, arg3, arg4);\
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PACKET_KEY",
             PacketKeyLength);
-// arg2 = arg2 = "QUIC_PACKET_KEY"
-// arg3 = arg3 = PacketKeyLength
+// arg2 = arg2 = "QUIC_PACKET_KEY" = arg2
+// arg3 = arg3 = PacketKeyLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPT_C, AllocFailure , arg2, arg3);\
 

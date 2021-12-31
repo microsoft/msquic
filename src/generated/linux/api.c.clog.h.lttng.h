@@ -9,8 +9,8 @@
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_OPEN,
         RegistrationHandle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_OPEN
-// arg3 = arg3 = RegistrationHandle
+// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_OPEN = arg2
+// arg3 = arg3 = RegistrationHandle = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, ApiEnter,
     TP_ARGS(
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_API_C, ApiEnter,
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, ApiExitStatus,
     TP_ARGS(
@@ -83,8 +83,8 @@ TRACEPOINT_EVENT(CLOG_API_C, ApiExit,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server name",
                 ServerNameLength + 1);
-// arg2 = arg2 = "Server name"
-// arg3 = arg3 = ServerNameLength + 1
+// arg2 = arg2 = "Server name" = arg2
+// arg3 = arg3 = ServerNameLength + 1 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, AllocFailure,
     TP_ARGS(
@@ -106,8 +106,8 @@ TRACEPOINT_EVENT(CLOG_API_C, AllocFailure,
             "[strm][%p] ERROR, %s.",
             Stream,
             "Send request total length exceeds max");
-// arg2 = arg2 = Stream
-// arg3 = arg3 = "Send request total length exceeds max"
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = "Send request total length exceeds max" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, StreamError,
     TP_ARGS(
@@ -131,10 +131,10 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamError,
         TotalLength,
         BufferCount,
         Flags);
-// arg2 = arg2 = Stream
-// arg3 = arg3 = TotalLength
-// arg4 = arg4 = BufferCount
-// arg5 = arg5 = Flags
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = TotalLength = arg3
+// arg4 = arg4 = BufferCount = arg4
+// arg5 = arg5 = Flags = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
     TP_ARGS(
@@ -159,7 +159,7 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "Param level does not match param value");
-// arg2 = arg2 = "Param level does not match param value"
+// arg2 = arg2 = "Param level does not match param value" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, LibraryError,
     TP_ARGS(
@@ -179,8 +179,8 @@ TRACEPOINT_EVENT(CLOG_API_C, LibraryError,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Send request total length exceeds max");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Send request total length exceeds max"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Send request total length exceeds max" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, ConnError,
     TP_ARGS(

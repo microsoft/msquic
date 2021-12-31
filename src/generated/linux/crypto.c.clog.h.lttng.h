@@ -8,7 +8,7 @@
             IgnoreCryptoFrame,
             Connection,
             "Ignoring received crypto after cleanup");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, IgnoreCryptoFrame,
     TP_ARGS(
@@ -28,8 +28,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, IgnoreCryptoFrame,
         Connection,
         "Discarding key type = %hhu",
         (uint8_t)KeyType);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint8_t)KeyType
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint8_t)KeyType = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, DiscardKeyType,
     TP_ARGS(
@@ -50,7 +50,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, DiscardKeyType,
             ZeroRttAccepted,
             Connection,
             "0-RTT accepted");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttAccepted,
     TP_ARGS(
@@ -69,7 +69,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttAccepted,
             ZeroRttRejected,
             Connection,
             "0-RTT rejected");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttRejected,
     TP_ARGS(
@@ -88,7 +88,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttRejected,
                 HandshakeConfirmedServer,
                 Connection,
                 "Handshake confirmed (server)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, HandshakeConfirmedServer,
     TP_ARGS(
@@ -107,7 +107,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, HandshakeConfirmedServer,
             CustomCertValidationSuccess,
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
-// arg1 = arg1 = QuicCryptoGetConnection(Crypto)
+// arg1 = arg1 = QuicCryptoGetConnection(Crypto) = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CustomCertValidationSuccess,
     TP_ARGS(
@@ -132,13 +132,13 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CustomCertValidationSuccess,
             Crypto->NextSendOffset,
             Crypto->InRecovery ? Crypto->RecoveryNextOffset : 0,
             Crypto->InRecovery ? Crypto->RecoveryEndOffset : 0);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Crypto->TlsState.BufferTotalLength
-// arg4 = arg4 = Crypto->MaxSentLength
-// arg5 = arg5 = Crypto->UnAckedOffset
-// arg6 = arg6 = Crypto->NextSendOffset
-// arg7 = arg7 = Crypto->InRecovery ? Crypto->RecoveryNextOffset : 0
-// arg8 = arg8 = Crypto->InRecovery ? Crypto->RecoveryEndOffset : 0
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Crypto->TlsState.BufferTotalLength = arg3
+// arg4 = arg4 = Crypto->MaxSentLength = arg4
+// arg5 = arg5 = Crypto->UnAckedOffset = arg5
+// arg6 = arg6 = Crypto->NextSendOffset = arg6
+// arg7 = arg7 = Crypto->InRecovery ? Crypto->RecoveryNextOffset : 0 = arg7
+// arg8 = arg8 = Crypto->InRecovery ? Crypto->RecoveryEndOffset : 0 = arg8
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDump,
     TP_ARGS(
@@ -171,9 +171,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDump,
                 "  unACKed: [%llu, %llu]",
                 UnAcked,
                 Sack->Low);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = UnAcked
-// arg4 = arg4 = Sack->Low
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = UnAcked = arg3
+// arg4 = arg4 = Sack->Low = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked,
     TP_ARGS(
@@ -198,9 +198,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked,
                 "  unACKed: [%llu, %u]",
                 UnAcked,
                 Crypto->MaxSentLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = UnAcked
-// arg4 = arg4 = Crypto->MaxSentLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = UnAcked = arg3
+// arg4 = arg4 = Crypto->MaxSentLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked2,
     TP_ARGS(
@@ -223,7 +223,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked2,
             NoMoreRoomForCrypto,
             Connection,
             "No room for CRYPTO frame");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, NoMoreRoomForCrypto,
     TP_ARGS(
@@ -244,9 +244,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, NoMoreRoomForCrypto,
         "Sending %hu crypto bytes, offset=%u",
         (uint16_t)Frame.Length,
         CryptoOffset);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Frame.Length
-// arg4 = arg4 = CryptoOffset
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Frame.Length = arg3
+// arg4 = arg4 = CryptoOffset = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, AddCryptoFrame,
     TP_ARGS(
@@ -271,9 +271,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, AddCryptoFrame,
             "Recovering crypto from %llu up to %llu",
             Start,
             End);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Start
-// arg4 = arg4 = End
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Start = arg3
+// arg4 = arg4 = End = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecoverCrypto,
     TP_ARGS(
@@ -298,9 +298,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecoverCrypto,
         "Received ack for %u crypto bytes, offset=%u",
         Length,
         Offset);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = Offset
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = Offset = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, AckCrypto,
     TP_ARGS(
@@ -326,10 +326,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, AckCrypto,
         (uint16_t)Frame->Length,
         Frame->Offset,
         *DataReady);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Frame->Length
-// arg4 = arg4 = Frame->Offset
-// arg5 = arg5 = *DataReady
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Frame->Length = arg3
+// arg4 = arg4 = Frame->Offset = arg4
+// arg5 = arg5 = *DataReady = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecvCrypto,
     TP_ARGS(
@@ -355,8 +355,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecvCrypto,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
             Event.CONNECTED.SessionResumed);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.CONNECTED.SessionResumed
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.CONNECTED.SessionResumed = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, IndicateConnected,
     TP_ARGS(
@@ -378,8 +378,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, IndicateConnected,
             QuicCryptoGetConnection(Crypto),
             "Draining %u crypto bytes",
             RecvBufferConsumed);
-// arg1 = arg1 = QuicCryptoGetConnection(Crypto)
-// arg3 = arg3 = RecvBufferConsumed
+// arg1 = arg1 = QuicCryptoGetConnection(Crypto) = arg1
+// arg3 = arg3 = RecvBufferConsumed = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, DrainCrypto,
     TP_ARGS(
@@ -400,7 +400,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, DrainCrypto,
                 CryptoNotReady,
                 Connection,
                 "No complete TLS messages to process");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoNotReady,
     TP_ARGS(
@@ -420,8 +420,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoNotReady,
             "Allocation of '%s' failed. (%llu bytes)",
             "crypto send buffer",
             SendBufferLength);
-// arg2 = arg2 = "crypto send buffer"
-// arg3 = arg3 = SendBufferLength
+// arg2 = arg2 = "crypto send buffer" = arg2
+// arg3 = arg3 = SendBufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, AllocFailure,
     TP_ARGS(
@@ -444,9 +444,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, AllocFailure,
             Connection,
             Status,
             "Creating initial keys");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Creating initial keys"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Creating initial keys" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnErrorStatus,
     TP_ARGS(
@@ -470,8 +470,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnErrorStatus,
                     "[conn][%p] ERROR, %s.",
                     Connection,
                     "Tried to write beyond crypto flow control limit.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Tried to write beyond crypto flow control limit."
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Tried to write beyond crypto flow control limit." = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnError,
     TP_ARGS(
@@ -493,8 +493,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnError,
             "[conn][%p] Write Key Updated, %hhu.",
             Connection,
             Crypto->TlsState.WriteKey);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Crypto->TlsState.WriteKey
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Crypto->TlsState.WriteKey = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnWriteKeyUpdated,
     TP_ARGS(
@@ -516,8 +516,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnWriteKeyUpdated,
             "[conn][%p] Read Key Updated, %hhu.",
             Connection,
             Crypto->TlsState.ReadKey);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Crypto->TlsState.ReadKey
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Crypto->TlsState.ReadKey = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnReadKeyUpdated,
     TP_ARGS(
@@ -538,7 +538,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnReadKeyUpdated,
             ConnHandshakeComplete,
             "[conn][%p] Handshake complete",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnHandshakeComplete,
     TP_ARGS(
@@ -559,9 +559,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnHandshakeComplete,
                 Connection,
                 InitialSourceCid->CID.SequenceNumber,
                 CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = InitialSourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = InitialSourceCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnSourceCidRemoved,
     TP_ARGS(
@@ -586,7 +586,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnSourceCidRemoved,
             ConnNewPacketKeys,
             "[conn][%p] New packet keys created successfully.",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnNewPacketKeys,
     TP_ARGS(
@@ -606,8 +606,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnNewPacketKeys,
         "[conn][%p] Key phase change (locally initiated=%hhu).",
         Connection,
         LocalUpdate);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = LocalUpdate
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = LocalUpdate = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnKeyPhaseChange,
     TP_ARGS(

@@ -8,7 +8,7 @@
             LibraryError,
             "[ lib] ERROR, %s.",
             "OPENSSL_init_ssl failed");
-// arg2 = arg2 = "OPENSSL_init_ssl failed"
+// arg2 = arg2 = "OPENSSL_init_ssl failed" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_OPENSSL_C, LibraryError,
     TP_ARGS(
@@ -28,8 +28,8 @@ TRACEPOINT_EVENT(CLOG_CRYPT_OPENSSL_C, LibraryError,
             "[ lib] ERROR, %u, %s.",
             ERR_get_error(),
             "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-// arg2 = arg2 = ERR_get_error()
-// arg3 = arg3 = "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed"
+// arg2 = arg2 = ERR_get_error() = arg2
+// arg3 = arg3 = "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_OPENSSL_C, LibraryErrorStatus,
     TP_ARGS(
@@ -51,8 +51,8 @@ TRACEPOINT_EVENT(CLOG_CRYPT_OPENSSL_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_HP_KEY",
             sizeof(CXPLAT_HP_KEY));
-// arg2 = arg2 = "CXPLAT_HP_KEY"
-// arg3 = arg3 = sizeof(CXPLAT_HP_KEY)
+// arg2 = arg2 = "CXPLAT_HP_KEY" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_HP_KEY) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_OPENSSL_C, AllocFailure,
     TP_ARGS(

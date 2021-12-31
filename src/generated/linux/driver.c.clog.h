@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_DRIVER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
@@ -31,9 +29,10 @@ extern "C" {
             "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDriverCreate");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "WdfDriverCreate"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "WdfDriverCreate" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DRIVER_C, LibraryErrorStatus , arg2, arg3);\
 

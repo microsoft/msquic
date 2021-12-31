@@ -8,7 +8,7 @@
             LibraryStorageOpenFailed,
             "[ lib] Failed to open global settings, 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryStorageOpenFailed,
     TP_ARGS(
@@ -43,7 +43,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryTestDatapathHooksSet,
         LibrarySettingsUpdated,
         "[ lib] Settings %p Updated",
         &MsQuicLib.Settings);
-// arg2 = arg2 = &MsQuicLib.Settings
+// arg2 = arg2 = &MsQuicLib.Settings = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySettingsUpdated,
     TP_ARGS(
@@ -94,7 +94,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVerifierEnabled,
         LibraryCidLengthSet,
         "[ lib] CID Length = %hhu",
         MsQuicLib.CidTotalLength);
-// arg2 = arg2 = MsQuicLib.CidTotalLength
+// arg2 = arg2 = MsQuicLib.CidTotalLength = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCidLengthSet,
     TP_ARGS(
@@ -113,7 +113,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCidLengthSet,
             LibraryRetryMemoryLimitSet,
             "[ lib] Updated retry memory limit = %hu",
             MsQuicLib.Settings.RetryMemoryLimit);
-// arg2 = arg2 = MsQuicLib.Settings.RetryMemoryLimit
+// arg2 = arg2 = MsQuicLib.Settings.RetryMemoryLimit = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryMemoryLimitSet,
     TP_ARGS(
@@ -132,7 +132,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryMemoryLimitSet,
             LibraryLoadBalancingModeSet,
             "[ lib] Updated load balancing mode = %hu",
             MsQuicLib.Settings.LoadBalancingMode);
-// arg2 = arg2 = MsQuicLib.Settings.LoadBalancingMode
+// arg2 = arg2 = MsQuicLib.Settings.LoadBalancingMode = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSet,
     TP_ARGS(
@@ -231,7 +231,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
         LibraryMsQuicOpenExit,
         "[ api] MsQuicOpen, status=0x%x",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenExit,
     TP_ARGS(
@@ -282,8 +282,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
             CompatibilityListByteLength);
-// arg2 = arg2 = "default compatibility list"
-// arg3 = arg3 = CompatibilityListByteLength
+// arg2 = arg2 = "default compatibility list" = arg2
+// arg3 = arg3 = CompatibilityListByteLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
     TP_ARGS(
@@ -305,8 +305,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "Create reset token hash");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Create reset token hash"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Create reset token hash" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
     TP_ARGS(
@@ -328,8 +328,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
         "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
         MsQuicLib.PartitionCount,
         CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = MsQuicLib.PartitionCount
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath)
+// arg2 = arg2 = MsQuicLib.PartitionCount = arg2
+// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
     TP_ARGS(
@@ -353,10 +353,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
         MsQuicLib.Version[1],
         MsQuicLib.Version[2],
         MsQuicLib.Version[3]);
-// arg2 = arg2 = MsQuicLib.Version[0]
-// arg3 = arg3 = MsQuicLib.Version[1]
-// arg4 = arg4 = MsQuicLib.Version[2]
-// arg5 = arg5 = MsQuicLib.Version[3]
+// arg2 = arg2 = MsQuicLib.Version[0] = arg2
+// arg3 = arg3 = MsQuicLib.Version[1] = arg3
+// arg4 = arg4 = MsQuicLib.Version[2] = arg4
+// arg5 = arg5 = MsQuicLib.Version[3] = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVersion,
     TP_ARGS(
@@ -430,8 +430,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = "Binding already in use"
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = "Binding already in use" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, BindingError,
     TP_ARGS(
@@ -469,8 +469,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
             CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = MsQuicLib.PartitionCount
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath)
+// arg2 = arg2 = MsQuicLib.PartitionCount = arg2
+// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
     TP_ARGS(
@@ -491,7 +491,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
             LibrarySendRetryStateUpdated,
             "[ lib] New SendRetryEnabled state, %hhu",
             MsQuicLib.SendRetryEnabled);
-// arg2 = arg2 = MsQuicLib.SendRetryEnabled
+// arg2 = arg2 = MsQuicLib.SendRetryEnabled = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
     TP_ARGS(
@@ -510,7 +510,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
             PerfCountersRundown,
             "[ lib] Perf counters Rundown, Counters=%!CID!",
             CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
-// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)
+// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters) = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, PerfCountersRundown,
     TP_ARGS(

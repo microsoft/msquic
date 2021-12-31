@@ -92,7 +92,6 @@
 ../src/perf/lib/RpsClient.h
 ../src/perf/lib/Tcp.cpp
 ../src/perf/lib/ThroughputClient.h
-../src/perf/lib/perflib.kernel.vcxproj
 ../src/perf/lib/RpsClient.cpp
 ../src/perf/lib/PerfCommon.h
 ../src/perf/lib/ThroughputClient.cpp
