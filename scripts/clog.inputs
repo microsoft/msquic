@@ -82,6 +82,7 @@
 ../src/test/lib/HandshakeTest.cpp
 ../src/test/lib/QuicDrill.cpp
 ../src/test/lib/DatagramTest.cpp
+../src/test/lib/OwnershipTest.cpp
 ../src/perf/lib/PerfHelpers.h
 ../src/perf/lib/PerfServer.cpp
 ../src/perf/lib/SecNetPerfMain.cpp

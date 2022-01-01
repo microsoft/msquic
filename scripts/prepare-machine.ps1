@@ -352,7 +352,6 @@ if ($IsWindows) {
             Write-Host "[$(Get-Date)] Setting core dump pattern..."
             sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
             #sudo cat /proc/sys/kernel/core_pattern
-            Install-ClogTool
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.12
@@ -361,7 +360,6 @@ if ($IsWindows) {
             sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
-            Install-ClogTool
         }
         "OneBranch" {
             sudo apt-add-repository ppa:lttng/stable-2.12
