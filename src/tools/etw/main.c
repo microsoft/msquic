@@ -152,7 +152,7 @@ void WINAPI EventCallback(_In_ PEVENT_RECORD ev)
     }
 
     if (TraceEvent) {
-        //uicTraceEvent(ev, ObjectId, InitialTimestamp);
+        QuicTraceEvent(ev, ObjectId, InitialTimestamp);
     }
 
     Trace.StopTimestamp = ev->EventHeader.TimeStamp.QuadPart;

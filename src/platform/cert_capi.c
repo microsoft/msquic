@@ -1039,14 +1039,14 @@ CxPlatCertVerifyCertChainPolicy(
     }
 
 Exit:
-/*
-    uicTraceLogInfo(
+
+    QuicTraceLogInfo(
         CertCapiVerifiedChain,
         "CertVerifyChain: %S 0x%x, result=0x%x",
         ServerName,
         CredFlags,
         Status);
-*/
+
     return Status;
 }
 

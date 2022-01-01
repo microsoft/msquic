@@ -315,11 +315,11 @@ SecNetPerfCtlInitialize(
             "WdfDeviceInitAssignName failed");
         goto Error;
     }
-/*
-    uicTraceLogVerbose(
+
+    QuicTraceLogVerbose(
         PerfControlInitialized,
         "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
-*/
+
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
         SecNetPerfCtlEvtFileCreate,
@@ -410,11 +410,11 @@ SecNetPerfCtlInitialize(
     SecNetPerfCtlExtension = DeviceContext;
 
     WdfControlFinishInitializing(Device);
-/*
-    uicTraceLogVerbose(
+
+    QuicTraceLogVerbose(
         PerfControlInitialized,
         "[perf] Control interface initialized");
-*/
+
 Error:
 
     if (DeviceInit) {
