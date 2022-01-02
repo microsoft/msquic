@@ -7428,7 +7428,7 @@
     },
     "LogPacketVersionNegotiation": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)",
+      "TraceString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)",
       "UniqueId": "LogPacketVersionNegotiation",
       "splitArgs": [
         {
@@ -7448,7 +7448,7 @@
           "MacroVariableName": "arg5"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg6"
         }
       ],
@@ -13358,11 +13358,6 @@
         "EncodingString": "[conn][%p] Key phase change (locally initiated=%hhu)."
       },
       {
-        "UniquenessHash": "c79aff34-7c3e-4e8c-42d7-476269435722",
-        "TraceID": "LogPacketVersionNegotiation",
-        "EncodingString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)"
-      },
-      {
         "UniquenessHash": "afa9276d-cc3c-6cb1-4df9-e4d2fdc0e66d",
         "TraceID": "LogPacketVersionNegotiationVersion",
         "EncodingString": "[%c][%cX][-]   Ver:0x%x"
@@ -14336,6 +14331,11 @@
         "UniquenessHash": "0ba57698-ca5f-449b-4d87-183b7ea2918b",
         "TraceID": "PerfControlInitialized",
         "EncodingString": "[perf] Control interface initialized"
+      },
+      {
+        "UniquenessHash": "e7d3b50d-c315-3189-9752-de68bf66c705",
+        "TraceID": "LogPacketVersionNegotiation",
+        "EncodingString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)"
       }
     ]
   }

@@ -3,20 +3,20 @@
 
 /*----------------------------------------------------------
 // Decoder Ring for LogPacketVersionNegotiation
-// [%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)
+// [%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)
 // QuicTraceLogVerbose(
                 LogPacketVersionNegotiation,
-                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)",
+                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 (uint8_t)PktRxPre(Rx),
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                (uint32_t)(PacketLength - Offset));
+                (uint16_t)(PacketLength - Offset));
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = (uint8_t)PktRxPre(Rx) = arg3
 // arg4 = arg4 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg4
 // arg5 = arg5 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg5
-// arg6 = arg6 = (uint32_t)(PacketLength - Offset) = arg6
+// arg6 = arg6 = (uint16_t)(PacketLength - Offset) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiation,
     TP_ARGS(
@@ -24,13 +24,13 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiation,
         unsigned char, arg3,
         const char *, arg4,
         const char *, arg5,
-        unsigned int, arg6), 
+        unsigned short, arg6), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_string(arg4, arg4)
         ctf_string(arg5, arg5)
-        ctf_integer(unsigned int, arg6, arg6)
+        ctf_integer(unsigned short, arg6, arg6)
     )
 )
 

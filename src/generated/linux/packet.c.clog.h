@@ -27,20 +27,20 @@ extern "C" {
 #endif
 /*----------------------------------------------------------
 // Decoder Ring for LogPacketVersionNegotiation
-// [%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)
+// [%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)
 // QuicTraceLogVerbose(
                 LogPacketVersionNegotiation,
-                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %u bytes)",
+                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 (uint8_t)PktRxPre(Rx),
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                (uint32_t)(PacketLength - Offset));
+                (uint16_t)(PacketLength - Offset));
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = (uint8_t)PktRxPre(Rx) = arg3
 // arg4 = arg4 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg4
 // arg5 = arg5 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg5
-// arg6 = arg6 = (uint32_t)(PacketLength - Offset) = arg6
+// arg6 = arg6 = (uint16_t)(PacketLength - Offset) = arg6
 ----------------------------------------------------------*/
 #ifndef _clog_7_ARGS_TRACE_LogPacketVersionNegotiation
 #define _clog_7_ARGS_TRACE_LogPacketVersionNegotiation(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
