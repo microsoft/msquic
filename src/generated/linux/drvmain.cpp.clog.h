@@ -198,6 +198,22 @@ tracepoint(CLOG_DRVMAIN_CPP, PerfControlClientIoctlComplete , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PerfControlInitialized
+// [perf] Control interface initialized
+// QuicTraceLogVerbose(
+        PerfControlInitialized,
+        "[perf] Control interface initialized");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PerfControlInitialized
+#define _clog_2_ARGS_TRACE_PerfControlInitialized(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DRVMAIN_CPP, PerfControlInitialized );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PerfControlUninitializing
 // [perf] Control interface uninitializing
 // QuicTraceLogVerbose(

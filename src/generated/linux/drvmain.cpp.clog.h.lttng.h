@@ -180,6 +180,22 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctlComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PerfControlInitialized
+// [perf] Control interface initialized
+// QuicTraceLogVerbose(
+        PerfControlInitialized,
+        "[perf] Control interface initialized");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlInitialized,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PerfControlUninitializing
 // [perf] Control interface uninitializing
 // QuicTraceLogVerbose(

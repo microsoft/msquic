@@ -14,6 +14,10 @@
 #include "cert_capi.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogInfo
+#define _clog_MACRO_QuicTraceLogInfo  1
+#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogVerbose
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,28 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for CertCapiVerifiedChain
+// CertVerifyChain: %S 0x%x, result=0x%x
+// QuicTraceLogInfo(
+        CertCapiVerifiedChain,
+        "CertVerifyChain: %S 0x%x, result=0x%x",
+        ServerName,
+        CredFlags,
+        Status);
+// arg2 = arg2 = ServerName = arg2
+// arg3 = arg3 = CredFlags = arg3
+// arg4 = arg4 = Status = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CertCapiVerifiedChain
+#define _clog_5_ARGS_TRACE_CertCapiVerifiedChain(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_CERT_CAPI_C, CertCapiVerifiedChain , arg3, arg4);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for CertCapiParsedChain
 // [cert] Successfully parsed chain of %u certificate(s)

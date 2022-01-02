@@ -10494,6 +10494,33 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "CertCapiVerifiedChain": {
+      "ModuleProperites": {},
+      "TraceString": "CertVerifyChain: %S 0x%x, result=0x%x",
+      "UniqueId": "CertCapiVerifiedChain",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "S",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfControlInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[perf] Control interface initialized",
+      "UniqueId": "PerfControlInitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -14299,6 +14326,16 @@
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop",
         "EncodingString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s."
+      },
+      {
+        "UniquenessHash": "6fb480dc-d71f-74f2-dc75-559a5591fe3d",
+        "TraceID": "CertCapiVerifiedChain",
+        "EncodingString": "CertVerifyChain: %S 0x%x, result=0x%x"
+      },
+      {
+        "UniquenessHash": "0ba57698-ca5f-449b-4d87-183b7ea2918b",
+        "TraceID": "PerfControlInitialized",
+        "EncodingString": "[perf] Control interface initialized"
       }
     ]
   }

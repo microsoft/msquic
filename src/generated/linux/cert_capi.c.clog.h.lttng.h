@@ -2,6 +2,31 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for CertCapiVerifiedChain
+// CertVerifyChain: %S 0x%x, result=0x%x
+// QuicTraceLogInfo(
+        CertCapiVerifiedChain,
+        "CertVerifyChain: %S 0x%x, result=0x%x",
+        ServerName,
+        CredFlags,
+        Status);
+// arg2 = arg2 = ServerName = arg2
+// arg3 = arg3 = CredFlags = arg3
+// arg4 = arg4 = Status = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiVerifiedChain,
+    TP_ARGS(
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for CertCapiParsedChain
 // [cert] Successfully parsed chain of %u certificate(s)
 // QuicTraceLogVerbose(

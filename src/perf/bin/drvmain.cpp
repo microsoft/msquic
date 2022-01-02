@@ -316,10 +316,11 @@ SecNetPerfCtlInitialize(
         goto Error;
     }
 
-    QuicTraceLogVerbose(
+#if 0 // Disable this trace while we find a solution to %.*S
+    Q uicTraceLogVerbose(
         PerfControlInitialized,
         "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
-
+#endif
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
         SecNetPerfCtlEvtFileCreate,
