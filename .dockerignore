@@ -3,6 +3,7 @@
 !scripts
 !src
 !cmake
+!submodules/clog
 !submodules/openssl
 !submodules/CMakeLists.txt
 submodules/openssl/pyca-cryptography

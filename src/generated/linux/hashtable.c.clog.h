@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_HASHTABLE_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
@@ -31,55 +29,12 @@ extern "C" {
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_HASHTABLE",
                 sizeof(CXPLAT_HASHTABLE));
-// arg2 = arg2 = "CXPLAT_HASHTABLE"
-// arg3 = arg3 = sizeof(CXPLAT_HASHTABLE)
+// arg2 = arg2 = "CXPLAT_HASHTABLE" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_HASHTABLE) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_HASHTABLE_C, AllocFailure , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "second level dir (0)",
-                CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY));
-// arg2 = arg2 = "second level dir (0)"
-// arg3 = arg3 = CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "second level dir (i)",
-                    CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY));
-// arg2 = arg2 = "second level dir (i)"
-// arg3 = arg3 = CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

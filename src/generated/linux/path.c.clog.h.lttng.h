@@ -9,8 +9,8 @@
         Connection,
         "Path[%hhu] Initialized",
         Path->ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATH_C, PathInitialized,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathInitialized,
         Connection,
         "Path[%hhu] Removed",
         Path->ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATH_C, PathRemoved,
     TP_ARGS(
@@ -56,9 +56,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathRemoved,
         "Path[%hhu] Validated (%s)",
         Path->ID,
         ReasonStrings[Reason]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = ReasonStrings[Reason]
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = ReasonStrings[Reason] = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATH_C, PathValidated,
     TP_ARGS(
@@ -83,9 +83,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathValidated,
         "Path[%hhu] Set active (rebind=%hhu)",
         Connection->Paths[0].ID,
         UdpPortChangeOnly);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[0].ID
-// arg4 = arg4 = UdpPortChangeOnly
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg4 = arg4 = UdpPortChangeOnly = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATH_C, PathActive,
     TP_ARGS(

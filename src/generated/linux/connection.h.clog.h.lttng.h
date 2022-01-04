@@ -10,9 +10,9 @@
         Connection,
         FcAvailable,
         SendWindow);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = FcAvailable
-// arg4 = arg4 = SendWindow
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = FcAvailable = arg3
+// arg4 = arg4 = SendWindow = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowStreamStats,
     TP_ARGS(
@@ -36,8 +36,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowStreamStats,
         "[conn][%p] IN: BytesRecv=%llu",
         Connection,
         Connection->Stats.Recv.TotalBytes);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.Recv.TotalBytes
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Stats.Recv.TotalBytes = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
     TP_ARGS(
@@ -63,12 +63,12 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Path->SmoothedRtt
-// arg4 = arg4 = Connection->Stats.Send.CongestionCount
-// arg5 = arg5 = Connection->Stats.Send.PersistentCongestionCount
-// arg6 = arg6 = Connection->Stats.Send.TotalBytes
-// arg7 = arg7 = Connection->Stats.Recv.TotalBytes
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->SmoothedRtt = arg3
+// arg4 = arg4 = Connection->Stats.Send.CongestionCount = arg4
+// arg5 = arg5 = Connection->Stats.Send.PersistentCongestionCount = arg5
+// arg6 = arg6 = Connection->Stats.Send.TotalBytes = arg6
+// arg7 = arg7 = Connection->Stats.Recv.TotalBytes = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStats,
     TP_ARGS(
@@ -105,15 +105,15 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStats,
         Connection->Stats.Recv.DroppedPackets,
         Connection->Stats.Recv.DuplicatePackets,
         Connection->Stats.Recv.DecryptionFailures);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.Send.TotalPackets
-// arg4 = arg4 = Connection->Stats.Send.SuspectedLostPackets
-// arg5 = arg5 = Connection->Stats.Send.SpuriousLostPackets
-// arg6 = arg6 = Connection->Stats.Recv.TotalPackets
-// arg7 = arg7 = Connection->Stats.Recv.ReorderedPackets
-// arg8 = arg8 = Connection->Stats.Recv.DroppedPackets
-// arg9 = arg9 = Connection->Stats.Recv.DuplicatePackets
-// arg10 = arg10 = Connection->Stats.Recv.DecryptionFailures
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Stats.Send.TotalPackets = arg3
+// arg4 = arg4 = Connection->Stats.Send.SuspectedLostPackets = arg4
+// arg5 = arg5 = Connection->Stats.Send.SpuriousLostPackets = arg5
+// arg6 = arg6 = Connection->Stats.Recv.TotalPackets = arg6
+// arg7 = arg7 = Connection->Stats.Recv.ReorderedPackets = arg7
+// arg8 = arg8 = Connection->Stats.Recv.DroppedPackets = arg8
+// arg9 = arg9 = Connection->Stats.Recv.DuplicatePackets = arg9
+// arg10 = arg10 = Connection->Stats.Recv.DecryptionFailures = arg10
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnPacketStats,
     TP_ARGS(
@@ -149,8 +149,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnPacketStats,
             "[conn][%p] Send Blocked Flags: %hhu",
             Connection,
             Connection->OutFlowBlockedReasons);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->OutFlowBlockedReasons
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->OutFlowBlockedReasons = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowBlocked,
     TP_ARGS(
@@ -173,9 +173,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowBlocked,
                     Connection,
                     SourceCid->CID.SequenceNumber,
                     CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = SourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnSourceCidRemoved,
     TP_ARGS(

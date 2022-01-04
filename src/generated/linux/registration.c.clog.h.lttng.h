@@ -8,7 +8,7 @@
             RegistrationVerifierEnabled,
             "[ reg][%p] Verifing enabled!",
             Registration);
-// arg2 = arg2 = Registration
+// arg2 = arg2 = Registration = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationVerifierEnabled,
     TP_ARGS(
@@ -28,8 +28,8 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationVerifierEnabled,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
-// arg2 = arg2 = QUIC_TRACE_API_REGISTRATION_OPEN
-// arg3 = arg3 = NULL
+// arg2 = arg2 = QUIC_TRACE_API_REGISTRATION_OPEN = arg2
+// arg3 = arg3 = NULL = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiEnter,
     TP_ARGS(
@@ -51,8 +51,8 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiEnter,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
             sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
-// arg2 = arg2 = "registration"
-// arg3 = arg3 = sizeof(QUIC_REGISTRATION) + AppNameLength + 1
+// arg2 = arg2 = "registration" = arg2
+// arg3 = arg3 = sizeof(QUIC_REGISTRATION) + AppNameLength + 1 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, AllocFailure,
     TP_ARGS(
@@ -74,8 +74,8 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, AllocFailure,
         "[ reg][%p] Created, AppName=%s",
         Registration,
         Registration->AppName);
-// arg2 = arg2 = Registration
-// arg3 = arg3 = Registration->AppName
+// arg2 = arg2 = Registration = arg2
+// arg3 = arg3 = Registration->AppName = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCreated,
     TP_ARGS(
@@ -96,7 +96,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCreated,
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiExitStatus,
     TP_ARGS(
@@ -115,7 +115,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiExitStatus,
             RegistrationCleanup,
             "[ reg][%p] Cleaning up",
             Registration);
-// arg2 = arg2 = Registration
+// arg2 = arg2 = Registration = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCleanup,
     TP_ARGS(
@@ -151,8 +151,8 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiExit,
         "[ reg][%p] Rundown, AppName=%s",
         Registration,
         Registration->AppName);
-// arg2 = arg2 = Registration
-// arg3 = arg3 = Registration->AppName
+// arg2 = arg2 = Registration = arg2
+// arg3 = arg3 = Registration->AppName = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationRundown,
     TP_ARGS(

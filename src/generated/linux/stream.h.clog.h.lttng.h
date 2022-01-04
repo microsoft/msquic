@@ -9,8 +9,8 @@
             "[strm][%p] Send Blocked Flags: %hhu",
             Stream,
             Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream
-// arg3 = arg3 = Stream->OutFlowBlockedReasons
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_H, StreamOutFlowBlocked,
     TP_ARGS(

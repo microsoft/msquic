@@ -9,8 +9,8 @@
                 "Allocation of '%s' failed. (%llu bytes)",
                 "recv_buffer",
                 AllocBufferLength);
-// arg2 = arg2 = "recv_buffer"
-// arg3 = arg3 = AllocBufferLength
+// arg2 = arg2 = "recv_buffer" = arg2
+// arg3 = arg3 = AllocBufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_RECV_BUFFER_C, AllocFailure,
     TP_ARGS(

@@ -498,7 +498,7 @@ else() #!WIN32
         else()
             message(STATUS "Configuring for LTTng tracing")
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
-            set (QUIC_LTTNG_PLATFORM linux)
+            set (QUIC_LINUX_LOGGING_METHOD linux)
             include(FindLTTngUST)
         endif()
     else()
