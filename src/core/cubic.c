@@ -182,7 +182,8 @@ CubicCongestionControlGetSendAllowance(
         SendAllowance =
             Cubic->LastSendAllowance +
             (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
-        if (SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
+        if (SendAllowance < Cubic->LastSendAllowance || // Overflow case
+            SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
             SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
         }
 
