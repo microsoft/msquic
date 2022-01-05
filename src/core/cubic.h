@@ -59,7 +59,7 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t BytesInFlightMax;
 
     //
-    // The leftover send allowance from a previous send. Olny used when pacing.
+    // The leftover send allowance from a previous send. Only used when pacing.
     //
     uint32_t LastSendAllowance; // bytes
 
