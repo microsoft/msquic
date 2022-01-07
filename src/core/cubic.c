@@ -495,8 +495,8 @@ CubicCongestionControlOnDataAcknowledged(
             //
             // Concave or Convex region. Constrain TargetWindow within [CongestionWindow, 1.5*CongestionWindow].
             //
-            uint64_t TargetWindow = max(Cubic->CongestionWindow, min(CubicWindow, Cubic->CongestionWindow + (Cubic->CongestionWindow >> 1)));
-            Cubic->CongestionWindow += (ULONG)(((TargetWindow - Cubic->CongestionWindow) * Connection->Paths[0].Mtu) / Cubic->CongestionWindow);
+            uint64_t TargetWindow = CXPLAT_MAX(Cubic->CongestionWindow, CXPLAT_MIN(CubicWindow, Cubic->CongestionWindow + (Cubic->CongestionWindow >> 1)));
+            Cubic->CongestionWindow += (uint32_t)(((TargetWindow - Cubic->CongestionWindow) * Connection->Paths[0].Mtu) / Cubic->CongestionWindow);
         }
     }
 
