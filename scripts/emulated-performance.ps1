@@ -397,6 +397,7 @@ if ($LogProfile -ne "None") {
     }
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
     Get-ChildItem $LogScript | Write-Debug
+    Write-Host "Logging to $LogDir"
 }
 
 if ($BaseRandomSeed -eq "") {
