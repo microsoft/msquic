@@ -643,6 +643,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x4000003   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      0x4000004   // QUIC_SETTINGS
 #define QUIC_PARAM_GLOBAL_VERSION                       0x4000005   // uint32_t[4]
+#define QUIC_PARAM_GLOBAL_DESIRED_VERSIONS              0x4000006   // uint32_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
@@ -654,6 +655,7 @@ typedef enum QUIC_PARAM_LEVEL {
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0xC000000   // QUIC_SETTINGS
 #define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0xC000001   // QUIC_TICKET_KEY_CONFIG[]
+#define QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS       0xC000002   // uint32_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -686,6 +688,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x14000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x14000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x14000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
+#define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x14000014   // uint32_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.
