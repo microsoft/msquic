@@ -430,7 +430,8 @@ QuicConfigurationParamGet(
 {
     if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
         return QuicSettingsGetParam(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
-    } else if (Param == QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS) {
+    }
+    if (Param == QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS) {
         return QuicSettingsGetDesiredVersions(&Configuration->Settings, BufferLength, (uint32_t*)Buffer);
     }
 
