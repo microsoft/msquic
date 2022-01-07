@@ -547,6 +547,9 @@ ListenerFailSendResumeCallback(
 
 void QuicTestValidateConnection()
 {
+#ifndef QUIC_DISABLE_0RTT_TESTS
+    QuicServerSendResumeState ListenerContext;
+#endif
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -935,7 +938,6 @@ void QuicTestValidateConnection()
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
-        QuicServerSendResumeState ListenerContext;
         MyListener.Context = &ListenerContext;
 
         {
@@ -947,7 +949,7 @@ void QuicTestValidateConnection()
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(1000));
+            TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(2000));
             }
 
             //
@@ -959,8 +961,8 @@ void QuicTestValidateConnection()
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(1000));
-            TEST_TRUE(ListenerContext.HandshakeCompleteEvent.WaitTimeout(1000)); // Wait for server to get connected
+            TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(2000));
+            TEST_TRUE(ListenerContext.HandshakeCompleteEvent.WaitTimeout(2000)); // Wait for server to get connected
             }
 
             //
@@ -972,8 +974,8 @@ void QuicTestValidateConnection()
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-            TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(1000));
-            TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(1000)); // Wait for client to get connected
+            TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(2000));
+            TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(2000)); // Wait for client to get connected
 
             //
             // TODO: add test case to validate ConnectionSendResumptionTicket:

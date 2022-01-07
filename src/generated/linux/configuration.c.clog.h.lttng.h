@@ -9,8 +9,8 @@
                 "[cnfg][%p] Failed to open settings, 0x%x",
                 Configuration,
                 Status);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Status
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenStorageFailed,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenStorageFailed,
                 "[cnfg][%p] Failed to open app specific settings, 0x%x",
                 Configuration,
                 Status);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Status
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenAppStorageFailed,
     TP_ARGS(
@@ -55,8 +55,8 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenAppStorageFailed,
         "[cnfg][%p] Settings %p Updated",
         Configuration,
         &Configuration->Settings);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = &Configuration->Settings
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = &Configuration->Settings = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSettingsUpdated,
     TP_ARGS(
@@ -77,7 +77,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSettingsUpdated,
             ConfigurationSetSettings,
             "[cnfg][%p] Setting new settings",
             Configuration);
-// arg2 = arg2 = Configuration
+// arg2 = arg2 = Configuration = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSetSettings,
     TP_ARGS(
@@ -97,8 +97,8 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSetSettings,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONFIGURATION_OPEN,
         Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONFIGURATION_OPEN
-// arg3 = arg3 = Handle
+// arg2 = arg2 = QUIC_TRACE_API_CONFIGURATION_OPEN = arg2
+// arg3 = arg3 = Handle = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiEnter,
     TP_ARGS(
@@ -120,8 +120,8 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiEnter,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_CONFIGURATION" ,
             sizeof(QUIC_CONFIGURATION));
-// arg2 = arg2 = "QUIC_CONFIGURATION"
-// arg3 = arg3 = sizeof(QUIC_CONFIGURATION)
+// arg2 = arg2 = "QUIC_CONFIGURATION" = arg2
+// arg3 = arg3 = sizeof(QUIC_CONFIGURATION) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, AllocFailure,
     TP_ARGS(
@@ -143,8 +143,8 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, AllocFailure,
         "[cnfg][%p] Created, Registration=%p",
         Configuration,
         Registration);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Registration
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Registration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCreated,
     TP_ARGS(
@@ -165,7 +165,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCreated,
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExitStatus,
     TP_ARGS(
@@ -184,7 +184,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExitStatus,
         ConfigurationCleanup,
         "[cnfg][%p] Cleaning up",
         Configuration);
-// arg2 = arg2 = Configuration
+// arg2 = arg2 = Configuration = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCleanup,
     TP_ARGS(
@@ -203,7 +203,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCleanup,
         ConfigurationDestroyed,
         "[cnfg][%p] Destroyed",
         Configuration);
-// arg2 = arg2 = Configuration
+// arg2 = arg2 = Configuration = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationDestroyed,
     TP_ARGS(
@@ -239,8 +239,8 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExit,
         "[cnfg][%p] Rundown, Registration=%p",
         Configuration,
         Configuration->Registration);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Configuration->Registration
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Configuration->Registration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationRundown,
     TP_ARGS(

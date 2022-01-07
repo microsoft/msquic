@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_DATAGRAM_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_DatagramSendStateChanged
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for DatagramSendStateChanged
 // [conn][%p] Indicating DATAGRAM_SEND_STATE_CHANGED to %u
@@ -35,18 +33,15 @@ extern "C" {
         Connection,
         "Indicating DATAGRAM_SEND_STATE_CHANGED to %u",
         (uint32_t)State);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint32_t)State
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint32_t)State = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DatagramSendStateChanged
 #define _clog_4_ARGS_TRACE_DatagramSendStateChanged(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_DATAGRAM_C, DatagramSendStateChanged , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatagramSendShutdown
 
 
 
@@ -57,17 +52,14 @@ tracepoint(CLOG_DATAGRAM_C, DatagramSendStateChanged , arg1, arg3);\
         DatagramSendShutdown,
         Connection,
         "Datagram send shutdown");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatagramSendShutdown
 #define _clog_3_ARGS_TRACE_DatagramSendShutdown(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_DATAGRAM_C, DatagramSendShutdown , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_IndicateDatagramStateChanged
 
 
 
@@ -80,19 +72,16 @@ tracepoint(CLOG_DATAGRAM_C, DatagramSendShutdown , arg1);\
             "Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
             Event.DATAGRAM_STATE_CHANGED.SendEnabled,
             Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.DATAGRAM_STATE_CHANGED.SendEnabled
-// arg4 = arg4 = Event.DATAGRAM_STATE_CHANGED.MaxSendLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.DATAGRAM_STATE_CHANGED.SendEnabled = arg3
+// arg4 = arg4 = Event.DATAGRAM_STATE_CHANGED.MaxSendLength = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IndicateDatagramStateChanged
 #define _clog_5_ARGS_TRACE_IndicateDatagramStateChanged(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_DATAGRAM_C, IndicateDatagramStateChanged , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_DatagramSendQueued
 
 
 
@@ -106,20 +95,17 @@ tracepoint(CLOG_DATAGRAM_C, IndicateDatagramStateChanged , arg1, arg3, arg4);\
             SendRequest,
             SendRequest->TotalLength,
             SendRequest->Flags);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = SendRequest
-// arg4 = arg4 = SendRequest->TotalLength
-// arg5 = arg5 = SendRequest->Flags
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = SendRequest = arg3
+// arg4 = arg4 = SendRequest->TotalLength = arg4
+// arg5 = arg5 = SendRequest->Flags = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_DatagramSendQueued
 #define _clog_6_ARGS_TRACE_DatagramSendQueued(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
 tracepoint(CLOG_DATAGRAM_C, DatagramSendQueued , arg1, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateDatagramReceived
 
 
 
@@ -131,18 +117,15 @@ tracepoint(CLOG_DATAGRAM_C, DatagramSendQueued , arg1, arg3, arg4, arg5);\
         Connection,
         "Indicating DATAGRAM_RECEIVED [len=%hu]",
         (uint16_t)Frame.Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Frame.Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Frame.Length = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateDatagramReceived
 #define _clog_4_ARGS_TRACE_IndicateDatagramReceived(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_DATAGRAM_C, IndicateDatagramReceived , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
 
 
 
@@ -154,40 +137,15 @@ tracepoint(CLOG_DATAGRAM_C, IndicateDatagramReceived , arg1, arg3);\
             "[conn][%p] ERROR, %s.",
             Connection,
             "Datagram send while disabled");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Datagram send while disabled"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Datagram send while disabled" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAGRAM_C, ConnError , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Datagram send request is longer than allowed");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Datagram send request is longer than allowed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -199,9 +157,10 @@ tracepoint(CLOG_DATAGRAM_C, ConnError , arg2, arg3);\
                 "Allocation of '%s' failed. (%llu bytes)",
                 "DATAGRAM_SEND operation",
                 0);
-// arg2 = arg2 = "DATAGRAM_SEND operation"
-// arg3 = arg3 = 0
+// arg2 = arg2 = "DATAGRAM_SEND operation" = arg2
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAGRAM_C, AllocFailure , arg2, arg3);\
 

@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_STORAGE_WINUSER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_StorageOpenKey
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for StorageOpenKey
 // [ reg] Opening %s
@@ -30,8 +28,9 @@ extern "C" {
         StorageOpenKey,
         "[ reg] Opening %s",
         FullKeyName);
-// arg2 = arg2 = FullKeyName
+// arg2 = arg2 = FullKeyName = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StorageOpenKey
 #define _clog_3_ARGS_TRACE_StorageOpenKey(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_STORAGE_WINUSER_C, StorageOpenKey , arg2);\
 

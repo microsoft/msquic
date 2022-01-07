@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_STREAM_SEND_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_IndicateSendShutdownComplete
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for IndicateSendShutdownComplete
 // [strm][%p] Indicating QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE
@@ -34,17 +32,14 @@ extern "C" {
             IndicateSendShutdownComplete,
             Stream,
             "Indicating QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicateSendShutdownComplete
 #define _clog_3_ARGS_TRACE_IndicateSendShutdownComplete(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, IndicateSendShutdownComplete , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateSendCanceled
 
 
 
@@ -56,18 +51,15 @@ tracepoint(CLOG_STREAM_SEND_C, IndicateSendShutdownComplete , arg1);\
                 Stream,
                 "Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p] (Canceled)",
                 SendRequest);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = SendRequest
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = SendRequest = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateSendCanceled
 #define _clog_4_ARGS_TRACE_IndicateSendCanceled(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_SEND_C, IndicateSendCanceled , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateSendComplete
 
 
 
@@ -79,40 +71,15 @@ tracepoint(CLOG_STREAM_SEND_C, IndicateSendCanceled , arg1, arg3);\
                 Stream,
                 "Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p]",
                 SendRequest);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = SendRequest
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = SendRequest = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateSendComplete
 #define _clog_4_ARGS_TRACE_IndicateSendComplete(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_SEND_C, IndicateSendComplete , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateSendComplete
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicateSendComplete
-// [strm][%p] Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p]
-// QuicTraceLogStreamVerbose(
-        IndicateSendComplete,
-        Stream,
-        "Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p]",
-        Req);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Req
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_IndicateSendComplete(uniqueId, arg1, encoded_arg_string, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_7_ARGS_TRACE_SendQueued
 
 
 
@@ -127,21 +94,18 @@ tracepoint(CLOG_STREAM_SEND_C, IndicateSendComplete , arg1, arg3);\
             SendRequest->TotalLength,
             SendRequest->StreamOffset,
             SendRequest->Flags);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = SendRequest
-// arg4 = arg4 = SendRequest->TotalLength
-// arg5 = arg5 = SendRequest->StreamOffset
-// arg6 = arg6 = SendRequest->Flags
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = SendRequest = arg3
+// arg4 = arg4 = SendRequest->TotalLength = arg4
+// arg5 = arg5 = SendRequest->StreamOffset = arg5
+// arg6 = arg6 = SendRequest->Flags = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_SendQueued
 #define _clog_7_ARGS_TRACE_SendQueued(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_STREAM_SEND_C, SendQueued , arg1, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NoMoreRoom
 
 
 
@@ -152,17 +116,14 @@ tracepoint(CLOG_STREAM_SEND_C, SendQueued , arg1, arg3, arg4, arg5, arg6);\
             NoMoreRoom,
             Stream,
             "Can't squeeze in a frame (no room for header)");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NoMoreRoom
 #define _clog_3_ARGS_TRACE_NoMoreRoom(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, NoMoreRoom , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NoMoreFrames
 
 
 
@@ -173,8 +134,9 @@ tracepoint(CLOG_STREAM_SEND_C, NoMoreRoom , arg1);\
             NoMoreFrames,
             Stream,
             "No more frames");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NoMoreFrames
 #define _clog_3_ARGS_TRACE_NoMoreFrames(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, NoMoreFrames , arg1);\
 
@@ -183,34 +145,27 @@ tracepoint(CLOG_STREAM_SEND_C, NoMoreFrames , arg1);\
 
 
 
-#ifndef _clog_6_ARGS_TRACE_AddFrame
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for AddFrame
-// [strm][%p] Built stream frame, offset=%llu len=%lu fin=%hhu
+// [strm][%p] Built stream frame, offset=%llu len=%hu fin=%hhu
 // QuicTraceLogStreamVerbose(
         AddFrame,
         Stream,
-        "Built stream frame, offset=%llu len=%lu fin=%hhu",
+        "Built stream frame, offset=%llu len=%hu fin=%hhu",
         Frame.Offset,
         (uint16_t)Frame.Length,
         Frame.Fin);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Frame.Offset
-// arg4 = arg4 = (uint16_t)Frame.Length
-// arg5 = arg5 = Frame.Fin
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Frame.Offset = arg3
+// arg4 = arg4 = (uint16_t)Frame.Length = arg4
+// arg5 = arg5 = Frame.Fin = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_AddFrame
 #define _clog_6_ARGS_TRACE_AddFrame(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
 tracepoint(CLOG_STREAM_SEND_C, AddFrame , arg1, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_RecoverOpen
 
 
 
@@ -221,17 +176,14 @@ tracepoint(CLOG_STREAM_SEND_C, AddFrame , arg1, arg3, arg4, arg5);\
             RecoverOpen,
             Stream,
             "Recovering open STREAM frame");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecoverOpen
 #define _clog_3_ARGS_TRACE_RecoverOpen(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, RecoverOpen , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_RecoverFin
 
 
 
@@ -242,17 +194,14 @@ tracepoint(CLOG_STREAM_SEND_C, RecoverOpen , arg1);\
             RecoverFin,
             Stream,
             "Recovering fin STREAM frame");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecoverFin
 #define _clog_3_ARGS_TRACE_RecoverFin(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, RecoverFin , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_RecoverRange
 
 
 
@@ -265,19 +214,16 @@ tracepoint(CLOG_STREAM_SEND_C, RecoverFin , arg1);\
             "Recovering offset %llu up to %llu",
             Start,
             End);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Start
-// arg4 = arg4 = End
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Start = arg3
+// arg4 = arg4 = End = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_RecoverRange
 #define _clog_5_ARGS_TRACE_RecoverRange(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_STREAM_SEND_C, RecoverRange , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_AckRangeMsg
 
 
 
@@ -291,20 +237,17 @@ tracepoint(CLOG_STREAM_SEND_C, RecoverRange , arg1, arg3, arg4);\
         (int32_t)Length,
         Offset,
         FrameMetadata->Flags);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = (int32_t)Length
-// arg4 = arg4 = Offset
-// arg5 = arg5 = FrameMetadata->Flags
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = (int32_t)Length = arg3
+// arg4 = arg4 = Offset = arg4
+// arg5 = arg5 = FrameMetadata->Flags = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_AckRangeMsg
 #define _clog_6_ARGS_TRACE_AckRangeMsg(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
 tracepoint(CLOG_STREAM_SEND_C, AckRangeMsg , arg1, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_Send0RttUpdated
 
 
 
@@ -316,18 +259,15 @@ tracepoint(CLOG_STREAM_SEND_C, AckRangeMsg , arg1, arg3, arg4, arg5);\
             Stream,
             "Updated sent 0RTT length to %llu",
             FollowingOffset);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = FollowingOffset
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = FollowingOffset = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_Send0RttUpdated
 #define _clog_4_ARGS_TRACE_Send0RttUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_SEND_C, Send0RttUpdated , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_SendQueueDrained
 
 
 
@@ -338,17 +278,14 @@ tracepoint(CLOG_STREAM_SEND_C, Send0RttUpdated , arg1, arg3);\
                 SendQueueDrained,
                 Stream,
                 "Send queue completely drained");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SendQueueDrained
 #define _clog_3_ARGS_TRACE_SendQueueDrained(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, SendQueueDrained , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_11_ARGS_TRACE_SendDump
 
 
 
@@ -367,25 +304,22 @@ tracepoint(CLOG_STREAM_SEND_C, SendQueueDrained , arg1);\
             Stream->NextSendOffset,
             Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0,
             Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Stream->SendFlags
-// arg4 = arg4 = Stream->MaxAllowedSendOffset
-// arg5 = arg5 = Stream->QueuedSendOffset
-// arg6 = arg6 = Stream->MaxSentLength
-// arg7 = arg7 = Stream->UnAckedOffset
-// arg8 = arg8 = Stream->NextSendOffset
-// arg9 = arg9 = Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0
-// arg10 = arg10 = Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->SendFlags = arg3
+// arg4 = arg4 = Stream->MaxAllowedSendOffset = arg4
+// arg5 = arg5 = Stream->QueuedSendOffset = arg5
+// arg6 = arg6 = Stream->MaxSentLength = arg6
+// arg7 = arg7 = Stream->UnAckedOffset = arg7
+// arg8 = arg8 = Stream->NextSendOffset = arg8
+// arg9 = arg9 = Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0 = arg9
+// arg10 = arg10 = Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0 = arg10
 ----------------------------------------------------------*/
+#ifndef _clog_11_ARGS_TRACE_SendDump
 #define _clog_11_ARGS_TRACE_SendDump(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
 tracepoint(CLOG_STREAM_SEND_C, SendDump , arg1, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_SendDumpAck
 
 
 
@@ -398,43 +332,16 @@ tracepoint(CLOG_STREAM_SEND_C, SendDump , arg1, arg3, arg4, arg5, arg6, arg7, ar
                 "  unACKed: [%llu, %llu]",
                 UnAcked,
                 Sack->Low);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = UnAcked
-// arg4 = arg4 = Sack->Low
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = UnAcked = arg3
+// arg4 = arg4 = Sack->Low = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_SendDumpAck
 #define _clog_5_ARGS_TRACE_SendDumpAck(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_STREAM_SEND_C, SendDumpAck , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_SendDumpAck
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SendDumpAck
-// [strm][%p]   unACKed: [%llu, %llu]
-// QuicTraceLogStreamVerbose(
-                SendDumpAck,
-                Stream,
-                "  unACKed: [%llu, %llu]",
-                UnAcked,
-                Stream->MaxSentLength);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = UnAcked
-// arg4 = arg4 = Stream->MaxSentLength
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_SendDumpAck(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamSendState
 
 
 
@@ -446,9 +353,10 @@ tracepoint(CLOG_STREAM_SEND_C, SendDumpAck , arg1, arg3, arg4);\
         "[strm][%p] Send State: %hhu",
         Stream,
         QuicStreamSendGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamSendGetState(Stream)
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = QuicStreamSendGetState(Stream) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamSendState
 #define _clog_4_ARGS_TRACE_StreamSendState(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_SEND_C, StreamSendState , arg2, arg3);\
 
@@ -457,44 +365,20 @@ tracepoint(CLOG_STREAM_SEND_C, StreamSendState , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_StreamSendState
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for StreamSendState
-// [strm][%p] Send State: %hhu
+// Decoder Ring for StreamWriteFrames
+// [strm][%p] Writing frames to packet %llu
 // QuicTraceEvent(
-                    StreamSendState,
-                    "[strm][%p] Send State: %hhu",
-                    Stream,
-                    QuicStreamSendGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamSendGetState(Stream)
+        StreamWriteFrames,
+        "[strm][%p] Writing frames to packet %llu",
+        Stream,
+        Builder->Metadata->PacketId);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Builder->Metadata->PacketId = arg3
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamSendState(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamSendState
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for StreamSendState
-// [strm][%p] Send State: %hhu
-// QuicTraceEvent(
-            StreamSendState,
-            "[strm][%p] Send State: %hhu",
-            Stream,
-            QuicStreamSendGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamSendGetState(Stream)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamSendState(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_4_ARGS_TRACE_StreamWriteFrames
+#define _clog_4_ARGS_TRACE_StreamWriteFrames(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_SEND_C, StreamWriteFrames , arg2, arg3);\
 
 #endif
 

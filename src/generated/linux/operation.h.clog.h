@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_OPERATION_H
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_ConnExecApiOper
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConnExecApiOper
 // [conn][%p] Execute: %u
@@ -31,18 +29,15 @@ extern "C" {
                 "[conn][%p] Execute: %u",
                 Connection,
                 Oper->API_CALL.Context->Type);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Oper->API_CALL.Context->Type
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Oper->API_CALL.Context->Type = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnExecApiOper
 #define _clog_4_ARGS_TRACE_ConnExecApiOper(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_OPERATION_H, ConnExecApiOper , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnExecTimerOper
 
 
 
@@ -54,18 +49,15 @@ tracepoint(CLOG_OPERATION_H, ConnExecApiOper , arg2, arg3);\
                 "[conn][%p] Execute: %u",
                 Connection,
                 Oper->TIMER_EXPIRED.Type);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Oper->TIMER_EXPIRED.Type
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Oper->TIMER_EXPIRED.Type = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnExecTimerOper
 #define _clog_4_ARGS_TRACE_ConnExecTimerOper(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_OPERATION_H, ConnExecTimerOper , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnExecOper
 
 
 
@@ -77,9 +69,10 @@ tracepoint(CLOG_OPERATION_H, ConnExecTimerOper , arg2, arg3);\
                 "[conn][%p] Execute: %u",
                 Connection,
                 Oper->Type);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Oper->Type
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Oper->Type = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnExecOper
 #define _clog_4_ARGS_TRACE_ConnExecOper(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_OPERATION_H, ConnExecOper , arg2, arg3);\
 

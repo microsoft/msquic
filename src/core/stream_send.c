@@ -770,7 +770,7 @@ QuicStreamWriteOneFrame(
     QuicTraceLogStreamVerbose(
         AddFrame,
         Stream,
-        "Built stream frame, offset=%llu len=%lu fin=%hhu",
+        "Built stream frame, offset=%llu len=%hu fin=%hhu",
         Frame.Offset,
         (uint16_t)Frame.Length,
         Frame.Fin);
@@ -1026,6 +1026,12 @@ QuicStreamSendWrite(
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT);
     CXPLAT_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
+
+    QuicTraceEvent(
+        StreamWriteFrames,
+        "[strm][%p] Writing frames to packet %llu",
+        Stream,
+        Builder->Metadata->PacketId);
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_MAX_DATA) {
 

@@ -59,6 +59,11 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t BytesInFlightMax;
 
     //
+    // The leftover send allowance from a previous send. Only used when pacing.
+    //
+    uint32_t LastSendAllowance; // bytes
+
+    //
     // A count of packets which can be sent ignoring CongestionWindow.
     // The count is decremented as the packets are sent. BytesInFlight is still
     // incremented for these packets. This is used to send probe packets for

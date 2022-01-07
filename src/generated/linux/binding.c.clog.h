@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_BINDING_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -27,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_BindingListenerAlreadyRegistered
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for BindingListenerAlreadyRegistered
 // [bind][%p] Listener (%p) already registered on ALPN
@@ -38,18 +36,15 @@ extern "C" {
                 BindingListenerAlreadyRegistered,
                 "[bind][%p] Listener (%p) already registered on ALPN",
                 Binding, ExistingListener);
-// arg2 = arg2 = Binding
-// arg3 = arg3 = ExistingListener
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = ExistingListener = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_BindingListenerAlreadyRegistered
 #define _clog_4_ARGS_TRACE_BindingListenerAlreadyRegistered(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_BINDING_C, BindingListenerAlreadyRegistered , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_BindingSendFailed
 
 
 
@@ -61,40 +56,15 @@ tracepoint(CLOG_BINDING_C, BindingListenerAlreadyRegistered , arg2, arg3);\
                     "[bind][%p] Send failed, 0x%x",
                     Binding,
                     Status);
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_BindingSendFailed
 #define _clog_4_ARGS_TRACE_BindingSendFailed(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_BINDING_C, BindingSendFailed , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_BindingSendFailed
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for BindingSendFailed
-// [bind][%p] Send failed, 0x%x
-// QuicTraceLogWarning(
-                BindingSendFailed,
-                "[bind][%p] Send failed, 0x%x",
-                Binding,
-                Status);
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_BindingSendFailed(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_PacketTxVersionNegotiation
 
 
 
@@ -105,15 +75,12 @@ tracepoint(CLOG_BINDING_C, BindingSendFailed , arg2, arg3);\
             PacketTxVersionNegotiation,
             "[S][TX][-] VN");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PacketTxVersionNegotiation
 #define _clog_2_ARGS_TRACE_PacketTxVersionNegotiation(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_BINDING_C, PacketTxVersionNegotiation );\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PacketTxStatelessReset
 
 
 
@@ -130,17 +97,14 @@ tracepoint(CLOG_BINDING_C, PacketTxVersionNegotiation );\
 // arg2 = arg2 = QuicCidBufToStr(
                 SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH
-            ).Buffer
+            ).Buffer = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PacketTxStatelessReset
 #define _clog_3_ARGS_TRACE_PacketTxStatelessReset(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_BINDING_C, PacketTxStatelessReset , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_PacketTxRetry
 
 
 
@@ -155,21 +119,18 @@ tracepoint(CLOG_BINDING_C, PacketTxStatelessReset , arg2);\
             QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
-// arg2 = arg2 = RecvPacket->LH->Version
-// arg3 = arg3 = QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer
-// arg4 = arg4 = QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer
-// arg5 = arg5 = QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer
-// arg6 = arg6 = (uint16_t)sizeof(Token)
+// arg2 = arg2 = RecvPacket->LH->Version = arg2
+// arg3 = arg3 = QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer = arg3
+// arg4 = arg4 = QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer = arg4
+// arg5 = arg5 = QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer = arg5
+// arg6 = arg6 = (uint16_t)sizeof(Token) = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_PacketTxRetry
 #define _clog_7_ARGS_TRACE_PacketTxRetry(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_BINDING_C, PacketTxRetry , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_BindingSendTestDrop
 
 
 
@@ -180,17 +141,14 @@ tracepoint(CLOG_BINDING_C, PacketTxRetry , arg2, arg3, arg4, arg5, arg6);\
                 BindingSendTestDrop,
                 "[bind][%p] Test dropped packet",
                 Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_BindingSendTestDrop
 #define _clog_3_ARGS_TRACE_BindingSendTestDrop(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_BINDING_C, BindingSendTestDrop , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -202,18 +160,15 @@ tracepoint(CLOG_BINDING_C, BindingSendTestDrop , arg2);\
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_BINDING",
             sizeof(QUIC_BINDING));
-// arg2 = arg2 = "QUIC_BINDING"
-// arg3 = arg3 = sizeof(QUIC_BINDING)
+// arg2 = arg2 = "QUIC_BINDING" = arg2
+// arg3 = arg3 = sizeof(QUIC_BINDING) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_BINDING_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_BindingErrorStatus
 
 
 
@@ -226,43 +181,16 @@ tracepoint(CLOG_BINDING_C, AllocFailure , arg2, arg3);\
                 Binding,
                 Status,
                 "Set current compartment Id");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Set current compartment Id"
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Set current compartment Id" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_BindingErrorStatus
 #define _clog_5_ARGS_TRACE_BindingErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_BINDING_C, BindingErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_BindingErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for BindingErrorStatus
-// [bind][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            BindingErrorStatus,
-            "[bind][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Create datapath binding");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Create datapath binding"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_BindingErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_8_ARGS_TRACE_BindingCreated
 
 
 
@@ -276,20 +204,17 @@ tracepoint(CLOG_BINDING_C, BindingErrorStatus , arg2, arg3, arg4);\
         Binding->Socket,
         CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Binding->Socket
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Binding->Socket = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr) = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_BindingCreated
 #define _clog_8_ARGS_TRACE_BindingCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len)\
 tracepoint(CLOG_BINDING_C, BindingCreated , arg2, arg3, arg4_len, arg4, arg5_len, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_BindingCleanup
 
 
 
@@ -300,17 +225,14 @@ tracepoint(CLOG_BINDING_C, BindingCreated , arg2, arg3, arg4_len, arg4, arg5_len
         BindingCleanup,
         "[bind][%p] Cleaning up",
         Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_BindingCleanup
 #define _clog_3_ARGS_TRACE_BindingCleanup(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_BINDING_C, BindingCleanup , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_BindingDestroyed
 
 
 
@@ -321,17 +243,14 @@ tracepoint(CLOG_BINDING_C, BindingCleanup , arg2);\
         BindingDestroyed,
         "[bind][%p] Destroyed",
         Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_BindingDestroyed
 #define _clog_3_ARGS_TRACE_BindingDestroyed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_BINDING_C, BindingDestroyed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_8_ARGS_TRACE_BindingRundown
 
 
 
@@ -345,20 +264,17 @@ tracepoint(CLOG_BINDING_C, BindingDestroyed , arg2);\
         Binding->Socket,
         CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Binding->Socket
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Binding->Socket = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr) = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_BindingRundown
 #define _clog_8_ARGS_TRACE_BindingRundown(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len)\
 tracepoint(CLOG_BINDING_C, BindingRundown , arg2, arg3, arg4_len, arg4, arg5_len, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnNoListenerIp
 
 
 
@@ -370,18 +286,15 @@ tracepoint(CLOG_BINDING_C, BindingRundown , arg2, arg3, arg4_len, arg4, arg5_len
             "[conn][%p] No Listener for IP address: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(*Addr), Addr));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(*Addr), Addr)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(*Addr), Addr) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnNoListenerIp
 #define _clog_5_ARGS_TRACE_ConnNoListenerIp(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_BINDING_C, ConnNoListenerIp , arg2, arg3_len, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnNoListenerAlpn
 
 
 
@@ -393,18 +306,15 @@ tracepoint(CLOG_BINDING_C, ConnNoListenerIp , arg2, arg3_len, arg3);\
             "[conn][%p] No listener matching ALPN: %!ALPN!",
             Connection,
             CASTED_CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnNoListenerAlpn
 #define _clog_5_ARGS_TRACE_ConnNoListenerAlpn(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_BINDING_C, ConnNoListenerAlpn , arg2, arg3_len, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
 
 
 
@@ -416,62 +326,15 @@ tracepoint(CLOG_BINDING_C, ConnNoListenerAlpn , arg2, arg3_len, arg3);\
             "[conn][%p] ERROR, %s.",
             Connection,
             "No listener found for connection");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "No listener found for connection"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "No listener found for connection" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_BINDING_C, ConnError , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "NegotiatedAlpn",
-                NegotiatedAlpnLength);
-// arg2 = arg2 = "NegotiatedAlpn"
-// arg3 = arg3 = NegotiatedAlpnLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "stateless operation",
-            sizeof(QUIC_OPERATION));
-// arg2 = arg2 = "stateless operation"
-// arg3 = arg3 = sizeof(QUIC_OPERATION)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_BindingExecOper
 
 
 
@@ -483,9 +346,10 @@ tracepoint(CLOG_BINDING_C, ConnError , arg2, arg3);\
         "[bind][%p] Execute: %u",
         Binding,
         OperationType);
-// arg2 = arg2 = Binding
-// arg3 = arg3 = OperationType
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = OperationType = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_BindingExecOper
 #define _clog_4_ARGS_TRACE_BindingExecOper(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_BINDING_C, BindingExecOper , arg2, arg3);\
 
@@ -494,88 +358,18 @@ tracepoint(CLOG_BINDING_C, BindingExecOper , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
+// Decoder Ring for PacketReceive
+// [pack][%llu] Received
 // QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "stateless send data",
-            0);
-// arg2 = arg2 = "stateless send data"
-// arg3 = arg3 = 0
+            PacketReceive,
+            "[pack][%llu] Received",
+            Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId = arg2
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "vn datagram",
-                PacketLength);
-// arg2 = arg2 = "vn datagram"
-// arg3 = arg3 = PacketLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "reset datagram",
-                PacketLength);
-// arg2 = arg2 = "reset datagram"
-// arg3 = arg3 = PacketLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "retry datagram",
-                PacketLength);
-// arg2 = arg2 = "retry datagram"
-// arg3 = arg3 = PacketLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_3_ARGS_TRACE_PacketReceive
+#define _clog_3_ARGS_TRACE_PacketReceive(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_BINDING_C, PacketReceive , arg2);\
 
 #endif
 

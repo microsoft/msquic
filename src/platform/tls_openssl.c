@@ -131,13 +131,11 @@ typedef struct CXPLAT_TLS {
     //
     QUIC_CONNECTION* Connection;
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
     //
-    CXPLAT_TLS_SECRETS* TlsSecrets;
-#endif
+    QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS;
 
@@ -461,11 +459,11 @@ CxPlatTlsSetEncryptionSecretsCallback(
         }
     }
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsContext->TlsSecrets != NULL) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
+            CXPLAT_FRE_ASSERT(ReadSecret != NULL && WriteSecret != NULL);
             if (TlsContext->IsServer) {
                 memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret, ReadSecret, SecretLen);
                 memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret, WriteSecret, SecretLen);
@@ -477,6 +475,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
             TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
             break;
         case QUIC_PACKET_KEY_1_RTT:
+            CXPLAT_FRE_ASSERT(ReadSecret != NULL && WriteSecret != NULL);
             if (TlsContext->IsServer) {
                 memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0, ReadSecret, SecretLen);
                 memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0, WriteSecret, SecretLen);
@@ -493,6 +492,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
             break;
         case QUIC_PACKET_KEY_0_RTT:
             if (!TlsContext->IsServer) {
+                CXPLAT_FRE_ASSERT(WriteSecret != NULL);
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
             }
@@ -501,7 +501,6 @@ CxPlatTlsSetEncryptionSecretsCallback(
             break;
         }
     }
-#endif
 
     return 1;
 }
@@ -1624,9 +1623,7 @@ CxPlatTlsInitialize(
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
-#endif
 
     QuicTraceLogConnVerbose(
         OpenSslContextCreated,

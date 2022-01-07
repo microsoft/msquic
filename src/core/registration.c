@@ -72,6 +72,9 @@ MsQuicRegistrationOpen(
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
+    Registration->ShuttingDown = 0;
+    Registration->ShutdownErrorCode = 0;
+    Registration->ShutdownFlags = 0;
     CxPlatLockInitialize(&Registration->ConfigLock);
     CxPlatListInitializeHead(&Registration->Configurations);
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
@@ -249,6 +252,15 @@ MsQuicRegistrationShutdown(
 
         CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
+        if (Registration->ShuttingDown) {
+            CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+            goto Exit;
+        }
+
+        Registration->ShutdownErrorCode = ErrorCode;
+        Registration->ShutdownFlags = Flags;
+        Registration->ShuttingDown = TRUE;
+
         CXPLAT_LIST_ENTRY* Entry = Registration->Connections.Flink;
         while (Entry != &Registration->Connections) {
 
@@ -265,6 +277,7 @@ MsQuicRegistrationShutdown(
                 Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
                 Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
                 Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = TRUE;
                 QuicConnQueueHighestPriorityOper(Connection, Oper);
             }
 
@@ -273,6 +286,8 @@ MsQuicRegistrationShutdown(
 
         CxPlatDispatchLockRelease(&Registration->ConnectionLock);
     }
+
+Exit:
 
     QuicTraceEvent(
         ApiExit,

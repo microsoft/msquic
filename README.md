@@ -1,5 +1,4 @@
-MsQuic
-======
+<img src="docs/images/readme_logo.png" width="500" alt="MsQuic logo"/>
 
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
 protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library.

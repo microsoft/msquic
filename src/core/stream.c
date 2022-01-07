@@ -37,6 +37,12 @@ QuicStreamInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+
+    QuicTraceEvent(
+        StreamAlloc,
+        "[strm][%p] Allocated, Conn=%p",
+        Stream,
+        Connection);
     CxPlatZeroMemory(Stream, sizeof(QUIC_STREAM));
 
 #if DEBUG

@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_ACK_TRACKER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_5_ARGS_TRACE_PacketRxMarkedForAck
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PacketRxMarkedForAck
 // [%c][RX][%llu] Marked for ACK (ECN=%hhu)
@@ -32,10 +30,11 @@ extern "C" {
         PtkConnPre(Connection),
         PacketNumber,
         (uint8_t)ECN);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PacketNumber
-// arg4 = arg4 = (uint8_t)ECN
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PacketNumber = arg3
+// arg4 = arg4 = (uint8_t)ECN = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PacketRxMarkedForAck
 #define _clog_5_ARGS_TRACE_PacketRxMarkedForAck(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_ACK_TRACKER_C, PacketRxMarkedForAck , arg2, arg3, arg4);\
 

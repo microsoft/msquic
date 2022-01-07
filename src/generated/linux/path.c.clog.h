@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_PATH_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_PathInitialized
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PathInitialized
 // [conn][%p] Path[%hhu] Initialized
@@ -31,18 +29,15 @@ extern "C" {
         Connection,
         "Path[%hhu] Initialized",
         Path->ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PathInitialized
 #define _clog_4_ARGS_TRACE_PathInitialized(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_PATH_C, PathInitialized , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PathRemoved
 
 
 
@@ -54,18 +49,15 @@ tracepoint(CLOG_PATH_C, PathInitialized , arg1, arg3);\
         Connection,
         "Path[%hhu] Removed",
         Path->ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PathRemoved
 #define _clog_4_ARGS_TRACE_PathRemoved(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_PATH_C, PathRemoved , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_PathValidated
 
 
 
@@ -78,19 +70,16 @@ tracepoint(CLOG_PATH_C, PathRemoved , arg1, arg3);\
         "Path[%hhu] Validated (%s)",
         Path->ID,
         ReasonStrings[Reason]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = ReasonStrings[Reason]
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = ReasonStrings[Reason] = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PathValidated
 #define _clog_5_ARGS_TRACE_PathValidated(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_PATH_C, PathValidated , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_PathActive
 
 
 
@@ -103,10 +92,11 @@ tracepoint(CLOG_PATH_C, PathValidated , arg1, arg3, arg4);\
         "Path[%hhu] Set active (rebind=%hhu)",
         Connection->Paths[0].ID,
         UdpPortChangeOnly);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[0].ID
-// arg4 = arg4 = UdpPortChangeOnly
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg4 = arg4 = UdpPortChangeOnly = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PathActive
 #define _clog_5_ARGS_TRACE_PathActive(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_PATH_C, PathActive , arg1, arg3, arg4);\
 

@@ -9,8 +9,8 @@
             "[ lib] ERROR, %u, %s.",
             Status,
             "Open HMAC_SHA256 algorithm");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Open HMAC_SHA256 algorithm"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Open HMAC_SHA256 algorithm" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_BCRYPT_C, LibraryErrorStatus,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_CRYPT_BCRYPT_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_HP_KEY",
             AllocLength);
-// arg2 = arg2 = "CXPLAT_HP_KEY"
-// arg3 = arg3 = AllocLength
+// arg2 = arg2 = "CXPLAT_HP_KEY" = arg2
+// arg3 = arg3 = AllocLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_BCRYPT_C, AllocFailure,
     TP_ARGS(

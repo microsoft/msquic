@@ -253,10 +253,6 @@ QuicLossDetectionUpdateTimer(
         //
         // No retransmission timer runs after the connection has been shut down.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -273,10 +269,6 @@ QuicLossDetectionUpdateTimer(
         // doing amplification protection, which means more data might need to
         // be sent to unblock it.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -288,10 +280,6 @@ QuicLossDetectionUpdateTimer(
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -972,7 +960,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %lu ms",
+                        "[%c][TX][%llu] Lost: RACK %u ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
@@ -1025,15 +1013,15 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 //
                 QuicConnUpdatePeerPacketTolerance(Connection, QUIC_MIN_ACK_SEND_NUMBER);
             }
-            
+
             QUIC_LOSS_EVENT LossEvent = {
                 .LargestPacketNumberLost = LargestLostPacketNumber,
                 .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
                 .NumRetransmittableBytes = LostRetransmittableBytes,
-                .PersistentCongestion = 
+                .PersistentCongestion =
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
             };
-            
+
             QuicCongestionControlOnDataLost(&Connection->CongestionControl, &LossEvent);
             //
             // Send packets from any previously blocked streams.
@@ -1548,7 +1536,7 @@ QuicLossDetectionScheduleProbe(
     QuicTraceLogConnInfo(
         ScheduleProbe,
         Connection,
-        "probe round %lu",
+        "probe round %hu",
         LossDetection->ProbeCount);
 
     //

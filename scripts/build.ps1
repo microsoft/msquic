@@ -75,9 +75,6 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER TlsSecretsSupport
-    Enables export of traffic secrets.
-
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
 
@@ -171,9 +168,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$CI = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$TlsSecretsSupport = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $false,
@@ -334,6 +328,10 @@ function CMake-Generate {
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
+
+    if ($IsLinux) {
+        $Arguments += " -DQUIC_LINUX_LOG_ENCODER=lttng"
+    }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -388,9 +386,6 @@ function CMake-Generate {
         }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
-    }
-    if ($TlsSecretsSupport) {
-        $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
     }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -26,7 +26,4 @@
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)$(TargetName).pdb $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.FastSerialization.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.Tracing.TraceEvent.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y" />
-  </Target>
 </Project>

@@ -315,7 +315,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             }
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $OutputDir
         }
     }
