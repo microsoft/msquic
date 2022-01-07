@@ -1102,7 +1102,9 @@ QuicSettingsGetParam(
     if (*OutgoingSize < MinimumSettingsSize) {
         *OutgoingSize = MinimumSettingsSize;
         return QUIC_STATUS_BUFFER_TOO_SMALL;
-    } else if (*OutgoingSize > sizeof(QUIC_SETTINGS)) {
+    }
+
+    if (*OutgoingSize > sizeof(QUIC_SETTINGS)) {
         *OutgoingSize = sizeof(QUIC_SETTINGS);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
