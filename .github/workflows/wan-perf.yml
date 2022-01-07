@@ -98,7 +98,7 @@ jobs:
     - name: Upload Logs
       uses: actions/upload-artifact@v2
       with:
-        name: logs
+        name: ${{ format('logs.{0}mbps.{1}rtt', matrix.rate, matrix.rtt) }}
         path: artifacts/logs/wanperf/**/*.etl
   merge-data:
     name: Merge Results
