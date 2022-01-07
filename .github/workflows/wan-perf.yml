@@ -77,6 +77,9 @@ jobs:
         - rate: 5
           rtt: 5
           queueRatio: 0.2 # Results in sub-packet limit
+        - rate: 1000
+          rtt: 500
+          queueRatio: 5 # Exceeds QueueLimitPackets limit of 100000
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
