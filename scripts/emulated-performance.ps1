@@ -46,6 +46,9 @@ be in the current directory.
 .PARAMETER NumIterations
     The number(s) of iterations to run of each test over the emulated network.
 
+.PARAMETER NoDateLogDir
+    Doesn't include the Date/Time in the log directory path.
+
 #>
 
 param (
@@ -105,7 +108,10 @@ param (
     [string]$ForceBranchName = $null,
 
     [Parameter(Mandatory = $false)]
-    [switch]$MergeDataFiles = $false
+    [switch]$MergeDataFiles = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoDateLogDir = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -391,7 +397,10 @@ if ($MergeDataFiles) {
 $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Folder for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf"
+if (!$NoDateLogDir) {
+    $LogDir = Join-Path $LogDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+}
 if ($LogProfile -ne "None") {
     try {
         Write-Debug "Canceling any already running logs"
