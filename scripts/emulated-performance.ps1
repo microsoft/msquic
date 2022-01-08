@@ -380,7 +380,10 @@ if ($MergeDataFiles) {
         }
     }
 
+    # First sort by usage to show bad cases.
     $MergedResults | Sort-Object -Property Usage | Format-Table -AutoSize
+    # Then sort by rate for easy comparison to previous.
+    $MergedResults | Sort-Object -Property NetMbps | Format-Table -AutoSize
     return
 }
 
