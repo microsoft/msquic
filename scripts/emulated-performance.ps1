@@ -404,7 +404,7 @@ if (!$NoDateLogDir) {
 if ($LogProfile -ne "None") {
     try {
         Write-Debug "Canceling any already running logs"
-        & $LogScript -Cancel
+        & $LogScript -Cancel | Out-Null
     } catch {
     }
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
@@ -517,6 +517,10 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $RandomSeed = $BaseRandomSeed + $i.ToString('x2').Substring(0,2)
             Set-NetAdapterAdvancedProperty duo? -DisplayName RandomSeed -RegistryValue $RandomSeed -NoRestart
 
+            Write-Debug "Restarting NIC"
+            Restart-NetAdapter duo?
+            Start-Sleep 5 # (wait for duonic to restart)
+
             if ($LogProfile -ne "None") {
                 try {
                     & $LogScript -Start -Profile $LogProfile | Out-Null
@@ -524,10 +528,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                     Write-Debug "Logging exception"
                 }
             }
-
-            Write-Debug "Restarting NIC"
-            Restart-NetAdapter duo?
-            Start-Sleep 5 # (wait for duonic to restart)
 
             # Run the throughput upload test with the current configuration.
             Write-Debug "Run upload test: Iteration=$($i + 1)"
