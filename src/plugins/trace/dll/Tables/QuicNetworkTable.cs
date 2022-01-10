@@ -181,7 +181,7 @@ namespace QuicTrace.Tables
             tableBuilder.AddTableConfiguration(tableConfig3);
 
             tableConfig4.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableConfig4.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
+            tableConfig4.InitialSelectionQuery = "[Type]:=\"TxUdp\" OR [Type]:=\"Rx\"";
             tableConfig4.InitialFilterQuery =
                 "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"TxUdp\" AND [Type]:<>\"Rx\"";
             tableBuilder.AddTableConfiguration(tableConfig4);
