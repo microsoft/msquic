@@ -560,7 +560,7 @@ CubicCongestionControlOnDataLost(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 CubicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
@@ -568,7 +568,7 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     if (!Cubic->IsInRecovery) {
-        return;
+        return FALSE;
     }
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
@@ -591,8 +591,9 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     Cubic->IsInRecovery = FALSE;
     Cubic->HasHadCongestionEvent = FALSE;
 
-    CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(Connection);
+    return Result;
 }
 
 void

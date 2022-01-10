@@ -89,11 +89,17 @@ jobs:
         path: artifacts/bin
     - name: Run WAN Perf
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Protocol quic -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
-    - uses: actions/upload-artifact@v2
+      run: scripts/emulated-performance.ps1 -Debug -Protocol quic -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+    - name: Upload Results
+      uses: actions/upload-artifact@v2
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
+    - name: Upload Logs
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ format('logs.{0}mbps.{1}ms', matrix.rate, matrix.rtt) }}
+        path: artifacts/logs/wanperf/*.etl
   merge-data:
     name: Merge Results
     runs-on: windows-2022
