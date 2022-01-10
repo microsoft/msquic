@@ -473,22 +473,21 @@ ThroughputClient::OnStreamShutdownComplete(
     uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
     uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-    if (StrmContext->Complete) {
+    if (!StrmContext->Complete && StrmContext->BytesCompleted == 0) {
+        WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
+    } else {
         WriteOutput(
             "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
             (unsigned long long)StrmContext->BytesCompleted,
             SendRate,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
-    } else if (StrmContext->BytesCompleted) {
-        WriteOutput(
-            "Error: Did not complete all bytes! %llu bytes @ %u kbps (%u.%03u ms).\n",
-            (unsigned long long)StrmContext->BytesCompleted,
-            SendRate,
-            (uint32_t)(ElapsedMicroseconds / 1000),
-            (uint32_t)(ElapsedMicroseconds % 1000));
-    } else {
-        WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
+        if (!StrmContext->Complete) {
+            WriteOutput(
+                "Warning: Did not complete all bytes (sent: %llu, completed: %llu).\n",
+                (unsigned long long)StrmContext->BytesSent,
+                (unsigned long long)StrmContext->BytesCompleted);
+        }
     }
 
     StreamContextAllocator.Free(StrmContext);
