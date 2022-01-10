@@ -32,6 +32,8 @@ namespace QuicTrace.DataModel
         private QuicObjectSet<QuicDatapath> DatapathSet { get; } =
             new QuicObjectSet<QuicDatapath>(QuicDatapath.CreateEventId, QuicDatapath.DestroyedEventId, QuicDatapath.New);
 
+        private Dictionary<uint, QuicConnection> LastConnections = new Dictionary<uint, QuicConnection>();
+
         public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
         internal void AddEvent(QuicEvent evt)
@@ -51,7 +53,9 @@ namespace QuicTrace.DataModel
                     break;
                 case QuicObjectType.Connection:
                     DataAvailableFlags |= QuicDataAvailableFlags.Connection;
-                    ConnectionSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    var Conn = ConnectionSet.FindOrCreateActive(new QuicObjectKey(evt));
+                    Conn.AddEvent(evt, this);
+                    LastConnections[evt.ThreadId] = Conn;
                     break;
                 case QuicObjectType.Stream:
                     DataAvailableFlags |= QuicDataAvailableFlags.Stream;
@@ -59,6 +63,14 @@ namespace QuicTrace.DataModel
                     break;
                 case QuicObjectType.Datapath:
                     DatapathSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    if (evt.EventId == QuicEventId.DatapathSend)
+                    {
+                        var LastConn = LastConnections[evt.ThreadId];
+                        if (LastConn != null)
+                        {
+                            LastConn.AddEvent(evt, this);
+                        }
+                    }
                     break;
                 default:
                     break;
