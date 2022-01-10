@@ -1305,8 +1305,13 @@ QuicLossDetectionProcessAckBlocks(
                 // All previously considered lost packets were found to be
                 // spuriously lost. Inform congestion control.
                 //
-                QuicCongestionControlOnSpuriousCongestionEvent(
-                    &Connection->CongestionControl);
+                if (QuicCongestionControlOnSpuriousCongestionEvent(
+                        &Connection->CongestionControl)) {
+                    //
+                    // We were previously blocked and are now unblocked.
+                    //
+                    QuicSendQueueFlush(&Connection->Send, REASON_CONGESTION_CONTROL);
+                }
             }
         }
 

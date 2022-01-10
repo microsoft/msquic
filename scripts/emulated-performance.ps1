@@ -46,6 +46,9 @@ be in the current directory.
 .PARAMETER NumIterations
     The number(s) of iterations to run of each test over the emulated network.
 
+.PARAMETER NoDateLogDir
+    Doesn't include the Date/Time in the log directory path.
+
 #>
 
 param (
@@ -105,7 +108,10 @@ param (
     [string]$ForceBranchName = $null,
 
     [Parameter(Mandatory = $false)]
-    [switch]$MergeDataFiles = $false
+    [switch]$MergeDataFiles = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoDateLogDir = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -380,7 +386,10 @@ if ($MergeDataFiles) {
         }
     }
 
+    # First sort by usage to show bad cases.
     $MergedResults | Sort-Object -Property Usage | Format-Table -AutoSize
+    # Then sort by rate for easy comparison to previous.
+    $MergedResults | Sort-Object -Property NetMbps | Format-Table -AutoSize
     return
 }
 
@@ -388,15 +397,19 @@ if ($MergeDataFiles) {
 $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Folder for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf"
+if (!$NoDateLogDir) {
+    $LogDir = Join-Path $LogDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+}
 if ($LogProfile -ne "None") {
     try {
         Write-Debug "Canceling any already running logs"
-        & $LogScript -Cancel
+        & $LogScript -Cancel | Out-Null
     } catch {
     }
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
     Get-ChildItem $LogScript | Write-Debug
+    Write-Host "Logging to $LogDir"
 }
 
 if ($BaseRandomSeed -eq "") {
@@ -504,6 +517,10 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $RandomSeed = $BaseRandomSeed + $i.ToString('x2').Substring(0,2)
             Set-NetAdapterAdvancedProperty duo? -DisplayName RandomSeed -RegistryValue $RandomSeed -NoRestart
 
+            Write-Debug "Restarting NIC"
+            Restart-NetAdapter duo?
+            Start-Sleep 5 # (wait for duonic to restart)
+
             if ($LogProfile -ne "None") {
                 try {
                     & $LogScript -Start -Profile $LogProfile | Out-Null
@@ -511,10 +528,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                     Write-Debug "Logging exception"
                 }
             }
-
-            Write-Debug "Restarting NIC"
-            Restart-NetAdapter duo?
-            Start-Sleep 5 # (wait for duonic to restart)
 
             # Run the throughput upload test with the current configuration.
             Write-Debug "Run upload test: Iteration=$($i + 1)"

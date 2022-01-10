@@ -118,6 +118,7 @@ CubicCongestionControlReset(
     Cubic->HasHadCongestionEvent = FALSE;
     Cubic->CongestionWindow = Connection->Paths[0].Mtu * Cubic->InitialWindowPackets;
     Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
+    Cubic->LastSendAllowance = 0;
     if (FullReset) {
         Cubic->BytesInFlight = 0;
     }
@@ -180,13 +181,14 @@ CubicCongestionControlGetSendAllowance(
         }
 
         SendAllowance =
+            Cubic->LastSendAllowance +
             (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
-        if (SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
+        if (SendAllowance < Cubic->LastSendAllowance || // Overflow case
+            SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
             SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
         }
-        if (SendAllowance > (Cubic->CongestionWindow >> 2)) {
-            SendAllowance = Cubic->CongestionWindow >> 2; // Don't send more than a quarter of the current window.
-        }
+
+        Cubic->LastSendAllowance = SendAllowance;
     }
     return SendAllowance;
 }
@@ -320,6 +322,12 @@ CubicCongestionControlOnDataSent(
     if (Cubic->BytesInFlightMax < Cubic->BytesInFlight) {
         Cubic->BytesInFlightMax = Cubic->BytesInFlight;
         QuicSendBufferConnectionAdjust(QuicCongestionControlGetConnection(Cc));
+    }
+
+    if (NumRetransmittableBytes > Cubic->LastSendAllowance) {
+        Cubic->LastSendAllowance = 0;
+    } else {
+        Cubic->LastSendAllowance -= NumRetransmittableBytes;
     }
 
     if (Cubic->Exemptions > 0) {
@@ -556,7 +564,7 @@ CubicCongestionControlOnDataLost(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 CubicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
@@ -564,7 +572,7 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     if (!Cubic->IsInRecovery) {
-        return;
+        return FALSE;
     }
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
@@ -588,8 +596,9 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     Cubic->IsInRecovery = FALSE;
     Cubic->HasHadCongestionEvent = FALSE;
 
-    CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(Connection);
+    return Result;
 }
 
 void

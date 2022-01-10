@@ -354,7 +354,7 @@ QuicCongestionControlOnDataLost(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     );
