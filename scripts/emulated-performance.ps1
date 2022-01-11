@@ -563,7 +563,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug $Command
             $Output = [string](Invoke-Expression $Command)
             Write-Debug $Output
-            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:") -or $Output.Contains("0 kbps")) {
+            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:") -or $Output.Contains("@ 0 kbps")) {
                 # Don't treat one failure as fatal for the whole run. Just print
                 # it out, use 0 as the rate, and continue on.
                 Write-Host $Command
