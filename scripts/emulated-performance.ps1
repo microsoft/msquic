@@ -404,7 +404,7 @@ if ($MergeDataFiles) {
         git config user.name "QUIC Dev Bot"
         git add .
         git status
-        git commit -m "Commit WAN Perf Results for $CommitHash"
+        git commit -m "Commit WAN Perf Results for $CurCommitHash"
         git pull
         git push
 
