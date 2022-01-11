@@ -46,6 +46,9 @@ be in the current directory.
 .PARAMETER NumIterations
     The number(s) of iterations to run of each test over the emulated network.
 
+.PARAMETER MergeDataFiles
+    Merges the data files from multiple parallel runs into a combined file.
+
 .PARAMETER NoDateLogDir
     Doesn't include the Date/Time in the log directory path.
 
@@ -210,7 +213,7 @@ class Results {
     }
 }
 
-function Find-MatchingTest([TestResult]$TestResult, [Object]$RemoteResults) {
+function Find-MatchingTest([Object]$TestResult, [Object]$RemoteResults) {
     foreach ($Remote in $RemoteResults) {
         if (
             $TestResult.RttMs -eq $Remote.RttMs -and
@@ -229,27 +232,7 @@ function Find-MatchingTest([TestResult]$TestResult, [Object]$RemoteResults) {
     return $null;
 }
 
-function Find-MatchingTest2([Object]$TestResult, [Object]$RemoteResults) {
-    foreach ($Remote in $RemoteResults) {
-        if (
-            $TestResult.RttMs -eq $Remote.RttMs -and
-            $TestResult.BottleneckMbps -eq $Remote.BottleneckMbps -and
-            $TestResult.BottleneckBufferPackets -eq $Remote.BottleneckBufferPackets -and
-            $TestResult.RandomLossDenominator -eq $Remote.RandomLossDenominator -and
-            $TestResult.RandomReorderDenominator -eq $Remote.RandomReorderDenominator -and
-            $TestResult.ReorderDelayDeltaMs -eq $Remote.ReorderDelayDeltaMs -and
-            $TestResult.Tcp -eq $Remote.Tcp -and
-            $TestResult.DurationMs -eq $Remote.DurationMs -and
-            $TestResult.Pacing -eq $Remote.Pacing
-        ) {
-            return $Remote
-        }
-    }
-    return $null;
-}
-
-function Get-CurrentBranch {
-    param($RepoDir)
+function Get-CurrentBranch([string]$RepoDir) {
     $CurrentLoc = Get-Location
     Set-Location -Path $RepoDir | Out-Null
     $env:GIT_REDIRECT_STDERR = '2>&1'
@@ -313,6 +296,7 @@ if ("" -eq $Tls) {
 
 $Platform = $IsWindows ? "windows" : "linux"
 $PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+$CommitMergedData = $false
 
 if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
     # Forcing a specific branch.
@@ -337,6 +321,7 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
     # We are in a (GitHub Action) main build.
     Write-Host "Using GITHUB_REF_NAME=$env:GITHUB_REF_NAME to compute branch"
     $BranchName = $env:GITHUB_REF_NAME
+    $CommitMergedData = $true
 
 } else {
     # Fallback to the current branch.
@@ -363,18 +348,29 @@ if ($PreviousResults -ne "") {
 $OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 
 if ($MergeDataFiles) {
-    $MergedResults = [System.Collections.Generic.List[FormattedResult]]::new()
+    $OutputResults = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[object]]]::new()
+    $FormatResults = [System.Collections.Generic.List[FormattedResult]]::new()
 
     # Load all json files in the output directory.
     $DataFiles = Get-ChildItem -Path $OutputDir -Filter "*.json"
     $DataFiles | ForEach-Object {
         $Data = Get-Content $_ | ConvertFrom-Json
-        # Process each run in the json data, converting it to a table row.
+
+        # Convert the data to the proper output format.
+        $RunList = $null;
+        if ($OutputResults.TryGetValue($Data.PlatformName, [ref]$RunList)) {
+            $RunList.AddRange($Data.Runs);
+        } else {
+            $RunList = [System.Collections.Generic.List[object]]::new($Data.Runs)
+            $OutputResults.Add($Data.PlatformName, $RunList);
+        }
+
+        # Convert the data to a better format for printing to console.
         $Data.Runs | ForEach-Object {
 
             $RemoteRate = 0
             if ($RemoteResults -ne "") {
-                $RemoteResult = Find-MatchingTest2 -TestResult $_ -RemoteResults $RemoteResults
+                $RemoteResult = Find-MatchingTest -TestResult $_ -RemoteResults $RemoteResults
                 if ($null -ne $RemoteResult) {
                     $RemoteRate = $RemoteResult.RateKbps
                 }
@@ -382,14 +378,44 @@ if ($MergeDataFiles) {
 
             $BottleneckPercentage = ($_.RateKbps / $_.BottleneckMbps) / 10
             $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate, $BottleneckPercentage);
-            $MergedResults.Add($Run)
+            $FormatResults.Add($Run)
         }
     }
 
+    if ($CommitMergedData) {
+        $env:GIT_REDIRECT_STDERR = '2>&1'
+        # Cache the current commit hash (before changing branches).
+        $CurCommitHash = git rev-parse --short HEAD
+
+        # Checkout the performance branch (where data is stored).
+        git checkout performance
+
+        # Ensure the output directory exists.
+        $DataFolder = Join-Path $RootDir "data" $BranchName $CurCommitHash
+        New-Item -Path $DataFolder -ItemType "directory" -Force | Out-Null
+
+        # Write the output file.
+        $OutputString = $OutputResults | ConvertTo-Json -Depth 100
+        $OutputFile = Join-Path $DataFolder "wan_data.json"
+        Out-File -FilePath $OutputFile -InputObject $OutputString -Force
+
+        # Commit the output file.
+        git config user.email "quicdev@microsoft.com"
+        git config user.name "QUIC Dev Bot"
+        git add .
+        git status
+        git commit -m "Commit WAN Perf Results for $CommitHash"
+        git pull
+        git push
+
+        # Revert back to the branch.
+        git checkout $BranchName
+    }
+
     # First sort by usage to show bad cases.
-    $MergedResults | Sort-Object -Property Usage | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property Usage | Format-Table -AutoSize
     # Then sort by rate for easy comparison to previous.
-    $MergedResults | Sort-Object -Property NetMbps | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property NetMbps | Format-Table -AutoSize
     return
 }
 
@@ -537,11 +563,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug $Command
             $Output = [string](Invoke-Expression $Command)
             Write-Debug $Output
-            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
+            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:") -or $Output.Contains("@ 0 kbps")) {
                 # Don't treat one failure as fatal for the whole run. Just print
                 # it out, use 0 as the rate, and continue on.
                 Write-Host $Command
-                Write-Host $Output
+                Write-Warning $Output
                 $Rate = 0
 
             } else {
@@ -564,7 +590,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         }
 
         # Grab the average result and write the CSV output.
-        $RateKbps = [int]($Results | Where-Object {$_ -ne 0} | Measure-Object -Average).Average
+        $RateKbps = [int]($Results | Where-Object {$_ -ne 0} | Measure-Object -Average).Average # TODO - Convert to Median instead of Average
         $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"

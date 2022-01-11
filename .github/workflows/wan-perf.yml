@@ -30,15 +30,6 @@ on:
     - Cargo.toml
     - README.md
 
-env:
-  seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
-  iterations: 3
-  duration: 10000
-  pacing: 1
-  loss: "(0,1000,10000)"
-  reorder: "(0,1000,10000)"
-  delay: "(0,5,10)"
-
 jobs:
   build-perf:
     name: Build Perf
@@ -67,6 +58,14 @@ jobs:
     name: Run Tests
     runs-on: windows-2022
     needs: build-perf
+    env:
+      seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
+      iterations: 3
+      duration: 10000
+      pacing: 1
+      loss: "(0,1000,10000)"
+      reorder: "(0,1000,10000)"
+      delay: "(0,5,10)"
     strategy:
       fail-fast: false
       matrix:
@@ -87,9 +86,14 @@ jobs:
       with:
         name: bin
         path: artifacts/bin
-    - name: Run WAN Perf
+    - name: Run WAN Perf (QUIC only)
+      if: ${{ github.event_name == 'pull_request' }}
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Debug -Protocol quic -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+      run: scripts/emulated-performance.ps1 -Debug -Protocol QUIC -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+    - name: Run WAN Perf (QUIC + TCP)
+      if: ${{ github.event_name != 'pull_request' }}
+      shell: pwsh
+      run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
     - name: Upload Results
       uses: actions/upload-artifact@v2
       with:
