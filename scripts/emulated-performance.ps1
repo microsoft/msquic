@@ -460,8 +460,10 @@ for ($i = 0; $i -lt $NumIterations; $i++) {
 }
 Write-Host $Header
 
-# Turn on RDQ for duonic.
+# Turn on RDQ for duonic, and configure much larger queue sizes.
 Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -NoRestart
+Set-NetAdapterAdvancedProperty duo? -DisplayName TxQueueSizeExp -RegistryValue 20 -NoRestart
+Set-NetAdapterAdvancedProperty duo? -DisplayName RxQueueSizeExp -RegistryValue 20 -NoRestart
 
 # The RDQ buffer limit is by packets and not bytes, so turn off LSO to avoid
 # strange behavior. This makes RDQ behave more like a real middlebox on the
