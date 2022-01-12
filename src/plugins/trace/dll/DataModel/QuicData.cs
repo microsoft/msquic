@@ -155,10 +155,10 @@ namespace QuicTrace.DataModel
 
     public enum QuicTputDataType
     {
-        Tx,
-        TxAck,
-        TxUdp,
-        Rx,
+        Tx,         // Sent to UDP
+        PktCreate,  // Packet created to be sent
+        TxAck,      // Packet(s) bytes acknowledged
+        Rx,         // Packet received
         Rtt,
         InFlight,
         CWnd,

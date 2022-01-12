@@ -239,9 +239,10 @@ namespace QuicTrace.DataModel
         {
             if (Events.Count == 0) return new List<QuicRawTputData>();
 
-            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Diff, true);
+            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Value, true);
+            var pktCreate = new QuicRawTputSample(QuicTputDataType.PktCreate, QuicSampleMode.Diff, true);
             var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop, true);
-            var txUdp = new QuicRawTputSample(QuicTputDataType.TxUdp, QuicSampleMode.Value, true);
+            var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime, true);
             var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff, true);
             var rtt = new QuicRawTputSample(QuicTputDataType.Rtt);
             var inFlight = new QuicRawTputSample(QuicTputDataType.InFlight);
@@ -249,7 +250,6 @@ namespace QuicTrace.DataModel
             var posted = new QuicRawTputSample(QuicTputDataType.Bufferred);
             var connFC = new QuicRawTputSample(QuicTputDataType.ConnFC);
             var streamFC = new QuicRawTputSample(QuicTputDataType.StreamFC);
-            var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime, true);
 
             var tputEvents = new List<QuicRawTputData>();
             foreach (var evt in Events)
@@ -257,7 +257,7 @@ namespace QuicTrace.DataModel
                 if (evt.EventId == QuicEventId.ConnOutFlowStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStatsEvent;
-                    tx.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
+                    pktCreate.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
                     txAck.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
                     rtt.Update(_evt!.SmoothedRtt, evt.TimeStamp, ref tputEvents);
                     inFlight.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
@@ -278,7 +278,7 @@ namespace QuicTrace.DataModel
                 else if (evt.EventId == QuicEventId.DatapathSend)
                 {
                     var _evt = evt as QuicDatapathSendEvent;
-                    txUdp.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
+                    tx.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
                     txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
                 }
             }
@@ -286,8 +286,9 @@ namespace QuicTrace.DataModel
             var FinalTimeStamp = Events[Events.Count - 1].TimeStamp;
 
             tx.Finalize(FinalTimeStamp, ref tputEvents);
+            pktCreate.Finalize(FinalTimeStamp, ref tputEvents);
             txAck.Finalize(FinalTimeStamp, ref tputEvents);
-            txUdp.Finalize(FinalTimeStamp, ref tputEvents);
+            txDelay.Finalize(FinalTimeStamp, ref tputEvents);
             rx.Finalize(FinalTimeStamp, ref tputEvents);
             rtt.Finalize(FinalTimeStamp, ref tputEvents);
             inFlight.Finalize(FinalTimeStamp, ref tputEvents);
@@ -295,7 +296,6 @@ namespace QuicTrace.DataModel
             posted.Finalize(FinalTimeStamp, ref tputEvents);
             connFC.Finalize(FinalTimeStamp, ref tputEvents);
             streamFC.Finalize(FinalTimeStamp, ref tputEvents);
-            txDelay.Finalize(FinalTimeStamp, ref tputEvents);
 
             return tputEvents;
         }
