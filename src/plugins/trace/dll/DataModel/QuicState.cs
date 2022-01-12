@@ -36,6 +36,7 @@ namespace QuicTrace.DataModel
 
         public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
         internal void AddEvent(QuicEvent evt)
         {
             switch (evt.ObjectType)
@@ -65,11 +66,13 @@ namespace QuicTrace.DataModel
                     DatapathSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
                     if (evt.EventId == QuicEventId.DatapathSend)
                     {
-                        var LastConn = LastConnections[evt.ThreadId];
-                        if (LastConn != null)
-                        {
-                            LastConn.AddEvent(evt, this);
-                        }
+                        try {
+                            var LastConn = LastConnections[evt.ThreadId];
+                            if (LastConn != null)
+                            {
+                                LastConn.AddEvent(evt, this);
+                            }
+                        } catch { }
                     }
                     break;
                 default:

@@ -161,6 +161,7 @@ namespace QuicTrace.DataModel
         {
             Value,
             Diff,
+            DiffTime,
             Drop
         }
 
@@ -204,6 +205,17 @@ namespace QuicTrace.DataModel
                 {
                     Data.Value = NewValue - LastValue;
                 }
+                else if (SampleMode == QuicSampleMode.DiffTime)
+                {
+                    if (LastValueSet)
+                    {
+                        Data.Value = NewValue - LastValue;
+                    }
+                    else
+                    {
+                        Data.Value = 0;
+                    }
+                }
                 else
                 {
                     Data.Value = LastValue - NewValue;
@@ -235,6 +247,7 @@ namespace QuicTrace.DataModel
             var posted = new QuicRawTputSample(QuicTputDataType.Bufferred);
             var connFC = new QuicRawTputSample(QuicTputDataType.ConnFC);
             var streamFC = new QuicRawTputSample(QuicTputDataType.StreamFC);
+            var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime);
 
             var tputEvents = new List<QuicRawTputData>();
             foreach (var evt in Events)
@@ -264,6 +277,7 @@ namespace QuicTrace.DataModel
                 {
                     var _evt = evt as QuicDatapathSendEvent;
                     txUdp.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
+                    txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
                 }
             }
 
@@ -279,6 +293,7 @@ namespace QuicTrace.DataModel
             posted.Finalize(FinalTimeStamp, ref tputEvents);
             connFC.Finalize(FinalTimeStamp, ref tputEvents);
             streamFC.Finalize(FinalTimeStamp, ref tputEvents);
+            txDelay.Finalize(FinalTimeStamp, ref tputEvents);
 
             return tputEvents;
         }

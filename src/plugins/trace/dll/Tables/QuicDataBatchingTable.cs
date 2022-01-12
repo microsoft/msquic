@@ -59,6 +59,11 @@ namespace QuicTrace.Tables
                 new ColumnMetadata(new Guid("{1ad097ad-11a0-40c3-9425-d9255512be82}"), "Bits"),
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
+        private static readonly ColumnConfiguration txDelayColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{53ab73a2-db04-4bd2-a196-1032227e9ca2}"), "TX Delay (us)"),
+                new UIHints { AggregationMode = AggregationMode.Average });
+
         private static readonly TableConfiguration tableConfig1 =
             new TableConfiguration("Data Rates by Datapath")
             {
@@ -96,6 +101,24 @@ namespace QuicTrace.Tables
                 }
             };
 
+        private static readonly TableConfiguration tableConfig3 =
+            new TableConfiguration("TX Delay by Datapath")
+            {
+                Columns = new[]
+                {
+                     typeColumnConfig,
+                     TableConfiguration.PivotColumn,
+                     TableConfiguration.LeftFreezeColumn,
+                     cpuColumnConfig,
+                     processIdColumnConfig,
+                     threadIdColumnConfig,
+                     timeColumnConfig,
+                     TableConfiguration.RightFreezeColumn,
+                     TableConfiguration.GraphColumn,
+                     txDelayColumnConfig,
+                }
+            };
+
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableData is null));
@@ -130,12 +153,16 @@ namespace QuicTrace.Tables
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
             table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
+            table.AddColumn(txDelayColumnConfig, dataProjection.Compose(ProjectTxDelay));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableBuilder.AddTableConfiguration(tableConfig2);
+
+            tableConfig3.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableBuilder.AddTableConfiguration(tableConfig3);
 
             tableBuilder.SetDefaultTableConfiguration(tableConfig1);
         }
@@ -180,6 +207,18 @@ namespace QuicTrace.Tables
         }
 
         private static uint ProjectBits(QuicEvent evt)
+        {
+            if (evt.EventId == QuicEventId.DatapathSend)
+            {
+                return (evt as QuicDatapathSendEvent)!.TotalSize * 8;
+            }
+            else
+            {
+                return (evt as QuicDatapathRecvEvent)!.TotalSize * 8;
+            }
+        }
+
+        private static uint ProjectTxDelay(QuicEvent evt)
         {
             if (evt.EventId == QuicEventId.DatapathSend)
             {
