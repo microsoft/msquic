@@ -101,8 +101,9 @@ namespace QuicTrace
                             dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Console.WriteLine(ex.ToString());
                     }
                 }
 

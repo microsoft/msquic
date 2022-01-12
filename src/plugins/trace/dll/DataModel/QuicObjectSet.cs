@@ -114,13 +114,15 @@ namespace QuicTrace.DataModel
             T? value;
             if (eventId == CreateEventId)
             {
-                RemoveActiveObject(key);
+                var old = RemoveActiveObject(key);
+                if (old != null) inactiveList.Add(old);
                 value = ObjectConstructor(key.Pointer, key.ProcessId);
                 activeTable.Add(key, value);
             }
             else if (eventId == DestroyedEventId)
             {
                 value = RemoveActiveObject(key);
+                if (value != null) inactiveList.Add(value);
             }
             else
             {
