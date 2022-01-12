@@ -36,7 +36,6 @@ namespace QuicTrace.DataModel
 
         public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
         internal void AddEvent(QuicEvent evt)
         {
             switch (evt.ObjectType)
