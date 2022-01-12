@@ -64,15 +64,10 @@ namespace QuicTrace.DataModel
                     break;
                 case QuicObjectType.Datapath:
                     DatapathSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
-                    if (evt.EventId == QuicEventId.DatapathSend)
+                    if (evt.EventId == QuicEventId.DatapathSend &&
+                        LastConnections.TryGetValue(evt.ThreadId, out var LastConn))
                     {
-                        try {
-                            var LastConn = LastConnections[evt.ThreadId];
-                            if (LastConn != null)
-                            {
-                                LastConn.AddEvent(evt, this);
-                            }
-                        } catch { }
+                        LastConn.AddEvent(evt, this);
                     }
                     break;
                 default:
