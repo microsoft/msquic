@@ -147,6 +147,9 @@ namespace QuicTrace.DataModel
             return value;
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
+        public T FindOrCreateActive(QuicEvent evt) => FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+
         public void FinalizeObjects()
         {
             inactiveList.AddRange(activeTable.Select(it => it.Value));

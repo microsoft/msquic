@@ -170,17 +170,19 @@ namespace QuicTrace.DataModel
             QuicRawTputData Data;
             ulong LastValue;
             bool LastValueSet;
+            bool IncludeDuplicates;
             QuicSampleMode SampleMode;
-            internal QuicRawTputSample(QuicTputDataType type, QuicSampleMode sampleMode = QuicSampleMode.Value)
+            internal QuicRawTputSample(QuicTputDataType type, QuicSampleMode sampleMode = QuicSampleMode.Value, bool includeDuplicates = false)
             {
                 Data = new QuicRawTputData() { Type = type };
                 LastValue = 0;
                 LastValueSet = false;
+                IncludeDuplicates = includeDuplicates;
                 SampleMode = sampleMode;
             }
             internal void Update(ulong NewValue, Timestamp NewTimestamp, ref List<QuicRawTputData> Events)
             {
-                if (NewValue == LastValue) return;
+                if (LastValueSet && NewValue == LastValue && !IncludeDuplicates) return;
                 if (SampleMode == QuicSampleMode.Drop)
                 {
                     if (NewValue > LastValue)
@@ -216,7 +218,7 @@ namespace QuicTrace.DataModel
                         Data.Value = 0;
                     }
                 }
-                else
+                else // QuicSampleMode.Drop
                 {
                     Data.Value = LastValue - NewValue;
                 }
@@ -237,17 +239,17 @@ namespace QuicTrace.DataModel
         {
             if (Events.Count == 0) return new List<QuicRawTputData>();
 
-            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Diff);
-            var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop);
-            var txUdp = new QuicRawTputSample(QuicTputDataType.TxUdp);
-            var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff);
+            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Diff, true);
+            var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop, true);
+            var txUdp = new QuicRawTputSample(QuicTputDataType.TxUdp, QuicSampleMode.Value, true);
+            var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff, true);
             var rtt = new QuicRawTputSample(QuicTputDataType.Rtt);
             var inFlight = new QuicRawTputSample(QuicTputDataType.InFlight);
             var cwnd = new QuicRawTputSample(QuicTputDataType.CWnd);
             var posted = new QuicRawTputSample(QuicTputDataType.Bufferred);
             var connFC = new QuicRawTputSample(QuicTputDataType.ConnFC);
             var streamFC = new QuicRawTputSample(QuicTputDataType.StreamFC);
-            var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime);
+            var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime, true);
 
             var tputEvents = new List<QuicRawTputData>();
             foreach (var evt in Events)
