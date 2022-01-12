@@ -332,8 +332,12 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
     $BranchName = $ForceBranchName
 }
 
+Write-Debug "Branch: $BranchName"
+
 $LastCommitHash = Get-LatestCommitHash -Branch $BranchName
 $PreviousResults = Get-LatestWanTestResult -Branch $BranchName -CommitHash $LastCommitHash
+
+Write-Debug "LastCommitHash: $LastCommitHash"
 
 $RemoteResults = ""
 if ($PreviousResults -ne "") {
@@ -386,6 +390,9 @@ if ($MergeDataFiles) {
         $env:GIT_REDIRECT_STDERR = '2>&1'
         # Cache the current commit hash (before changing branches).
         $CurCommitHash = git rev-parse --short HEAD
+        $CurCommitHash.Substring(0,7)
+
+        Write-Debug "CurCommitHash: $CurCommitHash"
 
         # Checkout the performance branch (where data is stored).
         git checkout performance
