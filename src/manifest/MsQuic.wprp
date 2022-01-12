@@ -37,7 +37,6 @@
           <Keyword Value="Interrupt"/>
           <Keyword Value="IdleStates"/>
       </Keywords>
-
       <Stacks>
           <Stack Value="CSwitch"/>
           <Stack Value="ReadyThread"/>
