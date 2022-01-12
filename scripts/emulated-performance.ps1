@@ -390,7 +390,7 @@ if ($MergeDataFiles) {
         $env:GIT_REDIRECT_STDERR = '2>&1'
         # Cache the current commit hash (before changing branches).
         $CurCommitHash = git rev-parse --short HEAD
-        $CurCommitHash.Substring(0,7)
+        $CurCommitHash = $CurCommitHash.Substring(0,7)
 
         Write-Debug "CurCommitHash: $CurCommitHash"
 
