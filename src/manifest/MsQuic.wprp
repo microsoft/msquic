@@ -80,6 +80,7 @@
         <Keyword Value="0xFFFF"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_XdpEtwPerFrame" Name="Microsoft-XDP" Level="25" />
 
     <Profile Id="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
@@ -95,6 +96,7 @@
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_RPS" />
+            <EventProviderId Value="EP_XdpEtwPerFrame" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
