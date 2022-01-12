@@ -195,7 +195,7 @@ namespace QuicTrace.Tables
             tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig2.InitialSelectionQuery = "[Type]:=\"InFlight\"";
             tableConfig2.InitialFilterQuery =
-                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"TxUdp\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\"";
+                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"TxUdp\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"TxDelay\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
             tableConfig3.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
