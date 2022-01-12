@@ -840,13 +840,13 @@ namespace QuicTrace
             }
             Console.WriteLine();*/
 
-            Console.Write("Percentile,");
+            Console.Write("Percentile,ID,");
             RequestTiming.WriteCsvHeader();
             var Percentiles = new List<double>() { 0, 50, 90, 99, 99.9, 99.99, 99.999 };
             foreach (var percentile in Percentiles)
             {
                 var t = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
-                Console.Write("{0}th,", percentile);
+                Console.Write("{0}th,{1},", percentile, t.StreamID);
                 t.WriteCsv();
             }
             Console.WriteLine();
