@@ -46,6 +46,9 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t PrevCongestionWindow; // bytes
     uint32_t SlowStartThreshold; // bytes
     uint32_t PrevSlowStartThreshold; // bytes
+    uint32_t AimdWindow; // bytes
+    uint32_t PrevAimdWindow; // bytes
+    uint32_t AimdAccumulator; // bytes
 
     //
     // The number of bytes considered to be still in the network.
