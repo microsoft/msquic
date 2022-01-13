@@ -178,6 +178,7 @@ namespace QuicTrace
             Encrypt,
             Send,
             Udp,
+            AwaitProcessing,
             AwaitPeer,
             QueueRecv,
             ProcessRecv,
@@ -185,6 +186,7 @@ namespace QuicTrace
             Read,
             AppRecv,
             Complete,
+            ProcessMisc,
             COUNT
         };
 
@@ -303,6 +305,8 @@ namespace QuicTrace
             public uint ProcessId { get; }
 
             public QuicRequestConn? Peer = null;
+
+            public List<QuicStreamRequest> Streams = new List<QuicStreamRequest> { };
 
             public QuicScheduleState SchedulingState = QuicScheduleState.Idle;
             public ulong LastScheduleTime = 0;
@@ -445,16 +449,35 @@ namespace QuicTrace
                     {
                         case QuicEventId.ConnScheduleState:
                         {
-                            var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Conn = ConnSet.FindOrCreateActive(evt);
                             Conn.SchedulingState = (evt as QuicConnectionScheduleStateEvent)!.ScheduleState;
                             Conn.LastScheduleTime = (ulong)evt.TimeStamp.ToNanoseconds;
                             //Console.WriteLine("ConnScheduleState {0} {1}", evt.ObjectPointer, Conn.SchedulingState);
+                            foreach (var Stream in Conn.Streams)
+                            {
+                                if (Stream.Timings.State == RequestState.Idle)
+                                {
+                                    continue;
+                                }
+                                if (Stream.Timings.State == RequestState.AwaitProcessing)
+                                {
+                                   Stream.Timings.UpdateToState(RequestState.AwaitPeer, (ulong)evt.TimeStamp.ToNanoseconds);
+                                }
+                                else if (Stream.Timings.State == RequestState.ProcessMisc)
+                                {
+                                    Stream.Timings.UpdateToState(RequestState.Idle, (ulong)evt.TimeStamp.ToNanoseconds);
+                                }
+                                else
+                                {
+                                    //Console.WriteLine("Stream in unexpected state {0} for Schedule state {1}", Stream.Timings.State, Conn.SchedulingState);
+                                }
+                            }
                             break;
                         }
                         case QuicEventId.ConnSourceCidAdded:
                         {
                             //Console.WriteLine("ConnSourceCidAdded {0}", evt.ObjectPointer);
-                            var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Conn = ConnSet.FindOrCreateActive(evt);
                             ConnSourceCIDs.Add((evt as QuicConnectionSourceCidAddedEvent)!.CID, Conn);
                             if (Conn.Peer == null && ConnDestinationCIDs.TryGetValue((evt as QuicConnectionSourceCidAddedEvent)!.CID, out var peer))
                             {
@@ -467,7 +490,7 @@ namespace QuicTrace
                         case QuicEventId.ConnDestCidAdded:
                         {
                             //Console.WriteLine("ConnDestCidAdded {0}", evt.ObjectPointer);
-                            var Conn = ConnSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Conn = ConnSet.FindOrCreateActive(evt);
                             ConnDestinationCIDs.Add((evt as QuicConnectionDestinationCidAddedEvent)!.CID, Conn);
                             if (Conn.Peer == null && ConnSourceCIDs.TryGetValue((evt as QuicConnectionDestinationCidAddedEvent)!.CID, out var peer))
                             {
@@ -480,10 +503,11 @@ namespace QuicTrace
                         case QuicEventId.StreamAlloc:
                         {
                             //Console.WriteLine("StreamAlloc {0}", evt.ObjectPointer);
-                            var Stream = StreamSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Stream = StreamSet.FindOrCreateActive(evt);
                             if (Stream.Timings.EncounteredError) break;
 
                             Stream.Timings.Connection = ConnSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamAllocEvent)!.Connection, evt.ProcessId));
+                            Stream.Timings.Connection.Streams.Add(Stream);
                             //Console.WriteLine("Set Conn {0}", (evt as QuicStreamAllocEvent)!.Connection);
                             Stream.StreamAlloc = (ulong)evt.TimeStamp.ToNanoseconds;
                             Stream.Timings.LastStateChangeTime = (ulong)evt.TimeStamp.ToNanoseconds;
@@ -520,7 +544,7 @@ namespace QuicTrace
                         case QuicEventId.PacketCreated:
                         {
                             //Console.WriteLine("PacketCreated {0} in {1}", evt.ObjectPointer, (evt as QuicPacketCreatedEvent)!.BatchID);
-                            var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Packet = PacketSet.FindOrCreateActive(evt);
                             Packet.Batch = PacketBatchSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, (evt as QuicPacketCreatedEvent)!.BatchID, evt.ProcessId));
                             Packet.Batch.Packets.Add(Packet);
                             Packet.PacketCreate = (ulong)evt.TimeStamp.ToNanoseconds;
@@ -536,7 +560,7 @@ namespace QuicTrace
 
                             if (Stream.Timings.Connection!.SchedulingState != QuicScheduleState.Processing)
                             {
-                                Console.WriteLine("ERROR: Connection not in processing state for Write");
+                                Console.WriteLine("ERROR: Connection not in processing state for Write (actual={0})", Stream.Timings.Connection!.SchedulingState);
                                 Stream.Timings.EncounteredError = true;
                                 break;
                             }
@@ -563,7 +587,8 @@ namespace QuicTrace
                             }
                             else if (Stream.Timings.State == RequestState.Complete ||
                                      Stream.Timings.State == RequestState.AwaitPeer ||
-                                     Stream.Timings.State == RequestState.Idle)
+                                     Stream.Timings.State == RequestState.Idle ||
+                                     Stream.Timings.State == RequestState.ProcessMisc)
                             {
                                 Stream.Timings.State = RequestState.ProcessSend; // TODO - What state should we consider this?
                                 Stream.Timings.UpdateToState(RequestState.Frame, Stream.SendPacket.PacketCreate);
@@ -644,11 +669,11 @@ namespace QuicTrace
                                     {
                                         if (Stream.Timings.IsServer)
                                         {
-                                            Stream.Timings.UpdateToState(RequestState.Idle, (ulong)evt.TimeStamp.ToNanoseconds);
+                                            Stream.Timings.UpdateToState(RequestState.ProcessMisc, (ulong)evt.TimeStamp.ToNanoseconds);
                                         }
                                         else
                                         {
-                                            Stream.Timings.UpdateToState(RequestState.AwaitPeer, (ulong)evt.TimeStamp.ToNanoseconds);
+                                            Stream.Timings.UpdateToState(RequestState.AwaitProcessing, (ulong)evt.TimeStamp.ToNanoseconds);
                                         }
                                     }
                                     else if (Stream.Timings.State != RequestState.Idle && Stream.Timings.State != RequestState.AwaitPeer)
@@ -663,7 +688,7 @@ namespace QuicTrace
                         case QuicEventId.PacketReceive:
                         {
                             //Console.WriteLine("PacketReceive {0}", evt.ObjectPointer);
-                            var Packet = PacketSet.FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
+                            var Packet = PacketSet.FindOrCreateActive(evt);
                             Packet.PacketReceive = (ulong)evt.TimeStamp.ToNanoseconds;
                             break;
                         }
@@ -776,6 +801,7 @@ namespace QuicTrace
                                 break;
                             }
 
+                            Stream.Timings.Connection!.Streams.Remove(Stream);
                             Stream.Timings.UpdateToState(RequestState.Idle, (ulong)evt.TimeStamp.ToNanoseconds);
 
                             if (Stream.Timings.IsServer)

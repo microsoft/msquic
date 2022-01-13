@@ -148,7 +148,7 @@ CubicCongestionControlGetSendAllowance(
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
         !Connection->Paths[0].GotFirstRttSample ||
-        Connection->Paths[0].SmoothedRtt < MS_TO_US(QUIC_SEND_PACING_INTERVAL)) {
+        Connection->Paths[0].SmoothedRtt < QUIC_MIN_PACING_RTT) {
         //
         // We're not in the necessary state to pace.
         //
@@ -190,12 +190,16 @@ CubicCongestionControlGetSendAllowance(
 
         Cubic->LastSendAllowance = SendAllowance;
 
-        if (SendAllowance < Connection->Paths[0].Mtu) {
-            //
-            // Limit sends to at least one full MTU.
-            //
-            SendAllowance = 0;
-        }
+        //
+        // Limit send allowance to integral multiples of MTU (converted to the
+        // datagram payload length).
+        //
+        uint32_t DatagramLength =
+            MaxUdpPayloadSizeForFamily(
+                QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress),
+                Connection->Paths[0].Mtu);
+        uint32_t SendCount = SendAllowance / DatagramLength;
+        SendAllowance = SendCount * DatagramLength;
     }
     return SendAllowance;
 }

@@ -672,6 +672,16 @@ QuicWorkerLoop(
         return TRUE;
     }
 
+    if (Worker->TimerWheel.NextExpirationTime != UINT64_MAX &&
+        Worker->TimerWheel.NextExpirationTime + 100 <= *TimeNow) {
+        //
+        // Poll for a while instead of sleeping, since we're so close to the
+        // next timer (within 100 us).
+        //
+        Context->Ready = TRUE;
+        return TRUE;
+    }
+
 #ifdef QUIC_WORKER_POLLING
     if (Worker->PollCount++ < QUIC_WORKER_POLLING) {
         //
