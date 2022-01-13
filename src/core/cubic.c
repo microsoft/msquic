@@ -189,6 +189,13 @@ CubicCongestionControlGetSendAllowance(
         }
 
         Cubic->LastSendAllowance = SendAllowance;
+
+        if (SendAllowance < Connection->Paths[0].Mtu) {
+            //
+            // Limit sends to at least one full MTU.
+            //
+            SendAllowance = 0;
+        }
     }
     return SendAllowance;
 }
