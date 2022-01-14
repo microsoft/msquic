@@ -1242,7 +1242,7 @@ QuicLossDetectionProcessAckBlocks(
 
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    uint32_t TimeNow = CxPlatTimeUs32();
+    uint64_t TimeNow = CxPlatTimeUs64();
     uint32_t SmallestRtt = (uint32_t)(-1);
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
@@ -1383,7 +1383,7 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, TimeNow);
+        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, (uint32_t)TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
@@ -1426,7 +1426,7 @@ QuicLossDetectionProcessAckBlocks(
         // data acknowledgement so that we have an accurate bytes in flight
         // calculation for congestion events.
         //
-        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, TimeNow);
+        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, (uint32_t)TimeNow);
     }
 
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
