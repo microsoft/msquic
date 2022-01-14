@@ -322,12 +322,8 @@ QuicLossDetectionUpdateTimer(
     }
 
     //
-    // The units for the delay values start in microseconds. Before being passed
-    // to QuicConnTimerSet, Delay is converted to milliseconds. To account for
-    // any rounding errors, 1 extra millisecond is added to the timer, so it
-    // doesn't end up firing early.
+    // The units for the delay values start in microseconds.
     //
-
     uint32_t Delay = CxPlatTimeDiff32(TimeNow, TimeFires);
 
     //
@@ -356,9 +352,9 @@ QuicLossDetectionUpdateTimer(
         //
         // The disconnect timeout is now the limiting factor for the timer.
         //
-        Delay = US_TO_MS(MaxDelay) + 1;
+        Delay = MaxDelay + 1;
     } else {
-        Delay = US_TO_MS(Delay) + 1;
+        Delay = Delay + 1;
     }
 
     if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
