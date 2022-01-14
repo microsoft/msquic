@@ -672,28 +672,18 @@ QuicWorkerLoop(
         return TRUE;
     }
 
+#ifdef QUIC_WORKER_POLLING_TIME
     if (Worker->TimerWheel.NextExpirationTime != UINT64_MAX &&
-        Worker->TimerWheel.NextExpirationTime + 100 <= *TimeNow) {
+        Worker->TimerWheel.NextExpirationTime <= *TimeNow + QUIC_WORKER_POLLING_TIME) {
         //
         // Poll for a while instead of sleeping, since we're so close to the
-        // next timer (within 100 us).
-        //
-        Context->Ready = TRUE;
-        return TRUE;
-    }
-
-#ifdef QUIC_WORKER_POLLING
-    if (Worker->PollCount++ < QUIC_WORKER_POLLING) {
-        //
-        // Busy loop for a while to keep the thread hot in case new work comes
-        // in.
+        // next timer.
         //
         Context->Ready = TRUE;
         *TimeNow = CxPlatTimeUs64();
         return TRUE;
     }
-    Worker->PollCount = 0; // Reset the counter.
-#endif // QUIC_WORKER_POLLING
+#endif // QUIC_WORKER_POLLING_TIME
 
     //
     // We have no other work to process at the moment. Wait for work to come in
