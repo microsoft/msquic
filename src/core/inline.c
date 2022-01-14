@@ -573,6 +573,11 @@ QuicPathDecrementAllowance(
     _In_ uint32_t Amount
     );
 
+uint16_t
+QuicPathGetDatagramPayloadSize(
+    _In_ const QUIC_PATH* Path
+    );
+
 uint64_t
 QuicPktNumDecompress(
     _In_ uint64_t ExpectedPacketNumber,

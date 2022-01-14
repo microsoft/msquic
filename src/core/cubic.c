@@ -113,10 +113,12 @@ CubicCongestionControlReset(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     Cubic->SlowStartThreshold = UINT32_MAX;
     Cubic->IsInRecovery = FALSE;
     Cubic->HasHadCongestionEvent = FALSE;
-    Cubic->CongestionWindow = Connection->Paths[0].Mtu * Cubic->InitialWindowPackets;
+    Cubic->CongestionWindow = DatagramPayloadLength * Cubic->InitialWindowPackets;
     Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
     Cubic->LastSendAllowance = 0;
     if (FullReset) {
@@ -190,16 +192,19 @@ CubicCongestionControlGetSendAllowance(
 
         Cubic->LastSendAllowance = SendAllowance;
 
-        //
-        // Limit send allowance to integral multiples of MTU (converted to the
-        // datagram payload length).
-        //
-        /*uint32_t DatagramLength =
-            MaxUdpPayloadSizeForFamily(
-                QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress),
-                Connection->Paths[0].Mtu);
-        uint32_t SendCount = SendAllowance / DatagramLength;
-        SendAllowance = SendCount * DatagramLength;*/
+        if (SendAllowance < QuicPathGetDatagramPayloadSize(&Connection->Paths[0])) {
+            //
+            // Don't send right now if we don't have at least a full datagram's
+            // worth of allowance.
+            //
+            SendAllowance = 0;
+
+        } /*else if (TimeSinceLastSend < QUIC_SEND_PACING_INTERVAL) {
+            //
+            // Don't send right now if we're pacing too quickly.
+            //
+            SendAllowance = 0;
+        }*/
     }
     return SendAllowance;
 }
@@ -239,6 +244,8 @@ CubicCongestionControlOnCongestionEvent(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     QuicTraceEvent(
         ConnCongestion,
         "[conn][%p] Congestion event",
@@ -279,7 +286,7 @@ CubicCongestionControlOnCongestionEvent(
     //
     Cubic->KCubic =
         CubeRoot(
-            (Cubic->WindowMax / Connection->Paths[0].Mtu * (10 - TEN_TIMES_BETA_CUBIC) << 9) /
+            (Cubic->WindowMax / DatagramPayloadLength * (10 - TEN_TIMES_BETA_CUBIC) << 9) /
             TEN_TIMES_C_CUBIC);
     Cubic->KCubic = S_TO_MS(Cubic->KCubic);
     Cubic->KCubic >>= 3;
@@ -288,7 +295,7 @@ CubicCongestionControlOnCongestionEvent(
     Cubic->CongestionWindow =
     Cubic->AimdWindow =
         CXPLAT_MAX(
-            (uint32_t)Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
+            (uint32_t)DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
             Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
 }
 
@@ -301,6 +308,8 @@ CubicCongestionControlOnPersistentCongestionEvent(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     QuicTraceEvent(
         ConnPersistentCongestion,
         "[conn][%p] Persistent congestion event",
@@ -314,7 +323,7 @@ CubicCongestionControlOnPersistentCongestionEvent(
         Cubic->AimdWindow =
             Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
     Cubic->CongestionWindow =
-        Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
+        DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
     Cubic->KCubic = 0;
 }
 
@@ -422,6 +431,9 @@ CubicCongestionControlOnDataAcknowledged(
         // Congestion Avoidance
         //
 
+        const uint16_t DatagramPayloadLength =
+            QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
         //
         // We require steady ACK feedback to justify window growth. If there is
         // a long time gap between ACKs, add the gap to TimeOfCongAvoidStart to
@@ -468,7 +480,7 @@ CubicCongestionControlOnDataAcknowledged(
 
         int64_t CubicWindow =
             ((((DeltaT * DeltaT) >> 10) * DeltaT *
-             (int64_t)(Connection->Paths[0].Mtu * TEN_TIMES_C_CUBIC / 10)) >> 20) +
+             (int64_t)(DatagramPayloadLength * TEN_TIMES_C_CUBIC / 10)) >> 20) +
             (int64_t)Cubic->WindowMax;
 
         if (CubicWindow < 0) {
@@ -501,7 +513,7 @@ CubicCongestionControlOnDataAcknowledged(
             Cubic->AimdAccumulator += AckEvent->NumRetransmittableBytes;
         }
         if (Cubic->AimdAccumulator > Cubic->AimdWindow) {
-            Cubic->AimdWindow += Connection->Paths[0].Mtu;
+            Cubic->AimdWindow += DatagramPayloadLength;
             Cubic->AimdAccumulator -= Cubic->AimdWindow;
         }
 
@@ -515,7 +527,7 @@ CubicCongestionControlOnDataAcknowledged(
             // Concave or Convex region. Constrain TargetWindow within [CongestionWindow, 1.5*CongestionWindow].
             //
             uint64_t TargetWindow = CXPLAT_MAX(Cubic->CongestionWindow, CXPLAT_MIN(CubicWindow, Cubic->CongestionWindow + (Cubic->CongestionWindow >> 1)));
-            Cubic->CongestionWindow += (uint32_t)(((TargetWindow - Cubic->CongestionWindow) * Connection->Paths[0].Mtu) / Cubic->CongestionWindow);
+            Cubic->CongestionWindow += (uint32_t)(((TargetWindow - Cubic->CongestionWindow) * DatagramPayloadLength) / Cubic->CongestionWindow);
         }
     }
 
@@ -681,10 +693,12 @@ CubicCongestionControlInitialize(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     Cubic->SlowStartThreshold = UINT32_MAX;
     Cubic->SendIdleTimeoutMs = Settings->SendIdleTimeoutMs;
     Cubic->InitialWindowPackets = Settings->InitialWindowPackets;
-    Cubic->CongestionWindow = Connection->Paths[0].Mtu * Cubic->InitialWindowPackets;
+    Cubic->CongestionWindow = DatagramPayloadLength * Cubic->InitialWindowPackets;
     Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
     QuicConnLogOutFlowStats(Connection);
     QuicConnLogCubic(Connection);
