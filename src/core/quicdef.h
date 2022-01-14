@@ -129,10 +129,10 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_DEFAULT_RETRY_MEMORY_FRACTION      65 // ~0.1%
 
 //
-// If enabled, workers will poll (instead of wait) if the next timer is within
-// the specified polling time (in microseconds).
+// If enabled, workers will poll the number of times before falling back to the
+// wait or delay state.
 //
-#define QUIC_WORKER_POLLING_TIME                100 // 100us
+//#define QUIC_WORKER_POLLING                     10000
 
 //
 // The maximum amount of queue delay a worker should take on (in ms).
@@ -374,7 +374,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The number of microseconds between pacing chunks.
 //
-#define QUIC_SEND_PACING_INTERVAL               100
+#define QUIC_SEND_PACING_INTERVAL               1000
 
 //
 // The maximum number of bytes to send in a given key phase

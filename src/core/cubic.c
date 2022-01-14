@@ -121,7 +121,6 @@ CubicCongestionControlReset(
     Cubic->CongestionWindow = DatagramPayloadLength * Cubic->InitialWindowPackets;
     Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
     Cubic->LastSendAllowance = 0;
-    Cubic->TimeSinceLastPacingSend = 0;
     if (FullReset) {
         Cubic->BytesInFlight = 0;
     }
@@ -190,25 +189,6 @@ CubicCongestionControlGetSendAllowance(
             SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
             SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
         }
-
-        Cubic->LastSendAllowance = SendAllowance;
-        Cubic->TimeSinceLastPacingSend += (uint32_t)TimeSinceLastSend;
-
-        if (SendAllowance < QuicPathGetDatagramPayloadSize(&Connection->Paths[0])) {
-            //
-            // Don't send right now if we don't have at least a full datagram's
-            // worth of allowance.
-            //
-            return 0;
-
-        } else if (Cubic->TimeSinceLastPacingSend < QUIC_SEND_PACING_INTERVAL) {
-            //
-            // Don't send right now if we're pacing too quickly.
-            //
-            return 0;
-        }
-
-        Cubic->TimeSinceLastPacingSend = 0;
     }
     return SendAllowance;
 }
