@@ -189,6 +189,8 @@ CubicCongestionControlGetSendAllowance(
             SendAllowance > (Cubic->CongestionWindow - Cubic->BytesInFlight)) {
             SendAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
         }
+
+        Cubic->LastSendAllowance = SendAllowance;
     }
     return SendAllowance;
 }
