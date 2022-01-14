@@ -65,7 +65,6 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     // The leftover send allowance from a previous send. Only used when pacing.
     //
     uint32_t LastSendAllowance; // bytes
-    uint32_t TimeSinceLastPacingSend; // us
 
     //
     // A count of packets which can be sent ignoring CongestionWindow.
