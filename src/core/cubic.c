@@ -194,12 +194,12 @@ CubicCongestionControlGetSendAllowance(
         // Limit send allowance to integral multiples of MTU (converted to the
         // datagram payload length).
         //
-        uint32_t DatagramLength =
+        /*uint32_t DatagramLength =
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress),
                 Connection->Paths[0].Mtu);
         uint32_t SendCount = SendAllowance / DatagramLength;
-        SendAllowance = SendCount * DatagramLength;
+        SendAllowance = SendCount * DatagramLength;*/
     }
     return SendAllowance;
 }
