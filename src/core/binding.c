@@ -1441,7 +1441,7 @@ QuicBindingDeliverDatagrams(
                 Packet->DestCidLen);
     }
 
-    if (Connection == NULL) {
+    if (Connection == NULL && Binding->ServerOwned) {
 
         //
         // Because the packet chain is ordered by control packets first, we
