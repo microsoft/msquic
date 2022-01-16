@@ -178,12 +178,15 @@ typedef struct QUIC_BINDING {
     BOOLEAN Exclusive : 1;
 
     //
-    // Indicates whether the binding is owned by the server side (i.e. listener
-    // and server connections) or by the client side. Different receive side
-    // logic is used for each, so the binding cannot be shared between clients
-    // and servers.
+    // Indicates whether the binding has server side (i.e. listener
+    // and server connections) owners.
     //
     BOOLEAN ServerOwned : 1;
+
+    //
+    // Indicates whether this binding has client side owners or not.
+    //
+    BOOLEAN ClientOwned : 1;
 
     //
     // Indicates that the binding is also explicitly connected to a remote

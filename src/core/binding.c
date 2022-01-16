@@ -58,6 +58,7 @@ QuicBindingInitialize(
     Binding->RefCount = 0; // No refs until it's added to the library's list
     Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+    Binding->ClientOwned = !(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
@@ -1422,20 +1423,22 @@ QuicBindingDeliverDatagrams(
     // packet, then the packet is dropped.
     //
 
-    QUIC_CONNECTION* Connection;
-    if (!Binding->ServerOwned || Packet->IsShortHeader) {
-        Connection =
-            QuicLookupFindConnectionByLocalCid(
-                &Binding->Lookup,
-                Packet->DestCid,
-                Packet->DestCidLen);
-    } else {
+    QUIC_CONNECTION* Connection = NULL;
+
+    if (Binding->ServerOwned) {
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
                 &DatagramChain->Route->RemoteAddress,
                 Packet->SourceCidLen,
                 Packet->SourceCid);
+    } 
+    if (Connection == NULL && (Binding->ClientOwned || Packet->IsShortHeader)) {
+        Connection =
+            QuicLookupFindConnectionByLocalCid(
+                &Binding->Lookup,
+                Packet->DestCid,
+                Packet->DestCidLen);
     }
 
     if (Connection == NULL) {

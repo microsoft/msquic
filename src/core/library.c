@@ -1526,8 +1526,7 @@ SharedEphemeralRetry:
             UdpConfig->LocalAddress,
             UdpConfig->RemoteAddress);
     if (Binding != NULL) {
-        if (!ShareBinding || Binding->Exclusive ||
-            (ServerOwned != Binding->ServerOwned)) {
+        if (!ShareBinding || Binding->Exclusive) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
