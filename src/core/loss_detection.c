@@ -322,12 +322,8 @@ QuicLossDetectionUpdateTimer(
     }
 
     //
-    // The units for the delay values start in microseconds. Before being passed
-    // to QuicConnTimerSet, Delay is converted to milliseconds. To account for
-    // any rounding errors, 1 extra millisecond is added to the timer, so it
-    // doesn't end up firing early.
+    // The units for the delay values start in microseconds.
     //
-
     uint32_t Delay = CxPlatTimeDiff32(TimeNow, TimeFires);
 
     //
@@ -356,9 +352,9 @@ QuicLossDetectionUpdateTimer(
         //
         // The disconnect timeout is now the limiting factor for the timer.
         //
-        Delay = US_TO_MS(MaxDelay) + 1;
+        Delay = MaxDelay + 1;
     } else {
-        Delay = US_TO_MS(Delay) + 1;
+        Delay = Delay + 1;
     }
 
     if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
@@ -1246,7 +1242,7 @@ QuicLossDetectionProcessAckBlocks(
 
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    uint32_t TimeNow = CxPlatTimeUs32();
+    uint64_t TimeNow = CxPlatTimeUs64();
     uint32_t SmallestRtt = (uint32_t)(-1);
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
@@ -1387,7 +1383,7 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, TimeNow);
+        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, (uint32_t)TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
@@ -1430,7 +1426,7 @@ QuicLossDetectionProcessAckBlocks(
         // data acknowledgement so that we have an accurate bytes in flight
         // calculation for congestion events.
         //
-        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, TimeNow);
+        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, (uint32_t)TimeNow);
     }
 
     if (NewLargestAck || AckedRetransmittableBytes > 0) {

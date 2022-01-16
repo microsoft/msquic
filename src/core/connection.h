@@ -1194,14 +1194,14 @@ QuicConnUpdateRtt(
     );
 
 //
-// Sets a new timer delay in milliseconds.
+// Sets a new timer delay in microseconds.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSet(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
-    _In_ uint64_t DelayMs
+    _In_ uint64_t DelayUs
     );
 
 //

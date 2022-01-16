@@ -122,6 +122,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 class FormattedResult {
     [double]$Usage;
+    [double]$DiffPrev;
     [int]$NetMbps;
     [int]$RttMs;
     [int]$QueuePkts;
@@ -145,8 +146,7 @@ class FormattedResult {
         [int]$DurationMs,
         [bool]$Pacing,
         [int]$RateKbps,
-        [int]$RemoteKbps,
-        [double]$BottleneckPercentage
+        [int]$RemoteKbps
     ) {
         $this.Tcp = $Tcp;
         $this.RttMs = $RttMs;
@@ -159,7 +159,9 @@ class FormattedResult {
         #$this.Pacing = $Pacing;
         $this.RateKbps = $RateKbps;
         $this.PrevKbps = $RemoteKbps;
-        $this.Usage = $BottleneckPercentage;
+
+        $this.Usage = ($RateKbps / $BottleneckMbps) / 10;
+        $this.DiffPrev = (($RateKbps - $RemoteKbps) / $BottleneckMbps) / 10;
     }
 }
 
@@ -332,8 +334,12 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
     $BranchName = $ForceBranchName
 }
 
+Write-Debug "Branch: $BranchName"
+
 $LastCommitHash = Get-LatestCommitHash -Branch $BranchName
 $PreviousResults = Get-LatestWanTestResult -Branch $BranchName -CommitHash $LastCommitHash
+
+Write-Debug "LastCommitHash: $LastCommitHash"
 
 $RemoteResults = ""
 if ($PreviousResults -ne "") {
@@ -376,8 +382,7 @@ if ($MergeDataFiles) {
                 }
             }
 
-            $BottleneckPercentage = ($_.RateKbps / $_.BottleneckMbps) / 10
-            $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate, $BottleneckPercentage);
+            $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate);
             $FormatResults.Add($Run)
         }
     }
@@ -386,6 +391,9 @@ if ($MergeDataFiles) {
         $env:GIT_REDIRECT_STDERR = '2>&1'
         # Cache the current commit hash (before changing branches).
         $CurCommitHash = git rev-parse --short HEAD
+        $CurCommitHash = $CurCommitHash.Substring(0,7)
+
+        Write-Debug "CurCommitHash: $CurCommitHash"
 
         # Checkout the performance branch (where data is stored).
         git checkout performance
@@ -412,10 +420,18 @@ if ($MergeDataFiles) {
         git checkout $BranchName
     }
 
-    # First sort by usage to show bad cases.
-    $FormatResults | Sort-Object -Property Usage | Format-Table -AutoSize
-    # Then sort by rate for easy comparison to previous.
-    $FormatResults | Sort-Object -Property NetMbps | Format-Table -AutoSize
+    # Show the worst absolute tests.
+    Write-Host "`nWorst tests, relative to bottleneck rate (Usage):"
+    $FormatResults | Sort-Object -Property Usage | Select-Object -First 50 | Format-Table -AutoSize
+
+    # Show the worst tests, relative to the previous run.
+    Write-Host "Worst tests, relative to the previous run (DiffPrev):"
+    $FormatResults | Sort-Object -Property DiffPrev | Select-Object -First 50 | Format-Table -AutoSize
+
+    # Dump all data.
+    Write-Host "All tests:"
+    $FormatResults | Sort-Object -Property NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize
+
     return
 }
 
@@ -602,7 +618,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         Write-Host $Row
         if ($RemoteResults -ne "") {
             $RemoteResult = Find-MatchingTest -TestResult $RunResult -RemoteResults $RemoteResults
-            if ($null -ne $RemoteResult) {
+            if ($null -ne $RemoteResult -and $RemoteResult.RateKbps -ne 0) {
                 $MedianLastResult = $RemoteResult.RateKbps
                 $PercentDiff = 100 * (($RateKbps - $MedianLastResult) / $MedianLastResult)
                 $PercentDiffStr = $PercentDiff.ToString("#.##")
