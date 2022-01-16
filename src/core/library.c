@@ -1486,7 +1486,6 @@ QuicLibraryGetBinding(
     QUIC_ADDR NewLocalAddress;
     BOOLEAN PortUnspecified = UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
     BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
-    BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
