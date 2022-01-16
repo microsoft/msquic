@@ -43,6 +43,12 @@ add_library(platform STATIC ${SOURCES})
 
 target_link_libraries(platform PUBLIC inc)
 
+if(QUIC_HIGH_RES_TIMERS)
+    if("${CX_PLATFORM}" STREQUAL "windows")
+        target_link_libraries(platform PUBLIC winmm)
+    endif()
+endif()
+
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")

@@ -90,19 +90,27 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WindowsUserInitialized
-// [ dll] Initialized (AvailMem = %llu bytes)
+// Decoder Ring for WindowsUserInitialized2
+// [ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])
 // QuicTraceLogInfo(
-        WindowsUserInitialized,
-        "[ dll] Initialized (AvailMem = %llu bytes)",
-        CxPlatTotalMemory);
+        WindowsUserInitialized2,
+        "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
+        CxPlatTotalMemory,
+        CxPlatTimerCapabilities.wPeriodMin,
+        CxPlatTimerCapabilities.wPeriodMax);
 // arg2 = arg2 = CxPlatTotalMemory = arg2
+// arg3 = arg3 = CxPlatTimerCapabilities.wPeriodMin = arg3
+// arg4 = arg4 = CxPlatTimerCapabilities.wPeriodMax = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized,
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized2,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 
