@@ -435,7 +435,7 @@ typedef struct CXPLAT_POOL_ENTRY {
     CXPLAT_SLIST_ENTRY ListHead;
     uint64_t SpecialFlag;
 } CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAui64
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAull
 
 int32_t
 CxPlatGetAllocFailDenominator(
