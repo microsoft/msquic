@@ -25,7 +25,9 @@ CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 uint64_t* CxPlatNumaMasks;
 uint32_t* CxPlatProcessorGroupOffsets;
+#ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
+#endif // TIMERR_NOERROR
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -284,7 +286,6 @@ CxPlatInitialize(
     QUIC_STATUS Status;
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-    MMRESULT mmResult;
 
     CxPlatform.Heap = HeapCreate(0, 0, 0);
     if (CxPlatform.Heap == NULL) {
@@ -312,6 +313,7 @@ CxPlatInitialize(
         goto Error;
     }
 
+    MMRESULT mmResult;
     if ((mmResult = timeGetDevCaps(&CxPlatTimerCapabilities, sizeof(TIMECAPS))) != TIMERR_NOERROR) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -332,7 +334,8 @@ CxPlatInitialize(
         Status = HRESULT_FROM_WIN32(mmResult);
         goto Error;
     }
-#endif
+#endif // QUIC_HIGH_RES_TIMERS
+#endif // TIMERR_NOERROR
 
     Status = CxPlatCryptInitialize();
     if (QUIC_FAILED(Status)) {
@@ -341,12 +344,19 @@ CxPlatInitialize(
 
     CxPlatTotalMemory = memInfo.ullTotalPageFile;
 
+#ifdef TIMERR_NOERROR
     QuicTraceLogInfo(
         WindowsUserInitialized2,
         "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
         CxPlatTotalMemory,
         CxPlatTimerCapabilities.wPeriodMin,
         CxPlatTimerCapabilities.wPeriodMax);
+#else // TIMERR_NOERROR
+    QuicTraceLogInfo(
+        WindowsUserInitialized,
+        "[ dll] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+#endif // TIMERR_NOERROR
 
 Error:
 
@@ -368,9 +378,11 @@ CxPlatUninitialize(
 {
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
+#ifdef TIMERR_NOERROR
 #ifdef QUIC_HIGH_RES_TIMERS
     timeEndPeriod(CxPlatTimerCapabilities.wPeriodMin);
 #endif
+#endif // TIMERR_NOERROR
     CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
     CxPlatNumaMasks = NULL;
     CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
