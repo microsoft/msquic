@@ -313,6 +313,7 @@ CxPlatInitialize(
         goto Error;
     }
 
+#ifdef TIMERR_NOERROR
     MMRESULT mmResult;
     if ((mmResult = timeGetDevCaps(&CxPlatTimerCapabilities, sizeof(TIMECAPS))) != TIMERR_NOERROR) {
         QuicTraceEvent(
