@@ -124,6 +124,24 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized2 , arg2, arg3, arg4);
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WindowsUserInitialized
+// [ dll] Initialized (AvailMem = %llu bytes)
+// QuicTraceLogInfo(
+        WindowsUserInitialized,
+        "[ dll] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+// arg2 = arg2 = CxPlatTotalMemory = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WindowsUserInitialized
+#define _clog_3_ARGS_TRACE_WindowsUserInitialized(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WindowsUserUninitialized
 // [ dll] Uninitialized
 // QuicTraceLogInfo(

@@ -117,6 +117,25 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized2,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WindowsUserInitialized
+// [ dll] Initialized (AvailMem = %llu bytes)
+// QuicTraceLogInfo(
+        WindowsUserInitialized,
+        "[ dll] Initialized (AvailMem = %llu bytes)",
+        CxPlatTotalMemory);
+// arg2 = arg2 = CxPlatTotalMemory = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WindowsUserUninitialized
 // [ dll] Uninitialized
 // QuicTraceLogInfo(
