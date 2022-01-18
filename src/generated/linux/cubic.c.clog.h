@@ -69,9 +69,9 @@ tracepoint(CLOG_CUBIC_C, ConnCongestion , arg2);\
 // Decoder Ring for ConnPersistentCongestion
 // [conn][%p] Persistent congestion event
 // QuicTraceEvent(
-        ConnPersistentCongestion,
-        "[conn][%p] Persistent congestion event",
-        Connection);
+            ConnPersistentCongestion,
+            "[conn][%p] Persistent congestion event",
+            Connection);
 // arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ConnPersistentCongestion
