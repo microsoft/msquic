@@ -1423,25 +1423,31 @@ QuicBindingDeliverDatagrams(
     // packet, then the packet is dropped.
     //
 
-    QUIC_CONNECTION* Connection = NULL;
+    QUIC_CONNECTION* Connection;
 
-    if (Binding->ServerOwned) {
+    if (Binding->ClientOwned || Packet->IsShortHeader) {
+        Connection =
+            QuicLookupFindConnectionByLocalCid(
+                &Binding->Lookup,
+                Packet->DestCid,
+                Packet->DestCidLen);
+    } else {
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
                 &DatagramChain->Route->RemoteAddress,
                 Packet->SourceCidLen,
                 Packet->SourceCid);
-    } 
-    if (Connection == NULL && (Binding->ClientOwned || Packet->IsShortHeader)) {
-        Connection =
-            QuicLookupFindConnectionByLocalCid(
-                &Binding->Lookup,
-                Packet->DestCid,
-                Packet->DestCidLen);
+        if (Connection == NULL && Binding->ClientOwned) {
+            Connection =
+                QuicLookupFindConnectionByLocalCid(
+                    &Binding->Lookup,
+                    Packet->DestCid,
+                    Packet->DestCidLen);
+        }
     }
 
-    if (Connection == NULL && Binding->ServerOwned) {
+    if (Connection == NULL) {
 
         //
         // Because the packet chain is ordered by control packets first, we

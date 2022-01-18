@@ -1464,7 +1464,7 @@ QuicLibraryLookupBinding(
                 continue;
             }
 
-        } else  if (RemoteAddress != NULL) {
+        } else if (RemoteAddress != NULL) {
             continue;
         }
 
@@ -1541,6 +1541,9 @@ SharedEphemeralRetry:
             // Match found and can be shared.
             //
             CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
+            if (!Binding->ClientOwned && !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED)) {
+                Binding->ClientOwned = TRUE;
+            }
             Binding->RefCount++;
             *NewBinding = Binding;
             Status = QUIC_STATUS_SUCCESS;

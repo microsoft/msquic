@@ -204,6 +204,11 @@ QuicTestInterfaceBinding(
     _In_ int Family
     );
 
+void
+QuicTestClientServerSharedBinding(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -967,4 +972,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START \
     QUIC_CTL_CODE(83, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 83
+#define IOCTL_QUIC_RUN_CLIENT_SERVER_SHARED_BINDING \
+    QUIC_CTL_CODE(84, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 84
