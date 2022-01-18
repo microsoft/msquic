@@ -263,10 +263,10 @@ CubicCongestionControlOnCongestionEvent(
 
         Cubic->IsInPersistentCongestion = TRUE;
         Cubic->WindowMax =
-            Cubic->WindowLastMax =
-            Cubic->SlowStartThreshold =
-            Cubic->AimdWindow =
-                Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
+        Cubic->WindowLastMax =
+        Cubic->SlowStartThreshold =
+        Cubic->AimdWindow =
+            Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
         Cubic->CongestionWindow =
             DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
         Cubic->KCubic = 0;
