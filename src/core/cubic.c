@@ -403,12 +403,13 @@ CubicCongestionControlOnDataAcknowledged(
         //
 
         //
-        // TODO: CongestionWindow should only be allowed to grow up to SlowStartThreshold
-        // here, and then any spare bytes should be handled in the Congestion Avoidance path.
+        // TODO: CongestionWindow should only be allowed to grow up to
+        // SlowStartThreshold here, and then any spare bytes should be handled
+        // in the Congestion Avoidance path.
         //
         Cubic->CongestionWindow += AckEvent->NumRetransmittableBytes;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
-            Cubic->TimeOfCongAvoidStart = CxPlatTimeUs64();
+            Cubic->TimeOfCongAvoidStart = TimeNowUs;
         }
 
     } else {
@@ -427,7 +428,7 @@ CubicCongestionControlOnDataAcknowledged(
         // growth during the gap.
         //
         if (Cubic->TimeOfLastAckValid) {
-            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cubic->TimeOfLastAck, TimeNowUs);
+            const uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cubic->TimeOfLastAck, TimeNowUs);
             if (TimeSinceLastAck > MS_TO_US((uint64_t)Cubic->SendIdleTimeoutMs) &&
                 TimeSinceLastAck > (Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
                 Cubic->TimeOfCongAvoidStart += TimeSinceLastAck;
