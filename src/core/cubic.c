@@ -224,7 +224,8 @@ CubicCongestionControlUpdateBlockedState(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlOnCongestionEvent(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN IsPersistentCongestion
     )
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
@@ -251,66 +252,60 @@ CubicCongestionControlOnCongestionEvent(
     Cubic->PrevCongestionWindow = Cubic->CongestionWindow;
     Cubic->PrevAimdWindow = Cubic->AimdWindow;
 
-    Cubic->WindowMax = Cubic->CongestionWindow;
-    if (Cubic->WindowLastMax > Cubic->WindowMax) {
-        //
-        // Fast convergence.
-        //
-        Cubic->WindowLastMax = Cubic->WindowMax;
-        Cubic->WindowMax = Cubic->WindowMax * (10 + TEN_TIMES_BETA_CUBIC) / 20;
+    if (IsPersistentCongestion && !Cubic->IsInPersistentCongestion) {
+
+        CXPLAT_DBG_ASSERT(!Cubic->IsInPersistentCongestion);
+        QuicTraceEvent(
+            ConnPersistentCongestion,
+            "[conn][%p] Persistent congestion event",
+            Connection);
+        Connection->Stats.Send.PersistentCongestionCount++;
+
+        Cubic->IsInPersistentCongestion = TRUE;
+        Cubic->WindowMax =
+            Cubic->WindowLastMax =
+            Cubic->SlowStartThreshold =
+            Cubic->AimdWindow =
+                Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
+        Cubic->CongestionWindow =
+            DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
+        Cubic->KCubic = 0;
+
     } else {
-        Cubic->WindowLastMax = Cubic->WindowMax;
-    }
 
-    //
-    // K = (WindowMax * (1 - BETA) / C) ^ (1/3)
-    // BETA := multiplicative window decrease factor.
-    //
-    // Here we reduce rounding error by left-shifting the CubeRoot argument
-    // by 9 before the division and then right-shifting the result by 3
-    // (since 2^9 = 2^3^3).
-    //
-    Cubic->KCubic =
-        CubeRoot(
-            (Cubic->WindowMax / DatagramPayloadLength * (10 - TEN_TIMES_BETA_CUBIC) << 9) /
-            TEN_TIMES_C_CUBIC);
-    Cubic->KCubic = S_TO_MS(Cubic->KCubic);
-    Cubic->KCubic >>= 3;
+        Cubic->WindowMax = Cubic->CongestionWindow;
+        if (Cubic->WindowLastMax > Cubic->WindowMax) {
+            //
+            // Fast convergence.
+            //
+            Cubic->WindowLastMax = Cubic->WindowMax;
+            Cubic->WindowMax = Cubic->WindowMax * (10 + TEN_TIMES_BETA_CUBIC) / 20;
+        } else {
+            Cubic->WindowLastMax = Cubic->WindowMax;
+        }
 
-    Cubic->SlowStartThreshold =
-    Cubic->CongestionWindow =
-    Cubic->AimdWindow =
-        CXPLAT_MAX(
-            (uint32_t)DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
-            Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
-}
+        //
+        // K = (WindowMax * (1 - BETA) / C) ^ (1/3)
+        // BETA := multiplicative window decrease factor.
+        //
+        // Here we reduce rounding error by left-shifting the CubeRoot argument
+        // by 9 before the division and then right-shifting the result by 3
+        // (since 2^9 = 2^3^3).
+        //
+        Cubic->KCubic =
+            CubeRoot(
+                (Cubic->WindowMax / DatagramPayloadLength * (10 - TEN_TIMES_BETA_CUBIC) << 9) /
+                TEN_TIMES_C_CUBIC);
+        Cubic->KCubic = S_TO_MS(Cubic->KCubic);
+        Cubic->KCubic >>= 3;
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CubicCongestionControlOnPersistentCongestionEvent(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
-
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
-    QuicTraceEvent(
-        ConnPersistentCongestion,
-        "[conn][%p] Persistent congestion event",
-        Connection);
-    Connection->Stats.Send.PersistentCongestionCount++;
-
-    Cubic->IsInPersistentCongestion = TRUE;
-    Cubic->WindowMax =
-        Cubic->WindowLastMax =
         Cubic->SlowStartThreshold =
+        Cubic->CongestionWindow =
         Cubic->AimdWindow =
-            Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10;
-    Cubic->CongestionWindow =
-        DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
-    Cubic->KCubic = 0;
+            CXPLAT_MAX(
+                (uint32_t)DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
+                Cubic->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -558,11 +553,9 @@ CubicCongestionControlOnDataLost(
         LossEvent->LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
 
         Cubic->RecoverySentPacketNumber = LossEvent->LargestPacketNumberSent;
-        CubicCongestionControlOnCongestionEvent(Cc);
-
-        if (LossEvent->PersistentCongestion && !Cubic->IsInPersistentCongestion) {
-            CubicCongestionControlOnPersistentCongestionEvent(Cc);
-        }
+        CubicCongestionControlOnCongestionEvent(
+            Cc,
+            LossEvent->PersistentCongestion);
     }
 
     CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
