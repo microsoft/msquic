@@ -9,8 +9,8 @@
             Stream,
             "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
             Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Event.IDEAL_SEND_BUFFER_SIZE.ByteCount
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer,
             "Allocation of '%s' failed. (%llu bytes)",
             "sendbuffer",
             Size);
-// arg2 = arg2 = "sendbuffer"
-// arg3 = arg3 = Size
+// arg2 = arg2 = "sendbuffer" = arg2
+// arg3 = arg3 = Size = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, AllocFailure,
     TP_ARGS(

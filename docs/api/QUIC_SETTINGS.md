@@ -109,7 +109,7 @@ How long a handshake can idle before it is discarded.
 
 `IdleTimeoutMs`
 
-How long a connection can go idle before it is gracefully shut down.
+How long a connection can go idle before it is gracefully shut down. 0 to disable timeout.
 
 **Default value:** 30,000
 

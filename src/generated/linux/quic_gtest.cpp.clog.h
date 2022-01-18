@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_QUIC_GTEST_CPP
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_TestCaseStart
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TestCaseStart
 // [test] START %s
@@ -34,17 +32,14 @@ extern "C" {
             TestCaseStart,
             "[test] START %s",
             TestName);
-// arg2 = arg2 = TestName
+// arg2 = arg2 = TestName = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TestCaseStart
 #define _clog_3_ARGS_TRACE_TestCaseStart(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseStart , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_TestCaseEnd
 
 
 
@@ -55,17 +50,14 @@ tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseStart , arg2);\
             TestCaseEnd,
             "[test] END %s",
             TestName);
-// arg2 = arg2 = TestName
+// arg2 = arg2 = TestName = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TestCaseEnd
 #define _clog_3_ARGS_TRACE_TestCaseEnd(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseEnd , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestCaseTStart
 
 
 
@@ -77,18 +69,15 @@ tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseEnd , arg2);\
             "[test] START %s, %s",
             TestName,
             stream.str().c_str());
-// arg2 = arg2 = TestName
-// arg3 = arg3 = stream.str().c_str()
+// arg2 = arg2 = TestName = arg2
+// arg3 = arg3 = stream.str().c_str() = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TestCaseTStart
 #define _clog_4_ARGS_TRACE_TestCaseTStart(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseTStart , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_TestCaseTEnd
 
 
 
@@ -99,17 +88,14 @@ tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseTStart , arg2, arg3);\
             TestCaseTEnd,
             "[test] END %s",
             TestName);
-// arg2 = arg2 = TestName
+// arg2 = arg2 = TestName = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TestCaseTEnd
 #define _clog_3_ARGS_TRACE_TestCaseTEnd(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseTEnd , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TestLogFailure
 
 
 
@@ -122,10 +108,11 @@ tracepoint(CLOG_QUIC_GTEST_CPP, TestCaseTEnd , arg2);\
         File,
         Line,
         Buffer);
-// arg2 = arg2 = File
-// arg3 = arg3 = Line
-// arg4 = arg4 = Buffer
+// arg2 = arg2 = File = arg2
+// arg3 = arg3 = Line = arg3
+// arg4 = arg4 = Buffer = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_TestLogFailure
 #define _clog_5_ARGS_TRACE_TestLogFailure(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_QUIC_GTEST_CPP, TestLogFailure , arg2, arg3, arg4);\
 

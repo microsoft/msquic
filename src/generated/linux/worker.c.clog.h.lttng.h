@@ -8,7 +8,7 @@
             IndicateIdealProcChanged,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, IndicateIdealProcChanged,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, IndicateIdealProcChanged,
                 AbandonOnLibShutdown,
                 Connection,
                 "Abandoning on shutdown");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
     TP_ARGS(
@@ -48,9 +48,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
         Worker,
         IdealProcessor,
         Owner);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = IdealProcessor
-// arg4 = arg4 = Owner
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = IdealProcessor = arg3
+// arg4 = arg4 = Owner = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCreated,
     TP_ARGS(
@@ -75,9 +75,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCreated,
             Worker,
             Status,
             "CxPlatThreadCreate");
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Status
-// arg4 = arg4 = "CxPlatThreadCreate"
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "CxPlatThreadCreate" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerErrorStatus,
     TP_ARGS(
@@ -100,7 +100,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerErrorStatus,
         WorkerCleanup,
         "[wrkr][%p] Cleaning up",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCleanup,
     TP_ARGS(
@@ -119,7 +119,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCleanup,
         WorkerDestroyed,
         "[wrkr][%p] Destroyed",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerDestroyed,
     TP_ARGS(
@@ -139,8 +139,8 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerDestroyed,
         "[conn][%p] Assigned worker: %p",
         Connection,
         Worker);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Worker
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Worker = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, ConnAssignWorker,
     TP_ARGS(
@@ -162,8 +162,8 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, ConnAssignWorker,
             "[conn][%p] Scheduling: %u",
             Connection,
             QUIC_SCHEDULE_QUEUED);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_SCHEDULE_QUEUED
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = QUIC_SCHEDULE_QUEUED = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, ConnScheduleState,
     TP_ARGS(
@@ -185,8 +185,8 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, ConnScheduleState,
         "[wrkr][%p] QueueDelay = %u",
         Worker,
         Worker->AverageQueueDelay);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->AverageQueueDelay
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Worker->AverageQueueDelay = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerQueueDelayUpdated,
     TP_ARGS(
@@ -209,9 +209,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerQueueDelayUpdated,
             Worker,
             Worker->IsActive,
             1);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->IsActive
-// arg4 = arg4 = 1
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Worker->IsActive = arg3
+// arg4 = arg4 = 1 = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerActivityStateUpdated,
     TP_ARGS(
@@ -234,7 +234,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerActivityStateUpdated,
         WorkerStart,
         "[wrkr][%p] Start",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStart,
     TP_ARGS(
@@ -253,7 +253,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStart,
         WorkerStop,
         "[wrkr][%p] Stop",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStop,
     TP_ARGS(
@@ -273,8 +273,8 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStop,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
             sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
-// arg2 = arg2 = "QUIC_WORKER_POOL"
-// arg3 = arg3 = sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)
+// arg2 = arg2 = "QUIC_WORKER_POOL" = arg2
+// arg3 = arg3 = sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, AllocFailure,
     TP_ARGS(

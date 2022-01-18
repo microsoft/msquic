@@ -75,9 +75,6 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER TlsSecretsSupport
-    Enables export of traffic secrets.
-
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
 
@@ -171,9 +168,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$CI = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$TlsSecretsSupport = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $false,
@@ -334,6 +328,10 @@ function CMake-Generate {
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
+
+    if ($IsLinux) {
+        $Arguments += " -DQUIC_LINUX_LOG_ENCODER=lttng"
+    }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -353,7 +351,11 @@ function CMake-Generate {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
     if (!$IsWindows) {
-        $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
+        $ConfigToBuild = $Config;
+        if ($Config -eq "Release") {
+            $ConfigToBuild = "RelWithDebInfo"
+        }
+        $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
         $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
@@ -385,9 +387,6 @@ function CMake-Generate {
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }
-    if ($TlsSecretsSupport) {
-        $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
-    }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
@@ -412,14 +411,6 @@ function CMake-Generate {
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
-
-    if ($PGO -and $Config -eq "Release") {
-        # Manually edit project file, since CMake doesn't seem to have a way to do it.
-        $FindText = "  <PropertyGroup Label=`"UserMacros`" />"
-        $ReplaceText = "  <PropertyGroup Label=`"UserMacros`" />`r`n  <PropertyGroup><LibraryPath>`$(LibraryPath);`$(VC_LibraryPath_VC_$($Arch)_Desktop)</LibraryPath></PropertyGroup>"
-        $ProjectFile = Join-Path $BuildDir "src\bin\msquic.vcxproj"
-        (Get-Content $ProjectFile) -replace $FindText, $ReplaceText | Out-File $ProjectFile
-    }
 }
 
 

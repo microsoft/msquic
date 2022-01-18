@@ -8,7 +8,7 @@
                         PacketRxStatelessReset,
                         "[S][RX][-] SR %s",
                         QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
     TP_ARGS(
@@ -28,8 +28,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
             "[%c][RX][%llu] not acked (connection is closed)",
             PtkConnPre(Connection),
             Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxNotAcked,
     TP_ARGS(
@@ -52,9 +52,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxNotAcked,
                 "Client Chosen Version doesn't match long header. 0x%x != 0x%x",
                 ClientVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ClientVI.ChosenVersion
-// arg4 = arg4 = Connection->Stats.QuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ClientVI.ChosenVersion = arg3
+// arg4 = arg4 = Connection->Stats.QuicVersion = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch,
     TP_ARGS(
@@ -79,9 +79,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch,
                 "Server Chosen Version doesn't match long header. 0x%x != 0x%x",
                 ServerVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ServerVI.ChosenVersion
-// arg4 = arg4 = Connection->Stats.QuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ServerVI.ChosenVersion = arg3
+// arg4 = arg4 = Connection->Stats.QuicVersion = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInfoVersionMismatch,
     TP_ARGS(
@@ -105,8 +105,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInfoVersionMismatch,
                 Connection,
                 "Server Chosen Version is not in Server Other Versions list: 0x%x",
                 ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ServerVI.ChosenVersion = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationChosenVersionNotInOtherVerList,
     TP_ARGS(
@@ -129,9 +129,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationChosenVersionNotInOt
                 "Client Chosen Version doesn't match Server Chosen Version: 0x%x vs. 0x%x",
                 ClientChosenVersion,
                 ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ClientChosenVersion
-// arg4 = arg4 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ClientChosenVersion = arg3
+// arg4 = arg4 = ServerVI.ChosenVersion = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientChosenVersionMismatchServerChosenVersion,
     TP_ARGS(
@@ -155,8 +155,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientChosenVersionMismatchServerChosenVersi
                     Connection,
                     "Previous Client Version is Server Chosen Version: 0x%x",
                     Connection->PreviousQuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->PreviousQuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->PreviousQuicVersion = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVersion,
     TP_ARGS(
@@ -178,8 +178,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsCho
                         Connection,
                         "Previous Client Version in Server Other Versions list: 0x%x",
                         Connection->PreviousQuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->PreviousQuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->PreviousQuicVersion = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionInOtherVerList,
     TP_ARGS(
@@ -202,9 +202,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionInOth
                     "Compatible Version negotiation not compatible with client: original 0x%x, upgrade: 0x%x",
                     Connection->OriginalQuicVersion,
                     ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->OriginalQuicVersion
-// arg4 = arg4 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->OriginalQuicVersion = arg3
+// arg4 = arg4 = ServerVI.ChosenVersion = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationNotCompatible,
     TP_ARGS(
@@ -229,9 +229,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationNotCompatible,
                     "OriginalVersion not found in server's TP: original 0x%x, upgrade: 0x%x",
                     Connection->OriginalQuicVersion,
                     ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->OriginalQuicVersion
-// arg4 = arg4 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->OriginalQuicVersion = arg3
+// arg4 = arg4 = ServerVI.ChosenVersion = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionNotFound,
     TP_ARGS(
@@ -254,7 +254,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionN
             RecvVerNegNoMatch,
             Connection,
             "Version Negotation contained no supported versions");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegNoMatch,
     TP_ARGS(
@@ -273,7 +273,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegNoMatch,
             ApiEventNoHandler,
             Connection,
             "Event silently discarded (no handler).");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApiEventNoHandler,
     TP_ARGS(
@@ -292,7 +292,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApiEventNoHandler,
             NoReplacementCidForRetire,
             Connection,
             "Can't retire current CID because we don't have a replacement");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NoReplacementCidForRetire,
     TP_ARGS(
@@ -311,7 +311,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NoReplacementCidForRetire,
                 NonActivePathCidRetired,
                 Connection,
                 "Non-active path has no replacement for retired CID.");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NonActivePathCidRetired,
     TP_ARGS(
@@ -330,7 +330,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NonActivePathCidRetired,
             IgnoreUnreachable,
             Connection,
             "Ignoring received unreachable event (inline)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreUnreachable,
     TP_ARGS(
@@ -351,10 +351,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreUnreachable,
                     "Ignoring frame (%hhu) for already closed stream id = %llu",
                     (uint8_t)FrameType, // This cast is safe because of the switch cases above.
                     StreamId);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint8_t)FrameType
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint8_t)FrameType = arg3
 // arg4 = arg4 = // This cast is safe because of the switch cases above.
-                    StreamId
+                    StreamId = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreFrameAfterClose,
     TP_ARGS(
@@ -377,7 +377,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreFrameAfterClose,
             InvalidInitialPackets,
             Connection,
             "Aborting connection with invalid initial packets");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, InvalidInitialPackets,
     TP_ARGS(
@@ -396,7 +396,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, InvalidInitialPackets,
             UnreachableIgnore,
             Connection,
             "Ignoring received unreachable event");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableIgnore,
     TP_ARGS(
@@ -415,7 +415,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableIgnore,
             UnreachableInvalid,
             Connection,
             "Received invalid unreachable event");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
     TP_ARGS(
@@ -434,7 +434,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
                 CloseUserCanceled,
                 Connection,
                 "Connection close using user canceled error");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseUserCanceled,
     TP_ARGS(
@@ -453,7 +453,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseUserCanceled,
             CloseComplete,
             Connection,
             "Connection close complete");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseComplete,
     TP_ARGS(
@@ -473,8 +473,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseComplete,
         Connection,
         "Restart (CompleteReset=%hhu)",
         CompleteReset);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = CompleteReset
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = CompleteReset = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, Restart,
     TP_ARGS(
@@ -495,7 +495,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Restart,
             CryptoStateDiscard,
             Connection,
             "TLS state no longer needed");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CryptoStateDiscard,
     TP_ARGS(
@@ -515,8 +515,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CryptoStateDiscard,
         Connection,
         "Configuration set, %p",
         Configuration);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Configuration
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Configuration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, SetConfiguration,
     TP_ARGS(
@@ -537,7 +537,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, SetConfiguration,
         PeerTPSet,
         Connection,
         "Peer Transport Parameters Set");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerTPSet,
     TP_ARGS(
@@ -557,8 +557,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerTPSet,
                 Connection,
                 "Peer configured preferred address %!ADDR!",
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));
-// arg1 = arg1 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress)
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerPreferredAddress,
     TP_ARGS(
@@ -581,7 +581,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerPreferredAddress,
                 NegotiatedDisable1RttEncryption,
                 Connection,
                 "Negotiated Disable 1-RTT Encryption");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NegotiatedDisable1RttEncryption,
     TP_ARGS(
@@ -600,7 +600,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NegotiatedDisable1RttEncryption,
             CustomCertValidationPending,
             Connection,
             "Custom cert validation is pending");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CustomCertValidationPending,
     TP_ARGS(
@@ -619,7 +619,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CustomCertValidationPending,
                         RecvStatelessReset,
                         Connection,
                         "Received stateless reset");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvStatelessReset,
     TP_ARGS(
@@ -638,7 +638,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvStatelessReset,
                     HandshakeConfirmedFrame,
                     Connection,
                     "Handshake confirmed (frame)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, HandshakeConfirmedFrame,
     TP_ARGS(
@@ -658,8 +658,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, HandshakeConfirmedFrame,
                 Connection,
                 "Updating packet tolerance to %hhu",
                 Connection->PacketTolerance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->PacketTolerance
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->PacketTolerance = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePacketTolerance,
     TP_ARGS(
@@ -681,8 +681,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePacketTolerance,
                 Connection,
                 "First usage of SrcCid: %s",
                 QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, FirstCidUsage,
     TP_ARGS(
@@ -704,8 +704,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, FirstCidUsage,
                 Connection,
                 "Removing invalid path[%hhu]",
                 Connection->Paths[i].ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[i].ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[i].ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathDiscarded,
     TP_ARGS(
@@ -726,7 +726,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathDiscarded,
             Unreachable,
             Connection,
             "Received unreachable event");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, Unreachable,
     TP_ARGS(
@@ -746,8 +746,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Unreachable,
             Connection,
             "Updating peer packet tolerance to %hhu",
             NewPacketTolerance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = NewPacketTolerance
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = NewPacketTolerance = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePeerPacketTolerance,
     TP_ARGS(
@@ -769,8 +769,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePeerPacketTolerance,
             Connection,
             "Updated ShareBinding = %hhu",
             Connection->State.ShareBinding);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->State.ShareBinding
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.ShareBinding = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateShareBinding,
     TP_ARGS(
@@ -792,8 +792,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateShareBinding,
             Connection,
             "Updated Stream Scheduling Scheme = %u",
             (uint32_t)Scheme);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint32_t)Scheme
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint32_t)Scheme = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
     TP_ARGS(
@@ -815,8 +815,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
             Connection,
             "Local interface set to %u",
             Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
     TP_ARGS(
@@ -837,7 +837,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
         ApplySettings,
         Connection,
         "Applying new settings");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
     TP_ARGS(
@@ -858,11 +858,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->SmoothedRtt / 1000
-// arg4 = arg4 = Path->SmoothedRtt % 1000
-// arg5 = arg5 = Path->RttVariance / 1000
-// arg6 = arg6 = Path->RttVariance % 1000
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
+// arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
+// arg5 = arg5 = Path->RttVariance / 1000 = arg5
+// arg6 = arg6 = Path->RttVariance % 1000 = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedMsg,
     TP_ARGS(
@@ -889,7 +889,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedMsg,
                 NewSrcCidNameCollision,
                 Connection,
                 "CID collision, trying again");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NewSrcCidNameCollision,
     TP_ARGS(
@@ -908,36 +908,13 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NewSrcCidNameCollision,
             ZeroLengthCidRetire,
             Connection,
             "Can't retire current CID because it's zero length");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ZeroLengthCidRetire,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TimerExpired
-// [conn][%p] %s timer expired
-// QuicTraceLogConnVerbose(
-            TimerExpired,
-            Connection,
-            "%s timer expired",
-            TimerNames[Temp[j].Type]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TimerNames[Temp[j].Type]
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, TimerExpired,
-    TP_ARGS(
-        const void *, arg1,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_string(arg3, arg3)
     )
 )
 
@@ -951,8 +928,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, TimerExpired,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER [0x%llx]",
             Event.SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_PEER.ErrorCode
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_PEER.ErrorCode = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByPeer,
     TP_ARGS(
@@ -974,8 +951,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByPeer,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT [0x%x]",
             Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByTransport,
     TP_ARGS(
@@ -996,7 +973,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByTransport,
             IndicateConnectionShutdownComplete,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
     TP_ARGS(
@@ -1015,7 +992,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
             IndicateResumed,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumed,
     TP_ARGS(
@@ -1034,7 +1011,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumed,
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumptionTicketReceived,
     TP_ARGS(
@@ -1055,9 +1032,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumptionTicketReceived,
                         "Compatible version upgrade! Old: 0x%x, New: 0x%x",
                         Connection->Stats.QuicVersion,
                         SupportedVersions[ServerVersionIdx]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
-// arg4 = arg4 = SupportedVersions[ServerVersionIdx]
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Stats.QuicVersion = arg3
+// arg4 = arg4 = SupportedVersions[ServerVersionIdx] = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionNegotiationCompatibleVersionUpgrade,
     TP_ARGS(
@@ -1082,9 +1059,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionNegotiationCompatibleVersionUpg
                 "Compatible version upgrade! Old: 0x%x, New: 0x%x",
                 Connection->OriginalQuicVersion,
                 Connection->Stats.QuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->OriginalQuicVersion
-// arg4 = arg4 = Connection->Stats.QuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->OriginalQuicVersion = arg3
+// arg4 = arg4 = Connection->Stats.QuicVersion = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete,
     TP_ARGS(
@@ -1109,9 +1086,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete,
         "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
         DeferredErrorFlags,
         DeferredStatus);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DeferredErrorFlags
-// arg4 = arg4 = DeferredStatus
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DeferredErrorFlags = arg3
+// arg4 = arg4 = DeferredStatus = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerCertificateReceived,
     TP_ARGS(
@@ -1135,8 +1112,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerCertificateReceived,
         Connection,
         "Queuing %u UDP datagrams",
         DatagramChainLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DatagramChainLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DatagramChainLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, QueueDatagrams,
     TP_ARGS(
@@ -1157,7 +1134,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, QueueDatagrams,
         RecvVerNeg,
         Connection,
         "Received Version Negotation:");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNeg,
     TP_ARGS(
@@ -1178,9 +1155,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNeg,
             "  Ver[%d]: 0x%x",
             (int32_t)i,
             CxPlatByteSwapUint32(ServerVersion));
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (int32_t)i
-// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion)
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (int32_t)i = arg3
+// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, VerNegItem,
     TP_ARGS(
@@ -1204,8 +1181,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, VerNegItem,
                     Connection,
                     "Deferring datagram (type=%hu)",
                     (uint16_t)Packet->KeyType);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Packet->KeyType
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Packet->KeyType = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, DeferDatagram,
     TP_ARGS(
@@ -1226,7 +1203,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, DeferDatagram,
                 DecryptOldKey,
                 Connection,
                 "Using old key to decrypt");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, DecryptOldKey,
     TP_ARGS(
@@ -1246,8 +1223,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, DecryptOldKey,
                 Connection,
                 "Possible peer initiated key update [packet %llu]",
                 Packet->PacketNumber);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Packet->PacketNumber
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PossiblePeerKeyUpdate,
     TP_ARGS(
@@ -1269,8 +1246,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PossiblePeerKeyUpdate,
                 Connection,
                 "Updating current read key phase and packet number[%llu]",
                 Packet->PacketNumber);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Packet->PacketNumber
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateReadKeyPhase,
     TP_ARGS(
@@ -1292,8 +1269,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateReadKeyPhase,
                 Connection,
                 "Peer Connection FC blocked (%llu)",
                 Frame.DataLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Frame.DataLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Frame.DataLimit = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerConnFCBlocked,
     TP_ARGS(
@@ -1316,9 +1293,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerConnFCBlocked,
                 "Peer Streams[%hu] FC blocked (%llu)",
                 Frame.BidirectionalStreams,
                 Frame.StreamLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Frame.BidirectionalStreams
-// arg4 = arg4 = Frame.StreamLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Frame.BidirectionalStreams = arg3
+// arg4 = arg4 = Frame.StreamLimit = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerStreamFCBlocked,
     TP_ARGS(
@@ -1341,7 +1318,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerStreamFCBlocked,
                 IndicatePeerNeedStreams,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreams,
     TP_ARGS(
@@ -1360,7 +1337,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreams,
             IndicatePeerAddrChanged,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerAddrChanged,
     TP_ARGS(
@@ -1380,8 +1357,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerAddrChanged,
         Connection,
         "Batch Recv %u UDP datagrams",
         BatchCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = BatchCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = BatchCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvBatch,
     TP_ARGS(
@@ -1403,8 +1380,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvBatch,
             Connection,
             "Recv %u deferred UDP datagrams",
             DatagramChainCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DatagramChainCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DatagramChainCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
     TP_ARGS(
@@ -1426,8 +1403,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
             Connection,
             "Recv %u UDP datagrams",
             DatagramChainCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DatagramChainCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DatagramChainCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecv,
     TP_ARGS(
@@ -1449,8 +1426,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecv,
             Connection,
             "Updated datagram receive enabled to %hhu",
             Connection->Settings.DatagramReceiveEnabled);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Settings.DatagramReceiveEnabled
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Settings.DatagramReceiveEnabled = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated,
     TP_ARGS(
@@ -1472,8 +1449,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated,
             Connection,
             "Updated disable 1-RTT encrytption to %hhu",
             Connection->State.Disable1RttEncrytion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->State.Disable1RttEncrytion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.Disable1RttEncrytion = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated,
     TP_ARGS(
@@ -1494,7 +1471,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated,
             ForceKeyUpdate,
             Connection,
             "Forcing key update");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceKeyUpdate,
     TP_ARGS(
@@ -1513,7 +1490,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceKeyUpdate,
             ForceCidUpdate,
             Connection,
             "Forcing destination CID update");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceCidUpdate,
     TP_ARGS(
@@ -1534,9 +1511,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceCidUpdate,
             "Setting Test Transport Parameter (type %hu, %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->TestTransportParameter.Type
-// arg4 = arg4 = Connection->TestTransportParameter.Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->TestTransportParameter.Type = arg3
+// arg4 = arg4 = Connection->TestTransportParameter.Length = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
     TP_ARGS(
@@ -1559,7 +1536,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
             AbandonInternallyClosed,
             Connection,
             "Abandoning internal, closed connection");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
     TP_ARGS(
@@ -1579,8 +1556,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
             sizeof(QUIC_CONNECTION));
-// arg2 = arg2 = "connection"
-// arg3 = arg3 = sizeof(QUIC_CONNECTION)
+// arg2 = arg2 = "connection" = arg2
+// arg3 = arg3 = sizeof(QUIC_CONNECTION) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, AllocFailure,
     TP_ARGS(
@@ -1603,9 +1580,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, AllocFailure,
         Connection,
         IsServer,
         Connection->Stats.CorrelationId);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = IsServer
-// arg4 = arg4 = Connection->Stats.CorrelationId
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = IsServer = arg3
+// arg4 = arg4 = Connection->Stats.CorrelationId = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnCreated,
     TP_ARGS(
@@ -1629,8 +1606,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnCreated,
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrAdded,
     TP_ARGS(
@@ -1654,8 +1631,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrAdded,
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRemoteAddrAdded,
     TP_ARGS(
@@ -1680,9 +1657,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRemoteAddrAdded,
             Connection,
             Path->DestCid->CID.SequenceNumber,
             CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Path->DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->DestCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidAdded,
     TP_ARGS(
@@ -1709,9 +1686,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidAdded,
             Connection,
             SourceCid->CID.SequenceNumber,
             CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = SourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSourceCidAdded,
     TP_ARGS(
@@ -1736,7 +1713,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSourceCidAdded,
             ConnInitializeComplete,
             "[conn][%p] Initialize complete",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnInitializeComplete,
     TP_ARGS(
@@ -1756,8 +1733,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnInitializeComplete,
             "[conn][%p] Unregistered from %p",
             Connection,
             Connection->Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Registration
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Registration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
     TP_ARGS(
@@ -1778,7 +1755,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestroyed,
     TP_ARGS(
@@ -1797,7 +1774,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestroyed,
         ConnHandleClosed,
         "[conn][%p] Handle closed",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandleClosed,
     TP_ARGS(
@@ -1813,12 +1790,12 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandleClosed,
 // Decoder Ring for ConnRegistered
 // [conn][%p] Registered with %p
 // QuicTraceEvent(
-        ConnRegistered,
-        "[conn][%p] Registered with %p",
-        Connection,
-        Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Registration
+            ConnRegistered,
+            "[conn][%p] Registered with %p",
+            Connection,
+            Registration);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Registration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRegistered,
     TP_ARGS(
@@ -1841,9 +1818,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRegistered,
         Connection,
         QuicConnIsServer(Connection),
         Connection->Stats.CorrelationId);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QuicConnIsServer(Connection)
-// arg4 = arg4 = Connection->Stats.CorrelationId
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = QuicConnIsServer(Connection) = arg3
+// arg4 = arg4 = Connection->Stats.CorrelationId = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRundown,
     TP_ARGS(
@@ -1867,8 +1844,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRundown,
         "[conn][%p] Assigned worker: %p",
         Connection,
         Connection->Worker);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Worker
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Worker = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAssignWorker,
     TP_ARGS(
@@ -1890,8 +1867,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAssignWorker,
             "[conn][%p] QUIC Version: %u",
             Connection,
             Connection->Stats.QuicVersion);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Stats.QuicVersion = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnVersionSet,
     TP_ARGS(
@@ -1912,7 +1889,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnVersionSet,
             ConnHandshakeComplete,
             "[conn][%p] Handshake complete",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeComplete,
     TP_ARGS(
@@ -1932,8 +1909,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeComplete,
                     "[conn][%p] ERROR, %s.",
                     Connection,
                     "Too many CID collisions");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Too many CID collisions"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Too many CID collisions" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnError,
     TP_ARGS(
@@ -1956,9 +1933,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnError,
         Connection,
         DestCid->CID.SequenceNumber,
         CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = DestCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidRemoved,
     TP_ARGS(
@@ -1977,6 +1954,79 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidRemoved,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnSetTimer
+// [conn][%p] Setting %hhu, delay=%llu us
+// QuicTraceEvent(
+        ConnSetTimer,
+        "[conn][%p] Setting %hhu, delay=%llu us",
+        Connection,
+        (uint8_t)Type,
+        Delay);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = (uint8_t)Type = arg3
+// arg4 = arg4 = Delay = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSetTimer,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnCancelTimer
+// [conn][%p] Canceling %hhu
+// QuicTraceEvent(
+                ConnCancelTimer,
+                "[conn][%p] Canceling %hhu",
+                Connection,
+                (uint8_t)Type);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = (uint8_t)Type = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnCancelTimer,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnExpiredTimer
+// [conn][%p] %hhu expired
+// QuicTraceEvent(
+            ConnExpiredTimer,
+            "[conn][%p] %hhu expired",
+            Connection,
+            (uint8_t)Temp[j].Type);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = (uint8_t)Temp[j].Type = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExpiredTimer,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnExecTimerOper
 // [conn][%p] Execute: %u
 // QuicTraceEvent(
@@ -1984,8 +2034,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidRemoved,
                 "[conn][%p] Execute: %u",
                 Connection,
                 QUIC_CONN_TIMER_ACK_DELAY);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_CONN_TIMER_ACK_DELAY
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = QUIC_CONN_TIMER_ACK_DELAY = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExecTimerOper,
     TP_ARGS(
@@ -2007,8 +2057,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExecTimerOper,
         "[conn][%p] Shutdown complete, PeerFailedToAcknowledged=%hhu.",
         Connection,
         Connection->State.ShutdownCompleteTimedOut);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->State.ShutdownCompleteTimedOut
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->State.ShutdownCompleteTimedOut = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnShutdownComplete,
     TP_ARGS(
@@ -2031,9 +2081,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnShutdownComplete,
                 Connection,
                 ErrorCode,
                 ClosedRemotely);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = ErrorCode
-// arg4 = arg4 = ClosedRemotely
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = ErrorCode = arg3
+// arg4 = arg4 = ClosedRemotely = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAppShutdown,
     TP_ARGS(
@@ -2059,10 +2109,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAppShutdown,
                 ErrorCode,
                 ClosedRemotely,
                 !!(Flags & QUIC_CLOSE_QUIC_STATUS));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = ErrorCode
-// arg4 = arg4 = ClosedRemotely
-// arg5 = arg5 = !!(Flags & QUIC_CLOSE_QUIC_STATUS)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = ErrorCode = arg3
+// arg4 = arg4 = ClosedRemotely = arg4
+// arg5 = arg5 = !!(Flags & QUIC_CLOSE_QUIC_STATUS) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnTransportShutdown,
     TP_ARGS(
@@ -2088,9 +2138,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnTransportShutdown,
                     "[conn][%p] ERROR, %u, %s.",
                     Connection, Status,
                     "Set current compartment Id");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Set current compartment Id"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Set current compartment Id" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnErrorStatus,
     TP_ARGS(
@@ -2113,7 +2163,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnErrorStatus,
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnServerResumeTicket,
     TP_ARGS(
@@ -2132,13 +2182,32 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnServerResumeTicket,
         ConnHandshakeStart,
         "[conn][%p] Handshake start",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketDecrypt
+// [pack][%llu] Decrypting
+// QuicTraceEvent(
+        PacketDecrypt,
+        "[pack][%llu] Decrypting",
+        Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketDecrypt,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
     )
 )
 
@@ -2154,10 +2223,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),
         Packet->HeaderLength + Packet->PayloadLength);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1)
-// arg5 = arg5 = Packet->HeaderLength + Packet->PayloadLength
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1) = arg4
+// arg5 = arg5 = Packet->HeaderLength + Packet->PayloadLength = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
     TP_ARGS(
@@ -2183,8 +2252,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
     TP_ARGS(

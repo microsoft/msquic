@@ -40,7 +40,7 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixUnloaded,
         PosixInitialized,
         "[ dso] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
-// arg2 = arg2 = CxPlatTotalMemory
+// arg2 = arg2 = CxPlatTotalMemory = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixInitialized,
     TP_ARGS(
@@ -76,8 +76,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixUninitialized,
             "[ lib] ERROR, %u, %s.",
             Status,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus,
     TP_ARGS(
@@ -98,7 +98,7 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus,
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "pthread_attr_setaffinity_np failed");
-// arg2 = arg2 = "pthread_attr_setaffinity_np failed"
+// arg2 = arg2 = "pthread_attr_setaffinity_np failed" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryError,
     TP_ARGS(
@@ -118,8 +118,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryError,
             "Allocation of '%s' failed. (%llu bytes)",
             "Custom thread context",
             sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT));
-// arg2 = arg2 = "Custom thread context"
-// arg3 = arg3 = sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT)
+// arg2 = arg2 = "Custom thread context" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, AllocFailure,
     TP_ARGS(
@@ -142,9 +142,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, AllocFailure,
         (uint32_t)Line,
         File,
         Expr);
-// arg2 = arg2 = (uint32_t)Line
-// arg3 = arg3 = File
-// arg4 = arg4 = Expr
+// arg2 = arg2 = (uint32_t)Line = arg2
+// arg3 = arg3 = File = arg3
+// arg4 = arg4 = Expr = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryAssert,
     TP_ARGS(

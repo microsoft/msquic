@@ -9,8 +9,8 @@
         Connection,
         "Indicating DATAGRAM_SEND_STATE_CHANGED to %u",
         (uint32_t)State);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint32_t)State
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint32_t)State = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendStateChanged,
     TP_ARGS(
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendStateChanged,
         DatagramSendShutdown,
         Connection,
         "Datagram send shutdown");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendShutdown,
     TP_ARGS(
@@ -52,9 +52,9 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendShutdown,
             "Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
             Event.DATAGRAM_STATE_CHANGED.SendEnabled,
             Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.DATAGRAM_STATE_CHANGED.SendEnabled
-// arg4 = arg4 = Event.DATAGRAM_STATE_CHANGED.MaxSendLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.DATAGRAM_STATE_CHANGED.SendEnabled = arg3
+// arg4 = arg4 = Event.DATAGRAM_STATE_CHANGED.MaxSendLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramStateChanged,
     TP_ARGS(
@@ -80,10 +80,10 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramStateChanged,
             SendRequest,
             SendRequest->TotalLength,
             SendRequest->Flags);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = SendRequest
-// arg4 = arg4 = SendRequest->TotalLength
-// arg5 = arg5 = SendRequest->Flags
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = SendRequest = arg3
+// arg4 = arg4 = SendRequest->TotalLength = arg4
+// arg5 = arg5 = SendRequest->Flags = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendQueued,
     TP_ARGS(
@@ -109,8 +109,8 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendQueued,
         Connection,
         "Indicating DATAGRAM_RECEIVED [len=%hu]",
         (uint16_t)Frame.Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Frame.Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Frame.Length = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramReceived,
     TP_ARGS(
@@ -132,8 +132,8 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramReceived,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Datagram send while disabled");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Datagram send while disabled"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Datagram send while disabled" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, ConnError,
     TP_ARGS(
@@ -155,8 +155,8 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, ConnError,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "DATAGRAM_SEND operation",
                 0);
-// arg2 = arg2 = "DATAGRAM_SEND operation"
-// arg3 = arg3 = 0
+// arg2 = arg2 = "DATAGRAM_SEND operation" = arg2
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, AllocFailure,
     TP_ARGS(

@@ -10,9 +10,9 @@
         PtkConnPre(Connection),
         PacketNumber,
         (uint8_t)ECN);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PacketNumber
-// arg4 = arg4 = (uint8_t)ECN
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PacketNumber = arg3
+// arg4 = arg4 = (uint8_t)ECN = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_ACK_TRACKER_C, PacketRxMarkedForAck,
     TP_ARGS(

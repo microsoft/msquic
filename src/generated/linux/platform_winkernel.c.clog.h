@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_PLATFORM_WINKERNEL_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_2_ARGS_TRACE_WindowsKernelLoaded
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for WindowsKernelLoaded
 // [ sys] Loaded
@@ -34,15 +32,12 @@ extern "C" {
         WindowsKernelLoaded,
         "[ sys] Loaded");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WindowsKernelLoaded
 #define _clog_2_ARGS_TRACE_WindowsKernelLoaded(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelLoaded );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_WindowsKernelUnloaded
 
 
 
@@ -53,15 +48,12 @@ tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelLoaded );\
         WindowsKernelUnloaded,
         "[ sys] Unloaded");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WindowsKernelUnloaded
 #define _clog_2_ARGS_TRACE_WindowsKernelUnloaded(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelUnloaded );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_WindowsKernelInitialized
 
 
 
@@ -73,18 +65,15 @@ tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelUnloaded );\
         "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
         Sbi.PageSize,
         CxPlatTotalMemory);
-// arg2 = arg2 = Sbi.PageSize
-// arg3 = arg3 = CxPlatTotalMemory
+// arg2 = arg2 = Sbi.PageSize = arg2
+// arg3 = arg3 = CxPlatTotalMemory = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_WindowsKernelInitialized
 #define _clog_4_ARGS_TRACE_WindowsKernelInitialized(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelInitialized , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_WindowsKernelUninitialized
 
 
 
@@ -95,15 +84,12 @@ tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelInitialized , arg2, arg3);\
         WindowsKernelUninitialized,
         "[ sys] Uninitialized");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WindowsKernelUninitialized
 #define _clog_2_ARGS_TRACE_WindowsKernelUninitialized(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelUninitialized );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
@@ -115,62 +101,15 @@ tracepoint(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelUninitialized );\
             "[ lib] ERROR, %u, %s.",
             Status,
             "BCryptOpenAlgorithmProvider (RNG)");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "BCryptOpenAlgorithmProvider (RNG)"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "BCryptOpenAlgorithmProvider (RNG)" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_WINKERNEL_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "ZwQuerySystemInformation(SystemBasicInformation)");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "ZwQuerySystemInformation(SystemBasicInformation)"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatCryptInitialize");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatCryptInitialize"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_LibraryAssert
 
 
 
@@ -183,10 +122,11 @@ tracepoint(CLOG_PLATFORM_WINKERNEL_C, LibraryErrorStatus , arg2, arg3);\
         (uint32_t)Line,
         File,
         Expr);
-// arg2 = arg2 = (uint32_t)Line
-// arg3 = arg3 = File
-// arg4 = arg4 = Expr
+// arg2 = arg2 = (uint32_t)Line = arg2
+// arg3 = arg3 = File = arg3
+// arg4 = arg4 = Expr = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LibraryAssert
 #define _clog_5_ARGS_TRACE_LibraryAssert(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_PLATFORM_WINKERNEL_C, LibraryAssert , arg2, arg3, arg4);\
 

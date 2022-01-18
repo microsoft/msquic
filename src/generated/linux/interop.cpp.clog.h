@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_INTEROP_CPP
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_5_ARGS_TRACE_InteropTestStart
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for InteropTestStart
 // [ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.
@@ -32,19 +30,16 @@ extern "C" {
         PublicEndpoints[TestContext->EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature);
-// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName
-// arg3 = arg3 = TestContext->Port
-// arg4 = arg4 = (uint32_t)TestContext->Feature
+// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName = arg2
+// arg3 = arg3 = TestContext->Port = arg3
+// arg4 = arg4 = (uint32_t)TestContext->Feature = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_InteropTestStart
 #define _clog_5_ARGS_TRACE_InteropTestStart(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_INTEROP_CPP, InteropTestStart , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_InteropTestStop
 
 
 
@@ -59,12 +54,13 @@ tracepoint(CLOG_INTEROP_CPP, InteropTestStart , arg2, arg3, arg4);\
         (uint32_t)TestContext->Feature,
         Alpn,
         ThisTestFailed ? "false" : "true");
-// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName
-// arg3 = arg3 = TestContext->Port
-// arg4 = arg4 = (uint32_t)TestContext->Feature
-// arg5 = arg5 = Alpn
-// arg6 = arg6 = ThisTestFailed ? "false" : "true"
+// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName = arg2
+// arg3 = arg3 = TestContext->Port = arg3
+// arg4 = arg4 = (uint32_t)TestContext->Feature = arg4
+// arg5 = arg5 = Alpn = arg5
+// arg6 = arg6 = ThisTestFailed ? "false" : "true" = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_InteropTestStop
 #define _clog_7_ARGS_TRACE_InteropTestStop(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_INTEROP_CPP, InteropTestStop , arg2, arg3, arg4, arg5, arg6);\
 

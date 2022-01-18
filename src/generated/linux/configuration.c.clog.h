@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CONFIGURATION_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -27,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_ConfigurationOpenStorageFailed
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConfigurationOpenStorageFailed
 // [cnfg][%p] Failed to open settings, 0x%x
@@ -39,18 +37,15 @@ extern "C" {
                 "[cnfg][%p] Failed to open settings, 0x%x",
                 Configuration,
                 Status);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Status
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConfigurationOpenStorageFailed
 #define _clog_4_ARGS_TRACE_ConfigurationOpenStorageFailed(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationOpenStorageFailed , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConfigurationOpenAppStorageFailed
 
 
 
@@ -62,18 +57,15 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationOpenStorageFailed , arg2, arg3);\
                 "[cnfg][%p] Failed to open app specific settings, 0x%x",
                 Configuration,
                 Status);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Status
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConfigurationOpenAppStorageFailed
 #define _clog_4_ARGS_TRACE_ConfigurationOpenAppStorageFailed(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationOpenAppStorageFailed , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConfigurationSettingsUpdated
 
 
 
@@ -85,18 +77,15 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationOpenAppStorageFailed , arg2, arg3)
         "[cnfg][%p] Settings %p Updated",
         Configuration,
         &Configuration->Settings);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = &Configuration->Settings
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = &Configuration->Settings = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConfigurationSettingsUpdated
 #define _clog_4_ARGS_TRACE_ConfigurationSettingsUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationSettingsUpdated , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConfigurationSetSettings
 
 
 
@@ -107,17 +96,14 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationSettingsUpdated , arg2, arg3);\
             ConfigurationSetSettings,
             "[cnfg][%p] Setting new settings",
             Configuration);
-// arg2 = arg2 = Configuration
+// arg2 = arg2 = Configuration = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConfigurationSetSettings
 #define _clog_3_ARGS_TRACE_ConfigurationSetSettings(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationSetSettings , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
 
 
 
@@ -129,18 +115,15 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationSetSettings , arg2);\
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONFIGURATION_OPEN,
         Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONFIGURATION_OPEN
-// arg3 = arg3 = Handle
+// arg2 = arg2 = QUIC_TRACE_API_CONFIGURATION_OPEN = arg2
+// arg3 = arg3 = Handle = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
 #define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, ApiEnter , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -152,18 +135,15 @@ tracepoint(CLOG_CONFIGURATION_C, ApiEnter , arg2, arg3);\
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_CONFIGURATION" ,
             sizeof(QUIC_CONFIGURATION));
-// arg2 = arg2 = "QUIC_CONFIGURATION"
-// arg3 = arg3 = sizeof(QUIC_CONFIGURATION)
+// arg2 = arg2 = "QUIC_CONFIGURATION" = arg2
+// arg3 = arg3 = sizeof(QUIC_CONFIGURATION) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConfigurationCreated
 
 
 
@@ -175,18 +155,15 @@ tracepoint(CLOG_CONFIGURATION_C, AllocFailure , arg2, arg3);\
         "[cnfg][%p] Created, Registration=%p",
         Configuration,
         Registration);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Registration
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Registration = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConfigurationCreated
 #define _clog_4_ARGS_TRACE_ConfigurationCreated(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationCreated , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 
 
 
@@ -197,17 +174,14 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationCreated , arg2, arg3);\
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 #define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONFIGURATION_C, ApiExitStatus , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConfigurationCleanup
 
 
 
@@ -218,17 +192,14 @@ tracepoint(CLOG_CONFIGURATION_C, ApiExitStatus , arg2);\
         ConfigurationCleanup,
         "[cnfg][%p] Cleaning up",
         Configuration);
-// arg2 = arg2 = Configuration
+// arg2 = arg2 = Configuration = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConfigurationCleanup
 #define _clog_3_ARGS_TRACE_ConfigurationCleanup(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationCleanup , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConfigurationDestroyed
 
 
 
@@ -239,39 +210,14 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationCleanup , arg2);\
         ConfigurationDestroyed,
         "[cnfg][%p] Destroyed",
         Configuration);
-// arg2 = arg2 = Configuration
+// arg2 = arg2 = Configuration = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConfigurationDestroyed
 #define _clog_3_ARGS_TRACE_ConfigurationDestroyed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationDestroyed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONFIGURATION_CLOSE,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONFIGURATION_CLOSE
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiExit
 
 
 
@@ -282,57 +228,12 @@ tracepoint(CLOG_CONFIGURATION_C, ConfigurationDestroyed , arg2);\
         ApiExit,
         "[ api] Exit");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ApiExit
 #define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_CONFIGURATION_C, ApiExit );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONFIGURATION_LOAD_CREDENTIAL,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONFIGURATION_LOAD_CREDENTIAL
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConfigurationRundown
 
 
 
@@ -344,9 +245,10 @@ tracepoint(CLOG_CONFIGURATION_C, ApiExit );\
         "[cnfg][%p] Rundown, Registration=%p",
         Configuration,
         Configuration->Registration);
-// arg2 = arg2 = Configuration
-// arg3 = arg3 = Configuration->Registration
+// arg2 = arg2 = Configuration = arg2
+// arg3 = arg3 = Configuration->Registration = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConfigurationRundown
 #define _clog_4_ARGS_TRACE_ConfigurationRundown(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONFIGURATION_C, ConfigurationRundown , arg2, arg3);\
 

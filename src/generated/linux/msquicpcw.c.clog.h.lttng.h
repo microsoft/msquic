@@ -9,8 +9,8 @@
             "[ lib] ERROR, %u, %s.",
             Status,
             "PcwRegister");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "PcwRegister"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "PcwRegister" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MSQUICPCW_C, LibraryErrorStatus,
     TP_ARGS(

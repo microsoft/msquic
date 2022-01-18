@@ -10,9 +10,9 @@
         PublicEndpoints[TestContext->EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature);
-// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName
-// arg3 = arg3 = TestContext->Port
-// arg4 = arg4 = (uint32_t)TestContext->Feature
+// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName = arg2
+// arg3 = arg3 = TestContext->Port = arg3
+// arg4 = arg4 = (uint32_t)TestContext->Feature = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_INTEROP_CPP, InteropTestStart,
     TP_ARGS(
@@ -39,11 +39,11 @@ TRACEPOINT_EVENT(CLOG_INTEROP_CPP, InteropTestStart,
         (uint32_t)TestContext->Feature,
         Alpn,
         ThisTestFailed ? "false" : "true");
-// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName
-// arg3 = arg3 = TestContext->Port
-// arg4 = arg4 = (uint32_t)TestContext->Feature
-// arg5 = arg5 = Alpn
-// arg6 = arg6 = ThisTestFailed ? "false" : "true"
+// arg2 = arg2 = PublicEndpoints[TestContext->EndpointIndex].ServerName = arg2
+// arg3 = arg3 = TestContext->Port = arg3
+// arg4 = arg4 = (uint32_t)TestContext->Feature = arg4
+// arg5 = arg5 = Alpn = arg5
+// arg6 = arg6 = ThisTestFailed ? "false" : "true" = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_INTEROP_CPP, InteropTestStop,
     TP_ARGS(

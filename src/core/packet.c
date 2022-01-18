@@ -473,6 +473,45 @@ QuicPacketDecodeRetryTokenV1(
     *TokenLength = (uint16_t)TokenLengthVarInt;
 }
 
+//
+// Returns TRUE if the retry token was successfully decrypted and validated.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicPacketValidateRetryToken(
+    _In_ const void* const Owner,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ uint16_t TokenLength,
+    _In_reads_(TokenLength)
+        const uint8_t* TokenBuffer
+    )
+{
+    if (TokenLength != sizeof(QUIC_RETRY_TOKEN_CONTENTS)) {
+        QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token Length");
+        return FALSE;
+    }
+
+    QUIC_RETRY_TOKEN_CONTENTS Token;
+    if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
+        QuicPacketLogDrop(Owner, Packet, "Retry Token Decryption Failure");
+        return FALSE;
+    }
+
+    if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
+        QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token OrigConnId Length");
+        return FALSE;
+    }
+
+    const CXPLAT_RECV_DATA* Datagram =
+        CxPlatDataPathRecvPacketToRecvData(Packet);
+    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
+        QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
@@ -556,7 +595,7 @@ QuicPacketLogHeader(
         case QUIC_VERSION_VER_NEG: {
             QuicTraceLogVerbose(
                 LogPacketVersionNegotiation,
-                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
+                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 (uint8_t)PktRxPre(Rx),
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
@@ -582,7 +621,7 @@ QuicPacketLogHeader(
                 (const QUIC_LONG_HEADER_V1 * const)Packet;
 
             QUIC_VAR_INT TokenLength;
-            QUIC_VAR_INT Length;
+            QUIC_VAR_INT Length = 0;
 
             if (LongHdr->Type == QUIC_INITIAL) {
                 if (!QuicVarIntDecode(

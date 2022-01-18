@@ -195,6 +195,20 @@ QuicPathDecrementAllowance(
         Path->Allowance <= Amount ? 0 : (Path->Allowance - Amount));
 }
 
+//
+// Calculates the maximum size datagram payload from the path's MTU.
+//
+inline
+uint16_t
+QuicPathGetDatagramPayloadSize(
+    _In_ const QUIC_PATH* Path
+    )
+{
+    return
+        MaxUdpPayloadSizeForFamily(
+            QuicAddrGetFamily(&Path->Route.RemoteAddress), Path->Mtu);
+}
+
 typedef enum QUIC_PATH_VALID_REASON {
     QUIC_PATH_VALID_INITIAL_TOKEN,
     QUIC_PATH_VALID_HANDSHAKE_PACKET,

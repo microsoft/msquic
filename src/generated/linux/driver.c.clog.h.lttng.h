@@ -9,8 +9,8 @@
             "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDriverCreate");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "WdfDriverCreate"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "WdfDriverCreate" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRIVER_C, LibraryErrorStatus,
     TP_ARGS(

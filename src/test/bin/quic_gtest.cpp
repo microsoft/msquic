@@ -214,6 +214,42 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
+    TestLogger Logger("RegistrationShutdownBeforeConnOpen");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN));
+    } else {
+        QuicTestRegistrationShutdownBeforeConnOpen();
+    }
+}
+
+TEST(OwnershipValidation, RegistrationShutdownAfterConnOpen) {
+    TestLogger Logger("RegistrationShutdownAfterConnOpen");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN));
+    } else {
+        QuicTestRegistrationShutdownAfterConnOpen();
+    }
+}
+
+TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenBeforeStart) {
+    TestLogger Logger("RegistrationShutdownAfterConnOpenBeforeStart");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START));
+    } else {
+        QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
+    }
+}
+
+TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
+    TestLogger Logger("RegistrationShutdownAfterConnOpenAndStart");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START));
+    } else {
+        QuicTestRegistrationShutdownAfterConnOpenAndStart();
+    }
+}
+
 TEST_P(WithBool, ValidateStream) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
     if (TestingKernelMode) {

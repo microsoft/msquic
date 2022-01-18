@@ -253,10 +253,6 @@ QuicLossDetectionUpdateTimer(
         //
         // No retransmission timer runs after the connection has been shut down.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -273,10 +269,6 @@ QuicLossDetectionUpdateTimer(
         // doing amplification protection, which means more data might need to
         // be sent to unblock it.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -288,10 +280,6 @@ QuicLossDetectionUpdateTimer(
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -334,12 +322,8 @@ QuicLossDetectionUpdateTimer(
     }
 
     //
-    // The units for the delay values start in microseconds. Before being passed
-    // to QuicConnTimerSet, Delay is converted to milliseconds. To account for
-    // any rounding errors, 1 extra millisecond is added to the timer, so it
-    // doesn't end up firing early.
+    // The units for the delay values start in microseconds.
     //
-
     uint32_t Delay = CxPlatTimeDiff32(TimeNow, TimeFires);
 
     //
@@ -368,9 +352,9 @@ QuicLossDetectionUpdateTimer(
         //
         // The disconnect timeout is now the limiting factor for the timer.
         //
-        Delay = US_TO_MS(MaxDelay) + 1;
+        Delay = MaxDelay + 1;
     } else {
-        Delay = US_TO_MS(Delay) + 1;
+        Delay = Delay + 1;
     }
 
     if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
@@ -972,7 +956,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %lu ms",
+                        "[%c][TX][%llu] Lost: RACK %u ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
@@ -1025,15 +1009,15 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 //
                 QuicConnUpdatePeerPacketTolerance(Connection, QUIC_MIN_ACK_SEND_NUMBER);
             }
-            
+
             QUIC_LOSS_EVENT LossEvent = {
                 .LargestPacketNumberLost = LargestLostPacketNumber,
                 .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
                 .NumRetransmittableBytes = LostRetransmittableBytes,
-                .PersistentCongestion = 
+                .PersistentCongestion =
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
             };
-            
+
             QuicCongestionControlOnDataLost(&Connection->CongestionControl, &LossEvent);
             //
             // Send packets from any previously blocked streams.
@@ -1258,7 +1242,7 @@ QuicLossDetectionProcessAckBlocks(
 
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    uint32_t TimeNow = CxPlatTimeUs32();
+    uint64_t TimeNow = CxPlatTimeUs64();
     uint32_t SmallestRtt = (uint32_t)(-1);
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
@@ -1317,8 +1301,13 @@ QuicLossDetectionProcessAckBlocks(
                 // All previously considered lost packets were found to be
                 // spuriously lost. Inform congestion control.
                 //
-                QuicCongestionControlOnSpuriousCongestionEvent(
-                    &Connection->CongestionControl);
+                if (QuicCongestionControlOnSpuriousCongestionEvent(
+                        &Connection->CongestionControl)) {
+                    //
+                    // We were previously blocked and are now unblocked.
+                    //
+                    QuicSendQueueFlush(&Connection->Send, REASON_CONGESTION_CONTROL);
+                }
             }
         }
 
@@ -1394,7 +1383,7 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, TimeNow);
+        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, (uint32_t)TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
@@ -1437,7 +1426,7 @@ QuicLossDetectionProcessAckBlocks(
         // data acknowledgement so that we have an accurate bytes in flight
         // calculation for congestion events.
         //
-        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, TimeNow);
+        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, (uint32_t)TimeNow);
     }
 
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
@@ -1548,7 +1537,7 @@ QuicLossDetectionScheduleProbe(
     QuicTraceLogConnInfo(
         ScheduleProbe,
         Connection,
-        "probe round %lu",
+        "probe round %hu",
         LossDetection->ProbeCount);
 
     //
