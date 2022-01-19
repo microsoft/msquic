@@ -362,5 +362,8 @@ On Windows, the OS has a number of performance counters (some seen below) that c
 
 ##### Network Card Discards
 
+In some high throughput scenarios, the default number of NIC receive buffers might not be enough to handle spikes in network traffic. When a spike is too large for the NIC to handle, it has to drop the excess packets, resulting in `Packet Received Discarded` counter increases.
+
+When this happens, usually the best way to handle this it to increase the `Receive Buffers` value in the NIC's Advanced settings (seen below).
 
 ![](images/nic-recv-buffers.png)
