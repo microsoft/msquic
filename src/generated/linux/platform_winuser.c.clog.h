@@ -102,6 +102,28 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WindowsUserInitialized2
+// [ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])
+// QuicTraceLogInfo(
+        WindowsUserInitialized2,
+        "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
+        CxPlatTotalMemory,
+        CxPlatTimerCapabilities.wPeriodMin,
+        CxPlatTimerCapabilities.wPeriodMax);
+// arg2 = arg2 = CxPlatTotalMemory = arg2
+// arg3 = arg3 = CxPlatTimerCapabilities.wPeriodMin = arg3
+// arg4 = arg4 = CxPlatTimerCapabilities.wPeriodMax = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WindowsUserInitialized2
+#define _clog_5_ARGS_TRACE_WindowsUserInitialized2(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized2 , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WindowsUserInitialized
 // [ dll] Initialized (AvailMem = %llu bytes)
 // QuicTraceLogInfo(
