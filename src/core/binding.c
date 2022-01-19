@@ -1563,7 +1563,7 @@ QuicBindingReceive(
     //
 
     uint32_t Proc = CxPlatProcCurrentNumber();
-    uint64_t ProcShifted = ((uint64_t)Proc) << 40;
+    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {

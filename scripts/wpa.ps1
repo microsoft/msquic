@@ -22,11 +22,11 @@ This script provides helpers for running Windows Performance Analyzer.
 
 param (
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Debug", "Release")]
-    [string]$Config = "Release",
+    [string]$FilePath = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$FilePath = ""
+    [ValidateSet("Debug", "Release")]
+    [string]$Config = "Release"
 )
 
 Set-StrictMode -Version 'Latest'

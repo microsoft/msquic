@@ -1362,7 +1362,7 @@ QuicSendStartDelayedAckTimer(
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_ACK_DELAY,
-            Connection->Settings.MaxAckDelayMs); // TODO - Use smaller timeout when handshake data is outstanding.
+            MS_TO_US(Connection->Settings.MaxAckDelayMs)); // TODO - Use smaller timeout when handshake data is outstanding.
         Send->DelayedAckTimerActive = TRUE;
     }
 }

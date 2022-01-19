@@ -32,6 +32,8 @@ namespace QuicTrace.DataModel
         private QuicObjectSet<QuicDatapath> DatapathSet { get; } =
             new QuicObjectSet<QuicDatapath>(QuicDatapath.CreateEventId, QuicDatapath.DestroyedEventId, QuicDatapath.New);
 
+        private Dictionary<uint, QuicConnection> LastConnections = new Dictionary<uint, QuicConnection>();
+
         public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
         internal void AddEvent(QuicEvent evt)
@@ -47,18 +49,25 @@ namespace QuicTrace.DataModel
                     break;
                 case QuicObjectType.Worker:
                     DataAvailableFlags |= QuicDataAvailableFlags.Worker;
-                    WorkerSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    WorkerSet.FindOrCreateActive(evt).AddEvent(evt, this);
                     break;
                 case QuicObjectType.Connection:
                     DataAvailableFlags |= QuicDataAvailableFlags.Connection;
-                    ConnectionSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    var Conn = ConnectionSet.FindOrCreateActive(evt);
+                    Conn.AddEvent(evt, this);
+                    LastConnections[evt.ThreadId] = Conn;
                     break;
                 case QuicObjectType.Stream:
                     DataAvailableFlags |= QuicDataAvailableFlags.Stream;
-                    StreamSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    StreamSet.FindOrCreateActive(evt).AddEvent(evt, this);
                     break;
                 case QuicObjectType.Datapath:
-                    DatapathSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    DatapathSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    if (evt.EventId == QuicEventId.DatapathSend &&
+                        LastConnections.TryGetValue(evt.ThreadId, out var LastConn))
+                    {
+                        LastConn.AddEvent(evt, this);
+                    }
                     break;
                 default:
                     break;

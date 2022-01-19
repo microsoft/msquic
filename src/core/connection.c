@@ -1170,7 +1170,7 @@ QuicConnTimerSet(
     _In_ uint64_t Delay
     )
 {
-    const uint64_t NewExpirationTime = CxPlatTimeUs64() + MS_TO_US(Delay);
+    const uint64_t NewExpirationTime = CxPlatTimeUs64() + Delay;
 
     QuicTraceEvent(
         ConnSetTimer,
@@ -1562,7 +1562,7 @@ QuicConnTryClose(
             QuicConnTimerSet(
                 Connection,
                 QUIC_CONN_TIMER_SHUTDOWN,
-                CXPLAT_MAX(15, US_TO_MS(Connection->Paths[0].SmoothedRtt * 2)));
+                CXPLAT_MAX(MS_TO_US(15), Connection->Paths[0].SmoothedRtt * 2));
 
             QuicSendSetSendFlag(
                 &Connection->Send,
@@ -1581,10 +1581,10 @@ QuicConnTryClose(
             // response.
             //
             uint32_t Pto =
-                US_TO_MS(QuicLossDetectionComputeProbeTimeout(
+                QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     &Connection->Paths[0],
-                    QUIC_CLOSE_PTO_COUNT));
+                    QUIC_CLOSE_PTO_COUNT);
             QuicConnTimerSet(
                 Connection,
                 QUIC_CONN_TIMER_SHUTDOWN,
@@ -1625,7 +1625,7 @@ QuicConnTryClose(
             QuicConnTimerSet(
                 Connection,
                 QUIC_CONN_TIMER_SHUTDOWN,
-                CXPLAT_MAX(15, US_TO_MS(Connection->Paths[0].SmoothedRtt * 2)));
+                CXPLAT_MAX(MS_TO_US(15), Connection->Paths[0].SmoothedRtt * 2));
         }
 
         IsFirstCloseForConnection = FALSE;
@@ -1976,7 +1976,7 @@ QuicConnStart(
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_KEEP_ALIVE,
-            Connection->Settings.KeepAliveIntervalMs);
+            MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
     }
 
 Exit:
@@ -5662,7 +5662,10 @@ QuicConnResetIdleTimeout(
             }
         }
 
-        QuicConnTimerSet(Connection, QUIC_CONN_TIMER_IDLE, IdleTimeoutMs);
+        QuicConnTimerSet(
+            Connection,
+            QUIC_CONN_TIMER_IDLE,
+            MS_TO_US(IdleTimeoutMs));
 
     } else {
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_IDLE);
@@ -5672,7 +5675,7 @@ QuicConnResetIdleTimeout(
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_KEEP_ALIVE,
-            Connection->Settings.KeepAliveIntervalMs);
+            MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
     }
 }
 
@@ -5710,7 +5713,7 @@ QuicConnProcessKeepAliveOperation(
     QuicConnTimerSet(
         Connection,
         QUIC_CONN_TIMER_KEEP_ALIVE,
-        Connection->Settings.KeepAliveIntervalMs);
+        MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6878,7 +6881,7 @@ QuicConnDrainOperations(
                 QuicConnTimerSet(
                     Connection,
                     QUIC_CONN_TIMER_KEEP_ALIVE,
-                    Connection->Settings.KeepAliveIntervalMs);
+                    MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
             }
         }
     }
