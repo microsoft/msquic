@@ -9,13 +9,18 @@ on:
   pull_request:
     branches: [ main ]
 
-# Declare default permissions as write.
-permissions: write-all
+# Declare default permissions as read only.
+permissions: read-all
 
 jobs:
   analysis:
     name: Scorecards analysis
     runs-on: ubuntu-latest
+    permissions:
+      # Needed to upload the results to code-scanning dashboard.
+      security-events: write
+      actions: read
+      contents: read
 
     steps:
       - name: "Checkout code"
@@ -35,7 +40,7 @@ jobs:
           # https://github.com/ossf/scorecard-action#publishing-results.
           # For private repositories, `publish_results` will automatically be set to `false`,
           # regardless of the value entered here.
-          publish_results: ${{ github.event_name != 'pull_request' }}
+          publish_results: false # ${{ github.event_name != 'pull_request' }}
 
       # Upload the results as artifacts (optional).
       - name: "Upload artifact"
