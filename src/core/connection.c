@@ -6808,7 +6808,6 @@ QuicConnProcessApiOperation(
         Status =
             QuicLibrarySetParam(
                 ApiCtx->SET_PARAM.Handle,
-                ApiCtx->SET_PARAM.Level,
                 ApiCtx->SET_PARAM.Param,
                 ApiCtx->SET_PARAM.BufferLength,
                 ApiCtx->SET_PARAM.Buffer);
@@ -6818,7 +6817,6 @@ QuicConnProcessApiOperation(
         Status =
             QuicLibraryGetParam(
                 ApiCtx->GET_PARAM.Handle,
-                ApiCtx->GET_PARAM.Level,
                 ApiCtx->GET_PARAM.Param,
                 ApiCtx->GET_PARAM.BufferLength,
                 ApiCtx->GET_PARAM.Buffer);

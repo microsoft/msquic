@@ -1376,17 +1376,6 @@ namespace Microsoft.Quic
         }
     }
 
-    public enum QUIC_PARAM_LEVEL
-    {
-        QUIC_PARAM_LEVEL_GLOBAL,
-        QUIC_PARAM_LEVEL_REGISTRATION,
-        QUIC_PARAM_LEVEL_CONFIGURATION,
-        QUIC_PARAM_LEVEL_LISTENER,
-        QUIC_PARAM_LEVEL_CONNECTION,
-        QUIC_PARAM_LEVEL_TLS,
-        QUIC_PARAM_LEVEL_STREAM,
-    }
-
     public unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -2066,10 +2055,10 @@ namespace Microsoft.Quic
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void*, void> SetCallbackHandler;
 
         [NativeTypeName("QUIC_SET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_PARAM_LEVEL, uint, uint, void*, int> SetParam;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint, void*, int> SetParam;
 
         [NativeTypeName("QUIC_GET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_PARAM_LEVEL, uint, uint*, void*, int> GetParam;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint*, void*, int> GetParam;
 
         [NativeTypeName("QUIC_REGISTRATION_OPEN_FN")]
         public delegate* unmanaged[Cdecl]<QUIC_REGISTRATION_CONFIG*, QUIC_HANDLE**, int> RegistrationOpen;

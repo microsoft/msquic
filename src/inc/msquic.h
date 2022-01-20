@@ -108,7 +108,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK             = 0x00000800, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE              = 0x00001000, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES              = 0x00002000,
-    QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES             = 0x00004000, // OpenSSL only currently
+    QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES              = 0x00004000, // OpenSSL only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -620,102 +620,99 @@ void
 // Get and Set parameters on a handle.
 //
 
-typedef enum QUIC_PARAM_LEVEL {
-    QUIC_PARAM_LEVEL_GLOBAL,
-    QUIC_PARAM_LEVEL_REGISTRATION,
-    QUIC_PARAM_LEVEL_CONFIGURATION,
-    QUIC_PARAM_LEVEL_LISTENER,
-    QUIC_PARAM_LEVEL_CONNECTION,
-    QUIC_PARAM_LEVEL_TLS,
-    QUIC_PARAM_LEVEL_STREAM,
-} QUIC_PARAM_LEVEL;
+#define QUIC_PARAM_PREFIX_GLOBAL                        0x01000000
+#define QUIC_PARAM_PREFIX_REGISTRATION                  0x02000000
+#define QUIC_PARAM_PREFIX_CONFIGURATION                 0x03000000
+#define QUIC_PARAM_PREFIX_LISTENER                      0x04000000
+#define QUIC_PARAM_PREFIX_CONNECTION                    0x05000000
+#define QUIC_PARAM_PREFIX_TLS                           0x06000000
+#define QUIC_PARAM_PREFIX_TLS_SCHANNEL                  0x07000000
+#define QUIC_PARAM_PREFIX_STREAM                        0x08000000
+
+#define QUIC_PARAM_IS_GLOBAL(Param) ((Param & 0x7F000000) == QUIC_PARAM_PREFIX_GLOBAL)
 
 //
-// Top 6 bits of param are Level + 1, bottom 26 bits are parameter Id.
+// Parameters for Global.
 //
+#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT          0x01000000  // uint16_t
+#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            0x01000001  // uint32_t[] - network byte order
+#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            0x01000002  // uint16_t - QUIC_LOAD_BALANCING_MODE
+#define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x01000003  // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
+#define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000004  // QUIC_SETTINGS
+#define QUIC_PARAM_GLOBAL_VERSION                       0x01000005  // uint32_t[4]
 
 //
-// Parameters for QUIC_PARAM_LEVEL_GLOBAL.
+// Parameters for Registration.
 //
-#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT          0x4000000   // uint16_t
-#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            0x4000001   // uint32_t[] - network byte order
-#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            0x4000002   // uint16_t - QUIC_LOAD_BALANCING_MODE
-#define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x4000003   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
-#define QUIC_PARAM_GLOBAL_SETTINGS                      0x4000004   // QUIC_SETTINGS
-#define QUIC_PARAM_GLOBAL_VERSION                       0x4000005   // uint32_t[4]
+#define QUIC_PARAM_REGISTRATION_CID_PREFIX              0x02000000  // uint8_t[]
 
 //
-// Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
+// Parameters for Configuration.
 //
-#define QUIC_PARAM_REGISTRATION_CID_PREFIX              0x8000000   // uint8_t[]
+#define QUIC_PARAM_CONFIGURATION_SETTINGS               0x03000000  // QUIC_SETTINGS
+#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0x03000001  // QUIC_TICKET_KEY_CONFIG[]
 
 //
-// Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
+// Parameters for Listener.
 //
-#define QUIC_PARAM_CONFIGURATION_SETTINGS               0xC000000   // QUIC_SETTINGS
-#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0xC000001   // QUIC_TICKET_KEY_CONFIG[]
+#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x04000000  // QUIC_ADDR
+#define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
 
 //
-// Parameters for QUIC_PARAM_LEVEL_LISTENER.
+// Parameters for Connection.
 //
-#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x10000000  // QUIC_ADDR
-#define QUIC_PARAM_LISTENER_STATS                       0x10000001  // QUIC_LISTENER_STATISTICS
-
-//
-// Parameters for QUIC_PARAM_LEVEL_CONNECTION.
-//
-#define QUIC_PARAM_CONN_QUIC_VERSION                    0x14000000  // uint32_t
-#define QUIC_PARAM_CONN_LOCAL_ADDRESS                   0x14000001  // QUIC_ADDR
-#define QUIC_PARAM_CONN_REMOTE_ADDRESS                  0x14000002  // QUIC_ADDR
-#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 0x14000003  // uint16_t
-#define QUIC_PARAM_CONN_SETTINGS                        0x14000004  // QUIC_SETTINGS
-#define QUIC_PARAM_CONN_STATISTICS                      0x14000005  // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_STATISTICS_PLAT                 0x14000006  // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               0x14000007  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         0x14000008  // uint16_t
-#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        0x14000009  // uint16_t
-#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  0x1400000A  // uint64_t[4]
-#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             0x1400000B  // char[]
-#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        0x1400000C  // QUIC_STREAM_SCHEDULING_SCHEME
-#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        0x1400000D  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           0x1400000E  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_QUIC_VERSION                    0x05000000  // uint32_t
+#define QUIC_PARAM_CONN_LOCAL_ADDRESS                   0x05000001  // QUIC_ADDR
+#define QUIC_PARAM_CONN_REMOTE_ADDRESS                  0x05000002  // QUIC_ADDR
+#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 0x05000003  // uint16_t
+#define QUIC_PARAM_CONN_SETTINGS                        0x05000004  // QUIC_SETTINGS
+#define QUIC_PARAM_CONN_STATISTICS                      0x05000005  // QUIC_STATISTICS
+#define QUIC_PARAM_CONN_STATISTICS_PLAT                 0x05000006  // QUIC_STATISTICS
+#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               0x05000007  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         0x05000008  // uint16_t
+#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        0x05000009  // uint16_t
+#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  0x0500000A  // uint64_t[4]
+#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             0x0500000B  // char[]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        0x0500000C  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        0x0500000D  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           0x0500000E  // uint8_t (BOOLEAN)
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
-#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         0x1400000F  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         0x0500000F  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_CONN_RESUMPTION_TICKET               0x14000010  // uint8_t[]
-#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x14000011  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x14000012  // uint32_t
-#define QUIC_PARAM_CONN_TLS_SECRETS                     0x14000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
+#define QUIC_PARAM_CONN_RESUMPTION_TICKET               0x05000010  // uint8_t[]
+#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x05000011  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x05000012  // uint32_t
+#define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 
 //
-// Parameters for QUIC_PARAM_LEVEL_TLS.
+// Parameters for TLS.
 //
-#ifdef WIN32 // Windows Platform specific parameters
+#define QUIC_PARAM_TLS_HANDSHAKE_INFO                   0x06000000  // QUIC_HANDSHAKE_INFO
+#define QUIC_PARAM_TLS_NEGOTIATED_ALPN                  0x06000001  // uint8_t[] (max 255 bytes)
+
+#ifdef WIN32 // Schannel specific TLS parameters
 typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
     unsigned long Attribute;
     void* Buffer;
 } QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W;
-#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W     0x19000000  // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
+#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W     0x07000000  // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
 #endif
-#define QUIC_PARAM_TLS_HANDSHAKE_INFO                   0x18000000  // QUIC_HANDSHAKE_INFO
-#define QUIC_PARAM_TLS_NEGOTIATED_ALPN                  0x18000001  // uint8_t[] (max 255 bytes)
 
 //
-// Parameters for QUIC_PARAM_LEVEL_STREAM.
+// Parameters for Stream.
 //
-#define QUIC_PARAM_STREAM_ID                            0x1C000000  // QUIC_UINT62
-#define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x1C000001  // uint64_t
-#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x1C000002  // uint64_t - bytes
-#define QUIC_PARAM_STREAM_PRIORITY                      0x1C000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+#define QUIC_PARAM_STREAM_ID                            0x08000000  // QUIC_UINT62
+#define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
+#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
+#define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SET_PARAM_FN)(
-    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
-    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
         HQUIC Handle,
-    _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -726,10 +723,9 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_GET_PARAM_FN)(
-    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
-    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
         HQUIC Handle,
-    _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

@@ -76,7 +76,7 @@ MsQuic API Objects have a number of settings, or parameters, which can be querie
 
 ### Global Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_GLOBAL` and a `NULL` object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_GLOBAL_*` and a `NULL` object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
@@ -89,7 +89,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Registration Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_REGISTRATION` and a Registration object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_REGISTRATION_*` and a Registration object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
@@ -97,7 +97,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Configuration Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONFIGURATION` and a Configuration object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONFIGURATION_*` and a Configuration object handle.
 
 | Setting                                       | Type                      | Get/Set   | Description                                                                                                       |
 |-----------------------------------------------|---------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
@@ -106,7 +106,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Listener Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_LISTENER` and a Listener object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LISTENER_*` and a Listener object handle.
 
 | Setting                                   | Type                      | Get/Set   | Description                                               |
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
@@ -115,7 +115,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Connection Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONNECTION` and a Connection object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONNECTION_*` and a Connection object handle.
 
 | Setting                                           | Type                          | Get/Set   | Description                                                                               |
 |---------------------------------------------------|-------------------------------|-----------|-------------------------------------------------------------------------------------------|
@@ -140,7 +140,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### TLS Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_TLS` and a Connection object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_TLS_*` and a Connection object handle.
 
 | Setting                                   | Type                      | Get/Set   | Description                                                                                                               |
 |-------------------------------------------|---------------------------|-----------|---------------------------------------------------------------------------------------------------------------------------|
@@ -149,7 +149,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Stream Parameters
 
-These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_STREAM` and a Stream object handle.
+These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_STREAM_*` and a Stream object handle.
 
 | Setting                                           | Type              | Get/Set   | Description                                                                           |
 |---------------------------------------------------|-------------------|-----------|---------------------------------------------------------------------------------------|

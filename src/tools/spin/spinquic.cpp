@@ -344,7 +344,6 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
 }
 
 struct SetParamHelper {
-    QUIC_PARAM_LEVEL Level;
     union {
         uint64_t u64;
         uint32_t u32;
@@ -355,8 +354,7 @@ struct SetParamHelper {
     bool IsPtr;
     uint32_t Size = 0;
     int Type;
-    SetParamHelper(QUIC_PARAM_LEVEL _Level) {
-        Level = _Level;
+    SetParamHelper() {
         Param.u64 = 0;
         IsPtr = false;
         Size = 0;
@@ -379,14 +377,14 @@ struct SetParamHelper {
     }
     void Apply(HQUIC Handle) {
         if (Type != -1) {
-            MsQuic.SetParam(Handle, Level, Type, Size, IsPtr ? Param.ptr : &Param);
+            MsQuic.SetParam(Handle, Type, Size, IsPtr ? Param.ptr : &Param);
         }
     }
 };
 
 void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
-    SetParamHelper Helper(QUIC_PARAM_LEVEL_CONNECTION);
+    SetParamHelper Helper;
 
     switch (0x14000000 | (GetRandom(22) + 1)) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
@@ -443,7 +441,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 
 void SpinQuicSetRandomStreamParam(HQUIC Stream)
 {
-    SetParamHelper Helper(QUIC_PARAM_LEVEL_STREAM);
+    SetParamHelper Helper;
 
     switch (0x1C000000 | (GetRandom(4) + 1)) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
@@ -477,7 +475,7 @@ const uint32_t ParamCounts[] = {
 void SpinQuicGetRandomParam(HQUIC Handle)
 {
     for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
-        QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
+        uint32_t Level = (uint32_t)GetRandom(5); // TODO - Fix
         uint32_t Param = (uint32_t)GetRandom((ParamCounts[Level] & 0x3FFFFF) + 1);
 
         uint8_t OutBuffer[200];
@@ -485,7 +483,6 @@ void SpinQuicGetRandomParam(HQUIC Handle)
 
         MsQuic.GetParam(
             (GetRandom(10) == 0) ? nullptr : Handle,
-            Level,
             Param,
             &OutBufferLength,
             (GetRandom(10) == 0) ? nullptr : OutBuffer);
@@ -925,14 +922,14 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
 
         if (0 == GetRandom(4)) {
             uint16_t RetryMemoryPercent = 0;
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
                 break;
             }
         }
 
         if (0 == GetRandom(4)) {
             uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
                 break;
             }
         }
@@ -1105,7 +1102,6 @@ main(int argc, char **argv)
         if (QUIC_FAILED(
             MsQuic.SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
                 sizeof(Settings.AllocFailDenominator),
                 &Settings.AllocFailDenominator))) {
@@ -1118,7 +1114,6 @@ main(int argc, char **argv)
         if (QUIC_FAILED(
             MsQuic.SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                 sizeof(Value),
                 &Value))) {

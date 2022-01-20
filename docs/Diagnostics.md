@@ -203,7 +203,6 @@ uint64_t Counters[QUIC_PERF_COUNTER_MAX];
 uint32_t BufferLength = sizeof(Counters);
 MsQuic->GetParam(
     NULL,
-    QUIC_PARAM_LEVEL_GLOBAL,
     QUIC_PARAM_GLOBAL_PERF_COUNTERS,
     &BufferLength,
     Counters);
