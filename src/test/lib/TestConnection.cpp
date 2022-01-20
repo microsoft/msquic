@@ -140,10 +140,7 @@ TestConnection::NewStream(
 
     if (StartType != NEW_STREAM_START_NONE) {
         QUIC_STATUS Status =
-            Stream->Start(
-                StartType == NEW_STREAM_START_ASYNC ?
-                    QUIC_STREAM_START_FLAG_ASYNC :
-                    QUIC_STREAM_START_FLAG_NONE);
+            Stream->Start(QUIC_STREAM_START_FLAG_NONE);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->StreamStart failed, 0x%x.", Status);
             delete Stream;

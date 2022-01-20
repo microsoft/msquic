@@ -199,11 +199,10 @@ pub const STREAM_OPEN_FLAG_0_RTT: StreamOpenFlags = 2;
 
 pub type StreamStartFlags = u32;
 pub const STREAM_START_FLAG_NONE: StreamStartFlags = 0;
-pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 1;
-pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 2;
-pub const STREAM_START_FLAG_ASYNC: StreamStartFlags = 4;
-pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 8;
-pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 16;
+pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 1;
+pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 2;
+pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 4;
+pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 8;
 
 /// Controls stream shutdown behavior.
 pub type StreamShutdownFlags = u32;

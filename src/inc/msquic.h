@@ -165,11 +165,10 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
 
 typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
-    QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0001,   // Only opens the stream if flow control allows.
-    QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0002,   // Immediately informs peer that stream is open.
-    QUIC_STREAM_START_FLAG_ASYNC                = 0x0004,   // Don't block the API call to wait for completion.
-    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0008,   // Shutdown the stream immediately after start failure.
-    QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0010,   // Indicate PEER_ACCEPTED event if not accepted at start.
+    QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0001,   // Immediately informs peer that stream is open.
+    QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0002,   // Only opens the stream if flow control allows.
+    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0004,   // Shutdown the stream immediately after start failure.
+    QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,   // Indicate PEER_ACCEPTED event if not accepted at start.
 } QUIC_STREAM_START_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_START_FLAGS)
@@ -1192,8 +1191,7 @@ void
 // Starts processing the stream.
 //
 typedef
-_When_(Flags & QUIC_STREAM_START_FLAG_ASYNC, _IRQL_requires_max_(DISPATCH_LEVEL))
-_When_(!(Flags & QUIC_STREAM_START_FLAG_ASYNC), _IRQL_requires_max_(PASSIVE_LEVEL))
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_STREAM_START_FN)(
     _In_ _Pre_defensive_ HQUIC Stream,
