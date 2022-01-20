@@ -122,8 +122,7 @@ jobs:
         name: ${{ format('logs.{0}mbps.{1}ms', matrix.rate, matrix.rtt) }}
         path: artifacts/logs/wanperf/*.etl
   merge-data:
-    permissions:
-      contents: read # for actions/checkout to fetch code
+    permissions: write-all
     name: Merge Results
     runs-on: windows-2022
     needs: wan-perf
