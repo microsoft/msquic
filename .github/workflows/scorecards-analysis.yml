@@ -9,18 +9,13 @@ on:
   pull_request:
     branches: [ main ]
 
-# Declare default permissions as read only.
-permissions: read-all
+# Declare default permissions as write.
+permissions: write-all
 
 jobs:
   analysis:
     name: Scorecards analysis
     runs-on: ubuntu-latest
-    permissions:
-      # Needed to upload the results to code-scanning dashboard.
-      security-events: write
-      actions: read
-      contents: read
 
     steps:
       - name: "Checkout code"
