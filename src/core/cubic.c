@@ -364,7 +364,7 @@ CubicCongestionControlOnDataAcknowledged(
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
-    uint64_t TimeNow = US_TO_MS(AckEvent->TimeNow);
+    const uint64_t TimeNowUs = AckEvent->TimeNow;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
     uint32_t BytesAcked = AckEvent->NumRetransmittableBytes;
@@ -385,7 +385,7 @@ CubicCongestionControlOnDataAcknowledged(
                 Connection);
             Cubic->IsInRecovery = FALSE;
             Cubic->IsInPersistentCongestion = FALSE;
-            Cubic->TimeOfCongAvoidStart = CxPlatTimeMs64();
+            Cubic->TimeOfCongAvoidStart = TimeNowUs;
         }
         goto Exit;
     } else if (BytesAcked == 0) {
@@ -401,7 +401,7 @@ CubicCongestionControlOnDataAcknowledged(
         Cubic->CongestionWindow += BytesAcked;
         BytesAcked = 0;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
-            Cubic->TimeOfCongAvoidStart = CxPlatTimeMs64();
+            Cubic->TimeOfCongAvoidStart = TimeNowUs;
 
             //
             // We only want exponential growth up to SlowStartThreshold. If
@@ -432,21 +432,18 @@ CubicCongestionControlOnDataAcknowledged(
         // growth during the gap.
         //
         if (Cubic->TimeOfLastAckValid) {
-            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cubic->TimeOfLastAck, TimeNow);
-            if (TimeSinceLastAck > Cubic->SendIdleTimeoutMs &&
-                TimeSinceLastAck > US_TO_MS(Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
+            const uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cubic->TimeOfLastAck, TimeNowUs);
+            if (TimeSinceLastAck > MS_TO_US((uint64_t)Cubic->SendIdleTimeoutMs) &&
+                TimeSinceLastAck > (Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
                 Cubic->TimeOfCongAvoidStart += TimeSinceLastAck;
-                if (CxPlatTimeAtOrBefore64(TimeNow, Cubic->TimeOfCongAvoidStart)) {
-                    Cubic->TimeOfCongAvoidStart = TimeNow;
+                if (CxPlatTimeAtOrBefore64(TimeNowUs, Cubic->TimeOfCongAvoidStart)) {
+                    Cubic->TimeOfCongAvoidStart = TimeNowUs;
                 }
             }
         }
 
-        uint64_t TimeInCongAvoid =
-            CxPlatTimeDiff64(Cubic->TimeOfCongAvoidStart, CxPlatTimeMs64());
-        if (TimeInCongAvoid > UINT32_MAX) {
-            TimeInCongAvoid = UINT32_MAX;
-        }
+        const uint64_t TimeInCongAvoidUs =
+            CxPlatTimeDiff64(Cubic->TimeOfCongAvoidStart, TimeNowUs);
 
         //
         // Compute the cubic window:
@@ -465,9 +462,14 @@ CubicCongestionControlOnDataAcknowledged(
         //
 
         int64_t DeltaT =
-            (int64_t)TimeInCongAvoid -
-            (int64_t)Cubic->KCubic +
-            (int64_t)US_TO_MS(AckEvent->SmoothedRtt);
+            US_TO_MS(
+                (int64_t)TimeInCongAvoidUs -
+                (int64_t)MS_TO_US(Cubic->KCubic) +
+                (int64_t)AckEvent->SmoothedRtt
+            );
+        if (DeltaT > 2500000) {
+            DeltaT = 2500000;
+        }
 
         int64_t CubicWindow =
             ((((DeltaT * DeltaT) >> 10) * DeltaT *
@@ -538,7 +540,7 @@ CubicCongestionControlOnDataAcknowledged(
 
 Exit:
 
-    Cubic->TimeOfLastAck = TimeNow;
+    Cubic->TimeOfLastAck = TimeNowUs;
     Cubic->TimeOfLastAckValid = TRUE;
     return CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
