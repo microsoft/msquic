@@ -409,11 +409,14 @@ CubicCongestionControlOnDataAcknowledged(
             // Cap the CWND growth in slow start to prevent it from resulting in
             // large bursts into the network.
             //
-            BytesAcked = MaxCwndGrowth;
+            Cubic->CongestionWindow += MaxCwndGrowth;
+            BytesAcked -= MaxCwndGrowth;
+
+        } else {
+            Cubic->CongestionWindow += BytesAcked;
+            BytesAcked = 0;
         }
 
-        Cubic->CongestionWindow += BytesAcked;
-        BytesAcked = 0;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
             Cubic->TimeOfCongAvoidStart = TimeNowUs;
 
@@ -423,8 +426,11 @@ CubicCongestionControlOnDataAcknowledged(
             // to SlowStartThreshold and treat the spare BytesAcked as if the bytes
             // were acknowledged during Congestion Avoidance below.
             //
-            BytesAcked = Cubic->CongestionWindow - Cubic->SlowStartThreshold;
+            BytesAcked += Cubic->CongestionWindow - Cubic->SlowStartThreshold;
             Cubic->CongestionWindow = Cubic->SlowStartThreshold;
+
+        } else {
+            BytesAcked = 0;
         }
     }
 

@@ -377,8 +377,8 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SEND_PACING_INTERVAL               1000
 
 //
-// The maximum number of MTUs (datagram payload length) we will allow the
-// congestion window to grow from a single acknowledgement.
+// Slow start congestion window increase limit L from RFC 3465, to reduce
+// burstiness.
 //
 #define QUIC_MAX_CONGESTION_WINDOW_INCREASE     8
 
