@@ -133,7 +133,7 @@ class FormattedResult {
     #[bool]$Pacing;
     [int]$RateKbps;
     [int]$PrevKbps;
-    [bool]$Tcp;
+    [int]$Tcp;
 
     FormattedResult (
         [int]$RttMs,
@@ -422,15 +422,15 @@ if ($MergeDataFiles) {
 
     # Show the worst absolute tests.
     Write-Host "`nWorst tests, relative to bottleneck rate (Usage):"
-    $FormatResults | Sort-Object -Property Usage | Select-Object -First 50 | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property Usage | Select-Object -First 50 | Format-Table -AutoSize *
 
     # Show the worst tests, relative to the previous run.
     Write-Host "Worst tests, relative to the previous run (DiffPrev):"
-    $FormatResults | Sort-Object -Property DiffPrev | Select-Object -First 50 | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property DiffPrev | Select-Object -First 50 | Format-Table -AutoSize *
 
     # Dump all data.
     Write-Host "All tests:"
-    $FormatResults | Sort-Object -Property NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize *
 
     return
 }
