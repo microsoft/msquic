@@ -367,9 +367,10 @@ CubicCongestionControlOnDataAcknowledged(
     const uint64_t TimeNowUs = AckEvent->TimeNow;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
+    uint32_t BytesAcked = AckEvent->NumRetransmittableBytes;
 
-    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= AckEvent->NumRetransmittableBytes);
-    Cubic->BytesInFlight -= AckEvent->NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= BytesAcked);
+    Cubic->BytesInFlight -= BytesAcked;
 
     if (Cubic->IsInRecovery) {
         if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
@@ -384,10 +385,10 @@ CubicCongestionControlOnDataAcknowledged(
                 Connection);
             Cubic->IsInRecovery = FALSE;
             Cubic->IsInPersistentCongestion = FALSE;
-            Cubic->TimeOfCongAvoidStart = CxPlatTimeUs64();
+            Cubic->TimeOfCongAvoidStart = TimeNowUs;
         }
         goto Exit;
-    } else if (AckEvent->NumRetransmittableBytes == 0) {
+    } else if (BytesAcked == 0) {
         goto Exit;
     }
 
@@ -397,21 +398,29 @@ CubicCongestionControlOnDataAcknowledged(
         // Slow Start
         //
 
-        //
-        // TODO: CongestionWindow should only be allowed to grow up to
-        // SlowStartThreshold here, and then any spare bytes should be handled
-        // in the Congestion Avoidance path.
-        //
-        Cubic->CongestionWindow += AckEvent->NumRetransmittableBytes;
+        Cubic->CongestionWindow += BytesAcked;
+        BytesAcked = 0;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
             Cubic->TimeOfCongAvoidStart = TimeNowUs;
-        }
 
-    } else {
+            //
+            // We only want exponential growth up to SlowStartThreshold. If
+            // CongestionWindow has increased beyond SlowStartThreshold, set it back
+            // to SlowStartThreshold and treat the spare BytesAcked as if the bytes
+            // were acknowledged during Congestion Avoidance below.
+            //
+            BytesAcked = Cubic->CongestionWindow - Cubic->SlowStartThreshold;
+            Cubic->CongestionWindow = Cubic->SlowStartThreshold;
+        }
+    }
+
+    if (BytesAcked > 0) {
 
         //
         // Congestion Avoidance
         //
+
+        CXPLAT_DBG_ASSERT(Cubic->CongestionWindow >= Cubic->SlowStartThreshold);
 
         const uint16_t DatagramPayloadLength =
             QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
@@ -492,9 +501,9 @@ CubicCongestionControlOnDataAcknowledged(
         //
         CXPLAT_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
         if (Cubic->AimdWindow < Cubic->WindowMax) {
-            Cubic->AimdAccumulator += AckEvent->NumRetransmittableBytes / 2;
+            Cubic->AimdAccumulator += BytesAcked / 2;
         } else {
-            Cubic->AimdAccumulator += AckEvent->NumRetransmittableBytes;
+            Cubic->AimdAccumulator += BytesAcked;
         }
         if (Cubic->AimdAccumulator > Cubic->AimdWindow) {
             Cubic->AimdWindow += DatagramPayloadLength;
