@@ -402,7 +402,7 @@ CubicCongestionControlOnDataAcknowledged(
         //
 
         const uint32_t MaxCwndGrowth =
-            (uint32_t)DatagramPayloadLength * QUIC_MAX_CWND_GROWTH_PACKETS;
+            (uint32_t)DatagramPayloadLength * QUIC_MAX_CONGESTION_WINDOW_INCREASE;
 
         if (BytesAcked > MaxCwndGrowth) {
             //
