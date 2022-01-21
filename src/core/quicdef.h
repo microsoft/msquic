@@ -377,6 +377,12 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SEND_PACING_INTERVAL               1000
 
 //
+// The maximum number of bytes we will allow the congestion window to grow from
+// a single acknowledgement.
+//
+#define QUIC_MAX_CONGESTION_WINDOW_INCREASE     (8 * 1472)
+
+//
 // The maximum number of bytes to send in a given key phase
 // before performing a key phase update. Roughly, 274GB.
 //

@@ -372,6 +372,14 @@ CubicCongestionControlOnDataAcknowledged(
     CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= BytesAcked);
     Cubic->BytesInFlight -= BytesAcked;
 
+    if (BytesAcked > QUIC_MAX_CONGESTION_WINDOW_INCREASE) {
+        //
+        // Cap the increase CWND growth to prevent it from resulting in large
+        // bursts into the network.
+        //
+        BytesAcked = QUIC_MAX_CONGESTION_WINDOW_INCREASE;
+    }
+
     if (Cubic->IsInRecovery) {
         if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
             //
