@@ -369,16 +369,11 @@ CubicCongestionControlOnDataAcknowledged(
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
     uint32_t BytesAcked = AckEvent->NumRetransmittableBytes;
 
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
     CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= BytesAcked);
     Cubic->BytesInFlight -= BytesAcked;
-
-    if (BytesAcked > QUIC_MAX_CONGESTION_WINDOW_INCREASE) {
-        //
-        // Cap the CWND growth to prevent it from resulting in large bursts into
-        // the network.
-        //
-        BytesAcked = QUIC_MAX_CONGESTION_WINDOW_INCREASE;
-    }
 
     if (Cubic->IsInRecovery) {
         if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
@@ -406,6 +401,17 @@ CubicCongestionControlOnDataAcknowledged(
         // Slow Start
         //
 
+        const uint32_t MaxCwndGrowth =
+            (uint32_t)DatagramPayloadLength * QUIC_MAX_CWND_GROWTH_PACKETS;
+
+        if (BytesAcked > MaxCwndGrowth) {
+            //
+            // Cap the CWND growth in slow start to prevent it from resulting in
+            // large bursts into the network.
+            //
+            BytesAcked = MaxCwndGrowth;
+        }
+
         Cubic->CongestionWindow += BytesAcked;
         BytesAcked = 0;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
@@ -429,9 +435,6 @@ CubicCongestionControlOnDataAcknowledged(
         //
 
         CXPLAT_DBG_ASSERT(Cubic->CongestionWindow >= Cubic->SlowStartThreshold);
-
-        const uint16_t DatagramPayloadLength =
-            QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
 
         //
         // We require steady ACK feedback to justify window growth. If there is

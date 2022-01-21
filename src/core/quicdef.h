@@ -377,10 +377,10 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SEND_PACING_INTERVAL               1000
 
 //
-// The maximum number of bytes we will allow the congestion window to grow from
-// a single acknowledgement.
+// The maximum number of MTUs (datagram payload length) we will allow the
+// congestion window to grow from a single acknowledgement.
 //
-#define QUIC_MAX_CONGESTION_WINDOW_INCREASE     (8 * 1472)
+#define QUIC_MAX_CONGESTION_WINDOW_INCREASE     8
 
 //
 // The maximum number of bytes to send in a given key phase
