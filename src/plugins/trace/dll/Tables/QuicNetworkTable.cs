@@ -260,7 +260,7 @@ namespace QuicTrace.Tables
 
         private static ulong ProjectTxDelay(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
-            return Math.Min(data.Item2.Value, 1000);
+            return Math.Min(data.Item2.Value, 15000);
         }
 
         #endregion

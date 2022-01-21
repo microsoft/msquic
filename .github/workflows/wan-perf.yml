@@ -30,20 +30,28 @@ on:
     - Cargo.toml
     - README.md
 
+permissions: read-all
+
 jobs:
   build-perf:
+    permissions:
+      contents: read # for actions/checkout to fetch code
     name: Build Perf
     runs-on: windows-latest
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24 # v1
+      with:
+        egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Extra "-DisableTest -DisableTools"
     - name: Prepare Machine
       shell: pwsh
       run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
       with:
         name: bin
         path: |
@@ -55,6 +63,8 @@ jobs:
           !artifacts/bin/**/*.pgd
           !artifacts/bin/**/*.lib
   wan-perf:
+    permissions:
+      contents: read # for actions/checkout to fetch code
     name: Run Tests
     runs-on: windows-2022
     needs: build-perf
@@ -69,20 +79,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rate: [5, 10, 20, 50, 100, 200]
+        rate: [5, 10, 20, 50, 100, 200, 1000]
         rtt: [5, 50, 200, 500]
         queueRatio: [0.2, 1, 5]
         exclude:
         - rate: 5
           rtt: 5
           queueRatio: 0.2 # Results in sub-packet limit
+        - rate: 1000
+          rtt: 500
+          queueRatio: 5 # Exceeds QueueLimitPackets limit of 100000
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24 # v1
+      with:
+        egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -Configuration Test -DuoNic -NoCodeCoverage
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869 # v2
       with:
         name: bin
         path: artifacts/bin
@@ -95,25 +112,30 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
     - name: Upload Results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
     - name: Upload Logs
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
       with:
         name: ${{ format('logs.{0}mbps.{1}ms', matrix.rate, matrix.rtt) }}
         path: artifacts/logs/wanperf/*.etl
   merge-data:
+    permissions: write-all
     name: Merge Results
     runs-on: windows-2022
     needs: wan-perf
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24 # v1
+      with:
+        egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@f023be2c48cc18debc3bacd34cb396e0295e2869 # v2
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN
