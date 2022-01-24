@@ -66,6 +66,5 @@ Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar 
 Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
 
-
 # Return to where we started
 Set-Location $OrigDir
