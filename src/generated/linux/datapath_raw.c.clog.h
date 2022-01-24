@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
@@ -31,40 +29,15 @@ extern "C" {
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathSize);
-// arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = DatapathSize
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SOCKET",
-            sizeof(CXPLAT_SOCKET));
-// arg2 = arg2 = "CXPLAT_SOCKET"
-// arg3 = arg3 = sizeof(CXPLAT_SOCKET)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_7_ARGS_TRACE_DatapathCreated
 
 
 
@@ -77,19 +50,16 @@ tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
         *NewSocket,
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = *NewSocket
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+// arg2 = arg2 = *NewSocket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_DatapathCreated
 #define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
 tracepoint(CLOG_DATAPATH_RAW_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_9_ARGS_TRACE_DatapathRecv
 
 
 
@@ -104,21 +74,18 @@ tracepoint(CLOG_DATAPATH_RAW_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len
                     Packets[i]->BufferLength,
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = Packets[i]->BufferLength
-// arg4 = arg4 = Packets[i]->BufferLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Packets[i]->BufferLength = arg3
+// arg4 = arg4 = Packets[i]->BufferLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress) = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_DatapathRecv
 #define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
 tracepoint(CLOG_DATAPATH_RAW_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_10_ARGS_TRACE_DatapathSend
 
 
 
@@ -134,13 +101,14 @@ tracepoint(CLOG_DATAPATH_RAW_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5,
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = SendData->Buffer.Length
-// arg4 = arg4 = 1
-// arg5 = arg5 = (uint16_t)SendData->Buffer.Length
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->Buffer.Length = arg3
+// arg4 = arg4 = 1 = arg4
+// arg5 = arg5 = (uint16_t)SendData->Buffer.Length = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
+#ifndef _clog_10_ARGS_TRACE_DatapathSend
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
 tracepoint(CLOG_DATAPATH_RAW_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
 

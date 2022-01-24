@@ -9,8 +9,8 @@
             "[ lib] ERROR, %u, %s.",
             WsaError,
             "WSAStartup");
-// arg2 = arg2 = WsaError
-// arg3 = arg3 = "WSAStartup"
+// arg2 = arg2 = WsaError = arg2
+// arg3 = arg3 = "WSAStartup" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus,
     TP_ARGS(
@@ -33,9 +33,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus,
             Socket,
             Error,
             "socket");
-// arg2 = arg2 = Socket
-// arg3 = arg3 = Error
-// arg4 = arg4 = "socket"
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Error = arg3
+// arg4 = arg4 = "socket" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
     TP_ARGS(
@@ -58,9 +58,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
             DatapathError,
             "[data][%p] ERROR, %s.",
             Socket,
-            "no matching interface");
-// arg2 = arg2 = Socket
-// arg3 = arg3 = "no matching interface"
+            "no matching interface/queue");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = "no matching interface/queue" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathError,
     TP_ARGS(

@@ -9,8 +9,8 @@
             "[ lib] ERROR, %u, %s.",
             Status,
             "CxPlatThreadCreate");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatThreadCreate"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "CxPlatThreadCreate" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_DPDK_C, LibraryErrorStatus,
     TP_ARGS(
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_DPDK_C, LibraryErrorStatus,
             LibraryError,
             "[ lib] ERROR, %s.",
             "No room in DPDK TX ring buffer");
-// arg2 = arg2 = "No room in DPDK TX ring buffer"
+// arg2 = arg2 = "No room in DPDK TX ring buffer" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_DPDK_C, LibraryError,
     TP_ARGS(

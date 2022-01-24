@@ -9,8 +9,8 @@
             "[ lib] ERROR, %u, %s.",
             ret,
             "ConvertInterfaceIndexToLuid");
-// arg2 = arg2 = ret
-// arg3 = arg3 = "ConvertInterfaceIndexToLuid"
+// arg2 = arg2 = ret = arg2
+// arg3 = arg3 = "ConvertInterfaceIndexToLuid" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "XDP Queues",
             Interface->QueueCount * sizeof(*Interface->Queues));
-// arg2 = arg2 = "XDP Queues"
-// arg3 = arg3 = Interface->QueueCount * sizeof(*Interface->Queues)
+// arg2 = arg2 = "XDP Queues" = arg2
+// arg3 = arg3 = Interface->QueueCount * sizeof(*Interface->Queues) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
     TP_ARGS(
@@ -53,8 +53,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
 // QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "no XDP capable interface");
-// arg2 = arg2 = "no XDP capable interface"
+            "No more room for rules");
+// arg2 = arg2 = "No more room for rules" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryError,
     TP_ARGS(

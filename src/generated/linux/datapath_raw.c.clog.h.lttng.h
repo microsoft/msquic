@@ -9,8 +9,8 @@
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathSize);
-// arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = DatapathSize
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
     TP_ARGS(
@@ -33,9 +33,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
         *NewSocket,
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = *NewSocket
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+// arg2 = arg2 = *NewSocket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathCreated,
     TP_ARGS(
@@ -66,11 +66,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathCreated,
                     Packets[i]->BufferLength,
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = Packets[i]->BufferLength
-// arg4 = arg4 = Packets[i]->BufferLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Packets[i]->BufferLength = arg3
+// arg4 = arg4 = Packets[i]->BufferLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
     TP_ARGS(
@@ -106,12 +106,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = SendData->Buffer.Length
-// arg4 = arg4 = 1
-// arg5 = arg5 = (uint16_t)SendData->Buffer.Length
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->Buffer.Length = arg3
+// arg4 = arg4 = 1 = arg4
+// arg5 = arg5 = (uint16_t)SendData->Buffer.Length = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathSend,
     TP_ARGS(
