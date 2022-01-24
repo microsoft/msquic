@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_STREAM_SET_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -35,10 +37,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_NotAccepted
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for NotAccepted
 // [strm][%p] New stream wasn't accepted, 0x%x
@@ -47,18 +45,15 @@ extern "C" {
                     Stream,
                     "New stream wasn't accepted, 0x%x",
                     Status);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Status
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_NotAccepted
 #define _clog_4_ARGS_TRACE_NotAccepted(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_SET_C, NotAccepted , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerAccepted
 
 
 
@@ -69,17 +64,14 @@ tracepoint(CLOG_STREAM_SET_C, NotAccepted , arg1, arg3);\
             IndicatePeerAccepted,
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_ACCEPTED");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerAccepted
 #define _clog_3_ARGS_TRACE_IndicatePeerAccepted(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SET_C, IndicatePeerAccepted , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_MaxStreamCountUpdated
 
 
 
@@ -92,19 +84,16 @@ tracepoint(CLOG_STREAM_SET_C, IndicatePeerAccepted , arg1);\
         "App configured max stream count of %hu (type=%hhu).",
         Count,
         Type);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Count
-// arg4 = arg4 = Type
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Count = arg3
+// arg4 = arg4 = Type = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_MaxStreamCountUpdated
 #define _clog_5_ARGS_TRACE_MaxStreamCountUpdated(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_STREAM_SET_C, MaxStreamCountUpdated , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_IndicateStreamsAvailable
 
 
 
@@ -117,19 +106,16 @@ tracepoint(CLOG_STREAM_SET_C, MaxStreamCountUpdated , arg1, arg3, arg4);\
         "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.STREAMS_AVAILABLE.BidirectionalCount
-// arg4 = arg4 = Event.STREAMS_AVAILABLE.UnidirectionalCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.STREAMS_AVAILABLE.BidirectionalCount = arg3
+// arg4 = arg4 = Event.STREAMS_AVAILABLE.UnidirectionalCount = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IndicateStreamsAvailable
 #define _clog_5_ARGS_TRACE_IndicateStreamsAvailable(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_STREAM_SET_C, IndicateStreamsAvailable , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_PeerStreamCountsUpdated
 
 
 
@@ -142,19 +128,16 @@ tracepoint(CLOG_STREAM_SET_C, IndicateStreamsAvailable , arg1, arg3, arg4);\
             "Peer updated max stream count (%hhu, %llu).",
             BidirectionalStreams,
             MaxStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = BidirectionalStreams
-// arg4 = arg4 = MaxStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = BidirectionalStreams = arg3
+// arg4 = arg4 = MaxStreams = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PeerStreamCountsUpdated
 #define _clog_5_ARGS_TRACE_PeerStreamCountsUpdated(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_STREAM_SET_C, PeerStreamCountsUpdated , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_IndicatePeerStreamStarted
 
 
 
@@ -167,19 +150,16 @@ tracepoint(CLOG_STREAM_SET_C, PeerStreamCountsUpdated , arg1, arg3, arg4);\
                 "Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
                 Event.PEER_STREAM_STARTED.Stream,
                 Event.PEER_STREAM_STARTED.Flags);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.PEER_STREAM_STARTED.Stream
-// arg4 = arg4 = Event.PEER_STREAM_STARTED.Flags
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.PEER_STREAM_STARTED.Stream = arg3
+// arg4 = arg4 = Event.PEER_STREAM_STARTED.Flags = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IndicatePeerStreamStarted
 #define _clog_5_ARGS_TRACE_IndicatePeerStreamStarted(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_STREAM_SET_C, IndicatePeerStreamStarted , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -191,18 +171,15 @@ tracepoint(CLOG_STREAM_SET_C, IndicatePeerStreamStarted , arg1, arg3, arg4);\
                 "Allocation of '%s' failed. (%llu bytes)",
                 "streamset hash table",
                 0);
-// arg2 = arg2 = "streamset hash table"
-// arg3 = arg3 = 0
+// arg2 = arg2 = "streamset hash table" = arg2
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_SET_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
 
 
 
@@ -214,33 +191,12 @@ tracepoint(CLOG_STREAM_SET_C, AllocFailure , arg2, arg3);\
             "[conn][%p] ERROR, %s.",
             Connection,
             "Peer used more streams than allowed");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Peer used more streams than allowed"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Peer used more streams than allowed" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_SET_C, ConnError , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Remote tried to open stream it wasn't allowed to open.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Remote tried to open stream it wasn't allowed to open."
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

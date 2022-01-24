@@ -876,13 +876,14 @@ QuicConnRemoveOutFlowBlockedReason(
 // a datagram is the cause of the creation, and is passed in.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-__drv_allocatesMem(Mem)
 _Must_inspect_result_
-_Success_(return != NULL)
-QUIC_CONNECTION*
+_Success_(return == QUIC_STATUS_SUCCESS)
+QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
-    _In_opt_ const CXPLAT_RECV_DATA* const Datagram
+    _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
+        QUIC_CONNECTION** NewConnection
     );
 
 //
@@ -995,7 +996,8 @@ QuicConnRelease(
 // Registers the connection with a registration.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+_Must_inspect_result_
+BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration
@@ -1192,14 +1194,14 @@ QuicConnUpdateRtt(
     );
 
 //
-// Sets a new timer delay in milliseconds.
+// Sets a new timer delay in microseconds.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSet(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
-    _In_ uint64_t DelayMs
+    _In_ uint64_t DelayUs
     );
 
 //

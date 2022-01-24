@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_REGISTRATION_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_RegistrationVerifierEnabled
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for RegistrationVerifierEnabled
 // [ reg][%p] Verifing enabled!
@@ -34,17 +32,14 @@ extern "C" {
             RegistrationVerifierEnabled,
             "[ reg][%p] Verifing enabled!",
             Registration);
-// arg2 = arg2 = Registration
+// arg2 = arg2 = Registration = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RegistrationVerifierEnabled
 #define _clog_3_ARGS_TRACE_RegistrationVerifierEnabled(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_REGISTRATION_C, RegistrationVerifierEnabled , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
 
 
 
@@ -56,18 +51,15 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationVerifierEnabled , arg2);\
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
-// arg2 = arg2 = QUIC_TRACE_API_REGISTRATION_OPEN
-// arg3 = arg3 = NULL
+// arg2 = arg2 = QUIC_TRACE_API_REGISTRATION_OPEN = arg2
+// arg3 = arg3 = NULL = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
 #define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_REGISTRATION_C, ApiEnter , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -79,18 +71,15 @@ tracepoint(CLOG_REGISTRATION_C, ApiEnter , arg2, arg3);\
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
             sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
-// arg2 = arg2 = "registration"
-// arg3 = arg3 = sizeof(QUIC_REGISTRATION) + AppNameLength + 1
+// arg2 = arg2 = "registration" = arg2
+// arg3 = arg3 = sizeof(QUIC_REGISTRATION) + AppNameLength + 1 = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_REGISTRATION_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_RegistrationCreated
 
 
 
@@ -102,18 +91,15 @@ tracepoint(CLOG_REGISTRATION_C, AllocFailure , arg2, arg3);\
         "[ reg][%p] Created, AppName=%s",
         Registration,
         Registration->AppName);
-// arg2 = arg2 = Registration
-// arg3 = arg3 = Registration->AppName
+// arg2 = arg2 = Registration = arg2
+// arg3 = arg3 = Registration->AppName = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_RegistrationCreated
 #define _clog_4_ARGS_TRACE_RegistrationCreated(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_REGISTRATION_C, RegistrationCreated , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 
 
 
@@ -124,39 +110,14 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationCreated , arg2, arg3);\
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 #define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_REGISTRATION_C, ApiExitStatus , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-            ApiEnter,
-            "[ api] Enter %u (%p).",
-            QUIC_TRACE_API_REGISTRATION_CLOSE,
-            Handle);
-// arg2 = arg2 = QUIC_TRACE_API_REGISTRATION_CLOSE
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_RegistrationCleanup
 
 
 
@@ -167,17 +128,14 @@ tracepoint(CLOG_REGISTRATION_C, ApiExitStatus , arg2);\
             RegistrationCleanup,
             "[ reg][%p] Cleaning up",
             Registration);
-// arg2 = arg2 = Registration
+// arg2 = arg2 = Registration = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RegistrationCleanup
 #define _clog_3_ARGS_TRACE_RegistrationCleanup(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_REGISTRATION_C, RegistrationCleanup , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiExit
 
 
 
@@ -188,55 +146,12 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationCleanup , arg2);\
             ApiExit,
             "[ api] Exit");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ApiExit
 #define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_REGISTRATION_C, ApiExit );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_REGISTRATION_SHUTDOWN,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_REGISTRATION_SHUTDOWN
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiExit
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExit
-// [ api] Exit
-// QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_RegistrationRundown
 
 
 
@@ -248,9 +163,10 @@ tracepoint(CLOG_REGISTRATION_C, ApiExit );\
         "[ reg][%p] Rundown, AppName=%s",
         Registration,
         Registration->AppName);
-// arg2 = arg2 = Registration
-// arg3 = arg3 = Registration->AppName
+// arg2 = arg2 = Registration = arg2
+// arg3 = arg3 = Registration->AppName = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_RegistrationRundown
 #define _clog_4_ARGS_TRACE_RegistrationRundown(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_REGISTRATION_C, RegistrationRundown , arg2, arg3);\
 

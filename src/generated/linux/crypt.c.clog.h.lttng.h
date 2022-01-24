@@ -10,9 +10,9 @@
         Prefix,
         Length,
         SecretStr);
-// arg2 = arg2 = Prefix
-// arg3 = arg3 = Length
-// arg4 = arg4 = SecretStr
+// arg2 = arg2 = Prefix = arg2
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = SecretStr = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_C, TlsLogSecret,
     TP_ARGS(
@@ -36,8 +36,8 @@ TRACEPOINT_EVENT(CLOG_CRYPT_C, TlsLogSecret,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PACKET_KEY",
             PacketKeyLength);
-// arg2 = arg2 = "QUIC_PACKET_KEY"
-// arg3 = arg3 = PacketKeyLength
+// arg2 = arg2 = "QUIC_PACKET_KEY" = arg2
+// arg3 = arg3 = PacketKeyLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_C, AllocFailure,
     TP_ARGS(

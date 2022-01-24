@@ -8,7 +8,7 @@
         PerfTcpCreateClient,
         "[perf][tcp][%p] Client created",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpCreateClient,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpCreateClient,
         PerfTcpCreateServer,
         "[perf][tcp][%p] Server created",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpCreateServer,
     TP_ARGS(
@@ -46,7 +46,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpCreateServer,
         PerfTcpDestroyed,
         "[perf][tcp][%p] Destroyed",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpDestroyed,
     TP_ARGS(
@@ -66,8 +66,8 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpDestroyed,
         "[perf][tcp][%p] Connect callback %hhu",
         This,
         Connected);
-// arg2 = arg2 = This
-// arg3 = arg3 = Connected
+// arg2 = arg2 = This = arg2
+// arg3 = arg3 = Connected = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpConnectCallback,
     TP_ARGS(
@@ -88,7 +88,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpConnectCallback,
         PerfTcpReceiveCallback,
         "[perf][tcp][%p] Receive callback",
         This);
-// arg2 = arg2 = This
+// arg2 = arg2 = This = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpReceiveCallback,
     TP_ARGS(
@@ -107,7 +107,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpReceiveCallback,
         PerfTcpSendCompleteCallback,
         "[perf][tcp][%p] SendComplete callback",
         This);
-// arg2 = arg2 = This
+// arg2 = arg2 = This = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendCompleteCallback,
     TP_ARGS(
@@ -126,7 +126,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendCompleteCallback,
             PerfTcpAppAccept,
             "[perf][tcp][%p] App Accept",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppAccept,
     TP_ARGS(
@@ -145,7 +145,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppAccept,
             PerfTcpAppConnect,
             "[perf][tcp][%p] App Connect",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
     TP_ARGS(
@@ -164,7 +164,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
             PerfTcpStartTls,
             "[perf][tcp][%p] Start TLS",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpStartTls,
     TP_ARGS(
@@ -183,7 +183,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpStartTls,
             PerfTcpAppDisconnect,
             "[perf][tcp][%p] App Disconnect",
             this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppDisconnect,
     TP_ARGS(
@@ -206,11 +206,11 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppDisconnect,
             (uint8_t)StreamFrame->Open,
             (uint8_t)StreamFrame->Fin,
             (uint8_t)StreamFrame->Abort);
-// arg2 = arg2 = this
-// arg3 = arg3 = (uint16_t)(Frame->Length - sizeof(TcpStreamFrame))
-// arg4 = arg4 = (uint8_t)StreamFrame->Open
-// arg5 = arg5 = (uint8_t)StreamFrame->Fin
-// arg6 = arg6 = (uint8_t)StreamFrame->Abort
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = (uint16_t)(Frame->Length - sizeof(TcpStreamFrame)) = arg3
+// arg4 = arg4 = (uint8_t)StreamFrame->Open = arg4
+// arg5 = arg5 = (uint8_t)StreamFrame->Fin = arg5
+// arg6 = arg6 = (uint8_t)StreamFrame->Abort = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppReceive,
     TP_ARGS(
@@ -241,11 +241,11 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppReceive,
                 (uint8_t)StreamFrame->Open,
                 (uint8_t)StreamFrame->Fin,
                 (uint8_t)StreamFrame->Abort);
-// arg2 = arg2 = this
-// arg3 = arg3 = (uint16_t)StreamLength
-// arg4 = arg4 = (uint8_t)StreamFrame->Open
-// arg5 = arg5 = (uint8_t)StreamFrame->Fin
-// arg6 = arg6 = (uint8_t)StreamFrame->Abort
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = (uint16_t)StreamLength = arg3
+// arg4 = arg4 = (uint8_t)StreamFrame->Open = arg4
+// arg5 = arg5 = (uint8_t)StreamFrame->Fin = arg5
+// arg6 = arg6 = (uint8_t)StreamFrame->Abort = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendFrame,
     TP_ARGS(
@@ -273,8 +273,8 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendFrame,
             "[perf][tcp][%p] App Send complete %u bytes",
             this,
             Data->Length);
-// arg2 = arg2 = this
-// arg3 = arg3 = Data->Length
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = Data->Length = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppSendComplete,
     TP_ARGS(
@@ -299,11 +299,11 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppSendComplete,
         (uint8_t)Data->Open,
         (uint8_t)Data->Fin,
         (uint8_t)Data->Abort);
-// arg2 = arg2 = this
-// arg3 = arg3 = Data->Length
-// arg4 = arg4 = (uint8_t)Data->Open
-// arg5 = arg5 = (uint8_t)Data->Fin
-// arg6 = arg6 = (uint8_t)Data->Abort
+// arg2 = arg2 = this = arg2
+// arg3 = arg3 = Data->Length = arg3
+// arg4 = arg4 = (uint8_t)Data->Open = arg4
+// arg5 = arg5 = (uint8_t)Data->Fin = arg5
+// arg6 = arg6 = (uint8_t)Data->Abort = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppSend,
     TP_ARGS(
@@ -330,7 +330,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppSend,
         PerfTcpAppClose,
         "[perf][tcp][%p] App Close",
         this);
-// arg2 = arg2 = this
+// arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppClose,
     TP_ARGS(

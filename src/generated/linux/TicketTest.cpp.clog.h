@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_TICKETTEST_CPP
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTpLengthShort
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ClientResumptionTicketDecodeFailTpLengthShort
 // [test] Attempting to decode Server TP with length %u (Actual: %u)
@@ -31,18 +29,15 @@ extern "C" {
             "[test] Attempting to decode Server TP with length %u (Actual: %u)",
             s,
             EncodedTPLength - CxPlatTlsTPHeaderSize);
-// arg2 = arg2 = s
-// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize
+// arg2 = arg2 = s = arg2
+// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTpLengthShort
 #define _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTpLengthShort(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTpLengthShort , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTpLengthEncodedWrong
 
 
 
@@ -54,18 +49,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTpLengthShort , 
             "[test] Attempting to decode Server TP length (improperly encoded) %x (Actual: %u)",
             InputTicketBuffer[5],
             EncodedTPLength - CxPlatTlsTPHeaderSize);
-// arg2 = arg2 = InputTicketBuffer[5]
-// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize
+// arg2 = arg2 = InputTicketBuffer[5] = arg2
+// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTpLengthEncodedWrong
 #define _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTpLengthEncodedWrong(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTpLengthEncodedWrong , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTicketLengthShort
 
 
 
@@ -77,18 +69,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTpLengthEncodedW
             "[test] Attempting to decode Server Ticket with length %u (Actual: %u)",
             s,
             (uint8_t)sizeof(ServerTicket));
-// arg2 = arg2 = s
-// arg3 = arg3 = (uint8_t)sizeof(ServerTicket)
+// arg2 = arg2 = s = arg2
+// arg3 = arg3 = (uint8_t)sizeof(ServerTicket) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTicketLengthShort
 #define _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTicketLengthShort(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTicketLengthShort , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTicketLengthEncodedWrong
 
 
 
@@ -100,18 +89,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTicketLengthShor
             "[test] Attempting to decode Server Ticket length (improperly encoded) %x (Actual: %u)",
             InputTicketBuffer[6],
             (uint8_t)sizeof(ServerTicket));
-// arg2 = arg2 = InputTicketBuffer[6]
-// arg3 = arg3 = (uint8_t)sizeof(ServerTicket)
+// arg2 = arg2 = InputTicketBuffer[6] = arg2
+// arg3 = arg3 = (uint8_t)sizeof(ServerTicket) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTicketLengthEncodedWrong
 #define _clog_4_ARGS_TRACE_ClientResumptionTicketDecodeFailTicketLengthEncodedWrong(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTicketLengthEncodedWrong , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAlpnLengthShort
 
 
 
@@ -123,18 +109,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ClientResumptionTicketDecodeFailTicketLengthEnco
             "[test] Attempting to decode Negotiated ALPN with length %u (Actual: %u)",
             s,
             (uint8_t)sizeof(Alpn));
-// arg2 = arg2 = s
-// arg3 = arg3 = (uint8_t)sizeof(Alpn)
+// arg2 = arg2 = s = arg2
+// arg3 = arg3 = (uint8_t)sizeof(Alpn) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAlpnLengthShort
 #define _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAlpnLengthShort(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAlpnLengthShort , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong
 
 
 
@@ -146,18 +129,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAlpnLengthShort 
             "[test] Attempting to decode Negotiated ALPN length (improperly encoded) %x (Actual: %u)",
             InputTicketBuffer[5],
             (uint8_t)sizeof(Alpn));
-// arg2 = arg2 = InputTicketBuffer[5]
-// arg3 = arg3 = (uint8_t)sizeof(Alpn)
+// arg2 = arg2 = InputTicketBuffer[5] = arg2
+// arg3 = arg3 = (uint8_t)sizeof(Alpn) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong
 #define _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailTpLengthShort
 
 
 
@@ -169,18 +149,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAlpnLengthEncode
             "[test] Attempting to decode Handshake TP with length %u (Actual: %u)",
             s,
             EncodedTPLength - CxPlatTlsTPHeaderSize);
-// arg2 = arg2 = s
-// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize
+// arg2 = arg2 = s = arg2
+// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailTpLengthShort
 #define _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailTpLengthShort(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailTpLengthShort , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailTpLengthEncodedWrong
 
 
 
@@ -192,18 +169,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailTpLengthShort , 
             "[test] Attempting to decode Handshake TP length (improperly encoded) %x (Actual: %u)",
             InputTicketBuffer[6],
             EncodedTPLength - CxPlatTlsTPHeaderSize);
-// arg2 = arg2 = InputTicketBuffer[6]
-// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize
+// arg2 = arg2 = InputTicketBuffer[6] = arg2
+// arg3 = arg3 = EncodedTPLength - CxPlatTlsTPHeaderSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailTpLengthEncodedWrong
 #define _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailTpLengthEncodedWrong(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailTpLengthEncodedWrong , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAppDataLengthShort
 
 
 
@@ -215,18 +189,15 @@ tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailTpLengthEncodedW
             "[test] Attempting to decode App Data with length %u (Actual: %u)",
             s,
             (uint8_t)sizeof(AppData));
-// arg2 = arg2 = s
-// arg3 = arg3 = (uint8_t)sizeof(AppData)
+// arg2 = arg2 = s = arg2
+// arg3 = arg3 = (uint8_t)sizeof(AppData) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAppDataLengthShort
 #define _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAppDataLengthShort(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAppDataLengthShort , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong
 
 
 
@@ -238,9 +209,10 @@ tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAppDataLengthSho
             "[test] Attempting to decode App Data length (improperly encoded) %x (Actual: %u)",
             InputTicketBuffer[7],
             (uint8_t)sizeof(AppData));
-// arg2 = arg2 = InputTicketBuffer[7]
-// arg3 = arg3 = (uint8_t)sizeof(AppData)
+// arg2 = arg2 = InputTicketBuffer[7] = arg2
+// arg3 = arg3 = (uint8_t)sizeof(AppData) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong
 #define _clog_4_ARGS_TRACE_ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TICKETTEST_CPP, ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong , arg2, arg3);\
 

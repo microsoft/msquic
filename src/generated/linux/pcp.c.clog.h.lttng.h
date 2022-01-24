@@ -9,8 +9,8 @@
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_PCP",
             PcpContextSize);
-// arg2 = arg2 = "CXPLAT_PCP"
-// arg3 = arg3 = PcpContextSize
+// arg2 = arg2 = "CXPLAT_PCP" = arg2
+// arg3 = arg3 = PcpContextSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PCP_C, AllocFailure,
     TP_ARGS(
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_PCP_C, AllocFailure,
             LibraryError,
             "[ lib] ERROR, %s.",
             "PCP: Invalid length");
-// arg2 = arg2 = "PCP: Invalid length"
+// arg2 = arg2 = "PCP: Invalid length" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PCP_C, LibraryError,
     TP_ARGS(

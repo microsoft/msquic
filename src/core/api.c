@@ -61,8 +61,12 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
-    if ((Connection = QuicConnAlloc(Registration, NULL)) == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    Status =
+        QuicConnAlloc(
+            Registration,
+            NULL,
+            &Connection);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
@@ -111,10 +115,23 @@ MsQuicConnectionClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Connection = (QUIC_CONNECTION*)Handle;
 
+    CXPLAT_TEL_ASSERT(!Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (IsWorkerThread && Connection->State.HandleClosed) {
+        //
+        // Close being called from worker thread after being closed by app
+        // thread. This is an app programming bug, and they should be checking
+        // the AppCloseInProgress flag, but as the handle is stil valid here
+        // we can just make this a no-op.
+        //
+        goto Error;
+    }
+
+    CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
+
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -227,6 +244,7 @@ MsQuicConnectionShutdown(
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
     Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
     Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
+    Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
 
     //
     // Queue the operation but don't wait for the completion.
@@ -692,14 +710,25 @@ MsQuicStreamClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
     CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
-
     Connection = Stream->Connection;
-
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection, !Stream->Flags.HandleClosed);
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (IsWorkerThread && Stream->Flags.HandleClosed) {
+        //
+        // Close being called from worker thread after being closed by app
+        // thread. This is an app programming bug, and they should be checking
+        // the AppCloseInProgress flag, but as the handle is stil valid here
+        // we can just make this a no-op.
+        //
+        goto Error;
+    }
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //

@@ -354,7 +354,7 @@ QuicCongestionControlOnDataLost(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     );
@@ -571,6 +571,11 @@ QuicPathDecrementAllowance(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
+    );
+
+uint16_t
+QuicPathGetDatagramPayloadSize(
+    _In_ const QUIC_PATH* Path
     );
 
 uint64_t

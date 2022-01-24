@@ -25,8 +25,8 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, CertFindCertificateFriendlyName,
                 "[test] WaitForSingleObject returned 0x%x, proceeding without caution... (GLE: 0x%x)",
                 WaitResult,
                 GetLastError());
-// arg2 = arg2 = WaitResult
-// arg3 = arg3 = GetLastError()
+// arg2 = arg2 = WaitResult = arg2
+// arg3 = arg3 = GetLastError() = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, CertWaitForCreationEvent,
     TP_ARGS(
@@ -48,8 +48,8 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, CertWaitForCreationEvent,
         "[cert] %d test certificates found, and %d deleted",
         Found,
         Deleted);
-// arg2 = arg2 = Found
-// arg3 = arg3 = Deleted
+// arg2 = arg2 = Found = arg2
+// arg3 = arg3 = Deleted = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, CertCleanTestCerts,
     TP_ARGS(
@@ -119,8 +119,8 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, CertCreationEventAlreadyCreated,
             "[ lib] ERROR, %u, %s.",
             GetLastError(),
             "CertOpenStore failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "CertOpenStore failed"
+// arg2 = arg2 = GetLastError() = arg2
+// arg3 = arg3 = "CertOpenStore failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, LibraryErrorStatus,
     TP_ARGS(
@@ -142,8 +142,8 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "CryptDataBlob",
             CryptDataBlob->cbData);
-// arg2 = arg2 = "CryptDataBlob"
-// arg3 = arg3 = CryptDataBlob->cbData
+// arg2 = arg2 = "CryptDataBlob" = arg2
+// arg3 = arg3 = CryptDataBlob->cbData = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, AllocFailure,
     TP_ARGS(
@@ -164,7 +164,7 @@ TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, AllocFailure,
             LibraryError,
             "[ lib] ERROR, %s.",
             "CreateEvent failed");
-// arg2 = arg2 = "CreateEvent failed"
+// arg2 = arg2 = "CreateEvent failed" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SELFSIGN_CAPI_C, LibraryError,
     TP_ARGS(

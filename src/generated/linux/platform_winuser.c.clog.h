@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_PLATFORM_WINUSER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_2_ARGS_TRACE_WindowsUserLoaded
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for WindowsUserLoaded
 // [ dll] Loaded
@@ -34,15 +32,12 @@ extern "C" {
         WindowsUserLoaded,
         "[ dll] Loaded");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WindowsUserLoaded
 #define _clog_2_ARGS_TRACE_WindowsUserLoaded(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserLoaded );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_WindowsUserUnloaded
 
 
 
@@ -53,15 +48,12 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserLoaded );\
         WindowsUserUnloaded,
         "[ dll] Unloaded");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WindowsUserUnloaded
 #define _clog_2_ARGS_TRACE_WindowsUserUnloaded(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded );\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_WindowsUserProcessorState
 
 
 
@@ -72,19 +64,16 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded );\
         WindowsUserProcessorState,
         "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
         ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
-// arg2 = arg2 = ActiveProcessorCount
-// arg3 = arg3 = ProcessorGroupCount
-// arg4 = arg4 = NumaNodeCount
+// arg2 = arg2 = ActiveProcessorCount = arg2
+// arg3 = arg3 = ProcessorGroupCount = arg3
+// arg4 = arg4 = NumaNodeCount = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WindowsUserProcessorState
 #define _clog_5_ARGS_TRACE_WindowsUserProcessorState(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ProcessorInfo
 
 
 
@@ -98,11 +87,12 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState , arg2, arg3, arg4
                         CxPlatProcessorInfo[Index].Group,
                         CxPlatProcessorInfo[Index].Index,
                         CxPlatProcessorInfo[Index].NumaNode);
-// arg2 = arg2 = Index
-// arg3 = arg3 = CxPlatProcessorInfo[Index].Group
-// arg4 = arg4 = CxPlatProcessorInfo[Index].Index
-// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode
+// arg2 = arg2 = Index = arg2
+// arg3 = arg3 = CxPlatProcessorInfo[Index].Group = arg3
+// arg4 = arg4 = CxPlatProcessorInfo[Index].Index = arg4
+// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ProcessorInfo
 #define _clog_6_ARGS_TRACE_ProcessorInfo(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
 
@@ -111,7 +101,25 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_WindowsUserInitialized
+/*----------------------------------------------------------
+// Decoder Ring for WindowsUserInitialized2
+// [ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])
+// QuicTraceLogInfo(
+        WindowsUserInitialized2,
+        "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
+        CxPlatTotalMemory,
+        CxPlatTimerCapabilities.wPeriodMin,
+        CxPlatTimerCapabilities.wPeriodMax);
+// arg2 = arg2 = CxPlatTotalMemory = arg2
+// arg3 = arg3 = CxPlatTimerCapabilities.wPeriodMin = arg3
+// arg4 = arg4 = CxPlatTimerCapabilities.wPeriodMax = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WindowsUserInitialized2
+#define _clog_5_ARGS_TRACE_WindowsUserInitialized2(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized2 , arg2, arg3, arg4);\
+
+#endif
+
 
 
 
@@ -122,17 +130,14 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
         WindowsUserInitialized,
         "[ dll] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
-// arg2 = arg2 = CxPlatTotalMemory
+// arg2 = arg2 = CxPlatTotalMemory = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WindowsUserInitialized
 #define _clog_3_ARGS_TRACE_WindowsUserInitialized(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_WindowsUserUninitialized
 
 
 
@@ -143,15 +148,12 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized , arg2);\
         WindowsUserUninitialized,
         "[ dll] Uninitialized");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_WindowsUserUninitialized
 #define _clog_2_ARGS_TRACE_WindowsUserUninitialized(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -163,18 +165,15 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized );\
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorInfo",
             ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
-// arg2 = arg2 = "CxPlatProcessorInfo"
-// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO)
+// arg2 = arg2 = "CxPlatProcessorInfo" = arg2
+// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
 
@@ -185,161 +184,14 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, AllocFailure , arg2, arg3);\
             LibraryError,
             "[ lib] ERROR, %s.",
             "Failed to determine processor group count");
-// arg2 = arg2 = "Failed to determine processor group count"
+// arg2 = arg2 = "Failed to determine processor group count" = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryError , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine processors per group count");
-// arg2 = arg2 = "Failed to determine processors per group count"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine NUMA node count");
-// arg2 = arg2 = "Failed to determine NUMA node count"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatProcessorGroupOffsets",
-            ProcessorGroupCount * sizeof(uint32_t));
-// arg2 = arg2 = "CxPlatProcessorGroupOffsets"
-// arg3 = arg3 = ProcessorGroupCount * sizeof(uint32_t)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatNumaMasks",
-            NumaNodeCount * sizeof(uint64_t));
-// arg2 = arg2 = "CxPlatNumaMasks"
-// arg3 = arg3 = NumaNodeCount * sizeof(uint64_t)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine processor group");
-// arg2 = arg2 = "Failed to determine processor group"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine NUMA node");
-// arg2 = arg2 = "Failed to determine NUMA node"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CxPlatProcessorInfoInit failed");
-// arg2 = arg2 = "CxPlatProcessorInfoInit failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
@@ -351,18 +203,15 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryError , arg2);\
             "[ lib] ERROR, %u, %s.",
             Error,
             "GlobalMemoryStatusEx failed");
-// arg2 = arg2 = Error
-// arg3 = arg3 = "GlobalMemoryStatusEx failed"
+// arg2 = arg2 = Error = arg2
+// arg3 = arg3 = "GlobalMemoryStatusEx failed" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_LibraryAssert
 
 
 
@@ -375,142 +224,13 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus , arg2, arg3);\
         (uint32_t)Line,
         File,
         Expr);
-// arg2 = arg2 = (uint32_t)Line
-// arg3 = arg3 = File
-// arg4 = arg4 = Expr
+// arg2 = arg2 = (uint32_t)Line = arg2
+// arg3 = arg3 = File = arg3
+// arg4 = arg4 = Expr = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LibraryAssert
 #define _clog_5_ARGS_TRACE_LibraryAssert(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryAssert , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "Get wchar string size");
-// arg2 = arg2 = Error
-// arg3 = arg3 = "Get wchar string size"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "wchar string",
-            sizeof(WCHAR) * Size);
-// arg2 = arg2 = "wchar string"
-// arg3 = arg3 = sizeof(WCHAR) * Size
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "Convert string to wchar");
-// arg2 = arg2 = Error
-// arg3 = arg3 = "Convert string to wchar"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
-// arg2 = arg2 = "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
-            *BufferLength);
-// arg2 = arg2 = "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX"
-// arg3 = arg3 = *BufferLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "GetLogicalProcessorInformationEx failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "GetLogicalProcessorInformationEx failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

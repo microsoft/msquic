@@ -8,7 +8,7 @@
             DatapathOpenTcpSocketFailed,
             "[data] RSS helper socket failed to open, 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailed,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailed,
             DatapathOpenTcpSocketFailedAsync,
             "[data] RSS helper socket failed to open (async), 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailedAsync,
     TP_ARGS(
@@ -46,7 +46,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailedAsync,
             DatapathQueryRssScalabilityInfoFailed,
             "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFailed,
     TP_ARGS(
@@ -65,7 +65,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFaile
             DatapathQueryRssScalabilityInfoFailedAsync,
             "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFailedAsync,
     TP_ARGS(
@@ -84,7 +84,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFaile
             DatapathOpenUdpSocketFailed,
             "[data] UDP send segmentation helper socket failed to open, 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailed,
     TP_ARGS(
@@ -103,7 +103,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailed,
             DatapathOpenUdpSocketFailedAsync,
             "[data] UDP send segmentation helper socket failed to open (async), 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailedAsync,
     TP_ARGS(
@@ -122,7 +122,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailedAsync,
                 DatapathQueryUdpSendMsgFailed,
                 "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
                 Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailed,
     TP_ARGS(
@@ -141,7 +141,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailed,
                 DatapathQueryUdpSendMsgFailedAsync,
                 "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
                 Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailedAsync,
     TP_ARGS(
@@ -160,7 +160,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailedAsync,
                 DatapathQueryRecvMaxCoalescedSizeFailed,
                 "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
                 Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFailed,
     TP_ARGS(
@@ -179,7 +179,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFai
                 DatapathQueryRecvMaxCoalescedSizeFailedAsync,
                 "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
                 Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFailedAsync,
     TP_ARGS(
@@ -198,7 +198,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFai
                 DatapathDropEmptyMdl,
                 "[%p] Dropping datagram with empty mdl.",
                 Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropEmptyMdl,
     TP_ARGS(
@@ -217,7 +217,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropEmptyMdl,
                 DatapathDropMissingInfo,
                 "[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR.",
                 Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMissingInfo,
     TP_ARGS(
@@ -237,8 +237,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMissingInfo,
                     "[%p] Dropping datagram with too many bytes (%llu).",
                     Binding,
                     (uint64_t)DataLength);
-// arg2 = arg2 = Binding
-// arg3 = arg3 = (uint64_t)DataLength
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = (uint64_t)DataLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropTooBig,
     TP_ARGS(
@@ -259,7 +259,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropTooBig,
                 DatapathDropMdlMapFailure,
                 "[%p] Failed to map MDL chain",
                 Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMdlMapFailure,
     TP_ARGS(
@@ -278,7 +278,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMdlMapFailure,
                     DatapathFragmented,
                     "[%p] Dropping datagram with fragmented MDL.",
                     Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathFragmented,
     TP_ARGS(
@@ -297,7 +297,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathFragmented,
                         DatapathDropAllocRecvContextFailure,
                         "[%p] Couldn't allocate receive context.",
                         Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvContextFailure,
     TP_ARGS(
@@ -316,7 +316,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvContextFailure,
                             DatapathDropAllocRecvBufferFailure,
                             "[%p] Couldn't allocate receive buffers.",
                             Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvBufferFailure,
     TP_ARGS(
@@ -335,7 +335,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvBufferFailure,
                     DatapathUroExceeded,
                     "[%p] Exceeded URO preallocation capacity.",
                     Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUroExceeded,
     TP_ARGS(
@@ -355,8 +355,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUroExceeded,
                 "[sock][%p] Unreachable error from %!ADDR!",
                 Binding,
                 CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUnreachableMsg,
     TP_ARGS(
@@ -380,8 +380,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUnreachableMsg,
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-// arg2 = arg2 = Datapath
-// arg3 = arg3 = HostName
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathResolveHostNameFailed,
     TP_ARGS(
@@ -403,8 +403,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathResolveHostNameFailed,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = DatapathLength
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, AllocFailure,
     TP_ARGS(
@@ -426,8 +426,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, AllocFailure,
             "[ lib] ERROR, %u, %s.",
             Status,
             "WskRegister");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "WskRegister"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "WskRegister" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryErrorStatus,
     TP_ARGS(
@@ -448,7 +448,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryErrorStatus,
         LibraryError,
         "[ lib] ERROR, %s.",
         "Resolving hostname to IP");
-// arg2 = arg2 = "Resolving hostname to IP"
+// arg2 = arg2 = "Resolving hostname to IP" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryError,
     TP_ARGS(
@@ -469,9 +469,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryError,
         Binding,
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathCreated,
     TP_ARGS(
@@ -500,9 +500,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathCreated,
             Binding,
             Status,
             "WskSocket");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "WskSocket"
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "WskSocket" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathErrorStatus,
     TP_ARGS(
@@ -525,7 +525,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathErrorStatus,
         DatapathDestroyed,
         "[data][%p] Destroyed",
         Binding);
-// arg2 = arg2 = Binding
+// arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDestroyed,
     TP_ARGS(
@@ -548,11 +548,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDestroyed,
             MessageLength,
             CASTED_CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = (uint32_t)DataLength
-// arg4 = arg4 = MessageLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = (uint32_t)DataLength = arg3
+// arg4 = arg4 = MessageLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathRecv,
     TP_ARGS(
@@ -588,12 +588,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathRecv,
         SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = SendData->TotalSize
-// arg4 = arg4 = SendData->WskBufferCount
-// arg5 = arg5 = SendData->SegmentSize
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = SendData->TotalSize = arg3
+// arg4 = arg4 = SendData->WskBufferCount = arg4
+// arg5 = arg5 = SendData->SegmentSize = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathSend,
     TP_ARGS(

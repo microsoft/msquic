@@ -10,9 +10,9 @@
         "Send alert = %u (Level = %u)",
         Alert,
         (uint32_t)Level);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = Alert
-// arg4 = arg4 = (uint32_t)Level
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = Alert = arg3
+// arg4 = arg4 = (uint32_t)Level = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
     TP_ARGS(
@@ -36,8 +36,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
                 TlsContext->Connection,
                 "SSL_provide_quic_data failed: %s",
                 ERR_error_string(ERR_get_error(), buf));
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = ERR_error_string(ERR_get_error(), buf)
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = ERR_error_string(ERR_get_error(), buf) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
     TP_ARGS(
@@ -61,10 +61,10 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
                     buf,
                     (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
                     line);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = buf
-// arg4 = arg4 = (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file)
-// arg5 = arg5 = line
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = buf = arg3
+// arg4 = arg4 = (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file) = arg4
+// arg5 = arg5 = line = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
     TP_ARGS(
@@ -90,8 +90,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
                     "TLS handshake error: %d",
                     Err);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = Err
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
     TP_ARGS(
@@ -112,7 +112,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
                     OpenSslAlpnNegotiationFailure,
                     TlsContext->Connection,
                     "Failed to negotiate ALPN");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
     TP_ARGS(
@@ -131,7 +131,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
                     OpenSslInvalidAlpnLength,
                     TlsContext->Connection,
                     "Invalid negotiated ALPN length");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
     TP_ARGS(
@@ -150,7 +150,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
                     OpenSslNoMatchingAlpn,
                     TlsContext->Connection,
                     "Failed to find a matching ALPN");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
     TP_ARGS(
@@ -169,7 +169,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
                     OpenSslMissingTransportParameters,
                     TlsContext->Connection,
                     "No transport parameters received");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
     TP_ARGS(
@@ -189,8 +189,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
                 TlsContext->Connection,
                 "Writing Handshake data starts at %u",
                 TlsState->BufferOffsetHandshake);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = TlsState->BufferOffsetHandshake
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = TlsState->BufferOffsetHandshake = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart,
     TP_ARGS(
@@ -212,8 +212,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart,
                 TlsContext->Connection,
                 "Writing 1-RTT data starts at %u",
                 TlsState->BufferOffset1Rtt);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = TlsState->BufferOffset1Rtt
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = TlsState->BufferOffset1Rtt = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart,
     TP_ARGS(
@@ -235,8 +235,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart,
                     TlsContext->Connection,
                     "Received session ticket, %u bytes",
                     (uint32_t)Length);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint32_t)Length
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint32_t)Length = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket,
     TP_ARGS(
@@ -258,8 +258,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket,
                 TlsContext->Connection,
                 "Setting session ticket, %u bytes",
                 Config->ResumptionTicketLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = Config->ResumptionTicketLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = Config->ResumptionTicketLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
     TP_ARGS(
@@ -280,7 +280,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
             OpenSslHandshakeComplete,
             TlsContext->Connection,
             "TLS Handshake complete");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
     TP_ARGS(
@@ -299,7 +299,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
                 OpenSslHandshakeResumed,
                 TlsContext->Connection,
                 "TLS Handshake resumed");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
     TP_ARGS(
@@ -319,8 +319,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
         TlsContext->Connection,
         "New encryption secrets (Level = %u)",
         (uint32_t)Level);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint32_t)Level
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint32_t)Level = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
     TP_ARGS(
@@ -343,9 +343,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
         "Sending %llu handshake bytes (Level = %u)",
         (uint64_t)Length,
         (uint32_t)Level);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint64_t)Length
-// arg4 = arg4 = (uint32_t)Level
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint64_t)Length = arg3
+// arg4 = arg4 = (uint32_t)Level = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
     TP_ARGS(
@@ -369,8 +369,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
         TlsContext->Connection,
         "Session ticket decrypted, status %u",
         (uint32_t)status);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint32_t)status
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint32_t)status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted,
     TP_ARGS(
@@ -392,8 +392,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted,
             TlsContext->Connection,
             "Received ticket data, %u bytes",
             (uint32_t)Length);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint32_t)Length
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint32_t)Length = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData,
     TP_ARGS(
@@ -414,7 +414,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData,
         OpenSslContextCreated,
         TlsContext->Connection,
         "TLS context Created");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCreated,
     TP_ARGS(
@@ -433,7 +433,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCreated,
             OpenSslContextCleaningUp,
             TlsContext->Connection,
             "Cleaning up");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
     TP_ARGS(
@@ -453,8 +453,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
             TlsContext->Connection,
             "Sending ticket data, %u bytes",
             *BufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *BufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
     TP_ARGS(
@@ -476,8 +476,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
             TlsContext->Connection,
             "Processing %u received bytes",
             *BufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *BufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
     TP_ARGS(
@@ -499,8 +499,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
                     "[ tls][%p] ERROR, %s.",
                     TlsContext->Connection,
                     "No certificate passed");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "No certificate passed"
+// arg2 = arg2 = TlsContext->Connection = arg2
+// arg3 = arg3 = "No certificate passed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
     TP_ARGS(
@@ -521,7 +521,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
                     LibraryError,
                     "[ lib] ERROR, %s.",
                     "i2d_X509 failed");
-// arg2 = arg2 = "i2d_X509 failed"
+// arg2 = arg2 = "i2d_X509 failed" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
     TP_ARGS(
@@ -541,8 +541,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "New crypto buffer",
                 NewBufferAllocLength);
-// arg2 = arg2 = "New crypto buffer"
-// arg3 = arg3 = NewBufferAllocLength
+// arg2 = arg2 = "New crypto buffer" = arg2
+// arg3 = arg3 = NewBufferAllocLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
     TP_ARGS(
@@ -565,9 +565,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
                 TlsContext->Connection,
                 ERR_get_error(),
                 "PEM_write_bio_SSL_SESSION failed");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = ERR_get_error()
-// arg4 = arg4 = "PEM_write_bio_SSL_SESSION failed"
+// arg2 = arg2 = TlsContext->Connection = arg2
+// arg3 = arg3 = ERR_get_error() = arg3
+// arg4 = arg4 = "PEM_write_bio_SSL_SESSION failed" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,
     TP_ARGS(
@@ -591,8 +591,8 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,
             "[ lib] ERROR, %u, %s.",
             CredConfig->AllowedCipherSuites,
             "No valid cipher suites presented");
-// arg2 = arg2 = CredConfig->AllowedCipherSuites
-// arg3 = arg3 = "No valid cipher suites presented"
+// arg2 = arg2 = CredConfig->AllowedCipherSuites = arg2
+// arg3 = arg3 = "No valid cipher suites presented" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryErrorStatus,
     TP_ARGS(

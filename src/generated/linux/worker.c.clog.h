@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_WORKER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_IndicateIdealProcChanged
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for IndicateIdealProcChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED
@@ -34,17 +32,14 @@ extern "C" {
             IndicateIdealProcChanged,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicateIdealProcChanged
 #define _clog_3_ARGS_TRACE_IndicateIdealProcChanged(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_WORKER_C, IndicateIdealProcChanged , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_AbandonOnLibShutdown
 
 
 
@@ -55,17 +50,14 @@ tracepoint(CLOG_WORKER_C, IndicateIdealProcChanged , arg1);\
                 AbandonOnLibShutdown,
                 Connection,
                 "Abandoning on shutdown");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_AbandonOnLibShutdown
 #define _clog_3_ARGS_TRACE_AbandonOnLibShutdown(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_WorkerCreated
 
 
 
@@ -78,19 +70,16 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
         Worker,
         IdealProcessor,
         Owner);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = IdealProcessor
-// arg4 = arg4 = Owner
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = IdealProcessor = arg3
+// arg4 = arg4 = Owner = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WorkerCreated
 #define _clog_5_ARGS_TRACE_WorkerCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_WORKER_C, WorkerCreated , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_WorkerErrorStatus
 
 
 
@@ -103,19 +92,16 @@ tracepoint(CLOG_WORKER_C, WorkerCreated , arg2, arg3, arg4);\
             Worker,
             Status,
             "CxPlatThreadCreate");
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Status
-// arg4 = arg4 = "CxPlatThreadCreate"
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "CxPlatThreadCreate" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WorkerErrorStatus
 #define _clog_5_ARGS_TRACE_WorkerErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_WORKER_C, WorkerErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_WorkerCleanup
 
 
 
@@ -126,17 +112,14 @@ tracepoint(CLOG_WORKER_C, WorkerErrorStatus , arg2, arg3, arg4);\
         WorkerCleanup,
         "[wrkr][%p] Cleaning up",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WorkerCleanup
 #define _clog_3_ARGS_TRACE_WorkerCleanup(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_WORKER_C, WorkerCleanup , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_WorkerDestroyed
 
 
 
@@ -147,17 +130,14 @@ tracepoint(CLOG_WORKER_C, WorkerCleanup , arg2);\
         WorkerDestroyed,
         "[wrkr][%p] Destroyed",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WorkerDestroyed
 #define _clog_3_ARGS_TRACE_WorkerDestroyed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_WORKER_C, WorkerDestroyed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnAssignWorker
 
 
 
@@ -169,9 +149,10 @@ tracepoint(CLOG_WORKER_C, WorkerDestroyed , arg2);\
         "[conn][%p] Assigned worker: %p",
         Connection,
         Worker);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Worker
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Worker = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnAssignWorker
 #define _clog_4_ARGS_TRACE_ConnAssignWorker(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_WORKER_C, ConnAssignWorker , arg2, arg3);\
 
@@ -180,10 +161,6 @@ tracepoint(CLOG_WORKER_C, ConnAssignWorker , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnScheduleState
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConnScheduleState
 // [conn][%p] Scheduling: %u
@@ -192,9 +169,10 @@ tracepoint(CLOG_WORKER_C, ConnAssignWorker , arg2, arg3);\
             "[conn][%p] Scheduling: %u",
             Connection,
             QUIC_SCHEDULE_QUEUED);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_SCHEDULE_QUEUED
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = QUIC_SCHEDULE_QUEUED = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnScheduleState
 #define _clog_4_ARGS_TRACE_ConnScheduleState(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_WORKER_C, ConnScheduleState , arg2, arg3);\
 
@@ -203,32 +181,6 @@ tracepoint(CLOG_WORKER_C, ConnScheduleState , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnScheduleState
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnScheduleState
-// [conn][%p] Scheduling: %u
-// QuicTraceEvent(
-            ConnScheduleState,
-            "[conn][%p] Scheduling: %u",
-            Connection,
-            QUIC_SCHEDULE_QUEUED);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_SCHEDULE_QUEUED
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnScheduleState(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_WorkerQueueDelayUpdated
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for WorkerQueueDelayUpdated
 // [wrkr][%p] QueueDelay = %u
@@ -237,106 +189,15 @@ tracepoint(CLOG_WORKER_C, ConnScheduleState , arg2, arg3);\
         "[wrkr][%p] QueueDelay = %u",
         Worker,
         Worker->AverageQueueDelay);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->AverageQueueDelay
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Worker->AverageQueueDelay = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_WorkerQueueDelayUpdated
 #define _clog_4_ARGS_TRACE_WorkerQueueDelayUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_WORKER_C, WorkerQueueDelayUpdated , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_WorkerQueueDelayUpdated
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for WorkerQueueDelayUpdated
-// [wrkr][%p] QueueDelay = %u
-// QuicTraceEvent(
-        WorkerQueueDelayUpdated,
-        "[wrkr][%p] QueueDelay = %u",
-        Worker,
-        Worker->AverageQueueDelay);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->AverageQueueDelay
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_WorkerQueueDelayUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnScheduleState
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnScheduleState
-// [conn][%p] Scheduling: %u
-// QuicTraceEvent(
-        ConnScheduleState,
-        "[conn][%p] Scheduling: %u",
-        Connection,
-        QUIC_SCHEDULE_PROCESSING);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_SCHEDULE_PROCESSING
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnScheduleState(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnScheduleState
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnScheduleState
-// [conn][%p] Scheduling: %u
-// QuicTraceEvent(
-                ConnScheduleState,
-                "[conn][%p] Scheduling: %u",
-                Connection,
-                QUIC_SCHEDULE_QUEUED);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_SCHEDULE_QUEUED
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnScheduleState(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnScheduleState
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnScheduleState
-// [conn][%p] Scheduling: %u
-// QuicTraceEvent(
-                ConnScheduleState,
-                "[conn][%p] Scheduling: %u",
-                Connection,
-                QUIC_SCHEDULE_IDLE);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_SCHEDULE_IDLE
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnScheduleState(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
 
 
 
@@ -349,43 +210,16 @@ tracepoint(CLOG_WORKER_C, WorkerQueueDelayUpdated , arg2, arg3);\
             Worker,
             Worker->IsActive,
             1);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->IsActive
-// arg4 = arg4 = 1
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Worker->IsActive = arg3
+// arg4 = arg4 = 1 = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
 #define _clog_5_ARGS_TRACE_WorkerActivityStateUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_WORKER_C, WorkerActivityStateUpdated , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for WorkerActivityStateUpdated
-// [wrkr][%p] IsActive = %hhu, Arg = %u
-// QuicTraceEvent(
-        WorkerActivityStateUpdated,
-        "[wrkr][%p] IsActive = %hhu, Arg = %u",
-        Worker,
-        Worker->IsActive,
-        UINT32_MAX);
-// arg2 = arg2 = Worker
-// arg3 = arg3 = Worker->IsActive
-// arg4 = arg4 = UINT32_MAX
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_WorkerActivityStateUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_WorkerStart
 
 
 
@@ -396,17 +230,14 @@ tracepoint(CLOG_WORKER_C, WorkerActivityStateUpdated , arg2, arg3, arg4);\
         WorkerStart,
         "[wrkr][%p] Start",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WorkerStart
 #define _clog_3_ARGS_TRACE_WorkerStart(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_WORKER_C, WorkerStart , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_WorkerStop
 
 
 
@@ -417,17 +248,14 @@ tracepoint(CLOG_WORKER_C, WorkerStart , arg2);\
         WorkerStop,
         "[wrkr][%p] Stop",
         Worker);
-// arg2 = arg2 = Worker
+// arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WorkerStop
 #define _clog_3_ARGS_TRACE_WorkerStop(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_WORKER_C, WorkerStop , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -439,9 +267,10 @@ tracepoint(CLOG_WORKER_C, WorkerStop , arg2);\
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
             sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
-// arg2 = arg2 = "QUIC_WORKER_POOL"
-// arg3 = arg3 = sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)
+// arg2 = arg2 = "QUIC_WORKER_POOL" = arg2
+// arg3 = arg3 = sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_WORKER_C, AllocFailure , arg2, arg3);\
 

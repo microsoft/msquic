@@ -64,6 +64,11 @@ namespace QuicTrace.Tables
                 new ColumnMetadata(new Guid("{0487D420-EE35-4E6F-A9B4-D535D9AED1AB}"), "Rtt (ms)"),
                 new UIHints { AggregationMode = AggregationMode.Average });
 
+        private static readonly ColumnConfiguration txDelayColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{8c364574-f245-450c-8b95-651822704af9}"), "TX Delay (us)"),
+                new UIHints { AggregationMode = AggregationMode.Average });
+
         private static readonly TableConfiguration tableConfig1 =
             new TableConfiguration("Data Rates by Connection")
             {
@@ -123,15 +128,32 @@ namespace QuicTrace.Tables
                 Columns = new[]
                 {
                      connectionColumnConfig,
-                     typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     typeColumnConfig,
                      processIdColumnConfig,
                      timeColumnConfig,
                      durationColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
                      rttColumnConfig,
+                }
+            };
+
+        private static readonly TableConfiguration tableConfig5 =
+            new TableConfiguration("TX Delay by Connection")
+            {
+                Columns = new[]
+                {
+                     connectionColumnConfig,
+                     TableConfiguration.PivotColumn,
+                     TableConfiguration.LeftFreezeColumn,
+                     typeColumnConfig,
+                     processIdColumnConfig,
+                     timeColumnConfig,
+                     TableConfiguration.RightFreezeColumn,
+                     TableConfiguration.GraphColumn,
+                     txDelayColumnConfig,
                 }
             };
 
@@ -162,17 +184,18 @@ namespace QuicTrace.Tables
             table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
             table.AddColumn(rttColumnConfig, dataProjection.Compose(ProjectRtt));
+            table.AddColumn(txDelayColumnConfig, dataProjection.Compose(ProjectTxDelay));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Type\"";
-            tableConfig1.InitialFilterQuery = "[Type]:<>\"Tx\" AND [Type]:<>\"Rx\"";
+            tableConfig1.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
+            tableConfig1.InitialFilterQuery = "[Type]:<>\"Tx\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"Rx\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig2.InitialSelectionQuery = "[Type]:=\"InFlight\"";
             tableConfig2.InitialFilterQuery =
-                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"TxUdp\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\"";
+                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"PktCreate\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"TxDelay\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
             tableConfig3.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
@@ -183,8 +206,12 @@ namespace QuicTrace.Tables
             tableConfig4.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig4.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
             tableConfig4.InitialFilterQuery =
-                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"TxUdp\" AND [Type]:<>\"Rx\"";
+                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"Rx\"";
             tableBuilder.AddTableConfiguration(tableConfig4);
+
+            tableConfig5.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableConfig5.InitialFilterQuery = "[Type]:<>\"TxDelay\"";
+            tableBuilder.AddTableConfiguration(tableConfig5);
 
             tableBuilder.SetDefaultTableConfiguration(tableConfig1);
         }
@@ -229,6 +256,11 @@ namespace QuicTrace.Tables
         private static double ProjectRtt(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
             return data.Item2.Value / 1000.0;
+        }
+
+        private static ulong ProjectTxDelay(ValueTuple<QuicConnection, QuicRawTputData> data)
+        {
+            return Math.Min(data.Item2.Value, 15000);
         }
 
         #endregion

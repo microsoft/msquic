@@ -12,11 +12,11 @@
         Cubic->KCubic,
         Cubic->WindowMax,
         Cubic->WindowLastMax);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Cubic->SlowStartThreshold
-// arg4 = arg4 = Cubic->KCubic
-// arg5 = arg5 = Cubic->WindowMax
-// arg6 = arg6 = Cubic->WindowLastMax
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Cubic->SlowStartThreshold = arg3
+// arg4 = arg4 = Cubic->KCubic = arg4
+// arg5 = arg5 = Cubic->WindowMax = arg5
+// arg6 = arg6 = Cubic->WindowLastMax = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCubic,
     TP_ARGS(
@@ -43,7 +43,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCubic,
         ConnCongestion,
         "[conn][%p] Congestion event",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCongestion,
     TP_ARGS(
@@ -59,10 +59,10 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCongestion,
 // Decoder Ring for ConnPersistentCongestion
 // [conn][%p] Persistent congestion event
 // QuicTraceEvent(
-        ConnPersistentCongestion,
-        "[conn][%p] Persistent congestion event",
-        Connection);
-// arg2 = arg2 = Connection
+            ConnPersistentCongestion,
+            "[conn][%p] Persistent congestion event",
+            Connection);
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnPersistentCongestion,
     TP_ARGS(
@@ -81,7 +81,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnPersistentCongestion,
                 ConnRecoveryExit,
                 "[conn][%p] Recovery complete",
                 Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnRecoveryExit,
     TP_ARGS(
@@ -100,7 +100,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnRecoveryExit,
         ConnSpuriousCongestion,
         "[conn][%p] Spurious congestion event",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
     TP_ARGS(
@@ -128,16 +128,16 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.Send.TotalBytes
-// arg4 = arg4 = Cubic->BytesInFlight
-// arg5 = arg5 = Cubic->BytesInFlightMax
-// arg6 = arg6 = Cubic->CongestionWindow
-// arg7 = arg7 = Cubic->SlowStartThreshold
-// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent
-// arg9 = arg9 = Connection->SendBuffer.IdealBytes
-// arg10 = arg10 = Connection->SendBuffer.PostedBytes
-// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
+// arg4 = arg4 = Cubic->BytesInFlight = arg4
+// arg5 = arg5 = Cubic->BytesInFlightMax = arg5
+// arg6 = arg6 = Cubic->CongestionWindow = arg6
+// arg7 = arg7 = Cubic->SlowStartThreshold = arg7
+// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
+// arg9 = arg9 = Connection->SendBuffer.IdealBytes = arg9
+// arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
+// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnOutFlowStats,
     TP_ARGS(
