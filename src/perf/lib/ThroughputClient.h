@@ -114,6 +114,7 @@ private:
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
+            .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
             .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |

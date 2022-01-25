@@ -133,6 +133,7 @@ private:
         Registration,
         Alpn,
         MsQuicSettings()
+            .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
             .SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
             .SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
