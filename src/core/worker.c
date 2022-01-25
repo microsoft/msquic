@@ -31,10 +31,12 @@ QuicWorkerLoop(
     _In_ CXPLAT_THREAD_ID ThreadID
     );
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
 //
 // Thread callback for processing the work queued for the worker.
 //
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context);
+#endif
 
 void
 QuicWorkerThreadWake(
@@ -42,7 +44,11 @@ QuicWorkerThreadWake(
     )
 {
     Worker->ExecutionContext.Ready = TRUE; // Run the execution context
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
     CxPlatEventSet(Worker->Ready);
+#else
+    CxPlatWakeExecutionContext(&Worker->ExecutionContext);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -77,7 +83,9 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
     Worker->ExecutionContext.Ready = TRUE;
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
+#endif
     CxPlatListInitializeHead(&Worker->Connections);
     CxPlatListInitializeHead(&Worker->Operations);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
@@ -93,6 +101,9 @@ QuicWorkerInitialize(
         goto Error;
     }
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
+#else
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         ThreadFlags,
         IdealProcessor,
@@ -111,6 +122,7 @@ QuicWorkerInitialize(
             "CxPlatThreadCreate");
         goto Error;
     }
+#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 Error:
 
@@ -141,6 +153,7 @@ QuicWorkerUninitialize(
     CxPlatEventWaitForever(Worker->Done);
     CxPlatEventUninitialize(Worker->Done);
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
     //
     // Wait for the thread to finish.
     //
@@ -149,6 +162,7 @@ QuicWorkerUninitialize(
         CxPlatThreadDelete(&Worker->Thread);
     }
     CxPlatEventUninitialize(Worker->Ready);
+#endif // QUIC_USE_EXECUTION_CONTEXTS
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
@@ -701,6 +715,7 @@ QuicWorkerLoop(
     return TRUE;
 }
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
@@ -736,6 +751,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
         Worker);
     CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
+#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

@@ -277,6 +277,274 @@ Error:
     return Result;
 }
 
+typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
+
+    //
+    // Indicates if the worker is currently running.
+    //
+    BOOLEAN Running;
+
+    //
+    // Event to wake the worker.
+    //
+    CXPLAT_EVENT WakeEvent;
+
+    //
+    // Thread used to drive the worker.
+    //
+    CXPLAT_THREAD Thread;
+
+    //
+    // The ID of the thread.
+    //
+    CXPLAT_THREAD_ID ThreadId;
+
+    //
+    // The datapath execution context running on this worker.
+    //
+    void* DatapathEC;
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+
+    //
+    // The set of actively registered execution contexts.
+    //
+    CXPLAT_SLIST_ENTRY* ExecutionContexts;
+
+    //
+    // Indicates if there are execution contexts ready to be executed.
+    //
+    BOOLEAN ECsReady;
+
+    //
+    // Indicates the next time that execution contexts should be executed.
+    //
+    uint64_t ECsReadyTime;
+
+#endif // QUIC_USE_EXECUTION_CONTEXTS
+
+} CXPLAT_WORKER;
+
+uint32_t CxPlatWorkerCount;
+CXPLAT_WORKER* CxPlatWorkers;
+CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
+
+void CxPlatDataPathWake(void*);
+BOOLEAN CxPlatDataPathRunEC(void*, uint32_t WaitTime);
+
+void
+CxPlatWorkerWake(
+    _In_ CXPLAT_WORKER* Worker
+    )
+{
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    Worker->ECsReady = TRUE;
+#endif // QUIC_USE_EXECUTION_CONTEXTS
+    if (Worker->DatapathEC) {
+        CxPlatDataPathWake(Worker->DatapathEC);
+    } else {
+        CxPlatEventSet(Worker->WakeEvent);
+    }
+}
+
+void
+CxPlatWorkerRegisterDataPath(
+    _In_ uint16_t IdealProcessor,
+    _In_ void* DatapathEC
+    )
+{
+    CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
+    CXPLAT_DBG_ASSERT(Worker->DatapathEC == NULL);
+    Worker->DatapathEC = DatapathEC;
+    CxPlatEventSet(Worker->WakeEvent);
+}
+
+#pragma warning(push)
+#pragma warning(disable:6385)
+#pragma warning(disable:6386) // SAL is confused about the worker size
+BOOLEAN
+CxPlatWorkersInit(
+    void
+    )
+{
+    CxPlatWorkerCount = CxPlatProcActiveCount(); // TODO - use max instead?
+    CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0 && CxPlatWorkerCount <= UINT16_MAX);
+
+    const size_t WorkersSize = sizeof(CXPLAT_WORKER) * CxPlatWorkerCount;
+
+    CxPlatWorkers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
+    if (CxPlatWorkers == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_WORKER",
+            WorkersSize);
+        return FALSE;
+    }
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
+        0,
+        "cxplat_worker",
+        CxPlatWorkerThread,
+        NULL
+    };
+
+    CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
+    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
+        CxPlatWorkers[i].Running = TRUE;
+        CxPlatEventInitialize(&CxPlatWorkers[i].WakeEvent, FALSE, FALSE);
+        ThreadConfig.IdealProcessor = (uint16_t)i;
+        ThreadConfig.Context = &CxPlatWorkers[i];
+        if (QUIC_FAILED(
+            CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
+            CxPlatWorkers[i].Running = FALSE;
+            goto Error;
+        }
+    }
+
+    return TRUE;
+
+Error:
+
+    for (uint32_t i = 0; i < CxPlatWorkerCount && CxPlatWorkers[i].Running; ++i) {
+        CxPlatWorkers[i].Running = FALSE;
+        CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
+        CxPlatThreadWait(&CxPlatWorkers[i].Thread);
+        CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+        CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
+    }
+
+    CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
+    CxPlatWorkers = NULL;
+
+    return FALSE;
+}
+#pragma warning(pop)
+
+void
+CxPlatWorkersUninit(
+    void
+    )
+{
+    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
+        CxPlatWorkers[i].Running = FALSE;
+        CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
+        CxPlatThreadWait(&CxPlatWorkers[i].Thread);
+        CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+        CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
+    }
+
+    CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
+    CxPlatWorkers = NULL;
+}
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+
+//
+// TODO - Add synchronization around ExecutionContexts
+//
+
+void
+CxPlatAddExecutionContext(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _In_ uint16_t IdealProcessor
+    )
+{
+    CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
+    Context->CxPlatContext = Worker;
+    Context->Entry.Next = Worker->ExecutionContexts;
+    Worker->ExecutionContexts = &Context->Entry;
+}
+
+void
+CxPlatWakeExecutionContext(
+    _In_ CXPLAT_EXECUTION_CONTEXT* Context
+    )
+{
+    CxPlatWorkerWake((CXPLAT_WORKER*)Context->CxPlatContext);
+}
+
+void
+CxPlatRunExecutionContexts(
+    _In_ CXPLAT_WORKER* Worker,
+    _Inout_ uint64_t* TimeNow
+    )
+{
+    Worker->ECsReady = FALSE;
+    Worker->ECsReadyTime = UINT64_MAX;
+
+    if (Worker->ExecutionContexts == NULL) {
+        return;
+    }
+
+    CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
+    while (*EC != NULL) {
+        CXPLAT_EXECUTION_CONTEXT* Context =
+            CXPLAT_CONTAINING_RECORD(*EC, CXPLAT_EXECUTION_CONTEXT, Entry);
+        if (Context->Ready || Context->NextTimeUs <= *TimeNow) {
+            CXPLAT_SLIST_ENTRY* Next = Context->Entry.Next;
+            if (!Context->Callback(Context->Context, TimeNow, Worker->ThreadId)) {
+                *EC = Next; // Remove Context from the list.
+                continue;
+            } else if (Context->Ready) {
+                Worker->ECsReady = TRUE;
+            }
+        }
+        EC = &Context->Entry.Next;
+    }
+}
+
+#endif
+
+CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
+{
+    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
+    CXPLAT_DBG_ASSERT(Worker != NULL);
+
+    QuicTraceLogInfo(
+        PlatformWorkerThreadStart,
+        "[ lib][%p] Worker start",
+        Worker);
+
+    Worker->ThreadId = GetCurrentThreadId();
+
+    while (Worker->Running) {
+
+        uint32_t WaitTime = INFINITE;
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+        uint64_t TimeNow = CxPlatTimeUs64();
+        CxPlatRunExecutionContexts(Worker, &TimeNow);
+        if (Worker->ECsReady) {
+            WaitTime = 0;
+        } else if (Worker->ECsReadyTime != UINT64_MAX) {
+            uint64_t Diff = Worker->ECsReadyTime - TimeNow;
+            if (Diff < UINT32_MAX) {
+                WaitTime = (DWORD)Diff;
+            } else {
+                WaitTime = UINT32_MAX-1;
+            }
+        }
+#endif
+
+        if (Worker->DatapathEC) {
+            if (!CxPlatDataPathRunEC(Worker->DatapathEC, WaitTime)) {
+                Worker->DatapathEC = NULL;
+            }
+        } else if (WaitTime != 0) {
+            CxPlatEventWaitWithTimeout(Worker->WakeEvent, WaitTime);
+        }
+    }
+
+    QuicTraceLogInfo(
+        PlatformWorkerThreadStop,
+        "[ lib][%p] Worker stop",
+        Worker);
+
+    CXPLAT_THREAD_RETURN(0);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatInitialize(
@@ -284,6 +552,7 @@ CxPlatInitialize(
     )
 {
     QUIC_STATUS Status;
+    BOOLEAN CryptoInitialized = FALSE;
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
@@ -312,6 +581,8 @@ CxPlatInitialize(
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
+
+    CxPlatTotalMemory = memInfo.ullTotalPageFile;
 
 #ifdef TIMERR_NOERROR
     MMRESULT mmResult;
@@ -342,8 +613,12 @@ CxPlatInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
+    CryptoInitialized = TRUE;
 
-    CxPlatTotalMemory = memInfo.ullTotalPageFile;
+    if (!CxPlatWorkersInit()) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
 #ifdef TIMERR_NOERROR
     QuicTraceLogInfo(
@@ -362,6 +637,9 @@ CxPlatInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
+        if (CryptoInitialized) {
+            CxPlatCryptUninitialize();
+        }
         if (CxPlatform.Heap) {
             HeapDestroy(CxPlatform.Heap);
             CxPlatform.Heap = NULL;
@@ -377,6 +655,7 @@ CxPlatUninitialize(
     void
     )
 {
+    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR
