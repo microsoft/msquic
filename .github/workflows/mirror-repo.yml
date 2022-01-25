@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: read # for actions/checkout to fetch code
     name: Mirror
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24 # v1
