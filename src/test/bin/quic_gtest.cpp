@@ -1602,6 +1602,15 @@ TEST_P(WithFamilyArgs, DatagramSend) {
     }
 }
 
+TEST_P(WithFamilyArgs, ClientServerSharedBinding) {
+    TestLoggerT<ParamType> Logger("QuicTestClientServerSharedBinding", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_SERVER_SHARED_BINDING, GetParam().Family));
+    } else {
+        QuicTestClientServerSharedBinding(GetParam().Family);
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithBool,

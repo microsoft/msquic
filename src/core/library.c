@@ -1464,7 +1464,7 @@ QuicLibraryLookupBinding(
                 continue;
             }
 
-        } else  if (RemoteAddress != NULL) {
+        } else if (RemoteAddress != NULL) {
             continue;
         }
 
@@ -1486,7 +1486,6 @@ QuicLibraryGetBinding(
     QUIC_ADDR NewLocalAddress;
     BOOLEAN PortUnspecified = UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
     BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
-    BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -1526,8 +1525,7 @@ SharedEphemeralRetry:
             UdpConfig->LocalAddress,
             UdpConfig->RemoteAddress);
     if (Binding != NULL) {
-        if (!ShareBinding || Binding->Exclusive ||
-            (ServerOwned != Binding->ServerOwned)) {
+        if (!ShareBinding || Binding->Exclusive) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
@@ -1543,6 +1541,9 @@ SharedEphemeralRetry:
             // Match found and can be shared.
             //
             CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
+            if (!Binding->ClientOwned && !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED)) {
+                Binding->ClientOwned = TRUE;
+            }
             Binding->RefCount++;
             *NewBinding = Binding;
             Status = QUIC_STATUS_SUCCESS;

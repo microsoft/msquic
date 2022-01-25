@@ -2804,3 +2804,83 @@ QuicTestInterfaceBinding(
     Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
+
+void
+QuicTestClientServerSharedBinding(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        TEST_EQUAL(QuicAddrGetFamily(&ServerLocalAddr.SockAddr), QuicAddrFamily);
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(Client.SetShareUdpBinding(true));
+                if (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) {
+                    CxPlatZeroMemory(
+                        &ServerLocalAddr.SockAddr.Ipv4.sin_addr,
+                        sizeof(ServerLocalAddr.SockAddr.Ipv4.sin_addr));
+                } else {
+                    TEST_EQUAL(QuicAddrFamily, QUIC_ADDRESS_FAMILY_INET6);
+                    CxPlatZeroMemory(
+                        &ServerLocalAddr.SockAddr.Ipv6.sin6_addr,
+                        sizeof(ServerLocalAddr.SockAddr.Ipv6.sin6_addr));
+                }
+                TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(ServerLocalAddr));
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_STATUS_SUCCESS);
+
+                TEST_TRUE(Client.GetIsShutdown());
+                TEST_TRUE(Server->GetIsShutdown());
+                TEST_TRUE(Server->GetPeerClosed());
+            }
+        }
+    }
+}

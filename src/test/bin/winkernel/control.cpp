@@ -453,7 +453,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    0
+    0,
+    sizeof(INT32)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1143,6 +1144,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START:
         QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenAndStart());
+        break;
+
+    case IOCTL_QUIC_RUN_CLIENT_SERVER_SHARED_BINDING:
+        QuicTestCtlRun(QuicTestClientServerSharedBinding(Params->Family));
         break;
 
     default:
