@@ -432,6 +432,12 @@ if ($MergeDataFiles) {
     Write-Host "All tests:"
     $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize *
 
+    # Write all data to CSV.
+    $CsvFile = Join-Path $OutputDir "wan_data.csv"
+    Write-Host "Writing all data to $CsvFile"
+    $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | `
+        Export-Csv -Path $CsvFile -NoTypeInformation -Force -UseQuotes AsNeeded
+
     return
 }
 
