@@ -605,7 +605,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
             $Results.Add($Rate) | Out-Null
             
-            (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded", "\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples
+            (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded", "\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples | Out-String -Stream | Write-Debug
 
             if ($LogProfile -ne "None") {
                 $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
