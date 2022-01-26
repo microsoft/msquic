@@ -511,6 +511,10 @@ Write-Host $Header
 # Turn on RDQ for duonic.
 Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -NoRestart
 
+# Configure duonic ring buffer size to be 4096 (2^12).
+Set-NetAdapterAdvancedProperty duo? -DisplayName TxQueueSizeExp -RegistryValue 13 -NoRestart
+Set-NetAdapterAdvancedProperty duo? -DisplayName RxQueueSizeExp -RegistryValue 13 -NoRestart
+
 # The RDQ buffer limit is by packets and not bytes, so turn off LSO to avoid
 # strange behavior. This makes RDQ behave more like a real middlebox on the
 # network (such a middlebox would only see packets after LSO sends are split
@@ -600,6 +604,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             }
 
             $Results.Add($Rate) | Out-Null
+            
+            (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded", "\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples | Out-String -Stream | Write-Debug
 
             if ($LogProfile -ne "None") {
                 $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
