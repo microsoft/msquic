@@ -185,12 +185,14 @@ protected:
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
 #ifndef QUIC_DISABLE_PFX_TESTS
-        if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
-            CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+        if (CertParamsFromFile != nullptr) {
+            if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
+                CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+            }
+            CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
+            CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
+            CertParamsFromFile = nullptr;
         }
-        CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
-        CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
-        CertParamsFromFile = nullptr;
 #endif
     }
 
@@ -777,6 +779,7 @@ TEST_F(TlsTest, Handshake)
 #ifndef QUIC_DISABLE_PFX_TESTS
 TEST_F(TlsTest, HandshakeCertFromFile)
 {
+    ASSERT_NE(nullptr, CertParamsFromFile);
     CxPlatSecConfig ClientConfig;
     ClientConfig.Load(CertParamsFromFile);
     CxPlatServerSecConfig ServerConfig;
