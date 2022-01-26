@@ -16,6 +16,7 @@ Abstract:
 #define PERF_DEFAULT_PORT                   4433
 #define PERF_DEFAULT_DISCONNECT_TIMEOUT     (10 * 1000)
 #define PERF_DEFAULT_IDLE_TIMEOUT           (30 * 1000)
+#define PERF_DEFAULT_CONN_FLOW_CONTROL      0x8000000
 #define PERF_DEFAULT_STREAM_COUNT           100
 #define PERF_MAX_THREAD_COUNT               128
 
