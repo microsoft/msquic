@@ -506,8 +506,8 @@ Write-Host $Header
 Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -NoRestart
 
 # Configure duonic ring buffer size to be 4096 (2^12).
-Set-NetAdapterAdvancedProperty duo? -DisplayName TxQueueSizeExp -RegistryValue 12 -NoRestart
-Set-NetAdapterAdvancedProperty duo? -DisplayName RxQueueSizeExp -RegistryValue 12 -NoRestart
+Set-NetAdapterAdvancedProperty duo? -DisplayName TxQueueSizeExp -RegistryValue 13 -NoRestart
+Set-NetAdapterAdvancedProperty duo? -DisplayName RxQueueSizeExp -RegistryValue 13 -NoRestart
 
 # The RDQ buffer limit is by packets and not bytes, so turn off LSO to avoid
 # strange behavior. This makes RDQ behave more like a real middlebox on the
