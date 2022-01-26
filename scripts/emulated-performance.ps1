@@ -566,7 +566,22 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Set-NetAdapterAdvancedProperty duo? -DisplayName RandomSeed -RegistryValue $RandomSeed -NoRestart
 
             Write-Debug "Restarting NIC"
-            Restart-NetAdapter duo?
+            $TryCount = 0
+            $Success = $false
+            while ($TryCount -lt 3) {
+                try {
+                    Restart-NetAdapter duo?
+                    $Success = $true
+                    break
+                } catch {
+                    $TryCount++
+                    Write-Debug "Exception while restarting NIC. Trying Again."
+                    Start-Sleep -Seconds 1
+                }
+            }
+            if (!$Success) {
+                Write-Error "Failed to restart NIC after 3 tries."
+            }
             Start-Sleep 5 # (wait for duonic to restart)
 
             if ($LogProfile -ne "None") {
