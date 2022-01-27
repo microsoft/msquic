@@ -830,6 +830,8 @@ TestConnection::HandleConnectionEvent(
 
     case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
         switch (Event->DATAGRAM_SEND_STATE_CHANGED.State) {
+        case QUIC_DATAGRAM_SEND_UNKNOWN:
+            break;
         case QUIC_DATAGRAM_SEND_SENT:
             DatagramsSent++;
             break;
