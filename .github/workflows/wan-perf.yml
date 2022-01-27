@@ -73,9 +73,9 @@ jobs:
       iterations: 3
       duration: 10000
       pacing: 1
-      loss: "(0,1000,10000)"
-      reorder: "(0,1000,10000)"
-      delay: "(0,5,10)"
+      loss: "(0)"
+      reorder: "(0)"
+      delay: "(0)"
     strategy:
       fail-fast: false
       matrix:
