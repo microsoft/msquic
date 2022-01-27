@@ -190,14 +190,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // The maximum number of received packets that may be queued on a single
 // connection. When this limit is reached, any additional packets are dropped.
 //
-#ifdef _KERNEL_MODE
-//
-// Kernel modes receive path is slightly different, so allow larger queue sizes.
-//
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
-#else
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            4096
-#endif
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 
 //
 // The maximum number of pending datagrams we will hold on to, per connection,
