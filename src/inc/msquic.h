@@ -207,6 +207,7 @@ typedef enum QUIC_SEND_FLAGS {
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
 
 typedef enum QUIC_DATAGRAM_SEND_STATE {
+    QUIC_DATAGRAM_SEND_UNKNOWN,                         // Not yet sent.
     QUIC_DATAGRAM_SEND_SENT,                            // Sent and awaiting acknowledegment
     QUIC_DATAGRAM_SEND_LOST_SUSPECT,                    // Suspected as lost, but still tracked
     QUIC_DATAGRAM_SEND_LOST_DISCARDED,                  // Lost and not longer being tracked
