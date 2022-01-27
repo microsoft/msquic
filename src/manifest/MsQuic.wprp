@@ -245,6 +245,7 @@
             <EventProviderId Value="EP_WinSockEtw" />
             <EventProviderId Value="EP_SChannelWpp" />
             <EventProviderId Value="EP_NCryptWpp" />
+            <EventProviderId Value="EP_XdpEtwPerFrame" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
