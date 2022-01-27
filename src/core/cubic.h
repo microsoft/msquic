@@ -74,8 +74,8 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     //
     uint8_t Exemptions;
 
-    uint64_t TimeOfLastAck; // millisec
-    uint64_t TimeOfCongAvoidStart; // millisec
+    uint64_t TimeOfLastAck; // microseconds
+    uint64_t TimeOfCongAvoidStart; // microseconds
     uint32_t KCubic; // millisec
     uint32_t PrevKCubic; // millisec
     uint32_t WindowMax; // bytes

@@ -59,9 +59,9 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCongestion,
 // Decoder Ring for ConnPersistentCongestion
 // [conn][%p] Persistent congestion event
 // QuicTraceEvent(
-        ConnPersistentCongestion,
-        "[conn][%p] Persistent congestion event",
-        Connection);
+            ConnPersistentCongestion,
+            "[conn][%p] Persistent congestion event",
+            Connection);
 // arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnPersistentCongestion,
