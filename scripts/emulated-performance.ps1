@@ -133,7 +133,7 @@ class FormattedResult {
     #[bool]$Pacing;
     [int]$RateKbps;
     [int]$PrevKbps;
-    [bool]$Tcp;
+    [int]$Tcp;
 
     FormattedResult (
         [int]$RttMs,
@@ -422,15 +422,21 @@ if ($MergeDataFiles) {
 
     # Show the worst absolute tests.
     Write-Host "`nWorst tests, relative to bottleneck rate (Usage):"
-    $FormatResults | Sort-Object -Property Usage | Select-Object -First 50 | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property Usage | Select-Object -First 50 | Format-Table -AutoSize *
 
     # Show the worst tests, relative to the previous run.
     Write-Host "Worst tests, relative to the previous run (DiffPrev):"
-    $FormatResults | Sort-Object -Property DiffPrev | Select-Object -First 50 | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property DiffPrev | Select-Object -First 50 | Format-Table -AutoSize *
 
     # Dump all data.
     Write-Host "All tests:"
-    $FormatResults | Sort-Object -Property NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize
+    $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize *
+
+    # Write all data to CSV.
+    $CsvFile = Join-Path $OutputDir "wan_data.csv"
+    Write-Host "Writing all data to $CsvFile"
+    $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | `
+        Export-Csv -Path $CsvFile -NoTypeInformation -Force -UseQuotes AsNeeded
 
     return
 }
@@ -504,6 +510,10 @@ Write-Host $Header
 
 # Turn on RDQ for duonic.
 Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -NoRestart
+
+# Configure duonic ring buffer size to be 4096 (2^12).
+Set-NetAdapterAdvancedProperty duo? -DisplayName TxQueueSizeExp -RegistryValue 13 -NoRestart
+Set-NetAdapterAdvancedProperty duo? -DisplayName RxQueueSizeExp -RegistryValue 13 -NoRestart
 
 # The RDQ buffer limit is by packets and not bytes, so turn off LSO to avoid
 # strange behavior. This makes RDQ behave more like a real middlebox on the
@@ -594,6 +604,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             }
 
             $Results.Add($Rate) | Out-Null
+            
+            (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded", "\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples | Out-String -Stream | Write-Debug
 
             if ($LogProfile -ne "None") {
                 $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"

@@ -1,4 +1,4 @@
-FROM    martenseemann/quic-network-simulator-endpoint as source
+FROM    martenseemann/quic-network-simulator-endpoint@sha256:ff6ab6273c22d0609e2c0a123a15310da8bcd27052e8aaf10a6cc799a0218a4c as source
 ENV     DEBIAN_FRONTEND=noninteractive
 RUN     apt-get update -y \
             && apt-get install -y \
@@ -18,7 +18,7 @@ RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF \
             -DQUIC_DISABLE_POSIX_GSO=on ..
 RUN     cmake --build .
 
-FROM    martenseemann/quic-network-simulator-endpoint
+FROM    martenseemann/quic-network-simulator-endpoint@sha256:ff6ab6273c22d0609e2c0a123a15310da8bcd27052e8aaf10a6cc799a0218a4c
 RUN     apt-get update -y \
             && apt-get install -y \
             libatomic1 \

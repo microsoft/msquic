@@ -93,6 +93,7 @@ option(QUIC_CI "CI Specific build" OFF)
 option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
@@ -273,6 +274,10 @@ list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
 
 if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)
+endif()
+
+if(QUIC_HIGH_RES_TIMERS)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_HIGH_RES_TIMERS=1)
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")

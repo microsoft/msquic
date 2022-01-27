@@ -10521,6 +10521,26 @@
       "UniqueId": "PerfControlInitialized",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "WindowsUserInitialized2": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
+      "UniqueId": "WindowsUserInitialized2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
     }
   },
   "ConfigFile": {
@@ -14336,6 +14356,11 @@
         "UniquenessHash": "e7d3b50d-c315-3189-9752-de68bf66c705",
         "TraceID": "LogPacketVersionNegotiation",
         "EncodingString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)"
+      },
+      {
+        "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
+        "TraceID": "WindowsUserInitialized2",
+        "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
       }
     ]
   }
