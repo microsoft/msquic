@@ -1109,9 +1109,18 @@ QuicSettingsGetParam(
     }
 
     CxPlatZeroMemory(OutgoingSettings, *OutgoingSize);
-    CxPlatCopyMemory(OutgoingSettings, IncomingSettings, *OutgoingSize);
-    OutgoingSettings->DesiredVersionsList = NULL;
-    OutgoingSettings->DesiredVersionsListLength = 0;
+    uint32_t CopySize = CXPLAT_MIN(*OutgoingSize, sizeof(QUIC_SETTINGS));
+
+    CxPlatCopyMemory(OutgoingSettings, IncomingSettings, CopySize);
+    *OutgoingSize = CopySize;
+
+    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
+        OutgoingSettings->DesiredVersionsList = NULL;
+    }
+
+    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsListLength)) {
+        OutgoingSettings->DesiredVersionsListLength = 0;
+    }
 
     return QUIC_STATUS_SUCCESS;
 }
