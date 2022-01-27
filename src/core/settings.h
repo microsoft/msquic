@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // Initializes all settings to default values, if not already set by the app.
 //
@@ -95,3 +99,7 @@ QuicSettingsGetDesiredVersions(
     _Out_writes_bytes_opt_(*BufferLength)
         uint32_t* Buffer
     );
+
+#if defined(__cplusplus)
+}
+#endif
