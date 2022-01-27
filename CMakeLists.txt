@@ -54,8 +54,8 @@ message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(QUIC_MAJOR_VERSION 1)
-set(QUIC_FULL_VERSION 1.10.0)
+set(QUIC_MAJOR_VERSION 2)
+set(QUIC_FULL_VERSION 2.0.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
