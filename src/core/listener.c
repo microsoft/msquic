@@ -311,7 +311,7 @@ MsQuicListenerStart(
     }
 
     Listener->Stopped = FALSE;
-    CxPlatEventReset(&Listener->StopEvent);
+    CxPlatEventReset(Listener->StopEvent);
     CxPlatRefInitialize(&Listener->RefCount);
 
     if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
