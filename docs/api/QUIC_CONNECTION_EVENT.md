@@ -280,7 +280,6 @@ Pointer to a platform/TLS specific certificate. Valid only during the callback.
 
 If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the DER (binary) encoded remote X.509 certificate.
 
-
 `DeferredErrorFlags`
 
 Bit flag of errors encountered when doing deferring validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront. Only supported with Schannel currently.
