@@ -4130,7 +4130,8 @@ QuicConnRecvFrames(
     _In_ CXPLAT_ECN_TYPE ECN
     )
 {
-    BOOLEAN AckPacketImmediately = FALSE; // Allows skipping delayed ACK timer.
+    BOOLEAN AckEliciting = FALSE;
+    BOOLEAN AckImmediately = FALSE;
     BOOLEAN UpdatedFlowControl = FALSE;
     QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
     BOOLEAN Closed = Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
@@ -4241,7 +4242,7 @@ QuicConnRecvFrames(
             // No other payload. Just need to acknowledge the packet this was
             // contained in.
             //
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4296,7 +4297,7 @@ QuicConnRecvFrames(
                     Packet->KeyType,
                     &Frame);
             if (QUIC_SUCCEEDED(Status)) {
-                AckPacketImmediately = TRUE;
+                AckEliciting = TRUE;
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 return FALSE;
             } else {
@@ -4347,7 +4348,7 @@ QuicConnRecvFrames(
             // TODO - Save the token for future use.
             //
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4390,7 +4391,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
 
             BOOLEAN PeerOriginatedStream =
                 QuicConnIsServer(Connection) ?
@@ -4514,7 +4515,7 @@ QuicConnRecvFrames(
                     &Connection->Send, REASON_CONNECTION_FLOW_CONTROL);
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4546,7 +4547,7 @@ QuicConnRecvFrames(
                 Frame.BidirectionalStreams,
                 Frame.MaximumStreams);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4577,7 +4578,7 @@ QuicConnRecvFrames(
                 Frame.DataLimit);
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_MAX_DATA);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4605,7 +4606,7 @@ QuicConnRecvFrames(
                 "Peer Streams[%hu] FC blocked (%llu)",
                 Frame.BidirectionalStreams,
                 Frame.StreamLimit);
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
 
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS; // TODO - Uni/Bidi
@@ -4699,7 +4700,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4751,7 +4752,7 @@ QuicConnRecvFrames(
                 }
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4776,7 +4777,7 @@ QuicConnRecvFrames(
             CxPlatCopyMemory(Path->Response, Frame.Data, sizeof(Frame.Data));
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4807,7 +4808,7 @@ QuicConnRecvFrames(
                 }
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4835,7 +4836,7 @@ QuicConnRecvFrames(
                 Frame.ReasonPhrase,
                 (uint16_t)Frame.ReasonPhraseLength);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
 
             if (Connection->State.HandleClosed) {
@@ -4867,7 +4868,7 @@ QuicConnRecvFrames(
                 QuicCryptoHandshakeConfirmed(&Connection->Crypto);
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4898,7 +4899,7 @@ QuicConnRecvFrames(
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
             }
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4924,7 +4925,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             if (Frame.SequenceNumber < Connection->NextRecvAckFreqSeqNum) {
                 //
                 // This sequence number (or a higher one) has already been
@@ -4953,6 +4954,10 @@ QuicConnRecvFrames(
                 Connection->PacketTolerance);
             break;
         }
+
+        case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
+            AckImmediately = TRUE;
+            break;
 
         default:
             //
@@ -4983,12 +4988,21 @@ Done:
             Packet->NewLargestPacketNumber = TRUE;
         }
 
+        QUIC_ACK_TYPE AckType;
+        if (AckImmediately) {
+            AckType = QUIC_ACK_TYPE_ACK_IMMEDIATE;
+        } else if (AckEliciting) {
+            AckType = QUIC_ACK_TYPE_ACK_ELICITING;
+        } else {
+            AckType = QUIC_ACK_TYPE_NON_ACK_ELICITING;
+        }
+
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
             RecvTime,
             ECN,
-            AckPacketImmediately);
+            AckType);
     }
 
     Packet->CompletelyValid = TRUE;

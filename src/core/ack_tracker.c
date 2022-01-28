@@ -103,7 +103,7 @@ QuicAckTrackerAckPacket(
     _In_ uint64_t PacketNumber,
     _In_ uint64_t RecvTimeUs,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ BOOLEAN AckElicitingPayload
+    _In_ QUIC_ACK_TYPE AckType
     )
 {
     QUIC_CONNECTION* Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
@@ -166,7 +166,7 @@ QuicAckTrackerAckPacket(
 
     Tracker->AlreadyWrittenAckFrame = FALSE;
 
-    if (!AckElicitingPayload) {
+    if (AckType == QUIC_ACK_TYPE_NON_ACK_ELICITING) {
         goto Exit;
     }
 
@@ -185,12 +185,14 @@ QuicAckTrackerAckPacket(
     //      been loss and should indicate this info to the peer. This logic is
     //      disabled if 'IgnoreReordering' is TRUE.
     //   3. The delayed ACK timer fires after the configured time.
+    //   4. The packet included an IMMEDIATE_ACK frame.
     //
     // If we don't queue an immediate ACK and this is the first ACK eliciting
     // packet received, we make sure the ACK delay timer is started.
     //
 
-    if ((Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
+    if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
+        (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
         (!Connection->State.IgnoreReordering &&
          (NewLargestPacketNumber &&
           QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
