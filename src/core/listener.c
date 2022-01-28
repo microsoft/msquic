@@ -61,7 +61,8 @@ MsQuicListenerOpen(
     Listener->Registration = Registration;
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
-    CxPlatRundownInitializeDisabled(&Listener->Rundown);
+    Listener->Stopped = TRUE;
+    CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
     Listener->Silo = QuicSiloGetCurrentServer();
@@ -98,6 +99,32 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicListenerFree(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    QUIC_REGISTRATION* Registration = Listener->Registration;
+
+    QuicTraceEvent(
+        ListenerDestroyed,
+        "[list][%p] Destroyed",
+        Listener);
+
+    CXPLAT_DBG_ASSERT(Listener->Stopped);
+
+#ifdef QUIC_SILO
+    QuicSiloRelease(Listener->Silo);
+#endif
+
+    CxPlatRefUninitialize(&Listener->RefCount);
+    CxPlatEventUninitialize(Listener->StopEvent);
+    CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
+    CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
+    CxPlatRundownRelease(&Registration->Rundown);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QUIC_API
 MsQuicListenerClose(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
@@ -122,27 +149,25 @@ MsQuicListenerClose(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
-    QUIC_REGISTRATION* Registration = Listener->Registration;
 
-    //
-    // Make sure the listener has unregistered from the binding.
-    //
-    MsQuicListenerStop(Handle);
+    if (Listener->StopCompleteThreadID == CxPlatCurThreadID()) {
+        //
+        // We're currently in the stop complete event, so we can't free the
+        // listener until that callback unwinds.
+        //
+        Listener->NeedsCleanup = TRUE;
 
-    CxPlatRundownUninitialize(&Listener->Rundown);
+    } else {
+        //
+        // Make sure the listener has unregistered from the binding, all other
+        // references have been released, and the stop complete event has been
+        // delivered.
+        //
+        MsQuicListenerStop(Handle);
+        CxPlatEventWaitForever(Listener->StopEvent);
 
-    QuicTraceEvent(
-        ListenerDestroyed,
-        "[list][%p] Destroyed",
-        Listener);
-
-#ifdef QUIC_SILO
-    QuicSiloRelease(Listener->Silo);
-#endif
-
-    CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
-    CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
-    CxPlatRundownRelease(&Registration->Rundown);
+        QuicListenerFree(Listener);
+    }
 
     QuicTraceEvent(
         ApiExit,
@@ -204,7 +229,7 @@ MsQuicListenerStart(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Listener = (QUIC_LISTENER*)Handle;
 
-    if (Listener->Binding) {
+    if (!Listener->Stopped) {
         Status = QUIC_STATUS_INVALID_STATE;
         goto Exit;
     }
@@ -285,7 +310,9 @@ MsQuicListenerStart(
         goto Error;
     }
 
-    CxPlatRundownReInitialize(&Listener->Rundown);
+    Listener->Stopped = FALSE;
+    CxPlatEventReset(&Listener->StopEvent);
+    CxPlatRefInitialize(&Listener->RefCount);
 
     if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
         QuicTraceEvent(
@@ -293,7 +320,7 @@ MsQuicListenerStart(
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
-        CxPlatRundownReleaseAndWait(&Listener->Rundown);
+        QuicListenerRelease(Listener, FALSE);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -338,6 +365,77 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicListenerIndicateEvent(
+    _In_ QUIC_LISTENER* Listener,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
+    return
+        Listener->ClientCallbackHandler(
+            (HQUIC)Listener,
+            Listener->ClientContext,
+            Event);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+QuicListenerStopComplete(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN IndicateEvent
+    )
+{
+    QuicTraceEvent(
+        ListenerStopped,
+        "[list][%p] Stopped",
+        Listener);
+
+    if (Listener->AlpnList != NULL) {
+        CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
+        Listener->AlpnList = NULL;
+    }
+
+    if (IndicateEvent) {
+        QUIC_LISTENER_EVENT Event;
+        Event.Type = QUIC_LISTENER_EVENT_STOP_COMPLETE;
+
+        QuicListenerAttachSilo(Listener);
+
+        QuicTraceLogVerbose(
+            ListenerIndicateStopComplete,
+            "[list][%p] Indicating STOP_COMPLETE",
+            Listener);
+
+        Listener->StopCompleteThreadID = CxPlatCurThreadID();
+        (void)QuicListenerIndicateEvent(Listener, &Event);
+        Listener->StopCompleteThreadID = 0;
+
+        QuicListenerDetachSilo();
+    }
+
+    CxPlatEventSet(Listener->StopEvent);
+    Listener->Stopped = TRUE;
+
+    if (Listener->NeedsCleanup) {
+        QuicListenerFree(Listener);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerRelease(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN IndicateEvent
+    )
+{
+    if (CxPlatRefDecrement(&Listener->RefCount)) {
+        QuicListenerStopComplete(Listener, IndicateEvent);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicListenerStop(
@@ -358,17 +456,7 @@ MsQuicListenerStop(
             QuicLibraryReleaseBinding(Listener->Binding);
             Listener->Binding = NULL;
 
-            CxPlatRundownReleaseAndWait(&Listener->Rundown);
-
-            if (Listener->AlpnList != NULL) {
-                CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
-                Listener->AlpnList = NULL;
-            }
-
-            QuicTraceEvent(
-                ListenerStopped,
-                "[list][%p] Stopped",
-                Listener);
+            QuicListenerRelease(Listener, TRUE);
         }
     }
 
@@ -397,21 +485,6 @@ QuicListenerTraceRundown(
             CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
             CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicListenerIndicateEvent(
-    _In_ QUIC_LISTENER* Listener,
-    _Inout_ QUIC_LISTENER_EVENT* Event
-    )
-{
-    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
-    return
-        Listener->ClientCallbackHandler(
-            (HQUIC)Listener,
-            Listener->ClientContext,
-            Event);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

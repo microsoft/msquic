@@ -1934,6 +1934,8 @@ QuicAckDelayListenerHandler(
             TestContext->ServerConnection.Handle = Event->NEW_CONNECTION.Connection;
             MsQuic->SetCallbackHandler(TestContext->ServerConnection.Handle, (void*) QuicAckDelayConnectionHandler, Context);
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
+        case QUIC_LISTENER_EVENT_STOP_COMPLETE:
+            return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",

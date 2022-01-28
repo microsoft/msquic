@@ -18,6 +18,22 @@ typedef struct QUIC_LISTENER {
     BOOLEAN WildCard : 1;
 
     //
+    // Indicates the listener is completely stopped.
+    //
+    BOOLEAN Stopped : 1;
+
+    //
+    // Indicates the listener was closed by the app in the stop complete event.
+    //
+    BOOLEAN NeedsCleanup : 1;
+
+    //
+    // The thread ID that the listener is actively indicating a stop compelete
+    // callback on.
+    //
+    CXPLAT_THREAD_ID StopCompleteThreadID;
+
+    //
     // The link in the binding's list of listeners.
     //
     CXPLAT_LIST_ENTRY Link;
@@ -35,9 +51,14 @@ typedef struct QUIC_LISTENER {
 #endif
 
     //
-    // Rundown for unregistering from a binding.
+    // Active reference count on the listener.
     //
-    CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_REF_COUNT RefCount;
+
+    //
+    // Event to signal when the listener is stopped.
+    //
+    CXPLAT_EVENT StopEvent;
 
     //
     // The address that the listener is listening on.
@@ -95,6 +116,16 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerTraceRundown(
     _In_ QUIC_LISTENER* Listener
+    );
+
+//
+// Releases an active reference on the listener.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerRelease(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN IndicateEvent
     );
 
 //
