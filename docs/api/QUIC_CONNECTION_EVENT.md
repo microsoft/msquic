@@ -278,6 +278,8 @@ This event indicates a certificate has been received from the peer.
 
 Pointer to a platform/TLS specific certificate. Valid only during the callback.
 
+If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the DER (binary) encoded remote X.509 certificate.
+
 `DeferredErrorFlags`
 
 Bit flag of errors encountered when doing deferring validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront. Only supported with Schannel currently.
@@ -290,9 +292,12 @@ Most severe error status when doing deferred validation of the certificate. Vali
 
 Pointer to a platform/TLS specific certificate chain. Valid only during the callback.
 
+If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the PKCS #7 DER (binary) encoded certificate chain.
+
 # See Also
 
 [ConnectionOpen](ConnectionOpen.md)<br>
 [QUIC_CONNECTION_CALLBACK](QUIC_CONNECTION_CALLBACK.md)<br>
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>
+[QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md)<br>
