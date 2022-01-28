@@ -893,7 +893,7 @@ QuicAbortiveListenerHandler(
             MsQuic->SetCallbackHandler(TestContext->Conn.Handle, (void*) QuicAbortiveConnectionHandler, Context);
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
         case QUIC_LISTENER_EVENT_STOP_COMPLETE:
-            break;
+            return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",
@@ -1376,7 +1376,7 @@ QuicRecvResumeListenerHandler(
             MsQuic->SetCallbackHandler(TestContext->Conn.Handle, (void*) QuicRecvResumeConnectionHandler, Context);
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
         case QUIC_LISTENER_EVENT_STOP_COMPLETE:
-            break;
+            return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",
