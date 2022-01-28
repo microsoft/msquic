@@ -10541,6 +10541,18 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "ListenerIndicateStopComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] Indicating STOP_COMPLETE",
+      "UniqueId": "ListenerIndicateStopComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -14361,6 +14373,11 @@
         "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
         "TraceID": "WindowsUserInitialized2",
         "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
+      },
+      {
+        "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
+        "TraceID": "ListenerIndicateStopComplete",
+        "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
       }
     ]
   }
