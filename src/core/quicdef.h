@@ -190,13 +190,13 @@ typedef struct QUIC_PATH QUIC_PATH;
 // The maximum number of received packets that may be queued on a single
 // connection. When this limit is reached, any additional packets are dropped.
 //
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            4096
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 
 //
 // The maximum number of received packets that may be processed in a single
 // flush operation.
 //
-#define QUIC_MAX_RECEIVE_FLUSH_COUNT            32
+#define QUIC_MAX_RECEIVE_FLUSH_COUNT            100
 
 //
 // The maximum number of pending datagrams we will hold on to, per connection,
