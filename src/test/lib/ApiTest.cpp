@@ -1806,7 +1806,7 @@ QuicTestValidateParamApi()
     //
     // Test backwards compatibility.
     //
-    uint16_t LoadBalancingMode, LoadBalancingMode2;
+    uint16_t LoadBalancingMode;
     uint32_t BufferSize = sizeof(LoadBalancingMode);
 
     BufferSize = sizeof(LoadBalancingMode);
@@ -1814,44 +1814,17 @@ QuicTestValidateParamApi()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->GetParam(
             nullptr,
-            2, // Special case to test backwards compatiblity
+            2,              // No longer backwards compatible with v1.*
             &BufferSize,
             (void*)&LoadBalancingMode));
 
-    BufferSize = sizeof(LoadBalancingMode2);
+    BufferSize = sizeof(LoadBalancingMode);
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
             QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
             &BufferSize,
-            (void*)&LoadBalancingMode2));
-
-    TEST_EQUAL(LoadBalancingMode, LoadBalancingMode2);
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-            BufferSize,
             (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode);
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            nullptr,
-            2, // Special case to test backwards compatiblity
-            BufferSize,
-            (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode2);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-            BufferSize,
-            (void*)&LoadBalancingMode2));
 }
 
 static
