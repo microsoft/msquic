@@ -119,6 +119,8 @@ PerfServer::ListenerCallback(
         Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         break;
     }
+    default:
+        break;
     }
     return Status;
 }
