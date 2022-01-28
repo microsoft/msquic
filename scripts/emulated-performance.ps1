@@ -523,6 +523,9 @@ Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 
 $RunResults = [Results]::new($PlatformName)
 
+# Add pktmon filter to track packet loss.
+pktmon filter add -t UDP -p 4433
+
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
 foreach ($ThisBottleneckMbps in $BottleneckMbps) {
@@ -584,6 +587,9 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             # Run the throughput upload test with the current configuration.
             Write-Debug "Run upload test: Iteration=$($i + 1)"
 
+            # Start pktmon capture.
+            pktmon start --capture --counters-only
+
             $Rate = 0
             $Command = "$SecNetPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             Write-Debug $Command
@@ -604,8 +610,9 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             }
 
             $Results.Add($Rate) | Out-Null
-            
-            (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded", "\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples | Out-String -Stream | Write-Debug
+
+            Write-Debug (Out-String -InputObject (Invoke-Expression "pktmon stop"))
+            Write-Debug (Out-String -InputObject (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded","\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples)
 
             if ($LogProfile -ne "None") {
                 $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
@@ -645,6 +652,9 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
     }}}
 
 }}}}}}
+
+# Delete pktmon filter.
+pktmon filter remove
 
 $RunResults | ConvertTo-Json -Depth 100 | Out-File $OutputFile
 
