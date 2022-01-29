@@ -1941,3 +1941,19 @@ QuicTestConnectionRejection(
         TEST_EQUAL(Connection.TransportShutdownStatus, QUIC_STATUS_CONNECTION_REFUSED);
     }
 }
+
+void
+QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+
+    MsQuicConfiguration Configuration(Registration, Alpn, Settings);
+    TEST_TRUE(Configuration.IsValid());
+
+    TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
+}

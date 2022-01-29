@@ -423,18 +423,10 @@ Exit:
     return Status;
 }
 
-_Success_(return != NULL)
-PCCERT_CONTEXT
-FindCertificate(
-    _In_ HCERTSTORE CertStore,
-    _In_ BOOLEAN IncludeInvalid,
-    _In_z_ const wchar_t* SearchFriendlyName,
-    _Out_writes_all_(20) uint8_t* CertHash
-    );
-
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
-CxPlatGetTestCertificateWindows(
+CxPlatGetTestCertificateOpenSSL(
     _In_ CXPLAT_TEST_CERT_TYPE Type,
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
     _In_ uint32_t CredType,
@@ -445,164 +437,160 @@ CxPlatGetTestCertificateWindows(
     _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
     _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
         QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Reserved_)
+        QUIC_CERTIFICATE_FILE* CertFile,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Reserved_)
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertFileProtected,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
+        QUIC_CERTIFICATE_PKCS12* Pkcs12,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
+        char Principal[100]
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return == TRUE)
+BOOLEAN
+CxPlatGetTestCertificateCapi(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ uint32_t CredType,
+    _Out_ QUIC_CREDENTIAL_CONFIG* Params,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)
+        QUIC_CERTIFICATE_HASH* CertHash,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
+        QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Reserved_)
+        QUIC_CERTIFICATE_FILE* CertFile,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Reserved_)
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertFileProtected,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
+        QUIC_CERTIFICATE_PKCS12* Pkcs12,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
+        char Principal[100]
+    );
+
+_Success_(return == TRUE)
+BOOLEAN
+CxPlatGetTestCertificate(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ uint32_t CredType,
+    _Out_ QUIC_CREDENTIAL_CONFIG* Params,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)
+        QUIC_CERTIFICATE_HASH* CertHash,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
+        QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Reserved_)
+        QUIC_CERTIFICATE_FILE* CertFile,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Reserved_)
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertFileProtected,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
+        QUIC_CERTIFICATE_PKCS12* Pkcs12,
     _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
     _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
         char Principal[100]
     )
 {
-    BOOLEAN Success = FALSE;
-    PCCERT_CONTEXT Cert = NULL;
-    const wchar_t* FriendlyName = NULL;
-    const char* SubjectName = NULL;
-
-    switch (Type) {
-    case CXPLAT_TEST_CERT_VALID_SERVER:
-        FriendlyName = CXPLAT_TEST_CERT_VALID_SERVER_FRIENDLY_NAME;
-        SubjectName = CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME;
-        break;
-    case CXPLAT_TEST_CERT_VALID_CLIENT:
-        FriendlyName = CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME;
-        SubjectName = CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME;
-        break;
-    case CXPLAT_TEST_CERT_EXPIRED_SERVER:
-        FriendlyName = CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME;
-        SubjectName = CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME;
-        break;
-    case CXPLAT_TEST_CERT_EXPIRED_CLIENT:
-        FriendlyName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME;
-        SubjectName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME;
-        break;
-    default:
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+    return
+#ifdef QUIC_TEST_OPENSSL_CREDS
+        CxPlatGetTestCertificateOpenSSL(
             Type,
-            "Unsupported Type passed to CxPlatGetTestCertificate");
-        return FALSE;
-    }
-
-    switch (CredType) {
-    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
-        if (CertHash == NULL) {
-            QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
-            "NULL CertHash passed to CxPlatGetTestCertificate");
-            return FALSE;
-        }
-        break;
-    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
-        if (CertHashStore == NULL) {
-            QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
-            "NULL CertHashStore passed to CxPlatGetTestCertificate");
-            return FALSE;
-        }
-        break;
-    case QUIC_CREDENTIAL_TYPE_NONE:
-        if (Principal == NULL) {
-            QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
-            "NULL Principal passed to CxPlatGetTestCertificate");
-            return FALSE;
-        }
-        break;
-    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-        break;
-    default:
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            StoreType,
             CredType,
-            "Unsupported CredType passed to CxPlatGetTestCertificate");
-        return FALSE;
-    }
-
-    CxPlatZeroMemory(Params, sizeof(*Params));
-
-    HCERTSTORE CertStore =
-        CertOpenStore(
-            CERT_STORE_PROV_SYSTEM_A,
-            0,
-            0,
-            StoreType == CXPLAT_SELF_SIGN_CERT_USER ?
-                CERT_SYSTEM_STORE_CURRENT_USER :
-                CERT_SYSTEM_STORE_LOCAL_MACHINE,
-            "MY");
-    if (CertStore == NULL) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CertOpenStore failed");
-        goto Done;
-    }
-    uint8_t CertHashBytes[20];
-
-    Cert = FindCertificate(
-        CertStore,
-        TRUE,
-        FriendlyName,
-        CertHashBytes);
-
-    if (Cert == NULL) {
-        goto Done;
-    }
-
-    switch (CredType) {
-    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
-        Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        Params->CertificateHash = CertHash;
-        CxPlatCopyMemory(CertHash->ShaHash, CertHashBytes, sizeof(CertHash->ShaHash));
-        break;
-    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
-        Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
-        Params->CertificateHashStore = CertHashStore;
-        CxPlatCopyMemory(CertHashStore->ShaHash, CertHashBytes, sizeof(CertHashStore->ShaHash));
-        strncpy_s(CertHashStore->StoreName, sizeof(CertHashStore->StoreName), "MY", sizeof("MY"));
-        CertHashStore->Flags =
-            StoreType == CXPLAT_SELF_SIGN_CERT_USER ?
-                QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE :
-                QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE;
-        break;
-    case QUIC_CREDENTIAL_TYPE_NONE:
-        //
-        // Assume Principal in use here
-        //
-        Params->Type = QUIC_CREDENTIAL_TYPE_NONE;
-        Params->Principal = Principal;
-        strncpy_s(Principal, 100, SubjectName, 100);
-        break;
-    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-        Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
-        Params->CertificateContext = (QUIC_CERTIFICATE*)Cert;
-        Cert = NULL;
-        break;
-    }
-    Success = TRUE;
-Done:
-    if (Cert != NULL) {
-        CertFreeCertificateContext(Cert);
-    }
-    if (CertStore != NULL) {
-        CertCloseStore(CertStore, 0);
-    }
-
-    return Success;
+            Params,
+            CertHash,
+            CertHashStore,
+            CertFile,
+            CertFileProtected,
+            Pkcs12,
+            Principal);
+#else
+        CxPlatGetTestCertificateCapi(
+            Type,
+            StoreType,
+            CredType,
+            Params,
+            CertHash,
+            CertHashStore,
+            CertFile,
+            CertFileProtected,
+            Pkcs12,
+            Principal);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatFreeTestCertWindows(
+CxPlatFreeTestCertOpenSSL(
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeTestCertCapi(
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeTestCert(
     _In_ QUIC_CREDENTIAL_CONFIG* Params
     )
 {
-    if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
-        CertFreeCertificateContext((PCCERT_CONTEXT)Params->CertificateContext);
-    }
+#ifdef QUIC_TEST_OPENSSL_CREDS
+    CxPlatFreeTestCertOpenSSL(Params);
+#else
+    CxPlatFreeTestCertCapi(Params);
+#endif
+}
+
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+const QUIC_CREDENTIAL_CONFIG*
+CxPlatGetSelfSignedCertCapi(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN IsClient
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+const QUIC_CREDENTIAL_CONFIG*
+CxPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN IsClient
+    )
+{
+    return
+        CxPlatGetSelfSignedCertCapi(
+            Type,
+            IsClient);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCertCapi(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Params
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCert(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Params
+    )
+{
+    CxPlatFreeSelfSignedCertCapi(Params);
 }
