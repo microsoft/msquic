@@ -571,7 +571,7 @@ FindOrCreateTempFiles(
     CxPlatCopyMemory(
         CertFilePath + strlen(TempDir) + 1,
         CertFileName,
-        strlen(CertFileName));
+        strlen(CertFileName) + 1);
 
     if (KeyFilePath != NULL && KeyFileName != NULL) {
         CxPlatCopyMemory(
@@ -585,7 +585,7 @@ FindOrCreateTempFiles(
         CxPlatCopyMemory(
             KeyFilePath + strlen(TempDir) + 1,
             KeyFileName,
-            strlen(KeyFileName));
+            strlen(KeyFileName) + 1);
     }
 #endif
 
