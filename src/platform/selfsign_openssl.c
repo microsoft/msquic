@@ -419,7 +419,7 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
 #define TEMP_DIR_SEARCH     "/tmp/quictest.*"
 
 _Success_(return)
-BOOL
+BOOLEAN
 FindOrCreateTempFiles(
     const char* const CertFileName,
     const char* const KeyFileName,
@@ -439,7 +439,6 @@ FindOrCreateTempFiles(
             "GetTempPathA failed");
         return FALSE;
     }
-    // CxPlatZeroMemory(TempCertPath, sizeof(TempCertPath));
     CxPlatCopyMemory(
         TempCertPath,
         TempPath,
@@ -484,7 +483,6 @@ FindOrCreateTempFiles(
     }
 
     if (KeyFileName != NULL && KeyFilePath != NULL) {
-        // CxPlatZeroMemory(TempKeyPath, sizeof(TempKeyPath));
         CxPlatCopyMemory(
             TempKeyPath,
             TempPath,
@@ -573,15 +571,15 @@ FindOrCreateTempFiles(
 
     if (KeyFilePath != NULL && KeyFileName != NULL) {
         CxPlatCopyMemory(
-            KeyFilepath,
+            KeyFilePath,
             TempDir,
             strlen(TempDir));
         CxPlatCopyMemory(
-            KeyFilepath + strlen(TempDir),
+            KeyFilePath + strlen(TempDir),
             "/",
             1);
         CxPlatCopyMemory(
-            KeyFilepath + strlen(TempDir) + 1,
+            KeyFilePath + strlen(TempDir) + 1,
             KeyFileName,
             strlen(KeyFileName));
     }

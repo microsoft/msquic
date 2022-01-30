@@ -15,8 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#include "msquic.h"
-
 #ifdef QUIC_CLOG
 #include "certificates_posix.c.clog.h"
 #endif
