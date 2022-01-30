@@ -94,7 +94,7 @@ CxPlatTlsGenerateSelfSignedCert(
     _When_(OutputPkcs12 == FALSE, _In_z_)
         char *PrivateKeyFileName,
     _In_z_ char *SNI,
-    _In_opt_z_ const char *Password,
+    _In_opt_z_ char *Password,
     _In_ BOOLEAN OutputPkcs12
     )
 {
