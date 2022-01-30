@@ -94,7 +94,7 @@ CxPlatTlsGenerateSelfSignedCert(
     _When_(OutputPkcs12 == FALSE, _In_z_)
         char *PrivateKeyFileName,
     _In_z_ char *SNI,
-    _In_opt_z_ char *Password,
+    _In_opt_z_ const char *Password,
     _In_ BOOLEAN OutputPkcs12
     )
 {
@@ -790,9 +790,11 @@ CxPlatGetTestCertificate(
                 goto Error;
             }
             //
-            // Don't prevent CertFilePath from cleanup, since it's not saved for
-            // Pkcs12 cases.
+            // Repurpose CertFilePath to store the password.
             //
+            Pkcs12->PrivateKeyPassword = CertFilePath;
+            CxPlatCopyMemory(CertFilePath, TEST_PASS, sizeof(TEST_PASS));
+            CertFilePath = NULL;
         }
         Params->Type = CredType;
         Result = TRUE;
@@ -816,6 +818,7 @@ CxPlatFreeTestCert(
         free((char*)Params->CertificateFileProtected->CertificateFile);
     } else if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
         free((uint8_t*)Params->CertificatePkcs12->Asn1Blob);
+        free((char*)Params->CertificatePkcs12->PrivateKeyPassword);
     }
 }
 
