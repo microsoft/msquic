@@ -418,20 +418,19 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
 #define TEMP_DIR_TEMPLATE   "/tmp/quictest.XXXXXX"
 #define TEMP_DIR_SEARCH     "/tmp/quictest.*"
 
+_Success_(return)
 BOOL
 FindOrCreateTempFiles(
-    _In_z_ const char* const CertFileName,
-    _In_opt_z_ const char* const KeyFileName,
-    _Out_writes_bytes_(MAX_PATH) char* CertFilePath,
-    _When_(KeyFileName != NULL,  _Out_writes_opt_(MAX_PATH))
-    _When_(KeyFileName == NULL, _Reserved_)
-        char* KeyFilePath
+    const char* const CertFileName,
+    const char* const KeyFileName,
+    char* CertFilePath,
+    char* KeyFilePath
     )
 {
 #ifdef _WIN32
-    char TempPath [MAX_PATH];
-    char TempCertPath[MAX_PATH];
-    char TempKeyPath[MAX_PATH];
+    char TempPath [MAX_PATH] = {0};
+    char TempCertPath[MAX_PATH] = {0};
+    char TempKeyPath[MAX_PATH] = {0};
     DWORD PathLength = GetTempPathA(sizeof(TempPath), TempPath);
     if (PathLength > MAX_PATH || PathLength <= 0) {
         QuicTraceEvent(
@@ -440,6 +439,7 @@ FindOrCreateTempFiles(
             "GetTempPathA failed");
         return FALSE;
     }
+    // CxPlatZeroMemory(TempCertPath, sizeof(TempCertPath));
     CxPlatCopyMemory(
         TempCertPath,
         TempPath,
@@ -484,6 +484,7 @@ FindOrCreateTempFiles(
     }
 
     if (KeyFileName != NULL && KeyFilePath != NULL) {
+        // CxPlatZeroMemory(TempKeyPath, sizeof(TempKeyPath));
         CxPlatCopyMemory(
             TempKeyPath,
             TempPath,
@@ -591,7 +592,7 @@ FindOrCreateTempFiles(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-CxPlatGetSelfSignedCertOpenSSL(
+CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
     _In_ BOOLEAN ClientCertificate
     )
@@ -666,35 +667,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
-CxPlatGetTestCertificateCapi(
-    _In_ CXPLAT_TEST_CERT_TYPE Type,
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
-    _In_ uint32_t CredType,
-    _Out_ QUIC_CREDENTIAL_CONFIG* Params,
-    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
-    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)
-        QUIC_CERTIFICATE_HASH* CertHash,
-    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
-    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
-        QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
-    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
-    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Reserved_)
-        QUIC_CERTIFICATE_FILE* CertFile,
-    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Out_)
-    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Reserved_)
-        QUIC_CERTIFICATE_FILE_PROTECTED* CertFileProtected,
-    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
-    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
-        QUIC_CERTIFICATE_PKCS12* Pkcs12,
-    _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
-    _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
-        char Principal[100]
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(return == TRUE)
-BOOLEAN
-CxPlatGetTestCertificateOpenSSL(
+CxPlatGetTestCertificate(
     _In_ CXPLAT_TEST_CERT_TYPE Type,
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
     _In_ uint32_t CredType,
@@ -751,6 +724,7 @@ CxPlatGetTestCertificateOpenSSL(
             }
             KeyFilePath = CertFilePath + MAX_PATH;
 
+            _Analysis_assume_(CertFile != NULL);
             CertFile->CertificateFile = CertFilePath;
             CertFile->PrivateKeyFile = KeyFilePath;
         } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
@@ -769,6 +743,7 @@ CxPlatGetTestCertificateOpenSSL(
             }
             KeyFilePath = CertFilePath + MAX_PATH;
 
+            _Analysis_assume_(CertFileProtected != NULL);
             CertFileProtected->CertificateFile = CertFilePath;
             CertFileProtected->PrivateKeyFile = KeyFilePath;
             CertFileProtected->PrivateKeyPassword = KeyFilePath + MAX_PATH;
@@ -806,6 +781,7 @@ CxPlatGetTestCertificateOpenSSL(
             Params->CertificateFileProtected = CertFileProtected;
             CertFilePath = NULL;
         } else {
+            _Analysis_assume_(Pkcs12 != NULL);
             Params->CertificatePkcs12 = Pkcs12;
             Pkcs12->Asn1Blob = ReadPkcs12(CertFilePath, &Pkcs12->Asn1BlobLength);
             if (Pkcs12->Asn1Blob == NULL) {
@@ -824,34 +800,13 @@ Error:
         }
         return Result;
     } else {
-#ifdef _WIN32
-        return
-            CxPlatGetTestCertificateCapi(
-                Type,
-                StoreType,
-                CredType,
-                Params,
-                CertHash,
-                CertHashStore,
-                CertFile,
-                CertFileProtected,
-                Pkcs12,
-                Principal);
-#else
         return FALSE;
-#endif
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatFreeTestCertCapi(
-    _In_ QUIC_CREDENTIAL_CONFIG* Params
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatFreeTestCertOpenSSL(
+CxPlatFreeTestCert(
     _In_ QUIC_CREDENTIAL_CONFIG* Params
     )
 {
@@ -861,18 +816,12 @@ CxPlatFreeTestCertOpenSSL(
         free((char*)Params->CertificateFileProtected->CertificateFile);
     } else if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
         free((uint8_t*)Params->CertificatePkcs12->Asn1Blob);
-    } else {
-#ifdef _WIN32
-        CxPlatFreeTestCertCapi(Params);
-#else
-        UNREFERENCED_PARAMETER(Params);
-#endif
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatFreeSelfSignedCertOpenSSL(
+CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {
