@@ -551,7 +551,10 @@ FindOrCreateTempFiles(
         //
         // Assume the first result is the desired folder
         //
-        strncpy(TempPath, GlobData.gl_pathv[0], sizeof(TempPath));
+        strncpy(
+            TempPath,
+            GlobData.gl_pathv[0],
+            strnlen(GlobData.gl_pathv[0], sizeof(TempPath)));
         globfree(&GlobData);
         TempDir = TempPath;
     }
