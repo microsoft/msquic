@@ -12,6 +12,10 @@ Abstract:
 #define QUIC_TEST_APIS 1
 #define _CRT_SECURE_NO_WARNINGS // NOLINT bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp
 
+#include <fcntl.h>
+#ifndef _WIN32
+#include <glob.h>
+#endif
 #include "platform_internal.h"
 #ifdef _WIN32
 #pragma warning(push)
@@ -20,15 +24,15 @@ Abstract:
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
+#include "openssl/pkcs12.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
-#include "openssl/pkcs12.h"
 #include "openssl/x509.h"
+
+#include <sys/stat.h>
+#include <sys/types.h>
 #ifdef _WIN32
 #pragma warning(pop)
-#endif
-#ifndef _WIN32
-#include <glob.h>
 #endif
 #ifdef __APPLE__
 #include <TargetConditionals.h>
@@ -37,9 +41,6 @@ Abstract:
 #include "selfsign_openssl.c.clog.h"
 #endif
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
 
 static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
     size_t FileSize = 0;
