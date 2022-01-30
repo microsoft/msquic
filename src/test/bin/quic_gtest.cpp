@@ -299,6 +299,7 @@ TEST(ParameterValidation, ValidateParamApi) {
 TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
     TestLogger Logger("QuicTestCredentialLoad");
     QUIC_RUN_CRED_VALIDATION Arg;
+    CxPlatZeroMemory(&Arg, sizeof(Arg));
     ASSERT_TRUE(
         CxPlatGetTestCertificate(
             GetParam().CertType,
@@ -312,9 +313,9 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
             &Arg.Pkcs12,
             NULL));
     Arg.CredConfig.Flags =
-        GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ?
-            QUIC_CREDENTIAL_FLAG_NONE :
-            QUIC_CREDENTIAL_FLAG_CLIENT;
+        GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ?
+            QUIC_CREDENTIAL_FLAG_CLIENT :
+            QUIC_CREDENTIAL_FLAG_NONE;
     ASSERT_TRUE(GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ||
         GetParam().CertType == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT);
 

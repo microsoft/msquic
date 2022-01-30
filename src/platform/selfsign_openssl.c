@@ -699,6 +699,7 @@ CxPlatGetTestCertificate(
     UNREFERENCED_PARAMETER(CertHash);
     UNREFERENCED_PARAMETER(CertHashStore);
     UNREFERENCED_PARAMETER(Principal);
+    BOOLEAN Result = FALSE;
     if ((Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER || Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT) &&
         (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
         CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED ||
@@ -709,7 +710,6 @@ CxPlatGetTestCertificate(
         char* CertFilePath = NULL;
         char* KeyFilePath = NULL;
         BOOLEAN IsClient = Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT;
-        BOOLEAN Result = FALSE;
 
         if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
             if (IsClient) {
@@ -800,10 +800,8 @@ Error:
         if (CertFilePath != NULL) {
             free(CertFilePath);
         }
-        return Result;
-    } else {
-        return FALSE;
     }
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
