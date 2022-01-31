@@ -36,11 +36,6 @@ jobs:
           fetch-depth: 2
           submodules: 'recursive'
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 6.0.x
-
       # Install dependencies and build submodules before starting analysis.
       - run: |
          sudo apt-add-repository ppa:lttng/stable-2.12
