@@ -98,6 +98,11 @@
         <Keyword Value="0xFFFF"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_XdpWpp" Name="D6143B5C-9FD6-44BA-BA02-FAD9EA0C263D" Level="5" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0x7FFFFFFFFFFFFFFF" />
+      </Keywords>
+    </EventProvider>
     <EventProvider Id="EP_XdpEtwPerFrame" Name="Microsoft-XDP" Level="25" />
 
     <Profile Id="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
@@ -246,6 +251,7 @@
             <EventProviderId Value="EP_SChannelWpp" />
             <EventProviderId Value="EP_NCryptWpp" />
             <EventProviderId Value="EP_XdpEtwPerFrame" />
+            <EventProviderId Value="EP_XdpWpp" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
