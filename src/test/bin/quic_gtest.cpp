@@ -298,6 +298,10 @@ TEST(ParameterValidation, ValidateParamApi) {
 
 TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
     TestLogger Logger("QuicTestCredentialLoad");
+    if (TestingKernelMode &&
+        GetParam().CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+        GTEST_SKIP_("Cert Context not supported in kernel mode");
+    }
     QUIC_RUN_CRED_VALIDATION Arg;
     CxPlatZeroMemory(&Arg, sizeof(Arg));
     ASSERT_TRUE(

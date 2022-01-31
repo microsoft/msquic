@@ -700,7 +700,6 @@ struct TlsConfigArgs {
 
     static ::std::vector<TlsConfigArgs> Generate() {
         ::std::vector<TlsConfigArgs> List;
-        extern bool TestingKernelMode;
         for (auto CredType : {
 #ifdef _WIN32
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
@@ -713,7 +712,6 @@ struct TlsConfigArgs {
 #endif
         })
         for (auto CertType : {CXPLAT_TEST_CERT_SELF_SIGNED_SERVER, CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT}) {
-            if (TestingKernelMode && CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) continue;
             List.push_back({CredType, CertType});
         }
         return List;
