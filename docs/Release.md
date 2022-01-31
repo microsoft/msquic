@@ -259,17 +259,28 @@ Official (v1) RFC and draft-29 are supported by this release.
 
 ## MsQuic v2.0 (SAC)
 
-[MsQuic v2.0](https://github.com/microsoft/msquic/releases/tag/v2.0.0) is an official release.. Signed Windows binaries are available. Some noted changes in this release include:
+[MsQuic v2.0](https://github.com/microsoft/msquic/releases/tag/v2.0.0) is an official release. Signed Windows binaries are available.
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+### Breaking Changes
+
+- Fix QUIC_SETTINGS across different versions (#2271)
+- Remove synchronous StreamStart (#2312)
+- Remove Level from SetParam/GetParam (#2322)
+- Add new datagram send state enum (#2342)
+- Add support for async listener stop (#2346)
+
+### Other Changes
 
 - Various Linux build and packaging improvements (#2090, #2092, #2097)
 - Various OpenSSL improvements and refactoring (#2098, #2083, #2111, #2154)
-- Various certificate handling improvements and refactoring (#2155, #2158, #2160, #2164, )
+- Various certificate handling improvements and refactoring (#2155, #2158, #2160, #2164)
 - Mirroring and OneBranch build infrastructure improvements (#2093, #2097, #2125, #2127, #2128, #2129)
 - Datapath refactoring for low latency work (#2107, #2122, #2130, #2132, #2134, #2161, #2168)
+- Updates for ACK Frequency Draft-2 (#2347)
 - Performance tool improvements (#2110, #2113, #2166)
 - Visual Studio 2022 support (#2119)
 - Interop layers for Rust and C# (#1832, #2100, #1917)
 - Update OpenSSL to 1.1.1m (#2229)
 - Various documentation improvements
-
-Official (v1) RFC and draft-29 are supported by this release.
