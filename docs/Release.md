@@ -49,7 +49,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
-| SAC | [release/1.10](https://github.com/microsoft/msquic/tree/release/1.10) | None | Jan ? 2022 | Jan ? 2022 | Jul ? 2022 |
+| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | None | Feb ? 2022 | Jan ? 2022 | Aug ? 2022 |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -257,9 +257,9 @@ Official (v1) RFC and draft-29 are supported by this release.
 
 Official (v1) RFC and draft-29 are supported by this release.
 
-## MsQuic v1.10 (SAC)
+## MsQuic v2.0 (SAC)
 
-[MsQuic v1.10](https://github.com/microsoft/msquic/releases/tag/v1.10.0) is an official release.. Signed Windows binaries are available. Some noted changes in this release include:
+[MsQuic v2.0](https://github.com/microsoft/msquic/releases/tag/v2.0.0) is an official release.. Signed Windows binaries are available. Some noted changes in this release include:
 
 - Various Linux build and packaging improvements (#2090, #2092, #2097)
 - Various OpenSSL improvements and refactoring (#2098, #2083, #2111, #2154)
