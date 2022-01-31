@@ -9,8 +9,8 @@
         "[time][%p] Resizing timer wheel (new slot count = %u).",
         TimerWheel,
         NewSlotCount);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = NewSlotCount
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = NewSlotCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelResize,
     TP_ARGS(
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelResize,
             TimerWheelNextExpirationNull,
             "[time][%p] Next Expiration = {NULL}.",
             TimerWheel);
-// arg2 = arg2 = TimerWheel
+// arg2 = arg2 = TimerWheel = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpirationNull,
     TP_ARGS(
@@ -52,9 +52,9 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpirationNull,
             TimerWheel,
             TimerWheel->NextExpirationTime,
             TimerWheel->NextConnection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = TimerWheel->NextExpirationTime
-// arg4 = arg4 = TimerWheel->NextConnection
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = TimerWheel->NextExpirationTime = arg3
+// arg4 = arg4 = TimerWheel->NextConnection = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration,
     TP_ARGS(
@@ -78,8 +78,8 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration,
             "[time][%p] Removing Connection %p.",
             TimerWheel,
             Connection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = Connection
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = Connection = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection,
     TP_ARGS(
@@ -101,8 +101,8 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection,
             "[time][%p] Updating Connection %p.",
             TimerWheel,
             Connection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = Connection
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = Connection = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelUpdateConnection,
     TP_ARGS(
@@ -123,7 +123,7 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelUpdateConnection,
                     StillInTimerWheel,
                     Connection,
                     "Still in timer wheel! Connection was likely leaked!");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, StillInTimerWheel,
     TP_ARGS(
@@ -142,8 +142,8 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, StillInTimerWheel,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
             QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY));
-// arg2 = arg2 = "timerwheel slots"
-// arg3 = arg3 = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY)
+// arg2 = arg2 = "timerwheel slots" = arg2
+// arg3 = arg3 = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, AllocFailure,
     TP_ARGS(

@@ -1278,11 +1278,13 @@ QuicBindingCreateConnection(
     }
 
     QUIC_CONNECTION* Connection = NULL;
-    QUIC_CONNECTION* NewConnection =
+    QUIC_CONNECTION* NewConnection;
+    QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
-            Datagram);
-    if (NewConnection == NULL) {
+            Datagram,
+            &NewConnection);
+    if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
@@ -1355,6 +1357,7 @@ Exit:
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             QuicConnQueueOper(NewConnection, Oper);
         }
 #pragma warning(pop)
@@ -1470,7 +1473,6 @@ QuicBindingDeliverDatagrams(
 
         CXPLAT_DBG_ASSERT(QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version));
 
-        BOOLEAN IsInitial = FALSE;
         //
         // Only Initial (version specific) packets are processed from here on.
         //
@@ -1478,8 +1480,7 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            IsInitial = Packet->LH->Type == QUIC_INITIAL;
-            if (!IsInitial && Packet->LH->Type != QUIC_0_RTT_PROTECTED) {
+            if (Packet->LH->Type != QUIC_INITIAL) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
                 return FALSE;
             }
@@ -1508,13 +1509,9 @@ QuicBindingDeliverDatagrams(
         BOOLEAN DropPacket = FALSE;
         if (QuicBindingShouldRetryConnection(
                 Binding, Packet, TokenLength, Token, &DropPacket)) {
-            if (IsInitial) {
-                return
-                    QuicBindingQueueStatelessOperation(
-                        Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
-            }
-            QuicPacketLogDrop(Binding, Packet, "Non-initial packet during retry.");
-            return FALSE;
+            return
+                QuicBindingQueueStatelessOperation(
+                    Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
         }
 
         if (!DropPacket) {
@@ -1566,7 +1563,7 @@ QuicBindingReceive(
     //
 
     uint32_t Proc = CxPlatProcCurrentNumber();
-    uint64_t ProcShifted = ((uint64_t)Proc) << 40;
+    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {

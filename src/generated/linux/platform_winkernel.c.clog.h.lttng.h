@@ -41,8 +41,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelUnloaded,
         "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
         Sbi.PageSize,
         CxPlatTotalMemory);
-// arg2 = arg2 = Sbi.PageSize
-// arg3 = arg3 = CxPlatTotalMemory
+// arg2 = arg2 = Sbi.PageSize = arg2
+// arg3 = arg3 = CxPlatTotalMemory = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelInitialized,
     TP_ARGS(
@@ -80,8 +80,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, WindowsKernelUninitialized,
             "[ lib] ERROR, %u, %s.",
             Status,
             "BCryptOpenAlgorithmProvider (RNG)");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "BCryptOpenAlgorithmProvider (RNG)"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "BCryptOpenAlgorithmProvider (RNG)" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, LibraryErrorStatus,
     TP_ARGS(
@@ -104,9 +104,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, LibraryErrorStatus,
         (uint32_t)Line,
         File,
         Expr);
-// arg2 = arg2 = (uint32_t)Line
-// arg3 = arg3 = File
-// arg4 = arg4 = Expr
+// arg2 = arg2 = (uint32_t)Line = arg2
+// arg3 = arg3 = File = arg3
+// arg4 = arg4 = Expr = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINKERNEL_C, LibraryAssert,
     TP_ARGS(

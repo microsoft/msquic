@@ -161,6 +161,7 @@ namespace QuicTrace.DataModel
         {
             Value,
             Diff,
+            DiffTime,
             Drop
         }
 
@@ -169,17 +170,19 @@ namespace QuicTrace.DataModel
             QuicRawTputData Data;
             ulong LastValue;
             bool LastValueSet;
+            bool IncludeDuplicates;
             QuicSampleMode SampleMode;
-            internal QuicRawTputSample(QuicTputDataType type, QuicSampleMode sampleMode = QuicSampleMode.Value)
+            internal QuicRawTputSample(QuicTputDataType type, QuicSampleMode sampleMode = QuicSampleMode.Value, bool includeDuplicates = false)
             {
                 Data = new QuicRawTputData() { Type = type };
                 LastValue = 0;
                 LastValueSet = false;
+                IncludeDuplicates = includeDuplicates;
                 SampleMode = sampleMode;
             }
             internal void Update(ulong NewValue, Timestamp NewTimestamp, ref List<QuicRawTputData> Events)
             {
-                if (NewValue == LastValue) return;
+                if (LastValueSet && NewValue == LastValue && !IncludeDuplicates) return;
                 if (SampleMode == QuicSampleMode.Drop)
                 {
                     if (NewValue > LastValue)
@@ -204,7 +207,18 @@ namespace QuicTrace.DataModel
                 {
                     Data.Value = NewValue - LastValue;
                 }
-                else
+                else if (SampleMode == QuicSampleMode.DiffTime)
+                {
+                    if (LastValueSet)
+                    {
+                        Data.Value = NewValue - LastValue;
+                    }
+                    else
+                    {
+                        Data.Value = 0;
+                    }
+                }
+                else // QuicSampleMode.Drop
                 {
                     Data.Value = LastValue - NewValue;
                 }
@@ -225,10 +239,11 @@ namespace QuicTrace.DataModel
         {
             if (Events.Count == 0) return new List<QuicRawTputData>();
 
-            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Diff);
-            var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop);
-            var txUdp = new QuicRawTputSample(QuicTputDataType.TxUdp);
-            var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff);
+            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Value, true);
+            var pktCreate = new QuicRawTputSample(QuicTputDataType.PktCreate, QuicSampleMode.Diff, true);
+            var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop, true);
+            var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime, true);
+            var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff, true);
             var rtt = new QuicRawTputSample(QuicTputDataType.Rtt);
             var inFlight = new QuicRawTputSample(QuicTputDataType.InFlight);
             var cwnd = new QuicRawTputSample(QuicTputDataType.CWnd);
@@ -242,7 +257,7 @@ namespace QuicTrace.DataModel
                 if (evt.EventId == QuicEventId.ConnOutFlowStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStatsEvent;
-                    tx.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
+                    pktCreate.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
                     txAck.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
                     rtt.Update(_evt!.SmoothedRtt, evt.TimeStamp, ref tputEvents);
                     inFlight.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
@@ -263,15 +278,17 @@ namespace QuicTrace.DataModel
                 else if (evt.EventId == QuicEventId.DatapathSend)
                 {
                     var _evt = evt as QuicDatapathSendEvent;
-                    txUdp.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
+                    tx.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
+                    txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
                 }
             }
 
             var FinalTimeStamp = Events[Events.Count - 1].TimeStamp;
 
             tx.Finalize(FinalTimeStamp, ref tputEvents);
+            pktCreate.Finalize(FinalTimeStamp, ref tputEvents);
             txAck.Finalize(FinalTimeStamp, ref tputEvents);
-            txUdp.Finalize(FinalTimeStamp, ref tputEvents);
+            txDelay.Finalize(FinalTimeStamp, ref tputEvents);
             rx.Finalize(FinalTimeStamp, ref tputEvents);
             rtt.Finalize(FinalTimeStamp, ref tputEvents);
             inFlight.Finalize(FinalTimeStamp, ref tputEvents);

@@ -8,7 +8,7 @@
             TestCaseStart,
             "[test] START %s",
             TestName);
-// arg2 = arg2 = TestName
+// arg2 = arg2 = TestName = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseStart,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseStart,
             TestCaseEnd,
             "[test] END %s",
             TestName);
-// arg2 = arg2 = TestName
+// arg2 = arg2 = TestName = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseEnd,
     TP_ARGS(
@@ -47,8 +47,8 @@ TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseEnd,
             "[test] START %s, %s",
             TestName,
             stream.str().c_str());
-// arg2 = arg2 = TestName
-// arg3 = arg3 = stream.str().c_str()
+// arg2 = arg2 = TestName = arg2
+// arg3 = arg3 = stream.str().c_str() = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseTStart,
     TP_ARGS(
@@ -69,7 +69,7 @@ TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseTStart,
             TestCaseTEnd,
             "[test] END %s",
             TestName);
-// arg2 = arg2 = TestName
+// arg2 = arg2 = TestName = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseTEnd,
     TP_ARGS(
@@ -90,9 +90,9 @@ TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestCaseTEnd,
         File,
         Line,
         Buffer);
-// arg2 = arg2 = File
-// arg3 = arg3 = Line
-// arg4 = arg4 = Buffer
+// arg2 = arg2 = File = arg2
+// arg3 = arg3 = Line = arg3
+// arg4 = arg4 = Buffer = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_QUIC_GTEST_CPP, TestLogFailure,
     TP_ARGS(

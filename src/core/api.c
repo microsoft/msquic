@@ -61,8 +61,12 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
-    if ((Connection = QuicConnAlloc(Registration, NULL)) == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    Status =
+        QuicConnAlloc(
+            Registration,
+            NULL,
+            &Connection);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
@@ -240,6 +244,7 @@ MsQuicConnectionShutdown(
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
     Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
     Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
+    Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
 
     //
     // Queue the operation but don't wait for the completion.

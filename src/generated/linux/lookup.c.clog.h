@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_LOOKUP_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_5_ARGS_TRACE_LookupCidFound
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for LookupCidFound
 // [look][%p] Lookup Hash=%u found %p
@@ -32,19 +30,16 @@ extern "C" {
             Lookup,
             Hash,
             Connection);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = Hash
-// arg4 = arg4 = Connection
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = Hash = arg3
+// arg4 = arg4 = Connection = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LookupCidFound
 #define _clog_5_ARGS_TRACE_LookupCidFound(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_LOOKUP_C, LookupCidFound , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LookupCidNotFound
 
 
 
@@ -56,18 +51,15 @@ tracepoint(CLOG_LOOKUP_C, LookupCidFound , arg2, arg3, arg4);\
             "[look][%p] Lookup Hash=%u not found",
             Lookup,
             Hash);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = Hash
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = Hash = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LookupCidNotFound
 #define _clog_4_ARGS_TRACE_LookupCidNotFound(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_LOOKUP_C, LookupCidNotFound , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_LookupRemoteHashFound
 
 
 
@@ -80,19 +72,16 @@ tracepoint(CLOG_LOOKUP_C, LookupCidNotFound , arg2, arg3);\
                 Lookup,
                 Hash,
                 Entry->Connection);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = Hash
-// arg4 = arg4 = Entry->Connection
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = Hash = arg3
+// arg4 = arg4 = Entry->Connection = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LookupRemoteHashFound
 #define _clog_5_ARGS_TRACE_LookupRemoteHashFound(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_LOOKUP_C, LookupRemoteHashFound , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LookupRemoteHashNotFound
 
 
 
@@ -104,18 +93,15 @@ tracepoint(CLOG_LOOKUP_C, LookupRemoteHashFound , arg2, arg3, arg4);\
         "[look][%p] Lookup RemoteHash=%u not found",
         Lookup,
         Hash);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = Hash
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = Hash = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LookupRemoteHashNotFound
 #define _clog_4_ARGS_TRACE_LookupRemoteHashNotFound(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_LOOKUP_C, LookupRemoteHashNotFound , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_LookupCidInsert
 
 
 
@@ -128,19 +114,16 @@ tracepoint(CLOG_LOOKUP_C, LookupRemoteHashNotFound , arg2, arg3);\
         Lookup,
         SourceCid->Connection,
         Hash);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = SourceCid->Connection
-// arg4 = arg4 = Hash
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = SourceCid->Connection = arg3
+// arg4 = arg4 = Hash = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LookupCidInsert
 #define _clog_5_ARGS_TRACE_LookupCidInsert(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_LOOKUP_C, LookupCidInsert , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_LookupRemoteHashInsert
 
 
 
@@ -153,19 +136,16 @@ tracepoint(CLOG_LOOKUP_C, LookupCidInsert , arg2, arg3, arg4);\
         Lookup,
         Connection,
         Hash);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = Connection
-// arg4 = arg4 = Hash
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = Connection = arg3
+// arg4 = arg4 = Hash = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LookupRemoteHashInsert
 #define _clog_5_ARGS_TRACE_LookupRemoteHashInsert(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_LOOKUP_C, LookupRemoteHashInsert , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LookupCidRemoved
 
 
 
@@ -177,9 +157,10 @@ tracepoint(CLOG_LOOKUP_C, LookupRemoteHashInsert , arg2, arg3, arg4);\
         "[look][%p] Remove Conn=%p",
         Lookup,
         SourceCid->Connection);
-// arg2 = arg2 = Lookup
-// arg3 = arg3 = SourceCid->Connection
+// arg2 = arg2 = Lookup = arg2
+// arg3 = arg3 = SourceCid->Connection = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LookupCidRemoved
 #define _clog_4_ARGS_TRACE_LookupCidRemoved(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_LOOKUP_C, LookupCidRemoved , arg2, arg3);\
 

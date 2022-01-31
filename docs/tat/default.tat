@@ -27,5 +27,6 @@
     <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Send Blocked Flags:" />
     <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="QUIC_STREAM_EVENT_SEND_COMPLETE" />
     <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="QUIC_CONNECTION_EVENT_IDEAL_SEND_BUFFER" />
+    <filter enabled="y" excluding="y" type="matches_text" case_sensitive="n" regex="n" text="Queueing send flush" />
   </filters>
 </TextAnalysisTool.NET>

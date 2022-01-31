@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CUBIC_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_7_ARGS_TRACE_ConnCubic
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConnCubic
 // [conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u
@@ -34,21 +32,18 @@ extern "C" {
         Cubic->KCubic,
         Cubic->WindowMax,
         Cubic->WindowLastMax);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Cubic->SlowStartThreshold
-// arg4 = arg4 = Cubic->KCubic
-// arg5 = arg5 = Cubic->WindowMax
-// arg6 = arg6 = Cubic->WindowLastMax
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Cubic->SlowStartThreshold = arg3
+// arg4 = arg4 = Cubic->KCubic = arg4
+// arg5 = arg5 = Cubic->WindowMax = arg5
+// arg6 = arg6 = Cubic->WindowLastMax = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_ConnCubic
 #define _clog_7_ARGS_TRACE_ConnCubic(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_CUBIC_C, ConnCubic , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnCongestion
 
 
 
@@ -59,8 +54,9 @@ tracepoint(CLOG_CUBIC_C, ConnCubic , arg2, arg3, arg4, arg5, arg6);\
         ConnCongestion,
         "[conn][%p] Congestion event",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnCongestion
 #define _clog_3_ARGS_TRACE_ConnCongestion(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CUBIC_C, ConnCongestion , arg2);\
 
@@ -69,28 +65,21 @@ tracepoint(CLOG_CUBIC_C, ConnCongestion , arg2);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_ConnPersistentCongestion
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConnPersistentCongestion
 // [conn][%p] Persistent congestion event
 // QuicTraceEvent(
-        ConnPersistentCongestion,
-        "[conn][%p] Persistent congestion event",
-        Connection);
-// arg2 = arg2 = Connection
+            ConnPersistentCongestion,
+            "[conn][%p] Persistent congestion event",
+            Connection);
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnPersistentCongestion
 #define _clog_3_ARGS_TRACE_ConnPersistentCongestion(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CUBIC_C, ConnPersistentCongestion , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnRecoveryExit
 
 
 
@@ -101,17 +90,14 @@ tracepoint(CLOG_CUBIC_C, ConnPersistentCongestion , arg2);\
                 ConnRecoveryExit,
                 "[conn][%p] Recovery complete",
                 Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnRecoveryExit
 #define _clog_3_ARGS_TRACE_ConnRecoveryExit(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CUBIC_C, ConnRecoveryExit , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnSpuriousCongestion
 
 
 
@@ -122,17 +108,14 @@ tracepoint(CLOG_CUBIC_C, ConnRecoveryExit , arg2);\
         ConnSpuriousCongestion,
         "[conn][%p] Spurious congestion event",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnSpuriousCongestion
 #define _clog_3_ARGS_TRACE_ConnSpuriousCongestion(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CUBIC_C, ConnSpuriousCongestion , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_12_ARGS_TRACE_ConnOutFlowStats
 
 
 
@@ -152,17 +135,18 @@ tracepoint(CLOG_CUBIC_C, ConnSpuriousCongestion , arg2);\
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.Send.TotalBytes
-// arg4 = arg4 = Cubic->BytesInFlight
-// arg5 = arg5 = Cubic->BytesInFlightMax
-// arg6 = arg6 = Cubic->CongestionWindow
-// arg7 = arg7 = Cubic->SlowStartThreshold
-// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent
-// arg9 = arg9 = Connection->SendBuffer.IdealBytes
-// arg10 = arg10 = Connection->SendBuffer.PostedBytes
-// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
+// arg4 = arg4 = Cubic->BytesInFlight = arg4
+// arg5 = arg5 = Cubic->BytesInFlightMax = arg5
+// arg6 = arg6 = Cubic->CongestionWindow = arg6
+// arg7 = arg7 = Cubic->SlowStartThreshold = arg7
+// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
+// arg9 = arg9 = Connection->SendBuffer.IdealBytes = arg9
+// arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
+// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
 ----------------------------------------------------------*/
+#ifndef _clog_12_ARGS_TRACE_ConnOutFlowStats
 #define _clog_12_ARGS_TRACE_ConnOutFlowStats(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)\
 tracepoint(CLOG_CUBIC_C, ConnOutFlowStats , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);\
 

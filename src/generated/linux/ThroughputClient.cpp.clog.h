@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_THROUGHPUTCLIENT_CPP
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_2_ARGS_TRACE_PerfRpsStart
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PerfRpsStart
 // [perf] RPS Client start
@@ -30,15 +28,12 @@ extern "C" {
         PerfRpsStart,
         "[perf] RPS Client start");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PerfRpsStart
 #define _clog_2_ARGS_TRACE_PerfRpsStart(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_THROUGHPUTCLIENT_CPP, PerfRpsStart );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_PerfRpsTimeout
 
 
 
@@ -49,15 +44,12 @@ tracepoint(CLOG_THROUGHPUTCLIENT_CPP, PerfRpsStart );\
                 PerfRpsTimeout,
                 "[perf] RPS Client timeout");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PerfRpsTimeout
 #define _clog_2_ARGS_TRACE_PerfRpsTimeout(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_THROUGHPUTCLIENT_CPP, PerfRpsTimeout );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_PerfRpsComplete
 
 
 
@@ -68,6 +60,7 @@ tracepoint(CLOG_THROUGHPUTCLIENT_CPP, PerfRpsTimeout );\
         PerfRpsComplete,
         "[perf] RPS Client complete");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PerfRpsComplete
 #define _clog_2_ARGS_TRACE_PerfRpsComplete(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_THROUGHPUTCLIENT_CPP, PerfRpsComplete );\
 

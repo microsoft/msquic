@@ -159,8 +159,8 @@ QuicUserMain(
         Status = QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength, FileName);
     }
 
-    printf("App Main returning status %d\n", Status);
     QuicMainFree();
+    printf("App Main returning status %d\n", Status);
     return Status;
 }
 

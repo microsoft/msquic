@@ -81,6 +81,9 @@ This script provides helpers for building msquic.
 .PARAMETER UseSystemOpenSSLCrypto
     Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
 
+.PARAMETER EnableHighResolutionTimers
+    Configures the system to use high resolution timers.
+
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -174,6 +177,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$UseSystemOpenSSLCrypto = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableHighResolutionTimers = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
@@ -328,6 +334,10 @@ function CMake-Generate {
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
+
+    if ($IsLinux) {
+        $Arguments += " -DQUIC_LINUX_LOG_ENCODER=lttng"
+    }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -388,6 +398,9 @@ function CMake-Generate {
     }
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
+    }
+    if ($EnableHighResolutionTimers) {
+        $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"

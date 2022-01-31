@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_SEND_BUFFER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_IndicateIdealSendBuffer
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for IndicateIdealSendBuffer
 // [strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu
@@ -35,18 +33,15 @@ extern "C" {
             Stream,
             "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
             Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Event.IDEAL_SEND_BUFFER_SIZE.ByteCount
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateIdealSendBuffer
 #define _clog_4_ARGS_TRACE_IndicateIdealSendBuffer(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -58,9 +53,10 @@ tracepoint(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer , arg1, arg3);\
             "Allocation of '%s' failed. (%llu bytes)",
             "sendbuffer",
             Size);
-// arg2 = arg2 = "sendbuffer"
-// arg3 = arg3 = Size
+// arg2 = arg2 = "sendbuffer" = arg2
+// arg3 = arg3 = Size = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_SEND_BUFFER_C, AllocFailure , arg2, arg3);\
 
