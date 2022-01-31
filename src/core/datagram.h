@@ -89,7 +89,8 @@ void
 QuicDatagramIndicateSendStateChange(
     _In_ QUIC_CONNECTION* Connection,
     _Inout_ void** ClientContext,
-    _In_ QUIC_DATAGRAM_SEND_STATE State
+    _In_ QUIC_DATAGRAM_SEND_STATE State,
+    _In_ uint64_t PacketNumber
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

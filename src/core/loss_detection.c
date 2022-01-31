@@ -579,7 +579,8 @@ QuicLossDetectionOnPacketAcknowledged(
                 &Packet->Frames[i].DATAGRAM.ClientContext,
                 Packet->Flags.SuspectedLost ?
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS :
-                    QUIC_DATAGRAM_SEND_ACKNOWLEDGED);
+                    QUIC_DATAGRAM_SEND_ACKNOWLEDGED,
+                Packet->PacketNumber);
             break;
         }
     }
@@ -802,7 +803,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicDatagramIndicateSendStateChange(
                     Connection,
                     &Packet->Frames[i].DATAGRAM.ClientContext,
-                    QUIC_DATAGRAM_SEND_LOST_SUSPECT);
+                    QUIC_DATAGRAM_SEND_LOST_SUSPECT,
+                    Packet->PacketNumber);
             }
             break;
 
@@ -844,7 +846,8 @@ QuicLossDetectionOnPacketDiscarded(
             QuicDatagramIndicateSendStateChange(
                 Connection,
                 &Packet->Frames[i].DATAGRAM.ClientContext,
-                QUIC_DATAGRAM_SEND_LOST_DISCARDED);
+                QUIC_DATAGRAM_SEND_LOST_DISCARDED,
+                Packet->PacketNumber);
             break;
         }
         if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {

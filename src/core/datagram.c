@@ -90,13 +90,15 @@ void
 QuicDatagramIndicateSendStateChange(
     _In_ QUIC_CONNECTION* Connection,
     _Inout_ void** ClientContext,
-    _In_ QUIC_DATAGRAM_SEND_STATE State
+    _In_ QUIC_DATAGRAM_SEND_STATE State,
+    _In_ uint64_t PacketNumber
     )
 {
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED;
     Event.DATAGRAM_SEND_STATE_CHANGED.ClientContext = *ClientContext;
     Event.DATAGRAM_SEND_STATE_CHANGED.State = State;
+    Event.DATAGRAM_SEND_STATE_CHANGED.PacketNumber = PacketNumber;
 
     QuicTraceLogConnVerbose(
         DatagramSendStateChanged,
@@ -118,7 +120,8 @@ QuicDatagramCancelSend(
     QuicDatagramIndicateSendStateChange(
         Connection,
         &SendRequest->ClientContext,
-        QUIC_DATAGRAM_SEND_CANCELED);
+        QUIC_DATAGRAM_SEND_CANCELED,
+        UINT64_MAX);
     CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
 }
 
@@ -127,6 +130,7 @@ void
 QuicDatagramCompleteSend(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_SEND_REQUEST* SendRequest,
+    _In_ uint64_t PacketNumber,
     _Out_ void** ClientContext
     )
 {
@@ -134,7 +138,8 @@ QuicDatagramCompleteSend(
     QuicDatagramIndicateSendStateChange(
         Connection,
         ClientContext,
-        QUIC_DATAGRAM_SEND_SENT);
+        QUIC_DATAGRAM_SEND_SENT,
+        PacketNumber);
     CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
 }
 
@@ -517,6 +522,7 @@ QuicDatagramWriteFrame(
         QuicDatagramCompleteSend(
             Connection,
             SendRequest,
+            Builder->Metadata->PacketNumber,
             &Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext);
         if (++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
             Result = TRUE;

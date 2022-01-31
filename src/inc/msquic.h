@@ -976,6 +976,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             /* inout */ void* ClientContext;
             QUIC_DATAGRAM_SEND_STATE State;
+            uint64_t PacketNumber;
         } DATAGRAM_SEND_STATE_CHANGED;
         struct {
             uint16_t ResumptionStateLength;
