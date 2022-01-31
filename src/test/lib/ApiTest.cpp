@@ -1948,11 +1948,7 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicAlpn Alpn("MsQuicTest");
-
-    MsQuicSettings Settings;
-
-    MsQuicConfiguration Configuration(Registration, Alpn, Settings);
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
     TEST_TRUE(Configuration.IsValid());
 
     TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));

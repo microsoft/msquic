@@ -108,12 +108,11 @@ CxPlatTlsGenerateSelfSignedCert(
     FILE *Fd = NULL;
 
     PKey = EVP_PKEY_new();
-
     if (PKey == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "EVP_PKEY_new() failed");
+            "EVP_PKEY_new failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -123,7 +122,7 @@ CxPlatTlsGenerateSelfSignedCert(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_new_id() failed");
+            "EVP_PKEY_CTX_new_id failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -133,7 +132,7 @@ CxPlatTlsGenerateSelfSignedCert(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "EVP_PKEY_keygen_init() failed");
+            "EVP_PKEY_keygen_init failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -143,29 +142,27 @@ CxPlatTlsGenerateSelfSignedCert(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "EVP_PKEY_keygen() failed");
+            "EVP_PKEY_keygen failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     X509 = X509_new();
-
     if (X509 == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "X509_new() failed");
+            "X509_new failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = ASN1_INTEGER_set(X509_get_serialNumber(X509), 1);
-
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "ASN1_INTEGER_set() failed");
+            "ASN1_INTEGER_set failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -186,12 +183,11 @@ CxPlatTlsGenerateSelfSignedCert(
             -1,
             -1,
             0);
-
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "X509_NAME_add_entry_by_txt() failed");
+            "X509_NAME_add_entry_by_txt failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -205,12 +201,11 @@ CxPlatTlsGenerateSelfSignedCert(
             -1,
             -1,
             0);
-
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "X509_NAME_add_entry_by_txt() failed");
+            "X509_NAME_add_entry_by_txt failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -224,34 +219,31 @@ CxPlatTlsGenerateSelfSignedCert(
             -1,
             -1,
             0);
-
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "X509_NAME_add_entry_by_txt() failed");
+            "X509_NAME_add_entry_by_txt failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = X509_set_issuer_name(X509, Name);
-
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "X509_set_issuer_name() failed");
+            "X509_set_issuer_name failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = X509_sign(X509, PKey, EVP_sha256());
-
     if (Ret <= 0) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "X509_sign() failed");
+            "X509_sign failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -259,12 +251,11 @@ CxPlatTlsGenerateSelfSignedCert(
     if (!OutputPkcs12) {
 
         Fd = fopen(PrivateKeyFileName, "wb");
-
         if (Fd == NULL) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "fopen() failed");
+                "fopen failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -278,12 +269,11 @@ CxPlatTlsGenerateSelfSignedCert(
                 0,
                 NULL,
                 Password);
-
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "PEM_write_PrivateKey() failed");
+                "PEM_write_PrivateKey failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -292,23 +282,21 @@ CxPlatTlsGenerateSelfSignedCert(
         Fd = NULL;
 
         Fd = fopen(CertFileName, "wb");
-
         if (Fd == NULL) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "fopen() failed");
+                "fopen failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
         Ret = PEM_write_X509(Fd, X509);
-
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "PEM_write_X509() failed");
+                "PEM_write_X509 failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -333,29 +321,27 @@ CxPlatTlsGenerateSelfSignedCert(
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "PKCS12_create() failed");
+                "PKCS12_create failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
         Fd = fopen(CertFileName, "wb");
-
         if (Fd == NULL) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "fopen() failed");
+                "fopen failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
         Ret = i2d_PKCS12_fp(Fd, Pkcs12);
-
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "i2d_PKCS12_fp() failed");
+                "i2d_PKCS12_fp failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -533,7 +519,7 @@ FindOrCreateTempFiles(
     char* TempDir = NULL;
 
     glob_t GlobData = {0};
-    if(glob(TEMP_DIR_SEARCH, 0, NULL, &GlobData) != 0 || GlobData.gl_pathc == 0) {
+    if (glob(TEMP_DIR_SEARCH, 0, NULL, &GlobData) != 0 || GlobData.gl_pathc == 0) {
         globfree(&GlobData);
         //
         // Temp dir not found, create it
@@ -762,7 +748,7 @@ CxPlatGetTestCertificate(
             }
         }
 
-        if(!FindOrCreateTempFiles(CertFileName, KeyFileName, CertFilePath, KeyFilePath)) {
+        if (!FindOrCreateTempFiles(CertFileName, KeyFileName, CertFilePath, KeyFilePath)) {
             goto Error;
         }
 
