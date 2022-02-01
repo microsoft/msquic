@@ -1297,6 +1297,7 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
 QUIC_STATUS
 QUIC_API
 MsQuicOpenVersion(
