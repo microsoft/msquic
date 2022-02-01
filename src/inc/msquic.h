@@ -1323,6 +1323,10 @@ typedef struct QUIC_API_TABLE {
 // MsQuicClose must be called when the app is done with the function table.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
+#if (__cplusplus >= 201703L || _MSVC_LANG >= 201703L)
+[[nodiscard]]
+#endif
 QUIC_STATUS
 QUIC_API
 MsQuicOpenVersion(
@@ -1334,11 +1338,13 @@ MsQuicOpenVersion(
 // Version specific helpers that wrap MsQuicOpenVersion.
 //
 
-#ifndef QUIC_CORE_INTERNAL
-
-/*#if defined(__cplusplus) || defined(WIN32)
+#if defined(__cplusplus)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
+#if (__cplusplus >= 201703L || _MSVC_LANG >= 201703L)
+[[nodiscard]]
+#endif
 #ifdef WIN32
 __forceinline
 #else
@@ -1349,16 +1355,14 @@ MsQuicOpen(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
-    return MsQuicOpenVersion(1, (const void**)QuicApi);
+    return MsQuicOpenVersion(2, (const void**)QuicApi);
 }
 
-#else*/
+#else
 
-#define MsQuicOpen(QuicApi) MsQuicOpenVersion(1, (const void**)QuicApi)
+#define MsQuicOpen(QuicApi) MsQuicOpenVersion(2, (const void**)QuicApi)
 
-/*#endif // defined(__cplusplus) || defined(WIN32)*/
-
-#endif // QUIC_CORE_INTERNAL
+#endif // defined(__cplusplus)
 
 //
 // Cleans up the function table returned from MsQuicOpen and releases the
