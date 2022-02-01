@@ -1190,7 +1190,7 @@ typedef struct QUIC_ACK_FREQUENCY_EXTRAS {
         struct {
             uint8_t IgnoreOrder : 1;
             uint8_t IgnoreCE    : 1;
-            uint8_t FrameType   : 6;
+            uint8_t Reserved    : 6;
         };
         uint8_t Value;
     };
