@@ -1351,7 +1351,7 @@ __forceinline
 __attribute__((always_inline)) inline
 #endif
 QUIC_STATUS
-MsQuicOpen(
+MsQuicOpen2(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
@@ -1360,7 +1360,7 @@ MsQuicOpen(
 
 #else
 
-#define MsQuicOpen(QuicApi) MsQuicOpenVersion(2, (const void**)QuicApi)
+#define MsQuicOpen2(QuicApi) MsQuicOpenVersion(2, (const void**)QuicApi)
 
 #endif // defined(__cplusplus)
 

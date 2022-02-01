@@ -863,7 +863,7 @@ main(
     //
     // Open a handle to the library and get the API function table.
     //
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
+    if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
     }

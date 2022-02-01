@@ -1213,7 +1213,7 @@ main(
 
     CxPlatLockInitialize(&TestResultsLock);
 
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
+    if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
     }

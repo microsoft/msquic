@@ -294,7 +294,7 @@ class MsQuicApi : public QUIC_API_TABLE {
     QUIC_STATUS InitStatus;
 public:
     MsQuicApi() noexcept {
-        if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen(&ApiTable))) {
+        if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen2(&ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
             memcpy(thisTable, ApiTable, sizeof(*ApiTable));
         }

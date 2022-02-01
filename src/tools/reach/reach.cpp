@@ -180,7 +180,7 @@ main(int argc, char **argv)
         }
     }
 
-    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
+    if (QUIC_FAILED(MsQuicOpen2(&MsQuic))) {
         printf("MsQuicOpen failed.\n");
         exit(1);
     }
