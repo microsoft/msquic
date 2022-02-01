@@ -4785,7 +4785,7 @@ QuicConnRecvPostProcessing(
             // sent back out.
             //
 
-            if (PeerUpdatedCid) {
+            if ((*Path)->DestCid == NULL || PeerUpdatedCid) {
                 (*Path)->DestCid = QuicConnGetUnusedDestCid(Connection);
                 if ((*Path)->DestCid == NULL) {
                     (*Path)->GotValidPacket = FALSE; // Don't have a new CID to use!!!
