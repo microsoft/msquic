@@ -491,6 +491,9 @@ CxPlatRunExecutionContexts(
                 Worker->ECsReady = TRUE;
             }
         }
+        if (Context->NextTimeUs < Worker->ECsReadyTime) {
+            Worker->ECsReadyTime = Context->NextTimeUs;
+        }
         EC = &Context->Entry.Next;
     }
 }
@@ -520,7 +523,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             WaitTime = 0;
         } else if (Worker->ECsReadyTime != UINT64_MAX) {
             uint64_t Diff = Worker->ECsReadyTime - TimeNow;
-            if (Diff < UINT32_MAX) {
+            Diff = US_TO_MS(Diff);
+            if (Diff == 0) {
+                WaitTime = 1;
+            } else if (Diff < UINT32_MAX) {
                 WaitTime = (DWORD)Diff;
             } else {
                 WaitTime = UINT32_MAX-1;

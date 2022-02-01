@@ -52,7 +52,7 @@
   <PropertyGroup>
     <TargetName>quic</TargetName>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)..\..\artifacts\bin\windbg\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)..\..\build\windbg\$(Platform)_$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
