@@ -78,10 +78,6 @@ QuicWorkerInitialize(
     Worker->Enabled = TRUE;
     Worker->IdealProcessor = IdealProcessor;
     CxPlatDispatchLockInitialize(&Worker->Lock);
-    Worker->ExecutionContext.Context = Worker;
-    Worker->ExecutionContext.Callback = QuicWorkerLoop;
-    Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
-    Worker->ExecutionContext.Ready = TRUE;
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
 #ifndef QUIC_USE_EXECUTION_CONTEXTS
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
@@ -100,6 +96,11 @@ QuicWorkerInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
+
+    Worker->ExecutionContext.Context = Worker;
+    Worker->ExecutionContext.Callback = QuicWorkerLoop;
+    Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
+    Worker->ExecutionContext.Ready = TRUE;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
     CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
@@ -149,8 +150,10 @@ QuicWorkerUninitialize(
     // Clean up the worker execution context.
     //
     Worker->Enabled = FALSE;
-    QuicWorkerThreadWake(Worker);
-    CxPlatEventWaitForever(Worker->Done);
+    if (Worker->ExecutionContext.Context) {
+        QuicWorkerThreadWake(Worker);
+        CxPlatEventWaitForever(Worker->Done);
+    }
     CxPlatEventUninitialize(Worker->Done);
 
 #ifndef QUIC_USE_EXECUTION_CONTEXTS
