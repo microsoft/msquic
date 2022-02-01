@@ -692,3 +692,76 @@ std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
 class WithRebindPaddingArgs : public testing::Test,
     public testing::WithParamInterface<RebindPaddingArgs> {
 };
+
+struct TlsConfigArgs {
+
+    QUIC_CREDENTIAL_TYPE CredType;
+    CXPLAT_TEST_CERT_TYPE CertType;
+
+    static ::std::vector<TlsConfigArgs> Generate() {
+        ::std::vector<TlsConfigArgs> List;
+        for (auto CredType : {
+#ifdef _WIN32
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+#else
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12
+#endif
+        })
+        for (auto CertType : {CXPLAT_TEST_CERT_SELF_SIGNED_SERVER, CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT}) {
+            List.push_back({CredType, CertType});
+        }
+        return List;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CXPLAT_TEST_CERT_TYPE& type) {
+    switch (type) {
+    case CXPLAT_TEST_CERT_VALID_SERVER:
+        return o << "Valid Server";
+    case CXPLAT_TEST_CERT_VALID_CLIENT:
+        return o << "Valid Client";
+    case CXPLAT_TEST_CERT_EXPIRED_SERVER:
+        return o << "Expired Server";
+    case CXPLAT_TEST_CERT_EXPIRED_CLIENT:
+        return o << "Expired Client";
+    case CXPLAT_TEST_CERT_SELF_SIGNED_SERVER:
+        return o << "Self-signed Server";
+    case CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT:
+        return o << "Self-signed Client";
+    default:
+        return o << "Unknown";
+    }
+}
+
+std::ostream& operator << (std::ostream& o, const QUIC_CREDENTIAL_TYPE& type) {
+    switch (type) {
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        return o << "None";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+        return o << "Hash";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+        return o << "HashStore";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+        return o << "Context";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
+        return o << "File";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED:
+        return o << "FileProtected";
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
+        return o << "Pkcs12";
+    default:
+        return o << "Unknown";
+    }
+}
+
+std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
+    return o << args.CredType << "/" << args.CertType;
+}
+
+class WithValidateTlsConfigArgs : public testing::Test,
+    public testing::WithParamInterface<TlsConfigArgs> {
+};

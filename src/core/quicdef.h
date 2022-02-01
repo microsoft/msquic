@@ -196,7 +196,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
 #else
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            180
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 #endif
 
 //
