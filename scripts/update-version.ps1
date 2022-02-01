@@ -48,9 +48,9 @@ Write-Host "    New version: $Version"
     -replace "($OriginalVersion2)", "$($Version[0]).$($Version[1]).$($Version[2])" |`
     Out-File $MsQuicVerFilePath
 (Get-Content $CreateVPackFilePath) `
-    -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
-    -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
-    -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
+    -replace "majorVer: (.*)", "majorVer: $($Version[0])" `
+    -replace "minorVer: (.*)", "minorVer: $($Version[1])" `
+    -replace "patchVer: (.*)", "patchVer: $($Version[2])" |`
     Out-File $CreateVPackFilePath
 (Get-Content $QnsFilePath) `
     -replace "($OriginalVersion)", "$($Version[0]),$($Version[1]),$($Version[2])" `
