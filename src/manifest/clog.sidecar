@@ -10541,6 +10541,30 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "PlatformWorkerThreadStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker start",
+      "UniqueId": "PlatformWorkerThreadStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PlatformWorkerThreadStop": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker stop",
+      "UniqueId": "PlatformWorkerThreadStop",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
     }
   },
   "ConfigFile": {
@@ -14361,6 +14385,16 @@
         "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
         "TraceID": "WindowsUserInitialized2",
         "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
+      },
+      {
+        "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",
+        "TraceID": "PlatformWorkerThreadStart",
+        "EncodingString": "[ lib][%p] Worker start"
+      },
+      {
+        "UniquenessHash": "317dc2da-d83f-49ec-c0f0-872bcbf594dd",
+        "TraceID": "PlatformWorkerThreadStop",
+        "EncodingString": "[ lib][%p] Worker stop"
       }
     ]
   }

@@ -102,6 +102,42 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PlatformWorkerThreadStart
+// [ lib][%p] Worker start
+// QuicTraceLogInfo(
+        PlatformWorkerThreadStart,
+        "[ lib][%p] Worker start",
+        Worker);
+// arg2 = arg2 = Worker = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PlatformWorkerThreadStart
+#define _clog_3_ARGS_TRACE_PlatformWorkerThreadStart(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, PlatformWorkerThreadStart , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PlatformWorkerThreadStop
+// [ lib][%p] Worker stop
+// QuicTraceLogInfo(
+        PlatformWorkerThreadStop,
+        "[ lib][%p] Worker stop",
+        Worker);
+// arg2 = arg2 = Worker = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PlatformWorkerThreadStop
+#define _clog_3_ARGS_TRACE_PlatformWorkerThreadStop(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, PlatformWorkerThreadStop , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WindowsUserInitialized2
 // [ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])
 // QuicTraceLogInfo(
