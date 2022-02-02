@@ -546,15 +546,6 @@ pub struct Settings {
     pub stateless_operation_expiration_ms: u16,
 }
 
-pub type ParameterLevel = u32;
-pub const PARAM_LEVEL_GLOBAL: ParameterLevel = 0;
-pub const PARAM_LEVEL_REGISTRATION: ParameterLevel = 1;
-pub const PARAM_LEVEL_CONFIGURATION: ParameterLevel = 2;
-pub const PARAM_LEVEL_LISTENER: ParameterLevel = 3;
-pub const PARAM_LEVEL_CONNECTION: ParameterLevel = 4;
-pub const PARAM_LEVEL_TLS: ParameterLevel = 5;
-pub const PARAM_LEVEL_STREAM: ParameterLevel = 6;
-
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 67108864;
 pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 67108865;
 pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 67108866;
@@ -778,14 +769,12 @@ struct ApiTable {
         extern "C" fn(handle: Handle, handler: *const c_void, context: *const c_void),
     set_param: extern "C" fn(
         handle: Handle,
-        level: ParameterLevel,
         param: u32,
         buffer_length: u32,
         buffer: *const c_void,
     ) -> u32,
     get_param: extern "C" fn(
         handle: Handle,
-        level: ParameterLevel,
         param: u32,
         buffer_length: *mut u32,
         buffer: *const c_void,
@@ -1067,7 +1056,6 @@ impl Api {
         unsafe {
             ((*self.table).get_param)(
                 std::ptr::null(),
-                PARAM_LEVEL_GLOBAL,
                 PARAM_GLOBAL_PERF_COUNTERS,
                 (&perf_length) as *const u32 as *mut u32,
                 perf.counters.as_mut_ptr() as *const c_void,
@@ -1227,7 +1215,6 @@ impl Connection {
         unsafe {
             ((*self.table).get_param)(
                 self.handle,
-                PARAM_LEVEL_CONNECTION,
                 PARAM_CONN_STATISTICS,
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
                 stat_buffer.as_mut_ptr() as *const c_void,
