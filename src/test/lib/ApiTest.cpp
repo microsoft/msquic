@@ -2035,7 +2035,7 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(
         ZwSetValueKey(
             GlobalKey,
-            &ValueName,
+            (PUNICODE_STRING)&ValueName,
             0,
             REG_DWORD,
             &SpecialInitialRtt,
@@ -2096,7 +2096,7 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(
         ZwSetValueKey(
             GlobalKey,
-            &ValueName,
+            (PUNICODE_STRING)&ValueName,
             0,
             REG_DWORD,
             &SpecialInitialRtt,
