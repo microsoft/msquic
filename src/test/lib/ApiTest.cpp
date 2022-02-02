@@ -1960,10 +1960,10 @@ QuicTestStorage()
     const uint32_t SpecialInitialRtt = 55;
 
 #ifdef _KERNEL_MODE
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    DECLARE_CONST_UNICODE_STRING(AppStoragePath, "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(ValueName, "InitialRttMs");
-    HKEY GlobalKey, AppKey;
+    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
+    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
+    DECLARE_CONST_UNICODE_STRING(ValueName, L"InitialRttMs");
+    HANDLE GlobalKey, AppKey;
     OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
     InitializeObjectAttributes(
         &GlobalAttributes,
@@ -1985,7 +1985,7 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(
         ZwDeleteValueKey(
             GlobalKey,
-            &ValueName));
+            (PUINICODE_STRING)&ValueName));
     if (QUIC_SUCCEEDED(
         ZwOpenKey(
             &AppKey,
@@ -2062,7 +2062,7 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(
         ZwDeleteValueKey(
             GlobalKey,
-            &ValueName));
+            (PUINICODE_STRING)&ValueName));
     ZwClose(GlobalKey);
 #elif _WIN32
     TEST_EQUAL(
