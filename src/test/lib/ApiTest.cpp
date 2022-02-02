@@ -1953,3 +1953,186 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
 
     TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
 }
+
+void
+QuicTestStorage()
+{
+    const uint32_t SpecialInitialRtt = 55;
+
+#ifdef _KERNEL_MODE
+    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
+    DECLARE_CONST_UNICODE_STRING(AppStoragePath, "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
+    DECLARE_CONST_UNICODE_STRING(ValueName, "InitialRttMs");
+    HKEY GlobalKey, AppKey;
+    OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
+    InitializeObjectAttributes(
+        &GlobalAttributes,
+        (PUNICODE_STRING)&GlobalStoragePath,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+    InitializeObjectAttributes(
+        &AppAttributes,
+        (PUNICODE_STRING)&AppStoragePath,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+    TEST_QUIC_SUCCEEDED(
+        ZwOpenKey(
+            &GlobalKey,
+            KEY_READ | KEY_NOTIFY,
+            &GlobalAttributes));
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            GlobalKey,
+            &ValueName));
+    if (QUIC_SUCCEEDED(
+        ZwOpenKey(
+            &AppKey,
+            KEY_READ | KEY_NOTIFY,
+            &AppAttributes))) {
+        ZwDeleteKey(AppKey);
+        ZwClose(AppKey);
+    }
+    TEST_QUIC_SUCCEEDED(
+        ZwCreateKey(
+            &AppKey,
+            KEY_READ | KEY_NOTIFY,
+            &AppAttributes,
+            0,
+            NULL,
+            REG_OPTION_NON_VOLATILE,
+            NULL));
+#elif _WIN32
+    RegDeleteKeyValueA(
+        HKEY_LOCAL_MACHINE,
+        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
+        "InitialRttMs");
+    RegDeleteKeyA(
+        HKEY_LOCAL_MACHINE,
+        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest");
+    HKEY Key;
+    TEST_EQUAL(
+        NO_ERROR,
+        RegCreateKeyA(
+            HKEY_LOCAL_MACHINE,
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
+            &Key));
+    RegCloseKey(Key);
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    //
+    // Global settings
+    //
+
+    MsQuicSettings Settings;
+    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            GlobalKey,
+            &ValueName,
+            0,
+            REG_DWORD,
+            &SpecialInitialRtt,
+            sizeof(SpecialInitialRtt)));
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
+            "InitialRttMs",
+            REG_DWORD,
+            &SpecialInitialRtt,
+            sizeof(SpecialInitialRtt)));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+    TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            GlobalKey,
+            &ValueName));
+    ZwClose(GlobalKey);
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
+            "InitialRttMs"));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+    //
+    // App settings
+    //
+
+    MsQuicRegistration Registration("StorageTest");
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+    TEST_TRUE(Configuration.IsValid());
+
+    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            GlobalKey,
+            &ValueName,
+            0,
+            REG_DWORD,
+            &SpecialInitialRtt,
+            sizeof(SpecialInitialRtt)));
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
+            "InitialRttMs",
+            REG_DWORD,
+            &SpecialInitialRtt,
+            sizeof(SpecialInitialRtt)));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+    TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+#ifdef _KERNEL_MODE
+    ZwDeleteKey(AppKey);
+    ZwClose(AppKey);
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyA(
+            HKEY_LOCAL_MACHINE,
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest"));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+}

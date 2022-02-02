@@ -579,6 +579,18 @@ public:
                 sizeof(*QSettings),
                 QSettings);
     }
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings& Settings) noexcept {
+        QUIC_SETTINGS* QSettings = &Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                &Size,
+                QSettings);
+    }
 };
 
 struct MsQuicListener {

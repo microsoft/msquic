@@ -111,7 +111,7 @@ LogTestFailure(
     )
 {
     UNREFERENCED_PARAMETER(Function);
-    char Buffer[128];
+    char Buffer[256];
     va_list Args;
     va_start(Args, Format);
     (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
@@ -1661,6 +1661,19 @@ TEST_P(WithFamilyArgs, DatagramSend) {
         QuicTestDatagramSend(GetParam().Family);
     }
 }
+
+#ifdef _WIN32 // Storage tests only supported on Windows
+
+TEST(Basic, TestStorage) {
+    TestLogger Logger("QuicTestStorage");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STORAGE));
+    } else {
+        QuicTestStorage();
+    }
+}
+
+#endif // _WIN32
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
