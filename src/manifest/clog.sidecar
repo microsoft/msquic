@@ -7020,7 +7020,7 @@
     },
     "FrameLogAckFrequency": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
       "UniqueId": "FrameLogAckFrequency",
       "splitArgs": [
         {
@@ -7050,6 +7050,10 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg9"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -10541,6 +10545,26 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "FrameLogImmediateAck": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   IMMEDIATE_ACK",
+      "UniqueId": "FrameLogImmediateAck",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -13263,11 +13287,6 @@
         "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY [Invalid]"
       },
       {
-        "UniquenessHash": "851bd2b1-e157-5cea-5989-07884c45d69e",
-        "TraceID": "FrameLogAckFrequency",
-        "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu"
-      },
-      {
         "UniquenessHash": "60d753ab-6710-fe16-e47d-37f046f5973c",
         "TraceID": "IgnoreCryptoFrame",
         "EncodingString": "[conn][%p] Ignoring received crypto after cleanup"
@@ -14361,6 +14380,16 @@
         "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
         "TraceID": "WindowsUserInitialized2",
         "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
+      },
+      {
+        "UniquenessHash": "7470e68a-8ad6-563a-4957-76dc22e5deeb",
+        "TraceID": "FrameLogAckFrequency",
+        "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu"
+      },
+      {
+        "UniquenessHash": "d0932f9a-e8e8-65d9-692c-3bd379a86d58",
+        "TraceID": "FrameLogImmediateAck",
+        "EncodingString": "[%c][%cX][%llu]   IMMEDIATE_ACK"
       }
     ]
   }
