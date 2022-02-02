@@ -2119,14 +2119,18 @@ QuicTestStorage()
     TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
 #ifdef _KERNEL_MODE
-    ZwDeleteKey(AppKey);
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            AppKey,
+            (PUNICODE_STRING)&ValueName));
     ZwClose(AppKey);
 #elif _WIN32
     TEST_EQUAL(
         NO_ERROR,
-        RegDeleteKeyA(
+        RegDeleteKeyValueA(
             HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest"));
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
+            "InitialRttMs"));
 #else
     TEST_FAILURE("Storage tests not supported on this platform");
 #endif

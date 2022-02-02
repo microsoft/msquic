@@ -119,7 +119,6 @@ CxPlatConvertUtf8ToUnicode(
             &UnicodeLength,
             Utf8String,
             (ULONG)Utf8Length);
-
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -146,7 +145,6 @@ CxPlatConvertUtf8ToUnicode(
             &UnicodeLength,
             Utf8String,
             (ULONG)Utf8Length);
-
     if (QUIC_FAILED(Status)) {
         CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
         return Status;
@@ -239,6 +237,11 @@ CxPlatStorageOpen(
     if (Path != NULL) {
         Status = CxPlatStorageCreateAppKey(Path, &PathUnicode);
         if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatStorageCreateAppKey failed");
             goto Exit;
         }
 
@@ -282,6 +285,11 @@ CxPlatStorageOpen(
             KEY_READ | KEY_NOTIFY,
             &Attributes);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "ZwOpenKey failed");
         goto Exit;
     }
 
@@ -298,6 +306,11 @@ CxPlatStorageOpen(
             0,
             TRUE);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "ZwNotifyChangeKey failed");
         goto Exit;
     }
 
@@ -418,6 +431,11 @@ CxPlatStorageReadValue(
             Status == STATUS_BUFFER_TOO_SMALL) {
             Status = QUIC_STATUS_SUCCESS;
         } else if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwQueryValueKey (length) failed");
             goto Exit;
         }
 
@@ -443,6 +461,12 @@ CxPlatStorageReadValue(
         if (QUIC_SUCCEEDED(Status)) {
             CXPLAT_DBG_ASSERT(*BufferLength == Info->DataLength);
             memcpy(Buffer, Info->Data, Info->DataLength);
+        } else if (Status != STATUS_OBJECT_NAME_NOT_FOUND) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwQueryValueKey failed");
         }
 
         CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
