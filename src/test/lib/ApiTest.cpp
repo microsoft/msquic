@@ -1982,10 +1982,9 @@ QuicTestStorage()
             &GlobalKey,
             KEY_READ | KEY_NOTIFY,
             &GlobalAttributes));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&ValueName));
+    ZwDeleteValueKey(
+        GlobalKey,
+        (PUNICODE_STRING)&ValueName);
     if (QUIC_SUCCEEDED(
         ZwOpenKey(
             &AppKey,
