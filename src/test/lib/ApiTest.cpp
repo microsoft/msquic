@@ -2038,7 +2038,7 @@ QuicTestStorage()
             (PUNICODE_STRING)&ValueName,
             0,
             REG_DWORD,
-            &SpecialInitialRtt,
+            (PVOID)&SpecialInitialRtt,
             sizeof(SpecialInitialRtt)));
 #elif _WIN32
     TEST_EQUAL(
@@ -2099,7 +2099,7 @@ QuicTestStorage()
             (PUNICODE_STRING)&ValueName,
             0,
             REG_DWORD,
-            &SpecialInitialRtt,
+            (PVOID)&SpecialInitialRtt,
             sizeof(SpecialInitialRtt)));
 #elif _WIN32
     TEST_EQUAL(
