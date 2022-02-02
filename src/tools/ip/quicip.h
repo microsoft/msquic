@@ -223,7 +223,7 @@ MsQuicGetPublicIP(
     const QUIC_REGISTRATION_CONFIG RegConfig = { "ip", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 
     if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
-        QUIC_PRINTF("MsQuicOpen failed, 0x%x!\n", Status);
+        QUIC_PRINTF("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
 

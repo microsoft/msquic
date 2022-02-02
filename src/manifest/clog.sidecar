@@ -10541,6 +10541,39 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "LibraryMsQuicOpenVersionUnsupported": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] MsQuicOpenVersion, Only version 2 supported",
+      "UniqueId": "LibraryMsQuicOpenVersionUnsupported",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "LibraryMsQuicOpenVersionNull": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] MsQuicOpenVersion, NULL",
+      "UniqueId": "LibraryMsQuicOpenVersionNull",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "LibraryMsQuicOpenVersionEntry": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] MsQuicOpenVersion",
+      "UniqueId": "LibraryMsQuicOpenVersionEntry",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "LibraryMsQuicOpenVersionExit": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] MsQuicOpenVersion, status=0x%x",
+      "UniqueId": "LibraryMsQuicOpenVersionExit",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -14361,6 +14394,26 @@
         "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
         "TraceID": "WindowsUserInitialized2",
         "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
+      },
+      {
+        "UniquenessHash": "a9f59856-9834-de26-4bb6-bb8a05fc47ab",
+        "TraceID": "LibraryMsQuicOpenVersionUnsupported",
+        "EncodingString": "[ api] MsQuicOpenVersion, Only version 2 supported"
+      },
+      {
+        "UniquenessHash": "9dbf9e05-d5cd-4ec3-ea93-fb33942ff968",
+        "TraceID": "LibraryMsQuicOpenVersionNull",
+        "EncodingString": "[ api] MsQuicOpenVersion, NULL"
+      },
+      {
+        "UniquenessHash": "108ce8c8-296c-0dfd-9efc-9ed86bcb1c7d",
+        "TraceID": "LibraryMsQuicOpenVersionEntry",
+        "EncodingString": "[ api] MsQuicOpenVersion"
+      },
+      {
+        "UniquenessHash": "fc39ba20-c315-583e-6b62-656fbbd3d077",
+        "TraceID": "LibraryMsQuicOpenVersionExit",
+        "EncodingString": "[ api] MsQuicOpenVersion, status=0x%x"
       }
     ]
   }

@@ -1271,8 +1271,8 @@ QUIC_STATUS
     );
 
 //
-// Version 1 API Function Table. Returned from MsQuicOpenVersion when Version
-// is 1. Also returned from MsQuicOpen.
+// Version 2 API Function Table. Returned from MsQuicOpenVersion when Version
+// is 2. Also returned from MsQuicOpen2.
 //
 typedef struct QUIC_API_TABLE {
 
@@ -1365,7 +1365,7 @@ MsQuicOpen2(
 #endif // defined(__cplusplus)
 
 //
-// Cleans up the function table returned from MsQuicOpen and releases the
+// Cleans up the function table returned from MsQuicOpenVersion and releases the
 // reference on the API.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

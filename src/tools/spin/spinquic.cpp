@@ -1095,7 +1095,7 @@ main(int argc, char **argv)
     srand(RngSeed);
 
     //
-    // Initial MsQuicOpen and initialization.
+    // Initial MsQuicOpen2 and initialization.
     //
     const QUIC_API_TABLE* TempMsQuic = nullptr;
     ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));

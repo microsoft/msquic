@@ -181,7 +181,7 @@ main(int argc, char **argv)
     }
 
     if (QUIC_FAILED(MsQuicOpen2(&MsQuic))) {
-        printf("MsQuicOpen failed.\n");
+        printf("MsQuicOpen2 failed.\n");
         exit(1);
     }
 

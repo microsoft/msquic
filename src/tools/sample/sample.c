@@ -80,7 +80,7 @@ const uint64_t IdleTimeoutMs = 1000;
 const uint32_t SendBufferLength = 100;
 
 //
-// The QUIC API/function table returned from MsQuicOpen. It contains all the
+// The QUIC API/function table returned from MsQuicOpen2. It contains all the
 // functions called by the app to interact with MsQuic.
 //
 const QUIC_API_TABLE* MsQuic;
@@ -864,7 +864,7 @@ main(
     // Open a handle to the library and get the API function table.
     //
     if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
-        printf("MsQuicOpen failed, 0x%x!\n", Status);
+        printf("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
 

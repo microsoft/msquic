@@ -170,4 +170,4 @@ See [DatagramSend](DatagramSend.md)
 
 # See Also
 
-[MsQuicOpen](MsQuicOpen.md)<br>
+[MsQuicOpen2](MsQuicOpen2.md)<br>

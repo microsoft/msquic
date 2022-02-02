@@ -1309,6 +1309,9 @@ MsQuicOpenVersion(
     BOOLEAN ReleaseRefOnFailure = FALSE;
 
     if (Version != 2) {
+        QuicTraceLogVerbose(
+            LibraryMsQuicOpenVersionUnsupported,
+            "[ api] MsQuicOpenVersion, Only version 2 supported");
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
@@ -1316,15 +1319,15 @@ MsQuicOpenVersion(
 
     if (QuicApi == NULL) {
         QuicTraceLogVerbose(
-            LibraryMsQuicOpenNull,
-            "[ api] MsQuicOpen, NULL");
+            LibraryMsQuicOpenVersionNull,
+            "[ api] MsQuicOpenVersion, NULL");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
     QuicTraceLogVerbose(
-        LibraryMsQuicOpenEntry,
-        "[ api] MsQuicOpen");
+        LibraryMsQuicOpenVersionEntry,
+        "[ api] MsQuicOpenVersion");
 
     Status = MsQuicAddRef();
     if (QUIC_FAILED(Status)) {
@@ -1380,8 +1383,8 @@ MsQuicOpenVersion(
 Exit:
 
     QuicTraceLogVerbose(
-        LibraryMsQuicOpenExit,
-        "[ api] MsQuicOpen, status=0x%x",
+        LibraryMsQuicOpenVersionExit,
+        "[ api] MsQuicOpenVersion, status=0x%x",
         Status);
 
     if (QUIC_FAILED(Status)) {
