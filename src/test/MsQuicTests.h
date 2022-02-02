@@ -37,6 +37,15 @@ void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
 void QuicTestDesiredVersionSettings();
 void QuicTestValidateParamApi();
+void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+
+//
+// Ownership tests
+//
+void QuicTestRegistrationShutdownBeforeConnOpen();
+void QuicTestRegistrationShutdownAfterConnOpen();
+void QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
+void QuicTestRegistrationShutdownAfterConnOpenAndStart();
 
 //
 // Rejection Tests
@@ -856,6 +865,9 @@ typedef struct {
     union {
         QUIC_CERTIFICATE_HASH CertHash;
         QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
+        QUIC_CERTIFICATE_PKCS12 Pkcs12;
         char PrincipalString[100];
     };
 } QUIC_RUN_CRED_VALIDATION;
@@ -947,4 +959,19 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL \
     QUIC_CTL_CODE(79, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 79
+#define IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN \
+    QUIC_CTL_CODE(80, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN \
+    QUIC_CTL_CODE(81, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START \
+    QUIC_CTL_CODE(82, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START \
+    QUIC_CTL_CODE(83, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION \
+    QUIC_CTL_CODE(84, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 84

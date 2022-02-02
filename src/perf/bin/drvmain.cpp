@@ -316,10 +316,11 @@ SecNetPerfCtlInitialize(
         goto Error;
     }
 
-    QuicTraceLogVerbose(
+#if 0 // Disable this trace while we find a solution to %.*S
+    Q uicTraceLogVerbose(
         PerfControlInitialized,
         "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
-
+#endif
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
         SecNetPerfCtlEvtFileCreate,
@@ -461,7 +462,7 @@ SecNetPerfCtlEvtFileCreate(
     PAGED_CODE();
 
     KeEnterGuardedRegion();
-    ExfAcquirePushLockExclusive(&SecNetPerfCtlExtension->Lock);
+    ExAcquirePushLockExclusive(&SecNetPerfCtlExtension->Lock);
 
     do {
         if (SecNetPerfCtlExtension->ClientListSize >= 1) {
@@ -505,7 +506,7 @@ SecNetPerfCtlEvtFileCreate(
         CxPlatEventInitialize(&Client->StopEvent, true, false);
     } while (false);
 
-    ExfReleasePushLockExclusive(&SecNetPerfCtlExtension->Lock);
+    ExReleasePushLockExclusive(&SecNetPerfCtlExtension->Lock);
     KeLeaveGuardedRegion();
 
     WdfRequestComplete(Request, Status);
@@ -535,7 +536,7 @@ SecNetPerfCtlEvtFileCleanup(
     QUIC_DRIVER_CLIENT* Client = SecNetPerfCtlGetFileContext(FileObject);
     if (Client != nullptr) {
 
-        ExfAcquirePushLockExclusive(&SecNetPerfCtlExtension->Lock);
+        ExAcquirePushLockExclusive(&SecNetPerfCtlExtension->Lock);
 
         //
         // Remove the device client from the list
@@ -543,7 +544,7 @@ SecNetPerfCtlEvtFileCleanup(
         RemoveEntryList(&Client->Link);
         SecNetPerfCtlExtension->ClientListSize--;
 
-        ExfReleasePushLockExclusive(&SecNetPerfCtlExtension->Lock);
+        ExReleasePushLockExclusive(&SecNetPerfCtlExtension->Lock);
 
         QuicTraceLogInfo(
             PerfControlClientCleaningUp,

@@ -17,7 +17,7 @@ namespace QuicTrace
 {
     public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEvent, object, Guid>
     {
-        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventParser.SourceId, "QUIC");
+        public static readonly DataCookerPath CookerPath = DataCookerPath.ForSource(QuicEventParser.SourceId, "QUIC");
 
         public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>());
 

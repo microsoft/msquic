@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_PLATFORM_POSIX_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_2_ARGS_TRACE_PosixLoaded
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PosixLoaded
 // [ dso] Loaded
@@ -34,15 +32,12 @@ extern "C" {
         PosixLoaded,
         "[ dso] Loaded");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PosixLoaded
 #define _clog_2_ARGS_TRACE_PosixLoaded(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_POSIX_C, PosixLoaded );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_PosixUnloaded
 
 
 
@@ -53,15 +48,12 @@ tracepoint(CLOG_PLATFORM_POSIX_C, PosixLoaded );\
         PosixUnloaded,
         "[ dso] Unloaded");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PosixUnloaded
 #define _clog_2_ARGS_TRACE_PosixUnloaded(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_POSIX_C, PosixUnloaded );\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PosixInitialized
 
 
 
@@ -72,17 +64,14 @@ tracepoint(CLOG_PLATFORM_POSIX_C, PosixUnloaded );\
         PosixInitialized,
         "[ dso] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
-// arg2 = arg2 = CxPlatTotalMemory
+// arg2 = arg2 = CxPlatTotalMemory = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PosixInitialized
 #define _clog_3_ARGS_TRACE_PosixInitialized(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_PLATFORM_POSIX_C, PosixInitialized , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_PosixUninitialized
 
 
 
@@ -93,15 +82,12 @@ tracepoint(CLOG_PLATFORM_POSIX_C, PosixInitialized , arg2);\
         PosixUninitialized,
         "[ dso] Uninitialized");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PosixUninitialized
 #define _clog_2_ARGS_TRACE_PosixUninitialized(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_PLATFORM_POSIX_C, PosixUninitialized );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
@@ -113,40 +99,15 @@ tracepoint(CLOG_PLATFORM_POSIX_C, PosixUninitialized );\
             "[ lib] ERROR, %u, %s.",
             Status,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            errno,
-            "pthread_attr_init failed");
-// arg2 = arg2 = errno
-// arg3 = arg3 = "pthread_attr_init failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
 
@@ -157,39 +118,14 @@ tracepoint(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus , arg2, arg3);\
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "pthread_attr_setaffinity_np failed");
-// arg2 = arg2 = "pthread_attr_setaffinity_np failed"
+// arg2 = arg2 = "pthread_attr_setaffinity_np failed" = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_PLATFORM_POSIX_C, LibraryError , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                errno,
-                "pthread_attr_setschedparam failed");
-// arg2 = arg2 = errno
-// arg3 = arg3 = "pthread_attr_setschedparam failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -201,168 +137,15 @@ tracepoint(CLOG_PLATFORM_POSIX_C, LibraryError , arg2);\
             "Allocation of '%s' failed. (%llu bytes)",
             "Custom thread context",
             sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT));
-// arg2 = arg2 = "Custom thread context"
-// arg3 = arg3 = sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT)
+// arg2 = arg2 = "Custom thread context" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_POSIX_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "pthread_create failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "pthread_create failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "pthread_create failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "pthread_create failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "pthread_setaffinity_np failed");
-// arg2 = arg2 = "pthread_setaffinity_np failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "pthread_setaffinity_np failed");
-// arg2 = arg2 = "pthread_setaffinity_np failed"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            errno,
-            "pthread_attr_init failed");
-// arg2 = arg2 = errno
-// arg3 = arg3 = "pthread_attr_init failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                errno,
-                "pthread_attr_setschedparam failed");
-// arg2 = arg2 = errno
-// arg3 = arg3 = "pthread_attr_setschedparam failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "pthread_create failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "pthread_create failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_LibraryAssert
 
 
 
@@ -375,10 +158,11 @@ tracepoint(CLOG_PLATFORM_POSIX_C, AllocFailure , arg2, arg3);\
         (uint32_t)Line,
         File,
         Expr);
-// arg2 = arg2 = (uint32_t)Line
-// arg3 = arg3 = File
-// arg4 = arg4 = Expr
+// arg2 = arg2 = (uint32_t)Line = arg2
+// arg3 = arg3 = File = arg3
+// arg4 = arg4 = Expr = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LibraryAssert
 #define _clog_5_ARGS_TRACE_LibraryAssert(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_PLATFORM_POSIX_C, LibraryAssert , arg2, arg3, arg4);\
 

@@ -17,7 +17,7 @@ Abstract:
 
 // ############################# HELPERS #############################
 
-#define FRAME_TYPE_CRYTPO   0
+#define FRAME_TYPE_CRYPTO   0
 #define FRAME_TYPE_STREAM   1
 
 #pragma pack(push)
@@ -639,7 +639,7 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
     }
 
     auto Frame = (TcpFrame*)SendBuffer->Buffer;
-    Frame->FrameType = FRAME_TYPE_CRYTPO;
+    Frame->FrameType = FRAME_TYPE_CRYPTO;
     Frame->Length = BufferLength;
     Frame->KeyType = KeyType;
     CxPlatCopyMemory(Frame->Data, Buffer, BufferLength);
@@ -754,7 +754,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
     }
 
     switch (Frame->FrameType) {
-    case FRAME_TYPE_CRYTPO:
+    case FRAME_TYPE_CRYPTO:
         if (!ProcessTls(Frame->Data, Frame->Length)) {
             return false;
         }

@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_SEND_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -27,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_5_ARGS_TRACE_SetSendFlag
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for SetSendFlag
 // [strm][%p] Setting flags 0x%x (existing flags: 0x%x)
@@ -40,19 +38,16 @@ extern "C" {
             "Setting flags 0x%x (existing flags: 0x%x)",
             (SendFlags & (uint32_t)(~Stream->SendFlags)),
             Stream->SendFlags);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = (SendFlags & (uint32_t)(~Stream->SendFlags))
-// arg4 = arg4 = Stream->SendFlags
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = (SendFlags & (uint32_t)(~Stream->SendFlags)) = arg3
+// arg4 = arg4 = Stream->SendFlags = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_SetSendFlag
 #define _clog_5_ARGS_TRACE_SetSendFlag(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_SEND_C, SetSendFlag , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ClearSendFlags
 
 
 
@@ -64,59 +59,15 @@ tracepoint(CLOG_SEND_C, SetSendFlag , arg1, arg3, arg4);\
             Stream,
             "Removing flags %x",
             (SendFlags & Stream->SendFlags));
-// arg1 = arg1 = Stream
-// arg3 = arg3 = (SendFlags & Stream->SendFlags)
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = (SendFlags & Stream->SendFlags) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ClearSendFlags
 #define _clog_4_ARGS_TRACE_ClearSendFlags(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_SEND_C, ClearSendFlags , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CancelAckDelayTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            QuicSendGetConnection(Send),
-            "Canceling ACK_DELAY timer");
-// arg1 = arg1 = QuicSendGetConnection(Send)
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_CancelAckDelayTimer(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_SEND_C, CancelAckDelayTimer , arg1);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CancelAckDelayTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            Connection,
-            "Canceling ACK_DELAY timer");
-// arg1 = arg1 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_CancelAckDelayTimer(uniqueId, arg1, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ScheduleSendFlags
 
 
 
@@ -129,19 +80,16 @@ tracepoint(CLOG_SEND_C, CancelAckDelayTimer , arg1);\
             "Scheduling flags 0x%x to 0x%x",
             SendFlags,
             Send->SendFlags);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = SendFlags
-// arg4 = arg4 = Send->SendFlags
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = SendFlags = arg3
+// arg4 = arg4 = Send->SendFlags = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ScheduleSendFlags
 #define _clog_5_ARGS_TRACE_ScheduleSendFlags(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_SEND_C, ScheduleSendFlags , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_RemoveSendFlagsMsg
 
 
 
@@ -153,61 +101,15 @@ tracepoint(CLOG_SEND_C, ScheduleSendFlags , arg1, arg3, arg4);\
             QuicSendGetConnection(Send),
             "Removing flags %x",
             (SendFlags & Send->SendFlags));
-// arg1 = arg1 = QuicSendGetConnection(Send)
-// arg3 = arg3 = (SendFlags & Send->SendFlags)
+// arg1 = arg1 = QuicSendGetConnection(Send) = arg1
+// arg3 = arg3 = (SendFlags & Send->SendFlags) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_RemoveSendFlagsMsg
 #define _clog_4_ARGS_TRACE_RemoveSendFlagsMsg(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_SEND_C, RemoveSendFlagsMsg , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CancelAckDelayTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for CancelAckDelayTimer
-// [conn][%p] Canceling ACK_DELAY timer
-// QuicTraceLogConnVerbose(
-                CancelAckDelayTimer,
-                Connection,
-                "Canceling ACK_DELAY timer");
-// arg1 = arg1 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_CancelAckDelayTimer(uniqueId, arg1, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_FlushSend
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for FlushSend
-// [conn][%p] Flushing send. Allowance=%u bytes
-// QuicTraceLogConnVerbose(
-        FlushSend,
-        Connection,
-        "Flushing send. Allowance=%u bytes",
-        Builder.SendAllowance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Builder.SendAllowance
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_FlushSend(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_SEND_C, FlushSend , arg1, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_AmplificationProtectionBlocked
 
 
 
@@ -218,40 +120,14 @@ tracepoint(CLOG_SEND_C, FlushSend , arg1, arg3);\
                 AmplificationProtectionBlocked,
                 Connection,
                 "Cannot send any more because of amplification protection");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_AmplificationProtectionBlocked
 #define _clog_3_ARGS_TRACE_AmplificationProtectionBlocked(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_SEND_C, AmplificationProtectionBlocked , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SetPacingTimer
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SetPacingTimer
-// [conn][%p] Setting delayed send (PACING) timer for %u ms
-// QuicTraceLogConnVerbose(
-                        SetPacingTimer,
-                        Connection,
-                        "Setting delayed send (PACING) timer for %u ms",
-                        QUIC_SEND_PACING_INTERVAL);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = QUIC_SEND_PACING_INTERVAL
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_SetPacingTimer(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_SEND_C, SetPacingTimer , arg1, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SendFlushComplete
 
 
 
@@ -263,18 +139,15 @@ tracepoint(CLOG_SEND_C, SetPacingTimer , arg1, arg3);\
         Connection,
         "Flush complete flags=0x%x",
         Send->SendFlags);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Send->SendFlags
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Send->SendFlags = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SendFlushComplete
 #define _clog_4_ARGS_TRACE_SendFlushComplete(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_SEND_C, SendFlushComplete , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StartAckDelayTimer
 
 
 
@@ -286,18 +159,15 @@ tracepoint(CLOG_SEND_C, SendFlushComplete , arg1, arg3);\
             Connection,
             "Starting ACK_DELAY timer for %u ms",
             Connection->Settings.MaxAckDelayMs);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Settings.MaxAckDelayMs
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Settings.MaxAckDelayMs = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StartAckDelayTimer
 #define _clog_4_ARGS_TRACE_StartAckDelayTimer(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_SEND_C, StartAckDelayTimer , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnQueueSendFlush
 
 
 
@@ -309,11 +179,32 @@ tracepoint(CLOG_SEND_C, StartAckDelayTimer , arg1, arg3);\
                 "[conn][%p] Queueing send flush, reason=%u",
                 Connection,
                 Reason);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Reason
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Reason = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnQueueSendFlush
 #define _clog_4_ARGS_TRACE_ConnQueueSendFlush(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_SEND_C, ConnQueueSendFlush , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnFlushSend
+// [conn][%p] Flushing Send. Allowance=%u bytes
+// QuicTraceEvent(
+        ConnFlushSend,
+        "[conn][%p] Flushing Send. Allowance=%u bytes",
+        Connection,
+        Builder.SendAllowance);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Builder.SendAllowance = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnFlushSend
+#define _clog_4_ARGS_TRACE_ConnFlushSend(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_SEND_C, ConnFlushSend , arg2, arg3);\
 
 #endif
 

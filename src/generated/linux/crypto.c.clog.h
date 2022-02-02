@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CRYPTO_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -31,10 +33,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_IgnoreCryptoFrame
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for IgnoreCryptoFrame
 // [conn][%p] Ignoring received crypto after cleanup
@@ -42,17 +40,14 @@ extern "C" {
             IgnoreCryptoFrame,
             Connection,
             "Ignoring received crypto after cleanup");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IgnoreCryptoFrame
 #define _clog_3_ARGS_TRACE_IgnoreCryptoFrame(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, IgnoreCryptoFrame , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DiscardKeyType
 
 
 
@@ -64,18 +59,15 @@ tracepoint(CLOG_CRYPTO_C, IgnoreCryptoFrame , arg1);\
         Connection,
         "Discarding key type = %hhu",
         (uint8_t)KeyType);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint8_t)KeyType
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint8_t)KeyType = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DiscardKeyType
 #define _clog_4_ARGS_TRACE_DiscardKeyType(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_C, DiscardKeyType , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ZeroRttAccepted
 
 
 
@@ -86,17 +78,14 @@ tracepoint(CLOG_CRYPTO_C, DiscardKeyType , arg1, arg3);\
             ZeroRttAccepted,
             Connection,
             "0-RTT accepted");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ZeroRttAccepted
 #define _clog_3_ARGS_TRACE_ZeroRttAccepted(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, ZeroRttAccepted , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ZeroRttRejected
 
 
 
@@ -107,17 +96,14 @@ tracepoint(CLOG_CRYPTO_C, ZeroRttAccepted , arg1);\
             ZeroRttRejected,
             Connection,
             "0-RTT rejected");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ZeroRttRejected
 #define _clog_3_ARGS_TRACE_ZeroRttRejected(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, ZeroRttRejected , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_HandshakeConfirmedServer
 
 
 
@@ -128,17 +114,14 @@ tracepoint(CLOG_CRYPTO_C, ZeroRttRejected , arg1);\
                 HandshakeConfirmedServer,
                 Connection,
                 "Handshake confirmed (server)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_HandshakeConfirmedServer
 #define _clog_3_ARGS_TRACE_HandshakeConfirmedServer(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, HandshakeConfirmedServer , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CustomCertValidationSuccess
 
 
 
@@ -149,17 +132,14 @@ tracepoint(CLOG_CRYPTO_C, HandshakeConfirmedServer , arg1);\
             CustomCertValidationSuccess,
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
-// arg1 = arg1 = QuicCryptoGetConnection(Crypto)
+// arg1 = arg1 = QuicCryptoGetConnection(Crypto) = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CustomCertValidationSuccess
 #define _clog_3_ARGS_TRACE_CustomCertValidationSuccess(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, CustomCertValidationSuccess , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_9_ARGS_TRACE_CryptoDump
 
 
 
@@ -176,23 +156,20 @@ tracepoint(CLOG_CRYPTO_C, CustomCertValidationSuccess , arg1);\
             Crypto->NextSendOffset,
             Crypto->InRecovery ? Crypto->RecoveryNextOffset : 0,
             Crypto->InRecovery ? Crypto->RecoveryEndOffset : 0);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Crypto->TlsState.BufferTotalLength
-// arg4 = arg4 = Crypto->MaxSentLength
-// arg5 = arg5 = Crypto->UnAckedOffset
-// arg6 = arg6 = Crypto->NextSendOffset
-// arg7 = arg7 = Crypto->InRecovery ? Crypto->RecoveryNextOffset : 0
-// arg8 = arg8 = Crypto->InRecovery ? Crypto->RecoveryEndOffset : 0
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Crypto->TlsState.BufferTotalLength = arg3
+// arg4 = arg4 = Crypto->MaxSentLength = arg4
+// arg5 = arg5 = Crypto->UnAckedOffset = arg5
+// arg6 = arg6 = Crypto->NextSendOffset = arg6
+// arg7 = arg7 = Crypto->InRecovery ? Crypto->RecoveryNextOffset : 0 = arg7
+// arg8 = arg8 = Crypto->InRecovery ? Crypto->RecoveryEndOffset : 0 = arg8
 ----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_CryptoDump
 #define _clog_9_ARGS_TRACE_CryptoDump(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8)\
 tracepoint(CLOG_CRYPTO_C, CryptoDump , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_CryptoDumpUnacked
 
 
 
@@ -205,19 +182,16 @@ tracepoint(CLOG_CRYPTO_C, CryptoDump , arg1, arg3, arg4, arg5, arg6, arg7, arg8)
                 "  unACKed: [%llu, %llu]",
                 UnAcked,
                 Sack->Low);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = UnAcked
-// arg4 = arg4 = Sack->Low
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = UnAcked = arg3
+// arg4 = arg4 = Sack->Low = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CryptoDumpUnacked
 #define _clog_5_ARGS_TRACE_CryptoDumpUnacked(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_C, CryptoDumpUnacked , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_CryptoDumpUnacked2
 
 
 
@@ -230,19 +204,16 @@ tracepoint(CLOG_CRYPTO_C, CryptoDumpUnacked , arg1, arg3, arg4);\
                 "  unACKed: [%llu, %u]",
                 UnAcked,
                 Crypto->MaxSentLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = UnAcked
-// arg4 = arg4 = Crypto->MaxSentLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = UnAcked = arg3
+// arg4 = arg4 = Crypto->MaxSentLength = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CryptoDumpUnacked2
 #define _clog_5_ARGS_TRACE_CryptoDumpUnacked2(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_C, CryptoDumpUnacked2 , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NoMoreRoomForCrypto
 
 
 
@@ -253,17 +224,14 @@ tracepoint(CLOG_CRYPTO_C, CryptoDumpUnacked2 , arg1, arg3, arg4);\
             NoMoreRoomForCrypto,
             Connection,
             "No room for CRYPTO frame");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NoMoreRoomForCrypto
 #define _clog_3_ARGS_TRACE_NoMoreRoomForCrypto(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, NoMoreRoomForCrypto , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_AddCryptoFrame
 
 
 
@@ -276,19 +244,16 @@ tracepoint(CLOG_CRYPTO_C, NoMoreRoomForCrypto , arg1);\
         "Sending %hu crypto bytes, offset=%u",
         (uint16_t)Frame.Length,
         CryptoOffset);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Frame.Length
-// arg4 = arg4 = CryptoOffset
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Frame.Length = arg3
+// arg4 = arg4 = CryptoOffset = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_AddCryptoFrame
 #define _clog_5_ARGS_TRACE_AddCryptoFrame(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_C, AddCryptoFrame , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_RecoverCrypto
 
 
 
@@ -301,19 +266,16 @@ tracepoint(CLOG_CRYPTO_C, AddCryptoFrame , arg1, arg3, arg4);\
             "Recovering crypto from %llu up to %llu",
             Start,
             End);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Start
-// arg4 = arg4 = End
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Start = arg3
+// arg4 = arg4 = End = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_RecoverCrypto
 #define _clog_5_ARGS_TRACE_RecoverCrypto(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_C, RecoverCrypto , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_AckCrypto
 
 
 
@@ -326,19 +288,16 @@ tracepoint(CLOG_CRYPTO_C, RecoverCrypto , arg1, arg3, arg4);\
         "Received ack for %u crypto bytes, offset=%u",
         Length,
         Offset);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = Offset
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = Offset = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_AckCrypto
 #define _clog_5_ARGS_TRACE_AckCrypto(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_C, AckCrypto , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_RecvCrypto
 
 
 
@@ -352,20 +311,17 @@ tracepoint(CLOG_CRYPTO_C, AckCrypto , arg1, arg3, arg4);\
         (uint16_t)Frame->Length,
         Frame->Offset,
         *DataReady);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Frame->Length
-// arg4 = arg4 = Frame->Offset
-// arg5 = arg5 = *DataReady
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Frame->Length = arg3
+// arg4 = arg4 = Frame->Offset = arg4
+// arg5 = arg5 = *DataReady = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_RecvCrypto
 #define _clog_6_ARGS_TRACE_RecvCrypto(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
 tracepoint(CLOG_CRYPTO_C, RecvCrypto , arg1, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateConnected
 
 
 
@@ -377,18 +333,15 @@ tracepoint(CLOG_CRYPTO_C, RecvCrypto , arg1, arg3, arg4, arg5);\
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
             Event.CONNECTED.SessionResumed);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.CONNECTED.SessionResumed
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.CONNECTED.SessionResumed = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateConnected
 #define _clog_4_ARGS_TRACE_IndicateConnected(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_C, IndicateConnected , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DrainCrypto
 
 
 
@@ -400,18 +353,15 @@ tracepoint(CLOG_CRYPTO_C, IndicateConnected , arg1, arg3);\
             QuicCryptoGetConnection(Crypto),
             "Draining %u crypto bytes",
             RecvBufferConsumed);
-// arg1 = arg1 = QuicCryptoGetConnection(Crypto)
-// arg3 = arg3 = RecvBufferConsumed
+// arg1 = arg1 = QuicCryptoGetConnection(Crypto) = arg1
+// arg3 = arg3 = RecvBufferConsumed = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DrainCrypto
 #define _clog_4_ARGS_TRACE_DrainCrypto(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_C, DrainCrypto , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CryptoNotReady
 
 
 
@@ -422,17 +372,14 @@ tracepoint(CLOG_CRYPTO_C, DrainCrypto , arg1, arg3);\
                 CryptoNotReady,
                 Connection,
                 "No complete TLS messages to process");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CryptoNotReady
 #define _clog_3_ARGS_TRACE_CryptoNotReady(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_C, CryptoNotReady , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -444,9 +391,10 @@ tracepoint(CLOG_CRYPTO_C, CryptoNotReady , arg1);\
             "Allocation of '%s' failed. (%llu bytes)",
             "crypto send buffer",
             SendBufferLength);
-// arg2 = arg2 = "crypto send buffer"
-// arg3 = arg3 = SendBufferLength
+// arg2 = arg2 = "crypto send buffer" = arg2
+// arg3 = arg3 = SendBufferLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_C, AllocFailure , arg2, arg3);\
 
@@ -455,10 +403,6 @@ tracepoint(CLOG_CRYPTO_C, AllocFailure , arg2, arg3);\
 
 
 
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConnErrorStatus
 // [conn][%p] ERROR, %u, %s.
@@ -468,67 +412,16 @@ tracepoint(CLOG_CRYPTO_C, AllocFailure , arg2, arg3);\
             Connection,
             Status,
             "Creating initial keys");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Creating initial keys"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Creating initial keys" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 #define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_C, ConnErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            Status,
-            "CxPlatTlsInitialize");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "CxPlatTlsInitialize"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            Status,
-            "Creating initial keys");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Creating initial keys"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
 
 
 
@@ -540,42 +433,15 @@ tracepoint(CLOG_CRYPTO_C, ConnErrorStatus , arg2, arg3, arg4);\
                     "[conn][%p] ERROR, %s.",
                     Connection,
                     "Tried to write beyond crypto flow control limit.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Tried to write beyond crypto flow control limit."
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Tried to write beyond crypto flow control limit." = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_C, ConnError , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            Crypto->TlsState.AlertCode,
-            "Received alert from TLS");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Crypto->TlsState.AlertCode
-// arg4 = arg4 = "Received alert from TLS"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnWriteKeyUpdated
 
 
 
@@ -587,40 +453,15 @@ tracepoint(CLOG_CRYPTO_C, ConnError , arg2, arg3);\
             "[conn][%p] Write Key Updated, %hhu.",
             Connection,
             Crypto->TlsState.WriteKey);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Crypto->TlsState.WriteKey
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Crypto->TlsState.WriteKey = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnWriteKeyUpdated
 #define _clog_4_ARGS_TRACE_ConnWriteKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_C, ConnWriteKeyUpdated , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Leftover crypto data in previous encryption level.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Leftover crypto data in previous encryption level."
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnReadKeyUpdated
 
 
 
@@ -632,18 +473,15 @@ tracepoint(CLOG_CRYPTO_C, ConnWriteKeyUpdated , arg2, arg3);\
             "[conn][%p] Read Key Updated, %hhu.",
             Connection,
             Crypto->TlsState.ReadKey);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Crypto->TlsState.ReadKey
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Crypto->TlsState.ReadKey = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnReadKeyUpdated
 #define _clog_4_ARGS_TRACE_ConnReadKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_C, ConnReadKeyUpdated , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnHandshakeComplete
 
 
 
@@ -654,17 +492,14 @@ tracepoint(CLOG_CRYPTO_C, ConnReadKeyUpdated , arg2, arg3);\
             ConnHandshakeComplete,
             "[conn][%p] Handshake complete",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnHandshakeComplete
 #define _clog_3_ARGS_TRACE_ConnHandshakeComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CRYPTO_C, ConnHandshakeComplete , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidRemoved
 
 
 
@@ -677,89 +512,16 @@ tracepoint(CLOG_CRYPTO_C, ConnHandshakeComplete , arg2);\
                 Connection,
                 InitialSourceCid->CID.SequenceNumber,
                 CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = InitialSourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = InitialSourceCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnSourceCidRemoved
 #define _clog_6_ARGS_TRACE_ConnSourceCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
 tracepoint(CLOG_CRYPTO_C, ConnSourceCidRemoved , arg2, arg3, arg4_len, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            QuicCryptoGetConnection(Crypto),
-            "Custom cert validation failed.");
-// arg2 = arg2 = QuicCryptoGetConnection(Crypto)
-// arg3 = arg3 = "Custom cert validation failed."
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "Failed to update read packet key.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Failed to update read packet key."
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "Failed to update write packet key");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Failed to update write packet key"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnNewPacketKeys
 
 
 
@@ -770,17 +532,14 @@ tracepoint(CLOG_CRYPTO_C, ConnSourceCidRemoved , arg2, arg3, arg4_len, arg4);\
             ConnNewPacketKeys,
             "[conn][%p] New packet keys created successfully.",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnNewPacketKeys
 #define _clog_3_ARGS_TRACE_ConnNewPacketKeys(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CRYPTO_C, ConnNewPacketKeys , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnKeyPhaseChange
 
 
 
@@ -792,539 +551,12 @@ tracepoint(CLOG_CRYPTO_C, ConnNewPacketKeys , arg2);\
         "[conn][%p] Key phase change (locally initiated=%hhu).",
         Connection,
         LocalUpdate);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = LocalUpdate
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = LocalUpdate = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnKeyPhaseChange
 #define _clog_4_ARGS_TRACE_ConnKeyPhaseChange(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_C, ConnKeyPhaseChange , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Server resumption ticket",
-            TotalTicketLength);
-// arg2 = arg2 = "Server resumption ticket"
-// arg3 = arg3 = TotalTicketLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket version failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket version failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket version unsupported");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket version unsupported"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket too short to hold QUIC version");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket too short to hold QUIC version"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket for unsupported QUIC version");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket for unsupported QUIC version"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket ALPN length failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket ALPN length failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket TP length failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket TP length failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket app data length failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket app data length failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket too small for ALPN");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket too small for ALPN"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket ALPN not present in ALPN list");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket ALPN not present in ALPN list"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket too small for Transport Parameters");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket too small for Transport Parameters"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket TParams failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket TParams failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket app data length corrupt");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket app data length corrupt"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Client resumption ticket",
-            ClientTicketBufferLength);
-// arg2 = arg2 = "Client resumption ticket"
-// arg3 = arg3 = ClientTicketBufferLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client Ticket version failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client Ticket version failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client Ticket version unsupported");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client Ticket version unsupported"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client Ticket not long enough for QUIC version");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client Ticket not long enough for QUIC version"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket for unsupported QUIC version");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket for unsupported QUIC version"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client Ticket TP length failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client Ticket TP length failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket data length failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket data length failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client Ticket not long enough for Client Transport Parameters");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client Ticket not long enough for Client Transport Parameters"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Resumption Ticket TParams failed to decode");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket TParams failed to decode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client resumption ticket length is corrupt");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client resumption ticket length is corrupt"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Resumption ticket copy",
-                TicketLength);
-// arg2 = arg2 = "Resumption ticket copy"
-// arg3 = arg3 = TicketLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

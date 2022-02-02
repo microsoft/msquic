@@ -558,6 +558,30 @@ typedef struct QUIC_SETTINGS {
 } QUIC_SETTINGS;
 
 //
+// This struct enables QUIC applications to support SSLKEYLOGFILE
+// for debugging packet captures with e.g. Wireshark.
+//
+
+#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64
+typedef struct QUIC_TLS_SECRETS {
+    uint8_t SecretLength;
+    struct {
+        uint8_t ClientRandom : 1;
+        uint8_t ClientEarlyTrafficSecret : 1;
+        uint8_t ClientHandshakeTrafficSecret : 1;
+        uint8_t ServerHandshakeTrafficSecret : 1;
+        uint8_t ClientTrafficSecret0 : 1;
+        uint8_t ServerTrafficSecret0 : 1;
+    } IsSet;
+    uint8_t ClientRandom[32];
+    uint8_t ClientEarlyTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+} QUIC_TLS_SECRETS;
+
+//
 // Functions for associating application contexts with QUIC handles. MsQuic
 // provides no explicit synchronization between parallel calls to these
 // functions.
@@ -661,6 +685,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_RESUMPTION_TICKET               0x14000010  // uint8_t[]
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x14000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x14000012  // uint32_t
+#define QUIC_PARAM_CONN_TLS_SECRETS                     0x14000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.
@@ -1116,6 +1141,8 @@ typedef struct QUIC_STREAM_EVENT {
         } SEND_SHUTDOWN_COMPLETE;
         struct {
             BOOLEAN ConnectionShutdown;
+            BOOLEAN AppCloseInProgress  : 1;
+            BOOLEAN RESERVED            : 7;
         } SHUTDOWN_COMPLETE;
         struct {
             uint64_t ByteCount;

@@ -140,6 +140,15 @@ namespace QuicTrace.DataModel
         ConnPacketStats,
         ConnServerResumeTicket,
         ConnVNEOtherVersionList,
+        ConnClientReceivedVersionList,
+        ConnServerSupportedVersionList,
+        ConnSpuriousCongestion,
+        ConnNoListenerIp,
+        ConnNoListenerAlpn,
+        ConnFlushSend,
+        ConnTimerSet,
+        ConnTimerCancel,
+        ConnTimerExpire,
 
         StreamCreated = 6144,
         StreamDestroyed,
@@ -153,6 +162,12 @@ namespace QuicTrace.DataModel
         StreamLogWarning,
         StreamLogInfo,
         StreamLogVerbose,
+        StreamAlloc,
+        StreamWriteFrames,
+        StreamReceiveFrame,
+        StreamAppReceive,
+        StreamAppReceiveComplete,
+        StreamAppSend,
 
         BindingCreated = 7168,
         BindingRundown,
@@ -178,13 +193,20 @@ namespace QuicTrace.DataModel
         LogError = 10240,
         LogWarning,
         LogInfo,
-        LogVerbose
+        LogVerbose,
+
+        PacketCreated = 11264,
+        PacketEncrypt,
+        PacketFinalize,
+        PacketBatchSent,
+        PacketReceive,
+        PacketDecrypt
     }
 
     //
     // The base class for all QUIC events.
     //
-    public class QuicEvent : IKeyedDataType<Guid>
+    public class QuicEvent : IKeyedDataType<Guid>, IComparable<Guid>
     {
         //
         // Global configuration to control how parsing works. Defaults to WPA filter mode.

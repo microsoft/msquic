@@ -36,7 +36,8 @@ namespace QuicTrace.DataModel
             }
         }
 
-        internal QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
+        public QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
         {
         }
 
@@ -113,13 +114,15 @@ namespace QuicTrace.DataModel
             T? value;
             if (eventId == CreateEventId)
             {
-                RemoveActiveObject(key);
+                var old = RemoveActiveObject(key);
+                if (old != null) inactiveList.Add(old);
                 value = ObjectConstructor(key.Pointer, key.ProcessId);
                 activeTable.Add(key, value);
             }
             else if (eventId == DestroyedEventId)
             {
                 value = RemoveActiveObject(key);
+                if (value != null) inactiveList.Add(value);
             }
             else
             {
@@ -145,6 +148,9 @@ namespace QuicTrace.DataModel
             }
             return value;
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
+        public T FindOrCreateActive(QuicEvent evt) => FindOrCreateActive((ushort)evt.EventId, new QuicObjectKey(evt));
 
         public void FinalizeObjects()
         {

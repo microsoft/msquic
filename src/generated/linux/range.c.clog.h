@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_RANGE_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
@@ -31,9 +29,10 @@ extern "C" {
             "Allocation of '%s' failed. (%llu bytes)",
             "range (realloc)",
             NewAllocLength);
-// arg2 = arg2 = "range (realloc)"
-// arg3 = arg3 = NewAllocLength
+// arg2 = arg2 = "range (realloc)" = arg2
+// arg3 = arg3 = NewAllocLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_RANGE_C, AllocFailure , arg2, arg3);\
 

@@ -136,6 +136,8 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     uint32_t SendAllowance;
 
+    uint64_t BatchId;
+
     //
     // Represents the metadata of the current QUIC packet.
     //

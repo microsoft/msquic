@@ -8,7 +8,7 @@
         StorageOpenKey,
         "[ reg] Opening %s",
         FullKeyName);
-// arg2 = arg2 = FullKeyName
+// arg2 = arg2 = FullKeyName = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STORAGE_WINUSER_C, StorageOpenKey,
     TP_ARGS(
