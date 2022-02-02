@@ -454,7 +454,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(QUIC_RUN_CRED_VALIDATION)
+    sizeof(QUIC_RUN_CRED_VALIDATION),
     0,
 };
 
