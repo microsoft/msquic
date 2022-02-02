@@ -1985,7 +1985,7 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(
         ZwDeleteValueKey(
             GlobalKey,
-            (PUINICODE_STRING)&ValueName));
+            (PUNICODE_STRING)&ValueName));
     if (QUIC_SUCCEEDED(
         ZwOpenKey(
             &AppKey,
@@ -2062,7 +2062,7 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(
         ZwDeleteValueKey(
             GlobalKey,
-            (PUINICODE_STRING)&ValueName));
+            (PUNICODE_STRING)&ValueName));
     ZwClose(GlobalKey);
 #elif _WIN32
     TEST_EQUAL(
