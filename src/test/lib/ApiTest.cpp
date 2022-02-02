@@ -1960,8 +1960,8 @@ QuicTestStorage()
     const uint32_t SpecialInitialRtt = 55;
 
 #ifdef _KERNEL_MODE
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
+    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
+    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
     DECLARE_CONST_UNICODE_STRING(ValueName, L"InitialRttMs");
     HANDLE GlobalKey, AppKey;
     OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
