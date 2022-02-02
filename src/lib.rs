@@ -1036,7 +1036,7 @@ impl CredentialConfig {
 impl Api {
     pub fn new() -> Api {
         let new_table: *const ApiTable = ptr::null();
-        let status = unsafe { MsQuicOpenVersion(1, &new_table) };
+        let status = unsafe { MsQuicOpenVersion(2, &new_table) };
         if Status::failed(status) {
             panic!("MsQuicOpenVersion failure 0x{:x}", status);
         }
