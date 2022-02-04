@@ -799,8 +799,10 @@ QuicLibrarySetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        if (BufferLength != sizeof(QUIC_SETTINGS)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
+        if (Buffer == NULL ||
+            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
+            BufferLength > sizeof(QUIC_SETTINGS)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
@@ -986,21 +988,12 @@ QuicLibraryGetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
-            *BufferLength = sizeof(QUIC_SETTINGS);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL; // TODO - Support partial
-            break;
-        }
+        Status = QuicSettingsGetParam(&MsQuicLib.Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        break;
 
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
+    case QUIC_PARAM_GLOBAL_DESIRED_VERSIONS:
 
-        *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &MsQuicLib.Settings, sizeof(QUIC_SETTINGS));
-
-        Status = QUIC_STATUS_SUCCESS;
+        Status = QuicSettingsGetDesiredVersions(&MsQuicLib.Settings, BufferLength, (uint32_t*)Buffer);
         break;
 
     case QUIC_PARAM_GLOBAL_VERSION:
