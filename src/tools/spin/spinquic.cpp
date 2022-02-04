@@ -308,7 +308,7 @@ struct ListenerContext {
     LockableVector<HQUIC>* Connections;
 };
 
-QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC Listener, void* Context , QUIC_LISTENER_EVENT* Event)
+QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, void* Context , QUIC_LISTENER_EVENT* Event)
 {
     HQUIC ServerConfiguration = ((ListenerContext*)Context)->ServerConfiguration;
     auto& Connections = *((ListenerContext*)Context)->Connections;
@@ -335,9 +335,6 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC Listener, void* Con
             Connections.push_back(Event->NEW_CONNECTION.Connection);
         }
         break;
-    }
-    case QUIC_LISTENER_EVENT_STOP_COMPLETE: {
-        MsQuic.ListenerClose(Listener);
     }
     default:
         break;
@@ -788,7 +785,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
                 QuicAddrSetPort(&sockAddr, pt);
 
                 if (!QUIC_SUCCEEDED(MsQuic.ListenerStart(Listener, &Gb.Alpns[i], 1, &sockAddr))) {
-                    MsQuic.ListenerStop(Listener);
+                    MsQuic.ListenerClose(Listener);
                     goto CleanupListeners;
                 }
                 Listeners.push_back(Listener);
@@ -809,7 +806,7 @@ CleanupListeners:
         while (Listeners.size() > 0) {
             auto Listener = Listeners.back();
             Listeners.pop_back();
-            MsQuic.ListenerStop(Listener);
+            MsQuic.ListenerClose(Listener);
         }
 
         for (auto &Connection : Connections) {
