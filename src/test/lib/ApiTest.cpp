@@ -1844,7 +1844,6 @@ QuicTestDesiredVersionSettings()
             MsQuic->GetParam(
                 NULL,
                 QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
->>>>>>> main
                 NULL));
 
         TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
