@@ -461,12 +461,17 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 }
 
 const uint32_t ParamCounts[] = {
-    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE + 1,
+    QUIC_PARAM_GLOBAL_VERSION + 1,
     QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
-    0,
+    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
     QUIC_PARAM_LISTENER_STATS + 1,
-    QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID + 1,
+    QUIC_PARAM_CONN_TLS_SECRETS + 1,
+    QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
+#ifdef WIN32 // Schannel specific TLS parameters
+    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W + 1,
+#else
     0,
+#endif
     QUIC_PARAM_STREAM_PRIORITY + 1
 };
 
@@ -475,15 +480,16 @@ const uint32_t ParamCounts[] = {
 void SpinQuicGetRandomParam(HQUIC Handle)
 {
     for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
-        uint32_t Level = (uint32_t)GetRandom(5); // TODO - Fix
-        uint32_t Param = (uint32_t)GetRandom((ParamCounts[Level] & 0x3FFFFF) + 1);
+        uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
+        uint32_t Param = (uint32_t)GetRandom((ParamCounts[Level] & 0xFFFFFFF));
+        uint32_t Combined = ((Level+1) << 28) + Param;
 
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
 
         MsQuic.GetParam(
             (GetRandom(10) == 0) ? nullptr : Handle,
-            Param,
+            Combined,
             &OutBufferLength,
             (GetRandom(10) == 0) ? nullptr : OutBuffer);
     }
