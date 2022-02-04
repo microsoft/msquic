@@ -1059,6 +1059,14 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+struct ShutdownStreamContext {
+    QUIC_STATUS StartCompleteStatus { QUIC_STATUS_SUCCESS };
+    bool ShutdownComplete { false };
+    CxPlatEvent StartCompleteEvent;
+    CxPlatEvent ShutdownCompleteEvent;
+    ShutdownStreamContext() { }
+};
+
 _Function_class_(QUIC_STREAM_CALLBACK)
 static
 QUIC_STATUS
@@ -1069,8 +1077,13 @@ ShutdownStreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
-    bool* ShutdownComplete = (bool*)Context;
+    ShutdownStreamContext* ShutdownContext = (ShutdownStreamContext*)Context;
     switch (Event->Type) {
+
+    case QUIC_STREAM_EVENT_START_COMPLETE:
+        ShutdownContext->StartCompleteStatus = Event->START_COMPLETE.Status;
+        ShutdownContext->StartCompleteEvent.Set();
+        break;
 
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.TotalBufferLength != 0) {
@@ -1083,7 +1096,8 @@ ShutdownStreamCallback(
         break;
 
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        *ShutdownComplete = true;
+        ShutdownContext->ShutdownComplete = true;
+        ShutdownContext->ShutdownCompleteEvent.Set();
         break;
 
     default:
@@ -1221,14 +1235,14 @@ void QuicTestValidateStream(bool Connect)
             //
             {
                 TestScopeLogger logScope("Fail on blocked");
-                bool ShutdownComplete = false;
+                ShutdownStreamContext Context;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
                         QUIC_STREAM_OPEN_FLAG_NONE,
                         ShutdownStreamCallback,
-                        &ShutdownComplete,
+                        &Context,
                         &Stream.Handle));
                 if (Connect) {
                     TEST_QUIC_SUCCEEDED(
@@ -1237,12 +1251,14 @@ void QuicTestValidateStream(bool Connect)
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
                 } else {
                     TEST_QUIC_STATUS(
-                        QUIC_STATUS_STREAM_LIMIT_REACHED,
+                        QUIC_STATUS_PENDING,
                         MsQuic->StreamStart(
                             Stream.Handle,
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
+                    Context.StartCompleteEvent.WaitTimeout(2000);
+                    TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
                 }
-                TEST_FALSE(ShutdownComplete);
+                TEST_FALSE(Context.ShutdownComplete);
             }
 
             //
@@ -1250,21 +1266,24 @@ void QuicTestValidateStream(bool Connect)
             //
             if (!Connect) {
                 TestScopeLogger logScope("Shutdown on fail");
-                bool ShutdownComplete = false;
+                ShutdownStreamContext Context;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
                         QUIC_STREAM_OPEN_FLAG_NONE,
                         ShutdownStreamCallback,
-                        &ShutdownComplete,
+                        &Context,
                         &Stream.Handle));
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_STREAM_LIMIT_REACHED,
+                    QUIC_STATUS_PENDING,
                     MsQuic->StreamStart(
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_FAIL_BLOCKED | QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
-                TEST_TRUE(ShutdownComplete);
+                Context.StartCompleteEvent.WaitTimeout(2000);
+                TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
+                Context.ShutdownCompleteEvent.WaitTimeout(2000);
+                TEST_TRUE(Context.ShutdownComplete);
             }
 
             //

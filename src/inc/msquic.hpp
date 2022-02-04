@@ -1125,7 +1125,7 @@ struct MsQuicStream {
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_ASYNC
+        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_NONE
         ) noexcept {
         return MsQuic->StreamStart(Handle, Flags);
     }

@@ -153,7 +153,7 @@ main(
     EXIT_ON_FAILURE(MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig));
     EXIT_ON_FAILURE(MsQuic->ConnectionOpen(Registration, ConnectionHandler, nullptr, &Connection));
     EXIT_ON_FAILURE(MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, StreamHandler, nullptr, &Stream));
-    EXIT_ON_FAILURE(MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC));
+    EXIT_ON_FAILURE(MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_NONE));
     EXIT_ON_FAILURE(MsQuic->ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_UNSPEC, ServerName, Port));
 
     printf("POST '%s' to %s:%hu\n", FileName, ServerName, Port);
