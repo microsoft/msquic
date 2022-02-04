@@ -1,3 +1,2 @@
-_MsQuicOpen
 _MsQuicOpenVersion
 _MsQuicClose

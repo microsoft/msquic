@@ -915,7 +915,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             ASSERT_ON_NOT(Gb.Buffers[j].Buffer);
         }
 
-        QUIC_STATUS Status = MsQuicOpen(&Gb.MsQuic);
+        QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -1095,10 +1095,10 @@ main(int argc, char **argv)
     srand(RngSeed);
 
     //
-    // Initial MsQuicOpen and initialization.
+    // Initial MsQuicOpen2 and initialization.
     //
     const QUIC_API_TABLE* TempMsQuic = nullptr;
-    ASSERT_ON_FAILURE(MsQuicOpen(&TempMsQuic));
+    ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
     CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 
     if (Settings.AllocFailDenominator > 0) {
