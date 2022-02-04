@@ -15,22 +15,22 @@ typedef struct QUIC_LISTENER {
     //
     // Indicates the listener is listening on a wildcard address (v4/v6/both).
     //
-    BOOLEAN WildCard : 1;
+    BOOLEAN WildCard;
 
     //
     // Indicates the listener has called ListenerClose.
     //
-    BOOLEAN AppClosed : 1;
+    BOOLEAN AppClosed;
 
     //
     // Indicates the listener is completely stopped.
     //
-    BOOLEAN Stopped : 1;
+    BOOLEAN Stopped;
 
     //
     // Indicates the listener was closed by the app in the stop complete event.
     //
-    BOOLEAN NeedsCleanup : 1;
+    BOOLEAN NeedsCleanup;
 
     //
     // The thread ID that the listener is actively indicating a stop compelete
