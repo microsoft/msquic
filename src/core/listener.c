@@ -390,7 +390,6 @@ QuicListenerIndicateEvent(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QUIC_API
 QuicListenerStopComplete(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN IndicateEvent
