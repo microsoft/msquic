@@ -1637,7 +1637,6 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_SUCCEEDED(
             Connection.GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 &BufferLength,
                 &OutputSettings));
@@ -1729,7 +1728,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 NULL));
@@ -1739,7 +1737,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
@@ -1784,7 +1781,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 NULL));
@@ -1794,7 +1790,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
@@ -1844,6 +1839,7 @@ QuicTestDesiredVersionSettings()
             MsQuic->GetParam(
                 NULL,
                 QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
+                &BufferLength,
                 NULL));
 
         TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
@@ -1851,7 +1847,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
