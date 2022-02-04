@@ -462,6 +462,12 @@ typedef struct QUIC_CONNECTION {
     QUIC_CID* OrigDestCID;
 
     //
+    // An app configured prefix for all connection IDs.
+    //
+    uint8_t CidPrefixLength;
+    uint8_t* CidPrefix;
+
+    //
     // Sorted array of all timers for the connection.
     //
     QUIC_CONN_TIMER_ENTRY Timers[QUIC_CONN_TIMER_COUNT];

@@ -647,7 +647,6 @@ typedef enum QUIC_PARAM_LEVEL {
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
 //
-#define QUIC_PARAM_REGISTRATION_CID_PREFIX              0x8000000   // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
@@ -660,6 +659,7 @@ typedef enum QUIC_PARAM_LEVEL {
 //
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x10000000  // QUIC_ADDR
 #define QUIC_PARAM_LISTENER_STATS                       0x10000001  // QUIC_LISTENER_STATISTICS
+#define QUIC_PARAM_LISTENER_CID_PREFIX                  0x10000002  // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_CONNECTION.
@@ -686,6 +686,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x14000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x14000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x14000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
+#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x14000014  // bytes[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.

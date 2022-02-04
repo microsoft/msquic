@@ -140,6 +140,10 @@ MsQuicListenerClose(
     QuicSiloRelease(Listener->Silo);
 #endif
 
+    if (Listener->CidPrefix != NULL) {
+        CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
+    }
+
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
     CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
     CxPlatRundownRelease(&Registration->Rundown);
@@ -579,6 +583,21 @@ QuicListenerAcceptConnection(
         return;
     }
 
+    if (Listener->CidPrefixLength != 0) {
+        CXPLAT_DBG_ASSERT(Connection->CidPrefix == NULL);
+        Connection->CidPrefix = CXPLAT_ALLOC_NONPAGED(Listener->CidPrefixLength, QUIC_POOL_CIDPREFIX);
+        if (Connection->CidPrefix == NULL) {
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            Listener->TotalRejectedConnections++;
+            return;
+        }
+        CXPLAT_DBG_ASSERT(Listener->CidPrefix != NULL);
+        Connection->CidPrefixLength = Listener->CidPrefixLength;
+        memcpy(Connection->CidPrefix, Listener->CidPrefix, Listener->CidPrefixLength);
+    }
+
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
         return;
     }
@@ -602,12 +621,46 @@ QuicListenerParamSet(
         const void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Listener);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
+    QUIC_STATUS Status;
 
-    return QUIC_STATUS_INVALID_PARAMETER;
+    switch (Param) {
+
+    case QUIC_PARAM_LISTENER_CID_PREFIX:
+        if (BufferLength == 0) {
+            if (Listener->CidPrefix != NULL) {
+                CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
+                Listener->CidPrefix = NULL;
+            }
+            Listener->CidPrefixLength = 0;
+            return QUIC_STATUS_SUCCESS;
+        }
+
+        if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        if (BufferLength > Listener->CidPrefixLength) {
+            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
+            if (NewCidPrefix == NULL) {
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
+            CXPLAT_DBG_ASSERT(Listener->CidPrefix != NULL);
+            CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
+            Listener->CidPrefix = NewCidPrefix;
+        }
+
+        Listener->CidPrefixLength = (uint8_t)BufferLength;
+        memcpy(Listener->CidPrefix, Buffer, BufferLength);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -666,6 +719,28 @@ QuicListenerParamGet(
             Stats->Binding.Recv.DroppedPackets = Listener->Binding->Stats.Recv.DroppedPackets;
         } else {
             Stats->Binding.Recv.DroppedPackets = 0;
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_LISTENER_CID_PREFIX:
+
+        if (*BufferLength < Listener->CidPrefixLength) {
+            *BufferLength = Listener->CidPrefixLength;
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Listener->CidPrefixLength > 0) {
+            if (Buffer == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+
+            *BufferLength = Listener->CidPrefixLength;
+            memcpy(Buffer, Listener->CidPrefix, Listener->CidPrefixLength);
+
+        } else {
+            *BufferLength = 0;
         }
 
         Status = QUIC_STATUS_SUCCESS;

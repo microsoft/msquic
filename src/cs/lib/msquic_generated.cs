@@ -2183,9 +2183,6 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION 0x4000005")]
         public const int QUIC_PARAM_GLOBAL_VERSION = 0x4000005;
 
-        [NativeTypeName("#define QUIC_PARAM_REGISTRATION_CID_PREFIX 0x8000000")]
-        public const int QUIC_PARAM_REGISTRATION_CID_PREFIX = 0x8000000;
-
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0xC000000")]
         public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0xC000000;
 
@@ -2248,6 +2245,15 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x14000011")]
         public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x14000011;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_INTERFACE 0x14000012")]
+        public const int QUIC_PARAM_CONN_LOCAL_INTERFACE = 0x14000012;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_TLS_SECRETS 0x14000013")]
+        public const int QUIC_PARAM_CONN_TLS_SECRETS = 0x14000013;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_CID_PREFIX 0x14000014")]
+        public const int QUIC_PARAM_CONN_CID_PREFIX = 0x14000014;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x19000000")]
         public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x19000000;
