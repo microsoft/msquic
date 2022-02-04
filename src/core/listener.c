@@ -424,8 +424,8 @@ QuicListenerStopComplete(
         QuicListenerDetachSilo();
     }
 
-    CxPlatEventSet(Listener->StopEvent);
     Listener->Stopped = TRUE;
+    CxPlatEventSet(Listener->StopEvent);
 
     if (Listener->NeedsCleanup) {
         QuicListenerFree(Listener);
