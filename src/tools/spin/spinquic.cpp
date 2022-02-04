@@ -386,7 +386,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
     SetParamHelper Helper;
 
-    switch (0x14000000 | (GetRandom(22) + 1)) {
+    switch (0x05000000 | (GetRandom(20))) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
         // QUIC_VERSION is get-only
         break;
@@ -432,6 +432,12 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID:                    // uint8_t (BOOLEAN)
         Helper.SetUint8(QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID, (uint8_t)GetRandom(2));
         break;
+    case QUIC_PARAM_CONN_LOCAL_INTERFACE:                           // uint32_t
+        // TODO
+        break;
+    case QUIC_PARAM_CONN_TLS_SECRETS:                               // QUIC_TLS_SECRETS
+        // TODO
+        break;
     default:
         break;
     }
@@ -443,7 +449,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 {
     SetParamHelper Helper;
 
-    switch (0x1C000000 | (GetRandom(4) + 1)) {
+    switch (0x08000000 | (GetRandom(4))) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
         break; // Get Only
     case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
