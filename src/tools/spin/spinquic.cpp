@@ -487,7 +487,7 @@ void SpinQuicGetRandomParam(HQUIC Handle)
 {
     for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
         uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
-        uint32_t Param = (uint32_t)GetRandom((ParamCounts[Level] & 0xFFFFFFF));
+        uint32_t Param = (uint32_t)GetRandom(((ParamCounts[Level] & 0xFFFFFFF)) + 1);
         uint32_t Combined = ((Level+1) << 28) + Param;
 
         uint8_t OutBuffer[200];
