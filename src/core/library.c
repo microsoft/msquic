@@ -1309,9 +1309,10 @@ MsQuicOpenVersion(
     BOOLEAN ReleaseRefOnFailure = FALSE;
 
     if (Version != 2) {
-        QuicTraceLogVerbose(
-            LibraryMsQuicOpenVersionUnsupported,
-            "[ api] MsQuicOpenVersion, Only version 2 supported");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 

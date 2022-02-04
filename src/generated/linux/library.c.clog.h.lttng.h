@@ -193,22 +193,6 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenVersionUnsupported
-// [ api] MsQuicOpenVersion, Only version 2 supported
-// QuicTraceLogVerbose(
-            LibraryMsQuicOpenVersionUnsupported,
-            "[ api] MsQuicOpenVersion, Only version 2 supported");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionUnsupported,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for LibraryMsQuicOpenVersionNull
 // [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
@@ -433,6 +417,25 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
     TP_ARGS(
 ), 
     TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
     )
 )
 

@@ -224,22 +224,6 @@ tracepoint(CLOG_LIBRARY_C, LibraryNotInUse );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenVersionUnsupported
-// [ api] MsQuicOpenVersion, Only version 2 supported
-// QuicTraceLogVerbose(
-            LibraryMsQuicOpenVersionUnsupported,
-            "[ api] MsQuicOpenVersion, Only version 2 supported");
-----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibraryMsQuicOpenVersionUnsupported
-#define _clog_2_ARGS_TRACE_LibraryMsQuicOpenVersionUnsupported(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionUnsupported );\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for LibraryMsQuicOpenVersionNull
 // [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
@@ -446,6 +430,24 @@ tracepoint(CLOG_LIBRARY_C, LibraryAddRef );\
 #ifndef _clog_2_ARGS_TRACE_LibraryRelease
 #define _clog_2_ARGS_TRACE_LibraryRelease(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryError , arg2);\
 
 #endif
 
