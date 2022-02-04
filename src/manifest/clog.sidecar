@@ -10565,6 +10565,18 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "ListenerIndicateStopComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] Indicating STOP_COMPLETE",
+      "UniqueId": "ListenerIndicateStopComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -14390,6 +14402,11 @@
         "UniquenessHash": "d0932f9a-e8e8-65d9-692c-3bd379a86d58",
         "TraceID": "FrameLogImmediateAck",
         "EncodingString": "[%c][%cX][%llu]   IMMEDIATE_ACK"
+      },
+      {
+        "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
+        "TraceID": "ListenerIndicateStopComplete",
+        "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
       }
     ]
   }
