@@ -224,15 +224,15 @@ tracepoint(CLOG_LIBRARY_C, LibraryNotInUse );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenNull
-// [ api] MsQuicOpen, NULL
+// Decoder Ring for LibraryMsQuicOpenVersionNull
+// [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
-            LibraryMsQuicOpenNull,
-            "[ api] MsQuicOpen, NULL");
+            LibraryMsQuicOpenVersionNull,
+            "[ api] MsQuicOpenVersion, NULL");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibraryMsQuicOpenNull
-#define _clog_2_ARGS_TRACE_LibraryMsQuicOpenNull(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenNull );\
+#ifndef _clog_2_ARGS_TRACE_LibraryMsQuicOpenVersionNull
+#define _clog_2_ARGS_TRACE_LibraryMsQuicOpenVersionNull(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionNull );\
 
 #endif
 
@@ -240,15 +240,15 @@ tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenNull );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenEntry
-// [ api] MsQuicOpen
+// Decoder Ring for LibraryMsQuicOpenVersionEntry
+// [ api] MsQuicOpenVersion
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenEntry,
-        "[ api] MsQuicOpen");
+        LibraryMsQuicOpenVersionEntry,
+        "[ api] MsQuicOpenVersion");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibraryMsQuicOpenEntry
-#define _clog_2_ARGS_TRACE_LibraryMsQuicOpenEntry(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry );\
+#ifndef _clog_2_ARGS_TRACE_LibraryMsQuicOpenVersionEntry
+#define _clog_2_ARGS_TRACE_LibraryMsQuicOpenVersionEntry(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionEntry );\
 
 #endif
 
@@ -256,17 +256,17 @@ tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenExit
-// [ api] MsQuicOpen, status=0x%x
+// Decoder Ring for LibraryMsQuicOpenVersionExit
+// [ api] MsQuicOpenVersion, status=0x%x
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenExit,
-        "[ api] MsQuicOpen, status=0x%x",
+        LibraryMsQuicOpenVersionExit,
+        "[ api] MsQuicOpenVersion, status=0x%x",
         Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LibraryMsQuicOpenExit
-#define _clog_3_ARGS_TRACE_LibraryMsQuicOpenExit(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenExit , arg2);\
+#ifndef _clog_3_ARGS_TRACE_LibraryMsQuicOpenVersionExit
+#define _clog_3_ARGS_TRACE_LibraryMsQuicOpenVersionExit(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit , arg2);\
 
 #endif
 
@@ -430,6 +430,24 @@ tracepoint(CLOG_LIBRARY_C, LibraryAddRef );\
 #ifndef _clog_2_ARGS_TRACE_LibraryRelease
 #define _clog_2_ARGS_TRACE_LibraryRelease(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryError , arg2);\
 
 #endif
 

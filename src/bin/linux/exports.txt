@@ -1,5 +1,5 @@
 msquic
 {
-  global: MsQuicOpen; MsQuicOpenVersion; MsQuicClose;
+  global: MsQuicOpenVersion; MsQuicClose;
   local: *;
 };

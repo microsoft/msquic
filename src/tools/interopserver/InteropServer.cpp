@@ -57,7 +57,7 @@ main(
     }
 
     HQUIC Registration = nullptr;
-    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+    EXIT_ON_FAILURE(MsQuicOpen2(&MsQuic));
     const QUIC_REGISTRATION_CONFIG RegConfig = { "interopserver", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 

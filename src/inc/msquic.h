@@ -207,6 +207,7 @@ typedef enum QUIC_SEND_FLAGS {
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
 
 typedef enum QUIC_DATAGRAM_SEND_STATE {
+    QUIC_DATAGRAM_SEND_UNKNOWN,                         // Not yet sent.
     QUIC_DATAGRAM_SEND_SENT,                            // Sent and awaiting acknowledegment
     QUIC_DATAGRAM_SEND_LOST_SUSPECT,                    // Suspected as lost, but still tracked
     QUIC_DATAGRAM_SEND_LOST_DISCARDED,                  // Lost and not longer being tracked
@@ -640,6 +641,7 @@ void
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x01000003  // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000004  // QUIC_SETTINGS
 #define QUIC_PARAM_GLOBAL_VERSION                       0x01000005  // uint32_t[4]
+#define QUIC_PARAM_GLOBAL_DESIRED_VERSIONS              0x01000006  // uint32_t[]
 
 //
 // Parameters for Registration.
@@ -651,6 +653,7 @@ void
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0x03000000  // QUIC_SETTINGS
 #define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0x03000001  // QUIC_TICKET_KEY_CONFIG[]
+#define QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS       0x03000002  // uint32_t[]
 
 //
 // Parameters for Listener.
@@ -683,6 +686,7 @@ void
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x05000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x05000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
+#define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x05000014  // uint32_t[]
 
 //
 // Parameters for TLS.
@@ -1267,8 +1271,8 @@ QUIC_STATUS
     );
 
 //
-// Version 1 API Function Table. Returned from MsQuicOpenVersion when Version
-// is 1. Also returned from MsQuicOpen.
+// Version 2 API Function Table. Returned from MsQuicOpenVersion when Version
+// is 2. Also returned from MsQuicOpen2.
 //
 typedef struct QUIC_API_TABLE {
 
@@ -1319,6 +1323,10 @@ typedef struct QUIC_API_TABLE {
 // MsQuicClose must be called when the app is done with the function table.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
+#if (__cplusplus >= 201703L || _MSVC_LANG >= 201703L)
+[[nodiscard]]
+#endif
 QUIC_STATUS
 QUIC_API
 MsQuicOpenVersion(
@@ -1330,34 +1338,34 @@ MsQuicOpenVersion(
 // Version specific helpers that wrap MsQuicOpenVersion.
 //
 
-#ifndef QUIC_CORE_INTERNAL
-
-/*#if defined(__cplusplus) || defined(WIN32)
+#if defined(__cplusplus)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
+#if (__cplusplus >= 201703L || _MSVC_LANG >= 201703L)
+[[nodiscard]]
+#endif
 #ifdef WIN32
 __forceinline
 #else
 __attribute__((always_inline)) inline
 #endif
 QUIC_STATUS
-MsQuicOpen(
+MsQuicOpen2(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
-    return MsQuicOpenVersion(1, (const void**)QuicApi);
+    return MsQuicOpenVersion(2, (const void**)QuicApi);
 }
 
-#else*/
+#else
 
-#define MsQuicOpen(QuicApi) MsQuicOpenVersion(1, (const void**)QuicApi)
+#define MsQuicOpen2(QuicApi) MsQuicOpenVersion(2, (const void**)QuicApi)
 
-/*#endif // defined(__cplusplus) || defined(WIN32)*/
-
-#endif // QUIC_CORE_INTERNAL
+#endif // defined(__cplusplus)
 
 //
-// Cleans up the function table returned from MsQuicOpen and releases the
+// Cleans up the function table returned from MsQuicOpenVersion and releases the
 // reference on the API.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

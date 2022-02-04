@@ -137,7 +137,7 @@ typedef struct QUIC_LIBRARY {
     volatile short LoadRefCount;
 
     //
-    // Total outstanding references from calls to MsQuicOpen.
+    // Total outstanding references from calls to MsQuicOpenVersion.
     //
     uint16_t OpenRefCount;
 

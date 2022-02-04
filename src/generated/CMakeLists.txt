@@ -21,6 +21,7 @@ if(QUIC_ENABLE_LOGGING)
         target_compile_definitions(msquic.lttng PRIVATE BUILDING_TRACEPOINT_PROVIDER)
         target_link_libraries(msquic.lttng PRIVATE logging_inc inc)
         target_link_libraries(msquic.lttng PRIVATE ${LTTNGUST_LIBRARIES})
+        set_target_properties(msquic.lttng PROPERTIES SOVERSION ${QUIC_FULL_VERSION} VERSION ${QUIC_FULL_VERSION})
 
         install(TARGETS msquic.lttng DESTINATION lib)
     endif()
