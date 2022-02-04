@@ -321,10 +321,36 @@ QUIC_STATUS
 QUIC_API
 DummyListenerCallback(
     HQUIC,
-    void*,
-    QUIC_LISTENER_EVENT*
+    void* Context,
+    QUIC_LISTENER_EVENT* Event
     )
 {
+    CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
+    if (StopCompleteEvent &&
+        Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+        StopCompleteEvent->Set();
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+static
+_Function_class_(QUIC_LISTENER_CALLBACK)
+QUIC_STATUS
+QUIC_API
+AutoCloseListenerCallback(
+    HQUIC Listener,
+    void* Context,
+    QUIC_LISTENER_EVENT* Event
+    )
+{
+    CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
+    if (StopCompleteEvent &&
+        Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+        StopCompleteEvent->Set();
+        MsQuic->ListenerClose(Listener);
+        return QUIC_STATUS_SUCCESS;
+    }
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -337,6 +363,7 @@ void QuicTestValidateListener()
     TEST_TRUE(LocalConfiguration.IsValid());
 
     HQUIC Listener = nullptr;
+    CxPlatEvent StopCompleteEvent;
 
     //
     // Null listener callback handler.
@@ -378,10 +405,11 @@ void QuicTestValidateListener()
         MsQuic->ListenerOpen(
             Registration,
             DummyListenerCallback,
-            nullptr,
+            &StopCompleteEvent,
             &Listener));
 
     MsQuic->ListenerStop(Listener);
+    TEST_FALSE(StopCompleteEvent.WaitTimeout(100)); // Event not should have been set
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerStart(
@@ -391,6 +419,7 @@ void QuicTestValidateListener()
             nullptr));
 
     MsQuic->ListenerClose(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
     Listener = nullptr;
 
     //
@@ -400,7 +429,7 @@ void QuicTestValidateListener()
         MsQuic->ListenerOpen(
             Registration,
             DummyListenerCallback,
-            nullptr,
+            &StopCompleteEvent,
             &Listener));
 
     TEST_QUIC_SUCCEEDED(
@@ -411,6 +440,7 @@ void QuicTestValidateListener()
             nullptr));
 
     MsQuic->ListenerClose(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
     Listener = nullptr;
 
     //
@@ -420,7 +450,7 @@ void QuicTestValidateListener()
         MsQuic->ListenerOpen(
             Registration,
             DummyListenerCallback,
-            nullptr,
+            &StopCompleteEvent,
             &Listener));
 
     TEST_QUIC_SUCCEEDED(
@@ -452,16 +482,40 @@ void QuicTestValidateListener()
             &Listener));
 
     MsQuic->ListenerStop(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
 
     MsQuic->ListenerStop(Listener);
+    TEST_FALSE(StopCompleteEvent.WaitTimeout(100)); // Event not should have been set (again)
 
     MsQuic->ListenerClose(Listener);
+    TEST_FALSE(StopCompleteEvent.WaitTimeout(100)); // Event not should have been set (again)
     Listener = nullptr;
 
     //
     // Null handle to close.
     //
     MsQuic->ListenerClose(nullptr);
+
+    //
+    // Close in callback
+    //
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ListenerOpen(
+            Registration,
+            AutoCloseListenerCallback,
+            &StopCompleteEvent,
+            &Listener));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ListenerStart(
+            Listener,
+            Alpn,
+            Alpn.Length(),
+            nullptr));
+
+    MsQuic->ListenerStop(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
+    Listener = nullptr;
 }
 
 static

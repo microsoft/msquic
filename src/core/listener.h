@@ -18,6 +18,11 @@ typedef struct QUIC_LISTENER {
     BOOLEAN WildCard : 1;
 
     //
+    // Indicates the listener has called ListenerClose.
+    //
+    BOOLEAN AppClosed : 1;
+
+    //
     // Indicates the listener is completely stopped.
     //
     BOOLEAN Stopped : 1;

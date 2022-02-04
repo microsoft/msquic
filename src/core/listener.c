@@ -15,6 +15,12 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerStopAsync(
+    _In_ QUIC_LISTENER* Listener
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicListenerOpen(
@@ -150,6 +156,9 @@ MsQuicListenerClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
 
+    QUIC_LIB_VERIFY(!Listener->AppClosed);
+    Listener->AppClosed = TRUE;
+
     if (Listener->StopCompleteThreadID == CxPlatCurThreadID()) {
         //
         // We're currently in the stop complete event, so we can't free the
@@ -163,7 +172,7 @@ MsQuicListenerClose(
         // references have been released, and the stop complete event has been
         // delivered.
         //
-        MsQuicListenerStop(Handle);
+        QuicListenerStopAsync(Listener);
         CxPlatEventWaitForever(Listener->StopEvent);
 
         QuicListenerFree(Listener);
@@ -400,6 +409,7 @@ QuicListenerStopComplete(
     if (IndicateEvent) {
         QUIC_LISTENER_EVENT Event;
         Event.Type = QUIC_LISTENER_EVENT_STOP_COMPLETE;
+        Event.STOP_COMPLETE.AppCloseInProgress = Listener->AppClosed;
 
         QuicListenerAttachSilo(Listener);
 
@@ -437,6 +447,21 @@ QuicListenerRelease(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicListenerStopAsync(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    if (Listener->Binding != NULL) {
+        QuicBindingUnregisterListener(Listener->Binding, Listener);
+        QuicLibraryReleaseBinding(Listener->Binding);
+        Listener->Binding = NULL;
+
+        QuicListenerRelease(Listener, TRUE);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QUIC_API
 MsQuicListenerStop(
     _In_ _Pre_defensive_ HQUIC Handle
@@ -451,13 +476,7 @@ MsQuicListenerStop(
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
-        if (Listener->Binding != NULL) {
-            QuicBindingUnregisterListener(Listener->Binding, Listener);
-            QuicLibraryReleaseBinding(Listener->Binding);
-            Listener->Binding = NULL;
-
-            QuicListenerRelease(Listener, TRUE);
-        }
+        QuicListenerStopAsync(Listener);
     }
 
     QuicTraceEvent(

@@ -840,6 +840,10 @@ typedef struct QUIC_LISTENER_EVENT {
             const QUIC_NEW_CONNECTION_INFO* Info;
             HQUIC Connection;
         } NEW_CONNECTION;
+        struct {
+            BOOLEAN AppCloseInProgress  : 1;
+            BOOLEAN RESERVED            : 7;
+        } STOP_COMPLETE;
     };
 } QUIC_LISTENER_EVENT;
 
