@@ -140,7 +140,8 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
 | `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18    | uint32_t  | Set-only  | The local interface index to bind to.        |
 | `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19    | QUIC_TLS_SECRETS  | Set-only  | The TLS secrets struct to be populated by MsQuic.        |
-| `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 20    | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.        |
+| `QUIC_PARAM_CONN_DESIRED_VERSIONS`<br> 20    | uint8_t[]  | Get-only  | The desired QUIC versions for the connection.        |
+| `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 21    | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.        |
 
 ### TLS Parameters
 
