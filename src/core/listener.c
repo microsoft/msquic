@@ -623,9 +623,7 @@ QuicListenerParamSet(
 {
     QUIC_STATUS Status;
 
-    switch (Param) {
-
-    case QUIC_PARAM_LISTENER_CID_PREFIX:
+    if (Param == QUIC_PARAM_LISTENER_CID_PREFIX) {
         if (BufferLength == 0) {
             if (Listener->CidPrefix != NULL) {
                 CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
@@ -653,11 +651,8 @@ QuicListenerParamSet(
         memcpy(Listener->CidPrefix, Buffer, BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    default:
+    } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
     }
 
     return Status;
