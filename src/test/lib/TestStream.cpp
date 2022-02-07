@@ -199,7 +199,6 @@ TestStream::GetStreamID()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicStream,
-            QUIC_PARAM_LEVEL_STREAM,
             QUIC_PARAM_STREAM_ID,
             &valueSize,
             &value);
@@ -357,7 +356,6 @@ TestStream::HandleStreamEvent(
         if (QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 QuicStream,
-                QUIC_PARAM_LEVEL_STREAM,
                 QUIC_PARAM_STREAM_0RTT_LENGTH,
                 &ParamLength,
                 &Param)) &&

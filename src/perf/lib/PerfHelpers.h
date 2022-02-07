@@ -329,7 +329,6 @@ QuicPrintConnectionStatistics(
     if (QUIC_SUCCEEDED(
         ApiTable->GetParam(
             Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &StatsSize,
             &Statistics))) {

@@ -81,7 +81,6 @@ GetConnRtt(
     uint32_t ValueSize = sizeof(Value);
     MsQuicTable->GetParam(
         Handle,
-        QUIC_PARAM_LEVEL_CONNECTION,
         QUIC_PARAM_CONN_STATISTICS,
         &ValueSize,
         &Value);
@@ -102,7 +101,6 @@ GetStreamID(
     uint32_t IDLen = sizeof(ID);
     MsQuicTable->GetParam(
         Handle,
-        QUIC_PARAM_LEVEL_STREAM,
         QUIC_PARAM_STREAM_ID,
         &IDLen,
         &ID);
@@ -126,7 +124,6 @@ GetRemoteAddr(
     QUIC_STATUS status =
         MsQuicTable->GetParam(
             Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_REMOTE_ADDRESS,
             &addrLen,
             &addr);
@@ -147,7 +144,6 @@ QuicForceRetry(
     return
         MsQuicTable->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(value),
             &value);
@@ -163,7 +159,6 @@ DumpMsQuicPerfCounters(
     uint32_t Lenth = sizeof(Counters);
     MsQuicTable->GetParam(
         NULL,
-        QUIC_PARAM_LEVEL_GLOBAL,
         QUIC_PARAM_GLOBAL_PERF_COUNTERS,
         &Lenth,
         &Counters);

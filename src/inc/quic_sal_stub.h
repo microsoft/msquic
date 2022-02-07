@@ -271,4 +271,8 @@
 #define _At_(...)
 #endif
 
+#ifndef _Check_return_
+#define _Check_return_
+#endif
+
 #endif // _SAL_STUB_H
