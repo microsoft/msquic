@@ -273,7 +273,6 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 LocalConfiguration,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 sizeof(KeyConfig),
                 &KeyConfig));
@@ -307,7 +306,6 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 LocalConfiguration,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 sizeof(KeyConfigs),
                 KeyConfigs));
@@ -862,7 +860,6 @@ void QuicTestValidateConnection()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(ReceiveDatagrams),
                 &ReceiveDatagrams));
@@ -871,7 +868,6 @@ void QuicTestValidateConnection()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(ReceiveDatagrams),
                 &ReceiveDatagrams));
@@ -1581,7 +1577,6 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_PERF_COUNTERS,
             &BufferLength,
             nullptr),
@@ -1596,7 +1591,6 @@ QuicTestGetPerfCounters()
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_PERF_COUNTERS,
             &BufferLength,
             Counters));
@@ -1608,7 +1602,6 @@ QuicTestGetPerfCounters()
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_PERF_COUNTERS,
             &BufferLength,
             Counters));
@@ -1646,7 +1639,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             Connection.SetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
@@ -1658,14 +1650,12 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_SUCCEEDED(
             Connection.SetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
 
         TEST_QUIC_SUCCEEDED(
             Connection.GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 &BufferLength,
                 &OutputSettings));
@@ -1678,7 +1668,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_STATUS(
             QUIC_STATUS_BUFFER_TOO_SMALL,
             Connection.GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DESIRED_VERSIONS,
                 &BufferLength,
                 NULL));
@@ -1687,7 +1676,6 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_SUCCEEDED(
             Connection.GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
@@ -1746,7 +1734,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 &BufferLength,
                 &OutputSettings));
@@ -1760,7 +1747,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 NULL));
@@ -1770,7 +1756,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
@@ -1793,7 +1778,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
@@ -1803,7 +1787,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 &BufferLength,
                 &OutputSettings));
@@ -1817,7 +1800,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 NULL));
@@ -1827,7 +1809,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
@@ -1851,7 +1832,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
@@ -1865,7 +1845,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
@@ -1878,7 +1857,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
                 &BufferLength,
                 NULL));
@@ -1888,7 +1866,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
                 &BufferLength,
                 OutputDesiredVersions));
@@ -1910,15 +1887,15 @@ QuicTestValidateParamApi()
     //
     // Test backwards compatibility.
     //
-    uint16_t LoadBalancingMode, LoadBalancingMode2;
+    uint16_t LoadBalancingMode;
     uint32_t BufferSize = sizeof(LoadBalancingMode);
 
+    BufferSize = sizeof(LoadBalancingMode);
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_CONFIGURATION,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            2,              // No longer backwards compatible with v1.*
             &BufferSize,
             (void*)&LoadBalancingMode));
 
@@ -1926,48 +1903,9 @@ QuicTestValidateParamApi()
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            2, // Special case to test backwards compatiblity
-            &BufferSize,
-            (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode2);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
             &BufferSize,
-            (void*)&LoadBalancingMode2));
-
-    TEST_EQUAL(LoadBalancingMode, LoadBalancingMode2);
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_CONFIGURATION,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-            BufferSize,
             (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            2, // Special case to test backwards compatiblity
-            BufferSize,
-            (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode2);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-            BufferSize,
-            (void*)&LoadBalancingMode2));
 }
 
 static

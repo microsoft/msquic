@@ -69,7 +69,7 @@ ClientStreamCallback(
         Context->Success = TRUE;
         Context->MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         uint32_t LocalAddressLength = sizeof(QUIC_ADDR);
-        Context->MsQuic->GetParam(Stream, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, &LocalAddressLength, Context->LocalAdrress);
+        Context->MsQuic->GetParam(Stream, QUIC_PARAM_CONN_LOCAL_ADDRESS, &LocalAddressLength, Context->LocalAdrress);
         break;
     }
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
@@ -178,7 +178,7 @@ MsQuicGetPublicIPEx(
     }
 
     if (QUIC_ADDRESS_FAMILY_UNSPEC != QuicAddrGetFamily(LocalAddress)) {
-        if (QUIC_FAILED(Context.Status = Context.MsQuic->SetParam(Context.Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(QUIC_ADDR), LocalAddress))) {
+        if (QUIC_FAILED(Context.Status = Context.MsQuic->SetParam(Context.Connection, QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(QUIC_ADDR), LocalAddress))) {
             QUIC_PRINTF("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Context.Status);
             goto Error;
         }

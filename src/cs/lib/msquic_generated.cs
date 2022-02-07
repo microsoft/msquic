@@ -1375,17 +1375,6 @@ namespace Microsoft.Quic
         }
     }
 
-    public enum QUIC_PARAM_LEVEL
-    {
-        QUIC_PARAM_LEVEL_GLOBAL,
-        QUIC_PARAM_LEVEL_REGISTRATION,
-        QUIC_PARAM_LEVEL_CONFIGURATION,
-        QUIC_PARAM_LEVEL_LISTENER,
-        QUIC_PARAM_LEVEL_CONNECTION,
-        QUIC_PARAM_LEVEL_TLS,
-        QUIC_PARAM_LEVEL_STREAM,
-    }
-
     public unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -2065,10 +2054,10 @@ namespace Microsoft.Quic
         public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void*, void> SetCallbackHandler;
 
         [NativeTypeName("QUIC_SET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_PARAM_LEVEL, uint, uint, void*, int> SetParam;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint, void*, int> SetParam;
 
         [NativeTypeName("QUIC_GET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_PARAM_LEVEL, uint, uint*, void*, int> GetParam;
+        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint*, void*, int> GetParam;
 
         [NativeTypeName("QUIC_REGISTRATION_OPEN_FN")]
         public delegate* unmanaged[Cdecl]<QUIC_REGISTRATION_CONFIG*, QUIC_HANDLE**, int> RegistrationOpen;
@@ -2164,109 +2153,118 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         public const int QUIC_MAX_TICKET_KEY_COUNT = 16;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x4000000")]
-        public const int QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x4000000;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x01000000")]
+        public const int QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x01000000;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 0x4000001")]
-        public const int QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x4000001;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 0x01000001")]
+        public const int QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x01000001;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 0x4000002")]
-        public const int QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x4000002;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 0x01000002")]
+        public const int QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x01000002;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 0x4000003")]
-        public const int QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x4000003;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 0x01000003")]
+        public const int QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x01000003;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 0x4000004")]
-        public const int QUIC_PARAM_GLOBAL_SETTINGS = 0x4000004;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 0x01000004")]
+        public const int QUIC_PARAM_GLOBAL_SETTINGS = 0x01000004;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION 0x4000005")]
-        public const int QUIC_PARAM_GLOBAL_VERSION = 0x4000005;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION 0x01000005")]
+        public const int QUIC_PARAM_GLOBAL_VERSION = 0x01000005;
 
-        [NativeTypeName("#define QUIC_PARAM_REGISTRATION_CID_PREFIX 0x8000000")]
-        public const int QUIC_PARAM_REGISTRATION_CID_PREFIX = 0x8000000;
+        [NativeTypeName("#define QUIC_PARAM_REGISTRATION_CID_PREFIX 0x02000000")]
+        public const int QUIC_PARAM_REGISTRATION_CID_PREFIX = 0x02000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0xC000000")]
-        public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0xC000000;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
+        public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 0xC000001")]
-        public const int QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0xC000001;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 0x03000001")]
+        public const int QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0x03000001;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x10000000")]
-        public const int QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x10000000;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x04000000")]
+        public const int QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x04000000;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x10000001")]
-        public const int QUIC_PARAM_LISTENER_STATS = 0x10000001;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x04000001")]
+        public const int QUIC_PARAM_LISTENER_STATS = 0x04000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x14000000")]
-        public const int QUIC_PARAM_CONN_QUIC_VERSION = 0x14000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x05000000")]
+        public const int QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 0x14000001")]
-        public const int QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x14000001;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 0x05000001")]
+        public const int QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x05000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 0x14000002")]
-        public const int QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x14000002;
+        [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 0x05000002")]
+        public const int QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x05000002;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 0x14000003")]
-        public const int QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x14000003;
+        [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 0x05000003")]
+        public const int QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x05000003;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 0x14000004")]
-        public const int QUIC_PARAM_CONN_SETTINGS = 0x14000004;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 0x05000004")]
+        public const int QUIC_PARAM_CONN_SETTINGS = 0x05000004;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 0x14000005")]
-        public const int QUIC_PARAM_CONN_STATISTICS = 0x14000005;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 0x05000005")]
+        public const int QUIC_PARAM_CONN_STATISTICS = 0x05000005;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 0x14000006")]
-        public const int QUIC_PARAM_CONN_STATISTICS_PLAT = 0x14000006;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 0x05000006")]
+        public const int QUIC_PARAM_CONN_STATISTICS_PLAT = 0x05000006;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 0x14000007")]
-        public const int QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x14000007;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 0x05000007")]
+        public const int QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x05000007;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 0x14000008")]
-        public const int QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x14000008;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 0x05000008")]
+        public const int QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x05000008;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 0x14000009")]
-        public const int QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x14000009;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 0x05000009")]
+        public const int QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x05000009;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 0x1400000A")]
-        public const int QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x1400000A;
+        [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 0x0500000A")]
+        public const int QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x0500000A;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 0x1400000B")]
-        public const int QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x1400000B;
+        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 0x0500000B")]
+        public const int QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x0500000B;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 0x1400000C")]
-        public const int QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x1400000C;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 0x0500000C")]
+        public const int QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x0500000C;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 0x1400000D")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x1400000D;
+        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 0x0500000D")]
+        public const int QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x0500000D;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 0x1400000E")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x1400000E;
+        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 0x0500000E")]
+        public const int QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x0500000E;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 0x14000010")]
-        public const int QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x14000010;
+        [NativeTypeName("#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION 0x0500000F")]
+        public const int QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION = 0x0500000F;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x14000011")]
-        public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x14000011;
+        [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 0x05000010")]
+        public const int QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x05000010;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x19000000")]
-        public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x19000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x05000011")]
+        public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x05000011;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x18000000")]
-        public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x18000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_INTERFACE 0x05000012")]
+        public const int QUIC_PARAM_CONN_LOCAL_INTERFACE = 0x05000012;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 0x18000001")]
-        public const int QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x18000001;
+        [NativeTypeName("#define QUIC_PARAM_CONN_TLS_SECRETS 0x05000013")]
+        public const int QUIC_PARAM_CONN_TLS_SECRETS = 0x05000013;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x1C000000")]
-        public const int QUIC_PARAM_STREAM_ID = 0x1C000000;
+        [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
+        public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 0x1C000001")]
-        public const int QUIC_PARAM_STREAM_0RTT_LENGTH = 0x1C000001;
+        [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 0x06000001")]
+        public const int QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x06000001;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 0x1C000002")]
-        public const int QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x1C000002;
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x07000000")]
+        public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x07000000;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x1C000003")]
-        public const int QUIC_PARAM_STREAM_PRIORITY = 0x1C000003;
+        [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x08000000")]
+        public const int QUIC_PARAM_STREAM_ID = 0x08000000;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 0x08000001")]
+        public const int QUIC_PARAM_STREAM_0RTT_LENGTH = 0x08000001;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 0x08000002")]
+        public const int QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x08000002;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
+        public const int QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
     }
 }

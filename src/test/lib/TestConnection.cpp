@@ -218,7 +218,6 @@ TestConnection::ForceKeyUpdate()
         Status =
             MsQuic->SetParam(
                 QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_FORCE_KEY_UPDATE,
                 0,
                 nullptr);
@@ -247,7 +246,6 @@ TestConnection::ForceCidUpdate()
         Status =
             MsQuic->SetParam(
                 QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_FORCE_CID_UPDATE,
                 0,
                 nullptr);
@@ -265,7 +263,6 @@ TestConnection::SetTestTransportParameter(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER,
             sizeof(*TransportParameter),
             TransportParameter);
@@ -279,7 +276,6 @@ TestConnection::GetQuicVersion()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_QUIC_VERSION,
             &valueSize,
             &value);
@@ -302,7 +298,6 @@ TestConnection::SetQuicVersion(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_SETTINGS,
             sizeof(Settings),
             &Settings);
@@ -317,7 +312,6 @@ TestConnection::GetLocalAddr(
     return
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             &Size,
             &localAddr.SockAddr);
@@ -346,7 +340,6 @@ TestConnection::SetLocalAddr(
         Status =
             MsQuic->SetParam(
                 QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 Size,
                 &localAddr.SockAddr);
@@ -365,7 +358,6 @@ TestConnection::GetRemoteAddr(
     return
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_REMOTE_ADDRESS,
             &Size,
             &remoteAddr.SockAddr);
@@ -379,7 +371,6 @@ TestConnection::SetRemoteAddr(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_REMOTE_ADDRESS,
             sizeof(remoteAddr.SockAddr),
             &remoteAddr.SockAddr);
@@ -393,7 +384,6 @@ TestConnection::GetSettings() const
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_SETTINGS,
             &valueSize,
             &value);
@@ -411,7 +401,6 @@ TestConnection::SetSettings(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_SETTINGS,
             sizeof(value),
             &value);
@@ -493,7 +482,6 @@ TestConnection::GetLocalBidiStreamCount()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT,
             &valueSize,
             &value);
@@ -512,7 +500,6 @@ TestConnection::GetLocalUnidiStreamCount()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT,
             &valueSize,
             &value);
@@ -531,7 +518,6 @@ TestConnection::GetStatistics()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &valueSize,
             &value);
@@ -583,7 +569,6 @@ TestConnection::GetShareUdpBinding()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_SHARE_UDP_BINDING,
             &valueSize,
             &value);
@@ -603,7 +588,6 @@ TestConnection::SetShareUdpBinding(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_SHARE_UDP_BINDING,
             sizeof(bValue),
             &bValue);
@@ -617,7 +601,6 @@ TestConnection::GetDatagramReceiveEnabled()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
             &valueSize,
             &value);
@@ -637,7 +620,6 @@ TestConnection::SetDatagramReceiveEnabled(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
             sizeof(bValue),
             &bValue);
@@ -651,7 +633,6 @@ TestConnection::GetDatagramSendEnabled()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED,
             &valueSize,
             &value);
@@ -670,7 +651,6 @@ TestConnection::GetPriorityScheme()
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
             &valueSize,
             &value);
@@ -689,7 +669,6 @@ TestConnection::SetPriorityScheme(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
             sizeof(value),
             &value);
@@ -714,7 +693,6 @@ TestConnection::SetResumptionTicket(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             NewResumptionTicket->Length,
             NewResumptionTicket->Buffer);
@@ -729,7 +707,6 @@ TestConnection::SetCustomValidationResult(
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
             sizeof(Result),
             &Result);

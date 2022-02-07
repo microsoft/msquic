@@ -149,7 +149,6 @@ struct HttpConnection {
         QUIC_STATUS Status =
             MsQuic->SetParam(
                 QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_TLS_SECRETS,
                 sizeof(TlsSecrets), &TlsSecrets);
         if (QUIC_SUCCEEDED(Status)) {
@@ -198,7 +197,6 @@ struct DatagramConnection {
         BOOLEAN EnableDatagrams = TRUE;
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
             sizeof(EnableDatagrams),
             &EnableDatagrams);

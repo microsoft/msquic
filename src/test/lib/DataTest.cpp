@@ -1036,7 +1036,6 @@ QuicAbortiveTransfers(
             Status =
                 MsQuic->SetParam(
                     ServerContext.Conn.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings);
@@ -1092,7 +1091,6 @@ QuicAbortiveTransfers(
             Status =
                 MsQuic->SetParam(
                     ServerContext.Conn.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings);
@@ -1463,7 +1461,6 @@ QuicTestReceiveResume(
         Status =
             MsQuic->SetParam(
                 ServerContext.Conn.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
                 &Settings);
@@ -1698,7 +1695,6 @@ QuicTestReceiveResumeNoData(
         Status =
             MsQuic->SetParam(
                 ServerContext.Conn.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
                 &Settings);
@@ -1845,7 +1841,6 @@ QuicAckDelayStreamHandler(
             uint32_t StatsSize = sizeof(Stats);
             Status = MsQuic->GetParam(
                 TestContext->ClientConnection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_STATISTICS,
                 &StatsSize,
                 &Stats);
@@ -2024,7 +2019,6 @@ QuicTestAckSendDelay(
         Status =
             MsQuic->GetParam(
                 TestContext.ClientConnection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_STATISTICS,
                 &StatsSize,
                 &Stats);
@@ -2273,7 +2267,6 @@ struct AllocFailScope {
         int32_t Zero = 0;
         MsQuic->SetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
             sizeof(Zero),
             &Zero);
@@ -2297,7 +2290,6 @@ QuicTestNthAllocFail(
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
                 sizeof(i),
                 &i));

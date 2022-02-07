@@ -1289,16 +1289,13 @@ Exit:
     return Status;
 }
 
-#define QUIC_PARAM_GENERATOR(Level, Value) (((Level + 1) & 0x3F) << 26 | (Value & 0x3FFFFFF))
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicSetParam(
-    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
-    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
         HQUIC Handle,
-    _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1307,26 +1304,11 @@ MsQuicSetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
-    if ((Param & 0xFC000000) != 0) {
+    if ((Handle == NULL) ^ QUIC_PARAM_IS_GLOBAL(Param)) {
         //
-        // Has level embedded parameter. Validate matches passed in level.
+        // Ensure global parameters don't have a handle passed in, and vice
+        // versa.
         //
-        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
-        if (ParamContainedLevel != Level) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Param level does not match param value");
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-    } else {
-        //
-        // Missing level embedded parameter. Inject level into parameter.
-        //
-        Param = QUIC_PARAM_GENERATOR(Level, Param);
-    }
-
-    if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1338,7 +1320,7 @@ MsQuicSetParam(
 
     QUIC_STATUS Status;
 
-    if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
+    if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
         // Global parameters are processed inline.
         //
@@ -1352,7 +1334,7 @@ MsQuicSetParam(
         //
         // Registration, Configuration and Listener parameters are processed inline.
         //
-        Status = QuicLibrarySetParam(Handle, Level, Param, BufferLength, Buffer);
+        Status = QuicLibrarySetParam(Handle, Param, BufferLength, Buffer);
         goto Error;
     }
 
@@ -1381,7 +1363,7 @@ MsQuicSetParam(
         if (!AlreadyInline) {
             Connection->State.InlineApiExecution = TRUE;
         }
-        Status = QuicLibrarySetParam(Handle, Level, Param, BufferLength, Buffer);
+        Status = QuicLibrarySetParam(Handle, Param, BufferLength, Buffer);
         if (!AlreadyInline) {
             Connection->State.InlineApiExecution = FALSE;
         }
@@ -1402,7 +1384,6 @@ MsQuicSetParam(
     ApiCtx.Completed = &CompletionEvent;
     ApiCtx.Status = &Status;
     ApiCtx.SET_PARAM.Handle = Handle;
-    ApiCtx.SET_PARAM.Level = Level;
     ApiCtx.SET_PARAM.Param = Param;
     ApiCtx.SET_PARAM.BufferLength = BufferLength;
     ApiCtx.SET_PARAM.Buffer = Buffer;
@@ -1431,10 +1412,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicGetParam(
-    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
-    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
         HQUIC Handle,
-    _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -1443,27 +1423,12 @@ MsQuicGetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
-    if ((Param & 0xFC000000) != 0) {
-        //
-        // Has level embedded parameter. Validate matches passed in level.
-        //
-        QUIC_PARAM_LEVEL ParamContainedLevel = ((Param >> 26) & 0x3F) - 1;
-        if (ParamContainedLevel != Level) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Param level does not match param value");
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-    } else {
-        //
-        // Missing level embedded parameter. Inject level into parameter.
-        //
-        Param = QUIC_PARAM_GENERATOR(Level, Param);
-    }
-
-    if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
+    if ((Handle == NULL) ^ QUIC_PARAM_IS_GLOBAL(Param) ||
         BufferLength == NULL) {
+        //
+        // Ensure global parameters don't have a handle passed in, and vice
+        // versa.
+        //
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1475,7 +1440,7 @@ MsQuicGetParam(
         QUIC_TRACE_API_GET_PARAM,
         Handle);
 
-    if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
+    if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
         // Global parameters are processed inline.
         //
@@ -1489,7 +1454,7 @@ MsQuicGetParam(
         //
         // Registration, Configuration and Listener parameters are processed inline.
         //
-        Status = QuicLibraryGetParam(Handle, Level, Param, BufferLength, Buffer);
+        Status = QuicLibraryGetParam(Handle, Param, BufferLength, Buffer);
         goto Error;
     }
 
@@ -1518,7 +1483,7 @@ MsQuicGetParam(
         if (!AlreadyInline) {
             Connection->State.InlineApiExecution = TRUE;
         }
-        Status = QuicLibraryGetParam(Handle, Level, Param, BufferLength, Buffer);
+        Status = QuicLibraryGetParam(Handle, Param, BufferLength, Buffer);
         if (!AlreadyInline) {
             Connection->State.InlineApiExecution = FALSE;
         }
@@ -1539,7 +1504,6 @@ MsQuicGetParam(
     ApiCtx.Completed = &CompletionEvent;
     ApiCtx.Status = &Status;
     ApiCtx.GET_PARAM.Handle = Handle;
-    ApiCtx.GET_PARAM.Level = Level;
     ApiCtx.GET_PARAM.Param = Param;
     ApiCtx.GET_PARAM.BufferLength = BufferLength;
     ApiCtx.GET_PARAM.Buffer = Buffer;

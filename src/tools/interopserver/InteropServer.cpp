@@ -108,7 +108,6 @@ main(
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(Settings),
                 &Settings))) {

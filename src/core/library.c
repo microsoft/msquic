@@ -1027,7 +1027,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetParam(
     _In_ HQUIC Handle,
-    _In_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1095,9 +1094,9 @@ QuicLibrarySetParam(
         goto Error;
     }
 
-    switch (Level)
+    switch (Param & 0x7F000000)
     {
-    case QUIC_PARAM_LEVEL_REGISTRATION:
+    case QUIC_PARAM_PREFIX_REGISTRATION:
         if (Registration == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1105,7 +1104,7 @@ QuicLibrarySetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_CONFIGURATION:
+    case QUIC_PARAM_PREFIX_CONFIGURATION:
         if (Configuration == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1113,7 +1112,7 @@ QuicLibrarySetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_LISTENER:
+    case QUIC_PARAM_PREFIX_LISTENER:
         if (Listener == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1121,7 +1120,7 @@ QuicLibrarySetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_CONNECTION:
+    case QUIC_PARAM_PREFIX_CONNECTION:
         if (Connection == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1129,7 +1128,8 @@ QuicLibrarySetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_TLS:
+    case QUIC_PARAM_PREFIX_TLS:
+    case QUIC_PARAM_PREFIX_TLS_SCHANNEL:
         if (Connection == NULL || Connection->Crypto.TLS == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1137,7 +1137,7 @@ QuicLibrarySetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_STREAM:
+    case QUIC_PARAM_PREFIX_STREAM:
         if (Stream == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1159,7 +1159,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetParam(
     _In_ HQUIC Handle,
-    _In_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -1229,9 +1228,9 @@ QuicLibraryGetParam(
         goto Error;
     }
 
-    switch (Level)
+    switch (Param & 0x7F000000)
     {
-    case QUIC_PARAM_LEVEL_REGISTRATION:
+    case QUIC_PARAM_PREFIX_REGISTRATION:
         if (Registration == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1239,7 +1238,7 @@ QuicLibraryGetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_CONFIGURATION:
+    case QUIC_PARAM_PREFIX_CONFIGURATION:
         if (Configuration == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1247,7 +1246,7 @@ QuicLibraryGetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_LISTENER:
+    case QUIC_PARAM_PREFIX_LISTENER:
         if (Listener == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1255,7 +1254,7 @@ QuicLibraryGetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_CONNECTION:
+    case QUIC_PARAM_PREFIX_CONNECTION:
         if (Connection == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1263,7 +1262,8 @@ QuicLibraryGetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_TLS:
+    case QUIC_PARAM_PREFIX_TLS:
+    case QUIC_PARAM_PREFIX_TLS_SCHANNEL:
         if (Connection == NULL || Connection->Crypto.TLS == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -1271,7 +1271,7 @@ QuicLibraryGetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_STREAM:
+    case QUIC_PARAM_PREFIX_STREAM:
         if (Stream == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {

@@ -65,7 +65,6 @@ struct ClearGlobalVersionListScope {
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(ClearVNSettings),
                 &ClearVNSettings));
@@ -109,7 +108,6 @@ struct StatelessRetryHelper
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
                     QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                     sizeof(value),
                     &value));
@@ -121,7 +119,6 @@ struct StatelessRetryHelper
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
                     QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                     sizeof(value),
                     &value));
@@ -272,7 +269,6 @@ class DatapathHooks
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                 sizeof(Value),
                 &Value));
@@ -290,7 +286,6 @@ class DatapathHooks
             if (QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
                     QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                     sizeof(Value),
                     &Value))) {
