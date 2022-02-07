@@ -386,7 +386,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
     SetParamHelper Helper;
 
-    switch (0x05000000 | (GetRandom(20))) {
+    switch (0x05000000 | (GetRandom(22))) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
         // QUIC_VERSION is get-only
         break;
@@ -436,6 +436,11 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         // TODO
         break;
     case QUIC_PARAM_CONN_TLS_SECRETS:                               // QUIC_TLS_SECRETS
+        // TODO
+        break;
+    case QUIC_PARAM_CONN_DESIRED_VERSIONS:                          // uint32_t[]
+        break; // Get-only
+    case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:                       // bytes[]
         // TODO
         break;
     default:
