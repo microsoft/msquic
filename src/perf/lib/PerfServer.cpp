@@ -104,7 +104,6 @@ PerfServer::ListenerCallback(
         BOOLEAN value = TRUE;
         MsQuic->SetParam(
             Event->NEW_CONNECTION.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
             sizeof(value),
             &value);

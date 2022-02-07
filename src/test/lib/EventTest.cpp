@@ -503,7 +503,6 @@ QuicTestValidateConnectionEvents3(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             ResumptionTicket->Length,
             ResumptionTicket->Buffer));

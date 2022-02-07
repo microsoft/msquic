@@ -344,7 +344,6 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
 }
 
 struct SetParamHelper {
-    QUIC_PARAM_LEVEL Level;
     union {
         uint64_t u64;
         uint32_t u32;
@@ -355,8 +354,7 @@ struct SetParamHelper {
     bool IsPtr;
     uint32_t Size = 0;
     int Type;
-    SetParamHelper(QUIC_PARAM_LEVEL _Level) {
-        Level = _Level;
+    SetParamHelper() {
         Param.u64 = 0;
         IsPtr = false;
         Size = 0;
@@ -379,16 +377,16 @@ struct SetParamHelper {
     }
     void Apply(HQUIC Handle) {
         if (Type != -1) {
-            MsQuic.SetParam(Handle, Level, Type, Size, IsPtr ? Param.ptr : &Param);
+            MsQuic.SetParam(Handle, Type, Size, IsPtr ? Param.ptr : &Param);
         }
     }
 };
 
 void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
-    SetParamHelper Helper(QUIC_PARAM_LEVEL_CONNECTION);
+    SetParamHelper Helper;
 
-    switch (0x14000000 | (GetRandom(22) + 1)) {
+    switch (0x05000000 | (GetRandom(20))) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
         // QUIC_VERSION is get-only
         break;
@@ -434,6 +432,12 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID:                    // uint8_t (BOOLEAN)
         Helper.SetUint8(QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID, (uint8_t)GetRandom(2));
         break;
+    case QUIC_PARAM_CONN_LOCAL_INTERFACE:                           // uint32_t
+        // TODO
+        break;
+    case QUIC_PARAM_CONN_TLS_SECRETS:                               // QUIC_TLS_SECRETS
+        // TODO
+        break;
     default:
         break;
     }
@@ -443,9 +447,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 
 void SpinQuicSetRandomStreamParam(HQUIC Stream)
 {
-    SetParamHelper Helper(QUIC_PARAM_LEVEL_STREAM);
+    SetParamHelper Helper;
 
-    switch (0x1C000000 | (GetRandom(4) + 1)) {
+    switch (0x08000000 | (GetRandom(4))) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
         break; // Get Only
     case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
@@ -463,12 +467,17 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 }
 
 const uint32_t ParamCounts[] = {
-    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE + 1,
+    QUIC_PARAM_GLOBAL_VERSION + 1,
     QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
-    0,
+    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
     QUIC_PARAM_LISTENER_STATS + 1,
-    QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID + 1,
+    QUIC_PARAM_CONN_TLS_SECRETS + 1,
+    QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
+#ifdef WIN32 // Schannel specific TLS parameters
+    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W + 1,
+#else
     0,
+#endif
     QUIC_PARAM_STREAM_PRIORITY + 1
 };
 
@@ -477,16 +486,16 @@ const uint32_t ParamCounts[] = {
 void SpinQuicGetRandomParam(HQUIC Handle)
 {
     for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
-        QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
-        uint32_t Param = (uint32_t)GetRandom((ParamCounts[Level] & 0x3FFFFF) + 1);
+        uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
+        uint32_t Param = (uint32_t)GetRandom(((ParamCounts[Level] & 0xFFFFFFF)) + 1);
+        uint32_t Combined = ((Level+1) << 28) + Param;
 
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
 
         MsQuic.GetParam(
             (GetRandom(10) == 0) ? nullptr : Handle,
-            Level,
-            Param,
+            Combined,
             &OutBufferLength,
             (GetRandom(10) == 0) ? nullptr : OutBuffer);
     }
@@ -583,7 +592,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic.StreamStart(Stream, (QUIC_STREAM_START_FLAGS)GetRandom(2) | QUIC_STREAM_START_FLAG_ASYNC);
+                MsQuic.StreamStart(Stream, (QUIC_STREAM_START_FLAGS)GetRandom(16));
             }
             break;
         }
@@ -915,7 +924,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             ASSERT_ON_NOT(Gb.Buffers[j].Buffer);
         }
 
-        QUIC_STATUS Status = MsQuicOpen(&Gb.MsQuic);
+        QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -925,14 +934,14 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
 
         if (0 == GetRandom(4)) {
             uint16_t RetryMemoryPercent = 0;
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent))) {
                 break;
             }
         }
 
         if (0 == GetRandom(4)) {
             uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
                 break;
             }
         }
@@ -1095,17 +1104,16 @@ main(int argc, char **argv)
     srand(RngSeed);
 
     //
-    // Initial MsQuicOpen and initialization.
+    // Initial MsQuicOpen2 and initialization.
     //
     const QUIC_API_TABLE* TempMsQuic = nullptr;
-    ASSERT_ON_FAILURE(MsQuicOpen(&TempMsQuic));
+    ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
     CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 
     if (Settings.AllocFailDenominator > 0) {
         if (QUIC_FAILED(
             MsQuic.SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
                 sizeof(Settings.AllocFailDenominator),
                 &Settings.AllocFailDenominator))) {
@@ -1118,7 +1126,6 @@ main(int argc, char **argv)
         if (QUIC_FAILED(
             MsQuic.SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                 sizeof(Value),
                 &Value))) {

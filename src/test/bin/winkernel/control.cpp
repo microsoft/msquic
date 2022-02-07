@@ -89,7 +89,7 @@ QuicTestCtlInitialize(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             MsQuic->GetInitStatus(),
-            "MsQuicOpen");
+            "MsQuicApi Constructor");
         goto Error;
     }
 

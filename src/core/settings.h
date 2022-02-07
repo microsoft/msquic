@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // Initializes all settings to default values, if not already set by the app.
 //
@@ -77,3 +81,25 @@ QuicSettingsDumpNew(
     _In_reads_bytes_(SettingsSize)
         const QUIC_SETTINGS* Settings
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetParam(
+    _In_ const QUIC_SETTINGS* IncomingSettings,
+    _Inout_ uint32_t* OutgoingSize,
+    _Out_writes_bytes_opt_(*OutgoingSize)
+        QUIC_SETTINGS* OutgoingSettings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetDesiredVersions(
+    _In_ const QUIC_SETTINGS* Settings,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        uint32_t* Buffer
+    );
+
+#if defined(__cplusplus)
+}
+#endif

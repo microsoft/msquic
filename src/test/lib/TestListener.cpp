@@ -81,7 +81,6 @@ TestListener::GetLocalAddr(
     return
         MsQuic->GetParam(
             QuicListener,
-            QUIC_PARAM_LEVEL_LISTENER,
             QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
             &Size,
             &localAddr.SockAddr);
@@ -96,7 +95,6 @@ TestListener::GetStatistics(
     return
         MsQuic->GetParam(
             QuicListener,
-            QUIC_PARAM_LEVEL_LISTENER,
             QUIC_PARAM_LISTENER_STATS,
             &Size,
             &stats);

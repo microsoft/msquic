@@ -85,7 +85,7 @@ Return Value:
     //
     // We explicitly load the MsQuic library upfront (instead of letting it
     // delay load) because we need to be able to query performance counters at
-    // any time, even if there hasn't been a call to MsQuicOpen yet.
+    // any time, even if there hasn't been a call to MsQuicOpenVersion yet.
     //
     MsQuicLibraryLoad();
 

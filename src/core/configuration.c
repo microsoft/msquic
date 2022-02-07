@@ -429,20 +429,10 @@ QuicConfigurationParamGet(
     )
 {
     if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
-
-        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
-            *BufferLength = sizeof(QUIC_SETTINGS);
-            return QUIC_STATUS_BUFFER_TOO_SMALL; // TODO - Support partial
-        }
-
-        if (Buffer == NULL) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-
-        *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
-
-        return QUIC_STATUS_SUCCESS;
+        return QuicSettingsGetParam(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+    }
+    if (Param == QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS) {
+        return QuicSettingsGetDesiredVersions(&Configuration->Settings, BufferLength, (uint32_t*)Buffer);
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;
@@ -462,8 +452,9 @@ QuicConfigurationParamSet(
     case QUIC_PARAM_CONFIGURATION_SETTINGS:
 
         if (Buffer == NULL ||
-            BufferLength != sizeof(QUIC_SETTINGS)) {
-            return QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
+            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
+            BufferLength > sizeof(QUIC_SETTINGS)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
 
         QuicTraceLogInfo(
