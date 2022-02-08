@@ -17,6 +17,8 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context);
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -56,6 +58,39 @@ CxPlatDataPathInitialize(
     Status = CxPlatDpRawInitialize(*NewDataPath, ClientRecvContextLength);
     if (QUIC_FAILED(Status)) {
         CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
+        goto Error;
+    }
+
+    (*NewDataPath)->RouteResolutionWorker =
+        CXPLAT_ALLOC_NONPAGED(
+            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER), QUIC_POOL_ROUTE_RESOLUTION_WORKER);
+    if ((*NewDataPath)->RouteResolutionWorker == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    (*NewDataPath)->RouteResolutionWorker->Datapath = *NewDataPath;
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        CXPLAT_THREAD_FLAG_NONE,
+        0,
+        "RouteResolutionWorkerThread",
+        CxPlatRouteResolutionWorkerThread,
+        (*NewDataPath)->RouteResolutionWorker
+    };
+
+    Status = CxPlatThreadCreate(&ThreadConfig, &(*NewDataPath)->RouteResolutionWorker->Thread);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
         goto Error;
     }
 
@@ -378,9 +413,6 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
-    if (!Route->Resolved && QUIC_FAILED(CxPlatResolveRoute(Socket, Route))) {
-        return NULL;
-    }
     return CxPlatDpRawTxAlloc(Socket->Datapath, ECN, MaxPacketSize, Route);
 }
 
@@ -442,7 +474,7 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-    CXPLAT_DBG_ASSERT(Route->Resolved);
+    CXPLAT_DBG_ASSERT(Route->RouteState == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     CxPlatFramingWriteHeaders(
@@ -483,6 +515,50 @@ CxPlatSocketGetParam(
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
+{
+    CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = (CXPLAT_ROUTE_RESOLUTION_WORKER*)Context;
+    CXPLAT_DATAPATH* Datapath = Worker->Datapath;
+
+    while (Worker->Enabled) {
+        CxPlatEventWaitForever(Worker->Ready);
+        if (!CxPlatListIsEmptyNoFence(&Worker->Operations)) {
+            CXPLAT_LIST_ENTRY Operations;
+
+            CxPlatDispatchLockAcquire(&Worker->Lock);
+            if (!CxPlatListIsEmpty(&Worker->Operations)) {
+                CxPlatListInitializeHead(&Operations);
+                CxPlatListMoveItems(&Worker->Operations, &Operations);
+            }
+            CxPlatDispatchLockRelease(&Worker->Lock);
+
+            while (CxPlatListIsEmpty(&Operations)) {
+                CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
+                    CXPLAT_CONTAINING_RECORD(
+                        CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
+                NETIO_STATUS Status =
+                Status = GetIpNetEntry2(&Operation->IpnetRow);
+                if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
+                    Status =
+                        ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
+                    if (Status != 0) {{
+                        QuicTraceEvent(
+                            DatapathErrorStatus,
+                            "[data][%p] ERROR, %u, %s.",
+                            Socket,
+                            Status,
+                            "ResolveIpNetEntry2");
+                    }
+
+                    Datapath->UdpHandlers.Route(
+                        Operation->Context, Operation->IpnetRow.PhysicalAddress, Status == 0 ? TRUE : FALSE);
+                    CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPERATION);
+                }
+            }
+        }
+    }
 }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS

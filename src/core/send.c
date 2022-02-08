@@ -121,9 +121,18 @@ QuicSendQueueFlush(
     _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    QUIC_PATH* Path = &Connection->Paths[0];
+    if (Path->Route.RouteState == RouteUnresolved &&
+        QUIC_FAILED(CxPlatResolveRoute(Path->Binding->Socket, &Path->Route))) {
+        return;
+    }
+#endif
+
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
-        QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             QuicTraceEvent(

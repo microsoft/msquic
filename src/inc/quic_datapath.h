@@ -142,6 +142,15 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
+// When state is Resolved, LocalLinkLayerAddress and NextHopLinkLayerAddress of CXPLAT_ROUTE are valid.
+//
+typedef enum CXPLAT_ROUTE_STATE {
+    RouteUnresolved,
+    RouteResolving,
+    RouteResolved,
+} CXPLAT_ROUTE_STATE;
+
+//
 // Structure to represent a network route.
 //
 typedef struct CXPLAT_ROUTE {
@@ -151,7 +160,7 @@ typedef struct CXPLAT_ROUTE {
 
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
-    BOOLEAN Resolved; // When TRUE, LocalLinkLayerAddress and NextHopLinkLayerAddress are valid.
+    CXPLAT_ROUTE_STATE RouteState;
     void* Queue;
 } CXPLAT_ROUTE;
 
@@ -295,12 +304,28 @@ void
 typedef CXPLAT_DATAPATH_UNREACHABLE_CALLBACK *CXPLAT_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
 
 //
+// Function pointer type for datapath route resolution callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)
+void
+(CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)(
+    _In_ void* Context,
+    _In_ uint8_t* PhysicalAddress,
+    _In_ BOOLEAN Succeeded
+    );
+
+typedef CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK *CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK_HANDLER;
+
+//
 // UDP Callback function pointers used by the datapath.
 //
 typedef struct CXPLAT_UDP_DATAPATH_CALLBACKS {
 
     CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
     CXPLAT_DATAPATH_UNREACHABLE_CALLBACK_HANDLER Unreachable;
+    CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK_HANDLER Route;
 
 } CXPLAT_UDP_DATAPATH_CALLBACKS;
 
@@ -636,6 +661,12 @@ CxPlatSocketGetParam(
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
+    );
+
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route
     );
 
 #if defined(__cplusplus)

@@ -252,6 +252,7 @@ typedef struct QUIC_BINDING {
 //
 CXPLAT_DATAPATH_RECEIVE_CALLBACK QuicBindingReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK QuicBindingUnreachable;
+CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK QuicBindingRoute;
 
 //
 // Initializes a new binding.

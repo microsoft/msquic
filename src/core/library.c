@@ -247,7 +247,8 @@ MsQuicLibraryInitialize(
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         QuicBindingReceive,
-        QuicBindingUnreachable
+        QuicBindingUnreachable,
+        QuicBindingRoute,
     };
 
     Status = CxPlatInitialize();

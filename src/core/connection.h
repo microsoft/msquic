@@ -1398,6 +1398,17 @@ QuicConnQueueUnreachable(
     );
 
 //
+// Queues a route completion event to a connection for processing.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnQueueRouteCompletion(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const uint8_t* PhysicalAddress,
+    _In_ BOOLEAN Succeeded
+    );
+
+//
 // Queues up an update to the packet tolerance we want the peer to use.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

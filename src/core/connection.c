@@ -758,7 +758,7 @@ QuicConnQueueOper(
     _In_ QUIC_OPERATION* Oper
     )
 {
-    #if DEBUG
+#if DEBUG
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
@@ -3072,6 +3072,29 @@ QuicConnQueueUnreachable(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Unreachable operation",
+            0);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnQueueRouteCompletion(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const uint8_t* PhysicalAddress,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    QUIC_OPERATION* ConnOper =
+        QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_ROUTE_COMPLETION);
+    if (ConnOper != NULL) {
+        ConnOper->ROUTE.Succeeded = Succeeded;
+        memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
+        QuicConnQueueOper(Connection, ConnOper);
+    } else {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Route completion operation",
             0);
     }
 }
@@ -5628,6 +5651,35 @@ QuicConnProcessUdpUnreachable(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicConnProcessRouteCompletion(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const uint8_t* PhysicalAddress,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    if (Succeeded) {
+        QUIC_PATH* Path = &Connection->Paths[0];
+        CxPlatResolveRouteComplete(&Path->Route, PhysicalAddress);
+        Path->Route.RouteState == RouteResolved;
+        QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+    } else {
+        QuicTraceLogConnInfo(
+            Unreachable,
+            Connection,
+            "Route resolution failure");
+        //
+        // Close the connection since the peer is unreachable.
+        //
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)QUIC_STATUS_UNREACHABLE,
+            NULL);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicConnResetIdleTimeout(
     _In_ QUIC_CONNECTION* Connection
     )
@@ -6965,6 +7017,10 @@ QuicConnDrainOperations(
 
         case QUIC_OPER_TYPE_TRACE_RUNDOWN:
             QuicConnTraceRundownOper(Connection);
+            break;
+
+        case QUIC_OPER_TYPE_ROUTE_COMPLETION:
+            QuicConnProcessRouteCompletion(Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.Succeeded);
             break;
 
         default:
