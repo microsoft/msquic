@@ -149,6 +149,9 @@ TestListener::HandleListenerEvent(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    default:
+        break;
     }
 
     return Status;

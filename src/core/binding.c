@@ -449,7 +449,7 @@ QuicBindingGetListener(
         FailedAddrMatch = FALSE;
 
         if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
-            if (CxPlatRundownAcquire(&ExistingListener->Rundown)) {
+            if (CxPlatRefIncrementNonZero(&ExistingListener->RefCount, 1)) {
                 Listener = ExistingListener;
             }
             goto Done;
@@ -537,7 +537,7 @@ QuicBindingAcceptConnection(
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
-            return;
+            goto Error;
         }
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
@@ -549,7 +549,9 @@ QuicBindingAcceptConnection(
     //
     QuicListenerAcceptConnection(Listener, Connection, Info);
 
-    CxPlatRundownRelease(&Listener->Rundown);
+Error:
+
+    QuicListenerRelease(Listener, TRUE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
