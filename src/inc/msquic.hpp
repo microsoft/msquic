@@ -1138,11 +1138,11 @@ struct MsQuicStream {
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    QUIC_STATUS
+    void
     ReceiveComplete(
         _In_ uint64_t BufferLength
         ) noexcept {
-        return MsQuic->StreamReceiveComplete(Handle, BufferLength);
+        MsQuic->StreamReceiveComplete(Handle, BufferLength);
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)

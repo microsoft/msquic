@@ -1210,14 +1210,13 @@ Error:
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QUIC_API
 MsQuicStreamReceiveComplete(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ uint64_t BufferLength
     )
 {
-    QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
@@ -1229,7 +1228,6 @@ MsQuicStreamReceiveComplete(
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle)) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
@@ -1247,23 +1245,18 @@ MsQuicStreamReceiveComplete(
         !Connection->State.HandleClosed);
 
     if (!Stream->Flags.Started || !Stream->Flags.ReceiveCallPending) {
-        Status = QUIC_STATUS_INVALID_STATE;
         goto Exit;
     }
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
-    if (Oper == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "STRM_RECV_COMPLETE operation",
-            0);
-        goto Exit;
+    Oper = &Stream->ReceiveCompleteOperation;
+    if (InterlockedCompareExchangePointer(
+            (void**)&Oper->API_CALL.Context->STRM_RECV_COMPLETE.Stream,
+            Stream,
+            NULL) != NULL) {
+        goto Exit; // Duplicate calls to receive complete
     }
 
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
-    Oper->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
     Oper->API_CALL.Context->STRM_RECV_COMPLETE.BufferLength = BufferLength;
 
     //
@@ -1277,16 +1270,12 @@ MsQuicStreamReceiveComplete(
     // Queue the operation but don't wait for the completion.
     //
     QuicConnQueueOper(Connection, Oper);
-    Status = QUIC_STATUS_SUCCESS;
 
 Exit:
 
     QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-
-    return Status;
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -912,6 +912,11 @@ QuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
+    InterlockedCompareExchangePointer(
+        (void**)&Stream->ReceiveCompleteOperation.API_CALL.Context->STRM_RECV_COMPLETE.Stream,
+        NULL,
+        Stream);
+
     //
     // Reclaim any buffer space comsumed by the app.
     //

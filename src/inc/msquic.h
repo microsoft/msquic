@@ -1231,7 +1231,7 @@ QUIC_STATUS
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 (QUIC_API * QUIC_STREAM_RECEIVE_COMPLETE_FN)(
     _In_ _Pre_defensive_ HQUIC Stream,
     _In_ uint64_t BufferLength

@@ -176,6 +176,17 @@ InterlockedCompareExchange64(
 }
 
 inline
+void*
+InterlockedCompareExchangePointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Destination,
+    _In_ void* ExChange,
+    _In_ void* Comperand
+    )
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
