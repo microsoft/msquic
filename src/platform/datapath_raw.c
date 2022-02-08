@@ -126,7 +126,7 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+VOID
 CxPlatDataPathRouteWorkerUninitialize(
     _Inout_ CXPLAT_DATAPATH* DataPath
     )
@@ -570,10 +570,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CxPlatEventWaitForever(Worker->Ready);
         if (!CxPlatListIsEmptyNoFence(&Worker->Operations)) {
             CXPLAT_LIST_ENTRY Operations;
+            CxPlatListInitializeHead(&Operations);
 
             CxPlatDispatchLockAcquire(&Worker->Lock);
             if (!CxPlatListIsEmpty(&Worker->Operations)) {
-                CxPlatListInitializeHead(&Operations);
                 CxPlatListMoveItems(&Worker->Operations, &Operations);
             }
             CxPlatDispatchLockRelease(&Worker->Lock);
@@ -591,7 +591,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                         QuicTraceEvent(
                             DatapathErrorStatus,
                             "[data][%p] ERROR, %u, %s.",
-                            Socket,
+                            Operation,
                             Status,
                             "ResolveIpNetEntry2");
                     }
@@ -609,10 +609,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
     //
     if (!CxPlatListIsEmptyNoFence(&Worker->Operations)) {
         CXPLAT_LIST_ENTRY Operations;
+        CxPlatListInitializeHead(&Operations);
 
         CxPlatDispatchLockAcquire(&Worker->Lock);
         if (!CxPlatListIsEmpty(&Worker->Operations)) {
-            CxPlatListInitializeHead(&Operations);
             CxPlatListMoveItems(&Worker->Operations, &Operations);
         }
         CxPlatDispatchLockRelease(&Worker->Lock);
@@ -627,6 +627,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
     }
 
     CxPlatEventSet(Worker->Done);
+    return 0;
 }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS

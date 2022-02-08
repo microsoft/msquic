@@ -312,7 +312,9 @@ _Function_class_(CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)
 void
 (CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)(
     _In_ void* Context,
-    _In_ uint8_t* PhysicalAddress,
+    _When_(Succeeded == FALSE, _In_opt_)
+    _When_(Succeeded == TRUE, _In_)
+        uint8_t* PhysicalAddress,
     _In_ BOOLEAN Succeeded
     );
 
@@ -661,6 +663,12 @@ CxPlatSocketGetParam(
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
+    );
+
+VOID
+CxPlatResolveRouteComplete(
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ const uint8_t* PhysicalAddress
     );
 
 QUIC_STATUS

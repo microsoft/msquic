@@ -265,46 +265,6 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
-void
-QuicWorkerQueueConnection(
-    _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
-    BOOLEAN ConnectionQueued = FALSE;
-
-    CxPlatDispatchLockAcquire(&Worker->Lock);
-
-    BOOLEAN WakeWorkerThread;
-    if (!Connection->WorkerProcessing && !Connection->HasQueuedWork) {
-        WakeWorkerThread = QuicWorkerIsIdle(Worker);
-        Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
-        QuicTraceEvent(
-            ConnScheduleState,
-            "[conn][%p] Scheduling: %u",
-            Connection,
-            QUIC_SCHEDULE_QUEUED);
-        QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
-        CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
-        ConnectionQueued = TRUE;
-    } else {
-        WakeWorkerThread = FALSE;
-    }
-
-    Connection->HasQueuedWork = TRUE;
-
-    CxPlatDispatchLockRelease(&Worker->Lock);
-
-    if (ConnectionQueued) {
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
-    }
-
-    if (WakeWorkerThread) {
-        QuicWorkerThreadWake(Worker);
-    }
-}
-
 VOID
 CxPlatResolveRouteComplete(
     _Inout_ CXPLAT_ROUTE* Route,
@@ -422,7 +382,7 @@ CxPlatResolveRoute(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_DATAPATH",
                 sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            Status = ERROR_NOT_ENOUGH_MEMORY;
             goto Done;
         }
         Operation->IpnetRow = IpnetRow;

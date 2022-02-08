@@ -114,6 +114,8 @@ QuicSendCanSendFlagsNow(
     return TRUE;
 }
 
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL thinks Connection could be uninitialized?
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
@@ -124,6 +126,7 @@ QuicSendQueueFlush(
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
 #ifdef QUIC_USE_RAW_DATAPATH
+
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_STATUS Status;
     if (Path->Route.RouteState == RouteUnresolved) {
@@ -136,7 +139,8 @@ QuicSendQueueFlush(
                 //
                 return;
             } else {
-                QuicConnRelease(NewConnection, QUIC_CONN_REF_ROUTE);
+                CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_SUCCESS);
+                QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
             }
         } else {
             //
@@ -173,6 +177,7 @@ QuicSendQueueFlush(
         }
     }
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

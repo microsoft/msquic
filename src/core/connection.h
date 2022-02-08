@@ -1405,7 +1405,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const uint8_t* PhysicalAddress,
+    _When_(Succeeded == FALSE, _In_opt_)
+    _When_(Succeeded == TRUE, _In_)
+        const uint8_t* PhysicalAddress,
     _In_ BOOLEAN Succeeded
     );
 

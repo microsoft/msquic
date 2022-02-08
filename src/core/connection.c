@@ -3080,7 +3080,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
-    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == FALSE, _In_opt_)
     _When_(Succeeded == TRUE, _In_)
         const uint8_t* PhysicalAddress,
     _In_ BOOLEAN Succeeded
@@ -3101,6 +3101,8 @@ QuicConnQueueRouteCompletion(
             "Route completion operation",
             0);
     }
+
+    QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
 }
 
 //
