@@ -5130,7 +5130,8 @@ QuicConnRecvPostProcessing(
 
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
-        !(*Path)->IsActive) {
+        !(*Path)->IsActive &&
+        Connection->Paths[0].Route.RouteState == RouteResolved) {
         //
         // The peer has sent a non-probing frame on a path other than the active
         // one. This signals their intent to switch active paths.
