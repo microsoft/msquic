@@ -21,6 +21,53 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+CxPlatDataPathRouteWorkerInitialize(
+    _Inout_ CXPLAT_DATAPATH* DataPath
+    )
+{
+    QUIC_STATUS Status;
+    CXPLAT_ROUTE_RESOLUTION_WORKER* Worker =
+        CXPLAT_ALLOC_NONPAGED(
+            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER), QUIC_POOL_ROUTE_RESOLUTION_WORKER);
+    if (Worker == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    Worker->Datapath = DataPath;
+    CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
+    CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        CXPLAT_THREAD_FLAG_NONE,
+        0,
+        "RouteResolutionWorkerThread",
+        CxPlatRouteResolutionWorkerThread,
+        Worker
+    };
+
+    Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+        goto Error;
+    }
+
+    DataPath->RouteResolutionWorker = Worker;
+
+Error:
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
@@ -61,36 +108,8 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    (*NewDataPath)->RouteResolutionWorker =
-        CXPLAT_ALLOC_NONPAGED(
-            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER), QUIC_POOL_ROUTE_RESOLUTION_WORKER);
-    if ((*NewDataPath)->RouteResolutionWorker == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
-            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    (*NewDataPath)->RouteResolutionWorker->Datapath = *NewDataPath;
-
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        CXPLAT_THREAD_FLAG_NONE,
-        0,
-        "RouteResolutionWorkerThread",
-        CxPlatRouteResolutionWorkerThread,
-        (*NewDataPath)->RouteResolutionWorker
-    };
-
-    Status = CxPlatThreadCreate(&ThreadConfig, &(*NewDataPath)->RouteResolutionWorker->Thread);
+    Status = CxPlatDataPathRouteWorkerInitialize(*NewDataPath);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate");
         goto Error;
     }
 
@@ -107,6 +126,30 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRouteWorkerUninitialize(
+    _Inout_ CXPLAT_DATAPATH* DataPath
+    )
+{
+    CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = DataPath->RouteResolutionWorker;
+
+    Worker->Enabled = FALSE;
+    CxPlatEventSet(Worker->Ready);
+    CxPlatEventWaitForever(Worker->Done);
+
+    //
+    // Wait for the thread to finish.
+    //
+    if (Worker->Thread) {
+        CxPlatThreadWait(&Worker->Thread);
+        CxPlatThreadDelete(&Worker->Thread);
+    }
+
+    CxPlatEventUninitialize(Worker->Ready);
+    CxPlatEventUninitialize(Worker->Done);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
@@ -115,6 +158,7 @@ CxPlatDataPathUninitialize(
     if (Datapath == NULL) {
         return;
     }
+    CxPlatDataPathRouteWorkerUninitialize(Datapath);
     CxPlatDpRawUninitialize(Datapath);
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
@@ -543,7 +587,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                 if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
                     Status =
                         ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
-                    if (Status != 0) {{
+                    if (Status != 0) {
                         QuicTraceEvent(
                             DatapathErrorStatus,
                             "[data][%p] ERROR, %u, %s.",
@@ -559,6 +603,30 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
             }
         }
     }
+
+    //
+    // Clean up leftover work.
+    //
+    if (!CxPlatListIsEmptyNoFence(&Worker->Operations)) {
+        CXPLAT_LIST_ENTRY Operations;
+
+        CxPlatDispatchLockAcquire(&Worker->Lock);
+        if (!CxPlatListIsEmpty(&Worker->Operations)) {
+            CxPlatListInitializeHead(&Operations);
+            CxPlatListMoveItems(&Worker->Operations, &Operations);
+        }
+        CxPlatDispatchLockRelease(&Worker->Lock);
+
+        while (CxPlatListIsEmpty(&Operations)) {
+            CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
+            Datapath->UdpHandlers.Route(Operation->Context, NULL, FALSE);
+            CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPERATION);
+        }
+    }
+
+    CxPlatEventSet(Worker->Done);
 }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS

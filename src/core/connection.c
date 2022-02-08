@@ -3090,7 +3090,9 @@ QuicConnQueueRouteCompletion(
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_ROUTE_COMPLETION);
     if (ConnOper != NULL) {
         ConnOper->ROUTE.Succeeded = Succeeded;
-        memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
+        if (Succeeded) {
+            memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
+        }
         QuicConnQueueOper(Connection, ConnOper);
     } else {
         QuicTraceEvent(

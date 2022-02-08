@@ -30,6 +30,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
     // An event to kick the thread.
     //
     CXPLAT_EVENT Ready;
+    CXPLAT_EVENT Done;
 
     CXPLAT_THREAD Thread;
 

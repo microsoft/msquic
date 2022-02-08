@@ -1725,7 +1725,6 @@ QuicBindingRoute(
     );
 {
     CXPLAT_DBG_ASSERT(Context != NULL);
-    CXPLAT_DBG_ASSERT(PhysicalAddress != NULL);
 
     QUIC_CONNECTION* Connection = (QUIC_CONNECTION*)Context;
 

@@ -125,8 +125,20 @@ QuicSendQueueFlush(
 
 #ifdef QUIC_USE_RAW_DATAPATH
     QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_STATUS Status;
     if (Path->Route.RouteState == RouteUnresolved) {
-        if (QUIC_FAILED(CxPlatResolveRoute(Path->Binding->Socket, &Path->Route, Connection))) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        Status = CxPlatResolveRoute(Path->Binding->Socket, &Path->Route, Connection);
+        if (QUIC_SUCCEEDED(Status)) {
+            if (Status == QUIC_STATUS_PENDING) {
+                //
+                // Route resolution is undergoing. Hold the connection ref and return for now.
+                //
+                return;
+            } else {
+                QuicConnRelease(NewConnection, QUIC_CONN_REF_ROUTE);
+            }
+        } else {
             //
             // Route resolution failed inline. We will queue a route completion with failure,
             // which will kill this connection later.
@@ -134,7 +146,9 @@ QuicSendQueueFlush(
             QuicConnQueueRouteCompletion(Connection, NULL, FALSE);
             return;
         }
-    } else if (Path->Route.RouteState == RouteResolving) {
+    }
+
+    if (Path->Route.RouteState == RouteResolving) {
         //
         // Can't send now. Once route resolution completes, we will resume sending.
         //

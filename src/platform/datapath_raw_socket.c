@@ -432,7 +432,7 @@ CxPlatResolveRoute(
         CxPlatDispatchLockRelease(&Worker->Lock);
         Status = ERROR_IO_PENDING;
     } else {
-        Route->RouteState = RouteResolved;
+        CxPlatResolveRouteComplete(Route, IpnetRow.PhysicalAddress);
     }
 
 Done:
