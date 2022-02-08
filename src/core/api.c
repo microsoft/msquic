@@ -1219,7 +1219,6 @@ MsQuicStreamReceiveComplete(
 {
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
-    QUIC_OPERATION* Oper;
 
     QuicTraceEvent(
         ApiEnter,
@@ -1248,16 +1247,13 @@ MsQuicStreamReceiveComplete(
         goto Exit;
     }
 
-    Oper = &Stream->ReceiveCompleteOperation;
     if (InterlockedCompareExchangePointer(
-            (void**)&Oper->API_CALL.Context->STRM_RECV_COMPLETE.Stream,
+            (void**)&Stream->ReceiveCompleteApiContext.STRM_RECV_COMPLETE.Stream,
             Stream,
             NULL) != NULL) {
         goto Exit; // Duplicate calls to receive complete
     }
-
-    Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
-    Oper->API_CALL.Context->STRM_RECV_COMPLETE.BufferLength = BufferLength;
+    Stream->ReceiveCompleteApiContext.STRM_RECV_COMPLETE.BufferLength = BufferLength;
 
     //
     // Async stream operations need to hold a ref on the stream so that the
@@ -1269,7 +1265,7 @@ MsQuicStreamReceiveComplete(
     //
     // Queue the operation but don't wait for the completion.
     //
-    QuicConnQueueOper(Connection, Oper);
+    QuicConnQueueOper(Connection, &Stream->ReceiveCompleteOperation);
 
 Exit:
 

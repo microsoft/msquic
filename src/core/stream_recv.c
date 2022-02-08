@@ -913,7 +913,7 @@ QuicStreamReceiveComplete(
         BufferLength);
 
     InterlockedCompareExchangePointer(
-        (void**)&Stream->ReceiveCompleteOperation.API_CALL.Context->STRM_RECV_COMPLETE.Stream,
+        (void**)&Stream->ReceiveCompleteApiContext.STRM_RECV_COMPLETE.Stream,
         NULL,
         Stream);
 
