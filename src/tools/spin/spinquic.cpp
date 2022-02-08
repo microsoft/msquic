@@ -384,6 +384,7 @@ struct SetParamHelper {
 
 void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
+    uint8_t RandomBuffer[8];
     SetParamHelper Helper;
 
     switch (0x05000000 | (GetRandom(22))) {
@@ -441,7 +442,8 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_DESIRED_VERSIONS:                          // uint32_t[]
         break; // Get-only
     case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:                       // bytes[]
-        // TODO
+        CxPlatRandom(sizeof(RandomBuffer), RandomBuffer);
+        Helper.SetPtr(QUIC_PARAM_CONN_INITIAL_DCID_PREFIX, RandomBuffer, 1 + (uint8_t)GetRandom(sizeof(RandomBuffer)));
         break;
     default:
         break;
