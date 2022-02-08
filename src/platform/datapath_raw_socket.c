@@ -265,6 +265,46 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
+void
+QuicWorkerQueueConnection(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
+    BOOLEAN ConnectionQueued = FALSE;
+
+    CxPlatDispatchLockAcquire(&Worker->Lock);
+
+    BOOLEAN WakeWorkerThread;
+    if (!Connection->WorkerProcessing && !Connection->HasQueuedWork) {
+        WakeWorkerThread = QuicWorkerIsIdle(Worker);
+        Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
+        QuicTraceEvent(
+            ConnScheduleState,
+            "[conn][%p] Scheduling: %u",
+            Connection,
+            QUIC_SCHEDULE_QUEUED);
+        QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
+        CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+        ConnectionQueued = TRUE;
+    } else {
+        WakeWorkerThread = FALSE;
+    }
+
+    Connection->HasQueuedWork = TRUE;
+
+    CxPlatDispatchLockRelease(&Worker->Lock);
+
+    if (ConnectionQueued) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+    }
+
+    if (WakeWorkerThread) {
+        QuicWorkerThreadWake(Worker);
+    }
+}
+
 VOID
 CxPlatResolveRouteComplete(
     _Inout_ CXPLAT_ROUTE* Route,
@@ -278,7 +318,8 @@ CxPlatResolveRouteComplete(
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ VOID* Context
     )
 {
 #ifdef _WIN32
@@ -366,25 +407,33 @@ CxPlatResolveRoute(
     // First call GetIpNetEntry2 to see if there's already a cached neighbor. If there
     // isn't one, or if the cached neighbor's state is unreachable (which, NB, can happen
     // in the case where a route lookup resulted in a dummy neighbor entry being created
-    // in TCPIP.sys) or incomplete, then do a solicitation.
+    // in TCPIP.sys) or incomplete, then queue up a solicitation event.
     //
     Status = GetIpNetEntry2(&IpnetRow);
     if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
-        Status =
-            ResolveIpNetEntry2(&IpnetRow, NULL);
-        if (Status != 0) {
+        CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
+        CxPlatDispatchLockAcquire(&Worker->Lock);
+        CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
+            CXPLAT_ALLOC_PAGED(
+                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION), QUIC_POOL_ROUTE_RESOLUTION_OPERATION);
+        if (Operation == NULL) {
             QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                Status,
-                "ResolveIpNetEntry2");
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "CXPLAT_DATAPATH",
+                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Done;
         }
+        Operation->IpnetRow = IpnetRow;
+        Operation->Context = Context;
+        CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
+        CxPlatEventSet(Worker->Ready);
+        CxPlatDispatchLockRelease(&Worker->Lock);
+        Status = ERROR_IO_PENDING;
+    } else {
+        Route->RouteState = RouteResolved;
     }
-    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
-
-    Route->RouteState = RouteResolved;
 
 Done:
 

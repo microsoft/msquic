@@ -3080,7 +3080,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const uint8_t* PhysicalAddress,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_)
+        const uint8_t* PhysicalAddress,
     _In_ BOOLEAN Succeeded
     )
 {
@@ -5660,7 +5662,6 @@ QuicConnProcessRouteCompletion(
     if (Succeeded) {
         QUIC_PATH* Path = &Connection->Paths[0];
         CxPlatResolveRouteComplete(&Path->Route, PhysicalAddress);
-        Path->Route.RouteState == RouteResolved;
         QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
     } else {
         QuicTraceLogConnInfo(

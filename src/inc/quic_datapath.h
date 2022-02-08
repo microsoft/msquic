@@ -666,7 +666,8 @@ CxPlatSocketGetParam(
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ VOID* Context
     );
 
 #if defined(__cplusplus)

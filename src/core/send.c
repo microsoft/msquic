@@ -125,9 +125,24 @@ QuicSendQueueFlush(
 
 #ifdef QUIC_USE_RAW_DATAPATH
     QUIC_PATH* Path = &Connection->Paths[0];
-    if (Path->Route.RouteState == RouteUnresolved &&
-        QUIC_FAILED(CxPlatResolveRoute(Path->Binding->Socket, &Path->Route))) {
+    if (Path->Route.RouteState == RouteUnresolved) {
+        if (QUIC_FAILED(CxPlatResolveRoute(Path->Binding->Socket, &Path->Route, Connection))) {
+            //
+            // Route resolution failed inline. We will queue a route completion with failure,
+            // which will kill this connection later.
+            //
+            QuicConnQueueRouteCompletion(Connection, NULL, FALSE);
+            return;
+        }
+    } else if (Path->Route.RouteState == RouteResolving) {
+        //
+        // Can't send now. Once route resolution completes, we will resume sending.
+        //
         return;
+    } else {
+        //
+        // Route resolved. We are allowed to flush sends.
+        //
     }
 #endif
 
