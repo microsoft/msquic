@@ -384,9 +384,10 @@ struct SetParamHelper {
 
 void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
+    uint8_t RandomBuffer[8];
     SetParamHelper Helper;
 
-    switch (0x05000000 | (GetRandom(20))) {
+    switch (0x05000000 | (GetRandom(22))) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
         // QUIC_VERSION is get-only
         break;
@@ -438,6 +439,12 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_TLS_SECRETS:                               // QUIC_TLS_SECRETS
         // TODO
         break;
+    case QUIC_PARAM_CONN_DESIRED_VERSIONS:                          // uint32_t[]
+        break; // Get-only
+    case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:                       // bytes[]
+        CxPlatRandom(sizeof(RandomBuffer), RandomBuffer);
+        Helper.SetPtr(QUIC_PARAM_CONN_INITIAL_DCID_PREFIX, RandomBuffer, 1 + (uint8_t)GetRandom(sizeof(RandomBuffer)));
+        break;
     default:
         break;
     }
@@ -467,10 +474,10 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 }
 
 const uint32_t ParamCounts[] = {
-    QUIC_PARAM_GLOBAL_VERSION + 1,
-    QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
-    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
-    QUIC_PARAM_LISTENER_STATS + 1,
+    QUIC_PARAM_GLOBAL_DESIRED_VERSIONS + 1,
+    0,
+    QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS + 1,
+    QUIC_PARAM_LISTENER_CID_PREFIX + 1,
     QUIC_PARAM_CONN_TLS_SECRETS + 1,
     QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
 #ifdef WIN32 // Schannel specific TLS parameters

@@ -94,6 +94,12 @@ typedef struct QUIC_LISTENER {
     _Field_size_(AlpnListLength)
     uint8_t* AlpnList;
 
+    //
+    // An app configured prefix for all connection IDs in this listener. The
+    // first byte indicates the length.
+    //
+    uint8_t CidPrefix[1 + MSQUIC_CID_MAX_APP_PREFIX];
+
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO

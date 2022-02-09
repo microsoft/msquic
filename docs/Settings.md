@@ -93,7 +93,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_REGISTRATION_CID_PREFIX`<br> 0        | uint8_t[]     | Both      | CID prefix to prepend to all CIDs. Used for load balancing.                                           |
+
 
 ### Configuration Parameters
 
@@ -112,6 +112,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
+| `QUIC_PARAM_LISTENER_CID_PREFIX`<br> 2    | uint8_t[]  | Both  | CID prefix prepended to all CIDs.        |
 
 ### Connection Parameters
 
@@ -137,6 +138,10 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION`<br> 15  | uint8_t (BOOLEAN)             | Both      | Application must `#define QUIC_API_ENABLE_INSECURE_FEATURES` before including msquic.h.   |
 | `QUIC_PARAM_CONN_RESUMPTION_TICKET`<br> 16        | uint8_t[]                     | Set-only  | Must be set on client before starting connection.                                         |
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
+| `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18    | uint32_t  | Set-only  | The local interface index to bind to.        |
+| `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19    | QUIC_TLS_SECRETS  | Set-only  | The TLS secrets struct to be populated by MsQuic.        |
+| `QUIC_PARAM_CONN_DESIRED_VERSIONS`<br> 20    | uint8_t[]  | Get-only  | The desired QUIC versions for the connection.        |
+| `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 21    | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.        |
 
 ### TLS Parameters
 

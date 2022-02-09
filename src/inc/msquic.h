@@ -645,7 +645,6 @@ void
 //
 // Parameters for Registration.
 //
-#define QUIC_PARAM_REGISTRATION_CID_PREFIX              0x02000000  // uint8_t[]
 
 //
 // Parameters for Configuration.
@@ -659,6 +658,7 @@ void
 //
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x04000000  // QUIC_ADDR
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
+#define QUIC_PARAM_LISTENER_CID_PREFIX                  0x04000002  // uint8_t[]
 
 //
 // Parameters for Connection.
@@ -686,6 +686,7 @@ void
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x05000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 #define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x05000014  // uint32_t[]
+#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]
 
 //
 // Parameters for TLS.
