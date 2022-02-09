@@ -830,6 +830,7 @@ QUIC_STATUS
 
 typedef enum QUIC_LISTENER_EVENT_TYPE {
     QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
+    QUIC_LISTENER_EVENT_STOP_COMPLETE       = 1,
 } QUIC_LISTENER_EVENT_TYPE;
 
 typedef struct QUIC_LISTENER_EVENT {
@@ -839,6 +840,10 @@ typedef struct QUIC_LISTENER_EVENT {
             const QUIC_NEW_CONNECTION_INFO* Info;
             HQUIC Connection;
         } NEW_CONNECTION;
+        struct {
+            BOOLEAN AppCloseInProgress  : 1;
+            BOOLEAN RESERVED            : 7;
+        } STOP_COMPLETE;
     };
 } QUIC_LISTENER_EVENT;
 
@@ -869,8 +874,7 @@ QUIC_STATUS
     );
 
 //
-// Closes an existing listener. N.B. This function will deadlock if called in
-// a QUIC_LISTENER_CALLBACK_HANDLER callback.
+// Closes an existing listener.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -895,7 +899,7 @@ QUIC_STATUS
     );
 
 //
-// Stops the listener from processing incoming connections.
+// Asynchronously stops the listener from processing incoming connections.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

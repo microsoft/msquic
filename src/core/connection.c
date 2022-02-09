@@ -393,9 +393,6 @@ QuicConnFree(
     if (Connection->OrigDestCID != NULL) {
         CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
-    if (Connection->CidPrefix != NULL) {
-        CXPLAT_FREE(Connection->CidPrefix, QUIC_POOL_CIDPREFIX);
-    }
     if (Connection->HandshakeTP != NULL) {
         QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
         CxPlatPoolFree(
@@ -876,8 +873,8 @@ QuicConnGenerateNewSourceCid(
                 Connection,
                 Connection->ServerID,
                 Connection->PartitionID,
-                Connection->CidPrefixLength,
-                Connection->CidPrefix);
+                Connection->CidPrefix[0],
+                Connection->CidPrefix+1);
         if (SourceCid == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1922,8 +1919,8 @@ QuicConnStart(
                 Connection,
                 NULL,
                 Connection->PartitionID,
-                Connection->CidPrefixLength,
-                Connection->CidPrefix);
+                Connection->CidPrefix[0],
+                Connection->CidPrefix+1);
     } else {
         SourceCid = QuicCidNewNullSource(Connection);
     }

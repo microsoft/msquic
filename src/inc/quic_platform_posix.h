@@ -553,7 +553,8 @@ CxPlatRefIncrement(
 
 BOOLEAN
 CxPlatRefIncrementNonZero(
-    _Inout_ volatile CXPLAT_REF_COUNT* RefCount
+    _Inout_ volatile CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Bias
     );
 
 BOOLEAN

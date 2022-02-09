@@ -10598,6 +10598,18 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "ListenerIndicateStopComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] Indicating STOP_COMPLETE",
+      "UniqueId": "ListenerIndicateStopComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -14443,6 +14455,11 @@
         "UniquenessHash": "fc39ba20-c315-583e-6b62-656fbbd3d077",
         "TraceID": "LibraryMsQuicOpenVersionExit",
         "EncodingString": "[ api] MsQuicOpenVersion, status=0x%x"
+      },
+      {
+        "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
+        "TraceID": "ListenerIndicateStopComplete",
+        "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
       }
     ]
   }

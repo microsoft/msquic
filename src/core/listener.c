@@ -15,6 +15,12 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerStopAsync(
+    _In_ QUIC_LISTENER* Listener
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicListenerOpen(
@@ -61,7 +67,8 @@ MsQuicListenerOpen(
     Listener->Registration = Registration;
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
-    CxPlatRundownInitializeDisabled(&Listener->Rundown);
+    Listener->Stopped = TRUE;
+    CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
     Listener->Silo = QuicSiloGetCurrentServer();
@@ -98,6 +105,32 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicListenerFree(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    QUIC_REGISTRATION* Registration = Listener->Registration;
+
+    QuicTraceEvent(
+        ListenerDestroyed,
+        "[list][%p] Destroyed",
+        Listener);
+
+    CXPLAT_DBG_ASSERT(Listener->Stopped);
+
+#ifdef QUIC_SILO
+    QuicSiloRelease(Listener->Silo);
+#endif
+
+    CxPlatRefUninitialize(&Listener->RefCount);
+    CxPlatEventUninitialize(Listener->StopEvent);
+    CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
+    CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
+    CxPlatRundownRelease(&Registration->Rundown);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QUIC_API
 MsQuicListenerClose(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
@@ -122,31 +155,28 @@ MsQuicListenerClose(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
-    QUIC_REGISTRATION* Registration = Listener->Registration;
 
-    //
-    // Make sure the listener has unregistered from the binding.
-    //
-    MsQuicListenerStop(Handle);
+    QUIC_LIB_VERIFY(!Listener->AppClosed);
+    Listener->AppClosed = TRUE;
 
-    CxPlatRundownUninitialize(&Listener->Rundown);
+    if (Listener->StopCompleteThreadID == CxPlatCurThreadID()) {
+        //
+        // We're currently in the stop complete event, so we can't free the
+        // listener until that callback unwinds.
+        //
+        Listener->NeedsCleanup = TRUE;
 
-    QuicTraceEvent(
-        ListenerDestroyed,
-        "[list][%p] Destroyed",
-        Listener);
+    } else {
+        //
+        // Make sure the listener has unregistered from the binding, all other
+        // references have been released, and the stop complete event has been
+        // delivered.
+        //
+        QuicListenerStopAsync(Listener);
+        CxPlatEventWaitForever(Listener->StopEvent);
 
-#ifdef QUIC_SILO
-    QuicSiloRelease(Listener->Silo);
-#endif
-
-    if (Listener->CidPrefix != NULL) {
-        CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
+        QuicListenerFree(Listener);
     }
-
-    CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
-    CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
-    CxPlatRundownRelease(&Registration->Rundown);
 
     QuicTraceEvent(
         ApiExit,
@@ -208,7 +238,7 @@ MsQuicListenerStart(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Listener = (QUIC_LISTENER*)Handle;
 
-    if (Listener->Binding) {
+    if (!Listener->Stopped) {
         Status = QUIC_STATUS_INVALID_STATE;
         goto Exit;
     }
@@ -289,7 +319,9 @@ MsQuicListenerStart(
         goto Error;
     }
 
-    CxPlatRundownReInitialize(&Listener->Rundown);
+    Listener->Stopped = FALSE;
+    CxPlatEventReset(Listener->StopEvent);
+    CxPlatRefInitialize(&Listener->RefCount);
 
     if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
         QuicTraceEvent(
@@ -297,7 +329,7 @@ MsQuicListenerStart(
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
-        CxPlatRundownReleaseAndWait(&Listener->Rundown);
+        QuicListenerRelease(Listener, FALSE);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -342,6 +374,92 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicListenerIndicateEvent(
+    _In_ QUIC_LISTENER* Listener,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
+    return
+        Listener->ClientCallbackHandler(
+            (HQUIC)Listener,
+            Listener->ClientContext,
+            Event);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerStopComplete(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN IndicateEvent
+    )
+{
+    QuicTraceEvent(
+        ListenerStopped,
+        "[list][%p] Stopped",
+        Listener);
+
+    if (Listener->AlpnList != NULL) {
+        CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
+        Listener->AlpnList = NULL;
+    }
+
+    if (IndicateEvent) {
+        QUIC_LISTENER_EVENT Event;
+        Event.Type = QUIC_LISTENER_EVENT_STOP_COMPLETE;
+        Event.STOP_COMPLETE.AppCloseInProgress = Listener->AppClosed;
+
+        QuicListenerAttachSilo(Listener);
+
+        QuicTraceLogVerbose(
+            ListenerIndicateStopComplete,
+            "[list][%p] Indicating STOP_COMPLETE",
+            Listener);
+
+        Listener->StopCompleteThreadID = CxPlatCurThreadID();
+        (void)QuicListenerIndicateEvent(Listener, &Event);
+        Listener->StopCompleteThreadID = 0;
+
+        QuicListenerDetachSilo();
+    }
+
+    Listener->Stopped = TRUE;
+    CxPlatEventSet(Listener->StopEvent);
+
+    if (Listener->NeedsCleanup) {
+        QuicListenerFree(Listener);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerRelease(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN IndicateEvent
+    )
+{
+    if (CxPlatRefDecrement(&Listener->RefCount)) {
+        QuicListenerStopComplete(Listener, IndicateEvent);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerStopAsync(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    if (Listener->Binding != NULL) {
+        QuicBindingUnregisterListener(Listener->Binding, Listener);
+        QuicLibraryReleaseBinding(Listener->Binding);
+        Listener->Binding = NULL;
+
+        QuicListenerRelease(Listener, TRUE);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
 MsQuicListenerStop(
@@ -357,23 +475,7 @@ MsQuicListenerStop(
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
-        if (Listener->Binding != NULL) {
-            QuicBindingUnregisterListener(Listener->Binding, Listener);
-            QuicLibraryReleaseBinding(Listener->Binding);
-            Listener->Binding = NULL;
-
-            CxPlatRundownReleaseAndWait(&Listener->Rundown);
-
-            if (Listener->AlpnList != NULL) {
-                CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
-                Listener->AlpnList = NULL;
-            }
-
-            QuicTraceEvent(
-                ListenerStopped,
-                "[list][%p] Stopped",
-                Listener);
-        }
+        QuicListenerStopAsync(Listener);
     }
 
     QuicTraceEvent(
@@ -401,21 +503,6 @@ QuicListenerTraceRundown(
             CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
             CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicListenerIndicateEvent(
-    _In_ QUIC_LISTENER* Listener,
-    _Inout_ QUIC_LISTENER_EVENT* Event
-    )
-{
-    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
-    return
-        Listener->ClientCallbackHandler(
-            (HQUIC)Listener,
-            Listener->ClientContext,
-            Event);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -583,20 +670,7 @@ QuicListenerAcceptConnection(
         return;
     }
 
-    if (Listener->CidPrefixLength != 0) {
-        CXPLAT_DBG_ASSERT(Connection->CidPrefix == NULL);
-        Connection->CidPrefix = CXPLAT_ALLOC_NONPAGED(Listener->CidPrefixLength, QUIC_POOL_CIDPREFIX);
-        if (Connection->CidPrefix == NULL) {
-            QuicConnTransportError(
-                Connection,
-                QUIC_ERROR_INTERNAL_ERROR);
-            Listener->TotalRejectedConnections++;
-            return;
-        }
-        CXPLAT_DBG_ASSERT(Listener->CidPrefix != NULL);
-        Connection->CidPrefixLength = Listener->CidPrefixLength;
-        memcpy(Connection->CidPrefix, Listener->CidPrefix, Listener->CidPrefixLength);
-    }
+    memcpy(Connection->CidPrefix, Listener->CidPrefix, sizeof(Listener->CidPrefix));
 
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
         return;
@@ -624,32 +698,14 @@ QuicListenerParamSet(
     QUIC_STATUS Status;
 
     if (Param == QUIC_PARAM_LISTENER_CID_PREFIX) {
-        if (BufferLength == 0) {
-            if (Listener->CidPrefix != NULL) {
-                CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
-                Listener->CidPrefix = NULL;
-            }
-            Listener->CidPrefixLength = 0;
-            return QUIC_STATUS_SUCCESS;
-        }
-
         if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        if (BufferLength > Listener->CidPrefixLength) {
-            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
-            if (NewCidPrefix == NULL) {
-                return QUIC_STATUS_OUT_OF_MEMORY;
-            }
-            CXPLAT_DBG_ASSERT(Listener->CidPrefix != NULL);
-            CXPLAT_FREE(Listener->CidPrefix, QUIC_POOL_CIDPREFIX);
-            Listener->CidPrefix = NewCidPrefix;
+        Listener->CidPrefix[0] = (uint8_t)BufferLength;
+        if (BufferLength != 0) {
+            memcpy(Listener->CidPrefix+1, Buffer, BufferLength);
         }
-
-        Listener->CidPrefixLength = (uint8_t)BufferLength;
-        memcpy(Listener->CidPrefix, Buffer, BufferLength);
-
         Status = QUIC_STATUS_SUCCESS;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -721,18 +777,18 @@ QuicListenerParamGet(
 
     case QUIC_PARAM_LISTENER_CID_PREFIX:
 
-        if (*BufferLength < Listener->CidPrefixLength) {
-            *BufferLength = Listener->CidPrefixLength;
+        if (*BufferLength < Listener->CidPrefix[0]) {
+            *BufferLength = Listener->CidPrefix[0];
             return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
-        if (Listener->CidPrefixLength > 0) {
+        if (Listener->CidPrefix[0] > 0) {
             if (Buffer == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
 
-            *BufferLength = Listener->CidPrefixLength;
-            memcpy(Buffer, Listener->CidPrefix, Listener->CidPrefixLength);
+            *BufferLength = Listener->CidPrefix[0];
+            memcpy(Buffer, Listener->CidPrefix+1, Listener->CidPrefix[0]);
 
         } else {
             *BufferLength = 0;
