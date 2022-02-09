@@ -1253,7 +1253,6 @@ MsQuicStreamReceiveComplete(
         goto Exit; // Duplicate calls to receive complete
     }
 
-    Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
     Oper->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
     Oper->API_CALL.Context->STRM_RECV_COMPLETE.BufferLength = BufferLength;
 
