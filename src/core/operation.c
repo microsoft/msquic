@@ -112,15 +112,15 @@ QuicOperationFree(
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SEND) {
             QuicStreamRelease(ApiCtx->STRM_SEND.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_COMPLETE) {
-            QuicStreamRelease(ApiCtx->STRM_RECV_COMPLETE.Stream, QUIC_STREAM_REF_OPERATION);
+            if (Oper->FLUSH_STREAM_RECEIVE.Stream) {
+                QuicStreamRelease(ApiCtx->STRM_RECV_COMPLETE.Stream, QUIC_STREAM_REF_OPERATION);
+            }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_SET_ENABLED) {
             QuicStreamRelease(ApiCtx->STRM_RECV_SET_ENABLED.Stream, QUIC_STREAM_REF_OPERATION);
         }
         CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {
-        if (Oper->FLUSH_STREAM_RECEIVE.Stream) {
-            QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
-        }
+        QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
     } else if (Oper->Type >= QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
         if (Oper->STATELESS.Context != NULL) {
             QuicBindingReleaseStatelessOperation(Oper->STATELESS.Context, TRUE);
