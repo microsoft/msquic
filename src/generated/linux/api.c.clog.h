@@ -161,8 +161,8 @@ tracepoint(CLOG_API_C, StreamAppSend , arg2, arg3, arg4, arg5);\
 // QuicTraceEvent(
             ApiError,
             "[ api] Error %u",
-            QUIC_STATUS_INVALID_STATE);
-// arg2 = arg2 = QUIC_STATUS_INVALID_STATE = arg2
+            (uint32_t)QUIC_STATUS_INVALID_STATE);
+// arg2 = arg2 = (uint32_t)QUIC_STATUS_INVALID_STATE = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ApiError
 #define _clog_3_ARGS_TRACE_ApiError(uniqueId, encoded_arg_string, arg2)\

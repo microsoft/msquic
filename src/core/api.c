@@ -1248,7 +1248,7 @@ MsQuicStreamReceiveComplete(
         QuicTraceEvent(
             ApiError,
             "[ api] Error %u",
-            QUIC_STATUS_INVALID_STATE);
+            (uint32_t)QUIC_STATUS_INVALID_STATE);
         goto Exit;
     }
 
@@ -1257,7 +1257,7 @@ MsQuicStreamReceiveComplete(
         QuicTraceEvent(
             ApiError,
             "[ api] Error %u",
-            QUIC_STATUS_NOT_SUPPORTED);
+            (uint32_t)QUIC_STATUS_NOT_SUPPORTED);
         goto Exit; // Duplicate calls to receive complete
     }
 

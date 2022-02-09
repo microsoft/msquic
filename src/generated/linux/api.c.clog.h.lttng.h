@@ -158,8 +158,8 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
 // QuicTraceEvent(
             ApiError,
             "[ api] Error %u",
-            QUIC_STATUS_INVALID_STATE);
-// arg2 = arg2 = QUIC_STATUS_INVALID_STATE = arg2
+            (uint32_t)QUIC_STATUS_INVALID_STATE);
+// arg2 = arg2 = (uint32_t)QUIC_STATUS_INVALID_STATE = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, ApiError,
     TP_ARGS(
