@@ -1988,6 +1988,15 @@
               template="tid_LIBRARY_VERSION"
               value="17"
               />
+          <event
+              keywords="ut:Api"
+              level="win:Error"
+              message="$(string.Etw.ApiError)"
+              opcode="Global"
+              symbol="QuicApiError"
+              template="tid_API_EXIT_STATUS"
+              value="18"
+              />
           <!-- 1024 - 2047 | Registration Events -->
           <event
               keywords="ut:Registration ut:LowVolume"
@@ -3804,6 +3813,10 @@
         <string
             id="Etw.ApiWaitOperation"
             value="[ api] Waiting on operation"
+            />
+        <string
+            id="Etw.ApiError"
+            value="[ api] Error %1"
             />
         <string
             id="Etw.PerfCountersRundown"

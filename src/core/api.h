@@ -209,7 +209,7 @@ MsQuicStreamSend(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QUIC_API
 MsQuicStreamReceiveComplete(
     _In_ _Pre_defensive_ HQUIC Handle,

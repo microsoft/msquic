@@ -401,6 +401,11 @@ typedef struct QUIC_STREAM {
     //
     QUIC_STREAM_CALLBACK_HANDLER ClientCallbackHandler;
 
+    //
+    // Preallocated operation for receive complete
+    //
+    QUIC_OPERATION* ReceiveCompleteOperation;
+
 } QUIC_STREAM;
 
 inline

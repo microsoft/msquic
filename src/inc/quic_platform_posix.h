@@ -176,6 +176,15 @@ InterlockedCompareExchange64(
 }
 
 inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return __sync_fetch_and_and(Target, 0);
+}
+
+inline
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend

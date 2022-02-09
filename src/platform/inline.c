@@ -160,6 +160,11 @@ InterlockedCompareExchange64(
     _In_ int64_t Comperand
     );
 
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    );
+
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend

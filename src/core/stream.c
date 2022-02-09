@@ -180,6 +180,10 @@ QuicStreamFree(
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     CxPlatRefUninitialize(&Stream->RefCount);
 
+    if (Stream->ReceiveCompleteOperation) {
+        QuicOperationFree(Worker, Stream->ReceiveCompleteOperation);
+    }
+
     if (Stream->RecvBuffer.PreallocatedBuffer) {
         CxPlatPoolFree(
             &Worker->DefaultReceiveBufferPool,

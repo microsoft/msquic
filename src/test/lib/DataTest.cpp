@@ -1576,17 +1576,9 @@ QuicTestReceiveResume(
             //
             // Indicate the buffer has been consumed.
             //
-            Status =
-                MsQuic->StreamReceiveComplete(
-                    ServerContext.Stream.Handle,
-                    SendBytes);
-            if (QUIC_FAILED(Status)) {
-                TEST_FAILURE(
-                    "MsQuic->StreamReceiveComplete %d failed, 0x%x",
-                    SendBytes,
-                    Status);
-                return;
-            }
+            MsQuic->StreamReceiveComplete(
+                ServerContext.Stream.Handle,
+                SendBytes);
             ServerContext.AvailableBuffer = ServerContext.ConsumeBufferAmount;
         } else if (PauseType == ReturnConsumedBytes) {
             //
@@ -2227,7 +2219,7 @@ QuicTestSlowReceive(
     // repeat the steps above to make sure we get another receive and it doesn't
     // shutdown the stream.
     //
-    TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveComplete(50));
+    Context.ServerStream->ReceiveComplete(50);
     TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveSetEnabled()); // Need to reenable because the partial receive completion pauses additional events.
     TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
     CxPlatSleep(50);
@@ -2236,7 +2228,7 @@ QuicTestSlowReceive(
     //
     // Receive the rest of the data and make sure the shutdown is then delivered.
     //
-    TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveComplete(50));
+    Context.ServerStream->ReceiveComplete(50);
     TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamHasShutdown);
 }
