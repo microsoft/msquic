@@ -5,14 +5,11 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"
 
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
-      interval: "daily"
-
-  - package-ecosystem: "nuget"
-    directory: "/"
-    schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"

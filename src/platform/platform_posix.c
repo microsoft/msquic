@@ -279,22 +279,23 @@ CxPlatRefIncrement(
 
 BOOLEAN
 CxPlatRefIncrementNonZero(
-    _Inout_ volatile CXPLAT_REF_COUNT* RefCount
+    _Inout_ volatile CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Bias
     )
 {
     CXPLAT_REF_COUNT OldValue = *RefCount;
 
     for (;;) {
-        CXPLAT_REF_COUNT NewValue = OldValue + 1;
+        CXPLAT_REF_COUNT NewValue = OldValue + Bias;
 
-        if (NewValue > 1) {
+        if (NewValue > Bias) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
             continue;
         }
 
-        if (NewValue == 1) {
+        if (NewValue == Bias) {
             return FALSE;
         }
 
@@ -362,7 +363,7 @@ CxPlatRundownAcquire(
     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount);
+    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1);
 }
 
 void

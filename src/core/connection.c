@@ -873,8 +873,8 @@ QuicConnGenerateNewSourceCid(
                 Connection,
                 Connection->ServerID,
                 Connection->PartitionID,
-                Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix);
+                Connection->CidPrefix[0],
+                Connection->CidPrefix+1);
         if (SourceCid == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1919,8 +1919,8 @@ QuicConnStart(
                 Connection,
                 NULL,
                 Connection->PartitionID,
-                Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix);
+                Connection->CidPrefix[0],
+                Connection->CidPrefix+1);
     } else {
         SourceCid = QuicCidNewNullSource(Connection);
     }
@@ -6142,6 +6142,26 @@ QuicConnParamSet(
 
         Connection->TlsSecrets = (QUIC_TLS_SECRETS*)Buffer;
         CxPlatZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:
+
+        if (BufferLength == 0 || BufferLength > MSQUIC_CID_MAX_DCID_PREFIX ||
+            Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QuicConnIsServer(Connection) ||
+            QUIC_CONN_BAD_START_STATE(Connection)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid);
+        CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid->CID.Length > BufferLength);
+        CxPlatCopyMemory(Connection->Paths[0].DestCid->CID.Data, Buffer, BufferLength);
         Status = QUIC_STATUS_SUCCESS;
         break;
 

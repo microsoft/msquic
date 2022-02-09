@@ -57,12 +57,6 @@ typedef struct QUIC_REGISTRATION {
     QUIC_CONNECTION_SHUTDOWN_FLAGS ShutdownFlags;
 
     //
-    // An app configured prefix for all connection IDs in this registration.
-    //
-    uint8_t CidPrefixLength;
-    uint8_t* CidPrefix;
-
-    //
     // Link into the global library's Registrations list.
     //
     CXPLAT_LIST_ENTRY Link;
