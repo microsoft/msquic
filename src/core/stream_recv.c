@@ -816,6 +816,8 @@ QuicStreamRecvFlush(
                     Stream->Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
                 break;
             }
+            Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
+            Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = NULL;
         }
 
         Stream->Flags.ReceiveEnabled = FALSE;
