@@ -82,7 +82,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_CID                       'C0cQ' // Qc0C - QUIC CID
 #define QUIC_POOL_CIDHASH                   'D0cQ' // Qc0D - QUIC CID Hash
 #define QUIC_POOL_CIDLIST                   'E0cQ' // Qc0E - QUIC CID List Entry
-#define QUIC_POOL_CIDPREFIX                 'F0cQ' // Qc0F - QUIC CID Prefix (NO LONGER_USED)
+#define QUIC_POOL__UNUSED_1_                'F0cQ' // Qc0F - UNUSED
 #define QUIC_POOL_ALPN                      '01cQ' // Qc10 - QUIC ALPN
 #define QUIC_POOL_RANGE                     '11cQ' // Qc11 - QUIC Range
 #define QUIC_POOL_SENDBUF                   '21cQ' // Qc12 - QUIC Send Buffer
