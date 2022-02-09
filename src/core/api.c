@@ -1245,11 +1245,19 @@ MsQuicStreamReceiveComplete(
         !Connection->State.HandleClosed);
 
     if (!Stream->Flags.Started || !Stream->Flags.ReceiveCallPending) {
+        QuicTraceEvent(
+            ApiError,
+            "[ api] Error %u",
+            QUIC_STATUS_INVALID_STATE);
         goto Exit;
     }
 
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
     if (Oper == NULL) {
+        QuicTraceEvent(
+            ApiError,
+            "[ api] Error %u",
+            QUIC_STATUS_NOT_SUPPORTED);
         goto Exit; // Duplicate calls to receive complete
     }
 

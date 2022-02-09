@@ -10610,6 +10610,18 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "ApiError": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] Error %u",
+      "UniqueId": "ApiError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     }
   },
   "ConfigFile": {
@@ -14460,6 +14472,11 @@
         "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
         "TraceID": "ListenerIndicateStopComplete",
         "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
+      },
+      {
+        "UniquenessHash": "dddba4c1-201c-11ae-51de-155523e40b7e",
+        "TraceID": "ApiError",
+        "EncodingString": "[ api] Error %u"
       }
     ]
   }
