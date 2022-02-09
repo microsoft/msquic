@@ -404,8 +404,7 @@ typedef struct QUIC_STREAM {
     //
     // Preallocated operation for receive complete
     //
-    QUIC_OPERATION ReceiveCompleteOperation;
-    QUIC_API_CONTEXT ReceiveCompleteApiContext;
+    QUIC_OPERATION* ReceiveCompleteOperation;
 
 } QUIC_STREAM;
 

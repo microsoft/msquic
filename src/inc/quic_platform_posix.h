@@ -187,6 +187,16 @@ InterlockedCompareExchangePointer(
 }
 
 inline
+void*
+InterlockedExchangePointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target,
+    _In_ void* Value
+    )
+{
+    return __sync_fetch_and_and(Target, (size_t)Value & 0);
+}
+
+inline
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend

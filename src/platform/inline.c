@@ -167,6 +167,12 @@ InterlockedCompareExchangePointer(
     _In_ void* Comperand
     );
 
+void*
+InterlockedExchangePointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target,
+    _In_ void* Value
+    );
+
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend

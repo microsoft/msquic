@@ -807,6 +807,17 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
 
+        if (Stream->ReceiveCompleteOperation == NULL) {
+            Stream->ReceiveCompleteOperation =
+                QuicOperationAlloc(
+                    Stream->Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+            if (Stream->ReceiveCompleteOperation == NULL) {
+                QuicConnFatalError(
+                    Stream->Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
+                break;
+            }
+        }
+
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallPending = TRUE;
         Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
@@ -911,11 +922,6 @@ QuicStreamReceiveComplete(
         "[strm][%p] Receive complete [%llu bytes]",
         Stream,
         BufferLength);
-
-    InterlockedCompareExchangePointer(
-        (void**)&Stream->ReceiveCompleteApiContext.STRM_RECV_COMPLETE.Stream,
-        NULL,
-        Stream);
 
     //
     // Reclaim any buffer space comsumed by the app.

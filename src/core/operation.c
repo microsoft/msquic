@@ -118,7 +118,9 @@ QuicOperationFree(
         }
         CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {
-        QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
+        if (Oper->FLUSH_STREAM_RECEIVE.Stream) {
+            QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
+        }
     } else if (Oper->Type >= QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
         if (Oper->STATELESS.Context != NULL) {
             QuicBindingReleaseStatelessOperation(Oper->STATELESS.Context, TRUE);
