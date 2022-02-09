@@ -177,23 +177,11 @@ InterlockedCompareExchange64(
 
 inline
 void*
-InterlockedCompareExchangePointer(
-    _Inout_ _Interlocked_operand_ void* volatile *Destination,
-    _In_ void* ExChange,
-    _In_ void* Comperand
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
     )
 {
-    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
-}
-
-inline
-void*
-InterlockedExchangePointer(
-    _Inout_ _Interlocked_operand_ void* volatile *Target,
-    _In_ void* Value
-    )
-{
-    return __sync_fetch_and_and(Target, (size_t)Value & 0);
+    return __sync_fetch_and_and(Target, 0);
 }
 
 inline

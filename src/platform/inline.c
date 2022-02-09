@@ -161,16 +161,8 @@ InterlockedCompareExchange64(
     );
 
 void*
-InterlockedCompareExchangePointer(
-    _Inout_ _Interlocked_operand_ void* volatile *Destination,
-    _In_ void* ExChange,
-    _In_ void* Comperand
-    );
-
-void*
-InterlockedExchangePointer(
-    _Inout_ _Interlocked_operand_ void* volatile *Target,
-    _In_ void* Value
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
     );
 
 short

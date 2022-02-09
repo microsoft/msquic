@@ -209,6 +209,15 @@ GetModuleHandleW(
 // Wrapper functions
 //
 
+inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return InterlockedExchangePointer(Target, NULL);
+}
+
 //
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //

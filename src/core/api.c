@@ -1248,7 +1248,7 @@ MsQuicStreamReceiveComplete(
         goto Exit;
     }
 
-    Oper = InterlockedExchangePointer((void**)&Stream->ReceiveCompleteOperation, NULL);
+    Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
     if (Oper == NULL) {
         goto Exit; // Duplicate calls to receive complete
     }
