@@ -37,6 +37,12 @@ QuicStreamInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+
+    QuicTraceEvent(
+        StreamAlloc,
+        "[strm][%p] Allocated, Conn=%p",
+        Stream,
+        Connection);
     CxPlatZeroMemory(Stream, sizeof(QUIC_STREAM));
 
 #if DEBUG
@@ -173,6 +179,10 @@ QuicStreamFree(
     QuicRangeUninitialize(&Stream->SparseAckRanges);
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     CxPlatRefUninitialize(&Stream->RefCount);
+
+    if (Stream->ReceiveCompleteOperation) {
+        QuicOperationFree(Worker, Stream->ReceiveCompleteOperation);
+    }
 
     if (Stream->RecvBuffer.PreallocatedBuffer) {
         CxPlatPoolFree(
@@ -459,6 +469,8 @@ QuicStreamIndicateShutdownComplete(
         Event.SHUTDOWN_COMPLETE.ConnectionShutdown =
             Stream->Connection->State.ClosedLocally ||
             Stream->Connection->State.ClosedRemotely;
+        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
+            Stream->Flags.HandleClosed;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,

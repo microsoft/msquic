@@ -63,7 +63,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32              // varint
 #define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD          // N/A
 #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB        // Blob
-#define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF02DE1AULL   // varint
+#define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF03DE1AULL   // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -438,10 +438,8 @@ QuicCryptoTlsReadClientHello(
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
-    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
-    , _Inout_opt_ CXPLAT_TLS_SECRETS* TlsSecrets
-#endif
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info,
+    _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
     )
 {
     /*
@@ -486,12 +484,10 @@ QuicCryptoTlsReadClientHello(
             "Parse error. ReadTlsClientHello #2");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsSecrets != NULL) {
         memcpy(TlsSecrets->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
         TlsSecrets->IsSet.ClientRandom = TRUE;
     }
-#endif
     BufferLength -= TLS_RANDOM_LENGTH;
     Buffer += TLS_RANDOM_LENGTH;
 
@@ -576,7 +572,7 @@ QuicCryptoTlsReadClientHello(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-QuicCrytpoTlsGetCompleteTlsMessagesLength(
+QuicCryptoTlsGetCompleteTlsMessagesLength(
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength
@@ -607,10 +603,8 @@ QuicCryptoTlsReadInitial(
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
-    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
-    , _Inout_opt_ CXPLAT_TLS_SECRETS* TlsSecrets
-#endif
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info,
+    _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
     )
 {
     do {
@@ -637,10 +631,8 @@ QuicCryptoTlsReadInitial(
                 Connection,
                 Buffer + TLS_MESSAGE_HEADER_LENGTH,
                 MessageLength,
-                Info
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
-                , TlsSecrets
-#endif
+                Info,
+                TlsSecrets
                 );
         if (QUIC_FAILED(Status)) {
             return Status;

@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_STREAM_H
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for StreamOutFlowBlocked
 // [strm][%p] Send Blocked Flags: %hhu
@@ -31,33 +29,12 @@ extern "C" {
             "[strm][%p] Send Blocked Flags: %hhu",
             Stream,
             Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream
-// arg3 = arg3 = Stream->OutFlowBlockedReasons
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
 #define _clog_4_ARGS_TRACE_StreamOutFlowBlocked(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_H, StreamOutFlowBlocked , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for StreamOutFlowBlocked
-// [strm][%p] Send Blocked Flags: %hhu
-// QuicTraceEvent(
-            StreamOutFlowBlocked,
-            "[strm][%p] Send Blocked Flags: %hhu",
-            Stream,
-            Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream
-// arg3 = arg3 = Stream->OutFlowBlockedReasons
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamOutFlowBlocked(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

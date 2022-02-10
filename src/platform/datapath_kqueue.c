@@ -836,7 +836,8 @@ CxPlatSocketContextInitialize(
             MappedAddress.Ipv6.sin6_family = AF_INET6;
         }
 
-        if (ForceIpv4) {
+        // If we're going to be connecting, we need to bind to the correct local address family.
+        if ((RemoteAddress && LocalAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) || ForceIpv4) {
             MappedAddress.Ipv4.sin_family = AF_INET;
             MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
             // For Wildcard address we only need to copy port.
@@ -1748,9 +1749,11 @@ CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _Inout_ CXPLAT_ROUTE* Route
     )
 {
+    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =

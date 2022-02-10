@@ -89,7 +89,7 @@ QuicTestCtlInitialize(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             MsQuic->GetInitStatus(),
-            "MsQuicOpen");
+            "MsQuicApi Constructor");
         goto Error;
     }
 
@@ -240,7 +240,7 @@ QuicTestCtlEvtFileCreate(
     PAGED_CODE();
 
     KeEnterGuardedRegion();
-    ExfAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
+    ExAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
 
     do
     {
@@ -283,7 +283,7 @@ QuicTestCtlEvtFileCreate(
     }
     while (false);
 
-    ExfReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
+    ExReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
     KeLeaveGuardedRegion();
 
     WdfRequestComplete(Request, Status);
@@ -313,7 +313,7 @@ QuicTestCtlEvtFileCleanup(
     QUIC_TEST_CLIENT* Client = QuicTestCtlGetFileContext(FileObject);
     if (Client != nullptr) {
 
-        ExfAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
+        ExAcquirePushLockExclusive(&QuicTestCtlExtension->Lock);
 
         //
         // Remove the device client from the list
@@ -321,7 +321,7 @@ QuicTestCtlEvtFileCleanup(
         RemoveEntryList(&Client->Link);
         QuicTestCtlExtension->ClientListSize--;
 
-        ExfReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
+        ExReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
 
         QuicTraceLogInfo(
             TestControlClientCleaningUp,
@@ -450,6 +450,11 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
+    0,
+    0,
+    0,
+    sizeof(QUIC_RUN_CRED_VALIDATION)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1123,6 +1128,46 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL:
         QuicTestCtlRun(QuicTestStreamAbortConnFlowControl());
+        break;
+
+    case IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN:
+        QuicTestCtlRun(QuicTestRegistrationShutdownBeforeConnOpen());
+        break;
+
+    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN:
+        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpen());
+        break;
+
+    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START:
+        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenBeforeStart());
+        break;
+
+    case IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START:
+        QuicTestCtlRun(QuicTestRegistrationShutdownAfterConnOpenAndStart());
+        break;
+
+    case IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        //
+        // Fix up pointers for kernel mode
+        //
+        switch (Params->CredValidationParams.CredConfig.Type) {
+        case QUIC_CREDENTIAL_TYPE_NONE:
+            Params->CredValidationParams.CredConfig.Principal =
+                (const char*)Params->CredValidationParams.PrincipalString;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+            Params->CredValidationParams.CredConfig.CertificateHash =
+                &Params->CredValidationParams.CertHash;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+            Params->CredValidationParams.CredConfig.CertificateHashStore =
+                &Params->CredValidationParams.CertHashStore;
+            break;
+        }
+        QuicTestCtlRun(
+            QuicTestCredentialLoad(
+                &Params->CredValidationParams.CredConfig));
         break;
 
     default:

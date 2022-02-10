@@ -8,7 +8,7 @@
             NoSrcCidAvailable,
             Connection,
             "No src CID to send with");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
     TP_ARGS(
@@ -28,8 +28,8 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
         Builder->Connection,
         "Failed to get packet type for control frames, 0x%x",
         SendFlags);
-// arg1 = arg1 = Builder->Connection
-// arg3 = arg3 = SendFlags
+// arg1 = arg1 = Builder->Connection = arg1
+// arg3 = arg3 = SendFlags = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, GetPacketTypeFailure,
     TP_ARGS(
@@ -51,8 +51,8 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, GetPacketTypeFailure,
         Builder->Connection,
         "Sending batch. %hu datagrams",
         (uint16_t)Builder->TotalCountDatagrams);
-// arg1 = arg1 = Builder->Connection
-// arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams
+// arg1 = arg1 = Builder->Connection = arg1
+// arg3 = arg3 = (uint16_t)Builder->TotalCountDatagrams = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
     TP_ARGS(
@@ -74,8 +74,8 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
             "[conn][%p] ERROR, %s.",
             Connection,
             "NULL key in builder prepare");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "NULL key in builder prepare"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "NULL key in builder prepare" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnError,
     TP_ARGS(
@@ -97,8 +97,8 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnError,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "packet send context",
                     0);
-// arg2 = arg2 = "packet send context"
-// arg3 = arg3 = 0
+// arg2 = arg2 = "packet send context" = arg2
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, AllocFailure,
     TP_ARGS(
@@ -113,6 +113,48 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketCreated
+// [pack][%llu] Created in batch %llu
+// QuicTraceEvent(
+            PacketCreated,
+            "[pack][%llu] Created in batch %llu",
+            Builder->Metadata->PacketId,
+            Builder->BatchId);
+// arg2 = arg2 = Builder->Metadata->PacketId = arg2
+// arg3 = arg3 = Builder->BatchId = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketCreated,
+    TP_ARGS(
+        unsigned long long, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketEncrypt
+// [pack][%llu] Encrypting
+// QuicTraceEvent(
+            PacketEncrypt,
+            "[pack][%llu] Encrypting",
+            Builder->Metadata->PacketId);
+// arg2 = arg2 = Builder->Metadata->PacketId = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketEncrypt,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnErrorStatus
 // [conn][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -121,9 +163,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, AllocFailure,
                     Connection,
                     Status,
                     "Send-triggered key update");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Send-triggered key update"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Send-triggered key update" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnErrorStatus,
     TP_ARGS(
@@ -140,6 +182,25 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnErrorStatus,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketFinalize
+// [pack][%llu] Finalizing
+// QuicTraceEvent(
+        PacketFinalize,
+        "[pack][%llu] Finalizing",
+        Builder->Metadata->PacketId);
+// arg2 = arg2 = Builder->Metadata->PacketId = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketFinalize,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPacketSent
 // [conn][%p][TX][%llu] %hhu (%hu bytes)
 // QuicTraceEvent(
@@ -149,10 +210,10 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnErrorStatus,
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
         Builder->Metadata->PacketLength);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Builder->Metadata->PacketNumber
-// arg4 = arg4 = QuicPacketTraceType(Builder->Metadata)
-// arg5 = arg5 = Builder->Metadata->PacketLength
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Builder->Metadata->PacketNumber = arg3
+// arg4 = arg4 = QuicPacketTraceType(Builder->Metadata) = arg4
+// arg5 = arg5 = Builder->Metadata->PacketLength = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnPacketSent,
     TP_ARGS(
@@ -165,5 +226,24 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnPacketSent,
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketBatchSent
+// [pack][%llu] Batch sent
+// QuicTraceEvent(
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
+                Builder->BatchId);
+// arg2 = arg2 = Builder->BatchId = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBatchSent,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
     )
 )

@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_TESTHELPERS_H
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -23,10 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_TestScopeEntry
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TestScopeEntry
 // [test]---> %s
@@ -34,17 +32,14 @@ extern "C" {
             TestScopeEntry,
             "[test]---> %s",
             Name);
-// arg2 = arg2 = Name
+// arg2 = arg2 = Name = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TestScopeEntry
 #define _clog_3_ARGS_TRACE_TestScopeEntry(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TESTHELPERS_H, TestScopeEntry , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_TestScopeExit
 
 
 
@@ -55,17 +50,14 @@ tracepoint(CLOG_TESTHELPERS_H, TestScopeEntry , arg2);\
             TestScopeExit,
             "[test]<--- %s",
             Name);
-// arg2 = arg2 = Name
+// arg2 = arg2 = Name = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TestScopeExit
 #define _clog_3_ARGS_TRACE_TestScopeExit(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TESTHELPERS_H, TestScopeExit , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookRegister
 
 
 
@@ -76,15 +68,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestScopeExit , arg2);\
             TestHookRegister,
             "[test][hook] Registering");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookRegister
 #define _clog_2_ARGS_TRACE_TestHookRegister(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookRegister );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookUnregistering
 
 
 
@@ -95,15 +84,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookRegister );\
             TestHookUnregistering,
             "[test][hook] Unregistering");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookUnregistering
 #define _clog_2_ARGS_TRACE_TestHookUnregistering(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookUnregistering );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookUnregistered
 
 
 
@@ -114,15 +100,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookUnregistering );\
             TestHookUnregistered,
             "[test][hook] Unregistered");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookUnregistered
 #define _clog_2_ARGS_TRACE_TestHookUnregistered(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookUnregistered );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookDropPacketRandom
 
 
 
@@ -133,15 +116,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookUnregistered );\
                 TestHookDropPacketRandom,
                 "[test][hook] Random packet drop");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookDropPacketRandom
 #define _clog_2_ARGS_TRACE_TestHookDropPacketRandom(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookDropPacketRandom );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookDropPacketSelective
 
 
 
@@ -152,15 +132,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookDropPacketRandom );\
             TestHookDropPacketSelective,
             "[test][hook] Selective packet drop");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookDropPacketSelective
 #define _clog_2_ARGS_TRACE_TestHookDropPacketSelective(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookDropPacketSelective );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv
 
 
 
@@ -172,18 +149,15 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookDropPacketSelective );\
                 "[test][hook] Recv Addr :%hu => :%hu",
                 QuicAddrGetPort(&Original),
                 QuicAddrGetPort(&New));
-// arg2 = arg2 = QuicAddrGetPort(&Original)
-// arg3 = arg3 = QuicAddrGetPort(&New)
+// arg2 = arg2 = QuicAddrGetPort(&Original) = arg2
+// arg3 = arg3 = QuicAddrGetPort(&New) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv
 #define _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookReplaceAddrRecv , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrSend
 
 
 
@@ -195,18 +169,15 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookReplaceAddrRecv , arg2, arg3);\
                 "[test][hook] Send Addr :%hu => :%hu",
                 QuicAddrGetPort(&New),
                 QuicAddrGetPort(&Original));
-// arg2 = arg2 = QuicAddrGetPort(&New)
-// arg3 = arg3 = QuicAddrGetPort(&Original)
+// arg2 = arg2 = QuicAddrGetPort(&New) = arg2
+// arg3 = arg3 = QuicAddrGetPort(&Original) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrSend
 #define _clog_4_ARGS_TRACE_TestHookReplaceAddrSend(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookReplaceAddrSend , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookDropOldAddrSend
 
 
 
@@ -217,15 +188,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookReplaceAddrSend , arg2, arg3);\
                 TestHookDropOldAddrSend,
                 "[test][hook] Dropping send to old addr");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookDropOldAddrSend
 #define _clog_2_ARGS_TRACE_TestHookDropOldAddrSend(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookDropOldAddrSend );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookDropLimitAddrRecv
 
 
 
@@ -236,37 +204,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookDropOldAddrSend );\
                     TestHookDropLimitAddrRecv,
                     "[test][hook] Dropping recv over limit to new addr");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookDropLimitAddrRecv
 #define _clog_2_ARGS_TRACE_TestHookDropLimitAddrRecv(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookDropLimitAddrRecv );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TestHookReplaceAddrRecv
-// [test][hook] Recv Addr :%hu => :%hu
-// QuicTraceLogVerbose(
-                TestHookReplaceAddrRecv,
-                "[test][hook] Recv Addr :%hu => :%hu",
-                QuicAddrGetPort(&Original),
-                QuicAddrGetPort(&New));
-// arg2 = arg2 = QuicAddrGetPort(&Original)
-// arg3 = arg3 = QuicAddrGetPort(&New)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookDropLimitAddrSend
 
 
 
@@ -277,55 +220,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookDropLimitAddrRecv );\
                     TestHookDropLimitAddrSend,
                     "[test][hook] Dropping send over limit to new addr");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookDropLimitAddrSend
 #define _clog_2_ARGS_TRACE_TestHookDropLimitAddrSend(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookDropLimitAddrSend );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrSend
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TestHookReplaceAddrSend
-// [test][hook] Send Addr :%hu => :%hu
-// QuicTraceLogVerbose(
-                TestHookReplaceAddrSend,
-                "[test][hook] Send Addr :%hu => :%hu",
-                QuicAddrGetPort(&New),
-                QuicAddrGetPort(&Original));
-// arg2 = arg2 = QuicAddrGetPort(&New)
-// arg3 = arg3 = QuicAddrGetPort(&Original)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TestHookReplaceAddrSend(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_TestHookDropOldAddrSend
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TestHookDropOldAddrSend
-// [test][hook] Dropping send to old addr
-// QuicTraceLogVerbose(
-                TestHookDropOldAddrSend,
-                "[test][hook] Dropping send to old addr");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_TestHookDropOldAddrSend(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceCreateSend
 
 
 
@@ -337,55 +237,12 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookDropLimitAddrSend );\
                 "[test][hook] Create (remote) Addr :%hu => :%hu",
                 QuicAddrGetPort(&PublicAddress),
                 QuicAddrGetPort(RemoteAddress));
-// arg2 = arg2 = QuicAddrGetPort(&PublicAddress)
-// arg3 = arg3 = QuicAddrGetPort(RemoteAddress)
+// arg2 = arg2 = QuicAddrGetPort(&PublicAddress) = arg2
+// arg3 = arg3 = QuicAddrGetPort(RemoteAddress) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TestHookReplaceCreateSend
 #define _clog_4_ARGS_TRACE_TestHookReplaceCreateSend(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TESTHELPERS_H, TestHookReplaceCreateSend , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TestHookReplaceAddrRecv
-// [test][hook] Recv Addr :%hu => :%hu
-// QuicTraceLogVerbose(
-                    TestHookReplaceAddrRecv,
-                    "[test][hook] Recv Addr :%hu => :%hu",
-                    QuicAddrGetPort(&PrivateAddresses[i]),
-                    QuicAddrGetPort(&PublicAddress));
-// arg2 = arg2 = QuicAddrGetPort(&PrivateAddresses[i])
-// arg3 = arg3 = QuicAddrGetPort(&PublicAddress)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TestHookReplaceAddrRecv(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TestHookReplaceAddrSend
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TestHookReplaceAddrSend
-// [test][hook] Send Addr :%hu => :%hu
-// QuicTraceLogVerbose(
-                TestHookReplaceAddrSend,
-                "[test][hook] Send Addr :%hu => :%hu",
-                QuicAddrGetPort(&PublicAddress),
-                QuicAddrGetPort(RemoteAddress));
-// arg2 = arg2 = QuicAddrGetPort(&PublicAddress)
-// arg3 = arg3 = QuicAddrGetPort(RemoteAddress)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TestHookReplaceAddrSend(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

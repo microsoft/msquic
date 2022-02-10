@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_TESTCONNECTION_CPP
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_2_ARGS_TRACE_TestIgnoreConnectionTimeout
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TestIgnoreConnectionTimeout
 // [test] Ignoring timeout unexpected status because of random loss
@@ -30,6 +28,7 @@ extern "C" {
                     TestIgnoreConnectionTimeout,
                     "[test] Ignoring timeout unexpected status because of random loss");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestIgnoreConnectionTimeout
 #define _clog_2_ARGS_TRACE_TestIgnoreConnectionTimeout(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TESTCONNECTION_CPP, TestIgnoreConnectionTimeout );\
 

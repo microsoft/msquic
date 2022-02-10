@@ -40,9 +40,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded,
         WindowsUserProcessorState,
         "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
         ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
-// arg2 = arg2 = ActiveProcessorCount
-// arg3 = arg3 = ProcessorGroupCount
-// arg4 = arg4 = NumaNodeCount
+// arg2 = arg2 = ActiveProcessorCount = arg2
+// arg3 = arg3 = ProcessorGroupCount = arg3
+// arg4 = arg4 = NumaNodeCount = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState,
     TP_ARGS(
@@ -68,10 +68,10 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState,
                         CxPlatProcessorInfo[Index].Group,
                         CxPlatProcessorInfo[Index].Index,
                         CxPlatProcessorInfo[Index].NumaNode);
-// arg2 = arg2 = Index
-// arg3 = arg3 = CxPlatProcessorInfo[Index].Group
-// arg4 = arg4 = CxPlatProcessorInfo[Index].Index
-// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode
+// arg2 = arg2 = Index = arg2
+// arg3 = arg3 = CxPlatProcessorInfo[Index].Group = arg3
+// arg4 = arg4 = CxPlatProcessorInfo[Index].Index = arg4
+// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
     TP_ARGS(
@@ -90,13 +90,40 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WindowsUserInitialized2
+// [ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])
+// QuicTraceLogInfo(
+        WindowsUserInitialized2,
+        "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
+        CxPlatTotalMemory,
+        CxPlatTimerCapabilities.wPeriodMin,
+        CxPlatTimerCapabilities.wPeriodMax);
+// arg2 = arg2 = CxPlatTotalMemory = arg2
+// arg3 = arg3 = CxPlatTimerCapabilities.wPeriodMin = arg3
+// arg4 = arg4 = CxPlatTimerCapabilities.wPeriodMax = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized2,
+    TP_ARGS(
+        unsigned long long, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WindowsUserInitialized
 // [ dll] Initialized (AvailMem = %llu bytes)
 // QuicTraceLogInfo(
         WindowsUserInitialized,
         "[ dll] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
-// arg2 = arg2 = CxPlatTotalMemory
+// arg2 = arg2 = CxPlatTotalMemory = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserInitialized,
     TP_ARGS(
@@ -132,8 +159,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized,
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorInfo",
             ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
-// arg2 = arg2 = "CxPlatProcessorInfo"
-// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO)
+// arg2 = arg2 = "CxPlatProcessorInfo" = arg2
+// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, AllocFailure,
     TP_ARGS(
@@ -154,7 +181,7 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, AllocFailure,
             LibraryError,
             "[ lib] ERROR, %s.",
             "Failed to determine processor group count");
-// arg2 = arg2 = "Failed to determine processor group count"
+// arg2 = arg2 = "Failed to determine processor group count" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryError,
     TP_ARGS(
@@ -174,8 +201,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryError,
             "[ lib] ERROR, %u, %s.",
             Error,
             "GlobalMemoryStatusEx failed");
-// arg2 = arg2 = Error
-// arg3 = arg3 = "GlobalMemoryStatusEx failed"
+// arg2 = arg2 = Error = arg2
+// arg3 = arg3 = "GlobalMemoryStatusEx failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus,
     TP_ARGS(
@@ -198,9 +225,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus,
         (uint32_t)Line,
         File,
         Expr);
-// arg2 = arg2 = (uint32_t)Line
-// arg3 = arg3 = File
-// arg4 = arg4 = Expr
+// arg2 = arg2 = (uint32_t)Line = arg2
+// arg3 = arg3 = File = arg3
+// arg4 = arg4 = Expr = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryAssert,
     TP_ARGS(

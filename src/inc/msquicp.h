@@ -93,47 +93,24 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
-//
-// This struct enables QUIC applications to support SSLKEYLOGFILE
-// for debugging packet captures with e.g. Wireshark.
-//
-
-#define CXPLAT_TLS_SECRETS_MAX_SECRET_LEN 64
-typedef struct CXPLAT_TLS_SECRETS {
-    uint8_t SecretLength;
-    struct {
-        uint8_t ClientRandom : 1;
-        uint8_t ClientEarlyTrafficSecret : 1;
-        uint8_t ClientHandshakeTrafficSecret : 1;
-        uint8_t ServerHandshakeTrafficSecret : 1;
-        uint8_t ClientTrafficSecret0 : 1;
-        uint8_t ServerTrafficSecret0 : 1;
-    } IsSet;
-    uint8_t ClientRandom[32];
-    uint8_t ClientEarlyTrafficSecret[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ClientHandshakeTrafficSecret[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ServerHandshakeTrafficSecret[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ClientTrafficSecret0[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ServerTrafficSecret0[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
-} CXPLAT_TLS_SECRETS;
+#define QUIC_PARAM_PREFIX_PRIVATE                        0x80000000
 
 //
-// The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
+// The different private parameters for Global.
 //
 
-#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x5000001  // QUIC_TEST_DATAPATH_HOOKS*
-#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x5000002  // uint32_t
-#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x5000003  // uint32_t
+#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x81000000  // QUIC_TEST_DATAPATH_HOOKS*
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x81000001  // uint32_t
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x81000002  // uint32_t
 
 //
-// The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.
+// The different private parameters for Connection.
 //
 
-#define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x15000001  // No payload
-#define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x15000002  // No payload
-#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x15000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
-#define QUIC_PARAM_CONN_TLS_SECRETS                     0x15000004  // CXPLAT_TLS_SECRETS (SSLKEYLOGFILE compatible)
-#define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x15000005  // uint16_t
+#define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x85000000  // No payload
+#define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x85000001  // No payload
+#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x85000002  // QUIC_PRIVATE_TRANSPORT_PARAMETER
+#define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x85000003  // uint16_t
 
 #if defined(__cplusplus)
 }

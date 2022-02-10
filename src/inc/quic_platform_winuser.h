@@ -209,6 +209,15 @@ GetModuleHandleW(
 // Wrapper functions
 //
 
+inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return InterlockedExchangePointer(Target, NULL);
+}
+
 //
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //
@@ -255,9 +264,9 @@ typedef struct CXPLAT_POOL {
 #if DEBUG
 typedef struct CXPLAT_POOL_ENTRY {
     SLIST_ENTRY ListHead;
-    uint32_t SpecialFlag;
+    uint64_t SpecialFlag;
 } CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAui64
 
 int32_t
 CxPlatGetAllocFailDenominator(

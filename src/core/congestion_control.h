@@ -78,7 +78,7 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ const QUIC_LOSS_EVENT* LossEvent
         );
 
-    void (*QuicCongestionControlOnSpuriousCongestionEvent)(
+    BOOLEAN (*QuicCongestionControlOnSpuriousCongestionEvent)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc
         );
 
@@ -225,12 +225,12 @@ QuicCongestionControlOnDataLost(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-void
+BOOLEAN
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    Cc->QuicCongestionControlOnSpuriousCongestionEvent(Cc);
+    return Cc->QuicCongestionControlOnSpuriousCongestionEvent(Cc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -163,18 +163,19 @@ protected:
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #ifndef QUIC_DISABLE_PFX_TESTS
-        ASSERT_NE(nullptr, PfxPath);
-        CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
-        ASSERT_NE(nullptr, CertParamsFromFile);
-        CxPlatZeroMemory(CertParamsFromFile, sizeof(*CertParamsFromFile));
-        CertParamsFromFile->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12;
-        CertParamsFromFile->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CERTIFICATE_PKCS12), QUIC_POOL_TEST);
-        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12);
-        CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
-        CertParamsFromFile->CertificatePkcs12->Asn1Blob = ReadFile(PfxPath, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
-        CertParamsFromFile->CertificatePkcs12->PrivateKeyPassword = PfxPass;
-        ASSERT_NE((uint32_t)0, CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
-        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
+        if (PfxPath != nullptr) {
+            CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
+            ASSERT_NE(nullptr, CertParamsFromFile);
+            CxPlatZeroMemory(CertParamsFromFile, sizeof(*CertParamsFromFile));
+            CertParamsFromFile->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12;
+            CertParamsFromFile->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CERTIFICATE_PKCS12), QUIC_POOL_TEST);
+            ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12);
+            CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
+            CertParamsFromFile->CertificatePkcs12->Asn1Blob = ReadFile(PfxPath, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
+            CertParamsFromFile->CertificatePkcs12->PrivateKeyPassword = PfxPass;
+            ASSERT_NE((uint32_t)0, CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
+            ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
+        }
 #endif
     }
 
@@ -185,12 +186,14 @@ protected:
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
 #ifndef QUIC_DISABLE_PFX_TESTS
-        if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
-            CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+        if (CertParamsFromFile != nullptr) {
+            if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
+                CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+            }
+            CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
+            CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
+            CertParamsFromFile = nullptr;
         }
-        CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
-        CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
-        CertParamsFromFile = nullptr;
 #endif
     }
 
@@ -777,6 +780,7 @@ TEST_F(TlsTest, Handshake)
 #ifndef QUIC_DISABLE_PFX_TESTS
 TEST_F(TlsTest, HandshakeCertFromFile)
 {
+    ASSERT_NE(nullptr, CertParamsFromFile);
     CxPlatSecConfig ClientConfig;
     ClientConfig.Load(CertParamsFromFile);
     CxPlatServerSecConfig ServerConfig;
@@ -1373,6 +1377,17 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
     }
 }
 
+TEST_F(TlsTest, CustomCertificateValidationServerIndicate)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(ClientCertParams);
+    CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, false);
+}
+
 TEST_F(TlsTest, ExtraCertificateValidation)
 {
     CxPlatClientSecConfig ClientConfig(
@@ -1404,7 +1419,7 @@ TEST_F(TlsTest, PortableCertificateValidation)
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
         QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
-        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES);
+        QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES);
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
@@ -1995,8 +2010,7 @@ ValidateSecConfigStatusOpenSsl(
 
 TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
 {
-    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION,
-        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES }) {
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION }) {
 
         QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
@@ -2029,6 +2043,70 @@ TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
                 &ServerSecConfig,
                 OpenSslSecConfigCreateComplete);
         ValidateSecConfigStatusOpenSsl(Status, ServerSecConfig);
+    }
+}
+
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+static void
+QUIC_API
+PortableCertFlagsSecConfigCreateComplete(
+    _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
+)
+{
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, SecConfig);
+    *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
+}
+
+void
+ValidateSecConfigStatusPortableCert(
+    _In_ QUIC_STATUS Status,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig
+)
+{
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, SecConfig);
+    CxPlatTlsSecConfigDelete(SecConfig);
+}
+
+TEST_F(TlsTest, PortableCertFlags)
+{
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES }) {
+
+        QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
+            QUIC_CREDENTIAL_TYPE_NONE,
+            TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            QUIC_ALLOWED_CIPHER_SUITE_NONE
+        };
+        CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
+
+        QUIC_STATUS Status =
+            CxPlatTlsSecConfigCreate(
+                &TestClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ClientSecConfig,
+                PortableCertFlagsSecConfigCreateComplete);
+        ValidateSecConfigStatusPortableCert(Status, ClientSecConfig);
+
+        SelfSignedCertParams->Flags = TestFlag;
+        CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
+
+        Status =
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsCallbacks,
+                &ServerSecConfig,
+                PortableCertFlagsSecConfigCreateComplete);
+        ValidateSecConfigStatusPortableCert(Status, ServerSecConfig);
     }
 }
 

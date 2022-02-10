@@ -23,7 +23,7 @@ namespace QuicTrace
         LTTng // TODO - Add support
     }
 
-    public sealed class QuicEventParser : SourceParserBase<QuicEvent, object, Guid>
+    public sealed class QuicEventParser : SourceParser<QuicEvent, object, Guid>
     {
         public const string SourceId = "QUIC";
 
@@ -101,8 +101,9 @@ namespace QuicTrace
                             dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Console.WriteLine(ex.ToString());
                     }
                 }
 

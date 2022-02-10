@@ -27,7 +27,7 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 |------------------------------------|------------|-----------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | Max Bytes per Key                  | uint64_t   | MaxBytesPerKey              |   274,877,906,944 | Maximum number of bytes to encrypt with a single 1-RTT encryption key before initiating key update.                           |
 | Handshake Idle Timeout             | uint64_t   | HandshakeIdleTimeoutMs      |            10,000 | How long a handshake can idle before it is discarded.                                                                         |
-| Idle Timeout                       | uint64_t   | IdleTimeoutMs               |            30,000 | How long a connection can go idle before it is gracefully shut down.                                                          |
+| Idle Timeout                       | uint64_t   | IdleTimeoutMs               |            30,000 | How long a connection can go idle before it is gracefully shut down. 0 to disable timeout                                                          |
 | Max TLS Send Buffer (Client)       | uint32_t   | TlsClientMaxSendBuffer      |             4,096 | How much client TLS data to buffer.                                                                                           |
 | Max TLS Send Buffer (Server)       | uint32_t   | TlsServerMaxSendBuffer      |             8,192 | How much server TLS data to buffer.                                                                                           |
 | Stream Receive Window              | uint32_t   | StreamRecvWindowDefault     |            32,768 | Initial stream receive window size.                                                                                           |
@@ -76,7 +76,7 @@ MsQuic API Objects have a number of settings, or parameters, which can be querie
 
 ### Global Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_GLOBAL` and a `NULL` object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_GLOBAL_*` and a `NULL` object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
@@ -89,15 +89,15 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Registration Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_REGISTRATION` and a Registration object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_REGISTRATION_*` and a Registration object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_REGISTRATION_CID_PREFIX`<br> 0        | uint8_t[]     | Both      | CID prefix to prepend to all CIDs. Used for load balancing.                                           |
+
 
 ### Configuration Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONFIGURATION` and a Configuration object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONFIGURATION_*` and a Configuration object handle.
 
 | Setting                                       | Type                      | Get/Set   | Description                                                                                                       |
 |-----------------------------------------------|---------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
@@ -106,16 +106,17 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Listener Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_LISTENER` and a Listener object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LISTENER_*` and a Listener object handle.
 
 | Setting                                   | Type                      | Get/Set   | Description                                               |
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
+| `QUIC_PARAM_LISTENER_CID_PREFIX`<br> 2    | uint8_t[]  | Both  | CID prefix prepended to all CIDs.        |
 
 ### Connection Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_CONNECTION` and a Connection object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONNECTION_*` and a Connection object handle.
 
 | Setting                                           | Type                          | Get/Set   | Description                                                                               |
 |---------------------------------------------------|-------------------------------|-----------|-------------------------------------------------------------------------------------------|
@@ -137,10 +138,14 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION`<br> 15  | uint8_t (BOOLEAN)             | Both      | Application must `#define QUIC_API_ENABLE_INSECURE_FEATURES` before including msquic.h.   |
 | `QUIC_PARAM_CONN_RESUMPTION_TICKET`<br> 16        | uint8_t[]                     | Set-only  | Must be set on client before starting connection.                                         |
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
+| `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18    | uint32_t  | Set-only  | The local interface index to bind to.        |
+| `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19    | QUIC_TLS_SECRETS  | Set-only  | The TLS secrets struct to be populated by MsQuic.        |
+| `QUIC_PARAM_CONN_DESIRED_VERSIONS`<br> 20    | uint8_t[]  | Get-only  | The desired QUIC versions for the connection.        |
+| `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 21    | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.        |
 
 ### TLS Parameters
 
-These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_TLS` and a Connection object handle.
+These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_TLS_*` and a Connection object handle.
 
 | Setting                                   | Type                      | Get/Set   | Description                                                                                                               |
 |-------------------------------------------|---------------------------|-----------|---------------------------------------------------------------------------------------------------------------------------|
@@ -149,7 +154,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 ### Stream Parameters
 
-These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LEVEL_STREAM` and a Stream object handle.
+These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_STREAM_*` and a Stream object handle.
 
 | Setting                                           | Type              | Get/Set   | Description                                                                           |
 |---------------------------------------------------|-------------------|-----------|---------------------------------------------------------------------------------------|

@@ -22,7 +22,7 @@ A valid handle to an open, and started, listener object.
 
 # Remarks
 
-`ListenerStop` is called when the server application wants to stop receiving new incoming connections. It blocks until all listener events that are in progress complete, and once it returns the server application is guaranteed to not receive any further listener events. The server application **MUST NOT** call `ListenerStop` from within any callback, as this will deadlock MsQuic.
+`ListenerStop` is called when the server application wants to stop receiving new incoming connections. It is an asynchronous call. When the stop operation is complete the `QUIC_LISTENER_EVENT_STOP_COMPLETE` event will be delivered to the application. The server may call `ListenerStop` in any callback.
 
 If the server application wishes to resume receiving new connections, it may call [ListenerStart](ListenerStart.md) on the same listener, again.
 

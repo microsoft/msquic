@@ -24,7 +24,7 @@ extern "C" {
 typedef struct CXPLAT_SEC_CONFIG CXPLAT_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct CXPLAT_TLS CXPLAT_TLS;
-typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
+typedef struct QUIC_TLS_SECRETS QUIC_TLS_SECRETS;
 
 #define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT          0xffa5  // Host Byte Order
@@ -186,13 +186,11 @@ typedef struct CXPLAT_TLS_CONFIG {
     const uint8_t* LocalTPBuffer;
     uint32_t LocalTPLength;
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
-    // Storage for TLS traffic secrets when CXPLAT_TLS_SECRETS_SUPPORT is enabled,
-    // and the connection has the parameter set to enable logging.
+    // Storage for TLS traffic secrets when the connection has the parameter set
+    // to enable logging.
     //
-    CXPLAT_TLS_SECRETS* TlsSecrets;
-#endif
+    QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS_CONFIG;
 

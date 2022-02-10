@@ -66,6 +66,10 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     CXPLAT_HASH* ResetTokenHash;
     CXPLAT_LOCK ResetTokenLock;
 
+    uint64_t SendBatchId;
+    uint64_t SendPacketId;
+    uint64_t ReceivePacketId;
+
     //
     // Per-processor performance counters.
     //
@@ -133,7 +137,7 @@ typedef struct QUIC_LIBRARY {
     volatile short LoadRefCount;
 
     //
-    // Total outstanding references from calls to MsQuicOpen.
+    // Total outstanding references from calls to MsQuicOpenVersion.
     //
     uint16_t OpenRefCount;
 
@@ -217,9 +221,9 @@ typedef struct QUIC_LIBRARY {
     QUIC_REGISTRATION* StatelessRegistration;
 
     //
-    // Per-processor storage. Count of `PartitionCount`.
+    // Per-processor storage. Count of `ProcessorCount`.
     //
-    _Field_size_(PartitionCount)
+    _Field_size_(ProcessorCount)
     QUIC_LIBRARY_PP* PerProc;
 
     //
@@ -470,7 +474,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetParam(
     _In_ HQUIC Handle,
-    _In_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -481,7 +484,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetParam(
     _In_ HQUIC Handle,
-    _In_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

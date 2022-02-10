@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_TIMER_WHEEL_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -27,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_TimerWheelResize
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TimerWheelResize
 // [time][%p] Resizing timer wheel (new slot count = %u).
@@ -39,18 +37,15 @@ extern "C" {
         "[time][%p] Resizing timer wheel (new slot count = %u).",
         TimerWheel,
         NewSlotCount);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = NewSlotCount
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = NewSlotCount = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TimerWheelResize
 #define _clog_4_ARGS_TRACE_TimerWheelResize(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelResize , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_TimerWheelNextExpirationNull
 
 
 
@@ -61,17 +56,14 @@ tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelResize , arg2, arg3);\
             TimerWheelNextExpirationNull,
             "[time][%p] Next Expiration = {NULL}.",
             TimerWheel);
-// arg2 = arg2 = TimerWheel
+// arg2 = arg2 = TimerWheel = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TimerWheelNextExpirationNull
 #define _clog_3_ARGS_TRACE_TimerWheelNextExpirationNull(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelNextExpirationNull , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TimerWheelNextExpiration
 
 
 
@@ -84,10 +76,11 @@ tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelNextExpirationNull , arg2);\
             TimerWheel,
             TimerWheel->NextExpirationTime,
             TimerWheel->NextConnection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = TimerWheel->NextExpirationTime
-// arg4 = arg4 = TimerWheel->NextConnection
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = TimerWheel->NextExpirationTime = arg3
+// arg4 = arg4 = TimerWheel->NextConnection = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_TimerWheelNextExpiration
 #define _clog_5_ARGS_TRACE_TimerWheelNextExpiration(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration , arg2, arg3, arg4);\
 
@@ -96,10 +89,6 @@ tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration , arg2, arg3, arg4);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_TimerWheelRemoveConnection
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TimerWheelRemoveConnection
 // [time][%p] Removing Connection %p.
@@ -108,40 +97,15 @@ tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration , arg2, arg3, arg4);\
             "[time][%p] Removing Connection %p.",
             TimerWheel,
             Connection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = Connection
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = Connection = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TimerWheelRemoveConnection
 #define _clog_4_ARGS_TRACE_TimerWheelRemoveConnection(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TimerWheelRemoveConnection
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TimerWheelRemoveConnection
-// [time][%p] Removing Connection %p.
-// QuicTraceLogVerbose(
-            TimerWheelRemoveConnection,
-            "[time][%p] Removing Connection %p.",
-            TimerWheel,
-            Connection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = Connection
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TimerWheelRemoveConnection(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TimerWheelUpdateConnection
 
 
 
@@ -153,42 +117,15 @@ tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection , arg2, arg3);\
             "[time][%p] Updating Connection %p.",
             TimerWheel,
             Connection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = Connection
+// arg2 = arg2 = TimerWheel = arg2
+// arg3 = arg3 = Connection = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TimerWheelUpdateConnection
 #define _clog_4_ARGS_TRACE_TimerWheelUpdateConnection(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelUpdateConnection , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TimerWheelNextExpiration
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TimerWheelNextExpiration
-// [time][%p] Next Expiration = {%llu, %p}.
-// QuicTraceLogVerbose(
-                TimerWheelNextExpiration,
-                "[time][%p] Next Expiration = {%llu, %p}.",
-                TimerWheel,
-                ExpirationTime,
-                Connection);
-// arg2 = arg2 = TimerWheel
-// arg3 = arg3 = ExpirationTime
-// arg4 = arg4 = Connection
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TimerWheelNextExpiration(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_StillInTimerWheel
 
 
 
@@ -199,17 +136,14 @@ tracepoint(CLOG_TIMER_WHEEL_C, TimerWheelUpdateConnection , arg2, arg3);\
                     StillInTimerWheel,
                     Connection,
                     "Still in timer wheel! Connection was likely leaked!");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StillInTimerWheel
 #define _clog_3_ARGS_TRACE_StillInTimerWheel(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TIMER_WHEEL_C, StillInTimerWheel , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -220,32 +154,12 @@ tracepoint(CLOG_TIMER_WHEEL_C, StillInTimerWheel , arg1);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
             QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY));
-// arg2 = arg2 = "timerwheel slots"
-// arg3 = arg3 = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY)
+// arg2 = arg2 = "timerwheel slots" = arg2
+// arg3 = arg3 = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TIMER_WHEEL_C, AllocFailure , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots (realloc)",
-            NewSlotCount * sizeof(CXPLAT_LIST_ENTRY));
-// arg2 = arg2 = "timerwheel slots (realloc)"
-// arg3 = arg3 = NewSlotCount * sizeof(CXPLAT_LIST_ENTRY)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

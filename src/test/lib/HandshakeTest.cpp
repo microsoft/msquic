@@ -46,20 +46,24 @@ QuicTestPrimeResumption(
     *ResumptionTicket = nullptr;
 
     struct PrimeResumption {
-        _Function_class_(NEW_CONNECTION_CALLBACK) static bool
-        ListenerAccept(_In_ TestListener* /* Listener */, _In_ HQUIC ConnectionHandle) {
-            auto NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
-            if (NewConnection == nullptr || !NewConnection->IsValid()) {
-                TEST_FAILURE("Failed to accept new TestConnection.");
-                delete NewConnection;
-                return false;
+        CxPlatEvent ShutdownEvent;
+        MsQuicConnection* Connection {nullptr};
+
+        static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+            PrimeResumption* Ctx = static_cast<PrimeResumption*>(Context);
+            Ctx->Connection = Conn;
+            if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+                Ctx->Connection = nullptr;
+                Ctx->ShutdownEvent.Set();
+            } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                MsQuic->ConnectionSendResumptionTicket(Conn->Handle, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
             }
-            NewConnection->SetAutoDelete();
-            return true;
+            return QUIC_STATUS_SUCCESS;
         }
     };
 
-    TestListener Listener(Registration, PrimeResumption::ListenerAccept, ServerConfiguration);
+    PrimeResumption Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PrimeResumption::ConnCallback, &Context);
     TEST_TRUE(Listener.IsValid());
 
     QuicAddr ServerLocalAddr;
@@ -83,7 +87,10 @@ QuicTestPrimeResumption(
             }
         }
 
-        Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        TEST_NOT_EQUAL(nullptr, Context.Connection);
+        Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        Context.Connection->Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
+        Context.ShutdownEvent.WaitTimeout(2000);
     }
 }
 
@@ -921,7 +928,6 @@ struct ClearForcedRetryScope {
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                 sizeof(value),
                 &value));
@@ -943,7 +949,6 @@ QuicTestVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(RetryMemoryLimit),
             &RetryMemoryLimit));
@@ -1032,7 +1037,6 @@ QuicTestCompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1122,7 +1126,6 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(RetryMemoryLimit),
             &RetryMemoryLimit));
@@ -1131,7 +1134,6 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1221,7 +1223,6 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1310,7 +1311,6 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1398,7 +1398,6 @@ QuicTestIncompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1484,7 +1483,6 @@ RunFailedVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));

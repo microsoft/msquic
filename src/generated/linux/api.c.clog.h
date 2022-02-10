@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_API_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,10 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ApiEnter
 // [ api] Enter %u (%p).
@@ -31,18 +29,15 @@ extern "C" {
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_OPEN,
         RegistrationHandle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_OPEN
-// arg3 = arg3 = RegistrationHandle
+// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_OPEN = arg2
+// arg3 = arg3 = RegistrationHandle = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
 #define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_API_C, ApiEnter , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 
 
 
@@ -53,39 +48,14 @@ tracepoint(CLOG_API_C, ApiEnter , arg2, arg3);\
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 #define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_API_C, ApiExitStatus , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_CLOSE,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_CLOSE
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
 
 
 
@@ -96,6 +66,7 @@ tracepoint(CLOG_API_C, ApiExitStatus , arg2);\
             ApiWaitOperation,
             "[ api] Waiting on operation");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
 #define _clog_2_ARGS_TRACE_ApiWaitOperation(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_API_C, ApiWaitOperation );\
 
@@ -104,10 +75,6 @@ tracepoint(CLOG_API_C, ApiWaitOperation );\
 
 
 
-#ifndef _clog_2_ARGS_TRACE_ApiExit
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ApiExit
 // [ api] Exit
@@ -115,77 +82,12 @@ tracepoint(CLOG_API_C, ApiWaitOperation );\
         ApiExit,
         "[ api] Exit");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ApiExit
 #define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_API_C, ApiExit );\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_SHUTDOWN,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_SHUTDOWN
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiExit
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExit
-// [ api] Exit
-// QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_START,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_START
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -197,478 +99,15 @@ tracepoint(CLOG_API_C, ApiExit );\
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server name",
                 ServerNameLength + 1);
-// arg2 = arg2 = "Server name"
-// arg3 = arg3 = ServerNameLength + 1
+// arg2 = arg2 = "Server name" = arg2
+// arg3 = arg3 = ServerNameLength + 1 = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_API_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CONN_START operation",
-            0);
-// arg2 = arg2 = "CONN_START operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_SET_CONFIGURATION,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_SET_CONFIGURATION
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CONN_SET_CONFIGURATION operation",
-            0);
-// arg2 = arg2 = "CONN_SET_CONFIGURATION operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_SEND_RESUMPTION_TICKET,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_SEND_RESUMPTION_TICKET
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Resumption data copy",
-                DataLength);
-// arg2 = arg2 = "Resumption data copy"
-// arg3 = arg3 = DataLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CONN_SEND_RESUMPTION_TICKET operation",
-            0);
-// arg2 = arg2 = "CONN_SEND_RESUMPTION_TICKET operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_OPEN,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_OPEN
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_CLOSE,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_CLOSE
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiWaitOperation
-// [ api] Waiting on operation
-// QuicTraceEvent(
-            ApiWaitOperation,
-            "[ api] Waiting on operation");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiWaitOperation(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiExit
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExit
-// [ api] Exit
-// QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_START,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_START
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "STRM_START operation",
-                0);
-// arg2 = arg2 = "STRM_START operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiWaitOperation
-// [ api] Waiting on operation
-// QuicTraceEvent(
-            ApiWaitOperation,
-            "[ api] Waiting on operation");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiWaitOperation(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_SHUTDOWN,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_SHUTDOWN
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "STRM_SHUTDOWN operation",
-            0);
-// arg2 = arg2 = "STRM_SHUTDOWN operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_SEND,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_SEND
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamError
 
 
 
@@ -680,9 +119,10 @@ tracepoint(CLOG_API_C, AllocFailure , arg2, arg3);\
             "[strm][%p] ERROR, %s.",
             Stream,
             "Send request total length exceeds max");
-// arg2 = arg2 = Stream
-// arg3 = arg3 = "Send request total length exceeds max"
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = "Send request total length exceeds max" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamError
 #define _clog_4_ARGS_TRACE_StreamError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_API_C, StreamError , arg2, arg3);\
 
@@ -691,382 +131,45 @@ tracepoint(CLOG_API_C, StreamError , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
+// Decoder Ring for StreamAppSend
+// [strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]
 // QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Stream Send request",
-            0);
-// arg2 = arg2 = "Stream Send request"
-// arg3 = arg3 = 0
+        StreamAppSend,
+        "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
+        Stream,
+        TotalLength,
+        BufferCount,
+        Flags);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = TotalLength = arg3
+// arg4 = arg4 = BufferCount = arg4
+// arg5 = arg5 = Flags = arg5
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_6_ARGS_TRACE_StreamAppSend
+#define _clog_6_ARGS_TRACE_StreamAppSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_API_C, StreamAppSend , arg2, arg3, arg4, arg5);\
 
 #endif
 
 
 
 
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
+// Decoder Ring for ApiError
+// [ api] Error %u
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "STRM_SEND operation",
-                0);
-// arg2 = arg2 = "STRM_SEND operation"
-// arg3 = arg3 = 0
+            ApiError,
+            "[ api] Error %u",
+            (uint32_t)QUIC_STATUS_INVALID_STATE);
+// arg2 = arg2 = (uint32_t)QUIC_STATUS_INVALID_STATE = arg2
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_3_ARGS_TRACE_ApiError
+#define _clog_3_ARGS_TRACE_ApiError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_API_C, ApiError , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "STRM_RECV_SET_ENABLED, operation",
-            0);
-// arg2 = arg2 = "STRM_RECV_SET_ENABLED, operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "STRM_RECV_COMPLETE operation",
-            0);
-// arg2 = arg2 = "STRM_RECV_COMPLETE operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Param level does not match param value");
-// arg2 = arg2 = "Param level does not match param value"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_API_C, LibraryError , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_SET_PARAM,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_SET_PARAM
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiWaitOperation
-// [ api] Waiting on operation
-// QuicTraceEvent(
-        ApiWaitOperation,
-        "[ api] Waiting on operation");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiWaitOperation(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Param level does not match param value");
-// arg2 = arg2 = "Param level does not match param value"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_GET_PARAM,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_GET_PARAM
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiWaitOperation
-// [ api] Waiting on operation
-// QuicTraceEvent(
-        ApiWaitOperation,
-        "[ api] Waiting on operation");
-----------------------------------------------------------*/
-#define _clog_2_ARGS_TRACE_ApiWaitOperation(uniqueId, encoded_arg_string)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ApiEnter
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiEnter
-// [ api] Enter %u (%p).
-// QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_DATAGRAM_SEND,
-        Handle);
-// arg2 = arg2 = QUIC_TRACE_API_DATAGRAM_SEND
-// arg3 = arg3 = Handle
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
 
 
 
@@ -1078,31 +181,12 @@ tracepoint(CLOG_API_C, LibraryError , arg2);\
             "[conn][%p] ERROR, %s.",
             Connection,
             "Send request total length exceeds max");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Send request total length exceeds max"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Send request total length exceeds max" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_API_C, ConnError , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ApiExitStatus
-// [ api] Exit %u
-// QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-// arg2 = arg2 = Status
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
 
 #endif
 

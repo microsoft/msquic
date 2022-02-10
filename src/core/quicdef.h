@@ -196,7 +196,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
 #else
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            180
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 #endif
 
 //
@@ -367,9 +367,14 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_SEND_PACING                TRUE
 
 //
-// The number of milliseconds between pacing chunks.
+// The minimum RTT, in microseconds, where pacing will be used.
 //
-#define QUIC_SEND_PACING_INTERVAL               1
+#define QUIC_MIN_PACING_RTT                     1000
+
+//
+// The number of microseconds between pacing chunks.
+//
+#define QUIC_SEND_PACING_INTERVAL               1000
 
 //
 // The maximum number of bytes to send in a given key phase

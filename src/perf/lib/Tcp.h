@@ -176,8 +176,7 @@ class TcpConnection {
     uint16_t PartitionIndex;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
-    QUIC_ADDR LocalAddress;
-    QUIC_ADDR RemoteAddress;
+    CXPLAT_ROUTE Route;
     CXPLAT_SOCKET* Socket{nullptr};
     CXPLAT_SEC_CONFIG* SecConfig{nullptr};
     CXPLAT_TLS* Tls{nullptr};

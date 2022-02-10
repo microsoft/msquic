@@ -10,13 +10,25 @@ on:
     - main
     - release/*
 
+permissions: read-all
+
 jobs:
   validate:
+    permissions:
+      contents: read # for actions/checkout to fetch code
     name: Validate
     runs-on: windows-latest
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24
+      with:
+        egress-policy: audit
+    - name: Setup .NET
+      uses: actions/setup-dotnet@499789684c9a0d41c9b3f0d66a785ba17b1d51ab
+      with:
+        dotnet-version: 6.0.x
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Configuration Dev
       shell: pwsh

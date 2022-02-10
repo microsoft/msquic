@@ -9,8 +9,8 @@
                 "[conn][%p] Execute: %u",
                 Connection,
                 Oper->API_CALL.Context->Type);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Oper->API_CALL.Context->Type
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Oper->API_CALL.Context->Type = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecApiOper,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecApiOper,
                 "[conn][%p] Execute: %u",
                 Connection,
                 Oper->TIMER_EXPIRED.Type);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Oper->TIMER_EXPIRED.Type
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Oper->TIMER_EXPIRED.Type = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecTimerOper,
     TP_ARGS(
@@ -55,8 +55,8 @@ TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecTimerOper,
                 "[conn][%p] Execute: %u",
                 Connection,
                 Oper->Type);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Oper->Type
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Oper->Type = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecOper,
     TP_ARGS(

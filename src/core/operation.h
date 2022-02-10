@@ -94,6 +94,7 @@ typedef struct QUIC_API_CONTEXT {
         } CONN_CLOSED;
         struct {
             QUIC_CONNECTION_SHUTDOWN_FLAGS Flags;
+            BOOLEAN RegistrationShutdown;
             QUIC_VAR_INT ErrorCode;
         } CONN_SHUTDOWN;
         struct {
@@ -144,14 +145,12 @@ typedef struct QUIC_API_CONTEXT {
 
         struct {
             HQUIC Handle;
-            uint32_t Level;
             uint32_t Param;
             uint32_t BufferLength;
             const void* Buffer;
         } SET_PARAM;
         struct {
             HQUIC Handle;
-            uint32_t Level;
             uint32_t Param;
             uint32_t* BufferLength;
             void* Buffer;

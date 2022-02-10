@@ -19,6 +19,8 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
+$Version = "2.0.0"
+
 $WindowsBuilds = @()
 $AllBuilds = @()
 
@@ -26,6 +28,9 @@ foreach ($Platform in $Platforms) {
     $PlatBuilds = Get-ChildItem -Path $Platform.FullName
     foreach ($PlatBuild in $PlatBuilds) {
         if (!(Test-Path $PlatBuild.FullName -PathType Container)) {
+            continue;
+        }
+        if ($PlatBuild.Name -eq "_manifest") {
             continue;
         }
         $AllBuilds += $PlatBuild
@@ -78,19 +83,24 @@ foreach ($Build in $AllBuilds) {
     # Find Binaries
 
     $Binaries = @()
+    $DebugFolders = @()
 
     if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
     } elseif ($Platform -eq "linux") {
-        $Binaries += Join-Path $ArtifactsDir "libmsquic.so"
-        $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so"
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.so.$Version"
+        $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so.$Version"
         if (Test-Path $LttngBin) {
             $Binaries += $LttngBin
         }
     } else {
         # macos
-        $Binaries += Join-Path $ArtifactsDir "libmsquic.dylib"
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.$Version.dylib"
+        $DebugFolder = Join-Path $ArtifactsDir "libmsquic.$Version.dylib.dSYM"
+        if (Test-Path $DebugFolder) {
+            $DebugFolders += $DebugFolder
+        }
     }
 
     $Libraries = @()
@@ -120,6 +130,10 @@ foreach ($Build in $AllBuilds) {
         $FileName = Split-Path -Path $Binary -Leaf
         $CopyToFolder = (Join-Path $BinFolder $FileName)
         Copy-Item -LiteralPath $Binary -Destination $CopyToFolder -Force
+    }
+
+    foreach ($DebugFolder in $DebugFolders) {
+        Copy-Item -Path $DebugFolder -Destination $BinFolder -Recurse
     }
 
     foreach ($Library in $Libraries) {

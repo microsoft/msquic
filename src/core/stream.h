@@ -401,6 +401,11 @@ typedef struct QUIC_STREAM {
     //
     QUIC_STREAM_CALLBACK_HANDLER ClientCallbackHandler;
 
+    //
+    // Preallocated operation for receive complete
+    //
+    QUIC_OPERATION* ReceiveCompleteOperation;
+
 } QUIC_STREAM;
 
 inline
@@ -860,7 +865,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN EncryptedWith0Rtt,
+    _In_ CXPLAT_RECV_PACKET* Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)

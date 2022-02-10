@@ -176,6 +176,15 @@ InterlockedCompareExchange64(
 }
 
 inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return __sync_fetch_and_and(Target, 0);
+}
+
+inline
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
@@ -433,9 +442,9 @@ typedef struct CXPLAT_POOL {
 #if DEBUG
 typedef struct CXPLAT_POOL_ENTRY {
     CXPLAT_SLIST_ENTRY ListHead;
-    uint32_t SpecialFlag;
+    uint64_t SpecialFlag;
 } CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAull
 
 int32_t
 CxPlatGetAllocFailDenominator(
@@ -553,7 +562,8 @@ CxPlatRefIncrement(
 
 BOOLEAN
 CxPlatRefIncrementNonZero(
-    _Inout_ volatile CXPLAT_REF_COUNT* RefCount
+    _Inout_ volatile CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Bias
     );
 
 BOOLEAN

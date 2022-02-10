@@ -239,12 +239,12 @@ The latest state for the sent datagram.
 
 Value | Meaning
 --- | ---
-**QUIC_DATAGRAM_SEND_SENT**<br>0 | Indicates the datagram has now been sent out on the network. This is the earliest the app may free the `Buffers` passed into [DatagramSend](DatagramSend.md).
-**QUIC_DATAGRAM_SEND_LOST_SUSPECT**<br>1 | The sent datagram is suspected to be lost. If desired, the app could retransmit the data now.
-**QUIC_DATAGRAM_SEND_LOST_DISCARDED**<br>2 | The sent datagram is lost and no longer tracked by MsQuic.
-**QUIC_DATAGRAM_SEND_ACKNOWLEDGED**<br>3 | The sent datagram has been acknowledged.
-**QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS**<br>4 | The sent datagram has been acknowledged after previously being suspected as lost.
-**QUIC_DATAGRAM_SEND_CANCELED**<br>5 | The queued datagram was canceled; either because the connection was shutdown or the peer did not negotiate the feature.
+**QUIC_DATAGRAM_SEND_SENT**<br>1 | Indicates the datagram has now been sent out on the network. This is the earliest the app may free the `Buffers` passed into [DatagramSend](DatagramSend.md).
+**QUIC_DATAGRAM_SEND_LOST_SUSPECT**<br>2 | The sent datagram is suspected to be lost. If desired, the app could retransmit the data now.
+**QUIC_DATAGRAM_SEND_LOST_DISCARDED**<br>3 | The sent datagram is lost and no longer tracked by MsQuic.
+**QUIC_DATAGRAM_SEND_ACKNOWLEDGED**<br>4 | The sent datagram has been acknowledged.
+**QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS**<br>5 | The sent datagram has been acknowledged after previously being suspected as lost.
+**QUIC_DATAGRAM_SEND_CANCELED**<br>6 | The queued datagram was canceled; either because the connection was shutdown or the peer did not negotiate the feature.
 
 ## QUIC_CONNECTION_EVENT_RESUMED
 
@@ -278,6 +278,8 @@ This event indicates a certificate has been received from the peer.
 
 Pointer to a platform/TLS specific certificate. Valid only during the callback.
 
+If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the DER (binary) encoded remote X.509 certificate.
+
 `DeferredErrorFlags`
 
 Bit flag of errors encountered when doing deferring validation of the certificate. Valid only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION flag specified upfront. Only supported with Schannel currently.
@@ -290,9 +292,12 @@ Most severe error status when doing deferred validation of the certificate. Vali
 
 Pointer to a platform/TLS specific certificate chain. Valid only during the callback.
 
+If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the PKCS #7 DER (binary) encoded certificate chain.
+
 # See Also
 
 [ConnectionOpen](ConnectionOpen.md)<br>
 [QUIC_CONNECTION_CALLBACK](QUIC_CONNECTION_CALLBACK.md)<br>
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>
+[QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md)<br>

@@ -293,17 +293,20 @@ ListenerEventValidatorCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    _Analysis_assume_(Context != nullptr);
-    ConnValidator* Validator = (ConnValidator*)Context;
-    Validator->Handle = Event->NEW_CONNECTION.Connection;
-    MsQuic->SetCallbackHandler(
-        Event->NEW_CONNECTION.Connection,
-        (void *)ConnValidatorCallback,
-        Validator);
-    return
-        MsQuic->ConnectionSetConfiguration(
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        _Analysis_assume_(Context != nullptr);
+        ConnValidator* Validator = (ConnValidator*)Context;
+        Validator->Handle = Event->NEW_CONNECTION.Connection;
+        MsQuic->SetCallbackHandler(
             Event->NEW_CONNECTION.Connection,
-            Validator->Configuration);
+            (void *)ConnValidatorCallback,
+            Validator);
+        return
+            MsQuic->ConnectionSetConfiguration(
+                Event->NEW_CONNECTION.Connection,
+                Validator->Configuration);
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -316,15 +319,18 @@ ListenerEventResumptionCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    MsQuic->SetCallbackHandler(
-        Event->NEW_CONNECTION.Connection,
-        (void *)ConnServerResumptionCallback,
-        nullptr);
-
-    return
-        MsQuic->ConnectionSetConfiguration(
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        MsQuic->SetCallbackHandler(
             Event->NEW_CONNECTION.Connection,
-            (HQUIC)Context);
+            (void *)ConnServerResumptionCallback,
+            nullptr);
+
+        return
+            MsQuic->ConnectionSetConfiguration(
+                Event->NEW_CONNECTION.Connection,
+                (HQUIC)Context);
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -497,7 +503,6 @@ QuicTestValidateConnectionEvents3(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             ResumptionTicket->Length,
             ResumptionTicket->Buffer));

@@ -47,16 +47,14 @@ typedef struct QUIC_REGISTRATION {
     //
     BOOLEAN SplitPartitioning : 1;
 
+    BOOLEAN ShuttingDown : 1;
+
     //
     // App (optionally) configured execution profile.
     //
     QUIC_EXECUTION_PROFILE ExecProfile;
 
-    //
-    // An app configured prefix for all connection IDs in this registration.
-    //
-    uint8_t CidPrefixLength;
-    uint8_t* CidPrefix;
+    QUIC_CONNECTION_SHUTDOWN_FLAGS ShutdownFlags;
 
     //
     // Link into the global library's Registrations list.
@@ -92,6 +90,11 @@ typedef struct QUIC_REGISTRATION {
     // Rundown for all child objects.
     //
     CXPLAT_RUNDOWN_REF Rundown;
+
+    //
+    // Shutdown error code if set.
+    //
+    uint64_t ShutdownErrorCode;
 
     //
     // Name of the application layer.

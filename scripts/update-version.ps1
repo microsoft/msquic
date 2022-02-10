@@ -25,11 +25,13 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Relevant file paths used by this script.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
-$CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
-$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "create-vpack.yml"
+$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "push-vpack.yml"
 $QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
+$DistributionFile = Join-Path $RootDir "scripts" "package-distribution.ps1"
 $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
+$CMakeFile = Join-Path $RootDir "CMakeLists.txt"
+$VersionsWriteFile = Join-Path $RootDir "scripts" "write-versions.ps1"
 
 # Get the current version number from the msquic.ver file.
 $VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
@@ -55,11 +57,6 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
     -replace "#define VER_MINOR (.*)", "#define VER_MINOR $NewVerMinor" `
     -replace "#define VER_PATCH (.*)", "#define VER_PATCH $NewVerPatch" |`
     Out-File $MsQuicVerFilePath
-(Get-Content $CreatePackageFilePath) `
-    -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
-    -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
-    -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
-    Out-File $CreatePackageFilePath
 (Get-Content $CreateVPackFilePath) `
     -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
     -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
@@ -74,3 +71,15 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 (Get-Content $FrameworkInfoFile) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $FrameworkInfoFile
+(Get-Content $DistributionFile) `
+    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
+    Out-File $DistributionFile
+(Get-Content $CMakeFile) `
+    -replace "`set\(QUIC_MAJOR_VERSION $VerMajor\)", "set(QUIC_MAJOR_VERSION $NewVerMajor)" |`
+    Out-File $CMakeFile
+(Get-Content $CMakeFile) `
+    -replace "set\(QUIC_FULL_VERSION $VerMajor.$VerMinor.$VerPatch\)", "set(QUIC_FULL_VERSION $NewVerMajor.$NewVerMinor.$NewVerPatch)" |`
+    Out-File $CMakeFile
+(Get-Content $VersionsWriteFile) `
+    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
+    Out-File $VersionsWriteFile

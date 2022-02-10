@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ListenerIndicateStopComplete
+// [list][%p] Indicating STOP_COMPLETE
+// QuicTraceLogVerbose(
+            ListenerIndicateStopComplete,
+            "[list][%p] Indicating STOP_COMPLETE",
+            Listener);
+// arg2 = arg2 = Listener = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateStopComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ListenerIndicateNewConnection
 // [list][%p] Indicating NEW_CONNECTION %p
 // QuicTraceLogVerbose(
@@ -9,8 +28,8 @@
         "[list][%p] Indicating NEW_CONNECTION %p",
         Listener,
         Connection);
-// arg2 = arg2 = Listener
-// arg3 = arg3 = Connection
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Connection = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateNewConnection,
     TP_ARGS(
@@ -32,8 +51,8 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateNewConnection,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_LISTENER_OPEN,
         RegistrationHandle);
-// arg2 = arg2 = QUIC_TRACE_API_LISTENER_OPEN
-// arg3 = arg3 = RegistrationHandle
+// arg2 = arg2 = QUIC_TRACE_API_LISTENER_OPEN = arg2
+// arg3 = arg3 = RegistrationHandle = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiEnter,
     TP_ARGS(
@@ -55,8 +74,8 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiEnter,
             "Allocation of '%s' failed. (%llu bytes)",
             "listener",
             sizeof(QUIC_LISTENER));
-// arg2 = arg2 = "listener"
-// arg3 = arg3 = sizeof(QUIC_LISTENER)
+// arg2 = arg2 = "listener" = arg2
+// arg3 = arg3 = sizeof(QUIC_LISTENER) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, AllocFailure,
     TP_ARGS(
@@ -78,8 +97,8 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, AllocFailure,
         "[list][%p] Created, Registration=%p",
         Listener,
         Listener->Registration);
-// arg2 = arg2 = Listener
-// arg3 = arg3 = Listener->Registration
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->Registration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCreated,
     TP_ARGS(
@@ -100,7 +119,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCreated,
         ApiExitStatus,
         "[ api] Exit %u",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiExitStatus,
     TP_ARGS(
@@ -119,7 +138,7 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiExitStatus,
         ListenerDestroyed,
         "[list][%p] Destroyed",
         Listener);
-// arg2 = arg2 = Listener
+// arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerDestroyed,
     TP_ARGS(
@@ -156,9 +175,9 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiExit,
             Listener,
             Status,
             "Get binding");
-// arg2 = arg2 = Listener
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Get binding"
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Get binding" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerErrorStatus,
     TP_ARGS(
@@ -182,8 +201,8 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerErrorStatus,
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
-// arg2 = arg2 = Listener
-// arg3 = arg3 = "Register with binding"
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = "Register with binding" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerError,
     TP_ARGS(
@@ -207,10 +226,10 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerError,
         Listener->Binding,
         CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
-// arg2 = arg2 = Listener
-// arg3 = arg3 = Listener->Binding
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList)
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->Binding = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStarted,
     TP_ARGS(
@@ -236,10 +255,10 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStarted,
 // Decoder Ring for ListenerStopped
 // [list][%p] Stopped
 // QuicTraceEvent(
-                ListenerStopped,
-                "[list][%p] Stopped",
-                Listener);
-// arg2 = arg2 = Listener
+        ListenerStopped,
+        "[list][%p] Stopped",
+        Listener);
+// arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStopped,
     TP_ARGS(
@@ -259,8 +278,8 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStopped,
         "[list][%p] Rundown, Registration=%p",
         Listener,
         Listener->Registration);
-// arg2 = arg2 = Listener
-// arg3 = arg3 = Listener->Registration
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->Registration = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerRundown,
     TP_ARGS(
@@ -282,8 +301,8 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerRundown,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Connection rejected by registration (overloaded)");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Connection rejected by registration (overloaded)"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Connection rejected by registration (overloaded)" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ConnError,
     TP_ARGS(
