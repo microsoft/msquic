@@ -311,7 +311,6 @@ public:
             if (QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     Stream,
-                    QUIC_PARAM_LEVEL_STREAM,
                     QUIC_PARAM_STREAM_0RTT_LENGTH,
                     &LengthLength,
                     &Length)) &&
@@ -383,7 +382,6 @@ public:
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
@@ -398,7 +396,6 @@ public:
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
@@ -407,7 +404,6 @@ public:
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER,
                     sizeof(RandomTransportParameter),
                     &RandomTransportParameter));
@@ -416,7 +412,6 @@ public:
             QUIC_STATUS Status =
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_TLS_SECRETS,
                     sizeof(TlsSecrets),
                     (uint8_t*)&TlsSecrets);
@@ -453,7 +448,6 @@ public:
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
@@ -466,7 +460,6 @@ public:
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
@@ -476,7 +469,6 @@ public:
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_RESUMPTION_TICKET,
                     TicketLength,
                     Ticket));
@@ -525,7 +517,6 @@ public:
         VERIFY_QUIC_SUCCESS(
             MsQuic->SetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(DatagramEnabled),
                 &DatagramEnabled));
@@ -560,7 +551,6 @@ public:
             QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_FORCE_CID_UPDATE,
                 0,
                 nullptr));
@@ -571,7 +561,6 @@ public:
         if (!QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 &LocalAddrSize,
                 &LocalAddress))) {
@@ -583,7 +572,6 @@ public:
             if (QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     sizeof(LocalAddress),
                     &LocalAddress))) {
@@ -598,7 +586,6 @@ public:
         if (QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_QUIC_VERSION,
                 &BufferLength,
                 &Buffer)) &&
@@ -619,7 +606,6 @@ public:
         if (QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_STATISTICS,
                 &BufferLength,
                 &Stats)) &&
@@ -1213,8 +1199,8 @@ main(
 
     CxPlatLockInitialize(&TestResultsLock);
 
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed, 0x%x!\n", Status);
+    if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
+        printf("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
 

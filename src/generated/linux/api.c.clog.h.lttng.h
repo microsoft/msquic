@@ -153,19 +153,19 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
+// Decoder Ring for ApiError
+// [ api] Error %u
 // QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Param level does not match param value");
-// arg2 = arg2 = "Param level does not match param value" = arg2
+            ApiError,
+            "[ api] Error %u",
+            (uint32_t)QUIC_STATUS_INVALID_STATE);
+// arg2 = arg2 = (uint32_t)QUIC_STATUS_INVALID_STATE = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_API_C, LibraryError,
+TRACEPOINT_EVENT(CLOG_API_C, ApiError,
     TP_ARGS(
-        const char *, arg2), 
+        unsigned int, arg2), 
     TP_FIELDS(
-        ctf_string(arg2, arg2)
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 

@@ -27,8 +27,8 @@ extern "C" {
 // QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "EVP_PKEY_new() failed");
-// arg2 = arg2 = "EVP_PKEY_new() failed" = arg2
+            "EVP_PKEY_new failed");
+// arg2 = arg2 = "EVP_PKEY_new failed" = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\

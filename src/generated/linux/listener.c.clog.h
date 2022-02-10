@@ -26,6 +26,24 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for ListenerIndicateStopComplete
+// [list][%p] Indicating STOP_COMPLETE
+// QuicTraceLogVerbose(
+            ListenerIndicateStopComplete,
+            "[list][%p] Indicating STOP_COMPLETE",
+            Listener);
+// arg2 = arg2 = Listener = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ListenerIndicateStopComplete
+#define _clog_3_ARGS_TRACE_ListenerIndicateStopComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LISTENER_C, ListenerIndicateStopComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ListenerIndicateNewConnection
 // [list][%p] Indicating NEW_CONNECTION %p
 // QuicTraceLogVerbose(
@@ -227,9 +245,9 @@ tracepoint(CLOG_LISTENER_C, ListenerStarted , arg2, arg3, arg4_len, arg4, arg5_l
 // Decoder Ring for ListenerStopped
 // [list][%p] Stopped
 // QuicTraceEvent(
-                ListenerStopped,
-                "[list][%p] Stopped",
-                Listener);
+        ListenerStopped,
+        "[list][%p] Stopped",
+        Listener);
 // arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ListenerStopped

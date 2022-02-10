@@ -297,7 +297,6 @@ HpsClient::StartConnection(
     Status =
         MsQuic->SetParam(
             Scope.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_SHARE_UDP_BINDING,
             sizeof(Opt),
             &Opt);
@@ -313,7 +312,6 @@ HpsClient::StartConnection(
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 sizeof(QUIC_ADDR),
                 &Context->LocalAddrs[Context->NextLocalAddr]);
@@ -329,7 +327,6 @@ HpsClient::StartConnection(
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_REMOTE_ADDRESS,
                 sizeof(QUIC_ADDR),
                 &Context->RemoteAddr);
@@ -360,7 +357,6 @@ HpsClient::StartConnection(
         Status =
             MsQuic->GetParam(
                 Scope.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 &AddrLen,
                 &Context->LocalAddrs[Context->NextLocalAddr]);
@@ -376,7 +372,6 @@ HpsClient::StartConnection(
         Status =
             MsQuic->GetParam(
                 Scope.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_REMOTE_ADDRESS,
                 &AddrLen,
                 &Context->RemoteAddr);

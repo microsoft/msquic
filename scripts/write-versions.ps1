@@ -26,7 +26,7 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 $SourceVersion = $env:BUILD_SOURCEVERSION;
 $SourceBranch = $env:BUILD_SOURCEBRANCH;
 $BuildId = $env:BUILD_BUILDID;
-$VersionNumber = "1.10.0";
+$VersionNumber = "2.0.0";
 
 class BuildData {
     [string]$SourceVersion;

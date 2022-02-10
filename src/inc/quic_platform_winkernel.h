@@ -100,6 +100,19 @@ ZwQueryInformationThread (
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
 //
+// Wrapper functions
+//
+
+inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return InterlockedExchangePointer(Target, NULL);
+}
+
+//
 // Static Analysis Interfaces
 //
 

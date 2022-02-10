@@ -1,7 +1,6 @@
 LIBRARY msquic_fuzz
 
 EXPORTS
-    MsQuicOpen
     MsQuicOpenVersion
     MsQuicClose
     MsQuicFuzzInit

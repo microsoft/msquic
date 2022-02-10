@@ -199,11 +199,10 @@ pub const STREAM_OPEN_FLAG_0_RTT: StreamOpenFlags = 2;
 
 pub type StreamStartFlags = u32;
 pub const STREAM_START_FLAG_NONE: StreamStartFlags = 0;
-pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 1;
-pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 2;
-pub const STREAM_START_FLAG_ASYNC: StreamStartFlags = 4;
-pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 8;
-pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 16;
+pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 1;
+pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 2;
+pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 4;
+pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 8;
 
 /// Controls stream shutdown behavior.
 pub type StreamShutdownFlags = u32;
@@ -546,50 +545,44 @@ pub struct Settings {
     pub stateless_operation_expiration_ms: u16,
 }
 
-pub type ParameterLevel = u32;
-pub const PARAM_LEVEL_GLOBAL: ParameterLevel = 0;
-pub const PARAM_LEVEL_REGISTRATION: ParameterLevel = 1;
-pub const PARAM_LEVEL_CONFIGURATION: ParameterLevel = 2;
-pub const PARAM_LEVEL_LISTENER: ParameterLevel = 3;
-pub const PARAM_LEVEL_CONNECTION: ParameterLevel = 4;
-pub const PARAM_LEVEL_TLS: ParameterLevel = 5;
-pub const PARAM_LEVEL_STREAM: ParameterLevel = 6;
+pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
+pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 0x01000001;
+pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 0x01000002;
+pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 0x01000003;
+pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000004;
+pub const PARAM_GLOBAL_VERSION: u32 = 0x01000005;
 
-pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 67108864;
-pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 67108865;
-pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 67108866;
-pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 67108867;
-pub const PARAM_GLOBAL_SETTINGS: u32 = 67108868;
-pub const PARAM_GLOBAL_VERSION: u32 = 67108869;
+pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
+pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
 
-pub const PARAM_REGISTRATION_CID_PREFIX: u32 = 134217728;
+pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 0x04000000;
+pub const PARAM_LISTENER_STATS: u32 = 0x04000001;
 
-pub const PARAM_CONFIGURATION_SETTINGS: u32 = 201326592;
-pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 201326593;
+pub const PARAM_CONN_QUIC_VERSION: u32 = 0x05000000;
+pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 0x05000001;
+pub const PARAM_CONN_REMOTE_ADDRESS: u32 = 0x05000002;
+pub const PARAM_CONN_IDEAL_PROCESSOR: u32 = 0x05000003;
+pub const PARAM_CONN_SETTINGS: u32 = 0x05000004;
+pub const PARAM_CONN_STATISTICS: u32 = 0x05000005;
+pub const PARAM_CONN_STATISTICS_PLAT: u32 = 0x05000006;
+pub const PARAM_CONN_SHARE_UDP_BINDING: u32 = 0x05000007;
+pub const PARAM_CONN_LOCAL_BIDI_STREAM_COUNT: u32 = 0x05000008;
+pub const PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT: u32 = 0x05000009;
+pub const PARAM_CONN_MAX_STREAM_IDS: u32 = 0x0500000A;
+pub const PARAM_CONN_CLOSE_REASON_PHRASE: u32 = 0x0500000B;
+pub const PARAM_CONN_STREAM_SCHEDULING_SCHEME: u32 = 0x0500000C;
+pub const PARAM_CONN_DATAGRAM_RECEIVE_ENABLED: u32 = 0x0500000D;
+pub const PARAM_CONN_DATAGRAM_SEND_ENABLED: u32 = 0x0500000E;
+pub const CONN_DISABLE_1RTT_ENCRYPTION: u32 = 0x0500000F;
+pub const PARAM_CONN_RESUMPTION_TICKET: u32 = 0x05000010;
+pub const PARAM_CONN_PEER_CERTIFICATE_VALID: u32 = 0x05000011;
+pub const PARAM_CONN_LOCAL_INTERFACE: u32 = 0x05000012;
+pub const PARAM_CONN_TLS_SECRETS: u32 = 0x05000013;
+pub const PARAM_CONN_DESIRED_VERSIONS: u32 = 0x05000014;
+pub const PARAM_CONN_INITIAL_DCID_PREFIX: u32 = 0x05000015;
 
-pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 268435456;
-pub const PARAM_LISTENER_STATS: u32 = 268435457;
-
-pub const PARAM_CONN_QUIC_VERSION: u32 = 335544320;
-pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 335544321;
-pub const PARAM_CONN_REMOTE_ADDRESS: u32 = 335544322;
-pub const PARAM_CONN_IDEAL_PROCESSOR: u32 = 335544323;
-pub const PARAM_CONN_SETTINGS: u32 = 335544324;
-pub const PARAM_CONN_STATISTICS: u32 = 335544325;
-pub const PARAM_CONN_STATISTICS_PLAT: u32 = 335544326;
-pub const PARAM_CONN_SHARE_UDP_BINDING: u32 = 335544327;
-pub const PARAM_CONN_LOCAL_BIDI_STREAM_COUNT: u32 = 335544328;
-pub const PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT: u32 = 335544329;
-pub const PARAM_CONN_MAX_STREAM_IDS: u32 = 335544330;
-pub const PARAM_CONN_CLOSE_REASON_PHRASE: u32 = 335544331;
-pub const PARAM_CONN_STREAM_SCHEDULING_SCHEME: u32 = 335544332;
-pub const PARAM_CONN_DATAGRAM_RECEIVE_ENABLED: u32 = 335544333;
-pub const PARAM_CONN_DATAGRAM_SEND_ENABLED: u32 = 335544334;
-pub const PARAM_CONN_RESUMPTION_TICKET: u32 = 335544336;
-pub const PARAM_CONN_PEER_CERTIFICATE_VALID: u32 = 335544337;
-
-pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 402653184;
-pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 402653185;
+pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 0x06000000;
+pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 0x06000001;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -597,12 +590,12 @@ pub struct SchannelContextAttributeW {
     pub attribute: u32,
     pub buffer: *mut c_void,
 }
-pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 419430400;
+pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 0x07000000;
 
-pub const PARAM_STREAM_ID: u32 = 469762048;
-pub const PARAM_STREAM_0RTT_LENGTH: u32 = 469762049;
-pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 469762050;
-pub const PARAM_STREAM_PRIORITY: u32 = 469762051;
+pub const PARAM_STREAM_ID: u32 = 0x08000000;
+pub const PARAM_STREAM_0RTT_LENGTH: u32 = 0x08000001;
+pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 0x08000002;
+pub const PARAM_STREAM_PRIORITY: u32 = 0x08000003;
 
 pub type ListenerEventType = u32;
 pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;
@@ -778,14 +771,12 @@ struct ApiTable {
         extern "C" fn(handle: Handle, handler: *const c_void, context: *const c_void),
     set_param: extern "C" fn(
         handle: Handle,
-        level: ParameterLevel,
         param: u32,
         buffer_length: u32,
         buffer: *const c_void,
     ) -> u32,
     get_param: extern "C" fn(
         handle: Handle,
-        level: ParameterLevel,
         param: u32,
         buffer_length: *mut u32,
         buffer: *const c_void,
@@ -1036,7 +1027,7 @@ impl CredentialConfig {
 impl Api {
     pub fn new() -> Api {
         let new_table: *const ApiTable = ptr::null();
-        let status = unsafe { MsQuicOpenVersion(1, &new_table) };
+        let status = unsafe { MsQuicOpenVersion(2, &new_table) };
         if Status::failed(status) {
             panic!("MsQuicOpenVersion failure 0x{:x}", status);
         }
@@ -1067,7 +1058,6 @@ impl Api {
         unsafe {
             ((*self.table).get_param)(
                 std::ptr::null(),
-                PARAM_LEVEL_GLOBAL,
                 PARAM_GLOBAL_PERF_COUNTERS,
                 (&perf_length) as *const u32 as *mut u32,
                 perf.counters.as_mut_ptr() as *const c_void,
@@ -1227,7 +1217,6 @@ impl Connection {
         unsafe {
             ((*self.table).get_param)(
                 self.handle,
-                PARAM_LEVEL_CONNECTION,
                 PARAM_CONN_STATISTICS,
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
                 stat_buffer.as_mut_ptr() as *const c_void,
