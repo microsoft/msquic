@@ -169,6 +169,6 @@ foreach ($Build in $AllBuilds) {
 
     # Package msquictest in separate test package.
     if ($TestBinary -ne "") {
-        Compress-Archive -Path $TestBinary -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName_test.zip") -Force
+        Compress-Archive -Path $TestBinary -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$($BuildBaseName)_test.zip") -Force
     }
 }
