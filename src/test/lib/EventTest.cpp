@@ -1169,6 +1169,13 @@ QuicTestValidateStreamEvents6(
             0,
             QUIC_SEND_FLAG_START,
             nullptr));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamSend(
+            ClientStream.Handle,
+            nullptr,
+            0,
+            QUIC_SEND_FLAG_START,
+            nullptr));
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
