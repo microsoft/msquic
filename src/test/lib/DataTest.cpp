@@ -1844,7 +1844,7 @@ QuicAckDelayStreamHandler(
                 TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
                 return Status;
             }
-            TestContext->AckCountStop = Stats.Recv.ValidAckFrames;
+            TestContext->AckCountStop = Stats.RecvValidAckFrames;
             Event->RECEIVE.TotalBufferLength = 0;
             CxPlatEventSet(TestContext->ClientReceiveDataEvent.Handle);
             break;
@@ -2024,7 +2024,7 @@ QuicTestAckSendDelay(
             TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
             return;
         }
-        TestContext.AckCountStart = Stats.Recv.ValidAckFrames;
+        TestContext.AckCountStart = Stats.RecvValidAckFrames;
         Status =
             MsQuic->StreamOpen(
                 TestContext.ClientConnection.Handle,

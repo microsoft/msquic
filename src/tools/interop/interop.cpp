@@ -876,7 +876,7 @@ RunInteropTest(
             CxPlatSleep(2000); // Allow keep alive packets to trigger key updates.
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
-                Success = Stats.Misc.KeyUpdateCount > 1;
+                Success = Stats.KeyUpdateCount > 1;
             }
             if (Success && CustomUrlPath) {
                 Success = Connection.SendHttpRequests();

@@ -767,9 +767,9 @@ QuicListenerParamGet(
         Stats->TotalRejectedConnections = Listener->TotalRejectedConnections;
 
         if (Listener->Binding != NULL) {
-            Stats->Binding.Recv.DroppedPackets = Listener->Binding->Stats.Recv.DroppedPackets;
+            Stats->BindingRecvDroppedPackets = Listener->Binding->Stats.Recv.DroppedPackets;
         } else {
-            Stats->Binding.Recv.DroppedPackets = 0;
+            Stats->BindingRecvDroppedPackets = 0;
         }
 
         Status = QUIC_STATUS_SUCCESS;
