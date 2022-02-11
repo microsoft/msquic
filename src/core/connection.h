@@ -1402,11 +1402,13 @@ QuicConnQueueUnreachable(
 // Queues a route completion event to a connection for processing.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
-    _In_ QUIC_CONNECTION* Connection,
-    _When_(Succeeded == FALSE, _In_opt_)
+    _Inout_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_)
+    _In_reads_bytes_(6)
         const uint8_t* PhysicalAddress,
     _In_ BOOLEAN Succeeded
     );

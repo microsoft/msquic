@@ -3077,11 +3077,13 @@ QuicConnQueueUnreachable(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
-    _In_ QUIC_CONNECTION* Connection,
-    _When_(Succeeded == FALSE, _In_opt_)
+    _Inout_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_)
+    _In_reads_bytes_(6)
         const uint8_t* PhysicalAddress,
     _In_ BOOLEAN Succeeded
     )
@@ -3100,6 +3102,17 @@ QuicConnQueueRouteCompletion(
             "Allocation of '%s' failed. (%llu bytes)",
             "Route completion operation",
             0);
+        if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+            QUIC_OPERATION* Oper = &Connection->BackUpOper;
+            Oper->FreeAfterProcess = FALSE;
+            Oper->Type = QUIC_OPER_TYPE_API_CALL;
+            Oper->API_CALL.Context = &Connection->BackupApiContext;
+            Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+            QuicConnQueueHighestPriorityOper(Connection, Oper);
+        }
     }
 
     QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
@@ -5131,7 +5144,7 @@ QuicConnRecvPostProcessing(
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
         !(*Path)->IsActive &&
-        Connection->Paths[0].Route.RouteState == RouteResolved) {
+        Connection->Paths[0].Route.State == RouteResolved) {
         //
         // The peer has sent a non-probing frame on a path other than the active
         // one. This signals their intent to switch active paths.
@@ -5666,7 +5679,7 @@ QuicConnProcessRouteCompletion(
 {
     if (Succeeded) {
         QUIC_PATH* Path = &Connection->Paths[0];
-        CxPlatResolveRouteComplete(&Path->Route, PhysicalAddress);
+        CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
         QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
     } else {
         QuicTraceLogConnInfo(

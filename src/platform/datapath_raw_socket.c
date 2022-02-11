@@ -265,21 +265,23 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
-VOID
+void
 CxPlatResolveRouteComplete(
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ const uint8_t* PhysicalAddress
     )
 {
     CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
-    Route->RouteState = RouteResolved;
+    Route->State = RouteResolved;
 }
 
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ VOID* Context
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
 #ifdef _WIN32
@@ -372,10 +374,9 @@ CxPlatResolveRoute(
     Status = GetIpNetEntry2(&IpnetRow);
     if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
-        CxPlatDispatchLockAcquire(&Worker->Lock);
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
             CXPLAT_ALLOC_PAGED(
-                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION), QUIC_POOL_ROUTE_RESOLUTION_OPERATION);
+                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION), QUIC_POOL_ROUTE_RESOLUTION_OPER);
         if (Operation == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -387,15 +388,20 @@ CxPlatResolveRoute(
         }
         Operation->IpnetRow = IpnetRow;
         Operation->Context = Context;
+        Operation->Callback = Callback;
+        CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatEventSet(Worker->Ready);
         CxPlatDispatchLockRelease(&Worker->Lock);
         Status = ERROR_IO_PENDING;
     } else {
-        CxPlatResolveRouteComplete(Route, IpnetRow.PhysicalAddress);
+        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress);
     }
 
 Done:
+    if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
+        Callback(Context, NULL, FALSE);
+    }
 
     return HRESULT_FROM_WIN32(Status);
 #else // _WIN32
@@ -654,7 +660,7 @@ CxPlatDpRawParseEthernet(
         return;
     }
 
-    Packet->Route->RouteState = RouteResolved;
+    Packet->Route->State = RouteResolved;
     CxPlatCopyMemory(Packet->Route->LocalLinkLayerAddress, Ethernet->Destination, sizeof(Ethernet->Destination));
     CxPlatCopyMemory(Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 

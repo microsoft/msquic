@@ -30,11 +30,8 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
     // An event to kick the thread.
     //
     CXPLAT_EVENT Ready;
-    CXPLAT_EVENT Done;
 
     CXPLAT_THREAD Thread;
-
-    CXPLAT_DATAPATH* Datapath;
 
     //
     // Serializes access to the route resolution opreations.
@@ -50,7 +47,8 @@ typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     //
     CXPLAT_LIST_ENTRY WorkerLink;
     MIB_IPNET_ROW2 IpnetRow;
-    VOID* Context;
+    void* Context;
+    CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
 } CXPLAT_ROUTE_RESOLUTION_OPERATION;
 
 typedef struct CXPLAT_DATAPATH {
@@ -326,19 +324,6 @@ void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
-    );
-
-VOID
-CxPlatResolveRouteComplete(
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ const uint8_t* PhysicalAddress
-    );
-
-QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ VOID* Context
     );
 
 //

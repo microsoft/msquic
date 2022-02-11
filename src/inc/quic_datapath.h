@@ -160,7 +160,7 @@ typedef struct CXPLAT_ROUTE {
 
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
-    CXPLAT_ROUTE_STATE RouteState;
+    CXPLAT_ROUTE_STATE State;
     void* Queue;
 } CXPLAT_ROUTE;
 
@@ -304,30 +304,12 @@ void
 typedef CXPLAT_DATAPATH_UNREACHABLE_CALLBACK *CXPLAT_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
 
 //
-// Function pointer type for datapath route resolution callbacks.
-//
-typedef
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)
-void
-(CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)(
-    _In_ void* Context,
-    _When_(Succeeded == FALSE, _In_opt_)
-    _When_(Succeeded == TRUE, _In_)
-        uint8_t* PhysicalAddress,
-    _In_ BOOLEAN Succeeded
-    );
-
-typedef CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK *CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK_HANDLER;
-
-//
 // UDP Callback function pointers used by the datapath.
 //
 typedef struct CXPLAT_UDP_DATAPATH_CALLBACKS {
 
     CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
     CXPLAT_DATAPATH_UNREACHABLE_CALLBACK_HANDLER Unreachable;
-    CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK_HANDLER Route;
 
 } CXPLAT_UDP_DATAPATH_CALLBACKS;
 
@@ -665,17 +647,42 @@ CxPlatSocketGetParam(
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     );
 
-VOID
+//
+// Copies L2 address into route object and sets route state to resolved.
+//
+void
 CxPlatResolveRouteComplete(
+    _In_ void* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ const uint8_t* PhysicalAddress
     );
 
+//
+// Function pointer type for datapath route resolution callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+(CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
+    _In_ void* Context,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_)
+        uint8_t* PhysicalAddress,
+    _In_ BOOLEAN Succeeded
+    );
+
+typedef CXPLAT_ROUTE_RESOLUTION_CALLBACK *CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER;
+
+//
+// Tries to resolve route and neighbor for the given destination address.
+//
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ VOID* Context
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
 
 #if defined(__cplusplus)

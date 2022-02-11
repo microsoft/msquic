@@ -248,7 +248,6 @@ MsQuicLibraryInitialize(
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         QuicBindingReceive,
         QuicBindingUnreachable,
-        QuicBindingRoute,
     };
 
     Status = CxPlatInitialize();

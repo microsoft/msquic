@@ -1716,24 +1716,6 @@ QuicBindingUnreachable(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_ROUTE_RESOLUTION_CALLBACK)
-void
-QuicBindingRoute(
-    _In_ void* Context,
-    _When_(Succeeded == FALSE, _In_opt_)
-    _When_(Succeeded == TRUE, _In_)
-        uint8_t* PhysicalAddress,
-    _In_ BOOLEAN Succeeded
-    )
-{
-    CXPLAT_DBG_ASSERT(Context != NULL);
-
-    QUIC_CONNECTION* Connection = (QUIC_CONNECTION*)Context;
-
-    QuicConnQueueRouteCompletion(Connection, PhysicalAddress, Succeeded);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,

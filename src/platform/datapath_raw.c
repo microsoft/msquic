@@ -39,9 +39,7 @@ CxPlatDataPathRouteWorkerInitialize(
         goto Error;
     }
 
-    Worker->Datapath = DataPath;
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
-    CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         CXPLAT_THREAD_FLAG_NONE,
         0,
@@ -63,6 +61,9 @@ CxPlatDataPathRouteWorkerInitialize(
     DataPath->RouteResolutionWorker = Worker;
 
 Error:
+    if (QUIC_FAILED(Status) && Worker != NULL) {
+        CXPLAT_FREE(Worker, QUIC_POOL_ROUTE_RESOLUTION_WORKER);
+    }
     return Status;
 }
 
@@ -126,7 +127,7 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID
+void
 CxPlatDataPathRouteWorkerUninitialize(
     _Inout_ CXPLAT_DATAPATH* DataPath
     )
@@ -135,7 +136,6 @@ CxPlatDataPathRouteWorkerUninitialize(
 
     Worker->Enabled = FALSE;
     CxPlatEventSet(Worker->Ready);
-    CxPlatEventWaitForever(Worker->Done);
 
     //
     // Wait for the thread to finish.
@@ -146,7 +146,6 @@ CxPlatDataPathRouteWorkerUninitialize(
     }
 
     CxPlatEventUninitialize(Worker->Ready);
-    CxPlatEventUninitialize(Worker->Done);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -518,7 +517,7 @@ CxPlatSocketSend(
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-    CXPLAT_DBG_ASSERT(Route->RouteState == RouteResolved);
+    CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     CxPlatFramingWriteHeaders(
@@ -564,50 +563,9 @@ CxPlatSocketGetParam(
 CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
 {
     CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = (CXPLAT_ROUTE_RESOLUTION_WORKER*)Context;
-    CXPLAT_DATAPATH* Datapath = Worker->Datapath;
 
     while (Worker->Enabled) {
         CxPlatEventWaitForever(Worker->Ready);
-        if (!CxPlatListIsEmptyNoFence(&Worker->Operations)) {
-            CXPLAT_LIST_ENTRY Operations;
-            CxPlatListInitializeHead(&Operations);
-
-            CxPlatDispatchLockAcquire(&Worker->Lock);
-            if (!CxPlatListIsEmpty(&Worker->Operations)) {
-                CxPlatListMoveItems(&Worker->Operations, &Operations);
-            }
-            CxPlatDispatchLockRelease(&Worker->Lock);
-
-            while (CxPlatListIsEmpty(&Operations)) {
-                CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
-                    CXPLAT_CONTAINING_RECORD(
-                        CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
-                NETIO_STATUS Status =
-                Status = GetIpNetEntry2(&Operation->IpnetRow);
-                if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
-                    Status =
-                        ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
-                    if (Status != 0) {
-                        QuicTraceEvent(
-                            DatapathErrorStatus,
-                            "[data][%p] ERROR, %u, %s.",
-                            Operation,
-                            Status,
-                            "ResolveIpNetEntry2");
-                    }
-
-                    Datapath->UdpHandlers.Route(
-                        Operation->Context, Operation->IpnetRow.PhysicalAddress, Status == 0 ? TRUE : FALSE);
-                    CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPERATION);
-                }
-            }
-        }
-    }
-
-    //
-    // Clean up leftover work.
-    //
-    if (!CxPlatListIsEmptyNoFence(&Worker->Operations)) {
         CXPLAT_LIST_ENTRY Operations;
         CxPlatListInitializeHead(&Operations);
 
@@ -621,12 +579,47 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
             CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
-            Datapath->UdpHandlers.Route(Operation->Context, NULL, FALSE);
-            CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPERATION);
+            NETIO_STATUS Status =
+            Status = GetIpNetEntry2(&Operation->IpnetRow);
+            if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
+                Status =
+                    ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
+                if (Status != 0) {
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        Operation,
+                        Status,
+                        "ResolveIpNetEntry2");
+                    Operation->Callback(Operation->Context, NULL, FALSE);
+                } else {
+                    Operation->Callback(Operation->Context, Operation->IpnetRow.PhysicalAddress, TRUE);
+                }
+                CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
+            }
         }
     }
 
-    CxPlatEventSet(Worker->Done);
+    //
+    // Clean up leftover work.
+    //
+    CXPLAT_LIST_ENTRY Operations;
+    CxPlatListInitializeHead(&Operations);
+
+    CxPlatDispatchLockAcquire(&Worker->Lock);
+    if (!CxPlatListIsEmpty(&Worker->Operations)) {
+        CxPlatListMoveItems(&Worker->Operations, &Operations);
+    }
+    CxPlatDispatchLockRelease(&Worker->Lock);
+
+    while (CxPlatListIsEmpty(&Operations)) {
+        CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
+        Operation->Callback(Operation->Context, NULL, FALSE);
+        CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
+    }
+
     return 0;
 }
 
