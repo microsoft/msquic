@@ -824,6 +824,16 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    SetRemoteAddr(_In_ const QuicAddr& Addr) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                sizeof(Addr.SockAddr),
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
     SetLocalInterface(_In_ uint32_t Index) noexcept {
         return
             MsQuic->SetParam(
