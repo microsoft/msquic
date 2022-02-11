@@ -5528,10 +5528,10 @@ QuicConnFlushRecv(
         Connection->ReceiveQueueCount -= QUIC_MAX_RECEIVE_FLUSH_COUNT;
         CXPLAT_RECV_DATA* Tail = Connection->ReceiveQueue;
         ReceiveQueueCount = 0;
-        while (ReceiveQueueCount++ < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+        while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
             Tail = Connection->ReceiveQueue;
-            Connection->ReceiveQueue = Connection->ReceiveQueue->Next;
         }
+        Connection->ReceiveQueue = Tail->Next;
         Tail->Next = NULL;
     } else {
         FlushedAll = TRUE;
