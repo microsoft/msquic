@@ -1173,17 +1173,18 @@ tracepoint(CLOG_FRAME_C, FrameLogAckFrequencyInvalid , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogAckFrequency
-// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu
+// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu
 // QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
-            Frame.IgnoreOrder);
+            Frame.IgnoreOrder,
+            Frame.IgnoreCE);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
@@ -1191,10 +1192,33 @@ tracepoint(CLOG_FRAME_C, FrameLogAckFrequencyInvalid , arg2, arg3, arg4);\
 // arg6 = arg6 = Frame.PacketTolerance = arg6
 // arg7 = arg7 = Frame.UpdateMaxAckDelay = arg7
 // arg8 = arg8 = Frame.IgnoreOrder = arg8
+// arg9 = arg9 = Frame.IgnoreCE = arg9
 ----------------------------------------------------------*/
-#ifndef _clog_9_ARGS_TRACE_FrameLogAckFrequency
-#define _clog_9_ARGS_TRACE_FrameLogAckFrequency(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8)\
-tracepoint(CLOG_FRAME_C, FrameLogAckFrequency , arg2, arg3, arg4, arg5, arg6, arg7, arg8);\
+#ifndef _clog_10_ARGS_TRACE_FrameLogAckFrequency
+#define _clog_10_ARGS_TRACE_FrameLogAckFrequency(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)\
+tracepoint(CLOG_FRAME_C, FrameLogAckFrequency , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogImmediateAck
+// [%c][%cX][%llu]   IMMEDIATE_ACK
+// QuicTraceLogVerbose(
+            FrameLogImmediateAck,
+            "[%c][%cX][%llu]   IMMEDIATE_ACK",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogImmediateAck
+#define _clog_5_ARGS_TRACE_FrameLogImmediateAck(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogImmediateAck , arg2, arg3, arg4);\
 
 #endif
 

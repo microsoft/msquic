@@ -91,6 +91,12 @@ QuicAckTrackerAddPacketNumber(
     _In_ uint64_t PacketNumber
     );
 
+typedef enum QUIC_ACK_TYPE {
+    QUIC_ACK_TYPE_NON_ACK_ELICITING,
+    QUIC_ACK_TYPE_ACK_ELICITING,
+    QUIC_ACK_TYPE_ACK_IMMEDIATE,
+} QUIC_ACK_TYPE;
+
 //
 // Adds the packet number to the list of packets that should be acknowledged.
 //
@@ -101,7 +107,7 @@ QuicAckTrackerAckPacket(
     _In_ uint64_t PacketNumber,
     _In_ uint64_t RecvTimeUs,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ BOOLEAN AckElicitingPayload
+    _In_ QUIC_ACK_TYPE AckType
     );
 
 //

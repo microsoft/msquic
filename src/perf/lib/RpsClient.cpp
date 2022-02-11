@@ -238,7 +238,6 @@ RpsClient::Start(
         Status =
             MsQuic->SetParam(
                 Connections[i],
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SHARE_UDP_BINDING,
                 sizeof(Opt),
                 &Opt);
@@ -251,7 +250,6 @@ RpsClient::Start(
             Status =
                 MsQuic->SetParam(
                     Connections[i],
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     sizeof(QUIC_ADDR),
                     &LocalAddresses[i % RPS_MAX_CLIENT_PORT_COUNT]);
@@ -278,7 +276,6 @@ RpsClient::Start(
             Status =
                 MsQuic->GetParam(
                     Connections[i],
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     &AddrLen,
                     &LocalAddresses[i]);

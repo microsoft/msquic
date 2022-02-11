@@ -73,7 +73,7 @@ ServerSendIp(
     SendBuffer->Buffer = (uint8_t*)SendBufferRaw + sizeof(QUIC_BUFFER);
     SendBuffer->Length = sizeof(QUIC_ADDR);
 
-    if (QUIC_FAILED(Status = MsQuic->GetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_REMOTE_ADDRESS, &SendBuffer->Length, SendBuffer->Buffer))) {
+    if (QUIC_FAILED(Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_REMOTE_ADDRESS, &SendBuffer->Length, SendBuffer->Buffer))) {
         printf("GetParam(CONN_REMOTE_ADDRESS) failed, 0x%x!\n", Status);
         CXPLAT_FREE(SendBuffer, QUIC_POOL_TOOL);
         return;
@@ -210,8 +210,8 @@ main(
         return Status;
     }
 
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed, 0x%x!\n", Status);
+    if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
+        printf("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
 

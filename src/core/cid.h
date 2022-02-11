@@ -44,6 +44,12 @@ Abstract:
 #define MSQUIC_CID_MIN_RANDOM_BYTES                 4
 
 //
+// The maximum number of bytes that we allow to overwrite the initial DCID
+// prefix.
+//
+#define MSQUIC_CID_MAX_DCID_PREFIX                  6
+
+//
 // The minimum length CIDs that MsQuic ever will generate.
 //
 #define MSQUIC_CID_MIN_LENGTH \
