@@ -4,11 +4,11 @@
 //
 
 #ifndef VER_MAJOR
-#define VER_MAJOR 1
+#define VER_MAJOR 2
 #endif
 
 #ifndef VER_MINOR
-#define VER_MINOR 10
+#define VER_MINOR 0
 #endif
 
 #ifndef VER_PATCH

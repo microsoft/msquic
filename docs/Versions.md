@@ -24,7 +24,6 @@ Settings.IsSet.DesiredVersionsList = TRUE;
 
 MsQuic->SetParam(
     Connection,
-    QUIC_PARAM_LEVEL_CONNECTION,
     QUIC_PARAM_CONN_SETTINGS,
     sizeof(Settings),
     &Settings);
@@ -62,7 +61,6 @@ Settings.IsSet.DesiredVersionsList = TRUE;
 
 MsQuic->SetParam(
     NULL,
-    QUIC_PARAM_LEVEL_GLOBAL,
     QUIC_PARAM_CONN_SETTINGS,
     sizeof(Settings),
     &Settings);
@@ -84,7 +82,6 @@ Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
 
 MsQuic->SetParam(
     Connection,
-    QUIC_PARAM_LEVEL_CONNECTION,
     QUIC_PARAM_CONN_SETTINGS,
     sizeof(Settings),
     &Settings);
@@ -101,7 +98,6 @@ Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
 
 MsQuic->SetParam(
     NULL,
-    QUIC_PARAM_LEVEL_GLOBAL,
     QUIC_PARAM_CONN_SETTINGS,
     sizeof(Settings),
     &Settings);

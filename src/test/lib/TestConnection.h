@@ -148,7 +148,7 @@ public:
     NewStream(
         _In_opt_ STREAM_SHUTDOWN_CALLBACK_HANDLER StreamShutdownHandler,
         _In_ QUIC_STREAM_OPEN_FLAGS Flags,
-        _In_ NEW_STREAM_START_TYPE StartType = NEW_STREAM_START_SYNC
+        _In_ NEW_STREAM_START_TYPE StartType = NEW_STREAM_START_ASYNC
         );
 
     uint32_t GetWaitTimeout() const {

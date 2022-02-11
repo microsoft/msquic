@@ -10,10 +10,9 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_GET_PARAM_FN)(
-    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
-    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
         HQUIC Handle,
-    _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -25,15 +24,11 @@ QUIC_STATUS
 
 `Handle`
 
-The valid handle to any API object. This includes handles to registration, configuration, listener, connection and stream objects. For `Level` equal to `QUIC_PARAM_LEVEL_GLOBAL`, this parameter must be `NULL`.
-
-`Level`
-
-The level at which the parameter is defined (for example, `QUIC_PARAM_LEVEL_CONNECTION`).
+The valid handle to any API object. This includes handles to registration, configuration, listener, connection and stream objects. For global parameters, this parameter must be `NULL`.
 
 `Param`
 
-The parameter for which the value is to be set (for example, `QUIC_PARAM_CONN_IDLE_TIMEOUT`). The `Param` parameter must be a parameter defined within the specified `Level`, or behavior is undefined.
+The parameter for which the value is to be set (for example, `QUIC_PARAM_CONN_IDLE_TIMEOUT`).
 
 `BufferLength`
 
@@ -59,7 +54,6 @@ Sample of double-call:
     if (QUIC_STATUS_BUFFER_TOO_SMALL ==
         MsQuic->GetParam(
             Configuration,
-            QUIC_PARAM_LEVEL_CONFIGURATION,
             QUIC_PARAM_CONFIGURATION_SETTINGS,
             &SettingsSize,
             Settings)) {
@@ -69,7 +63,6 @@ Sample of double-call:
         if (QUIC_FAILED(
                 MsQuic->GetParam(
                     Configuration,
-                    QUIC_PARAM_LEVEL_CONFIGURATION,
                     QUIC_PARAM_CONFIGURATION_SETTINGS,
                     &SettingsSize,
                     Settings))) {
