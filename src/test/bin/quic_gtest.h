@@ -658,7 +658,7 @@ struct ValidateStreamEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateStreamEventArgs> Generate() {
         ::std::vector<ValidateStreamEventArgs> list;
-        for (uint32_t Test = 0; Test < 7; ++Test)
+        for (uint32_t Test = 0; Test < 8; ++Test)
             list.push_back({ Test });
         return list;
     }
