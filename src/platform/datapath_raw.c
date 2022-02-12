@@ -591,9 +591,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                         Operation,
                         Status,
                         "ResolveIpNetEntry2");
-                    Operation->Callback(Operation->Context, NULL, FALSE);
+                    Operation->Callback(
+                        Operation->Context, NULL, Operation->PathId, FALSE);
                 } else {
-                    Operation->Callback(Operation->Context, Operation->IpnetRow.PhysicalAddress, TRUE);
+                    Operation->Callback(
+                        Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
                 }
                 CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
             }

@@ -3084,6 +3084,7 @@ QuicConnQueueRouteCompletion(
     _When_(Succeeded == TRUE, _In_)
     _In_reads_bytes_(6)
         const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     )
 {
@@ -3091,6 +3092,7 @@ QuicConnQueueRouteCompletion(
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_ROUTE_COMPLETION);
     if (ConnOper != NULL) {
         ConnOper->ROUTE.Succeeded = Succeeded;
+        ConnOper->ROUTE.PathId = PathId;
         if (Succeeded) {
             memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
         }
@@ -5673,13 +5675,26 @@ void
 QuicConnProcessRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     )
 {
+    uint8_t PathIndex;
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
+    if (Path == NULL) {
+        //
+        // We just resolved route for a path that doesn't exist. There's nothing we can do
+        // with this route anymore.
+        return;
+    }
+
     if (Succeeded) {
-        QUIC_PATH* Path = &Connection->Paths[0];
-        CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
-        QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+        if (Path->IsActive) {
+            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
+            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+        } else {
+            
+        }
     } else {
         QuicTraceLogConnInfo(
             Unreachable,
@@ -7038,7 +7053,8 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
-            QuicConnProcessRouteCompletion(Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.Succeeded);
+            QuicConnProcessRouteCompletion(
+                Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
 
         default:

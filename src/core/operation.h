@@ -231,6 +231,7 @@ typedef struct QUIC_OPERATION {
         } STATELESS; // Stateless reset, retry and VN
         struct {
             uint8_t PhysicalAddress[6];
+            uint8_t PathId;
             BOOLEAN Succeeded;
         } ROUTE;
     };

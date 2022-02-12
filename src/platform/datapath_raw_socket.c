@@ -280,6 +280,7 @@ QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
@@ -389,6 +390,7 @@ CxPlatResolveRoute(
         Operation->IpnetRow = IpnetRow;
         Operation->Context = Context;
         Operation->Callback = Callback;
+        Operation->PathId = PathId;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatEventSet(Worker->Ready);
@@ -400,7 +402,7 @@ CxPlatResolveRoute(
 
 Done:
     if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
-        Callback(Context, NULL, FALSE);
+        Callback(Context, NULL, FALSE, PathId);
     }
 
     return HRESULT_FROM_WIN32(Status);
