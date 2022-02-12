@@ -160,9 +160,12 @@ typedef struct CXPLAT_ROUTE {
 
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
-    CXPLAT_ROUTE_STATE State;
     void* Queue;
+
+    CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
+
 } CXPLAT_ROUTE;
+
 
 //
 // Structure to represent received UDP datagrams or TCP data.

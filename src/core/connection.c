@@ -184,8 +184,7 @@ QuicConnAlloc(
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
-
-        Path->Route = *Datagram->Route;
+        QuicCopyRouteInfo(&Path->Route, Datagram->Route);
         Connection->State.LocalAddressSet = TRUE;
         Connection->State.RemoteAddressSet = TRUE;
 

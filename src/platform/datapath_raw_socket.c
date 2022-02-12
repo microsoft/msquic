@@ -660,10 +660,6 @@ CxPlatDpRawParseEthernet(
         return;
     }
 
-    Packet->Route->State = RouteResolved;
-    CxPlatCopyMemory(Packet->Route->LocalLinkLayerAddress, Ethernet->Destination, sizeof(Ethernet->Destination));
-    CxPlatCopyMemory(Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
-
     uint16_t EthernetType = Ethernet->Type;
     if (EthernetType == ETHERNET_TYPE_IPV4) {
         CxPlatDpRawParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
