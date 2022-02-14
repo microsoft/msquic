@@ -20,6 +20,27 @@ Abstract:
 CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRouteWorkerUninitialize(
+    _In_ CXPLAT_ROUTE_RESOLUTION_WORKER* Worker
+    )
+{
+    Worker->Enabled = FALSE;
+    CxPlatEventSet(Worker->Ready);
+
+    //
+    // Wait for the thread to finish.
+    //
+    if (Worker->Thread) {
+        CxPlatThreadWait(&Worker->Thread);
+        CxPlatThreadDelete(&Worker->Thread);
+    }
+
+    CxPlatEventUninitialize(Worker->Ready);
+    CXPLAT_FREE(Worker, QUIC_POOL_ROUTE_RESOLUTION_WORKER);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathRouteWorkerInitialize(
     _Inout_ CXPLAT_DATAPATH* DataPath
@@ -62,7 +83,7 @@ CxPlatDataPathRouteWorkerInitialize(
 
 Error:
     if (QUIC_FAILED(Status) && Worker != NULL) {
-        CXPLAT_FREE(Worker, QUIC_POOL_ROUTE_RESOLUTION_WORKER);
+        CxPlatDataPathRouteWorkerUninitialize(Worker);
     }
     return Status;
 }
@@ -128,28 +149,6 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathRouteWorkerUninitialize(
-    _Inout_ CXPLAT_DATAPATH* DataPath
-    )
-{
-    CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = DataPath->RouteResolutionWorker;
-
-    Worker->Enabled = FALSE;
-    CxPlatEventSet(Worker->Ready);
-
-    //
-    // Wait for the thread to finish.
-    //
-    if (Worker->Thread) {
-        CxPlatThreadWait(&Worker->Thread);
-        CxPlatThreadDelete(&Worker->Thread);
-    }
-
-    CxPlatEventUninitialize(Worker->Ready);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
 CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
@@ -157,7 +156,7 @@ CxPlatDataPathUninitialize(
     if (Datapath == NULL) {
         return;
     }
-    CxPlatDataPathRouteWorkerUninitialize(Datapath);
+    CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
     CxPlatDpRawUninitialize(Datapath);
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
