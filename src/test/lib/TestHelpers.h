@@ -59,15 +59,19 @@ struct ServerAcceptContext {
 
 struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
-        MsQuicSettings ClearVNSettings;
-        ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+        QUIC_VERSION_SETTINGS Settings = {0};
+        Settings.IsSet.VersionNegotiationExtEnabled = 1;
+        Settings.IsSet.DesiredVersionsList = 1;
+        Settings.VersionNegotiationExtEnabled = 0;
+        Settings.DesiredVersionsList = nullptr;
+        Settings.DesiredVersionsListLength = 0;
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(ClearVNSettings),
-                &ClearVNSettings));
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(Settings),
+                &Settings));
     }
 };
 

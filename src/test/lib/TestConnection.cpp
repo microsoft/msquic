@@ -291,14 +291,12 @@ TestConnection::SetQuicVersion(
     uint32_t value
     )
 {
-    QUIC_SETTINGS Settings = {0};
-    Settings.IsSet.DesiredVersionsList = TRUE;
-    Settings.DesiredVersionsList = &value;
-    Settings.DesiredVersionsListLength = 1;
+    MsQuicVersionSettings Settings;
+    Settings.SetDesiredVersionsList(&value, 1);
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_CONN_SETTINGS,
+            QUIC_PARAM_CONN_VERSION_SETTINGS,
             sizeof(Settings),
             &Settings);
 }

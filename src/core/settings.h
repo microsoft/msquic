@@ -9,7 +9,6 @@
 extern "C" {
 #endif
 
-
 typedef struct QUIC_SETTINGS_INTERNAL {
 
     union {
@@ -124,8 +123,7 @@ QuicSettingApply(
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList), UINT32_MAX)
-        uint32_t NewSettingsSize,
+    _In_ uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
         const QUIC_SETTINGS_INTERNAL* Source
     );
@@ -161,74 +159,59 @@ QuicSettingsDump(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDumpNew(
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList), UINT32_MAX)
-        uint32_t SettingsSize,
+    _In_ uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
         const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsGetParam(
-    _In_ const QUIC_SETTINGS_INTERNAL* IncomingSettings,
-    _Inout_ uint32_t* OutgoingSize,
-    _Out_writes_bytes_opt_(*OutgoingSize)
-        QUIC_SETTINGS_INTERNAL* OutgoingSettings
+QuicSettingsSetSettings(
+    _In_ const QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsGetDesiredVersions(
-    _In_ const QUIC_SETTINGS_INTERNAL* Settings,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint32_t* Buffer
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicSettingsConvertToInternal(
-    _In_ const QUIC_SETTINGS* Settings,
-    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings 
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicSettingsConvertFromInternal(
-    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
-    _Out_ QUIC_SETTINGS* Settings
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicSettingsConvertGlobalToInternal(
+QuicSettingsSetGlobalSettings(
     _In_ const QUIC_GLOBAL_SETTINGS* Settings,
-    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings 
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicSettingsConvertGlobalFromInternal(
-    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
-    _Out_ QUIC_GLOBAL_SETTINGS* Settings
+    _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsConvertVersionToInternal(
+QuicSettingsSetVersionSettings(
     _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        uint32_t* Buffer,
-    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings 
+    _In_reads_bytes_(*BufferLength)
+        QUIC_VERSION_SETTINGS* Buffer,
+    _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsConvertVersionFromInternal(
-    _In_ const QUIC_SETTINGS* Settings,
+QuicSettingsGetSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
-        uint32_t* Buffer
+        QUIC_SETTINGS* Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetGlobalSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        QUIC_GLOBAL_SETTINGS* Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetVersionSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t *BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        QUIC_VERSION_SETTINGS* Buffer
     );
 
 #if defined(__cplusplus)

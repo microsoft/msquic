@@ -281,7 +281,7 @@ TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
 TEST(ParameterValidation, ValidateDesiredVersionSettings) {
     TestLogger Logger("QuicTestDesiredVersionSettings");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS));
     } else {
         QuicTestDesiredVersionSettings();
     }

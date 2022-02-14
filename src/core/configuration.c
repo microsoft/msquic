@@ -24,6 +24,9 @@ MsQuicConfigurationOpen(
     _In_reads_(AlpnBufferCount) _Pre_defensive_
         const QUIC_BUFFER* const AlpnBuffers,
     _In_range_(>, 0) uint32_t AlpnBufferCount,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewConfiguration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewConfiguration
@@ -160,6 +163,16 @@ MsQuicConfigurationOpen(
                 Configuration,
                 Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
+        }
+    }
+
+    if (Settings != NULL && Settings->IsSetFlags != 0) {
+        CXPLAT_DBG_ASSERT(SettingsSize == sizeof(QUIC_SETTINGS));
+        if (!QuicSettingsSetSettings(
+                Settings,
+                &Configuration->Settings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
         }
     }
 
@@ -406,10 +419,10 @@ QuicConfigurationParamGet(
     )
 {
     if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
-        return QuicSettingsGetParam(&Configuration->Settings, BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
+        return QuicSettingsGetSettings(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
     }
-    if (Param == QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS) {
-        return QuicSettingsGetDesiredVersions(&Configuration->Settings, BufferLength, (uint32_t*)Buffer);
+    if (Param == QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS) {
+        return QuicSettingsGetVersionSettings(&Configuration->Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;
@@ -438,21 +451,23 @@ QuicConfigurationParamSet(
             "[cnfg][%p] Setting new settings",
             Configuration);
 
-        
+        return
+            QuicSettingsSetSettings(
+                (QUIC_SETTINGS*)Buffer,
+                &Configuration->Settings);
 
-        if (!QuicSettingApply(
-                &Configuration->Settings,
-                TRUE,
-                TRUE,
-                TRUE,
+    case QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS:
+
+        QuicTraceLogInfo(
+            ConfigurationSetSettings,
+            "[cnfg][%p] Setting new settings",
+            Configuration);
+
+        return
+            QuicSettingsSetVersionSettings(
                 BufferLength,
-                (QUIC_SETTINGS_INTERNAL*)Buffer)) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
-
-        return QUIC_STATUS_SUCCESS;
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &Configuration->Settings);
 
     case QUIC_PARAM_CONFIGURATION_TICKET_KEYS:
 

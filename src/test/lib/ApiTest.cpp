@@ -1677,7 +1677,7 @@ QuicTestDesiredVersionSettings()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicSettings InputSettings;
+    MsQuicVersionSettings InputSettings;
 
     //
     // Test setting and getting the desired versions on Connection
@@ -1722,7 +1722,7 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_STATUS(
             QUIC_STATUS_BUFFER_TOO_SMALL,
             Connection.GetParam(
-                QUIC_PARAM_CONN_DESIRED_VERSIONS,
+                QUIC_PARAM_CONN_VERSION_SETTINGS,
                 &BufferLength,
                 NULL));
 
@@ -1730,7 +1730,7 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_SUCCEEDED(
             Connection.GetParam(
-                QUIC_PARAM_CONN_DESIRED_VERSIONS,
+                QUIC_PARAM_CONN_VERSION_SETTINGS,
                 &BufferLength,
                 OutputDesiredVersions));
 
@@ -1751,35 +1751,13 @@ QuicTestDesiredVersionSettings()
         MsQuicAlpn Alpn("MsQuicTest");
         ConfigurationScope Configuration;
 
-        //
-        // Test invalid versions are failed on Configuration
-        //
-
-        InputSettings.SetDesiredVersionsList(InvalidDesiredVersions, ARRAYSIZE(InvalidDesiredVersions));
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->ConfigurationOpen(
-                Registration,
-                Alpn,
-                Alpn.Length(),
-                &InputSettings,
-                sizeof(InputSettings),
-                nullptr,
-                &Configuration.Handle));
-
-        //
-        // Test initializing/getting desired versions on Configuration
-        //
-        InputSettings.SetDesiredVersionsList(DesiredVersions, ARRAYSIZE(DesiredVersions));
-
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConfigurationOpen(
                 Registration,
                 Alpn,
                 Alpn.Length(),
-                &InputSettings,
-                sizeof(InputSettings),
+                nullptr,
+                0,
                 nullptr,
                 &Configuration.Handle));
 
@@ -1801,7 +1779,7 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 &BufferLength,
                 NULL));
 
@@ -1810,7 +1788,7 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 &BufferLength,
                 OutputDesiredVersions));
 
@@ -1854,7 +1832,7 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 &BufferLength,
                 NULL));
 
@@ -1863,7 +1841,7 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 &BufferLength,
                 OutputDesiredVersions));
 
@@ -1911,7 +1889,7 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
                 NULL,
-                QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
                 &BufferLength,
                 NULL));
 
@@ -1920,7 +1898,7 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 NULL,
-                QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
                 &BufferLength,
                 OutputDesiredVersions));
 

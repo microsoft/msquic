@@ -876,7 +876,9 @@ QuicTestVersionNegotiation(
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+
+    MsQuicVersionSettings VersionSettings;
+    VersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -884,6 +886,7 @@ QuicTestVersionNegotiation(
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -962,7 +965,9 @@ QuicTestVersionNegotiationRetry(
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+
+    MsQuicVersionSettings VersionSettings;
+    VersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -970,6 +975,7 @@ QuicTestVersionNegotiationRetry(
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1025,14 +1031,18 @@ QuicTestCompatibleVersionNegotiation(
     ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicSettings ClientSettings;
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-    ClientSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
     ClientSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
+
     MsQuicSettings ServerSettings;
-    ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-    ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
+    ServerVersionsSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1048,10 +1058,12 @@ QuicTestCompatibleVersionNegotiation(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1114,14 +1126,18 @@ QuicTestCompatibleVersionNegotiationRetry(
     const uint16_t RetryMemoryLimit = 0;
 
     MsQuicSettings ClientSettings;
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-    ClientSettings.SetVersionNegotiationExtEnabled(true);
     ClientSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(true);
+
     MsQuicSettings ServerSettings;
-    ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-    ServerSettings.SetVersionNegotiationExtEnabled(true);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
+    ServerVersionsSettings.SetVersionNegotiationExtEnabled(true);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1146,10 +1162,12 @@ QuicTestCompatibleVersionNegotiationRetry(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1209,13 +1227,17 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
 
     MsQuicSettings ClientSettings;
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-    ClientSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
     ClientSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
+
     MsQuicSettings ServerSettings;
-    ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
 
     //
     // Enable the VNE for server at the global level.
@@ -1234,10 +1256,12 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1300,13 +1324,17 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
 
     MsQuicSettings ClientSettings;
-    ClientSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
     ClientSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
+
     MsQuicSettings ServerSettings;
-    ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-    ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
+    ServerVersionsSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1323,10 +1351,12 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1388,12 +1418,16 @@ QuicTestIncompatibleVersionNegotiation(
     const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
 
     MsQuicSettings ClientSettings;
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
     ClientSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+
     MsQuicSettings ServerSettings;
-    ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1410,10 +1444,12 @@ QuicTestIncompatibleVersionNegotiation(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1471,14 +1507,18 @@ RunFailedVersionNegotiation(
     )
 {
     MsQuicSettings ClientSettings;
-    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
     ClientSettings.SetIdleTimeoutMs(2000);
     ClientSettings.SetDisconnectTimeoutMs(1000);
 
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+
     MsQuicSettings ServerSettings;
-    ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(2000);
     ServerSettings.SetDisconnectTimeoutMs(1000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1495,10 +1535,12 @@ RunFailedVersionNegotiation(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);

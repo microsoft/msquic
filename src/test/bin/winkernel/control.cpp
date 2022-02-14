@@ -942,7 +942,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS:
+    case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
         QuicTestCtlRun(QuicTestDesiredVersionSettings());
         break;
 

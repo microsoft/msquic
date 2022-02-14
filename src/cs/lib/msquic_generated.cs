@@ -2243,8 +2243,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_TLS_SECRETS 0x05000013")]
         public const int QUIC_PARAM_CONN_TLS_SECRETS = 0x05000013;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DESIRED_VERSIONS 0x14000014")]
-        public const int QUIC_PARAM_CONN_DESIRED_VERSIONS = 0x14000014;
+        [NativeTypeName("#define QUIC_PARAM_CONN_VERSION_SETTINGS 0x14000014")]
+        public const int QUIC_PARAM_CONN_VERSION_SETTINGS = 0x14000014;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX 0x14000015")]
         public const int QUIC_PARAM_CONN_INITIAL_DCID_PREFIX = 0x14000015;
