@@ -358,7 +358,7 @@ typedef struct CXPLAT_DATAPATH_PROC {
     //
     // The ID of the worker thread.
     //
-    uint32_t ThreadId;
+    CXPLAT_THREAD_ID ThreadId;
 
     //
     // The index of the context in the datapath's array.
@@ -867,6 +867,7 @@ CxPlatDataPathInitialize(
 
         Datapath->Processors[i].Datapath = Datapath;
         Datapath->Processors[i].Index = i;
+        Datapath->Processors[i].ThreadId = 0;
 
         CxPlatPoolInitialize(
             FALSE,
@@ -3988,6 +3989,7 @@ CxPlatDataPathWake(
 void
 CxPlatDataPathRunEC(
     _In_ void** Context,
+    _In_ CXPLAT_THREAD_ID CurThreadId,
     _In_ uint32_t WaitTime
     )
 {

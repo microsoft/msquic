@@ -230,6 +230,7 @@ CxPlatDataPathWake(
 void
 CxPlatDataPathRunEC(
     _In_ void** Context,
+    _In_ CXPLAT_THREAD_ID CurThreadId,
     _In_ uint32_t WaitTime
     );
 

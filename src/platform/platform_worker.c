@@ -262,7 +262,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             if (Diff == 0) {
                 WaitTime = 1;
             } else if (Diff < UINT32_MAX) {
-                WaitTime = (DWORD)Diff;
+                WaitTime = (uint32_t)Diff;
             } else {
                 WaitTime = UINT32_MAX-1;
             }
@@ -270,7 +270,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 #endif
 
         if (Worker->DatapathEC) {
-            CxPlatDataPathRunEC((void**)&Worker->DatapathEC, WaitTime);
+            CxPlatDataPathRunEC(&Worker->DatapathEC, Worker->ThreadId, WaitTime);
         } else if (WaitTime != 0) {
             CxPlatEventWaitWithTimeout(Worker->WakeEvent, WaitTime);
         }

@@ -103,6 +103,7 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.Ready = TRUE;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
+    UNREFERENCED_PARAMETER(ThreadFlags);
     CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
 #else
     CXPLAT_THREAD_CONFIG ThreadConfig = {

@@ -342,6 +342,11 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
     uint32_t Index;
 
     //
+    // Thread ID of the worker thread that drives execution.
+    //
+    CXPLAT_THREAD_ID ThreadId;
+
+    //
     // Completion event to indicate the worker has cleaned up.
     //
     CXPLAT_EVENT CompletionEvent;
@@ -583,6 +588,7 @@ CxPlatProcessorContextInitialize(
     ProcContext->Datapath = Datapath;
     ProcContext->EpollFd = EpollFd;
     ProcContext->EventFd = EventFd;
+    ProcContext->ThreadId = 0;
 
     //
     // Starting the thread must be done after the rest of the ProcContext
@@ -1328,19 +1334,6 @@ Exit:
 }
 
 void
-CxPlatSocketContextUninitialize(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
-    )
-{
-    int EpollRes =
-        epoll_ctl(SocketContext->ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-    CXPLAT_FRE_ASSERT(EpollRes == 0);
-
-    const eventfd_t Value = 1;
-    eventfd_write(SocketContext->CleanupFd, Value);
-}
-
-void
 CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
@@ -1366,6 +1359,23 @@ CxPlatSocketContextUninitializeComplete(
     close(SocketContext->SocketFd);
 
     CxPlatRundownRelease(&SocketContext->Binding->Rundown);
+}
+
+void
+CxPlatSocketContextUninitialize(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    )
+{
+    int EpollRes =
+        epoll_ctl(SocketContext->ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    CXPLAT_FRE_ASSERT(EpollRes == 0);
+
+    if (CxPlatCurThreadID() != SocketContext->ProcContext->ThreadId) {
+        const eventfd_t Value = 1;
+        eventfd_write(SocketContext->CleanupFd, Value);
+    } else {
+        CxPlatSocketContextUninitializeComplete(SocketContext);
+    }
 }
 
 QUIC_STATUS
@@ -2027,8 +2037,7 @@ CxPlatSocketDelete(
     Socket->Shutdown = TRUE;
     uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
     for (uint32_t i = 0; i < SocketCount; ++i) {
-        CxPlatSocketContextUninitialize(
-            &Socket->SocketContexts[i]);
+        CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
     }
 
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
@@ -2716,6 +2725,7 @@ CxPlatDataPathWake(
 void
 CxPlatDataPathRunEC(
     _In_ void** Context,
+    _In_ CXPLAT_THREAD_ID CurThreadId,
     _In_ uint32_t WaitTime
     )
 {
@@ -2725,6 +2735,10 @@ CxPlatDataPathRunEC(
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
+
+    if (ProcContext->ThreadId != CurThreadId) {
+        ProcContext->ThreadId = CurThreadId;
+    }
 
     int ReadyEventCount =
         TEMP_FAILURE_RETRY(
