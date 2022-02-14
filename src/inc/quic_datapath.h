@@ -681,10 +681,12 @@ typedef CXPLAT_ROUTE_RESOLUTION_CALLBACK *CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDL
 //
 // Tries to resolve route and neighbor for the given destination address.
 //
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );

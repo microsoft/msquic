@@ -276,6 +276,7 @@ CxPlatResolveRouteComplete(
     Route->State = RouteResolved;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
@@ -402,7 +403,7 @@ CxPlatResolveRoute(
 
 Done:
     if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
-        Callback(Context, NULL, FALSE, PathId);
+        Callback(Context, NULL, PathId, FALSE);
     }
 
     return HRESULT_FROM_WIN32(Status);

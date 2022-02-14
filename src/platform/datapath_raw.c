@@ -618,7 +618,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
-        Operation->Callback(Operation->Context, NULL, FALSE);
+        Operation->Callback(Operation->Context, NULL, Operation->PathId, FALSE);
         CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
     }
 

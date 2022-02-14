@@ -128,11 +128,14 @@ QuicSendQueueFlush(
 #ifdef QUIC_USE_RAW_DATAPATH
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_STATUS Status;
+
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+
     if (Path->Route.State == RouteUnresolved) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         Status =
             CxPlatResolveRoute(
-                Path->Binding->Socket, &Path->Route, Connection, QuicConnQueueRouteCompletion);
+                Path->Binding->Socket, &Path->Route, Path->ID, Connection, QuicConnQueueRouteCompletion);
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
         } else {

@@ -5681,25 +5681,30 @@ QuicConnProcessRouteCompletion(
 {
     uint8_t PathIndex;
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
-    if (Path == NULL) {
-        //
-        // We just resolved route for a path that doesn't exist. There's nothing we can do
-        // with this route anymore.
-        return;
+    if (Path != NULL) {
+        if (Succeeded) {
+            if (Path->IsActive) {
+                CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
+            } else {
+                //
+                // The route we just resolved is not active anymore. The active path that kicked out this path
+                // should be triggering route resolution. We store the route in the path in case it will be used
+                // in the future.
+                //
+                CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
+            }
+        } else {
+            //
+            // Kill the path that failed route resolution and make the next path active if possible.
+            //
+            if (Path->IsActive && Connection->PathsCount > 1) {
+                QuicPathSetActive(Connection, &Connection->Paths[1]);
+            }
+            QuicPathRemove(Connection, PathIndex);
+        }
     }
 
-    if (Succeeded) {
-        if (Path->IsActive) {
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
-            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
-        } else {
-            
-        }
-    } else {
-        QuicTraceLogConnInfo(
-            Unreachable,
-            Connection,
-            "Route resolution failure");
+    if (Connection->PathsCount == 0) {
         //
         // Close the connection since the peer is unreachable.
         //
@@ -5708,6 +5713,8 @@ QuicConnProcessRouteCompletion(
             QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
             (uint64_t)QUIC_STATUS_UNREACHABLE,
             NULL);
+    } else {
+        QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
     }
 }
 
