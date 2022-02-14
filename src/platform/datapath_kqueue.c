@@ -22,6 +22,7 @@ Environment:
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <stdio.h>
 #ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
@@ -1235,6 +1236,15 @@ CxPlatSocketContextRecvComplete(
                 FoundTOS = TRUE;
             }
         }
+    }
+
+    if (!FoundLocalAddr || !FoundTOS) {
+        for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
+            CMsg != NULL;
+            CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
+            printf("Cmsg level %d Cmsg type\n", (int)CMsg->cmsg_level, (int)CMsg->cmsg_type);
+        }
+        fflush(stdout);
     }
 
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
