@@ -22,7 +22,6 @@ Environment:
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <stdio.h>
 #ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
@@ -987,7 +986,7 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
-            ForceIpv4 ? IP_RECVPKTINFO : IPV6_RECVPKTINFO,
+            IP_RECVPKTINFO,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -997,8 +996,28 @@ CxPlatSocketContextInitialize(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "setsockopt(IPV6_RECVPKTINFO) failed");
+            "setsockopt(IP_RECVPKTINFO) failed");
         goto Exit;
+    }
+
+    if (!ForceIpv4) {
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IPV6,
+                IPV6_RECVPKTINFO,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IPV6_RECVPKTINFO) failed");
+            goto Exit;
+        }
     }
 
     //
@@ -1236,15 +1255,6 @@ CxPlatSocketContextRecvComplete(
                 FoundTOS = TRUE;
             }
         }
-    }
-
-    if (!FoundLocalAddr || !FoundTOS) {
-        for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
-            CMsg != NULL;
-            CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
-            printf("Cmsg level %d Cmsg type\n", (int)CMsg->cmsg_level, (int)CMsg->cmsg_type);
-        }
-        fflush(stdout);
     }
 
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
