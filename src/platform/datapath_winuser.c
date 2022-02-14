@@ -4000,6 +4000,10 @@ CxPlatDataPathRunEC(
     CXPLAT_SOCKET_PROC* SocketProc;
     LPOVERLAPPED Overlapped;
 
+    if (DatapathProc->ThreadId != CurThreadId) {
+        DatapathProc->ThreadId = CurThreadId;
+    }
+
     BOOL Result =
         GetQueuedCompletionStatus(
             DatapathProc->IOCP,
