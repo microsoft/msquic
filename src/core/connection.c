@@ -18,7 +18,7 @@ Abstract:
     MaxOperationsPerDrain operations per call, so as to not starve any other
     work.
 
-    While most of the connection specific work is managed by other interfaces,
+    While most of the connection specific work is managed by other modules,
     the following things are managed in this file:
 
     Connection Lifetime - Initialization, handshake and state changes, shutdown,
