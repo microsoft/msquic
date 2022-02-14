@@ -85,12 +85,12 @@ CxPlatWorkerWake(
 void
 CxPlatWorkerRegisterDataPath(
     _In_ uint16_t IdealProcessor,
-    _In_ void* DatapathEC
+    _In_ void* Context
     )
 {
     CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
     CXPLAT_DBG_ASSERT(Worker->DatapathEC == NULL);
-    Worker->DatapathEC = DatapathEC;
+    Worker->DatapathEC = Context;
     CxPlatEventSet(Worker->WakeEvent);
 }
 
