@@ -9,10 +9,16 @@ Abstract:
     have been lost or delivered to the peer.
 
 
-    RACK (time-based loss detection) algorithm:
+    A combination of two similar loss detection algorithms is used:
 
-    An unacknowledged packet sent before an acknowledged packet and
-    sent more than QUIC_TIME_REORDER_THRESHOLD ago is assumed lost.
+    RACK (time-based reordering threshold) algorithm:
+        An unacknowledged packet sent before an acknowledged packet and
+        sent more than QUIC_TIME_REORDER_THRESHOLD ago is assumed lost.
+
+    FACK (packet-number-based reordering threshold) algorithm:
+        An unacknowledged packet sent before an acknowledged packet and
+        sent more than QUIC_PACKET_REORDER_THRESHOLD packets ago is assumed
+        lost.
 
 
     There are three logical timers in this module:
