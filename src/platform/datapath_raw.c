@@ -37,6 +37,7 @@ CxPlatDataPathRouteWorkerUninitialize(
     }
 
     CxPlatEventUninitialize(Worker->Ready);
+    CxPlatDispatchLockUninitialize(&Worker->Lock);
     CXPLAT_FREE(Worker, QUIC_POOL_ROUTE_RESOLUTION_WORKER);
 }
 
@@ -60,7 +61,10 @@ CxPlatDataPathRouteWorkerInitialize(
         goto Error;
     }
 
+    Worker->Enabled = TRUE;
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
+    CxPlatDispatchLockInitialize(&Worker->Lock);
+    CxPlatListInitializeHead(&Worker->Operations);
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         CXPLAT_THREAD_FLAG_NONE,
         0,
