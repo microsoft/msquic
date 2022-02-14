@@ -17,6 +17,7 @@ body:
       label: Affected OS
       description: What operating systems are affected by this bug?
       options:
+        - label: All
         - label: Windows Server 2022
         - label: Windows 11
         - label: Windows Insider Preview (specify affected build below)
