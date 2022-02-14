@@ -95,7 +95,6 @@ void QuicTestRegistrationShutdownAfterConnOpen()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &StatsSize,
             &Stats);
@@ -132,7 +131,6 @@ void QuicTestRegistrationShutdownAfterConnOpenBeforeStart()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &StatsSize,
             &Stats);
@@ -152,7 +150,6 @@ void QuicTestRegistrationShutdownAfterConnOpenBeforeStart()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &StatsSize,
             &Stats);
@@ -202,7 +199,6 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &StatsSize,
             &Stats);
@@ -223,7 +219,6 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_STATISTICS,
             &StatsSize,
             &Stats);

@@ -70,8 +70,6 @@ MsQuicRegistrationOpen(
     Registration->NoPartitioning = FALSE;
     Registration->SplitPartitioning = FALSE;
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
-    Registration->CidPrefixLength = 0;
-    Registration->CidPrefix = NULL;
     Registration->ShuttingDown = 0;
     Registration->ShutdownErrorCode = 0;
     Registration->ShutdownFlags = 0;
@@ -211,10 +209,6 @@ MsQuicRegistrationClose(
         CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
         CxPlatLockUninitialize(&Registration->ConfigLock);
-
-        if (Registration->CidPrefix != NULL) {
-            CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
-        }
 
         CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
 
@@ -400,36 +394,10 @@ QuicRegistrationParamSet(
         const void* Buffer
     )
 {
-    if (Param == QUIC_PARAM_REGISTRATION_CID_PREFIX) {
-        if (BufferLength == 0) {
-            if (Registration->CidPrefix != NULL) {
-                CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
-                Registration->CidPrefix = NULL;
-            }
-            Registration->CidPrefixLength = 0;
-            return QUIC_STATUS_SUCCESS;
-        }
-
-        if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-
-        if (BufferLength > Registration->CidPrefixLength) {
-            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
-            if (NewCidPrefix == NULL) {
-                return QUIC_STATUS_OUT_OF_MEMORY;
-            }
-            CXPLAT_DBG_ASSERT(Registration->CidPrefix != NULL);
-            CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
-            Registration->CidPrefix = NewCidPrefix;
-        }
-
-        Registration->CidPrefixLength = (uint8_t)BufferLength;
-        memcpy(Registration->CidPrefix, Buffer, BufferLength);
-
-        return QUIC_STATUS_SUCCESS;
-    }
-
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
@@ -443,27 +411,9 @@ QuicRegistrationParamGet(
         void* Buffer
     )
 {
-    if (Param == QUIC_PARAM_REGISTRATION_CID_PREFIX) {
-
-        if (*BufferLength < Registration->CidPrefixLength) {
-            *BufferLength = Registration->CidPrefixLength;
-            return QUIC_STATUS_BUFFER_TOO_SMALL;
-        }
-
-        if (Registration->CidPrefixLength > 0) {
-            if (Buffer == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-
-            *BufferLength = Registration->CidPrefixLength;
-            memcpy(Buffer, Registration->CidPrefix, Registration->CidPrefixLength);
-
-        } else {
-            *BufferLength = 0;
-        }
-
-        return QUIC_STATUS_SUCCESS;
-    }
-
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_INVALID_PARAMETER;
 }

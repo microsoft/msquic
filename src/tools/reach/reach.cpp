@@ -49,7 +49,7 @@ ConnectionHandler(
         Context->GotConnected = true;
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         uint32_t Size = sizeof(Context->QuicVersion);
-        MsQuic->GetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
+        MsQuic->GetParam(Connection, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
         break;
     }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
@@ -105,7 +105,7 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
         exit(1);
     }
 
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
+    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
         printf("SetParam QUIC_PARAM_CONN_REMOTE_ADDRESS failed.\n");
         exit(1);
     }
@@ -180,8 +180,8 @@ main(int argc, char **argv)
         }
     }
 
-    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed.\n");
+    if (QUIC_FAILED(MsQuicOpen2(&MsQuic))) {
+        printf("MsQuicOpen2 failed.\n");
         exit(1);
     }
 

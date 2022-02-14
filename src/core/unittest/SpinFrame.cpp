@@ -79,6 +79,7 @@ TEST(SpinFrame, SpinFrame1000000)
         switch(FrameType) {
             case QUIC_FRAME_PADDING:
             case QUIC_FRAME_PING:
+            case QUIC_FRAME_IMMEDIATE_ACK:
                 break; // no-op
             case QUIC_FRAME_ACK:
             case QUIC_FRAME_ACK_1:

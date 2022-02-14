@@ -825,6 +825,7 @@ QuicSendWriteFrames(
                     (uint64_t)Connection->Settings.MaxAckDelayMs +
                     (uint64_t)MsQuicLib.TimerResolutionMs);
             Frame.IgnoreOrder = FALSE;
+            Frame.IgnoreCE = FALSE;
 
             if (QuicAckFrequencyFrameEncode(
                     &Frame,

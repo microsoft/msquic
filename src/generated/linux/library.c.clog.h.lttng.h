@@ -193,13 +193,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenNull
-// [ api] MsQuicOpen, NULL
+// Decoder Ring for LibraryMsQuicOpenVersionNull
+// [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
-            LibraryMsQuicOpenNull,
-            "[ api] MsQuicOpen, NULL");
+            LibraryMsQuicOpenVersionNull,
+            "[ api] MsQuicOpenVersion, NULL");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenNull,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionNull,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -209,13 +209,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenNull,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenEntry
-// [ api] MsQuicOpen
+// Decoder Ring for LibraryMsQuicOpenVersionEntry
+// [ api] MsQuicOpenVersion
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenEntry,
-        "[ api] MsQuicOpen");
+        LibraryMsQuicOpenVersionEntry,
+        "[ api] MsQuicOpenVersion");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionEntry,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -225,15 +225,15 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenExit
-// [ api] MsQuicOpen, status=0x%x
+// Decoder Ring for LibraryMsQuicOpenVersionExit
+// [ api] MsQuicOpenVersion, status=0x%x
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenExit,
-        "[ api] MsQuicOpen, status=0x%x",
+        LibraryMsQuicOpenVersionExit,
+        "[ api] MsQuicOpenVersion, status=0x%x",
         Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenExit,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit,
     TP_ARGS(
         unsigned int, arg2), 
     TP_FIELDS(
@@ -417,6 +417,25 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
     TP_ARGS(
 ), 
     TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
     )
 )
 

@@ -18,7 +18,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="2.0.74" />
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent.SupportFiles" Version="1.0.23" />
-    <PackageReference Include="Microsoft.Performance.SDK" Version="1.0.14-rc1" />
+    <PackageReference Include="Microsoft.Performance.SDK" Version="1.0.16" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(SolutionDir)..\..\LICENSE">

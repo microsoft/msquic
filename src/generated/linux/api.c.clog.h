@@ -156,17 +156,17 @@ tracepoint(CLOG_API_C, StreamAppSend , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
+// Decoder Ring for ApiError
+// [ api] Error %u
 // QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Param level does not match param value");
-// arg2 = arg2 = "Param level does not match param value" = arg2
+            ApiError,
+            "[ api] Error %u",
+            (uint32_t)QUIC_STATUS_INVALID_STATE);
+// arg2 = arg2 = (uint32_t)QUIC_STATUS_INVALID_STATE = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_API_C, LibraryError , arg2);\
+#ifndef _clog_3_ARGS_TRACE_ApiError
+#define _clog_3_ARGS_TRACE_ApiError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_API_C, ApiError , arg2);\
 
 #endif
 

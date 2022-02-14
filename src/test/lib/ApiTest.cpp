@@ -20,7 +20,7 @@ void QuicTestValidateApi()
 {
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuicOpen(nullptr));
+        MsQuicOpen2(nullptr));
 
     MsQuicClose(nullptr);
 }
@@ -273,7 +273,6 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 LocalConfiguration,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 sizeof(KeyConfig),
                 &KeyConfig));
@@ -307,7 +306,6 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 LocalConfiguration,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 sizeof(KeyConfigs),
                 KeyConfigs));
@@ -321,10 +319,36 @@ QUIC_STATUS
 QUIC_API
 DummyListenerCallback(
     HQUIC,
-    void*,
-    QUIC_LISTENER_EVENT*
+    void* Context,
+    QUIC_LISTENER_EVENT* Event
     )
 {
+    CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
+    if (StopCompleteEvent &&
+        Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+        StopCompleteEvent->Set();
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+static
+_Function_class_(QUIC_LISTENER_CALLBACK)
+QUIC_STATUS
+QUIC_API
+AutoCloseListenerCallback(
+    HQUIC Listener,
+    void* Context,
+    QUIC_LISTENER_EVENT* Event
+    )
+{
+    CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
+    if (StopCompleteEvent &&
+        Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+        StopCompleteEvent->Set();
+        MsQuic->ListenerClose(Listener);
+        return QUIC_STATUS_SUCCESS;
+    }
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -337,6 +361,7 @@ void QuicTestValidateListener()
     TEST_TRUE(LocalConfiguration.IsValid());
 
     HQUIC Listener = nullptr;
+    CxPlatEvent StopCompleteEvent;
 
     //
     // Null listener callback handler.
@@ -378,10 +403,11 @@ void QuicTestValidateListener()
         MsQuic->ListenerOpen(
             Registration,
             DummyListenerCallback,
-            nullptr,
+            &StopCompleteEvent,
             &Listener));
 
     MsQuic->ListenerStop(Listener);
+    TEST_FALSE(StopCompleteEvent.WaitTimeout(100)); // Event not should have been set
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerStart(
@@ -391,6 +417,7 @@ void QuicTestValidateListener()
             nullptr));
 
     MsQuic->ListenerClose(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
     Listener = nullptr;
 
     //
@@ -400,7 +427,7 @@ void QuicTestValidateListener()
         MsQuic->ListenerOpen(
             Registration,
             DummyListenerCallback,
-            nullptr,
+            &StopCompleteEvent,
             &Listener));
 
     TEST_QUIC_SUCCEEDED(
@@ -411,6 +438,7 @@ void QuicTestValidateListener()
             nullptr));
 
     MsQuic->ListenerClose(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
     Listener = nullptr;
 
     //
@@ -420,7 +448,7 @@ void QuicTestValidateListener()
         MsQuic->ListenerOpen(
             Registration,
             DummyListenerCallback,
-            nullptr,
+            &StopCompleteEvent,
             &Listener));
 
     TEST_QUIC_SUCCEEDED(
@@ -452,16 +480,40 @@ void QuicTestValidateListener()
             &Listener));
 
     MsQuic->ListenerStop(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
 
     MsQuic->ListenerStop(Listener);
+    TEST_FALSE(StopCompleteEvent.WaitTimeout(100)); // Event not should have been set (again)
 
     MsQuic->ListenerClose(Listener);
+    TEST_FALSE(StopCompleteEvent.WaitTimeout(100)); // Event not should have been set (again)
     Listener = nullptr;
 
     //
     // Null handle to close.
     //
     MsQuic->ListenerClose(nullptr);
+
+    //
+    // Close in callback
+    //
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ListenerOpen(
+            Registration,
+            AutoCloseListenerCallback,
+            &StopCompleteEvent,
+            &Listener));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ListenerStart(
+            Listener,
+            Alpn,
+            Alpn.Length(),
+            nullptr));
+
+    MsQuic->ListenerStop(Listener);
+    TEST_TRUE(StopCompleteEvent.WaitTimeout(100)); // Event should have been set
+    Listener = nullptr;
 }
 
 static
@@ -862,7 +914,6 @@ void QuicTestValidateConnection()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(ReceiveDatagrams),
                 &ReceiveDatagrams));
@@ -871,7 +922,6 @@ void QuicTestValidateConnection()
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(ReceiveDatagrams),
                 &ReceiveDatagrams));
@@ -1059,6 +1109,14 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+struct ShutdownStreamContext {
+    QUIC_STATUS StartCompleteStatus { QUIC_STATUS_SUCCESS };
+    bool ShutdownComplete { false };
+    CxPlatEvent StartCompleteEvent;
+    CxPlatEvent ShutdownCompleteEvent;
+    ShutdownStreamContext() { }
+};
+
 _Function_class_(QUIC_STREAM_CALLBACK)
 static
 QUIC_STATUS
@@ -1069,8 +1127,13 @@ ShutdownStreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
-    bool* ShutdownComplete = (bool*)Context;
+    ShutdownStreamContext* ShutdownContext = (ShutdownStreamContext*)Context;
     switch (Event->Type) {
+
+    case QUIC_STREAM_EVENT_START_COMPLETE:
+        ShutdownContext->StartCompleteStatus = Event->START_COMPLETE.Status;
+        ShutdownContext->StartCompleteEvent.Set();
+        break;
 
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.TotalBufferLength != 0) {
@@ -1083,7 +1146,8 @@ ShutdownStreamCallback(
         break;
 
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        *ShutdownComplete = true;
+        ShutdownContext->ShutdownComplete = true;
+        ShutdownContext->ShutdownCompleteEvent.Set();
         break;
 
     default:
@@ -1221,14 +1285,14 @@ void QuicTestValidateStream(bool Connect)
             //
             {
                 TestScopeLogger logScope("Fail on blocked");
-                bool ShutdownComplete = false;
+                ShutdownStreamContext Context;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
                         QUIC_STREAM_OPEN_FLAG_NONE,
                         ShutdownStreamCallback,
-                        &ShutdownComplete,
+                        &Context,
                         &Stream.Handle));
                 if (Connect) {
                     TEST_QUIC_SUCCEEDED(
@@ -1237,12 +1301,14 @@ void QuicTestValidateStream(bool Connect)
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
                 } else {
                     TEST_QUIC_STATUS(
-                        QUIC_STATUS_STREAM_LIMIT_REACHED,
+                        QUIC_STATUS_PENDING,
                         MsQuic->StreamStart(
                             Stream.Handle,
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
+                    Context.StartCompleteEvent.WaitTimeout(2000);
+                    TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
                 }
-                TEST_FALSE(ShutdownComplete);
+                TEST_FALSE(Context.ShutdownComplete);
             }
 
             //
@@ -1250,21 +1316,24 @@ void QuicTestValidateStream(bool Connect)
             //
             if (!Connect) {
                 TestScopeLogger logScope("Shutdown on fail");
-                bool ShutdownComplete = false;
+                ShutdownStreamContext Context;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
                         QUIC_STREAM_OPEN_FLAG_NONE,
                         ShutdownStreamCallback,
-                        &ShutdownComplete,
+                        &Context,
                         &Stream.Handle));
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_STREAM_LIMIT_REACHED,
+                    QUIC_STATUS_PENDING,
                     MsQuic->StreamStart(
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_FAIL_BLOCKED | QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
-                TEST_TRUE(ShutdownComplete);
+                Context.StartCompleteEvent.WaitTimeout(2000);
+                TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
+                Context.ShutdownCompleteEvent.WaitTimeout(2000);
+                TEST_TRUE(Context.ShutdownComplete);
             }
 
             //
@@ -1562,7 +1631,6 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_PERF_COUNTERS,
             &BufferLength,
             nullptr),
@@ -1577,7 +1645,6 @@ QuicTestGetPerfCounters()
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_PERF_COUNTERS,
             &BufferLength,
             Counters));
@@ -1589,7 +1656,6 @@ QuicTestGetPerfCounters()
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_PERF_COUNTERS,
             &BufferLength,
             Counters));
@@ -1600,16 +1666,18 @@ QuicTestGetPerfCounters()
 void
 QuicTestDesiredVersionSettings()
 {
+    // TODO this test needs to be majorly updated
+
     const uint32_t DesiredVersions[] = {0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a};
     const uint32_t InvalidDesiredVersions[] = {0x00000001, 0x00000002};
-    uint8_t Buffer[sizeof(QUIC_SETTINGS) + sizeof(DesiredVersions)];
+    QUIC_SETTINGS OutputSettings;
     uint32_t BufferLength = sizeof(QUIC_SETTINGS);
+    uint32_t OutputDesiredVersions[ARRAYSIZE(DesiredVersions)];
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
     MsQuicSettings InputSettings;
-    const QUIC_SETTINGS* const OutputSettings = (QUIC_SETTINGS*)Buffer;
 
     //
     // Test setting and getting the desired versions on Connection
@@ -1625,7 +1693,6 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             Connection.SetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
@@ -1637,37 +1704,43 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_SUCCEEDED(
             Connection.SetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
 
+        TEST_QUIC_SUCCEEDED(
+            Connection.GetParam(
+                QUIC_PARAM_CONN_SETTINGS,
+                &BufferLength,
+                &OutputSettings));
+
+        TEST_EQUAL(BufferLength, sizeof(OutputSettings));
+
+        BufferLength = 0;
+        CxPlatZeroMemory(OutputDesiredVersions, sizeof(OutputDesiredVersions));
+
         TEST_QUIC_STATUS(
             QUIC_STATUS_BUFFER_TOO_SMALL,
             Connection.GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SETTINGS,
+                QUIC_PARAM_CONN_DESIRED_VERSIONS,
                 &BufferLength,
-                Buffer));
+                NULL));
 
-        TEST_EQUAL(BufferLength, sizeof(Buffer));
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
 
         TEST_QUIC_SUCCEEDED(
             Connection.GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SETTINGS,
+                QUIC_PARAM_CONN_DESIRED_VERSIONS,
                 &BufferLength,
-                Buffer));
+                OutputDesiredVersions));
 
-        TEST_EQUAL(BufferLength, sizeof(Buffer));
-
-        TEST_EQUAL(OutputSettings->DesiredVersionsListLength, ARRAYSIZE(DesiredVersions));
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
 
         //
         // Test to make sure the DesiredVersionsList is aligned.
         //
-        for (unsigned i = 0; i < OutputSettings->DesiredVersionsListLength; ++i) {
-            TEST_EQUAL(OutputSettings->DesiredVersionsList[i], CxPlatByteSwapUint32(DesiredVersions[i]));
+        for (unsigned i = 0; i < ARRAYSIZE(DesiredVersions); ++i) {
+            TEST_EQUAL(OutputDesiredVersions[i], CxPlatByteSwapUint32(DesiredVersions[i]));
         }
     }
 
@@ -1710,60 +1783,97 @@ QuicTestDesiredVersionSettings()
                 nullptr,
                 &Configuration.Handle));
 
-        BufferLength = sizeof(Buffer);
+        BufferLength = sizeof(OutputSettings);
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 &BufferLength,
-                Buffer));
+                &OutputSettings));
 
         TEST_EQUAL(BufferLength, sizeof(QUIC_SETTINGS));
 
-        TEST_EQUAL(OutputSettings->DesiredVersionsListLength, ARRAYSIZE(DesiredVersions));
+        BufferLength = 0;
+        CxPlatZeroMemory(OutputDesiredVersions, sizeof(OutputDesiredVersions));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                Configuration.Handle,
+                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                &BufferLength,
+                NULL));
+
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Configuration.Handle,
+                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                &BufferLength,
+                OutputDesiredVersions));
+
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
 
         //
-        // Test that the values are correct.
+        // Test to make sure the DesiredVersionsList is aligned.
         //
-        for (unsigned i = 0; i < OutputSettings->DesiredVersionsListLength; ++i) {
-            TEST_EQUAL(OutputSettings->DesiredVersionsList[i], CxPlatByteSwapUint32(DesiredVersions[i]));
+        for (unsigned i = 0; i < ARRAYSIZE(DesiredVersions); ++i) {
+            TEST_EQUAL(OutputDesiredVersions[i], CxPlatByteSwapUint32(DesiredVersions[i]));
         }
 
         //
         // Test setting/getting desired versions on Configuration
         //
-        BufferLength = sizeof(Buffer);
+        BufferLength = sizeof(InputSettings);
         InputSettings.SetDesiredVersionsList(DesiredVersions, ARRAYSIZE(DesiredVersions));
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
 
-        BufferLength = sizeof(Buffer);
+        BufferLength = sizeof(OutputSettings);
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Configuration.Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 &BufferLength,
-                Buffer));
+                &OutputSettings));
 
         TEST_EQUAL(BufferLength, sizeof(QUIC_SETTINGS));
 
-        TEST_EQUAL(OutputSettings->DesiredVersionsListLength, ARRAYSIZE(DesiredVersions));
+        BufferLength = 0;
+        CxPlatZeroMemory(OutputDesiredVersions, sizeof(OutputDesiredVersions));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                Configuration.Handle,
+                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                &BufferLength,
+                NULL));
+
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Configuration.Handle,
+                QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS,
+                &BufferLength,
+                OutputDesiredVersions));
+
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
 
         //
-        // Test that the values are correct.
+        // Test to make sure the DesiredVersionsList is aligned.
         //
-        for (unsigned i = 0; i < OutputSettings->DesiredVersionsListLength; ++i) {
-            TEST_EQUAL(OutputSettings->DesiredVersionsList[i], CxPlatByteSwapUint32(DesiredVersions[i]));
+        for (unsigned i = 0; i < ARRAYSIZE(DesiredVersions); ++i) {
+            TEST_EQUAL(OutputDesiredVersions[i], CxPlatByteSwapUint32(DesiredVersions[i]));
         }
     }
 
@@ -1776,7 +1886,6 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
@@ -1784,35 +1893,44 @@ QuicTestDesiredVersionSettings()
         //
         // Test setting/getting valid desired versions on global
         //
-        BufferLength = sizeof(Buffer);
+        BufferLength = sizeof(InputSettings);
         InputSettings.SetDesiredVersionsList(DesiredVersions, ARRAYSIZE(DesiredVersions));
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
         ClearGlobalVersionListScope ClearVersionListScope;
 
+        BufferLength = 0;
+        CxPlatZeroMemory(OutputDesiredVersions, sizeof(OutputDesiredVersions));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
+                &BufferLength,
+                NULL));
+
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
+
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
+                QUIC_PARAM_GLOBAL_DESIRED_VERSIONS,
                 &BufferLength,
-                Buffer));
+                OutputDesiredVersions));
 
-        TEST_EQUAL(BufferLength, sizeof(QUIC_SETTINGS));
-
-        TEST_EQUAL(OutputSettings->DesiredVersionsListLength, ARRAYSIZE(DesiredVersions));
+        TEST_EQUAL(BufferLength, sizeof(DesiredVersions));
 
         //
-        // Test that the values are correct.
+        // Test to make sure the DesiredVersionsList is aligned.
         //
-        for (unsigned i = 0; i < OutputSettings->DesiredVersionsListLength; ++i) {
-            TEST_EQUAL(OutputSettings->DesiredVersionsList[i], CxPlatByteSwapUint32(DesiredVersions[i]));
+        for (unsigned i = 0; i < ARRAYSIZE(DesiredVersions); ++i) {
+            TEST_EQUAL(OutputDesiredVersions[i], CxPlatByteSwapUint32(DesiredVersions[i]));
         }
     }
 }
@@ -1823,15 +1941,15 @@ QuicTestValidateParamApi()
     //
     // Test backwards compatibility.
     //
-    uint16_t LoadBalancingMode, LoadBalancingMode2;
+    uint16_t LoadBalancingMode;
     uint32_t BufferSize = sizeof(LoadBalancingMode);
 
+    BufferSize = sizeof(LoadBalancingMode);
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_CONFIGURATION,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            2,              // No longer backwards compatible with v1.*
             &BufferSize,
             (void*)&LoadBalancingMode));
 
@@ -1839,48 +1957,9 @@ QuicTestValidateParamApi()
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            2, // Special case to test backwards compatiblity
-            &BufferSize,
-            (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode2);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
             &BufferSize,
-            (void*)&LoadBalancingMode2));
-
-    TEST_EQUAL(LoadBalancingMode, LoadBalancingMode2);
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_CONFIGURATION,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-            BufferSize,
             (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            2, // Special case to test backwards compatiblity
-            BufferSize,
-            (void*)&LoadBalancingMode));
-
-    BufferSize = sizeof(LoadBalancingMode2);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-            BufferSize,
-            (void*)&LoadBalancingMode2));
 }
 
 static

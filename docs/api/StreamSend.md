@@ -41,7 +41,7 @@ Value | Meaning
 --- | ---
 **QUIC_SEND_FLAG_NONE**<br>0 | No special behavior. Data is not allowed in 0-RTT by default.
 **QUIC_SEND_FLAG_ALLOW_0_RTT**<br>1 | Indicates that the data is allowed to be sent in 0-RTT (if available). Makes no guarantee the data will be sent in 0-RTT. Additionally, even if 0-RTT keys are available the data may end up being sent in 1-RTT for multiple reasons.
-**QUIC_SEND_FLAG_START**<br>2 | Indicates that the stream should asynchronously start (equivalent to calling [StreamStart](StreamStart.md) with the `QUIC_STREAM_START_FLAG_ASYNC` flag).
+**QUIC_SEND_FLAG_START**<br>2 | Indicates that the stream should asynchronously start (equivalent to calling [StreamStart](StreamStart.md)).
 **QUIC_SEND_FLAG_FIN**<br>4 | Indicates the the stream send is the last or final data to be sent on the stream and should be gracefully shutdown (equivalent to calling [StreamShutdown](StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag).
 **QUIC_SEND_FLAG_DGRAM_PRIORITY**<br>8 | **Unused and ignored** for `StreamSend`
 **QUIC_SEND_FLAG_DELAY_SEND**<br>16 | Provides a hint to MsQuic to indicate the data does not need to be sent immediately, likely because more is soon to follow.
