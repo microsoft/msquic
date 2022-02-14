@@ -9,7 +9,7 @@ if (QUIC_CODE_CHECK)
     set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
 endif()
 
-set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
+set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES ${SOURCES} datapath_winuser.c platform_winuser.c storage_winuser.c)

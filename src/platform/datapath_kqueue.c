@@ -279,9 +279,9 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
     uint32_t Index;
 
     //
-    // The kqueue wait thread.
+    // Completion event to indicate the worker has cleaned up.
     //
-    CXPLAT_THREAD KqueueWaitThread;
+    CXPLAT_EVENT CompletionEvent;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
@@ -379,8 +379,8 @@ CxPlatProcessorContextUninitialize(
     struct kevent Event = {0};
     EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
     kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
-    CxPlatThreadWait(&ProcContext->KqueueWaitThread);
-    CxPlatThreadDelete(&ProcContext->KqueueWaitThread);
+    CxPlatEventWaitForever(ProcContext->CompletionEvent);
+    CxPlatEventUninitialize(ProcContext->CompletionEvent);
 
     close(ProcContext->KqueueFd);
 
@@ -400,7 +400,6 @@ CxPlatProcessorContextInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int KqueueFd = INVALID_SOCKET;
     uint32_t RecvPacketLength = 0;
-    BOOLEAN ThreadCreated = FALSE;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
@@ -449,38 +448,19 @@ CxPlatProcessorContextInitialize(
     // ProcContext members.
     //
 
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        0,
-        (uint16_t)Index,
-        NULL,
-        CxPlatDataPathWorkerThread,
-        ProcContext
-    };
-
-    Status = CxPlatThreadCreate(&ThreadConfig, &ProcContext->KqueueWaitThread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate failed");
-        goto Exit;
-    }
+    CxPlatEventInitialize(&ProcContext->CompletionEvent, TRUE, FALSE);
+    CxPlatWorkerRegisterDataPath((uint16_t)Index, ProcContext);
 
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        if (ThreadCreated) {
-            CxPlatProcessorContextUninitialize(ProcContext);
-        } else {
-            if (KqueueFd != INVALID_SOCKET) {
-                close(KqueueFd);
-            }
-            CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-            CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-            CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-            CxPlatPoolUninitialize(&ProcContext->SendDataPool);
+        if (KqueueFd != INVALID_SOCKET) {
+            close(KqueueFd);
         }
+        CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+        CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+        CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+        CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     }
 
     return Status;
@@ -2277,54 +2257,60 @@ CxPlatSocketGetLocalMtu(
     })
 #endif
 
-void*
-CxPlatDataPathWorkerThread(
+void
+CxPlatDataPathWake(
     _In_ void* Context
+    )
+{
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
+    struct kevent Event = {0};
+    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
+    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+}
+
+BOOLEAN
+CxPlatDataPathRunEC(
+    _In_ void* Context,
+    _In_ uint32_t WaitTime
     )
 {
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
     CXPLAT_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
 
-    QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        ProcContext);
-
     int Kqueue = ProcContext->KqueueFd;
     const size_t EventListMax = 16; // TODO: Experiment.
     struct kevent EventList[EventListMax];
 
-    while (!ProcContext->Datapath->Shutdown) {
-        int ReadyEventCount =
-            TEMP_FAILURE_RETRY(
-                kevent(
-                    Kqueue,
-                    NULL,
-                    0,
-                    EventList,
-                    EventListMax,
-                    NULL));
-
-        CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
-        for (int i = 0; i < ReadyEventCount; i++) {
-            if (EventList[i].udata == NULL) {
-                //
-                // The processor context is shutting down and the worker thread
-                // needs to clean up.
-                //
-                CXPLAT_DBG_ASSERT(ProcContext->Datapath->Shutdown);
-                break;
-            }
-
-            CxPlatSocketContextProcessEvents(
-                &EventList[i]);
-        }
+    struct timespec Timeout = {0, 0};
+    if (WaitTime != UINT32_MAX) {
+        CxPlatGetAbsoluteTime(WaitTime, &Timeout);
     }
 
-    QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        ProcContext);
+    int ReadyEventCount =
+        TEMP_FAILURE_RETRY(
+            kevent(
+                Kqueue,
+                NULL,
+                0,
+                EventList,
+                EventListMax,
+                WaitTime == UINT32_MAX ? NULL : &Timeout));
+
+    if (ProcContext->Datapath->Shutdown) {
+        CxPlatEventSet(ProcContext->CompletionEvent);
+        return FALSE;
+    }
+
+    if (ReadyEventCount == 0) {
+        return TRUE; // Wake for timeout.
+    }
+
+    CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
+    for (int i = 0; i < ReadyEventCount; i++) {
+        if (EventList[i].udata != NULL) {
+            CxPlatSocketContextProcessEvents(&EventList[i]);
+        }
+    }
 
     return 0;
 }

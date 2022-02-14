@@ -90,44 +90,6 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PlatformWorkerThreadStart
-// [ lib][%p] Worker start
-// QuicTraceLogInfo(
-        PlatformWorkerThreadStart,
-        "[ lib][%p] Worker start",
-        Worker);
-// arg2 = arg2 = Worker = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, PlatformWorkerThreadStart,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PlatformWorkerThreadStop
-// [ lib][%p] Worker stop
-// QuicTraceLogInfo(
-        PlatformWorkerThreadStop,
-        "[ lib][%p] Worker stop",
-        Worker);
-// arg2 = arg2 = Worker = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, PlatformWorkerThreadStop,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for WindowsUserInitialized2
 // [ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])
 // QuicTraceLogInfo(

@@ -473,12 +473,6 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
-void
-CxPlatWorkerRegisterDataPath(
-    _In_ uint16_t IdealProcessor,
-    _In_ void* DatapathEC
-    );
-
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Context
@@ -3982,13 +3976,20 @@ CxPlatSocketSend(
 #endif // CXPLAT_DATAPATH_QUEUE_SENDS
 }
 
-void CxPlatDataPathWake(void* Context)
+void
+CxPlatDataPathWake(
+    _In_ void* Context
+    )
 {
     CXPLAT_DATAPATH_PROC* DatapathProc = (CXPLAT_DATAPATH_PROC*)Context;
     PostQueuedCompletionStatus(DatapathProc->IOCP, 0, (ULONG_PTR)NULL, NULL);
 }
 
-BOOLEAN CxPlatDataPathRunEC(void* Context, uint32_t WaitTime)
+BOOLEAN
+CxPlatDataPathRunEC(
+    _In_ void* Context,
+    _In_ uint32_t WaitTime
+    )
 {
     CXPLAT_DATAPATH_PROC* DatapathProc = (CXPLAT_DATAPATH_PROC*)Context;
 
