@@ -242,7 +242,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -265,7 +265,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplyNewSettings(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -14,7 +14,7 @@ Abstract:
 
     The connection drains operations in the QuicConnDrainOperations function.
     The only requirement here is that this function is not called in parallel
-    on multiple threads. The function will drain up to QUIC_SETTINGS's
+    on multiple threads. The function will drain up to QUIC_SETTINGS_INTERNAL's
     MaxOperationsPerDrain operations per call, so as to not starve any other
     work.
 
@@ -49,10 +49,10 @@ QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* NewSettings
+        const QUIC_SETTINGS_INTERNAL* NewSettings
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -5907,8 +5907,8 @@ QuicConnParamSet(
     case QUIC_PARAM_CONN_SETTINGS:
 
         if (Buffer == NULL ||
-            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
-            BufferLength > sizeof(QUIC_SETTINGS)) {
+            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList) ||
+            BufferLength > sizeof(QUIC_SETTINGS_INTERNAL)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5918,7 +5918,7 @@ QuicConnParamSet(
                 TRUE,
                 TRUE,
                 BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                (QUIC_SETTINGS_INTERNAL*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -6392,7 +6392,7 @@ QuicConnParamGet(
 
     case QUIC_PARAM_CONN_SETTINGS:
 
-        Status = QuicSettingsGetParam(&Connection->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        Status = QuicSettingsGetParam(&Connection->Settings, BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
         break;
 
     case QUIC_PARAM_CONN_DESIRED_VERSIONS:
@@ -6649,10 +6649,10 @@ QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* NewSettings
+        const QUIC_SETTINGS_INTERNAL* NewSettings
     )
 {
     QuicTraceLogConnInfo(

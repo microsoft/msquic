@@ -17,7 +17,7 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
-    _Inout_ QUIC_SETTINGS* Settings
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (!Settings->IsSet.SendBufferingEnabled) {
@@ -127,8 +127,8 @@ QuicSettingsSetDefault(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS* Destination,
-    _In_ const QUIC_SETTINGS* Source
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
+    _In_ const QUIC_SETTINGS_INTERNAL* Source
     )
 {
     if (!Destination->IsSet.SendBufferingEnabled) {
@@ -236,19 +236,19 @@ QuicSettingsCopy(
 }
 
 #define SETTING_HAS_FIELD(Size, Field) \
-    (Size >= (FIELD_OFFSET(QUIC_SETTINGS, Field) + sizeof(((QUIC_SETTINGS*)0)->Field)))
+    (Size >= (FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, Field) + sizeof(((QUIC_SETTINGS_INTERNAL*)0)->Field)))
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS* Destination,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* Source
+        const QUIC_SETTINGS_INTERNAL* Source
     )
 {
     if (Source->IsSet.SendBufferingEnabled && (!Destination->IsSet.SendBufferingEnabled || OverWrite)) {
@@ -509,7 +509,7 @@ QuicSettingApply(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCleanup(
-    _In_ QUIC_SETTINGS* Settings
+    _In_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (Settings->IsSet.DesiredVersionsList) {
@@ -523,7 +523,7 @@ QuicSettingsCleanup(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
-    _Inout_ QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings,
     _In_ CXPLAT_STORAGE* Storage
     )
 {
@@ -913,7 +913,7 @@ QuicSettingsLoad(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDump(
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     QuicTraceLogVerbose(SettingDumpSendBufferingEnabled,    "[sett] SendBufferingEnabled   = %hhu", Settings->SendBufferingEnabled);
@@ -959,10 +959,10 @@ QuicSettingsDump(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDumpNew(
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList), UINT32_MAX)
         uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
-        const QUIC_SETTINGS* Settings
+        const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (Settings->IsSet.SendBufferingEnabled) {
@@ -1091,13 +1091,13 @@ QuicSettingsDumpNew(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGetParam(
-    _In_ const QUIC_SETTINGS* IncomingSettings,
+    _In_ const QUIC_SETTINGS_INTERNAL* IncomingSettings,
     _Inout_ uint32_t* OutgoingSize,
     _Out_writes_bytes_opt_(*OutgoingSize)
-        QUIC_SETTINGS* OutgoingSettings
+        QUIC_SETTINGS_INTERNAL* OutgoingSettings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList);
+    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList);
 
     if (*OutgoingSize < MinimumSettingsSize) {
         *OutgoingSize = MinimumSettingsSize;
@@ -1109,16 +1109,16 @@ QuicSettingsGetParam(
     }
 
     CxPlatZeroMemory(OutgoingSettings, *OutgoingSize);
-    uint32_t CopySize = CXPLAT_MIN(*OutgoingSize, sizeof(QUIC_SETTINGS));
+    uint32_t CopySize = CXPLAT_MIN(*OutgoingSize, sizeof(QUIC_SETTINGS_INTERNAL));
 
     CxPlatCopyMemory(OutgoingSettings, IncomingSettings, CopySize);
     *OutgoingSize = CopySize;
 
-    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
+    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList)) {
         OutgoingSettings->DesiredVersionsList = NULL;
     }
 
-    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsListLength)) {
+    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsListLength)) {
         OutgoingSettings->DesiredVersionsListLength = 0;
     }
 
@@ -1128,7 +1128,7 @@ QuicSettingsGetParam(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGetDesiredVersions(
-    _In_ const QUIC_SETTINGS* Settings,
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         uint32_t* Buffer

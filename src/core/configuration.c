@@ -24,9 +24,6 @@ MsQuicConfigurationOpen(
     _In_reads_(AlpnBufferCount) _Pre_defensive_
         const QUIC_BUFFER* const AlpnBuffers,
     _In_range_(>, 0) uint32_t AlpnBufferCount,
-    _In_reads_bytes_opt_(SettingsSize)
-        const QUIC_SETTINGS* Settings,
-    _In_ uint32_t SettingsSize,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewConfiguration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewConfiguration
@@ -49,12 +46,6 @@ MsQuicConfigurationOpen(
         AlpnBuffers == NULL ||
         AlpnBufferCount == 0 ||
         NewConfiguration == NULL) {
-        goto Error;
-    }
-
-    if (Settings != NULL &&
-        SettingsSize < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
@@ -169,20 +160,6 @@ MsQuicConfigurationOpen(
                 Configuration,
                 Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
-        }
-    }
-
-    if (Settings != NULL && Settings->IsSetFlags != 0) {
-        CXPLAT_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList));
-        if (!QuicSettingApply(
-                &Configuration->Settings,
-                TRUE,
-                TRUE,
-                TRUE,
-                SettingsSize,
-                Settings)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
         }
     }
 
@@ -429,7 +406,7 @@ QuicConfigurationParamGet(
     )
 {
     if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
-        return QuicSettingsGetParam(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        return QuicSettingsGetParam(&Configuration->Settings, BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
     }
     if (Param == QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS) {
         return QuicSettingsGetDesiredVersions(&Configuration->Settings, BufferLength, (uint32_t*)Buffer);
@@ -452,8 +429,7 @@ QuicConfigurationParamSet(
     case QUIC_PARAM_CONFIGURATION_SETTINGS:
 
         if (Buffer == NULL ||
-            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
-            BufferLength > sizeof(QUIC_SETTINGS)) {
+            BufferLength != sizeof(QUIC_SETTINGS)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
@@ -462,17 +438,19 @@ QuicConfigurationParamSet(
             "[cnfg][%p] Setting new settings",
             Configuration);
 
+        
+
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
                 TRUE,
                 BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                (QUIC_SETTINGS_INTERNAL*)Buffer)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
 
         return QUIC_STATUS_SUCCESS;
 
