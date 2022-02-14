@@ -227,9 +227,9 @@ CxPlatDataPathWake(
     _In_ void* Context
     );
 
-BOOLEAN
+void
 CxPlatDataPathRunEC(
-    _In_ void* Context,
+    _In_ void** Context,
     _In_ uint32_t WaitTime
     );
 

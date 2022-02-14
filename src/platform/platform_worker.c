@@ -270,9 +270,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 #endif
 
         if (Worker->DatapathEC) {
-            if (!CxPlatDataPathRunEC(Worker->DatapathEC, WaitTime)) {
-                Worker->DatapathEC = NULL;
-            }
+            CxPlatDataPathRunEC((void**)&Worker->DatapathEC, WaitTime);
         } else if (WaitTime != 0) {
             CxPlatEventWaitWithTimeout(Worker->WakeEvent, WaitTime);
         }

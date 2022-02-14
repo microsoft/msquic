@@ -2268,14 +2268,15 @@ CxPlatDataPathWake(
     kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
-BOOLEAN
+void
 CxPlatDataPathRunEC(
-    _In_ void* Context,
+    _In_ void** Context,
     _In_ uint32_t WaitTime
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
-    CXPLAT_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
+    CXPLAT_DATAPATH_PROC_CONTEXT** EcProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT**)Context;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = *EcProcContext;
+    CXPLAT_DBG_ASSERT(ProcContext->Datapath != NULL);
 
     int Kqueue = ProcContext->KqueueFd;
     const size_t EventListMax = 16; // TODO: Experiment.
@@ -2297,12 +2298,13 @@ CxPlatDataPathRunEC(
                 WaitTime == UINT32_MAX ? NULL : &Timeout));
 
     if (ProcContext->Datapath->Shutdown) {
+        *Context = NULL;
         CxPlatEventSet(ProcContext->CompletionEvent);
-        return FALSE;
+        return;
     }
 
     if (ReadyEventCount == 0) {
-        return TRUE; // Wake for timeout.
+        return; // Wake for timeout.
     }
 
     CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
@@ -2311,6 +2313,4 @@ CxPlatDataPathRunEC(
             CxPlatSocketContextProcessEvents(&EventList[i]);
         }
     }
-
-    return 0;
 }

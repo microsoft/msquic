@@ -2713,14 +2713,15 @@ CxPlatDataPathWake(
     eventfd_write(ProcContext->EventFd, Value);
 }
 
-BOOLEAN
+void
 CxPlatDataPathRunEC(
-    _In_ void* Context,
+    _In_ void** Context,
     _In_ uint32_t WaitTime
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
-    CXPLAT_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
+    CXPLAT_DATAPATH_PROC_CONTEXT** EcProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT**)Context;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = *EcProcContext;
+    CXPLAT_DBG_ASSERT(ProcContext->Datapath != NULL);
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
@@ -2734,12 +2735,13 @@ CxPlatDataPathRunEC(
                 WaitTime == UINT32_MAX ? -1 : (int)WaitTime)); // TODO - Handle wrap around?
 
     if (ProcContext->Datapath->Shutdown) {
+        *Context = NULL;
         CxPlatEventSet(ProcContext->CompletionEvent);
-        return FALSE;
+        return;
     }
 
     if (ReadyEventCount == 0) {
-        return TRUE; // Wake for timeout.
+        return; // Wake for timeout.
     }
 
     for (int i = 0; i < ReadyEventCount; i++) {
@@ -2749,6 +2751,4 @@ CxPlatDataPathRunEC(
                 EpollEvents[i].events);
         }
     }
-
-    return TRUE;
 }

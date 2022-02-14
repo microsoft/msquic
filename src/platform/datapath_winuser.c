@@ -909,7 +909,7 @@ CxPlatDataPathInitialize(
             goto Error;
         }
 
-        Datapath->Processors[i].CompletionEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+        CxPlatEventInitialize(&Datapath->Processors[i].CompletionEvent, TRUE, FALSE);
         CxPlatWorkerRegisterDataPath(i, &Datapath->Processors[i]);
     }
 
@@ -3985,13 +3985,14 @@ CxPlatDataPathWake(
     PostQueuedCompletionStatus(DatapathProc->IOCP, 0, (ULONG_PTR)NULL, NULL);
 }
 
-BOOLEAN
+void
 CxPlatDataPathRunEC(
-    _In_ void* Context,
+    _In_ void** Context,
     _In_ uint32_t WaitTime
     )
 {
-    CXPLAT_DATAPATH_PROC* DatapathProc = (CXPLAT_DATAPATH_PROC*)Context;
+    CXPLAT_DATAPATH_PROC** EcProcContext = (CXPLAT_DATAPATH_PROC**)Context;
+    CXPLAT_DATAPATH_PROC* DatapathProc = *EcProcContext;
 
     DWORD NumberOfBytesTransferred;
     CXPLAT_SOCKET_PROC* SocketProc;
@@ -4006,12 +4007,13 @@ CxPlatDataPathRunEC(
             WaitTime);
 
     if (DatapathProc->Datapath->Shutdown) {
+        *Context = NULL;
         CxPlatEventSet(DatapathProc->CompletionEvent);
-        return FALSE;
+        return;
     }
 
     if (SocketProc == NULL || Overlapped == NULL) {
-        return TRUE; // Wake for execution contexts.
+        return; // Wake for execution contexts.
     }
 
     ULONG IoResult = Result ? NO_ERROR : GetLastError();
@@ -4109,8 +4111,6 @@ CxPlatDataPathRunEC(
                 IoResult);
         }
     }
-
-    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
