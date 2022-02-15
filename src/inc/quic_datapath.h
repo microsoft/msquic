@@ -656,7 +656,7 @@ void
 CxPlatResolveRouteComplete(
     _In_ void* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ const uint8_t* PhysicalAddress,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
     );
 
@@ -670,7 +670,7 @@ void
 (CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
     _In_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
-    _When_(Succeeded == TRUE, _In_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         uint8_t* PhysicalAddress,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded

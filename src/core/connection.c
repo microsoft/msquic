@@ -3081,8 +3081,7 @@ void
 QuicConnQueueRouteCompletion(
     _Inout_ QUIC_CONNECTION* Connection,
     _When_(Succeeded == FALSE, _Reserved_)
-    _When_(Succeeded == TRUE, _In_)
-    _In_reads_bytes_(6)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
