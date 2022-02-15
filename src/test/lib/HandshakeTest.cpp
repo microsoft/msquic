@@ -928,7 +928,6 @@ struct ClearForcedRetryScope {
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                 sizeof(value),
                 &value));
@@ -950,7 +949,6 @@ QuicTestVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(RetryMemoryLimit),
             &RetryMemoryLimit));
@@ -1039,7 +1037,6 @@ QuicTestCompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1129,7 +1126,6 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(RetryMemoryLimit),
             &RetryMemoryLimit));
@@ -1138,7 +1134,6 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1228,7 +1223,6 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1317,7 +1311,6 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1405,7 +1398,6 @@ QuicTestIncompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1491,7 +1483,6 @@ RunFailedVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));

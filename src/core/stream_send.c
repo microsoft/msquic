@@ -598,7 +598,7 @@ QuicStreamSendFlush(
     if (Start) {
         (void)QuicStreamStart(
             Stream,
-            QUIC_STREAM_START_FLAG_IMMEDIATE | QUIC_STREAM_START_FLAG_ASYNC,
+            QUIC_STREAM_START_FLAG_IMMEDIATE,
             FALSE);
     }
 

@@ -7,6 +7,7 @@ set(SOURCES
     PacketNumberTest.cpp
     PartitionTest.cpp
     RangeTest.cpp
+    SettingsTest.cpp
     SpinFrame.cpp
     TicketTest.cpp
     TransportParamTest.cpp

@@ -133,7 +133,7 @@ Enables which cipher suites are available for negotiation via the `AllowedCipher
 
 `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES`
 
-Provide the entire certificate chain to the application as a PKCS7 binary blob in the `QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED` event.
+Provide the remote X.509 certificate as a DER (binary) blob and entire certificate chain to the application as a PKCS #7 DER blob in the `QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED` event.
 Not supported in kernel mode.
 
 #### `CertificateHash`

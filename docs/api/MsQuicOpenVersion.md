@@ -40,7 +40,7 @@ Calls to **MsQuicOpenVersion** and [MsQuicClose](MsQuicClose.md) increment and d
 
 **MsQuicOpenVersion** may dynamically load other dependencies, so it **must not** be called from [DllMain](https://docs.microsoft.com/en-us/windows/win32/dlls/dllmain) on Windows.
 
-**MsQuicOpenVersion** Takes a version number to indicate which version of the API to use. Newer versions of the library will support older versions of the API for binary compatibility. For backwards compatiblity with old clients, the previous **MsQuicOpen** exists as an export in the binary. The **MsQuicOpen** definition in msquic.h now forwards to **MsQuicOpenVersion**
+**MsQuicOpenVersion** Takes a version number to indicate which version of the API to use. Newer versions of the library will support older versions of the API for binary compatibility. The **MsQuicOpen2** definition in msquic.h now forwards to **MsQuicOpenVersion**
 
 # See Also
 

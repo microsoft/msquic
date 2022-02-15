@@ -257,7 +257,6 @@ ThroughputClient::StartQuic()
         Status =
             MsQuic->SetParam(
                 Shutdown.ConnHandle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
                 &Settings);
@@ -272,7 +271,6 @@ ThroughputClient::StartQuic()
         Status =
             MsQuic->SetParam(
                 Shutdown.ConnHandle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
                 sizeof(value),
                 &value);
@@ -285,7 +283,6 @@ ThroughputClient::StartQuic()
     if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             Shutdown.ConnHandle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             sizeof(LocalIpAddr),
             &LocalIpAddr);
