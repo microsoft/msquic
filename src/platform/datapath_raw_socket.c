@@ -394,8 +394,8 @@ CxPlatResolveRoute(
         Operation->PathId = PathId;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
-        CxPlatEventSet(Worker->Ready);
         CxPlatDispatchLockRelease(&Worker->Lock);
+        CxPlatEventSet(Worker->Ready);
         Status = ERROR_IO_PENDING;
     } else {
         CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress);

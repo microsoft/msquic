@@ -578,7 +578,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         }
         CxPlatDispatchLockRelease(&Worker->Lock);
 
-        while (CxPlatListIsEmpty(&Operations)) {
+        while (!CxPlatListIsEmpty(&Operations)) {
             CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
@@ -601,6 +601,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                         Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
                 }
                 CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
+            } else {
+                Operation->Callback(
+                    Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);  
             }
         }
     }
@@ -617,7 +620,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
     }
     CxPlatDispatchLockRelease(&Worker->Lock);
 
-    while (CxPlatListIsEmpty(&Operations)) {
+    while (!CxPlatListIsEmpty(&Operations)) {
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
