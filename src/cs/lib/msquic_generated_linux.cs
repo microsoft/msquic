@@ -102,5 +102,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_STATUS_CERT_UNTRUSTED_ROOT QUIC_STATUS_CERT_ERROR(2)")]
         public const int QUIC_STATUS_CERT_UNTRUSTED_ROOT = ((int)(2) + 512 + 200000000);
+
+        public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
+        public const int QUIC_ADDRESS_FAMILY_INET = 2;
+        public const int QUIC_ADDRESS_FAMILY_INET6 = 10;
     }
 }
