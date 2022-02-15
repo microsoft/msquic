@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
-use ctypes::AF_UNSPEC;
-use ctypes::AF_INET;
-use ctypes::AF_INET6;
+use c_types::AF_UNSPEC;
+use c_types::AF_INET;
+use c_types::AF_INET6;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::option::Option;
