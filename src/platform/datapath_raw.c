@@ -603,7 +603,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                 CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
             } else {
                 Operation->Callback(
-                    Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);  
+                    Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
             }
         }
     }
