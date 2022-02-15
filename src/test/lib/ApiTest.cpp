@@ -1005,7 +1005,7 @@ void QuicTestValidateConnection()
     //
 #ifndef QUIC_DISABLE_0RTT_TESTS
     {
-        TestScopeLogger logScope("Invalid send resumption, server-side");
+        TestScopeLogger logScopeouter("Invalid send resumption, server-side");
         TestListener MyListener(Registration, ListenerFailSendResumeCallback, ServerConfigurationNoResumption);
         TEST_TRUE(MyListener.IsValid());
 
