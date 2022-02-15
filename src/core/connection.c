@@ -3098,11 +3098,6 @@ QuicConnQueueRouteCompletion(
         }
         QuicConnQueueOper(Connection, ConnOper);
     } else {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Route completion operation",
-            0);
         if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
             QUIC_OPERATION* Oper = &Connection->BackUpOper;
             Oper->FreeAfterProcess = FALSE;
@@ -5158,8 +5153,7 @@ QuicConnRecvPostProcessing(
 
     if (Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
-        !(*Path)->IsActive &&
-        Connection->Paths[0].Route.State == RouteResolved) {
+        !(*Path)->IsActive) {
         //
         // The peer has sent a non-probing frame on a path other than the active
         // one. This signals their intent to switch active paths.
@@ -5713,13 +5707,13 @@ QuicConnProcessRouteCompletion(
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
     if (Path != NULL) {
         if (Succeeded) {
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
             QuicTraceLogConnInfo(
                 SuccessfulRouteResolution,
                 Connection,
                 "Processing successful route completion Path[%hhu]",
                 PathId);
+            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
+            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
         } else {
             //
             // Kill the path that failed route resolution and make the next path active if possible.

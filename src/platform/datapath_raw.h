@@ -32,6 +32,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
     CXPLAT_EVENT Ready;
 
     CXPLAT_THREAD Thread;
+    CXPLAT_POOL OperationPool;
 
     //
     // Serializes access to the route resolution opreations.

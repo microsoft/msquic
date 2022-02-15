@@ -394,9 +394,7 @@ CxPlatResolveRoute(
         Status);
     if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
-        CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
-            CXPLAT_ALLOC_PAGED(
-                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION), QUIC_POOL_ROUTE_RESOLUTION_OPER);
+        CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
         if (Operation == NULL) {
             QuicTraceEvent(
                 AllocFailure,

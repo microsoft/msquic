@@ -38,6 +38,7 @@ CxPlatDataPathRouteWorkerUninitialize(
 
     CxPlatEventUninitialize(Worker->Ready);
     CxPlatDispatchLockUninitialize(&Worker->Lock);
+    CxPlatPoolUninitialize(&Worker->OperationPool);
     CXPLAT_FREE(Worker, QUIC_POOL_ROUTE_RESOLUTION_WORKER);
 }
 
@@ -65,6 +66,13 @@ CxPlatDataPathRouteWorkerInitialize(
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatDispatchLockInitialize(&Worker->Lock);
     CxPlatListInitializeHead(&Worker->Operations);
+
+    CxPlatPoolInitialize(
+        FALSE,
+        sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION),
+        QUIC_POOL_ROUTE_RESOLUTION_OPER,
+        &Worker->OperationPool);
+
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         CXPLAT_THREAD_FLAG_NONE,
         0,
@@ -86,8 +94,10 @@ CxPlatDataPathRouteWorkerInitialize(
     DataPath->RouteResolutionWorker = Worker;
 
 Error:
-    if (QUIC_FAILED(Status) && Worker != NULL) {
-        CxPlatDataPathRouteWorkerUninitialize(Worker);
+    if (QUIC_FAILED(Status)) {
+        if (Worker != NULL) {
+            CxPlatDataPathRouteWorkerUninitialize(Worker);
+        }
     }
     return Status;
 }
@@ -600,7 +610,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     Operation->Callback(
                         Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
                 }
-                CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
+                CxPlatPoolFree(&Worker->OperationPool ,Operation);
             } else {
                 Operation->Callback(
                     Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);

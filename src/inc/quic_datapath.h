@@ -166,7 +166,6 @@ typedef struct CXPLAT_ROUTE {
 
 } CXPLAT_ROUTE;
 
-
 //
 // Structure to represent received UDP datagrams or TCP data.
 //
