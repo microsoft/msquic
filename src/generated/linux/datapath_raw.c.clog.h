@@ -28,13 +28,33 @@ extern "C" {
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            DatapathSize);
+            sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER));
 // arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
-// arg3 = arg3 = DatapathSize = arg3
+// arg3 = arg3 = sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "CxPlatThreadCreate" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
@@ -111,6 +131,28 @@ tracepoint(CLOG_DATAPATH_RAW_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5,
 #ifndef _clog_10_ARGS_TRACE_DatapathSend
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
 tracepoint(CLOG_DATAPATH_RAW_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        Operation,
+                        Status,
+                        "ResolveIpNetEntry2");
+// arg2 = arg2 = Operation = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "ResolveIpNetEntry2" = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 

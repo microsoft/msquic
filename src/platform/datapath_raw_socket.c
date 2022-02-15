@@ -265,10 +265,37 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
+void
+CxPlatResolveRouteComplete(
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
+    )
+{
+    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
+    Route->State = RouteResolved;
+    QuicTraceLogConnInfo(
+        RouteResolutionEnd,
+        Connection,
+        "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+        PathId,
+        PhysicalAddress[0],
+        PhysicalAddress[1],
+        PhysicalAddress[2],
+        PhysicalAddress[3],
+        PhysicalAddress[4],
+        PhysicalAddress[5]);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
 #ifdef _WIN32
@@ -278,8 +305,7 @@ CxPlatResolveRoute(
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
     //
-    // Find the best next hop IP address. If not cached, this may result in (and
-    // block on) network IO.
+    // Find the best next hop IP address.
     //
     uint16_t SavedLocalPort = Route->LocalAddress.Ipv4.sin_port;
     Status =
@@ -299,6 +325,28 @@ CxPlatResolveRoute(
             Socket,
             Status,
             "GetBestRoute2");
+        goto Done;
+    }
+
+    //
+    // Find the interface that matches the route we just looked up.
+    //
+    CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
+    for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
+        CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
+        if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
+            CxPlatDpRawAssignQueue(Interface, Route);
+            break;
+        }
+    }
+
+    if (Route->Queue == NULL) {
+        Status = QUIC_STATUS_NOT_FOUND;
+        QuicTraceEvent(
+            DatapathError,
+            "[data][%p] ERROR, %s.",
+            Socket,
+            "no matching interface/queue");
         goto Done;
     }
 
@@ -335,52 +383,44 @@ CxPlatResolveRoute(
     // First call GetIpNetEntry2 to see if there's already a cached neighbor. If there
     // isn't one, or if the cached neighbor's state is unreachable (which, NB, can happen
     // in the case where a route lookup resulted in a dummy neighbor entry being created
-    // in TCPIP.sys) or incomplete, then do a solicitation.
+    // in TCPIP.sys) or incomplete, then queue up a solicitation event.
     //
     Status = GetIpNetEntry2(&IpnetRow);
+    QuicTraceLogConnInfo(
+        RouteResolutionStart,
+        Context,
+        "Starting to look up neighbor on Path[%hhu] with status %u",
+        PathId,
+        Status);
     if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
-        Status =
-            ResolveIpNetEntry2(
-                &IpnetRow,
-                &Route->LocalAddress);
-        if (Status != 0) {
+        CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
+        CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
+        if (Operation == NULL) {
             QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                Status,
-                "ResolveIpNetEntry2");
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "CXPLAT_DATAPATH",
+                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
+            Status = ERROR_NOT_ENOUGH_MEMORY;
             goto Done;
         }
+        Operation->IpnetRow = IpnetRow;
+        Operation->Context = Context;
+        Operation->Callback = Callback;
+        Operation->PathId = PathId;
+        CxPlatDispatchLockAcquire(&Worker->Lock);
+        CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
+        CxPlatDispatchLockRelease(&Worker->Lock);
+        CxPlatEventSet(Worker->Ready);
+        Status = ERROR_IO_PENDING;
+    } else {
+        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
-    CXPLAT_DBG_ASSERT(IpnetRow.PhysicalAddressLength == sizeof(Route->NextHopLinkLayerAddress));
-    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, IpnetRow.PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
-
-    //
-    // Find the interface that matches the route we just looked up.
-    //
-    CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
-    for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
-        CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
-        if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
-            CxPlatDpRawAssignQueue(Interface, Route);
-            break;
-        }
-    }
-
-    if (Route->Queue == NULL) {
-        Status = QUIC_STATUS_NOT_FOUND;
-        QuicTraceEvent(
-            DatapathError,
-            "[data][%p] ERROR, %s.",
-            Socket,
-            "no matching interface/queue");
-        goto Done;
-    }
-
-    Route->Resolved = TRUE;
 
 Done:
+    if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
+        Callback(Context, NULL, PathId, FALSE);
+    }
 
     return HRESULT_FROM_WIN32(Status);
 #else // _WIN32
@@ -638,10 +678,6 @@ CxPlatDpRawParseEthernet(
             "not a unicast packet");
         return;
     }
-
-    Packet->Route->Resolved = TRUE;
-    CxPlatCopyMemory(Packet->Route->LocalLinkLayerAddress, Ethernet->Destination, sizeof(Ethernet->Destination));
-    CxPlatCopyMemory(Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 
     uint16_t EthernetType = Ethernet->Type;
     if (EthernetType == ETHERNET_TYPE_IPV4) {

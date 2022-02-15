@@ -15,11 +15,51 @@ typedef struct CXPLAT_SOCKET_POOL {
 
 } CXPLAT_SOCKET_POOL;
 
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
+
+//
+// A worker thread for draining queued route resolution operations.
+//
+typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
+    //
+    // TRUE if the worker is currently running.
+    //
+    BOOLEAN Enabled;
+
+    //
+    // An event to kick the thread.
+    //
+    CXPLAT_EVENT Ready;
+
+    CXPLAT_THREAD Thread;
+    CXPLAT_POOL OperationPool;
+
+    //
+    // Serializes access to the route resolution opreations.
+    //
+    CXPLAT_DISPATCH_LOCK Lock;
+    CXPLAT_LIST_ENTRY Operations;
+} CXPLAT_ROUTE_RESOLUTION_WORKER;
+
+typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
+    //
+    // Link in the worker's operation queue.
+    // N.B. Multi-threaded access, synchronized by worker's operation lock.
+    //
+    CXPLAT_LIST_ENTRY WorkerLink;
+    MIB_IPNET_ROW2 IpnetRow;
+    void* Context;
+    uint8_t PathId;
+    CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
+} CXPLAT_ROUTE_RESOLUTION_OPERATION;
+
 typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     CXPLAT_SOCKET_POOL SocketPool;
+
+    CXPLAT_ROUTE_RESOLUTION_WORKER* RouteResolutionWorker;
 
     // RSS stuff
     uint16_t Cpu;
@@ -286,12 +326,6 @@ void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
-    );
-
-QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
     );
 
 //

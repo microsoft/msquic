@@ -14,6 +14,10 @@
 #include "datapath_raw_socket.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogConnInfo
+#define _clog_MACRO_QuicTraceLogConnInfo  1
+#define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -21,6 +25,60 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for RouteResolutionEnd
+// [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu
+// QuicTraceLogConnInfo(
+        RouteResolutionEnd,
+        Connection,
+        "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+        PathId,
+        PhysicalAddress[0],
+        PhysicalAddress[1],
+        PhysicalAddress[2],
+        PhysicalAddress[3],
+        PhysicalAddress[4],
+        PhysicalAddress[5]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = PathId = arg3
+// arg4 = arg4 = PhysicalAddress[0] = arg4
+// arg5 = arg5 = PhysicalAddress[1] = arg5
+// arg6 = arg6 = PhysicalAddress[2] = arg6
+// arg7 = arg7 = PhysicalAddress[3] = arg7
+// arg8 = arg8 = PhysicalAddress[4] = arg8
+// arg9 = arg9 = PhysicalAddress[5] = arg9
+----------------------------------------------------------*/
+#ifndef _clog_10_ARGS_TRACE_RouteResolutionEnd
+#define _clog_10_ARGS_TRACE_RouteResolutionEnd(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8, arg9)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd , arg1, arg3, arg4, arg5, arg6, arg7, arg8, arg9);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for RouteResolutionStart
+// [conn][%p] Starting to look up neighbor on Path[%hhu] with status %u
+// QuicTraceLogConnInfo(
+        RouteResolutionStart,
+        Context,
+        "Starting to look up neighbor on Path[%hhu] with status %u",
+        PathId,
+        Status);
+// arg1 = arg1 = Context = arg1
+// arg3 = arg3 = PathId = arg3
+// arg4 = arg4 = Status = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_RouteResolutionStart
+#define _clog_5_ARGS_TRACE_RouteResolutionStart(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionStart , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
@@ -77,6 +135,26 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_DatapathError
 #define _clog_4_ARGS_TRACE_DatapathError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathError , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "CXPLAT_DATAPATH",
+                sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, AllocFailure , arg2, arg3);\
 
 #endif
 
