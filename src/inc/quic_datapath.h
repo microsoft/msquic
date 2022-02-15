@@ -657,7 +657,8 @@ void
 CxPlatResolveRouteComplete(
     _In_ void* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ const uint8_t* PhysicalAddress
+    _In_ const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
     );
 
 //

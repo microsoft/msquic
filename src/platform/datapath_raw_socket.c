@@ -269,11 +269,23 @@ void
 CxPlatResolveRouteComplete(
     _In_ QUIC_CONNECTION* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ const uint8_t* PhysicalAddress
+    _In_ const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
     )
 {
     CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
     Route->State = RouteResolved;
+    QuicTraceLogConnInfo(
+        RouteResolutionEnd,
+        Connection,
+        "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+        PathId,
+        PhysicalAddress[0],
+        PhysicalAddress[1],
+        PhysicalAddress[2],
+        PhysicalAddress[3],
+        PhysicalAddress[4],
+        PhysicalAddress[5]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -374,6 +386,12 @@ CxPlatResolveRoute(
     // in TCPIP.sys) or incomplete, then queue up a solicitation event.
     //
     Status = GetIpNetEntry2(&IpnetRow);
+    QuicTraceLogConnInfo(
+        RouteResolutionStart,
+        Context,
+        "Starting to look up neighbor on Path[%hhu] with status %u",
+        PathId,
+        Status);
     if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
@@ -398,7 +416,7 @@ CxPlatResolveRoute(
         CxPlatEventSet(Worker->Ready);
         Status = ERROR_IO_PENDING;
     } else {
-        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress);
+        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
 
 Done:

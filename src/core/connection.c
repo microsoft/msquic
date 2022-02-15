@@ -5713,13 +5713,23 @@ QuicConnProcessRouteCompletion(
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
     if (Path != NULL) {
         if (Succeeded) {
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress);
+            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
             QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            QuicTraceLogConnInfo(
+                SuccessfulRouteResolution,
+                Connection,
+                "Processing successful route completion Path[%hhu]",
+                PathId);
         } else {
             //
             // Kill the path that failed route resolution and make the next path active if possible.
             //
             if (Path->IsActive && Connection->PathsCount > 1) {
+                QuicTraceLogConnInfo(
+                    FailedRouteResolution,
+                    Connection,
+                    "Processing failed route completion Path[%hhu]",
+                    PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
                 QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
             }
