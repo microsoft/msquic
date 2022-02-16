@@ -1188,8 +1188,8 @@ CxPlatSocketContextRecvComplete(
 
     CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
     CXPLAT_RECV_DATA* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
-    SocketContext->CurrentRecvBlock = NULL;
 
+    int CMsgCount = 0;
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
@@ -1208,6 +1208,7 @@ CxPlatSocketContextRecvComplete(
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
          CMsg != NULL;
          CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
+        CMsgCount++;
 
         if (CMsg->cmsg_level == IPPROTO_IPV6) {
             if (CMsg->cmsg_type == IPV6_PKTINFO) {
@@ -1244,11 +1245,15 @@ CxPlatSocketContextRecvComplete(
             CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
             printf("Cmsg level %d Cmsg type\n", (int)CMsg->cmsg_level, (int)CMsg->cmsg_type);
         }
+        printf("CmsgCount %d\n", CMsgCount);
         fflush(stdout);
     }
 
+    CXPLAT_FRE_ASSERT(CMsgCount != 0);
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
     CXPLAT_FRE_ASSERT(FoundTOS);
+
+    SocketContext->CurrentRecvBlock = NULL;
 
     QuicTraceEvent(
         DatapathRecv,
