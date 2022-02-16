@@ -1079,7 +1079,10 @@ MsQuicStreamSend(
 
     CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     if (!Stream->Flags.SendEnabled) {
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status =
+            (Connection->State.ClosedRemotely || Stream->Flags.ReceivedStopSending) ?
+                QUIC_STATUS_ABORTED :
+                QUIC_STATUS_INVALID_STATE;
     } else {
         QUIC_SEND_REQUEST** ApiSendRequestsTail = &Stream->ApiSendRequests;
         while (*ApiSendRequestsTail != NULL) {
