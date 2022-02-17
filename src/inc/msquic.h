@@ -1372,6 +1372,9 @@ typedef struct QUIC_API_TABLE {
 
 } QUIC_API_TABLE;
 
+#define QUIC_API_VERSION_1      1 // Not supported any more
+#define QUIC_API_VERSION_2      2 // Current latest
+
 //
 // Opens the API library and initializes it if this is the first call for the
 // process. It returns API function table for the rest of the API's functions.
@@ -1410,7 +1413,7 @@ MsQuicOpen2(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
-    return MsQuicOpenVersion(2, (const void**)QuicApi);
+    return MsQuicOpenVersion(QUIC_API_VERSION_2, (const void**)QuicApi);
 }
 
 #else
