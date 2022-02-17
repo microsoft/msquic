@@ -324,12 +324,12 @@ QuicPrintConnectionStatistics(
     _In_ HQUIC Connection
     )
 {
-    QUIC_STATISTICS Statistics;
+    QUIC_STATISTICS_V2 Statistics;
     uint32_t StatsSize = sizeof(Statistics);
     if (QUIC_SUCCEEDED(
         ApiTable->GetParam(
             Connection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Statistics))) {
         WriteOutput(

@@ -1847,7 +1847,7 @@ QuicTestKeyUpdateRandomLoss(
                     CxPlatSleep(100);
                 }
 
-                QUIC_STATISTICS Stats = Client.GetStatistics();
+                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
                 if (Stats.RecvDecryptionFailures) {
                     TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
@@ -1978,7 +1978,7 @@ QuicTestKeyUpdate(
 
                 CxPlatSleep(100);
 
-                QUIC_STATISTICS Stats = Client.GetStatistics();
+                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
                 if (Stats.RecvDecryptionFailures) {
                     TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
@@ -2092,7 +2092,7 @@ QuicTestCidUpdate(
 
                 CxPlatSleep(100);
 
-                QUIC_STATISTICS Stats = Client.GetStatistics();
+                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
                 if (Stats.RecvDecryptionFailures) {
                     TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
