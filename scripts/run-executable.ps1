@@ -283,7 +283,7 @@ function Wait-Executable($Exe) {
         if (!$Debugger) {
             $stdout = $Exe.Process.StandardOutput.ReadToEnd()
             $stderr = $Exe.Process.StandardError.ReadToEnd()
-            if (!$isWindows) {
+            if (!$IsWindows) {
                 $KeepOutput = $stderr.Contains("Aborted")
             }
         } else {
@@ -386,7 +386,7 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
 # Start the executable, wait for it to complete and then generate any output.
 Wait-Executable (Start-Executable)
 
-if ($isWindows) {
+if ($IsWindows) {
     # Cleanup the WER registry.
     Remove-Item -Path $WerDumpRegPath -Force | Out-Null
 }

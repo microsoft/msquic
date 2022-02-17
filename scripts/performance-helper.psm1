@@ -542,7 +542,7 @@ function Invoke-LocalExe {
 
     $Stopwatch.Stop()
 
-    if ($isWindows) {
+    if ($IsWindows) {
         $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             Log "Dump file(s) generated"
