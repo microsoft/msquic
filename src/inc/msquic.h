@@ -166,6 +166,9 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
 typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
     QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0001,   // Immediately informs peer that stream is open.
+#ifdef QUIC_LEGACY_COMPILE_MODE
+    QUIC_STREAM_START_FLAG_ASYNC                = 0x0000,   // No-op, but includes for legacy compiles.
+#endif
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0002,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0004,   // Shutdown the stream immediately after start failure.
     QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,   // Indicate PEER_ACCEPTED event if not accepted at start.
@@ -709,6 +712,46 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+
+#ifdef QUIC_LEGACY_COMPILE_MODE
+typedef enum QUIC_PARAM_LEVEL {
+    QUIC_PARAM_LEVEL_GLOBAL,
+    QUIC_PARAM_LEVEL_REGISTRATION,
+    QUIC_PARAM_LEVEL_CONFIGURATION,
+    QUIC_PARAM_LEVEL_LISTENER,
+    QUIC_PARAM_LEVEL_CONNECTION,
+    QUIC_PARAM_LEVEL_TLS,
+    QUIC_PARAM_LEVEL_STREAM,
+} QUIC_PARAM_LEVEL;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_SET_PARAM_LEGACY_FN)(
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
+        HQUIC Handle,
+    _In_ _Pre_defensive_ uint32_t Level,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    );
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_GET_PARAM_LEGACY_FN)(
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
+        HQUIC Handle,
+    _In_ _Pre_defensive_ uint32_t Level,
+    _In_ uint32_t Param,
+    _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    );
+#endif
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1283,8 +1326,17 @@ typedef struct QUIC_API_TABLE {
     QUIC_GET_CONTEXT_FN                 GetContext;
     QUIC_SET_CALLBACK_HANDLER_FN        SetCallbackHandler;
 
+#ifdef QUIC_LEGACY_COMPILE_MODE
+    QUIC_SET_PARAM_LEGACY_FN            SetParam;
+    QUIC_GET_PARAM_LEGACY_FN            GetParam;
+    QUIC_SET_PARAM_FN                   SetParam2;
+    QUIC_SET_PARAM_FN                   GetParam2;
+#else
+    void*                               Deprecated1;
+    void*                               Deprecated2;
     QUIC_SET_PARAM_FN                   SetParam;
     QUIC_GET_PARAM_FN                   GetParam;
+#endif
 
     QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
     QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;

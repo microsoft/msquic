@@ -1339,6 +1339,8 @@ MsQuicOpenVersion(
     Api->GetContext = MsQuicGetContext;
     Api->SetCallbackHandler = MsQuicSetCallbackHandler;
 
+    Api->Deprecated1 = MsQuicSetParamLegacy;
+    Api->Deprecated2 = MsQuicGetParamLegacy;
     Api->SetParam = MsQuicSetParam;
     Api->GetParam = MsQuicGetParam;
 

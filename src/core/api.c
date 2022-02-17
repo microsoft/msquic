@@ -1283,6 +1283,44 @@ Exit:
         "[ api] Exit");
 }
 
+
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicSetParamLegacy(
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
+        HQUIC Handle,
+    _In_ _Pre_defensive_ uint32_t Level,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(Level);
+    return MsQuicSetParam(Handle, Param, BufferLength, Buffer);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicGetParamLegacy(
+    _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
+    _When_(!QUIC_PARAM_IS_GLOBAL(Param), _In_ _Pre_defensive_)
+        HQUIC Handle,
+    _In_ _Pre_defensive_ uint32_t Level,
+    _In_ uint32_t Param,
+    _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(Level);
+    return MsQuicGetParam(Handle, Param, BufferLength, Buffer);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
