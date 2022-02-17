@@ -1185,7 +1185,6 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_RECV_DATA* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
     SocketContext->CurrentRecvBlock = NULL;
 
-    int CMsgCount = 0;
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
@@ -1204,7 +1203,6 @@ CxPlatSocketContextRecvComplete(
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
          CMsg != NULL;
          CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
-        CMsgCount++;
 
         if (CMsg->cmsg_level == IPPROTO_IPV6) {
             if (CMsg->cmsg_type == IPV6_PKTINFO) {
