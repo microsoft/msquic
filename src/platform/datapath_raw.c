@@ -594,16 +594,15 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
             CXPLAT_ROUTE NewRoute = Operation->Route;
             QUIC_STATUS Status = CxPlatQueryRoute(Operation->Socket, &NewRoute);
-            if (Status == QUIC_STATUS_SUCCESS) {
+            if (Status == QUIC_STATUS_SUCCESS && Operation->Route.State == RouteRefreshing) {
                 if (!QuicAddrCompare(&NewRoute.LocalAddress, &Operation->Route.LocalAddress)) {
                     //
-                    // We can't handle local address change here easily. So, fail route resolution for this path.
+                    // We can't handle local address change here easily due to lack of full migration support.
                     //
                     Status = QUIC_STATUS_INVALID_STATE;
-                } else if (memcmp(
-                            NewRoute.NextHopLinkLayerAddress,
-                            Operation->Route.NextHopLinkLayerAddress,
-                            sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
+                } else if (memcmp(NewRoute.NextHopLinkLayerAddress,
+                                Operation->Route.NextHopLinkLayerAddress,
+                                sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
                     //
                     // We are handling route refresh here. We will force neighbor discovery because net hop address
                     // has not changed which implies this is the first time we are refreshing it. 
