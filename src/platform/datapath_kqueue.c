@@ -22,7 +22,6 @@ Environment:
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <stdio.h>
 #ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
