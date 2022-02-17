@@ -429,16 +429,57 @@ typedef struct QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+typedef struct QUIC_STATISTICS_V2 {
+
+    uint64_t CorrelationId;
+    uint32_t VersionNegotiation     : 1;
+    uint32_t StatelessRetry         : 1;
+    uint32_t ResumptionAttempted    : 1;
+    uint32_t ResumptionSucceeded    : 1;
+    uint32_t Rtt;                           // In microseconds
+    uint32_t MinRtt;                        // In microseconds
+    uint32_t MaxRtt;                        // In microseconds
+
+    uint64_t TimingStart;
+    uint64_t TimingInitialFlightEnd;        // Processed all peer's Initial packets
+    uint64_t TimingHandshakeFlightEnd;      // Processed all peer's Handshake packets
+
+    uint32_t HandshakeClientFlight1Bytes;   // Sum of TLS payloads
+    uint32_t HandshakeServerFlight1Bytes;   // Sum of TLS payloads
+    uint32_t HandshakeClientFlight2Bytes;   // Sum of TLS payloads
+
+    uint16_t SendPathMtu;                   // Current path MTU.
+    uint64_t SendTotalPackets;              // QUIC packets; could be coalesced into fewer UDP datagrams.
+    uint64_t SendRetransmittablePackets;
+    uint64_t SendSuspectedLostPackets;
+    uint64_t SendSpuriousLostPackets;       // Actual lost is (SuspectedLostPackets - SpuriousLostPackets)
+    uint64_t SendTotalBytes;                // Sum of UDP payloads
+    uint64_t SendTotalStreamBytes;          // Sum of stream payloads
+    uint32_t SendCongestionCount;           // Number of congestion events
+    uint32_t SendPersistentCongestionCount; // Number of persistent congestion events
+
+    uint64_t RecvTotalPackets;              // QUIC packets; could be coalesced into fewer UDP datagrams.
+    uint64_t RecvReorderedPackets;          // Packets where packet number is less than highest seen.
+    uint64_t RecvDroppedPackets;            // Includes DuplicatePackets.
+    uint64_t RecvDuplicatePackets;
+    uint64_t RecvTotalBytes;                // Sum of UDP payloads
+    uint64_t RecvTotalStreamBytes;          // Sum of stream payloads
+    uint64_t RecvDecryptionFailures;        // Count of packet decryption failures.
+    uint64_t RecvValidAckFrames;            // Count of receive ACK frames.
+
+    uint32_t KeyUpdateCount;
+
+    // N.B. New fields must be appended to end
+
+} QUIC_STATISTICS_V2;
+
 typedef struct QUIC_LISTENER_STATISTICS {
 
     uint64_t TotalAcceptedConnections;
     uint64_t TotalRejectedConnections;
 
-    struct {
-        struct {
-            uint64_t DroppedPackets;
-        } Recv;
-    } Binding;
+    uint64_t BindingRecvDroppedPackets;
+
 } QUIC_LISTENER_STATISTICS;
 
 typedef enum QUIC_PERFORMANCE_COUNTERS {
@@ -702,6 +743,8 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 #define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x05000014  // uint32_t[]
 #define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]
+#define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
+#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 
 //
 // Parameters for TLS.
