@@ -281,6 +281,7 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 - Remove all `Level` parameters passed to `GetParam` or `SetParam`.
 - Ensure the app handles `ListenerStop` not blocking any more. `ListenerClose` still blocks.
 - No more need to check for a return code from `StreamReceiveComplete`.
+- QUIC_ADDRESS_FAMILY_IPV6 has been changed to be platform specific rather then always windows values. For C/C++ consumers this is only a binary breaking change. For Interop consumers, the value will change for linux and macOS.
 
 ### Other Changes
 
@@ -297,3 +298,5 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 - Update OpenSSL to 1.1.1m (#2229)
 - Various documentation improvements
 - Added scorecard and dependabot support (#2310)
+- Fix macOS datapath asserting in an initialization race (#2398)
+- Add QUIC_STATISTICS_V2 parameter (#2386)
