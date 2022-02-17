@@ -31,13 +31,13 @@ The valid handle to an open and loaded configuration object.
 
 `Family`
 
-The address family to use for resolving the IP address of the *ServerName* parameter. Supported values are as follows:
+The address family to use for resolving the IP address of the *ServerName* parameter. Supported values definitions are supported (The values are platform specific):
 
 Value | Meaning
 --- | ---
-**QUIC_ADDRESS_FAMILY_UNSPEC**<br>0 | Unspecified address family.
-**QUIC_ADDRESS_FAMILY_INET**<br>2 | Version 4 IP address family.
-**QUIC_ADDRESS_FAMILY_INET6**<br>23 | Version 6 IP address family.
+**QUIC_ADDRESS_FAMILY_UNSPEC**<br> |Unspecified address family.
+**QUIC_ADDRESS_FAMILY_INET**<br> | Version 4 IP address family.
+**QUIC_ADDRESS_FAMILY_INET6**<br> | Version 6 IP address family.
 
 `ServerName`
 

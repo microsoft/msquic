@@ -2,6 +2,9 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
+use c_types::AF_UNSPEC;
+use c_types::AF_INET;
+use c_types::AF_INET6;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::option::Option;
@@ -23,9 +26,9 @@ pub type BOOLEAN = ::std::os::raw::c_uchar;
 
 /// Family of an IP address.
 pub type AddressFamily = u16;
-pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = 0;
-pub const ADDRESS_FAMILY_INET: AddressFamily = 2;
-pub const ADDRESS_FAMILY_INET6: AddressFamily = 23;
+pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = c_types::AF_UNSPEC as u16;
+pub const ADDRESS_FAMILY_INET: AddressFamily = c_types::AF_INET as u16;
+pub const ADDRESS_FAMILY_INET6: AddressFamily = c_types::AF_INET6 as u16;
 
 /// IPv4 address payload.
 #[repr(C)]
