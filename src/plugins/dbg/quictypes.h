@@ -1112,6 +1112,14 @@ struct Connection : Struct {
         return Connection(LinkEntryToType(LinkAddr, "msquic!QUIC_CONNECTION", "WorkerLink"));
     }
 
+    ULONG64 RegistrationPtr() {
+        return ReadPointer("Registration");
+    }
+
+    ULONG64 WorkerPtr() {
+        return ReadPointer("Worker");
+    }
+
     LONG RefCount() {
         return ReadType<LONG>("RefCount");
     }

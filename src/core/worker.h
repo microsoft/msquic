@@ -53,6 +53,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     QUIC_TIMER_WHEEL TimerWheel;
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
     //
     // An event to kick the thread.
     //
@@ -62,6 +63,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // A thread for draining operations from queued connections.
     //
     CXPLAT_THREAD Thread;
+#endif // QUIC_USE_EXECUTION_CONTEXTS
 
     //
     // Serializes access to the connection and operation lists.

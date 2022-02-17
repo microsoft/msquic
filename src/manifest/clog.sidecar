@@ -10622,6 +10622,30 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "PlatformWorkerThreadStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker start",
+      "UniqueId": "PlatformWorkerThreadStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PlatformWorkerThreadStop": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker stop",
+      "UniqueId": "PlatformWorkerThreadStop",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
     }
   },
   "ConfigFile": {
@@ -14477,6 +14501,16 @@
         "UniquenessHash": "dddba4c1-201c-11ae-51de-155523e40b7e",
         "TraceID": "ApiError",
         "EncodingString": "[ api] Error %u"
+      },
+      {
+        "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",
+        "TraceID": "PlatformWorkerThreadStart",
+        "EncodingString": "[ lib][%p] Worker start"
+      },
+      {
+        "UniquenessHash": "317dc2da-d83f-49ec-c0f0-872bcbf594dd",
+        "TraceID": "PlatformWorkerThreadStop",
+        "EncodingString": "[ lib][%p] Worker stop"
       }
     ]
   }

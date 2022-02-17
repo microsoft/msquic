@@ -623,18 +623,22 @@ void QuicTestValidateConnection()
     //
     // Null out-parameter.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConnectionOpen(
-            Registration,
-            DummyConnectionCallback,
-            nullptr,
-            nullptr));
+    {
+        TestScopeLogger logScope("Null out-parameter");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionOpen(
+                Registration,
+                DummyConnectionCallback,
+                nullptr,
+                nullptr));
+    }
 
     //
     // Null Callback-parameter.
     //
     {
+        TestScopeLogger logScope("Null Callback-parameter");
         ConnectionScope Connection;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
@@ -649,6 +653,7 @@ void QuicTestValidateConnection()
     // Null registration parameter.
     //
     {
+        TestScopeLogger logScope("Null registration parameter");
         ConnectionScope Connection;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
@@ -662,19 +667,23 @@ void QuicTestValidateConnection()
     //
     // Null connection parameter.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConnectionStart(
-            nullptr,
-            ClientConfiguration,
-            QUIC_ADDRESS_FAMILY_INET,
-            "localhost",
-            4433));
+    {
+        TestScopeLogger logScope("Null connection parameter");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionStart(
+                nullptr,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
+                "localhost",
+                4433));
+    }
 
     //
     // Bad address family
     //
     {
+        TestScopeLogger logScope("Bad address family");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -697,6 +706,7 @@ void QuicTestValidateConnection()
     // Null server name
     //
     {
+        TestScopeLogger logScope("Null server name");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -716,9 +726,10 @@ void QuicTestValidateConnection()
     }
 
     //
-    // Bad port.
+    // Bad port
     //
     {
+        TestScopeLogger logScope("Bad port");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -741,6 +752,7 @@ void QuicTestValidateConnection()
     // Start connection twice
     //
     {
+        TestScopeLogger logScope("Start connection twice");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -783,6 +795,7 @@ void QuicTestValidateConnection()
     // just that no crash results because of this.
     //
     {
+        TestScopeLogger logScope("Shutdown connection and then start");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -808,6 +821,7 @@ void QuicTestValidateConnection()
     // Shutdown connection twice
     //
     {
+        TestScopeLogger logScope("Shutdown connection twice");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -828,22 +842,29 @@ void QuicTestValidateConnection()
     }
 
     //
-    // ConnectionShutdown null handle.
-    //
-    MsQuic->ConnectionShutdown(
-        nullptr,
-        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
-        QUIC_TEST_NO_ERROR);
-
-    //
-    // ConnectionClose null handle.
-    //
-    MsQuic->ConnectionClose(nullptr);
-
-    //
-    // Invalid datagram send calls.
+    // ConnectionShutdown null handle
     //
     {
+        TestScopeLogger logScope("ConnectionShutdown null handle");
+        MsQuic->ConnectionShutdown(
+            nullptr,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+            QUIC_TEST_NO_ERROR);
+    }
+
+    //
+    // ConnectionClose null handle
+    //
+    {
+        TestScopeLogger logScope("ConnectionClose null handle");
+        MsQuic->ConnectionClose(nullptr);
+    }
+
+    //
+    // Invalid datagram send calls
+    //
+    {
+        TestScopeLogger logScope("Invalid datagram send calls");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -875,9 +896,10 @@ void QuicTestValidateConnection()
     }
 
     //
-    // Successful send datagram calls.
+    // Successful send datagram calls
     //
     {
+        TestScopeLogger logScope("Successful send datagram calls");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -899,9 +921,10 @@ void QuicTestValidateConnection()
     }
 
     //
-    // Successful set datagram receive parameter.
+    // Successful set datagram receive parameter
     //
     {
+        TestScopeLogger logScope("Successful set datagram receive parameter");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -928,9 +951,10 @@ void QuicTestValidateConnection()
     }
 
     //
-    // Invalid send resumption.
+    // Invalid send resumption
     //
     {
+        TestScopeLogger logScope("Invalid send resumption");
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
@@ -981,6 +1005,7 @@ void QuicTestValidateConnection()
     //
 #ifndef QUIC_DISABLE_0RTT_TESTS
     {
+        TestScopeLogger logScopeouter("Invalid send resumption, server-side");
         TestListener MyListener(Registration, ListenerFailSendResumeCallback, ServerConfigurationNoResumption);
         TEST_TRUE(MyListener.IsValid());
 

@@ -2197,6 +2197,9 @@ QuicTestInvalidAlpnLengths(
     void
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
     int Lengths[] = { 0, QUIC_MAX_ALPN_LENGTH + 1 };
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 3]; // + 3 so it can always be 0 terminated
     for (int Len = 0; Len < (int)ARRAYSIZE(Lengths); Len++) {
@@ -2205,8 +2208,6 @@ QuicTestInvalidAlpnLengths(
         for (int i = 0; i < AlpnLength; i++) {
             AlpnBuffer[i] = 'a';
         }
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
 
         MsQuicAlpn Alpn(AlpnBuffer);
 
@@ -2223,15 +2224,15 @@ QuicTestValidAlpnLengths(
     void
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 2]; // + 2 so it can always be 0 terminated
     for (int AlpnLength = 1; AlpnLength <= QUIC_MAX_ALPN_LENGTH; AlpnLength++) {
         CxPlatZeroMemory(AlpnBuffer, sizeof(AlpnBuffer));
         for (int i = 0; i < AlpnLength; i++) {
             AlpnBuffer[i] = 'a';
         }
-
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
 
         MsQuicAlpn Alpn(AlpnBuffer);
 
