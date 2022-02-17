@@ -824,6 +824,16 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
+    SetRemoteAddr(_In_ const QuicAddr& Addr) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                sizeof(Addr.SockAddr),
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
     SetLocalInterface(_In_ uint32_t Index) noexcept {
         return
             MsQuic->SetParam(
@@ -1003,7 +1013,9 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
     const MsQuicConfiguration& Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
     void* ConnectionContext;
+#ifdef CX_PLATFORM_TYPE
     uint32_t AcceptedConnectionCount {0};
+#endif
 
     MsQuicAutoAcceptListener(
         _In_ const MsQuicRegistration& Registration,
@@ -1042,7 +1054,9 @@ private:
                     Connection->Handle = nullptr;
                     delete Connection;
                 } else {
+#ifdef CX_PLATFORM_TYPE
                     InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);
+#endif
                 }
             }
         }
