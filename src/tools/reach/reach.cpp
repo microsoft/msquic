@@ -17,7 +17,6 @@
 
 #include "quic_datapath.h"
 #include "msquic.h"
-//#include "msquichelper.h"
 
 uint16_t Port = 443;
 const char* ServerName = "localhost";

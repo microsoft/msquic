@@ -167,7 +167,7 @@ typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
     QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0001,   // Immediately informs peer that stream is open.
 #ifdef QUIC_LEGACY_COMPILE_MODE
-    QUIC_STREAM_START_FLAG_ASYNC                = 0x0000,   // No-op, but includes for legacy compiles.
+    QUIC_STREAM_START_FLAG_ASYNC                = 0x0000,   // No-op, but included for legacy compiles.
 #endif
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0002,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0004,   // Shutdown the stream immediately after start failure.
