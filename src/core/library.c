@@ -1301,7 +1301,7 @@ MsQuicOpenVersion(
     QUIC_STATUS Status;
     BOOLEAN ReleaseRefOnFailure = FALSE;
 
-    if (Version != 2) {
+    if (Version != QUIC_API_VERSION_2) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
