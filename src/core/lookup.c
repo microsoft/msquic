@@ -5,7 +5,7 @@
 
 Abstract:
 
-    CID-keyed lookup for connections.
+    Lookup tables for connections.
 
 --*/
 
@@ -401,7 +401,6 @@ QuicLookupFindConnectionByLocalCidInternal(
 
 //
 // Requires Lookup->RwLock to be held (shared).
-
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*

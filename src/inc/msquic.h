@@ -166,6 +166,9 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
 typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
     QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0001,   // Immediately informs peer that stream is open.
+#ifdef QUIC_LEGACY_COMPILE_MODE
+    QUIC_STREAM_START_FLAG_ASYNC                = 0x0000,   // No-op, but included for legacy compiles.
+#endif
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0002,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0004,   // Shutdown the stream immediately after start failure.
     QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,   // Indicate PEER_ACCEPTED event if not accepted at start.
@@ -426,16 +429,57 @@ typedef struct QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+typedef struct QUIC_STATISTICS_V2 {
+
+    uint64_t CorrelationId;
+    uint32_t VersionNegotiation     : 1;
+    uint32_t StatelessRetry         : 1;
+    uint32_t ResumptionAttempted    : 1;
+    uint32_t ResumptionSucceeded    : 1;
+    uint32_t Rtt;                           // In microseconds
+    uint32_t MinRtt;                        // In microseconds
+    uint32_t MaxRtt;                        // In microseconds
+
+    uint64_t TimingStart;
+    uint64_t TimingInitialFlightEnd;        // Processed all peer's Initial packets
+    uint64_t TimingHandshakeFlightEnd;      // Processed all peer's Handshake packets
+
+    uint32_t HandshakeClientFlight1Bytes;   // Sum of TLS payloads
+    uint32_t HandshakeServerFlight1Bytes;   // Sum of TLS payloads
+    uint32_t HandshakeClientFlight2Bytes;   // Sum of TLS payloads
+
+    uint16_t SendPathMtu;                   // Current path MTU.
+    uint64_t SendTotalPackets;              // QUIC packets; could be coalesced into fewer UDP datagrams.
+    uint64_t SendRetransmittablePackets;
+    uint64_t SendSuspectedLostPackets;
+    uint64_t SendSpuriousLostPackets;       // Actual lost is (SuspectedLostPackets - SpuriousLostPackets)
+    uint64_t SendTotalBytes;                // Sum of UDP payloads
+    uint64_t SendTotalStreamBytes;          // Sum of stream payloads
+    uint32_t SendCongestionCount;           // Number of congestion events
+    uint32_t SendPersistentCongestionCount; // Number of persistent congestion events
+
+    uint64_t RecvTotalPackets;              // QUIC packets; could be coalesced into fewer UDP datagrams.
+    uint64_t RecvReorderedPackets;          // Packets where packet number is less than highest seen.
+    uint64_t RecvDroppedPackets;            // Includes DuplicatePackets.
+    uint64_t RecvDuplicatePackets;
+    uint64_t RecvTotalBytes;                // Sum of UDP payloads
+    uint64_t RecvTotalStreamBytes;          // Sum of stream payloads
+    uint64_t RecvDecryptionFailures;        // Count of packet decryption failures.
+    uint64_t RecvValidAckFrames;            // Count of receive ACK frames.
+
+    uint32_t KeyUpdateCount;
+
+    // N.B. New fields must be appended to end
+
+} QUIC_STATISTICS_V2;
+
 typedef struct QUIC_LISTENER_STATISTICS {
 
     uint64_t TotalAcceptedConnections;
     uint64_t TotalRejectedConnections;
 
-    struct {
-        struct {
-            uint64_t DroppedPackets;
-        } Recv;
-    } Binding;
+    uint64_t BindingRecvDroppedPackets;
+
 } QUIC_LISTENER_STATISTICS;
 
 typedef enum QUIC_PERFORMANCE_COUNTERS {
@@ -631,6 +675,18 @@ void
 
 #define QUIC_PARAM_IS_GLOBAL(Param) ((Param & 0x7F000000) == QUIC_PARAM_PREFIX_GLOBAL)
 
+#ifdef QUIC_LEGACY_COMPILE_MODE
+typedef enum QUIC_PARAM_LEVEL {
+    QUIC_PARAM_LEVEL_GLOBAL = 0,
+    QUIC_PARAM_LEVEL_REGISTRATION = 0,
+    QUIC_PARAM_LEVEL_CONFIGURATION = 0,
+    QUIC_PARAM_LEVEL_LISTENER = 0,
+    QUIC_PARAM_LEVEL_CONNECTION = 0,
+    QUIC_PARAM_LEVEL_TLS = 0,
+    QUIC_PARAM_LEVEL_STREAM = 0,
+} QUIC_PARAM_LEVEL;
+#endif
+
 //
 // Parameters for Global.
 //
@@ -687,6 +743,8 @@ void
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 #define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x05000014  // uint32_t[]
 #define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]
+#define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
+#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 
 //
 // Parameters for TLS.
@@ -1283,8 +1341,15 @@ typedef struct QUIC_API_TABLE {
     QUIC_GET_CONTEXT_FN                 GetContext;
     QUIC_SET_CALLBACK_HANDLER_FN        SetCallbackHandler;
 
+#ifdef QUIC_LEGACY_COMPILE_MODE
+    QUIC_SET_PARAM_FN                   SetParam2;
+    QUIC_GET_PARAM_FN                   GetParam2;
+    #define SetParam(Handle, Level, Param, BufferLength, Buffer) SetParam2(Handle, ((uint32_t)Level)|Param, BufferLength, Buffer)
+    #define GetParam(Handle, Level, Param, BufferLength, Buffer) GetParam2(Handle, ((uint32_t)Level)|Param, BufferLength, Buffer)
+#else
     QUIC_SET_PARAM_FN                   SetParam;
     QUIC_GET_PARAM_FN                   GetParam;
+#endif
 
     QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
     QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;
@@ -1319,6 +1384,9 @@ typedef struct QUIC_API_TABLE {
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
 } QUIC_API_TABLE;
+
+#define QUIC_API_VERSION_1      1 // Not supported any more
+#define QUIC_API_VERSION_2      2 // Current latest
 
 //
 // Opens the API library and initializes it if this is the first call for the
@@ -1358,7 +1426,7 @@ MsQuicOpen2(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
-    return MsQuicOpenVersion(2, (const void**)QuicApi);
+    return MsQuicOpenVersion(QUIC_API_VERSION_2, (const void**)QuicApi);
 }
 
 #else

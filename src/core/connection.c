@@ -18,7 +18,7 @@ Abstract:
     MaxOperationsPerDrain operations per call, so as to not starve any other
     work.
 
-    While most of the connection specific work is managed by other interfaces,
+    While most of the connection specific work is managed by other modules,
     the following things are managed in this file:
 
     Connection Lifetime - Initialization, handshake and state changes, shutdown,
@@ -5512,24 +5512,40 @@ QuicConnRecvDatagrams(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicConnFlushRecv(
     _In_ QUIC_CONNECTION* Connection
     )
 {
+    BOOLEAN FlushedAll;
     uint32_t ReceiveQueueCount;
     CXPLAT_RECV_DATA* ReceiveQueue;
 
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
-    ReceiveQueueCount = Connection->ReceiveQueueCount;
-    Connection->ReceiveQueueCount = 0;
     ReceiveQueue = Connection->ReceiveQueue;
-    Connection->ReceiveQueue = NULL;
-    Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
+    if (Connection->ReceiveQueueCount > QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+        FlushedAll = FALSE;
+        Connection->ReceiveQueueCount -= QUIC_MAX_RECEIVE_FLUSH_COUNT;
+        CXPLAT_RECV_DATA* Tail = Connection->ReceiveQueue;
+        ReceiveQueueCount = 0;
+        while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+            Tail = Connection->ReceiveQueue;
+        }
+        Connection->ReceiveQueue = Tail->Next;
+        Tail->Next = NULL;
+    } else {
+        FlushedAll = TRUE;
+        ReceiveQueueCount = Connection->ReceiveQueueCount;
+        Connection->ReceiveQueueCount = 0;
+        Connection->ReceiveQueue = NULL;
+        Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
+    }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
+
+    return FlushedAll;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6619,6 +6635,67 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_STATISTICS_V2:
+    case QUIC_PARAM_CONN_STATISTICS_V2_PLAT: {
+
+        if (*BufferLength < sizeof(QUIC_STATISTICS_V2)) {
+            *BufferLength = sizeof(QUIC_STATISTICS_V2);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QUIC_STATISTICS_V2* Stats = (QUIC_STATISTICS_V2*)Buffer;
+        const QUIC_PATH* Path = &Connection->Paths[0];
+
+        Stats->CorrelationId = Connection->Stats.CorrelationId;
+        Stats->VersionNegotiation = Connection->Stats.VersionNegotiation;
+        Stats->StatelessRetry = Connection->Stats.StatelessRetry;
+        Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
+        Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
+        Stats->Rtt = Path->SmoothedRtt;
+        Stats->MinRtt = Path->MinRtt;
+        Stats->MaxRtt = Path->MaxRtt;
+        Stats->TimingStart = Connection->Stats.Timing.Start;
+        Stats->TimingInitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
+        Stats->TimingHandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
+        Stats->HandshakeClientFlight1Bytes = Connection->Stats.Handshake.ClientFlight1Bytes;
+        Stats->HandshakeServerFlight1Bytes = Connection->Stats.Handshake.ServerFlight1Bytes;
+        Stats->HandshakeClientFlight2Bytes = Connection->Stats.Handshake.ClientFlight2Bytes;
+        Stats->SendPathMtu = Path->Mtu;
+        Stats->SendTotalPackets = Connection->Stats.Send.TotalPackets;
+        Stats->SendRetransmittablePackets = Connection->Stats.Send.RetransmittablePackets;
+        Stats->SendSuspectedLostPackets = Connection->Stats.Send.SuspectedLostPackets;
+        Stats->SendSpuriousLostPackets = Connection->Stats.Send.SpuriousLostPackets;
+        Stats->SendTotalBytes = Connection->Stats.Send.TotalBytes;
+        Stats->SendTotalStreamBytes = Connection->Stats.Send.TotalStreamBytes;
+        Stats->SendCongestionCount = Connection->Stats.Send.CongestionCount;
+        Stats->SendPersistentCongestionCount = Connection->Stats.Send.PersistentCongestionCount;
+        Stats->RecvTotalPackets = Connection->Stats.Recv.TotalPackets;
+        Stats->RecvReorderedPackets = Connection->Stats.Recv.ReorderedPackets;
+        Stats->RecvDroppedPackets = Connection->Stats.Recv.DroppedPackets;
+        Stats->RecvDuplicatePackets = Connection->Stats.Recv.DuplicatePackets;
+        Stats->RecvTotalBytes = Connection->Stats.Recv.TotalBytes;
+        Stats->RecvTotalStreamBytes = Connection->Stats.Recv.TotalStreamBytes;
+        Stats->RecvDecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
+        Stats->RecvValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
+        Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
+
+        if (Param == QUIC_PARAM_CONN_STATISTICS_PLAT) {
+            Stats->TimingStart = CxPlatTimeUs64ToPlat(Stats->TimingStart); // cppcheck-suppress selfAssignment
+            Stats->TimingInitialFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingInitialFlightEnd); // cppcheck-suppress selfAssignment
+            Stats->TimingHandshakeFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingHandshakeFlightEnd); // cppcheck-suppress selfAssignment
+        }
+
+        *BufferLength = sizeof(QUIC_STATISTICS);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -6942,7 +7019,14 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_FLUSH_RECV:
-            QuicConnFlushRecv(Connection);
+            if (!QuicConnFlushRecv(Connection)) {
+                //
+                // Still have more data to recv. Put the operation back on the
+                // queue.
+                //
+                FreeOper = FALSE;
+                (void)QuicOperationEnqueue(&Connection->OperQ, Oper);
+            }
             break;
 
         case QUIC_OPER_TYPE_UNREACHABLE:

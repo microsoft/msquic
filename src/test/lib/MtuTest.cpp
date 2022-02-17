@@ -198,10 +198,10 @@ QuicTestMtuSettings()
             //
             // Ensure our MTU is in the middle somewhere
             //
-            QUIC_STATISTICS Stats;
+            QUIC_STATISTICS_V2 Stats;
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
-            TEST_NOT_EQUAL(1500, Stats.Send.PathMtu);
-            TEST_NOT_EQUAL(1280, Stats.Send.PathMtu);
+            TEST_NOT_EQUAL(1500, Stats.SendPathMtu);
+            TEST_NOT_EQUAL(1280, Stats.SendPathMtu);
 
             ServerDropper.ClientDropPacketSize = 0xFFFF;
 
@@ -217,7 +217,7 @@ QuicTestMtuSettings()
             // Ensure our MTU is in the max
             //
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
-            TEST_EQUAL(1500, Stats.Send.PathMtu);
+            TEST_EQUAL(1500, Stats.SendPathMtu);
 
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
@@ -278,9 +278,9 @@ QuicTestMtuDiscovery(
     //
     // Assert our maximum MTUs
     //
-    QUIC_STATISTICS ClientStats;
+    QUIC_STATISTICS_V2 ClientStats;
     QUIC_STATUS ClientSuccess = Connection.GetStatistics(&ClientStats);
-    QUIC_STATISTICS ServerStats;
+    QUIC_STATISTICS_V2 ServerStats;
     QUIC_STATUS ServerSuccess = Context.Connection->GetStatistics(&ServerStats);
 
     Connection.Shutdown(1);
@@ -289,8 +289,8 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(ClientSuccess);
     TEST_QUIC_SUCCEEDED(ServerSuccess);
 
-    TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
-    TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
+    TEST_EQUAL(ClientExpectedMtu, ClientStats.SendPathMtu);
+    TEST_EQUAL(ServerExpectedMtu, ServerStats.SendPathMtu);
 
     Context.ShutdownEvent.WaitTimeout(2000);
 }

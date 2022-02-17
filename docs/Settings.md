@@ -142,6 +142,8 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19    | QUIC_TLS_SECRETS  | Set-only  | The TLS secrets struct to be populated by MsQuic.        |
 | `QUIC_PARAM_CONN_DESIRED_VERSIONS`<br> 20    | uint8_t[]  | Get-only  | The desired QUIC versions for the connection.        |
 | `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 21    | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.        |
+| `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5                | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2. |
+| `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6           | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2. |
 
 ### TLS Parameters
 
