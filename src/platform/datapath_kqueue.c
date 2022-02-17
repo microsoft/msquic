@@ -827,115 +827,6 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // bind() to local port if we need to. This is not necessary if we call connect
-    // afterward and there is no ask for particular source address or port.
-    // connect() will resolve that together in single system call.
-    //
-    if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
-        CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
-        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-            MappedAddress.Ipv6.sin6_family = AF_INET6;
-        }
-
-        // If we're going to be connecting, we need to bind to the correct local address family.
-        if ((RemoteAddress && LocalAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) || ForceIpv4) {
-            MappedAddress.Ipv4.sin_family = AF_INET;
-            MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
-            // For Wildcard address we only need to copy port.
-            // If address is (unlikely) specified it needs to be IPv4 or mappedV4 since destination is IPv4.
-            if (!QuicAddrIsWildCard(&Binding->LocalAddress)) {
-                if (Binding->LocalAddress.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {
-                    CXPLAT_DBG_ASSERT(IN6_IS_ADDR_V4MAPPED(&Binding->LocalAddress.Ipv6.sin6_addr));
-                    CxPlatConvertFromMappedV6( &Binding->LocalAddress, &MappedAddress);
-                }
-            }
-        }
-
-        Result =
-            bind(
-                SocketContext->SocketFd,
-                &MappedAddress.Ip,
-                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "bind failed");
-            goto Exit;
-        }
-    }
-
-    //
-    // connect to RemoteAddress if provided.
-    //
-    if (RemoteAddress != NULL) {
-        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
-
-        if (ForceIpv4) {
-            CxPlatConvertFromMappedV6(&MappedAddress, &MappedAddress);
-        } else if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-            MappedAddress.Ipv6.sin6_family = AF_INET6;
-        }
-
-        Result =
-            connect(
-                SocketContext->SocketFd,
-                &MappedAddress.Ip,
-                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "connect failed");
-            goto Exit;
-        }
-
-        Binding->Connected = TRUE;
-    }
-
-    //
-    // If no specific local port was indicated, then the stack just
-    // assigned this socket a port. We need to query it and use it for
-    // all the other sockets we are going to create.
-    //
-    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
-    Result =
-        getsockname(
-            SocketContext->SocketFd,
-            (struct sockaddr *)&MappedAddress,
-            &AssignedLocalAddressLength);
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "getsockname failed");
-        goto Exit;
-    }
-    CxPlatConvertToMappedV6(&MappedAddress, &Binding->LocalAddress);
-
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    }
-
-    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
-        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    }
-
-    //
-    // We have socket with endpoints set. Let's set options we need.
-    //
-
-    //
     // Set non blocking mode
     //
     Flags =
@@ -1046,6 +937,111 @@ CxPlatSocketContextInitialize(
     //         "setsockopt(SO_RCVBUF) failed");
     //     goto Exit;
     // }
+
+    //
+    // bind() to local port if we need to. This is not necessary if we call connect
+    // afterward and there is no ask for particular source address or port.
+    // connect() will resolve that together in single system call.
+    //
+    if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
+        CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        // If we're going to be connecting, we need to bind to the correct local address family.
+        if ((RemoteAddress && LocalAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) || ForceIpv4) {
+            MappedAddress.Ipv4.sin_family = AF_INET;
+            MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
+            // For Wildcard address we only need to copy port.
+            // If address is (unlikely) specified it needs to be IPv4 or mappedV4 since destination is IPv4.
+            if (!QuicAddrIsWildCard(&Binding->LocalAddress)) {
+                if (Binding->LocalAddress.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+                    CXPLAT_DBG_ASSERT(IN6_IS_ADDR_V4MAPPED(&Binding->LocalAddress.Ipv6.sin6_addr));
+                    CxPlatConvertFromMappedV6( &Binding->LocalAddress, &MappedAddress);
+                }
+            }
+        }
+
+        Result =
+            bind(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "bind failed");
+            goto Exit;
+        }
+    }
+
+    //
+    // connect to RemoteAddress if provided.
+    //
+    if (RemoteAddress != NULL) {
+        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
+
+        if (ForceIpv4) {
+            CxPlatConvertFromMappedV6(&MappedAddress, &MappedAddress);
+        } else if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        Result =
+            connect(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "connect failed");
+            goto Exit;
+        }
+
+        Binding->Connected = TRUE;
+    }
+
+    //
+    // If no specific local port was indicated, then the stack just
+    // assigned this socket a port. We need to query it and use it for
+    // all the other sockets we are going to create.
+    //
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    Result =
+        getsockname(
+            SocketContext->SocketFd,
+            (struct sockaddr *)&MappedAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "getsockname failed");
+        goto Exit;
+    }
+    CxPlatConvertToMappedV6(&MappedAddress, &Binding->LocalAddress);
+
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    }
+
+    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
+        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
 
 Exit:
 
@@ -1188,6 +1184,7 @@ CxPlatSocketContextRecvComplete(
 
     CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
     CXPLAT_RECV_DATA* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
+    SocketContext->CurrentRecvBlock = NULL;
 
     int CMsgCount = 0;
     BOOLEAN FoundLocalAddr = FALSE;
@@ -1239,21 +1236,8 @@ CxPlatSocketContextRecvComplete(
         }
     }
 
-    if (!FoundLocalAddr || !FoundTOS) {
-        for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
-            CMsg != NULL;
-            CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
-            printf("Cmsg level %d Cmsg type\n", (int)CMsg->cmsg_level, (int)CMsg->cmsg_type);
-        }
-        printf("CmsgCount %d\n", CMsgCount);
-        fflush(stdout);
-    }
-
-    CXPLAT_FRE_ASSERT(CMsgCount != 0);
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
     CXPLAT_FRE_ASSERT(FoundTOS);
-
-    SocketContext->CurrentRecvBlock = NULL;
 
     QuicTraceEvent(
         DatapathRecv,
