@@ -145,7 +145,7 @@ QuicSendQueueFlush(
             CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
             return;
         }
-    } else if (Path->Route.State == RouteResolving) {
+    } else if (Path->Route.State == RouteResolving || Path->Route.State == RouteRefreshing) {
         //
         // Can't send now. Once route resolution completes, we will resume sending.
         //

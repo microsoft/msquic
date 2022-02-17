@@ -47,6 +47,8 @@ typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     // N.B. Multi-threaded access, synchronized by worker's operation lock.
     //
     CXPLAT_LIST_ENTRY WorkerLink;
+    CXPLAT_ROUTE RouteCopy;
+    CXPLAT_SOCKET* Socket;
     MIB_IPNET_ROW2 IpnetRow;
     void* Context;
     uint8_t PathId;
@@ -339,4 +341,11 @@ CxPlatFramingWriteHeaders(
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatQueryRoute(
+    _In_ const CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route
     );
