@@ -88,7 +88,6 @@ class TcpEngine {
 public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
-    CXPLAT_DATAPATH* Datapath{nullptr};
     const TcpAcceptHandler AcceptHandler;
     const TcpConnectHandler ConnectHandler;
     const TcpReceiveHandler ReceiveHandler;

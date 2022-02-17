@@ -89,7 +89,7 @@ CxPlatWorkerRegisterDataPath(
     )
 {
     CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
-    CXPLAT_DBG_ASSERT(Worker->DatapathEC == NULL);
+    CXPLAT_FRE_ASSERTMSG(Worker->DatapathEC == NULL, "Only one datapath allowed!");
     Worker->DatapathEC = Context;
     CxPlatEventSet(Worker->WakeEvent);
 }
