@@ -3080,8 +3080,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
-    _In_ void* Connection,
-    _In_ const CXPLAT_ROUTE* Route,
+    _In_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_)
+        const CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     )
@@ -3092,7 +3094,7 @@ QuicConnQueueRouteCompletion(
         ConnOper->ROUTE.Succeeded = Succeeded;
         ConnOper->ROUTE.PathId = PathId;
         if (Succeeded) {
-            memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
+            CxPlatCopyMemory(&ConnOper->ROUTE, Route, sizeof(*Route));
         }
         QuicConnQueueOper(Connection, ConnOper);
     } else {
@@ -5698,7 +5700,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const uint8_t* PhysicalAddress,
+    _In_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     )
@@ -5712,7 +5714,7 @@ QuicConnProcessRouteCompletion(
                 Connection,
                 "Processing successful route completion Path[%hhu]",
                 PathId);
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
+            CxPlatResolveRouteComplete(Connection, &Path->Route, Route, PathId);
             QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
         } else {
             //
@@ -7154,7 +7156,7 @@ QuicConnDrainOperations(
 #ifdef QUIC_USE_RAW_DATAPATH
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
             QuicConnProcessRouteCompletion(
-                Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
+                Connection, &Oper->ROUTE.Route, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
 #endif // QUIC_USE_RAW_DATAPATH
 

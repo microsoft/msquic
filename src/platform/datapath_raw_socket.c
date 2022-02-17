@@ -269,7 +269,7 @@ void
 CxPlatResolveRouteComplete(
     _In_ QUIC_CONNECTION* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_ROUTE* NewRoute,
+    _In_ const CXPLAT_ROUTE* NewRoute,
     _In_ uint8_t PathId
     )
 {
@@ -281,12 +281,12 @@ CxPlatResolveRouteComplete(
         Connection,
         "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
         PathId,
-        PhysicalAddress[0],
-        PhysicalAddress[1],
-        PhysicalAddress[2],
-        PhysicalAddress[3],
-        PhysicalAddress[4],
-        PhysicalAddress[5]);
+        Route->NextHopLinkLayerAddress[0],
+        Route->NextHopLinkLayerAddress[1],
+        Route->NextHopLinkLayerAddress[2],
+        Route->NextHopLinkLayerAddress[3],
+        Route->NextHopLinkLayerAddress[4],
+        Route->NextHopLinkLayerAddress[5]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -411,7 +411,7 @@ CxPlatResolveRoute(
     QuicTraceLogConnInfo(
         RouteResolutionStart,
         Context,
-        "Starting to look up neighbor on Path[%hhu] with status %u",
+        "Starting to look up neighbor on Path[%hhu] with status %d",
         PathId,
         Status);
 
@@ -421,7 +421,7 @@ CxPlatResolveRoute(
         //
         Status = QUIC_STATUS_PENDING;
     } else {
-        Status = CxPlatQueryRoute(Socket, Socket->Datapath , &RouteQueried);
+        Status = CxPlatQueryRoute(Socket, &RouteQueried);
     }
 
     if (Status == QUIC_STATUS_SUCCESS) {

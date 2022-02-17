@@ -1413,7 +1413,9 @@ _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const CXPLAT_ROUTE* Route,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_)
+        const CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );
