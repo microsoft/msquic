@@ -147,6 +147,8 @@ typedef struct QUIC_BUFFER QUIC_BUFFER;
 typedef enum CXPLAT_ROUTE_STATE {
     RouteUnresolved,
     RouteResolving,
+    RouteSuspected,
+    RouteRefreshing,
     RouteResolved,
 } CXPLAT_ROUTE_STATE;
 
@@ -157,9 +159,9 @@ typedef struct CXPLAT_ROUTE {
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
-
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
+    void* Interface;
     void* Queue;
 
     CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
@@ -669,9 +671,7 @@ _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 (CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
     _In_ void* Context,
-    _When_(Succeeded == FALSE, _Reserved_)
-    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
-        uint8_t* PhysicalAddress,
+    _In_ const CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );
