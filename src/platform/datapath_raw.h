@@ -47,7 +47,7 @@ typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     // N.B. Multi-threaded access, synchronized by worker's operation lock.
     //
     CXPLAT_LIST_ENTRY WorkerLink;
-    CXPLAT_ROUTE RouteCopy;
+    CXPLAT_ROUTE Route;
     CXPLAT_SOCKET* Socket;
     MIB_IPNET_ROW2 IpnetRow;
     void* Context;
