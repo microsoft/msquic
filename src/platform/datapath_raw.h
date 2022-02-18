@@ -343,8 +343,10 @@ CxPlatFramingWriteHeaders(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
 CxPlatQueryRoute(
     _In_ const CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_ROUTE* Route,
+    _Inout_ MIB_IPNET_ROW2* IpnetRow
     );

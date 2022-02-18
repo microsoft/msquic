@@ -589,13 +589,14 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CxPlatDispatchLockRelease(&Worker->Lock);
 
         while (!CxPlatListIsEmpty(&Operations)) {
+            MIB_IPNET_ROW2 IpnetRow = {0};
             CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
             CXPLAT_DBG_ASSERT(
                 Operation->Route.State == RouteRefreshing || Operation->Route.State == RouteResolving);
             CXPLAT_ROUTE NewRoute = Operation->Route;
-            QUIC_STATUS Status = CxPlatQueryRoute(Operation->Socket, &NewRoute);
+            QUIC_STATUS Status = CxPlatQueryRoute(Operation->Socket, &NewRoute, &IpnetRow);
             if (Status == QUIC_STATUS_SUCCESS) {
                 if (!QuicAddrCompare(&NewRoute.LocalAddress, &Operation->Route.LocalAddress)) {
                     //
@@ -615,9 +616,6 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
             }
 
             if (Status == QUIC_STATUS_PENDING) {
-                MIB_IPNET_ROW2 IpnetRow = {0};
-                IpnetRow.Address = NewRoute.NextHopAddress;
-                IpnetRow.InterfaceIndex = ((CXPLAT_INTERFACE*)(NewRoute.Interface))->IfIndex;
                 Status = ResolveIpNetEntry2(&IpnetRow, NULL);
                 if (Status == 0) {
                     CxPlatCopyMemory(
