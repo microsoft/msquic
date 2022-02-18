@@ -376,7 +376,6 @@ CxPlatQueryRoute(
     } else {
         IpnetRow->Address = IpforwardRow.NextHop;
     }
-    Route->NextHopAddress = IpnetRow->Address;
 
     //
     // Call GetIpNetEntry2 to see if there's already a cached neighbor.
