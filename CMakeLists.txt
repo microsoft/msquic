@@ -107,10 +107,6 @@ if (NOT QUIC_BUILD_SHARED)
     cmake_minimum_required(VERSION 3.20)
 endif()
 
-if (QUIC_USE_DPDK AND QUIC_USE_XDP)
-    message(FATAL_ERROR "Cannot use both DPDK and XDP")
-endif()
-
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions

@@ -248,11 +248,6 @@ if ($Arch -eq "arm64ec") {
     }
 }
 
-if ($UseDpdk -And $UseXdp) {
-    Write-Error "[$(Get-Date)] Cannot use both DPDK and XDP"
-    exit
-}
-
 if ($Platform -eq "ios" -and !$Static) {
     $Static = $true
     Write-Host "iOS can only be built as static"
