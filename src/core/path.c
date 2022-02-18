@@ -175,7 +175,11 @@ QuicCopyRouteInfo(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
+#ifdef QUIC_USE_RAW_DATAPATH
     CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
+#else
+    *DstRoute = *SrcRoute;
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

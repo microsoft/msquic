@@ -73,8 +73,7 @@ typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
 
     BOOLEAN Running;
-    CXPLAT_THREAD WorkerThread;
-    CXPLAT_THREAD ExtraWorkerThreads[64];
+    HANDLE CompletionEvent;
 
     // Constants
     DECLSPEC_CACHEALIGN
@@ -87,8 +86,6 @@ typedef struct XDP_DATAPATH {
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
     BOOLEAN TxAlwaysPoke;
-    uint32_t ExtraThreads;
-    BOOLEAN Affinitize;
     BOOLEAN SkipXsum;
 } XDP_DATAPATH;
 
@@ -123,9 +120,6 @@ CxPlatDataPathRecvDataToRecvPacket(
 {
     return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
 }
-
-CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context);
-CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context);
 
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
@@ -382,7 +376,6 @@ CxPlatXdpReadConfig(
     Xdp->TxRingSize = 128;
     Xdp->TxAlwaysPoke = FALSE;
     Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
-    Xdp->Affinitize = TRUE;
 
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
@@ -414,15 +407,10 @@ CxPlatXdpReadConfig(
              Xdp->TxRingSize = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "TxAlwaysPoke") == 0) {
              Xdp->TxAlwaysPoke = !!strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "Affinitize") == 0) {
-            BOOLEAN State = !!strtoul(Value, NULL, 10);
-            Xdp->Affinitize = State;
         } else if (strcmp(Line, "SkipXsum") == 0) {
             BOOLEAN State = !!strtoul(Value, NULL, 10);
             Xdp->SkipXsum = State;
             printf("SkipXsum: %u\n", State);
-        } else if (strcmp(Line, "ExtraThreads") == 0) {
-            Xdp->ExtraThreads = strtoul(Value, NULL, 10);
         }
     }
 
@@ -917,9 +905,6 @@ CxPlatDpRawInitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    CXPLAT_THREAD_CONFIG Config = {
-        0, 0, "XdpDatapathWorker", CxPlatXdpWorkerThread, Xdp
-    };
     QUIC_STATUS Status;
 
     CxPlatXdpReadConfig(Xdp);
@@ -1022,28 +1007,8 @@ CxPlatDpRawInitialize(
     }
 
     Xdp->Running = TRUE;
-    Status = CxPlatThreadCreate(&Config, &Xdp->WorkerThread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate");
-        goto Error;
-    }
-
-    Config.Callback = CxPlatXdpExtraWorkerThread;
-    for (uint32_t i = 0; i < Xdp->ExtraThreads; ++i) {
-        Status = CxPlatThreadCreate(&Config, &Xdp->ExtraWorkerThreads[i]);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatThreadCreate");
-            goto Error;
-        }
-    }
+    CxPlatEventInitialize(&Xdp->CompletionEvent, TRUE, FALSE);
+    CxPlatWorkerRegisterDataPath(Xdp->Cpu, &Datapath->Processors[i]);
 
 Error:
 
@@ -1062,10 +1027,10 @@ CxPlatDpRawUninitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
 
-    if (Xdp->WorkerThread != NULL) {
+    if (Xdp->Running) {
         Xdp->Running = FALSE;
-        CxPlatThreadWait(&Xdp->WorkerThread);
-        CxPlatThreadDelete(&Xdp->WorkerThread);
+        CxPlatEventWaitForever(Xdp->CompletionEvent);
+        CxPlatEventUninitialize(Xdp->CompletionEvent);
     }
 
     while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
@@ -1399,53 +1364,36 @@ CxPlatXdpTx(
     }
 }
 
-CXPLAT_THREAD_CALLBACK(CxPlatXdpWorkerThread, Context)
+void
+CxPlatDataPathWake(
+    _In_ void* Context
+    )
 {
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
-    CXPLAT_LIST_ENTRY* Entry;
-
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-    const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
-#endif
-
-    if (Xdp->Affinitize) {
-        GROUP_AFFINITY Affinity = {0};
-        Affinity.Group = Xdp->DatapathCpuGroup;
-        Affinity.Mask = (ULONG_PTR)1 << Xdp->Cpu;
-        SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
-    }
-
-    while (Xdp->Running) {
-        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-            for (uint8_t QueueId = 0; QueueId < Interface->QueueCount; QueueId++) {
-                CxPlatXdpRx(Xdp, QueueId, Interface);
-                CxPlatXdpTx(Xdp, QueueId, Interface);
-            }
-        }
-
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-        (void)CxPlatRunExecutionContexts(ThreadID);
-#endif
-    }
-
-    return 0;
+    // No-op - XDP never sleeps!
+    UNREFERENCED_PARAMETER(Context);
 }
 
-CXPLAT_THREAD_CALLBACK(CxPlatXdpExtraWorkerThread, Context)
+void
+CxPlatDataPathRunEC(
+    _In_ void** Context,
+    _In_ CXPLAT_THREAD_ID CurThreadId,
+    _In_ uint32_t WaitTime
+    )
 {
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Context;
+    XDP_DATAPATH* Xdp = *(XDP_DATAPATH**)Context;
 
-    if (Xdp->Affinitize) {
-        GROUP_AFFINITY Affinity = {0};
-        Affinity.Group = Xdp->DatapathCpuGroup;
-        Affinity.Mask = (ULONG_PTR)1 << Xdp->Cpu;
-        SetThreadGroupAffinity(GetCurrentThread(), &Affinity, NULL);
+    if (!Xdp->Running) {
+        *Context = NULL;
+        CxPlatEventSet(Xdp->CompletionEvent);
+        return;
     }
 
-    while (Xdp->Running) {
-        CxPlatTimeUs64();
+    CXPLAT_LIST_ENTRY* Entry;
+    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+        for (uint8_t QueueId = 0; QueueId < Interface->QueueCount; QueueId++) {
+            CxPlatXdpRx(Xdp, QueueId, Interface);
+            CxPlatXdpTx(Xdp, QueueId, Interface);
+        }
     }
-
-    return 0;
 }

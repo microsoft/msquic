@@ -158,11 +158,13 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
+#ifdef QUIC_USE_RAW_DATAPATH
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
     void* Queue;
 
     CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
+#endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
 
@@ -649,6 +651,7 @@ CxPlatSocketGetParam(
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     );
 
+#ifdef QUIC_USE_RAW_DATAPATH
 //
 // Copies L2 address into route object and sets route state to resolved.
 //
@@ -690,6 +693,7 @@ CxPlatResolveRoute(
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
+#endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)
 }
