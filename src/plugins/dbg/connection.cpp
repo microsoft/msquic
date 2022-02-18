@@ -19,8 +19,13 @@ EXT_COMMAND(
     )
 {
     Connection Conn(GetUnnamedArgU64(0));
+    Registration Reg(Conn.RegistrationPtr());
+    Worker Wrker(Conn.WorkerPtr());
 
     Dml("\n<b>CONNECTION</b> (<link cmd=\"!quicanalyze 0x%I64X\">analyze</link>) (<link cmd=\"dt msquic!QUIC_CONNECTION 0x%I64X\">raw</link>)\n"
+        "\n"
+        "\tRegistration         < link cmd = \"!quicregistration 0x%I64X\">%I64u</link>\n"
+        "\tWorker               < link cmd = \"!quicworker 0x%I64X\">%I64u</link>\t%s\n"
         "\n"
         "\tLocal Address        %s\n"
         "\tRemote Address       %s\n"
@@ -28,6 +33,11 @@ EXT_COMMAND(
         "\tRef Count            %d\n",
         Conn.Addr,
         Conn.Addr,
+        Reg.Addr,
+        Reg.Addr,
+        Wrker.Addr,
+        Wrker.Addr,
+        Wrker.StateStr(),
         Conn.GetLocalAddress().IpString,
         Conn.GetRemoteAddress().IpString,
         Conn.Version(),

@@ -9,7 +9,7 @@ if (QUIC_CODE_CHECK)
     set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
 endif()
 
-set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
+set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if(QUIC_USE_DPDK)
     add_custom_command(

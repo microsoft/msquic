@@ -561,7 +561,7 @@ QuicStreamSendFlush(
             SendRequest->StreamOffset,
             SendRequest->Flags);
 
-        if (SendRequest->Flags & QUIC_SEND_FLAG_START) {
+        if (SendRequest->Flags & QUIC_SEND_FLAG_START && !Stream->Flags.Started) {
             //
             // Start the stream if the flag is set.
             //

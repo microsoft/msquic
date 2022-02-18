@@ -14,6 +14,7 @@ Abstract:
 #include "ThroughputClient.h"
 #include "RpsClient.h"
 #include "HpsClient.h"
+#include "Tcp.h"
 
 #ifdef QUIC_CLOG
 #include "SecNetPerfMain.cpp.clog.h"
@@ -120,20 +121,18 @@ QuicMainStart(
 
     QUIC_STATUS Status;
 
-#ifndef QUIC_NO_SHARED_DATAPATH
-    if (ServerMode) {
-        Datapath = nullptr;
-        Binding = nullptr;
-        const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-            DatapathReceive,
-            DatapathUnreachable
-        };
-        Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
-            return Status;
-        }
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        DatapathReceive,
+        DatapathUnreachable
+    };
 
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &Datapath);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
+        return Status;
+    }
+
+    if (ServerMode) {
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = &LocalAddress.SockAddr;
@@ -158,7 +157,6 @@ QuicMainStart(
             return Status;
         }
     }
-#endif // QUIC_NO_SHARED_DATAPATH
 
     MsQuic = new(std::nothrow) MsQuicApi;
     if (MsQuic == nullptr) {

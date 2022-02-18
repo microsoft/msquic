@@ -207,3 +207,35 @@ void
 CxPlatCryptUninitialize(
     void
     );
+
+//
+// Platform Worker APIs
+//
+
+BOOLEAN
+CxPlatWorkersInit(
+    void
+    );
+
+void
+CxPlatWorkersUninit(
+    void
+    );
+
+void
+CxPlatDataPathWake(
+    _In_ void* Context
+    );
+
+void
+CxPlatDataPathRunEC(
+    _In_ void** Context,
+    _In_ CXPLAT_THREAD_ID CurThreadId,
+    _In_ uint32_t WaitTime
+    );
+
+void
+CxPlatWorkerRegisterDataPath(
+    _In_ uint16_t IdealProcessor,
+    _In_ void* Context
+    );

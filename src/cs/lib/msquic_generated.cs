@@ -2249,6 +2249,12 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX 0x14000015")]
         public const int QUIC_PARAM_CONN_INITIAL_DCID_PREFIX = 0x14000015;
 
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2 0x05000016")]
+        public const int QUIC_PARAM_CONN_STATISTICS_V2 = 0x05000016;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT 0x05000017")]
+        public const int QUIC_PARAM_CONN_STATISTICS_V2_PLAT = 0x05000017;
+
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
 

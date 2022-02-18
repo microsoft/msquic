@@ -30,7 +30,7 @@ Environment:
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
 CX_PLATFORM CxPlatform = { NULL };
-int RandomFd; // Used for reading random numbers.
+int RandomFd = -1; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #define STR_HELPER(x) #x
@@ -205,6 +205,11 @@ CxPlatInitialize(
         goto Exit;
     }
 
+    if (!CxPlatWorkersInit()) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
     CxPlatTotalMemory = CGroupGetMemoryLimit();
 
     Status = QUIC_STATUS_SUCCESS;
@@ -216,6 +221,12 @@ CxPlatInitialize(
 
 Exit:
 
+    if (QUIC_FAILED(Status)) {
+        if (RandomFd != -1) {
+            close(RandomFd);
+        }
+    }
+
     return Status;
 }
 
@@ -224,6 +235,7 @@ CxPlatUninitialize(
     void
     )
 {
+    CxPlatWorkersUninit();
     close(RandomFd);
     QuicTraceLogInfo(
         PosixUninitialized,

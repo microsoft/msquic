@@ -25,6 +25,7 @@
 ../src/platform/storage_posix.c
 ../src/platform/crypt_openssl.c
 ../src/platform/inline.c
+../src/platform/platform_worker.c
 ../src/perf/bin/histogram/hdr_histogram.c
 ../src/core/api.c
 ../src/core/range.c
