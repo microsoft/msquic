@@ -1008,7 +1008,8 @@ CxPlatDpRawInitialize(
 
     Xdp->Running = TRUE;
     CxPlatEventInitialize(&Xdp->CompletionEvent, TRUE, FALSE);
-    CxPlatWorkerRegisterDataPath(Xdp->Cpu, &Datapath->Processors[i]);
+    CxPlatWorkerRegisterDataPath(Xdp->Cpu, Xdp);
+    Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
