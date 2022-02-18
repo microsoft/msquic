@@ -1383,6 +1383,9 @@ CxPlatDataPathRunEC(
 {
     XDP_DATAPATH* Xdp = *(XDP_DATAPATH**)Context;
 
+    UNREFERENCED_PARAMETER(CurThreadId);
+    UNREFERENCED_PARAMETER(WaitTime);
+
     if (!Xdp->Running) {
         *Context = NULL;
         CxPlatEventSet(Xdp->CompletionEvent);
