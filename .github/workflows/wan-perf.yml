@@ -70,7 +70,7 @@ jobs:
     needs: build-perf
     env:
       seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
-      iterations: 5
+      iterations: 3
       duration: 10000
       pacing: 1
       reorder: "(0,1000,10000)"
