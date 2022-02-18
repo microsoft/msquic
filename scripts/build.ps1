@@ -359,14 +359,14 @@ function CMake-Generate {
     if ($CodeCheck) {
         $Arguments += " -DQUIC_CODE_CHECK=on"
     }
-    if ($DisableTools) {
-        $Arguments += " -DQUIC_BUILD_TOOLS=off"
+    if (!$DisableTools) {
+        $Arguments += " -DQUIC_BUILD_TOOLS=on"
     }
-    if ($DisableTest) {
-        $Arguments += " -DQUIC_BUILD_TEST=off"
+    if (!$DisableTest) {
+        $Arguments += " -DQUIC_BUILD_TEST=on"
     }
-    if ($DisablePerf) {
-        $Arguments += " -DQUIC_BUILD_PERF=off"
+    if (!$DisablePerf) {
+        $Arguments += " -DQUIC_BUILD_PERF=on"
     }
     if (!$IsWindows) {
         $ConfigToBuild = $Config;
