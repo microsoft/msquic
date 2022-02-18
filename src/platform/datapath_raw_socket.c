@@ -449,8 +449,13 @@ CxPlatResolveRoute(
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
-        RouteQueried.State = Route->State = State == RouteSuspected ? RouteRefreshing : RouteResolving;
-        Operation->Route = RouteQueried;
+        if (State == RouteSuspected) {
+            RouteQueried.State = Route->State = RouteSuspected;
+            Operation->Route = *Route;
+        } else {
+            RouteQueried.State = Route->State = RouteResolving;
+            Operation->Route = RouteQueried;
+        }
         Operation->Socket = Socket;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
