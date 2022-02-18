@@ -243,14 +243,6 @@ CxPlatDpRawTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-//
-// Runs all execution contexts. Returns FALSE if none are present.
-//
-BOOLEAN CxPlatRunExecutionContexts(_In_ CXPLAT_THREAD_ID ThreadID);
-#endif
-
 //
 // Raw Socket Interface
 //

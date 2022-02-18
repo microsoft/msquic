@@ -708,20 +708,12 @@ CxPlatDpdkWorkerThread(
         }
     }
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-    const CXPLAT_THREAD_ID ThreadID = CxPlatCurThreadID();
-#endif
-
     while (likely(Dpdk->Running)) {
         for (Entry = Dpdk->Interfaces.Flink; Entry != &Dpdk->Interfaces; Entry = Entry->Flink) {
             DPDK_INTERFACE* Interface = CONTAINING_RECORD(Entry, DPDK_INTERFACE, Link);
             CxPlatDpdkRx(Dpdk, Core, Interface);
             CxPlatDpdkTx(Dpdk, Interface);
         }
-
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-        (void)CxPlatRunExecutionContexts(ThreadID);
-#endif
     }
 
     return 0;
