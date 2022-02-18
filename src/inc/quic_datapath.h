@@ -141,12 +141,11 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 //
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
-//
-// When state is Resolved, LocalLinkLayerAddress and NextHopLinkLayerAddress of CXPLAT_ROUTE are valid.
-//
 typedef enum CXPLAT_ROUTE_STATE {
     RouteUnresolved,
     RouteResolving,
+    RouteSuspected,
+    RouteRefreshing,
     RouteResolved,
 } CXPLAT_ROUTE_STATE;
 
@@ -161,6 +160,7 @@ typedef struct CXPLAT_ROUTE {
 #ifdef QUIC_USE_RAW_DATAPATH
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
+    void* Interface;
     void* Queue;
 
     CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
@@ -659,7 +659,7 @@ void
 CxPlatResolveRouteComplete(
     _In_ void* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ const CXPLAT_ROUTE* NewRoute,
     _In_ uint8_t PathId
     );
 
@@ -673,8 +673,8 @@ void
 (CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
     _In_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
-    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
-        uint8_t* PhysicalAddress,
+    _When_(Succeeded == TRUE, _In_)
+        const CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );

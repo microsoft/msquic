@@ -260,7 +260,7 @@ CubicCongestionControlOnCongestionEvent(
             "[conn][%p] Persistent congestion event",
             Connection);
         Connection->Stats.Send.PersistentCongestionCount++;
-
+        Connection->Paths[0].Route.State = RouteSuspected;
         Cubic->IsInPersistentCongestion = TRUE;
         Cubic->WindowMax =
         Cubic->WindowLastMax =

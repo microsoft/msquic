@@ -3080,10 +3080,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
-    _Inout_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _When_(Succeeded == FALSE, _Reserved_)
-    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
-        const uint8_t* PhysicalAddress,
+    _When_(Succeeded == TRUE, _In_)
+        const CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     )
@@ -3094,21 +3094,19 @@ QuicConnQueueRouteCompletion(
         ConnOper->ROUTE.Succeeded = Succeeded;
         ConnOper->ROUTE.PathId = PathId;
         if (Succeeded) {
-            memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
+            CxPlatCopyMemory(&ConnOper->ROUTE, Route, sizeof(*Route));
         }
         QuicConnQueueOper(Connection, ConnOper);
-    } else {
-        if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
-            QUIC_OPERATION* Oper = &Connection->BackUpOper;
-            Oper->FreeAfterProcess = FALSE;
-            Oper->Type = QUIC_OPER_TYPE_API_CALL;
-            Oper->API_CALL.Context = &Connection->BackupApiContext;
-            Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
-            QuicConnQueueHighestPriorityOper(Connection, Oper);
-        }
+    } else if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+        QUIC_OPERATION* Oper = &Connection->BackUpOper;
+        Oper->FreeAfterProcess = FALSE;
+        Oper->Type = QUIC_OPER_TYPE_API_CALL;
+        Oper->API_CALL.Context = &Connection->BackupApiContext;
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        QuicConnQueueHighestPriorityOper(Connection, Oper);
     }
 
     QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
@@ -5700,7 +5698,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessRouteCompletion(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const uint8_t* PhysicalAddress,
+    _In_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     )
@@ -5714,7 +5712,7 @@ QuicConnProcessRouteCompletion(
                 Connection,
                 "Processing successful route completion Path[%hhu]",
                 PathId);
-            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
+            CxPlatResolveRouteComplete(Connection, &Path->Route, Route, PathId);
             QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
         } else {
             //
@@ -7156,7 +7154,7 @@ QuicConnDrainOperations(
 #ifdef QUIC_USE_RAW_DATAPATH
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
             QuicConnProcessRouteCompletion(
-                Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
+                Connection, &Oper->ROUTE.Route, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
 #endif // QUIC_USE_RAW_DATAPATH
 
