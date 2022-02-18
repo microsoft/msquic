@@ -49,7 +49,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
-| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Windows ? | Feb ? 2022 | Apr ? 2022 | Oct ? 2023 |
+| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Client | Mar 1 2022 | May 1 2022 | Nov 1 2023 |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -282,6 +282,8 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 - Ensure the app handles `ListenerStop` not blocking any more. `ListenerClose` still blocks.
 - No more need to check for a return code from `StreamReceiveComplete`.
 - QUIC_ADDRESS_FAMILY_IPV6 has been changed to be platform specific rather then always windows values. For C/C++ consumers this is only a binary breaking change. For Interop consumers, the value will change for linux and macOS.
+
+> **Note** - While support for `QUIC_LEGACY_COMPILE_MODE` is included, its use is **not recommended** and it **will be removed** in an upcoming release.
 
 ### Other Changes
 
