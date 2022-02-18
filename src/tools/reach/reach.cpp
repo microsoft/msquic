@@ -13,8 +13,10 @@
 #include <mutex>
 #include <algorithm>
 
+#define QUIC_LEGACY_COMPILE_MODE 1 // To test legacy compiling
+
 #include "quic_datapath.h"
-#include "msquichelper.h"
+#include "msquic.h"
 
 uint16_t Port = 443;
 const char* ServerName = "localhost";
@@ -128,6 +130,78 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
     CXPLAT_THREAD_RETURN(0);
 }
 
+inline
+_Ret_maybenull_ _Null_terminated_ const char*
+GetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name
+    )
+{
+    const size_t nameLen = strlen(name);
+    for (int i = 0; i < argc; i++) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) > 1 + nameLen + 1
+            && *(argv[i] + 1 + nameLen) == ':') {
+            return argv[i] + 1 + nameLen + 1;
+        }
+    }
+    return nullptr;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ _Null_terminated_ const char** pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = value;
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint16_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (uint16_t)atoi(value);
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint32_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    char* End;
+#ifdef _WIN32
+    *pValue = (uint32_t)_strtoui64(value, &End, 10);
+#else
+    *pValue = (uint32_t)strtoull(value, &End, 10);
+#endif
+    return true;
+}
+
 int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv)
@@ -180,10 +254,17 @@ main(int argc, char **argv)
         }
     }
 
+#ifdef QUIC_API_VERSION_2
+    if (QUIC_FAILED(MsQuicOpen2(&MsQuic))) {
+        printf("MsQuicOpen2 failed.\n");
+        exit(1);
+    }
+#else
     if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed.\n");
         exit(1);
     }
+#endif
 
     const QUIC_REGISTRATION_CONFIG RegConfig = { "reach", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {

@@ -191,13 +191,16 @@ typedef struct QUIC_PATH QUIC_PATH;
 // connection. When this limit is reached, any additional packets are dropped.
 //
 #ifdef _KERNEL_MODE
-//
-// Kernel modes receive path is slightly different, so allow larger queue sizes.
-//
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
 #else
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 #endif
+
+//
+// The maximum number of received packets that may be processed in a single
+// flush operation.
+//
+#define QUIC_MAX_RECEIVE_FLUSH_COUNT            100
 
 //
 // The maximum number of pending datagrams we will hold on to, per connection,
@@ -219,7 +222,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // The initial stream FC window size reported to peers.
 //
-#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x8000  // 32768
+#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x10000  // 65536
 
 //
 // The initial stream receive buffer allocation size.

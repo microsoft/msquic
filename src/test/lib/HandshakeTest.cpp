@@ -928,7 +928,6 @@ struct ClearForcedRetryScope {
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                 sizeof(value),
                 &value));
@@ -950,7 +949,6 @@ QuicTestVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(RetryMemoryLimit),
             &RetryMemoryLimit));
@@ -1039,7 +1037,6 @@ QuicTestCompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1129,7 +1126,6 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(RetryMemoryLimit),
             &RetryMemoryLimit));
@@ -1138,7 +1134,6 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1228,7 +1223,6 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1317,7 +1311,6 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1405,7 +1398,6 @@ QuicTestIncompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1491,7 +1483,6 @@ RunFailedVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
@@ -1856,25 +1847,25 @@ QuicTestKeyUpdateRandomLoss(
                     CxPlatSleep(100);
                 }
 
-                QUIC_STATISTICS Stats = Client.GetStatistics();
-                if (Stats.Recv.DecryptionFailures) {
-                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
+                if (Stats.RecvDecryptionFailures) {
+                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
                 }
 
-                if (Stats.Misc.KeyUpdateCount < 1) {
-                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.Misc.KeyUpdateCount);
+                if (Stats.KeyUpdateCount < 1) {
+                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.KeyUpdateCount);
                     return;
                 }
 
                 Stats = Server->GetStatistics();
-                if (Stats.Recv.DecryptionFailures) {
-                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                if (Stats.RecvDecryptionFailures) {
+                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
                 }
 
-                if (Stats.Misc.KeyUpdateCount < 1) {
-                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.Misc.KeyUpdateCount);
+                if (Stats.KeyUpdateCount < 1) {
+                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.KeyUpdateCount);
                     return;
                 }
 
@@ -1987,27 +1978,27 @@ QuicTestKeyUpdate(
 
                 CxPlatSleep(100);
 
-                QUIC_STATISTICS Stats = Client.GetStatistics();
-                if (Stats.Recv.DecryptionFailures) {
-                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
+                if (Stats.RecvDecryptionFailures) {
+                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
                 }
 
                 uint16_t ExpectedUpdates = Iterations - (UseKeyUpdateBytes ? 1u : 0u);
 
-                if (Stats.Misc.KeyUpdateCount < ExpectedUpdates) {
-                    TEST_FAILURE("%u Key updates occured. Expected %d", Stats.Misc.KeyUpdateCount, ExpectedUpdates);
+                if (Stats.KeyUpdateCount < ExpectedUpdates) {
+                    TEST_FAILURE("%u Key updates occured. Expected %d", Stats.KeyUpdateCount, ExpectedUpdates);
                     return;
                 }
 
                 Stats = Server->GetStatistics();
-                if (Stats.Recv.DecryptionFailures) {
-                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                if (Stats.RecvDecryptionFailures) {
+                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
                 }
 
-                if (Stats.Misc.KeyUpdateCount < ExpectedUpdates) {
-                    TEST_FAILURE("%u Key updates occured. Expected %d", Stats.Misc.KeyUpdateCount, ExpectedUpdates);
+                if (Stats.KeyUpdateCount < ExpectedUpdates) {
+                    TEST_FAILURE("%u Key updates occured. Expected %d", Stats.KeyUpdateCount, ExpectedUpdates);
                     return;
                 }
 
@@ -2101,15 +2092,15 @@ QuicTestCidUpdate(
 
                 CxPlatSleep(100);
 
-                QUIC_STATISTICS Stats = Client.GetStatistics();
-                if (Stats.Recv.DecryptionFailures) {
-                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
+                if (Stats.RecvDecryptionFailures) {
+                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
                 }
 
                 Stats = Server->GetStatistics();
-                if (Stats.Recv.DecryptionFailures) {
-                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                if (Stats.RecvDecryptionFailures) {
+                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.RecvDecryptionFailures);
                     return;
                 }
 
@@ -2206,6 +2197,9 @@ QuicTestInvalidAlpnLengths(
     void
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
     int Lengths[] = { 0, QUIC_MAX_ALPN_LENGTH + 1 };
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 3]; // + 3 so it can always be 0 terminated
     for (int Len = 0; Len < (int)ARRAYSIZE(Lengths); Len++) {
@@ -2214,8 +2208,6 @@ QuicTestInvalidAlpnLengths(
         for (int i = 0; i < AlpnLength; i++) {
             AlpnBuffer[i] = 'a';
         }
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
 
         MsQuicAlpn Alpn(AlpnBuffer);
 
@@ -2232,15 +2224,15 @@ QuicTestValidAlpnLengths(
     void
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 2]; // + 2 so it can always be 0 terminated
     for (int AlpnLength = 1; AlpnLength <= QUIC_MAX_ALPN_LENGTH; AlpnLength++) {
         CxPlatZeroMemory(AlpnBuffer, sizeof(AlpnBuffer));
         for (int i = 0; i < AlpnLength; i++) {
             AlpnBuffer[i] = 'a';
         }
-
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
 
         MsQuicAlpn Alpn(AlpnBuffer);
 

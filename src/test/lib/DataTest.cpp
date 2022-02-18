@@ -129,7 +129,7 @@ PingStreamShutdown(
 
     // TODO - More Validation
     if (!Stream->GetSendShutdown()) {
-        TEST_FAILURE("Send path not shutdown.");
+        TEST_FAILURE("Send path not shut down.");
     }
     if (!ConnState->GetPingStats()->AllowDataIncomplete) {
         if (!Stream->GetAllDataSent()) {
@@ -892,6 +892,8 @@ QuicAbortiveListenerHandler(
             TestContext->Conn.Handle = Event->NEW_CONNECTION.Connection;
             MsQuic->SetCallbackHandler(TestContext->Conn.Handle, (void*) QuicAbortiveConnectionHandler, Context);
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
+        case QUIC_LISTENER_EVENT_STOP_COMPLETE:
+            return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",
@@ -1036,7 +1038,6 @@ QuicAbortiveTransfers(
             Status =
                 MsQuic->SetParam(
                     ServerContext.Conn.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings);
@@ -1092,7 +1093,6 @@ QuicAbortiveTransfers(
             Status =
                 MsQuic->SetParam(
                     ServerContext.Conn.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings);
@@ -1373,6 +1373,8 @@ QuicRecvResumeListenerHandler(
             TestContext->Conn.Handle = Event->NEW_CONNECTION.Connection;
             MsQuic->SetCallbackHandler(TestContext->Conn.Handle, (void*) QuicRecvResumeConnectionHandler, Context);
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
+        case QUIC_LISTENER_EVENT_STOP_COMPLETE:
+            return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",
@@ -1463,7 +1465,6 @@ QuicTestReceiveResume(
         Status =
             MsQuic->SetParam(
                 ServerContext.Conn.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
                 &Settings);
@@ -1575,17 +1576,9 @@ QuicTestReceiveResume(
             //
             // Indicate the buffer has been consumed.
             //
-            Status =
-                MsQuic->StreamReceiveComplete(
-                    ServerContext.Stream.Handle,
-                    SendBytes);
-            if (QUIC_FAILED(Status)) {
-                TEST_FAILURE(
-                    "MsQuic->StreamReceiveComplete %d failed, 0x%x",
-                    SendBytes,
-                    Status);
-                return;
-            }
+            MsQuic->StreamReceiveComplete(
+                ServerContext.Stream.Handle,
+                SendBytes);
             ServerContext.AvailableBuffer = ServerContext.ConsumeBufferAmount;
         } else if (PauseType == ReturnConsumedBytes) {
             //
@@ -1698,7 +1691,6 @@ QuicTestReceiveResumeNoData(
         Status =
             MsQuic->SetParam(
                 ServerContext.Conn.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
                 &Settings);
@@ -1841,19 +1833,18 @@ QuicAckDelayStreamHandler(
         //
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE: {
-            QUIC_STATISTICS Stats{};
+            QUIC_STATISTICS_V2 Stats{};
             uint32_t StatsSize = sizeof(Stats);
             Status = MsQuic->GetParam(
                 TestContext->ClientConnection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &StatsSize,
                 &Stats);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
                 return Status;
             }
-            TestContext->AckCountStop = Stats.Recv.ValidAckFrames;
+            TestContext->AckCountStop = Stats.RecvValidAckFrames;
             Event->RECEIVE.TotalBufferLength = 0;
             CxPlatEventSet(TestContext->ClientReceiveDataEvent.Handle);
             break;
@@ -1934,6 +1925,8 @@ QuicAckDelayListenerHandler(
             TestContext->ServerConnection.Handle = Event->NEW_CONNECTION.Connection;
             MsQuic->SetCallbackHandler(TestContext->ServerConnection.Handle, (void*) QuicAckDelayConnectionHandler, Context);
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
+        case QUIC_LISTENER_EVENT_STOP_COMPLETE:
+            return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",
@@ -2019,20 +2012,19 @@ QuicTestAckSendDelay(
         //
         CxPlatSleep(100);
 
-        QUIC_STATISTICS Stats{};
+        QUIC_STATISTICS_V2 Stats{};
         uint32_t StatsSize = sizeof(Stats);
         Status =
             MsQuic->GetParam(
                 TestContext.ClientConnection.Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &StatsSize,
                 &Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
             return;
         }
-        TestContext.AckCountStart = Stats.Recv.ValidAckFrames;
+        TestContext.AckCountStart = Stats.RecvValidAckFrames;
         Status =
             MsQuic->StreamOpen(
                 TestContext.ClientConnection.Handle,
@@ -2227,7 +2219,7 @@ QuicTestSlowReceive(
     // repeat the steps above to make sure we get another receive and it doesn't
     // shutdown the stream.
     //
-    TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveComplete(50));
+    Context.ServerStream->ReceiveComplete(50);
     TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveSetEnabled()); // Need to reenable because the partial receive completion pauses additional events.
     TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
     CxPlatSleep(50);
@@ -2236,7 +2228,7 @@ QuicTestSlowReceive(
     //
     // Receive the rest of the data and make sure the shutdown is then delivered.
     //
-    TEST_QUIC_SUCCEEDED(Context.ServerStream->ReceiveComplete(50));
+    Context.ServerStream->ReceiveComplete(50);
     TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamHasShutdown);
 }
@@ -2273,7 +2265,6 @@ struct AllocFailScope {
         int32_t Zero = 0;
         MsQuic->SetParam(
             nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
             QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
             sizeof(Zero),
             &Zero);
@@ -2297,7 +2288,6 @@ QuicTestNthAllocFail(
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
                 sizeof(i),
                 &i));

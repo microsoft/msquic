@@ -449,7 +449,7 @@ QuicBindingGetListener(
         FailedAddrMatch = FALSE;
 
         if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
-            if (CxPlatRundownAcquire(&ExistingListener->Rundown)) {
+            if (CxPlatRefIncrementNonZero(&ExistingListener->RefCount, 1)) {
                 Listener = ExistingListener;
             }
             goto Done;
@@ -537,7 +537,7 @@ QuicBindingAcceptConnection(
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
-            return;
+            goto Error;
         }
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
@@ -549,7 +549,9 @@ QuicBindingAcceptConnection(
     //
     QuicListenerAcceptConnection(Listener, Connection, Info);
 
-    CxPlatRundownRelease(&Listener->Rundown);
+Error:
+
+    QuicListenerRelease(Listener, TRUE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1399,13 +1401,8 @@ QuicBindingDeliverDatagrams(
     // be used for partitioning the look up table.
     //
     // For long header packets for server owned bindings, the packet's DestCid
-    // was not necessarily generated locally, so cannot be used for routing.
-    // Instead, a hash of the tuple and source connection ID (SourceCid) is
-    // used.
-    //
-    // The exact type of lookup table associated with the binding varies on the
-    // circumstances, but it allows for quick and easy lookup based on DestCid
-    // (when used).
+    // was not necessarily generated locally, so cannot be used for lookup.
+    // Instead, a hash of the remote address/port and source CID is used.
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
     // then a new connection is created and inserted into the binding's lookup

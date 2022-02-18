@@ -195,6 +195,7 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_LOOKUP_TABLE,         // Per registered CID.
     QUIC_CONN_REF_LOOKUP_RESULT,        // For connections returned from lookups.
     QUIC_CONN_REF_WORKER,               // Worker is (queued for) processing.
+    QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
 
     QUIC_CONN_REF_COUNT
 
@@ -460,6 +461,12 @@ typedef struct QUIC_CONNECTION {
     // The original CID used by the Client in its first Initial packet.
     //
     QUIC_CID* OrigDestCID;
+
+    //
+    // An app configured prefix for all connection IDs. The first byte indicates
+    // the length.
+    //
+    uint8_t CidPrefix[1 + MSQUIC_CID_MAX_APP_PREFIX];
 
     //
     // Sorted array of all timers for the connection.
@@ -1396,6 +1403,23 @@ QuicConnQueueUnreachable(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
     );
+
+#ifdef QUIC_USE_RAW_DATAPATH
+//
+// Queues a route completion event to a connection for processing.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+QuicConnQueueRouteCompletion(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    );
+#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Queues up an update to the packet tolerance we want the peer to use.

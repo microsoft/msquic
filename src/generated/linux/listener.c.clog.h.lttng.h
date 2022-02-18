@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ListenerIndicateStopComplete
+// [list][%p] Indicating STOP_COMPLETE
+// QuicTraceLogVerbose(
+            ListenerIndicateStopComplete,
+            "[list][%p] Indicating STOP_COMPLETE",
+            Listener);
+// arg2 = arg2 = Listener = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateStopComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ListenerIndicateNewConnection
 // [list][%p] Indicating NEW_CONNECTION %p
 // QuicTraceLogVerbose(
@@ -236,9 +255,9 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStarted,
 // Decoder Ring for ListenerStopped
 // [list][%p] Stopped
 // QuicTraceEvent(
-                ListenerStopped,
-                "[list][%p] Stopped",
-                Listener);
+        ListenerStopped,
+        "[list][%p] Stopped",
+        Listener);
 // arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerStopped,

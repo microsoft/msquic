@@ -30,6 +30,7 @@ typedef enum QUIC_OPERATION_TYPE {
     QUIC_OPER_TYPE_DEPRECATED,          // No longer used.
     QUIC_OPER_TYPE_TIMER_EXPIRED,       // A timer expired.
     QUIC_OPER_TYPE_TRACE_RUNDOWN,       // A trace rundown was triggered.
+    QUIC_OPER_TYPE_ROUTE_COMPLETION,    // Process route completion event.
 
     //
     // All stateless operations follow.
@@ -145,14 +146,12 @@ typedef struct QUIC_API_CONTEXT {
 
         struct {
             HQUIC Handle;
-            uint32_t Level;
             uint32_t Param;
             uint32_t BufferLength;
             const void* Buffer;
         } SET_PARAM;
         struct {
             HQUIC Handle;
-            uint32_t Level;
             uint32_t Param;
             uint32_t* BufferLength;
             void* Buffer;
@@ -228,6 +227,11 @@ typedef struct QUIC_OPERATION {
         struct {
             QUIC_STATELESS_CONTEXT* Context;
         } STATELESS; // Stateless reset, retry and VN
+        struct {
+            uint8_t PhysicalAddress[6];
+            uint8_t PathId;
+            BOOLEAN Succeeded;
+        } ROUTE;
     };
 
 } QUIC_OPERATION;

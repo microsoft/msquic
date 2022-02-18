@@ -93,22 +93,24 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
-//
-// The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
-//
-
-#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x5000001  // QUIC_TEST_DATAPATH_HOOKS*
-#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x5000002  // uint32_t
-#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x5000003  // uint32_t
+#define QUIC_PARAM_PREFIX_PRIVATE                        0x80000000
 
 //
-// The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.
+// The different private parameters for Global.
 //
 
-#define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x15000001  // No payload
-#define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x15000002  // No payload
-#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x15000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
-#define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x15000004  // uint16_t
+#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x81000000  // QUIC_TEST_DATAPATH_HOOKS*
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x81000001  // uint32_t
+#define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x81000002  // uint32_t
+
+//
+// The different private parameters for Connection.
+//
+
+#define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x85000000  // No payload
+#define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x85000001  // No payload
+#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x85000002  // QUIC_PRIVATE_TRANSPORT_PARAMETER
+#define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x85000003  // uint16_t
 
 #if defined(__cplusplus)
 }

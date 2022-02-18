@@ -54,6 +54,9 @@ message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+set(QUIC_MAJOR_VERSION 2)
+set(QUIC_FULL_VERSION 2.0.0)
+
 if (WIN32)
     set(CX_PLATFORM "windows")
 elseif (APPLE)
@@ -94,6 +97,8 @@ option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
+option(QUIC_SHARED_EC "Use shared execution contexts between QUIC and UDP" OFF)
+option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
@@ -278,6 +283,14 @@ endif()
 
 if(QUIC_HIGH_RES_TIMERS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_HIGH_RES_TIMERS=1)
+endif()
+
+if(QUIC_SHARED_EC)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1)
+endif()
+
+if(QUIC_USE_XDP)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1 QUIC_USE_RAW_DATAPATH=1)
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")

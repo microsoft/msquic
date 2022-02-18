@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "1.10.0-alpha8"
+version = "2.0.0-beta"
 edition = "2018"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
@@ -47,4 +47,5 @@ cmake = "0.1"
 
 [dependencies]
 libc = "0.2.0"
+c-types = "1.2.0"
 serde = { version = "1.0.117", features = ["derive"] }

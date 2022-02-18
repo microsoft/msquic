@@ -28,11 +28,10 @@ The set of flags the controls the behavior of `StreamStart`:
 Value | Meaning
 --- | ---
 **QUIC_STREAM_START_FLAG_NONE**<br>0 | No special behavior. Executes as a blocking call, returning only after the operation has completed. The peer is not informed of the stream starting until the app sends data.
-**QUIC_STREAM_START_FLAG_FAIL_BLOCKED**<br>1 | Only opens the stream if flow control (from the peer) allows. If the stream count limit has currently been reached the start will fail with `QUIC_STATUS_STREAM_LIMIT_REACHED`.
-**QUIC_STREAM_START_FLAG_IMMEDIATE**<br>2 | Indicates that the peer should be immediately informed of the stream opening (or at least as soon as flow control allows) and not wait for any data to be sent first.
-**QUIC_STREAM_START_FLAG_ASYNC**<br>4 | Causes the API to be non-blocking. The API call itself will just queue the operation and immediate return. The final result of the start operation will be delivered via the `QUIC_STREAM_EVENT_START_COMPLETE` event.
-**QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL**<br>8 | Causes the stream to immediate shutdown (abortive) if the start operation fails.
-**QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT**<br>16 | Indicates the app wants the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event to be delivered if the stream isn't initially accepted (allowed by flow control) at start completion.
+**QUIC_STREAM_START_FLAG_IMMEDIATE**<br>1 | Indicates that the peer should be immediately informed of the stream opening (or at least as soon as flow control allows) and not wait for any data to be sent first.
+**QUIC_STREAM_START_FLAG_FAIL_BLOCKED**<br>2 | Only opens the stream if flow control (from the peer) allows. If the stream count limit has currently been reached the start will fail with `QUIC_STATUS_STREAM_LIMIT_REACHED`.
+**QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL**<br>4 | Causes the stream to immediate shutdown (abortive) if the start operation fails.
+**QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT**<br>8 | Indicates the app wants the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event to be delivered if the stream isn't initially accepted (allowed by flow control) at start completion.
 
 # Return Value
 
@@ -47,8 +46,6 @@ The first step of the start process is assigning the stream an identifier (strea
 If the app does not want the queuing behavior, and wishes to fail instead, it can use the `QUIC_STREAM_START_FLAG_FAIL_BLOCKED` flag. If there is not enough flow control to allow the stream to be sent on the wire, then the start will fail (via a `QUIC_STREAM_EVENT_START_COMPLETE` event) with the `QUIC_STATUS_STREAM_LIMIT_REACHED` status.
 
 The `QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT` flag can be used to get the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event to know when the stream becomes unblocked by flow control. If the peer already provided enough flow control to accept the stream when it was initially started, the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event is not delivered and the `QUIC_STREAM_EVENT_START_COMPLETE`'s `PeerAccepted` field will be `TRUE`. If is not initially accepted, if/once the peer provides enough flow control to allow the stream to be sent on the wire, then the `QUIC_STREAM_EVENT_PEER_ACCEPTED` event will be indicated to the app.
-
-For legacy reasons, `StreamStart` is a blocking call by default, but in general, most apps should use the `QUIC_STREAM_START_FLAG_ASYNC` flag to make this non-blocking, and instead use the `QUIC_STREAM_EVENT_START_COMPLETE` event for the completion results.
 
 The stream can also be started via the `QUIC_SEND_FLAG_START` flag. See [StreamSend](StreamSend.md) for more details.
 

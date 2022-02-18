@@ -150,6 +150,7 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
     /* 0x32 to 0xad are unused currently */
     QUIC_FRAME_ACK_FREQUENCY        = 0xafULL,
+    QUIC_FRAME_IMMEDIATE_ACK        = 0xacULL,
 
     QUIC_FRAME_MAX_SUPPORTED
 
@@ -162,7 +163,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_FRAME_IS_KNOWN(X) \
     (X <= QUIC_FRAME_HANDSHAKE_DONE || \
      (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1) || \
-     X == QUIC_FRAME_ACK_FREQUENCY \
+     X == QUIC_FRAME_ACK_FREQUENCY || X == QUIC_FRAME_IMMEDIATE_ACK \
     )
 
 //
@@ -803,7 +804,8 @@ typedef struct QUIC_ACK_FREQUENCY_EX {
     QUIC_VAR_INT SequenceNumber;
     QUIC_VAR_INT PacketTolerance;
     QUIC_VAR_INT UpdateMaxAckDelay; // In microseconds (us)
-    uint8_t IgnoreOrder;
+    BOOLEAN IgnoreOrder;
+    BOOLEAN IgnoreCE;
 
 } QUIC_ACK_FREQUENCY_EX;
 

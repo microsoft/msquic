@@ -37,6 +37,7 @@ Environment:
 #pragma warning(disable:5105) // The conformant preprocessor along with the newest SDK throws this warning for a macro.
 #include <windows.h>
 #include <winsock2.h>
+#include <ws2ipdef.h>
 #include <iphlpapi.h>
 #include <bcrypt.h>
 #include <stdlib.h>
@@ -208,6 +209,15 @@ GetModuleHandleW(
 //
 // Wrapper functions
 //
+
+inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return InterlockedExchangePointer(Target, NULL);
+}
 
 //
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.

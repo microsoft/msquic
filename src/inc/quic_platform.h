@@ -82,7 +82,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_CID                       'C0cQ' // Qc0C - QUIC CID
 #define QUIC_POOL_CIDHASH                   'D0cQ' // Qc0D - QUIC CID Hash
 #define QUIC_POOL_CIDLIST                   'E0cQ' // Qc0E - QUIC CID List Entry
-#define QUIC_POOL_CIDPREFIX                 'F0cQ' // Qc0F - QUIC CID Prefix
+#define QUIC_POOL__UNUSED_1_                'F0cQ' // Qc0F - UNUSED
 #define QUIC_POOL_ALPN                      '01cQ' // Qc10 - QUIC ALPN
 #define QUIC_POOL_RANGE                     '11cQ' // Qc11 - QUIC Range
 #define QUIC_POOL_SENDBUF                   '21cQ' // Qc12 - QUIC Send Buffer
@@ -140,6 +140,9 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_DATAPATH_ADDRESSES        '64cQ' // Qc46 - QUIC Datapath Addresses
 #define QUIC_POOL_TLS_TICKET_KEY            '74cQ' // Qc47 - QUIC Platform TLS ticket key
 #define QUIC_POOL_TLS_CIPHER_SUITE_STRING   '84cQ' // Qc48 - QUIC TLS cipher suite string
+#define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
+#define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
+#define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -432,14 +435,40 @@ BOOLEAN
     _In_ CXPLAT_THREAD_ID ThreadID  // The current thread ID.
     );
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(*CXPLAT_EXECUTION_WAKE_FN)(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context
+    );
+
 typedef struct CXPLAT_EXECUTION_CONTEXT {
 
+    CXPLAT_SLIST_ENTRY Entry;
     void* Context;
+    void* CxPlatContext;
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
     BOOLEAN Ready;
 
 } CXPLAT_EXECUTION_CONTEXT;
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
+
+void
+CxPlatAddExecutionContext(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _In_ uint16_t IdealProcessor
+    );
+
+void
+CxPlatWakeExecutionContext(
+    _In_ CXPLAT_EXECUTION_CONTEXT* Context
+    );
+
+#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 //
 // Test Interface for loading a self-signed certificate.
@@ -454,6 +483,9 @@ extern "C" {
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
 typedef struct QUIC_CERTIFICATE_HASH QUIC_CERTIFICATE_HASH;
 typedef struct QUIC_CERTIFICATE_HASH_STORE QUIC_CERTIFICATE_HASH_STORE;
+typedef struct QUIC_CERTIFICATE_FILE QUIC_CERTIFICATE_FILE;
+typedef struct QUIC_CERTIFICATE_FILE_PROTECTED QUIC_CERTIFICATE_FILE_PROTECTED;
+typedef struct QUIC_CERTIFICATE_PKCS12 QUIC_CERTIFICATE_PKCS12;
 
 typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
     CXPLAT_SELF_SIGN_CERT_USER,
@@ -465,6 +497,8 @@ typedef enum CXPLAT_TEST_CERT_TYPE {
     CXPLAT_TEST_CERT_VALID_CLIENT,
     CXPLAT_TEST_CERT_EXPIRED_SERVER,
     CXPLAT_TEST_CERT_EXPIRED_CLIENT,
+    CXPLAT_TEST_CERT_SELF_SIGNED_SERVER,
+    CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT
 } CXPLAT_TEST_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -474,6 +508,7 @@ CxPlatGetSelfSignedCert(
     _In_ BOOLEAN ClientCertificate
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
 CxPlatGetTestCertificate(
@@ -487,6 +522,15 @@ CxPlatGetTestCertificate(
     _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
     _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
         QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Reserved_)
+        QUIC_CERTIFICATE_FILE* CertFile,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Reserved_)
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertFileProtected,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
+        QUIC_CERTIFICATE_PKCS12* Pkcs12,
     _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
     _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
         char Principal[100]

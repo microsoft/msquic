@@ -1,6 +1,5 @@
 NAME msquic.sys
 
 EXPORTS
-    MsQuicOpen
     MsQuicOpenVersion
     MsQuicClose

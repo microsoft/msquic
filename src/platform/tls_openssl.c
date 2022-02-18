@@ -149,11 +149,6 @@ typedef struct CXPLAT_TLS {
 #define CXPLAT_TLS_CHACHA20_POLY1305_SHA256 "TLS_CHACHA20_POLY1305_SHA256"
 
 //
-// Default list of curves for ECDHE ciphers.
-//
-#define CXPLAT_TLS_DEFAULT_SSL_CURVES     "P-256:X25519:P-384:P-521"
-
-//
 // Default cert verify depth.
 //
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
@@ -1168,20 +1163,6 @@ CxPlatTlsSecConfigCreate(
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
-    }
-
-    Ret =
-        SSL_CTX_set1_groups_list(
-            SecurityConfig->SSLCtx,
-            CXPLAT_TLS_DEFAULT_SSL_CURVES);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_set1_groups_list failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
     }
 
     Ret = SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);

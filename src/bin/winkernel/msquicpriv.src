@@ -1,6 +1,5 @@
 NAME msquicpriv.sys
 
 EXPORTS
-    MsQuicOpen
     MsQuicOpenVersion
     MsQuicClose

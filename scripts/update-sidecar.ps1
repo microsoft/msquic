@@ -42,7 +42,7 @@ New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $OutputDir linux) -ItemType Directory -Force | Out-Null
 
 # Build CLOG, placing results into the CLOG directory under our build directory
-dotnet publish ../submodules/clog/src/clog -o ${ClogDir} -f net5.0
+dotnet publish ../submodules/clog/src/clog -o ${ClogDir} -f net6.0
 
 #
 # You may be tempted to delete the sidecar - DO NOT DO THIS - the sidecare
@@ -65,7 +65,6 @@ Invoke-Expression "${ClogDir}/clog -p windows_kernel --scopePrefix quic.clog -s 
 Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
 Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
-
 
 # Return to where we started
 Set-Location $OrigDir

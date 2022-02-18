@@ -301,7 +301,7 @@ QuicDrillInitialPacketFailureTest(
             TEST_FAILURE("Get Listener statistics before test failed, 0x%x.", Status);
             return false;
         }
-        DroppedPacketsBefore = Stats.Binding.Recv.DroppedPackets;
+        DroppedPacketsBefore = Stats.BindingRecvDroppedPackets;
 
         //
         // Send test packet to the server.
@@ -321,7 +321,7 @@ QuicDrillInitialPacketFailureTest(
             TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
             return false;
         }
-        DroppedPacketsAfter = Stats.Binding.Recv.DroppedPackets;
+        DroppedPacketsAfter = Stats.BindingRecvDroppedPackets;
 
         //
         // Validate the server rejected the packet just sent.

@@ -495,7 +495,7 @@ QuicSettingApply(
             Destination->IsSet.StatelessOperationExpirationMs = TRUE;
         }
     }
-    
+
     if (SETTING_HAS_FIELD(NewSettingsSize, CongestionControlAlgorithm)) {
         if (Source->IsSet.CongestionControlAlgorithm && (!Destination->IsSet.CongestionControlAlgorithm || OverWrite)) {
             Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
@@ -1086,4 +1086,66 @@ QuicSettingsDumpNew(
             QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
         }
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetParam(
+    _In_ const QUIC_SETTINGS* IncomingSettings,
+    _Inout_ uint32_t* OutgoingSize,
+    _Out_writes_bytes_opt_(*OutgoingSize)
+        QUIC_SETTINGS* OutgoingSettings
+    )
+{
+    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList);
+
+    if (*OutgoingSize < MinimumSettingsSize) {
+        *OutgoingSize = MinimumSettingsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (OutgoingSettings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CxPlatZeroMemory(OutgoingSettings, *OutgoingSize);
+    uint32_t CopySize = CXPLAT_MIN(*OutgoingSize, sizeof(QUIC_SETTINGS));
+
+    CxPlatCopyMemory(OutgoingSettings, IncomingSettings, CopySize);
+    *OutgoingSize = CopySize;
+
+    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
+        OutgoingSettings->DesiredVersionsList = NULL;
+    }
+
+    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsListLength)) {
+        OutgoingSettings->DesiredVersionsListLength = 0;
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetDesiredVersions(
+    _In_ const QUIC_SETTINGS* Settings,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        uint32_t* Buffer
+    )
+{
+    uint32_t ListLength = Settings->DesiredVersionsListLength * sizeof(uint32_t);
+
+    if (*BufferLength < ListLength) {
+        *BufferLength = ListLength;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Buffer == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    *BufferLength = ListLength;
+    CxPlatCopyMemory(Buffer, Settings->DesiredVersionsList, *BufferLength);
+    return QUIC_STATUS_SUCCESS;
 }

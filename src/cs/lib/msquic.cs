@@ -20,7 +20,7 @@ namespace Microsoft.Quic
         public static unsafe QUIC_API_TABLE* Open()
         {
             QUIC_API_TABLE* ApiTable;
-            int Status = MsQuicOpenVersion(1, (void**)&ApiTable);
+            int Status = MsQuicOpenVersion(2, (void**)&ApiTable);
             ThrowIfFailure(Status);
             return ApiTable;
         }
@@ -95,10 +95,9 @@ namespace Microsoft.Quic
         public static readonly int QUIC_STATUS_CERT_EXPIRED = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_STATUS_CERT_EXPIRED : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MsQuic_MacOS.QUIC_STATUS_CERT_EXPIRED : MsQuic_Linux.QUIC_STATUS_CERT_EXPIRED;
         public static readonly int QUIC_STATUS_CERT_UNTRUSTED_ROOT = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_STATUS_CERT_UNTRUSTED_ROOT : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MsQuic_MacOS.QUIC_STATUS_CERT_UNTRUSTED_ROOT : MsQuic_Linux.QUIC_STATUS_CERT_UNTRUSTED_ROOT;
 
-
-        public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
-        public const int QUIC_ADDRESS_FAMILY_INET = 2;
-        public const int QUIC_ADDRESS_FAMILY_INET6 = 23;
+        public static readonly int QUIC_ADDRESS_FAMILY_UNSPEC = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_ADDRESS_FAMILY_UNSPEC : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MsQuic_MacOS.QUIC_ADDRESS_FAMILY_UNSPEC : MsQuic_Linux.QUIC_ADDRESS_FAMILY_UNSPEC;
+        public static readonly int QUIC_ADDRESS_FAMILY_INET = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_ADDRESS_FAMILY_INET : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MsQuic_MacOS.QUIC_ADDRESS_FAMILY_INET : MsQuic_Linux.QUIC_ADDRESS_FAMILY_INET;
+        public static readonly int QUIC_ADDRESS_FAMILY_INET6 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? MsQuic_Windows.QUIC_ADDRESS_FAMILY_INET6 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MsQuic_MacOS.QUIC_ADDRESS_FAMILY_INET6 : MsQuic_Linux.QUIC_ADDRESS_FAMILY_INET6;
     }
 
     /// <summary>Defines the type of a member as it was used in the native signature.</summary>

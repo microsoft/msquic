@@ -13,6 +13,10 @@
 ../src/platform/certificates_posix.c
 ../src/platform/hashtable.c
 ../src/platform/datapath_winuser.c
+../src/platform/datapath_raw_dpdk.c
+../src/platform/datapath_raw_socket.c
+../src/platform/datapath_raw_xdp.c
+../src/platform/datapath_raw.c
 ../src/platform/crypt_bcrypt.c
 ../src/platform/platform_winuser.c
 ../src/platform/toeplitz.c
@@ -21,6 +25,7 @@
 ../src/platform/storage_posix.c
 ../src/platform/crypt_openssl.c
 ../src/platform/inline.c
+../src/platform/platform_worker.c
 ../src/perf/bin/histogram/hdr_histogram.c
 ../src/core/api.c
 ../src/core/range.c
@@ -99,6 +104,7 @@
 ../src/perf/lib/PerfBase.h
 ../src/perf/lib/HpsClient.cpp
 ../src/perf/lib/LatencyHelpers.h
+../src/core/unittest/SettingsTest.cpp
 ../src/core/unittest/SpinFrame.cpp
 ../src/core/unittest/RangeTest.cpp
 ../src/core/unittest/VarIntTest.cpp
