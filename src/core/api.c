@@ -831,6 +831,11 @@ MsQuicStreamStart(
         goto Exit;
     }
 
+    if (Connection->State.ClosedRemotely) {
+        Status = QUIC_STATUS_ABORTED;
+        goto Exit;
+    }
+
     QUIC_OPERATION* Oper =
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
@@ -1035,6 +1040,11 @@ MsQuicStreamSend(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
+    if (Connection->State.ClosedRemotely) {
+        Status = QUIC_STATUS_ABORTED;
+        goto Exit;
+    }
+
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {
         TotalLength += Buffers[i].Length;
@@ -1079,7 +1089,10 @@ MsQuicStreamSend(
 
     CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     if (!Stream->Flags.SendEnabled) {
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status =
+            (Connection->State.ClosedRemotely || Stream->Flags.ReceivedStopSending) ?
+                QUIC_STATUS_ABORTED :
+                QUIC_STATUS_INVALID_STATE;
     } else {
         QUIC_SEND_REQUEST** ApiSendRequestsTail = &Stream->ApiSendRequests;
         while (*ApiSendRequestsTail != NULL) {
