@@ -131,7 +131,7 @@ QuicSendQueueFlush(
 
     CXPLAT_DBG_ASSERT(Path->IsActive);
 
-    if (Path->Route.State == RouteUnresolved) {
+    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         Status =
             CxPlatResolveRoute(

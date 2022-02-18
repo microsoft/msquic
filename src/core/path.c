@@ -68,7 +68,6 @@ QuicPathRemove(
     }
 
     Connection->PathsCount--;
-    CXPLAT_DBG_ASSERT(Connection->PathsCount != 0);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
