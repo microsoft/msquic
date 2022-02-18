@@ -437,7 +437,7 @@ CxPlatResolveRoute(
         CxPlatResolveRouteComplete(Context, Route, &RouteQueried, PathId);
     } else if (Status == QUIC_STATUS_PENDING) {
         //
-        // We need to queue up an route operation for either route refresh or initial route resolution.
+        // We need to queue up a route operation for either route refresh or initial route resolution.
         //
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
