@@ -87,6 +87,9 @@ This script provides helpers for building msquic.
 .PARAMETER SharedEC
     Uses shared execution contexts (threads) where possible.
 
+.PARAMETER UseXdp
+    Use XDP for the datapath instead of system socket APIs.
+
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -186,6 +189,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$SharedEC = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
@@ -410,6 +416,9 @@ function CMake-Generate {
     }
     if ($SharedEC) {
         $Arguments += " -DQUIC_SHARED_EC=on"
+    }
+    if ($UseXdp) {
+        $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"

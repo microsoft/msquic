@@ -826,6 +826,26 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "CertCapiVerifiedChain": {
+      "ModuleProperites": {},
+      "TraceString": "CertVerifyChain: %S 0x%x, result=0x%x",
+      "UniqueId": "CertCapiVerifiedChain",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "S",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "CertCapiParsedChain": {
       "ModuleProperites": {},
       "TraceString": "[cert] Successfully parsed chain of %u certificate(s)",
@@ -1396,6 +1416,82 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "RouteResolutionEnd": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+      "UniqueId": "RouteResolutionEnd",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg9"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "RouteResolutionStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Starting to look up neighbor on Path[%hhu] with status %u",
+      "UniqueId": "RouteResolutionStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "DatapathError": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] ERROR, %s.",
+      "UniqueId": "DatapathError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "WindowsUserLoaded": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Loaded",
@@ -1450,6 +1546,26 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "WindowsUserInitialized2": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
+      "UniqueId": "WindowsUserInitialized2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogInfo"
@@ -1563,6 +1679,18 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ApiError": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] Error %u",
+      "UniqueId": "ApiError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -3011,6 +3139,38 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "SuccessfulRouteResolution": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Processing successful route completion Path[%hhu]",
+      "UniqueId": "SuccessfulRouteResolution",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "FailedRouteResolution": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Processing failed route completion Path[%hhu]",
+      "UniqueId": "FailedRouteResolution",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -7058,6 +7218,26 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogImmediateAck": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   IMMEDIATE_ACK",
+      "UniqueId": "FrameLogImmediateAck",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "IgnoreCryptoFrame": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Ignoring received crypto after cleanup",
@@ -7853,6 +8033,18 @@
         }
       ],
       "macroName": "QuicTraceLogConnWarning"
+    },
+    "ListenerIndicateStopComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] Indicating STOP_COMPLETE",
+      "UniqueId": "ListenerIndicateStopComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "ListenerIndicateNewConnection": {
       "ModuleProperites": {},
@@ -9380,24 +9572,24 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
-    "LibraryMsQuicOpenNull": {
+    "LibraryMsQuicOpenVersionNull": {
       "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpen, NULL",
-      "UniqueId": "LibraryMsQuicOpenNull",
+      "TraceString": "[ api] MsQuicOpenVersion, NULL",
+      "UniqueId": "LibraryMsQuicOpenVersionNull",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
-    "LibraryMsQuicOpenEntry": {
+    "LibraryMsQuicOpenVersionEntry": {
       "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpen",
-      "UniqueId": "LibraryMsQuicOpenEntry",
+      "TraceString": "[ api] MsQuicOpenVersion",
+      "UniqueId": "LibraryMsQuicOpenVersionEntry",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
-    "LibraryMsQuicOpenExit": {
+    "LibraryMsQuicOpenVersionExit": {
       "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpen, status=0x%x",
-      "UniqueId": "LibraryMsQuicOpenExit",
+      "TraceString": "[ api] MsQuicOpenVersion, status=0x%x",
+      "UniqueId": "LibraryMsQuicOpenVersionExit",
       "splitArgs": [
         {
           "DefinationEncoding": "x",
@@ -10437,6 +10629,13 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "PerfControlInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[perf] Control interface initialized",
+      "UniqueId": "PerfControlInitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "PerfControlUninitializing": {
       "ModuleProperites": {},
       "TraceString": "[perf] Control interface uninitializing",
@@ -11468,6 +11667,11 @@
         "EncodingString": "[test] CreateEvent opened existing event"
       },
       {
+        "UniquenessHash": "6fb480dc-d71f-74f2-dc75-559a5591fe3d",
+        "TraceID": "CertCapiVerifiedChain",
+        "EncodingString": "CertVerifyChain: %S 0x%x, result=0x%x"
+      },
+      {
         "UniquenessHash": "2e3530fe-5082-ce8a-7275-87755eb70c41",
         "TraceID": "CertCapiParsedChain",
         "EncodingString": "[cert] Successfully parsed chain of %u certificate(s)"
@@ -11678,6 +11882,21 @@
         "EncodingString": "[data][%p] Received larger than expected datagram from %!ADDR!"
       },
       {
+        "UniquenessHash": "0267d256-55e3-42eb-b15d-538473aca440",
+        "TraceID": "RouteResolutionEnd",
+        "EncodingString": "[conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu"
+      },
+      {
+        "UniquenessHash": "8662b462-9871-7631-034d-9d175232ab4f",
+        "TraceID": "RouteResolutionStart",
+        "EncodingString": "[conn][%p] Starting to look up neighbor on Path[%hhu] with status %u"
+      },
+      {
+        "UniquenessHash": "2b127bfd-4623-d1ad-f438-977d808c9514",
+        "TraceID": "DatapathError",
+        "EncodingString": "[data][%p] ERROR, %s."
+      },
+      {
         "UniquenessHash": "b34bba29-c6d5-e31d-a099-d73a62330504",
         "TraceID": "WindowsUserLoaded",
         "EncodingString": "[ dll] Loaded"
@@ -11696,6 +11915,11 @@
         "UniquenessHash": "fe92afed-9594-4ca6-5fca-ea13e79da91c",
         "TraceID": "ProcessorInfo",
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]"
+      },
+      {
+        "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
+        "TraceID": "WindowsUserInitialized2",
+        "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
       },
       {
         "UniquenessHash": "cdce2126-524a-0cae-e4d3-c8bd5ef39930",
@@ -11741,6 +11965,11 @@
         "UniquenessHash": "a35cb953-343e-6914-a737-cd53044edb92",
         "TraceID": "StreamAppSend",
         "EncodingString": "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]"
+      },
+      {
+        "UniquenessHash": "dddba4c1-201c-11ae-51de-155523e40b7e",
+        "TraceID": "ApiError",
+        "EncodingString": "[ api] Error %u"
       },
       {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
@@ -12241,6 +12470,16 @@
         "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
         "TraceID": "Unreachable",
         "EncodingString": "[conn][%p] Received unreachable event"
+      },
+      {
+        "UniquenessHash": "e8bf302f-52d7-c228-4cc8-a74a099b0baa",
+        "TraceID": "SuccessfulRouteResolution",
+        "EncodingString": "[conn][%p] Processing successful route completion Path[%hhu]"
+      },
+      {
+        "UniquenessHash": "d3e660d6-4f05-fd4d-e6e5-c8967d710df4",
+        "TraceID": "FailedRouteResolution",
+        "EncodingString": "[conn][%p] Processing failed route completion Path[%hhu]"
       },
       {
         "UniquenessHash": "14f03b98-a434-2f35-2ed0-1fa71aa50e44",
@@ -13368,6 +13607,16 @@
         "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY [Invalid]"
       },
       {
+        "UniquenessHash": "7470e68a-8ad6-563a-4957-76dc22e5deeb",
+        "TraceID": "FrameLogAckFrequency",
+        "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu"
+      },
+      {
+        "UniquenessHash": "d0932f9a-e8e8-65d9-692c-3bd379a86d58",
+        "TraceID": "FrameLogImmediateAck",
+        "EncodingString": "[%c][%cX][%llu]   IMMEDIATE_ACK"
+      },
+      {
         "UniquenessHash": "60d753ab-6710-fe16-e47d-37f046f5973c",
         "TraceID": "IgnoreCryptoFrame",
         "EncodingString": "[conn][%p] Ignoring received crypto after cleanup"
@@ -13478,6 +13727,11 @@
         "EncodingString": "[conn][%p] Key phase change (locally initiated=%hhu)."
       },
       {
+        "UniquenessHash": "e7d3b50d-c315-3189-9752-de68bf66c705",
+        "TraceID": "LogPacketVersionNegotiation",
+        "EncodingString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)"
+      },
+      {
         "UniquenessHash": "afa9276d-cc3c-6cb1-4df9-e4d2fdc0e66d",
         "TraceID": "LogPacketVersionNegotiationVersion",
         "EncodingString": "[%c][%cX][-]   Ver:0x%x"
@@ -13556,6 +13810,11 @@
         "UniquenessHash": "badaa7e5-aa9e-7979-b334-154a884827b6",
         "TraceID": "StillInTimerWheel",
         "EncodingString": "[conn][%p] Still in timer wheel! Connection was likely leaked!"
+      },
+      {
+        "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
+        "TraceID": "ListenerIndicateStopComplete",
+        "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
       },
       {
         "UniquenessHash": "f27f1ff0-edfe-bf39-708a-f9da7a2b4d3d",
@@ -14033,19 +14292,19 @@
         "EncodingString": "[ lib] No longer in use."
       },
       {
-        "UniquenessHash": "a92d40e6-9ec9-6dbe-5bce-51a661ed1554",
-        "TraceID": "LibraryMsQuicOpenNull",
-        "EncodingString": "[ api] MsQuicOpen, NULL"
+        "UniquenessHash": "9dbf9e05-d5cd-4ec3-ea93-fb33942ff968",
+        "TraceID": "LibraryMsQuicOpenVersionNull",
+        "EncodingString": "[ api] MsQuicOpenVersion, NULL"
       },
       {
-        "UniquenessHash": "831a9b86-1a75-79e7-88d5-aa7c600531c4",
-        "TraceID": "LibraryMsQuicOpenEntry",
-        "EncodingString": "[ api] MsQuicOpen"
+        "UniquenessHash": "108ce8c8-296c-0dfd-9efc-9ed86bcb1c7d",
+        "TraceID": "LibraryMsQuicOpenVersionEntry",
+        "EncodingString": "[ api] MsQuicOpenVersion"
       },
       {
-        "UniquenessHash": "6f7eb60d-9947-2598-382b-aa6b6053d53d",
-        "TraceID": "LibraryMsQuicOpenExit",
-        "EncodingString": "[ api] MsQuicOpen, status=0x%x"
+        "UniquenessHash": "fc39ba20-c315-583e-6b62-656fbbd3d077",
+        "TraceID": "LibraryMsQuicOpenVersionExit",
+        "EncodingString": "[ api] MsQuicOpenVersion, status=0x%x"
       },
       {
         "UniquenessHash": "ae77005c-231d-7848-7e06-879ecbd5363d",
@@ -14421,6 +14680,11 @@
         "UniquenessHash": "612e4adb-52a7-78a4-200f-5cfb76ad9713",
         "TraceID": "PerfControlClientIoctlComplete",
         "EncodingString": "[perf] Client %p completing request, 0x%x"
+      },
+      {
+        "UniquenessHash": "0ba57698-ca5f-449b-4d87-183b7ea2918b",
+        "TraceID": "PerfControlInitialized",
+        "EncodingString": "[perf] Control interface initialized"
       },
       {
         "UniquenessHash": "bce70700-af58-e03b-5021-93a28f3dd74f",

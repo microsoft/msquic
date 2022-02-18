@@ -141,6 +141,8 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_TLS_TICKET_KEY            '74cQ' // Qc47 - QUIC Platform TLS ticket key
 #define QUIC_POOL_TLS_CIPHER_SUITE_STRING   '84cQ' // Qc48 - QUIC TLS cipher suite string
 #define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
+#define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
+#define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,

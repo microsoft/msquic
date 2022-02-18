@@ -222,7 +222,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // The initial stream FC window size reported to peers.
 //
-#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x8000  // 32768
+#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x10000  // 65536
 
 //
 // The initial stream receive buffer allocation size.
