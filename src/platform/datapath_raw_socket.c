@@ -290,10 +290,12 @@ CxPlatResolveRouteComplete(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
 CxPlatQueryRoute(
     _In_ const CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_ROUTE* Route,
+    _Inout_ MIB_IPNET_ROW2* IpnetRow
     )
 {
     NETIO_STATUS Status = ERROR_SUCCESS;
@@ -368,25 +370,24 @@ CxPlatQueryRoute(
     //
     // Map the next hop IP address to a link-layer address.
     //
-    MIB_IPNET_ROW2 IpnetRow = {0};
-    IpnetRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
+    IpnetRow->InterfaceLuid = IpforwardRow.InterfaceLuid;
     if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
-        IpnetRow.Address = Route->RemoteAddress;
+        IpnetRow->Address = Route->RemoteAddress;
     } else {
-        IpnetRow.Address = IpforwardRow.NextHop;
+        IpnetRow->Address = IpforwardRow.NextHop;
     }
-    Route->NextHopAddress = IpnetRow.Address;
+    Route->NextHopAddress = IpnetRow->Address;
 
     //
     // Call GetIpNetEntry2 to see if there's already a cached neighbor.
     //
-    Status = GetIpNetEntry2(&IpnetRow);
-    if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
+    Status = GetIpNetEntry2(IpnetRow);
+    if (Status != ERROR_SUCCESS || IpnetRow->State <= NlnsIncomplete) {
         Status = ERROR_IO_PENDING;
     } else {
         CxPlatCopyMemory(
             &Route->NextHopLinkLayerAddress,
-            IpnetRow.PhysicalAddress,
+            IpnetRow->PhysicalAddress,
             sizeof(Route->NextHopLinkLayerAddress));
     }
 
@@ -412,6 +413,7 @@ CxPlatResolveRoute(
     QUIC_STATUS Status = 0;
     CXPLAT_ROUTE RouteQueried = *Route;
     CXPLAT_ROUTE_STATE State = Route->State;
+    MIB_IPNET_ROW2 IpnetRow = {0};
 
     QuicTraceLogConnInfo(
         RouteResolutionStart,
@@ -426,7 +428,7 @@ CxPlatResolveRoute(
         //
         Status = QUIC_STATUS_PENDING;
     } else {
-        Status = CxPlatQueryRoute(Socket, &RouteQueried);
+        Status = CxPlatQueryRoute(Socket, &RouteQueried, &IpnetRow);
     }
 
     if (Status == QUIC_STATUS_SUCCESS) {
