@@ -450,7 +450,7 @@ CxPlatResolveRoute(
         Operation->Callback = Callback;
         Operation->PathId = PathId;
         if (State == RouteSuspected) {
-            RouteQueried.State = Route->State = RouteSuspected;
+            RouteQueried.State = Route->State = RouteRefreshing;
             Operation->Route = *Route;
         } else {
             RouteQueried.State = Route->State = RouteResolving;
