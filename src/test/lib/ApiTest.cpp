@@ -1601,6 +1601,95 @@ void QuicTestValidateStream(bool Connect)
             // Close nullptr.
             //
             MsQuic->StreamClose(nullptr);
+
+            if (Connect) {
+                StreamScope PrevOpenStream; // Opened before shutdown
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+                        AllowSendCompleteStreamCallback,
+                        nullptr,
+                        &PrevOpenStream.Handle));
+
+                StreamScope PrevOpenAndStartedStream; // Started before shutdown
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+                        AllowSendCompleteStreamCallback,
+                        nullptr,
+                        &PrevOpenAndStartedStream.Handle));
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamStart(
+                        PrevOpenAndStartedStream.Handle,
+                        QUIC_STREAM_START_FLAG_NONE));
+
+                //
+                // Test after connection has been shutdown.
+                //
+                Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+
+                CxPlatSleep(100); // TODO - Ideally wait for completion event instead
+
+                //
+                // Open After Connection Shutdown
+                //
+                {
+                    TestScopeLogger logScope("Open After Connection Shutdown");
+                    StreamScope Stream;
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_ABORTED,
+                        MsQuic->StreamOpen(
+                            Client.GetConnection(),
+                            QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+                            AllowSendCompleteStreamCallback,
+                            nullptr,
+                            &Stream.Handle));
+                }
+
+                //
+                // Start After Connection Shutdown
+                //
+                {
+                    TestScopeLogger logScope("Start After Connection Shutdown");
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_ABORTED,
+                        MsQuic->StreamStart(
+                            PrevOpenStream.Handle,
+                            QUIC_STREAM_START_FLAG_NONE));
+                }
+
+                //
+                // Send+Start After Connection Shutdown
+                //
+                {
+                    TestScopeLogger logScope("Send+Start After Connection Shutdown");
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_ABORTED,
+                        MsQuic->StreamSend(
+                            PrevOpenStream.Handle,
+                            Buffers,
+                            ARRAYSIZE(Buffers),
+                            QUIC_SEND_FLAG_START,
+                            nullptr));
+                }
+
+                //
+                // Send After Connection Shutdown
+                //
+                {
+                    TestScopeLogger logScope("Send After Connection Shutdown");
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_ABORTED,
+                        MsQuic->StreamSend(
+                            PrevOpenAndStartedStream.Handle,
+                            Buffers,
+                            ARRAYSIZE(Buffers),
+                            QUIC_SEND_FLAG_START,
+                            nullptr));
+                }
+            }
         }
     }
 }

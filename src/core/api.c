@@ -831,6 +831,11 @@ MsQuicStreamStart(
         goto Exit;
     }
 
+    if (Connection->State.ClosedRemotely) {
+        Status = QUIC_STATUS_ABORTED;
+        goto Exit;
+    }
+
     QUIC_OPERATION* Oper =
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
@@ -1034,6 +1039,11 @@ MsQuicStreamSend(
     QUIC_CONN_VERIFY(Connection,
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
+
+    if (Connection->State.ClosedRemotely) {
+        Status = QUIC_STATUS_ABORTED;
+        goto Exit;
+    }
 
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {
