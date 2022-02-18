@@ -592,6 +592,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
             CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
+            CXPLAT_DBG_ASSERT(
+                Operation->Route.State == RouteRefreshing || Operation->Route.State == RouteResolving);
             CXPLAT_ROUTE NewRoute = Operation->Route;
             QUIC_STATUS Status = CxPlatQueryRoute(Operation->Socket, &NewRoute);
             if (Status == QUIC_STATUS_SUCCESS && Operation->Route.State == RouteRefreshing) {
@@ -601,8 +603,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     //
                     Status = QUIC_STATUS_INVALID_STATE;
                 } else if (memcmp(NewRoute.NextHopLinkLayerAddress,
-                                Operation->Route.NextHopLinkLayerAddress,
-                                sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
+                                  Operation->Route.NextHopLinkLayerAddress,
+                                  sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
                     //
                     // We are handling route refresh here. We will force neighbor discovery because net hop address
                     // has not changed which implies this is the first time we are refreshing it. 
@@ -612,15 +614,17 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
             }
 
             if (Status == QUIC_STATUS_PENDING) {
-                Status =
-                    ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
+                MIB_IPNET_ROW2 IpnetRow = {0};
+                IpnetRow.Address = NewRoute.NextHopAddress;
+                IpnetRow.InterfaceIndex = ((CXPLAT_INTERFACE*)(NewRoute.Interface))->IfIndex;
+                Status = ResolveIpNetEntry2(&IpnetRow, NULL);
                 if (Status == 0) {
                     CxPlatCopyMemory(
                         NewRoute.NextHopLinkLayerAddress,
-                        &Operation->IpnetRow.PhysicalAddress,
+                        IpnetRow.PhysicalAddress,
                         sizeof(NewRoute.NextHopLinkLayerAddress));
                     Status = QUIC_STATUS_SUCCESS;
-                } else if (Status != 0) {
+                } else {
                     QuicTraceEvent(
                         DatapathErrorStatus,
                         "[data][%p] ERROR, %u, %s.",

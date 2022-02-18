@@ -369,12 +369,13 @@ CxPlatQueryRoute(
     // Map the next hop IP address to a link-layer address.
     //
     MIB_IPNET_ROW2 IpnetRow = {0};
-    IpnetRow.InterfaceLuid = IpforwardRow.InterfaceLuid;
+    IpnetRow.InterfaceIndex = IpforwardRow.InterfaceIndex;
     if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
         IpnetRow.Address = Route->RemoteAddress;
     } else {
         IpnetRow.Address = IpforwardRow.NextHop;
     }
+    Route->NextHopAddress = IpnetRow.Address;
 
     //
     // Call GetIpNetEntry2 to see if there's already a cached neighbor.
@@ -390,7 +391,11 @@ CxPlatQueryRoute(
     }
 
 Done:
-    return HRESULT_FROM_WIN32(Status);
+    if (Status > 0) {
+        return SUCCESS_HRESULT_FROM_WIN32(Status);
+    } else {
+        return HRESULT_FROM_WIN32(Status);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -444,9 +449,9 @@ CxPlatResolveRoute(
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
-        Operation->Route = *Route;
+        RouteQueried.State = Route->State = State == RouteSuspected ? RouteRefreshing : RouteResolving;
+        Operation->Route = RouteQueried;
         Operation->Socket = Socket;
-        Route->State = State == RouteSuspected ? RouteRefreshing : RouteResolving;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);

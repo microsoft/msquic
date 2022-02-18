@@ -3097,18 +3097,16 @@ QuicConnQueueRouteCompletion(
             CxPlatCopyMemory(&ConnOper->ROUTE, Route, sizeof(*Route));
         }
         QuicConnQueueOper(Connection, ConnOper);
-    } else {
-        if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
-            QUIC_OPERATION* Oper = &Connection->BackUpOper;
-            Oper->FreeAfterProcess = FALSE;
-            Oper->Type = QUIC_OPER_TYPE_API_CALL;
-            Oper->API_CALL.Context = &Connection->BackupApiContext;
-            Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
-            QuicConnQueueHighestPriorityOper(Connection, Oper);
-        }
+    } else if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+        QUIC_OPERATION* Oper = &Connection->BackUpOper;
+        Oper->FreeAfterProcess = FALSE;
+        Oper->Type = QUIC_OPER_TYPE_API_CALL;
+        Oper->API_CALL.Context = &Connection->BackupApiContext;
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        QuicConnQueueHighestPriorityOper(Connection, Oper);
     }
 
     QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
