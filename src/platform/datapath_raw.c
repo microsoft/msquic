@@ -596,13 +596,14 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                 Operation->Route.State == RouteRefreshing || Operation->Route.State == RouteResolving);
             CXPLAT_ROUTE NewRoute = Operation->Route;
             QUIC_STATUS Status = CxPlatQueryRoute(Operation->Socket, &NewRoute);
-            if (Status == QUIC_STATUS_SUCCESS && Operation->Route.State == RouteRefreshing) {
+            if (Status == QUIC_STATUS_SUCCESS) {
                 if (!QuicAddrCompare(&NewRoute.LocalAddress, &Operation->Route.LocalAddress)) {
                     //
                     // We can't handle local address change here easily due to lack of full migration support.
                     //
                     Status = QUIC_STATUS_INVALID_STATE;
-                } else if (memcmp(NewRoute.NextHopLinkLayerAddress,
+                } else if (Operation->Route.State == RouteRefreshing &&
+                           memcmp(NewRoute.NextHopLinkLayerAddress,
                                   Operation->Route.NextHopLinkLayerAddress,
                                   sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
                     //
