@@ -108,12 +108,14 @@ TcpEngine::TcpEngine(
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
+#ifndef QUIC_NO_SHARED_DATAPATH
     for (uint16_t i = 0; i < ProcCount; ++i) {
         if (!Workers[i].Initialize(this)) {
             return;
         }
     }
     Initialized = true;
+#endif
 }
 
 TcpEngine::~TcpEngine()

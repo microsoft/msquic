@@ -121,6 +121,7 @@ QuicMainStart(
 
     QUIC_STATUS Status;
 
+#ifndef QUIC_USE_RAW_DATAPATH
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         DatapathReceive,
         DatapathUnreachable
@@ -157,6 +158,7 @@ QuicMainStart(
             return Status;
         }
     }
+#endif
 
     MsQuic = new(std::nothrow) MsQuicApi;
     if (MsQuic == nullptr) {
