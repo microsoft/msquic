@@ -382,7 +382,7 @@ CxPlatQueryRoute(
     //
     Status = GetIpNetEntry2(IpnetRow);
     if (Status != ERROR_SUCCESS || IpnetRow->State <= NlnsIncomplete) {
-        Status = ERROR_IO_PENDING;
+        Status = ERROR_NOT_FOUND;
     } else {
         CxPlatCopyMemory(
             &Route->NextHopLinkLayerAddress,
@@ -391,11 +391,7 @@ CxPlatQueryRoute(
     }
 
 Done:
-    if (Status > 0) {
-        return SUCCESS_HRESULT_FROM_WIN32(Status);
-    } else {
-        return HRESULT_FROM_WIN32(Status);
-    }
+    return HRESULT_FROM_WIN32(Status);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -428,6 +424,13 @@ CxPlatResolveRoute(
         Status = QUIC_STATUS_PENDING;
     } else {
         Status = CxPlatQueryRoute(Socket, &RouteQueried, &IpnetRow);
+        if (Status == QUIC_STATUS_NOT_FOUND) {
+            //
+            // QUIC_STATUS_NOT_FOUND means next hop isn't in neighbor table and we need
+            // to resolve asynchronously.
+            //
+            Status = QUIC_STATUS_PENDING;
+        }
     }
 
     if (Status == QUIC_STATUS_SUCCESS) {

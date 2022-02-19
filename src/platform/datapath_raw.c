@@ -608,11 +608,18 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                                   Operation->Route.NextHopLinkLayerAddress,
                                   sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
                     //
-                    // We are handling route refresh here. We will force neighbor discovery because next hop address
-                    // has not changed which implies this is the first time we are refreshing it. 
+                    // We are handling route refresh here. We will force neighbor discovery because
+                    // next hop address has not changed which implies this is the first time we are
+                    // refreshing it.
                     //
                     Status = QUIC_STATUS_PENDING;
                 }
+            } else if (Status == QUIC_STATUS_NOT_FOUND) {
+                //
+                // QUIC_STATUS_NOT_FOUND means next hop isn't in neighbor table and we need
+                // to resolve asynchronously.
+                //
+                Status = QUIC_STATUS_PENDING;
             }
 
             if (Status == QUIC_STATUS_PENDING) {
