@@ -269,39 +269,50 @@ void
 CxPlatResolveRouteComplete(
     _In_ QUIC_CONNECTION* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
-    _In_ const CXPLAT_ROUTE* NewRoute,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
     )
 {
-    *Route = *NewRoute;
-    CxPlatDpRawAssignQueue(Route->Interface, Route);
+    CxPlatCopyMemory(&Route->NextHopLinkLayerAddress, PhysicalAddress, sizeof(Route->NextHopLinkLayerAddress));
     Route->State = RouteResolved;
     QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
         "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
         PathId,
-        Route->NextHopLinkLayerAddress[0],
-        Route->NextHopLinkLayerAddress[1],
-        Route->NextHopLinkLayerAddress[2],
-        Route->NextHopLinkLayerAddress[3],
-        Route->NextHopLinkLayerAddress[4],
-        Route->NextHopLinkLayerAddress[5]);
+        PhysicalAddress[0],
+        PhysicalAddress[1],
+        PhysicalAddress[2],
+        PhysicalAddress[3],
+        PhysicalAddress[4],
+        PhysicalAddress[5]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
-CxPlatQueryRoute(
-    _In_ const CXPLAT_SOCKET* Socket,
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
-    _Inout_ MIB_IPNET_ROW2* IpnetRow
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
+#ifdef _WIN32
     NETIO_STATUS Status = ERROR_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
+    CXPLAT_ROUTE_STATE State = Route->State;
+    MIB_IPNET_ROW2 IpnetRow = {0};
+    QUIC_ADDR LocalAddress = {0};
 
-    uint16_t SavedLocalPort = Route->LocalAddress.Ipv4.sin_port;
+    QuicTraceLogConnInfo(
+        RouteResolutionStart,
+        Context,
+        "Starting to look up neighbor on Path[%hhu] with status %u",
+        PathId,
+        Status);
+
+    LocalAddress.Ipv4.sin_port = Route->LocalAddress.Ipv4.sin_port;
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
     //
@@ -315,8 +326,7 @@ CxPlatQueryRoute(
             &Route->RemoteAddress, // DestinationAddress
             0, // AddressSortOptions
             &IpforwardRow,
-            &Route->LocalAddress); // BestSourceAddress
-    Route->LocalAddress.Ipv4.sin_port = SavedLocalPort;
+            &LocalAddress); // BestSourceAddress
     if (Status != ERROR_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -327,6 +337,16 @@ CxPlatQueryRoute(
         goto Done;
     }
 
+    if (State == RouteSuspected && !QuicAddrCompare(&LocalAddress, &Route->LocalAddress)) {
+        //
+        // We can't handle local address change here easily due to lack of full migration support.
+        //
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Done;
+    } else {
+        Route->LocalAddress = LocalAddress;
+    }
+
     //
     // Find the interface that matches the route we just looked up.
     //
@@ -334,12 +354,12 @@ CxPlatQueryRoute(
     for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
         CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
-            Route->Interface = Interface;
+            CxPlatDpRawAssignQueue(Interface, Route);
             break;
         }
     }
 
-    if (Route->Interface == NULL) {
+    if (Route->Queue == NULL) {
         Status = QUIC_STATUS_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
@@ -370,75 +390,42 @@ CxPlatQueryRoute(
     //
     // Map the next hop IP address to a link-layer address.
     //
-    IpnetRow->InterfaceLuid = IpforwardRow.InterfaceLuid;
+    IpnetRow.InterfaceLuid = IpforwardRow.InterfaceLuid;
     if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
-        IpnetRow->Address = Route->RemoteAddress;
+        IpnetRow.Address = Route->RemoteAddress;
     } else {
-        IpnetRow->Address = IpforwardRow.NextHop;
+        IpnetRow.Address = IpforwardRow.NextHop;
     }
 
     //
     // Call GetIpNetEntry2 to see if there's already a cached neighbor.
     //
-    Status = GetIpNetEntry2(IpnetRow);
-    if (Status != ERROR_SUCCESS || IpnetRow->State <= NlnsIncomplete) {
-        Status = ERROR_NOT_FOUND;
-    } else {
-        CxPlatCopyMemory(
-            &Route->NextHopLinkLayerAddress,
-            IpnetRow->PhysicalAddress,
-            sizeof(Route->NextHopLinkLayerAddress));
-    }
-
-Done:
-    return HRESULT_FROM_WIN32(Status);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
-    _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    )
-{
-#ifdef _WIN32
-    QUIC_STATUS Status = 0;
-    CXPLAT_ROUTE RouteQueried = *Route;
-    CXPLAT_ROUTE_STATE State = Route->State;
-    MIB_IPNET_ROW2 IpnetRow = {0};
-
+    Status = GetIpNetEntry2(&IpnetRow);
     QuicTraceLogConnInfo(
         RouteResolutionStart,
         Context,
-        "Starting to look up neighbor on Path[%hhu] with status %d",
+        "Starting to look up neighbor on Path[%hhu] with status %u",
         PathId,
         Status);
-
-    if (State == RouteSuspected) {
+    if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
+        (State == RouteSuspected &&
+         memcmp(
+             Route->NextHopLinkLayerAddress,
+             IpnetRow.PhysicalAddress,
+             sizeof(Route->NextHopLinkLayerAddress)) == 0)) {
         //
-        // We have seen hints that the route might be bad. Let the route worker take care of this.
+        // For route refresh, if the next hop has not changed, we will
+        // force neighbor discovery.
         //
-        Status = QUIC_STATUS_PENDING;
+        Status = ERROR_IO_PENDING;
+        CXPLAT_STATIC_ASSERT(
+            SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) == QUIC_STATUS_PENDING,
+            "SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) must be QUIC_STATUS_PENDING");
     } else {
-        Status = CxPlatQueryRoute(Socket, &RouteQueried, &IpnetRow);
-        if (Status == QUIC_STATUS_NOT_FOUND) {
-            //
-            // QUIC_STATUS_NOT_FOUND means next hop isn't in neighbor table and we need
-            // to resolve asynchronously.
-            //
-            Status = QUIC_STATUS_PENDING;
-        }
+        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
 
-    if (Status == QUIC_STATUS_SUCCESS) {
-        CxPlatResolveRouteComplete(Context, Route, &RouteQueried, PathId);
-    } else if (Status == QUIC_STATUS_PENDING) {
-        //
-        // We need to queue up a route operation for either route refresh or initial route resolution.
-        //
+    if (Status == ERROR_IO_PENDING) {
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
         if (Operation == NULL) {
@@ -450,17 +437,11 @@ CxPlatResolveRoute(
             Status = ERROR_NOT_ENOUGH_MEMORY;
             goto Done;
         }
+        Operation->IpnetRow = IpnetRow;
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
-        if (State == RouteSuspected) {
-            RouteQueried.State = Route->State = RouteRefreshing;
-            Operation->Route = *Route;
-        } else {
-            RouteQueried.State = Route->State = RouteResolving;
-            Operation->Route = RouteQueried;
-        }
-        Operation->Socket = Socket;
+        Route->State = RouteResolving;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
@@ -468,11 +449,15 @@ CxPlatResolveRoute(
     }
 
 Done:
-    if (QUIC_FAILED(Status)) {
+    if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    return Status;
+    if (Status > 0) {
+        return SUCCESS_HRESULT_FROM_WIN32(Status);
+    } else {
+        return HRESULT_FROM_WIN32(Status);
+    }
 #else // _WIN32
     return QUIC_STATUS_NOT_SUPPORTED;
 #endif // _WIN32

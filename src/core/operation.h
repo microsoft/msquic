@@ -228,7 +228,7 @@ typedef struct QUIC_OPERATION {
             QUIC_STATELESS_CONTEXT* Context;
         } STATELESS; // Stateless reset, retry and VN
         struct {
-            CXPLAT_ROUTE Route;
+            uint8_t PhysicalAddress[6];
             uint8_t PathId;
             BOOLEAN Succeeded;
         } ROUTE;

@@ -589,70 +589,33 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CxPlatDispatchLockRelease(&Worker->Lock);
 
         while (!CxPlatListIsEmpty(&Operations)) {
-            MIB_IPNET_ROW2 IpnetRow = {0};
             CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
-            CXPLAT_DBG_ASSERT(
-                Operation->Route.State == RouteRefreshing || Operation->Route.State == RouteResolving);
-            CXPLAT_ROUTE NewRoute = Operation->Route;
-            QUIC_STATUS Status = CxPlatQueryRoute(Operation->Socket, &NewRoute, &IpnetRow);
-            if (Status == QUIC_STATUS_SUCCESS) {
-                if (!QuicAddrCompare(&NewRoute.LocalAddress, &Operation->Route.LocalAddress)) {
-                    //
-                    // We can't handle local address change here easily due to lack of full migration support.
-                    //
-                    Status = QUIC_STATUS_INVALID_STATE;
-                } else if (Operation->Route.State == RouteRefreshing &&
-                           memcmp(NewRoute.NextHopLinkLayerAddress,
-                                  Operation->Route.NextHopLinkLayerAddress,
-                                  sizeof(NewRoute.NextHopLinkLayerAddress)) == 0) {
-                    //
-                    // We are handling route refresh here. We will force neighbor discovery because
-                    // next hop address has not changed which implies this is the first time we are
-                    // refreshing it.
-                    //
-                    Status = QUIC_STATUS_PENDING;
-                }
-            } else if (Status == QUIC_STATUS_NOT_FOUND) {
-                //
-                // QUIC_STATUS_NOT_FOUND means next hop isn't in neighbor table and we need
-                // to resolve asynchronously.
-                //
-                Status = QUIC_STATUS_PENDING;
-            }
-
-            if (Status == QUIC_STATUS_PENDING) {
-                Status = ResolveIpNetEntry2(&IpnetRow, NULL);
-                if (Status == 0) {
-                    CxPlatCopyMemory(
-                        NewRoute.NextHopLinkLayerAddress,
-                        IpnetRow.PhysicalAddress,
-                        sizeof(NewRoute.NextHopLinkLayerAddress));
-                    Status = QUIC_STATUS_SUCCESS;
-                } else {
+            NETIO_STATUS Status =
+            Status = GetIpNetEntry2(&Operation->IpnetRow);
+            if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
+                Status =
+                    ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
+                if (Status != 0) {
                     QuicTraceEvent(
                         DatapathErrorStatus,
                         "[data][%p] ERROR, %u, %s.",
                         Operation,
                         Status,
                         "ResolveIpNetEntry2");
+                    Operation->Callback(
+                        Operation->Context, NULL, Operation->PathId, FALSE);
+                } else {
+                    Operation->Callback(
+                        Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
                 }
-            }
-
-            //
-            // Now that we have the result for the route resolution, we can queue
-            // a route completion event to QUIC core to continue processing.
-            //
-            if (Status == QUIC_STATUS_SUCCESS) {
-                Operation->Callback(
-                    Operation->Context, &NewRoute, Operation->PathId, TRUE);
             } else {
                 Operation->Callback(
-                    Operation->Context, NULL, Operation->PathId, FALSE); 
+                    Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
             }
 
-            CxPlatPoolFree(&Worker->OperationPool, Operation);
+            CxPlatPoolFree(&Worker->OperationPool ,Operation);
         }
     }
 

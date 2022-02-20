@@ -135,7 +135,7 @@ QuicSendQueueFlush(
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         Status =
             CxPlatResolveRoute(
-                Path->Binding->Socket, &Path->Route, Path->ID, Connection, QuicConnQueueRouteCompletion);
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
         } else {
@@ -145,7 +145,7 @@ QuicSendQueueFlush(
             CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
             return;
         }
-    } else if (Path->Route.State == RouteResolving || Path->Route.State == RouteRefreshing) {
+    } else if (Path->Route.State == RouteResolving) {
         //
         // Can't send now. Once route resolution completes, we will resume sending.
         //
