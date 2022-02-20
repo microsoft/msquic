@@ -278,14 +278,14 @@ CxPlatResolveRouteComplete(
     QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
-        "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+        "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
-        PhysicalAddress[0],
-        PhysicalAddress[1],
-        PhysicalAddress[2],
-        PhysicalAddress[3],
-        PhysicalAddress[4],
-        PhysicalAddress[5]);
+        Route->NextHopLinkLayerAddress[0],
+        Route->NextHopLinkLayerAddress[1],
+        Route->NextHopLinkLayerAddress[2],
+        Route->NextHopLinkLayerAddress[3],
+        Route->NextHopLinkLayerAddress[4],
+        Route->NextHopLinkLayerAddress[5]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -305,14 +305,6 @@ CxPlatResolveRoute(
     MIB_IPNET_ROW2 IpnetRow = {0};
     QUIC_ADDR LocalAddress = {0};
 
-    QuicTraceLogConnInfo(
-        RouteResolutionStart,
-        Context,
-        "Starting to look up neighbor on Path[%hhu] with status %u",
-        PathId,
-        Status);
-
-    LocalAddress.Ipv4.sin_port = Route->LocalAddress.Ipv4.sin_port;
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
     //
@@ -327,6 +319,7 @@ CxPlatResolveRoute(
             0, // AddressSortOptions
             &IpforwardRow,
             &LocalAddress); // BestSourceAddress
+
     if (Status != ERROR_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -342,8 +335,15 @@ CxPlatResolveRoute(
         // We can't handle local address change here easily due to lack of full migration support.
         //
         Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "Refreshed route has different local address");
         goto Done;
     } else {
+        LocalAddress.Ipv4.sin_port = Route->LocalAddress.Ipv4.sin_port; // Preserve local port.
         Route->LocalAddress = LocalAddress;
     }
 
