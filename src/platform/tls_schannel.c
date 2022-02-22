@@ -1597,7 +1597,6 @@ CxPlatTlsIndicateCertificateReceived(
 #endif
     )
 {
-    SECURITY_STATUS SecStatus;
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
     QUIC_CERTIFICATE* Certificate;
     QUIC_CERTIFICATE_CHAIN* CertificateChain;
