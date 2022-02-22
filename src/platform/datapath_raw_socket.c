@@ -413,7 +413,7 @@ CxPlatResolveRoute(
     // 2. The neighbor entry isn't in usuable state.
     // 3. In refresh scenario, the neighbor entry is the same as the existing one.
     //
-    // We queue an operation on route worker for NS because it involves network IO and
+    // We queue an operation on the route worker for NS because it involves network IO and
     // we don't want our connection worker queue blocked.
     //
     if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
