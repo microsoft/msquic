@@ -615,7 +615,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
             }
 
-            CxPlatPoolFree(&Worker->OperationPool ,Operation);
+            CxPlatPoolFree(&Worker->OperationPool, Operation);
         }
     }
 

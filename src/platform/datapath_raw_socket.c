@@ -302,7 +302,6 @@ CxPlatResolveRoute(
     NETIO_STATUS Status = ERROR_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
     CXPLAT_ROUTE_STATE State = Route->State;
-    MIB_IPNET_ROW2 IpnetRow = {0};
     QUIC_ADDR LocalAddress = {0};
 
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
@@ -390,6 +389,7 @@ CxPlatResolveRoute(
     //
     // Map the next hop IP address to a link-layer address.
     //
+    MIB_IPNET_ROW2 IpnetRow = {0};
     IpnetRow.InterfaceLuid = IpforwardRow.InterfaceLuid;
     if (QuicAddrIsWildCard(&IpforwardRow.NextHop)) { // On-link?
         IpnetRow.Address = Route->RemoteAddress;
@@ -407,25 +407,22 @@ CxPlatResolveRoute(
         "Starting to look up neighbor on Path[%hhu] with status %u",
         PathId,
         Status);
+    //
+    // 
+    // We need to force neighbor solicitation (NS) if any of the following is true:
+    // 1. No neighbor entry for the given destination address.
+    // 2. The neighbor entry isn't in usuable state.
+    // 3. In refresh scenario, the neighbor entry is the same as the existing one.
+    //
+    // We queue an operation on route worker for NS because it involves network IO and
+    // we don't want our connection worker queue blocked.
+    //
     if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
         (State == RouteSuspected &&
          memcmp(
              Route->NextHopLinkLayerAddress,
              IpnetRow.PhysicalAddress,
              sizeof(Route->NextHopLinkLayerAddress)) == 0)) {
-        //
-        // For route refresh, if the next hop has not changed, we will
-        // force neighbor discovery.
-        //
-        Status = ERROR_IO_PENDING;
-        CXPLAT_STATIC_ASSERT(
-            SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) == QUIC_STATUS_PENDING,
-            "SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) must be QUIC_STATUS_PENDING");
-    } else {
-        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
-    }
-
-    if (Status == ERROR_IO_PENDING) {
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
         if (Operation == NULL) {
@@ -446,6 +443,12 @@ CxPlatResolveRoute(
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
         CxPlatEventSet(Worker->Ready);
+        Status = ERROR_IO_PENDING;
+        CXPLAT_STATIC_ASSERT(
+            SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) == QUIC_STATUS_PENDING,
+            "SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) must be QUIC_STATUS_PENDING");
+    } else {
+        CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
 
 Done:
