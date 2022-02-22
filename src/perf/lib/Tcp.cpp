@@ -15,6 +15,8 @@ Abstract:
 #include "Tcp.cpp.clog.h"
 #endif
 
+extern CXPLAT_DATAPATH* Datapath;
+
 // ############################# HELPERS #############################
 
 #define FRAME_TYPE_CRYPTO   0
@@ -106,21 +108,14 @@ TcpEngine::TcpEngine(
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
-    if (QUIC_FAILED(
-        CxPlatDataPathInitialize(
-            0, // TODO
-            nullptr,
-            &TcpCallbacks,
-            &Datapath))) {
-        WriteOutput("CxPlatDataPathInitialize FAILED\n");
-        return;
-    }
+#ifndef QUIC_NO_SHARED_DATAPATH
     for (uint16_t i = 0; i < ProcCount; ++i) {
         if (!Workers[i].Initialize(this)) {
             return;
         }
     }
     Initialized = true;
+#endif
 }
 
 TcpEngine::~TcpEngine()
@@ -128,9 +123,6 @@ TcpEngine::~TcpEngine()
     Shutdown = true;
     for (uint16_t i = 0; i < ProcCount; ++i) {
         Workers[i].Shutdown();
-    }
-    if (Datapath) {
-        CxPlatDataPathUninitialize(Datapath);
     }
     delete [] Workers;
 }
@@ -263,7 +255,7 @@ bool TcpServer::Start(const QUIC_ADDR* LocalAddress)
     if (!Initialized ||
         QUIC_FAILED(
         CxPlatSocketCreateTcpListener(
-            Engine->Datapath,
+            Datapath,
             LocalAddress,
             this,
             &Listener))) {
@@ -322,7 +314,7 @@ TcpConnection::TcpConnection(
     QuicAddrSetFamily(&Route.RemoteAddress, Family);
     if (QUIC_FAILED(
         CxPlatDataPathResolveAddress(
-            Engine->Datapath,
+            Datapath,
             ServerName,
             &Route.RemoteAddress))) {
         WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
@@ -333,7 +325,7 @@ TcpConnection::TcpConnection(
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
-            Engine->Datapath,
+            Datapath,
             LocalAddress,
             &Route.RemoteAddress,
             this,

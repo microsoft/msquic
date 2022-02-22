@@ -2,6 +2,9 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
+use c_types::AF_UNSPEC;
+use c_types::AF_INET;
+use c_types::AF_INET6;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::option::Option;
@@ -23,9 +26,9 @@ pub type BOOLEAN = ::std::os::raw::c_uchar;
 
 /// Family of an IP address.
 pub type AddressFamily = u16;
-pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = 0;
-pub const ADDRESS_FAMILY_INET: AddressFamily = 2;
-pub const ADDRESS_FAMILY_INET6: AddressFamily = 23;
+pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = c_types::AF_UNSPEC as u16;
+pub const ADDRESS_FAMILY_INET: AddressFamily = c_types::AF_INET as u16;
+pub const ADDRESS_FAMILY_INET6: AddressFamily = c_types::AF_INET6 as u16;
 
 /// IPv4 address payload.
 #[repr(C)]
@@ -580,6 +583,8 @@ pub const PARAM_CONN_LOCAL_INTERFACE: u32 = 0x05000012;
 pub const PARAM_CONN_TLS_SECRETS: u32 = 0x05000013;
 pub const PARAM_CONN_VERSION_SETTINGS: u32 = 0x05000014;
 pub const PARAM_CONN_INITIAL_DCID_PREFIX: u32 = 0x05000015;
+pub const PARAM_CONN_STATISTICS_V2: u32 = 0x05000016;
+pub const PARAM_CONN_STATISTICS_V2_PLAT: u32 = 0x05000017;
 
 pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 0x06000000;
 pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 0x06000001;

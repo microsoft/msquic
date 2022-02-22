@@ -508,15 +508,15 @@ TestConnection::GetLocalUnidiStreamCount()
     return value;
 }
 
-QUIC_STATISTICS
+QUIC_STATISTICS_V2
 TestConnection::GetStatistics()
 {
-    QUIC_STATISTICS value = {};
+    QUIC_STATISTICS_V2 value = {};
     uint32_t valueSize = sizeof(value);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &valueSize,
             &value);
     if (QUIC_FAILED(Status)) {

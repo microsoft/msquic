@@ -114,6 +114,8 @@ QuicSendCanSendFlagsNow(
     return TRUE;
 }
 
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL thinks Connection could be uninitialized?
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
@@ -121,9 +123,38 @@ QuicSendQueueFlush(
     _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_STATUS Status;
+
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+
+    if (Path->Route.State == RouteUnresolved) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+        } else {
+            //
+            // Route resolution failed or pended. We need to pause sending.
+            //
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return;
+        }
+    } else if (Path->Route.State == RouteResolving) {
+        //
+        // Can't send now. Once route resolution completes, we will resume sending.
+        //
+        return;
+    }
+#endif
+
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
-        QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             QuicTraceEvent(
@@ -135,6 +166,7 @@ QuicSendQueueFlush(
         }
     }
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

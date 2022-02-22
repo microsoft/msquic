@@ -129,7 +129,7 @@ PingStreamShutdown(
 
     // TODO - More Validation
     if (!Stream->GetSendShutdown()) {
-        TEST_FAILURE("Send path not shutdown.");
+        TEST_FAILURE("Send path not shut down.");
     }
     if (!ConnState->GetPingStats()->AllowDataIncomplete) {
         if (!Stream->GetAllDataSent()) {
@@ -1833,18 +1833,18 @@ QuicAckDelayStreamHandler(
         //
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE: {
-            QUIC_STATISTICS Stats{};
+            QUIC_STATISTICS_V2 Stats{};
             uint32_t StatsSize = sizeof(Stats);
             Status = MsQuic->GetParam(
                 TestContext->ClientConnection.Handle,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &StatsSize,
                 &Stats);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
                 return Status;
             }
-            TestContext->AckCountStop = Stats.Recv.ValidAckFrames;
+            TestContext->AckCountStop = Stats.RecvValidAckFrames;
             Event->RECEIVE.TotalBufferLength = 0;
             CxPlatEventSet(TestContext->ClientReceiveDataEvent.Handle);
             break;
@@ -2012,19 +2012,19 @@ QuicTestAckSendDelay(
         //
         CxPlatSleep(100);
 
-        QUIC_STATISTICS Stats{};
+        QUIC_STATISTICS_V2 Stats{};
         uint32_t StatsSize = sizeof(Stats);
         Status =
             MsQuic->GetParam(
                 TestContext.ClientConnection.Handle,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &StatsSize,
                 &Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
             return;
         }
-        TestContext.AckCountStart = Stats.Recv.ValidAckFrames;
+        TestContext.AckCountStart = Stats.RecvValidAckFrames;
         Status =
             MsQuic->StreamOpen(
                 TestContext.ClientConnection.Handle,

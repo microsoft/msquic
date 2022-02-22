@@ -5,8 +5,8 @@
 
 Abstract:
 
-    A configurations is a container for multiple different settings, including
-    TLS security configuration and QUIC settings. On Windows it also manages
+    A configuration is a container for multiple settings, including TLS security
+    configuration and QUIC settings. On Windows it also manages
     silo and network compartment state.
 
 --*/

@@ -365,7 +365,7 @@ Return Value:
 static
 void
 CxPlatPopulateContext(
-    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _Out_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context,
     _In_ uint64_t Signature
     )
@@ -804,7 +804,7 @@ Arguments:
 _Must_inspect_result_
 CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableLookup(
-    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _In_ uint64_t Signature,
     _Out_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     )
@@ -870,7 +870,7 @@ Return Value:
 _Must_inspect_result_
 CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableLookupNext(
-    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _Inout_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++

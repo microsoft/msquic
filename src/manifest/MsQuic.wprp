@@ -26,6 +26,24 @@
       </Stacks>
     </SystemProvider>
 
+    <SystemProvider Id="SP_SystemThreadExecutionDetail">
+      <Keywords>
+          <Keyword Value="ProcessThread"/>
+          <Keyword Value="Loader"/>
+          <Keyword Value="CSwitch"/>
+          <Keyword Value="ReadyThread"/>
+          <Keyword Value="SampledProfile"/>
+          <Keyword Value="DPC"/>
+          <Keyword Value="Interrupt"/>
+          <Keyword Value="IdleStates"/>
+      </Keywords>
+      <Stacks>
+          <Stack Value="CSwitch"/>
+          <Stack Value="ReadyThread"/>
+          <Stack Value="SampledProfile"/>
+      </Stacks>
+    </SystemProvider>
+
     <EventProvider Id="EP_MsQuicEtw" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" />
     <EventProvider Id="EP_MsQuicEtw_LowVolume" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="4">
       <Keywords>
@@ -80,6 +98,12 @@
         <Keyword Value="0xFFFF"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_XdpWpp" Name="D6143B5C-9FD6-44BA-BA02-FAD9EA0C263D" Level="5" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0x7FFFFFFFFFFFFFFF" />
+      </Keywords>
+    </EventProvider>
+    <EventProvider Id="EP_XdpEtwPerFrame" Name="Microsoft-XDP" Level="25" />
 
     <Profile Id="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
@@ -95,11 +119,27 @@
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_RPS" />
+            <EventProviderId Value="EP_XdpEtwPerFrame" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
     </Profile>
     <Profile Id="RPS.Light.Memory" Base="RPS.Light.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="Memory" DetailLevel="Light"/>
+
+    <Profile Id="RPS.Verbose.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="File" DetailLevel="Verbose">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecutionDetail" />
+        </SystemCollectorId>
+        <EventCollectorId Value="EC_HighVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_MsQuicEtw_RPS" />
+            <EventProviderId Value="EP_XdpEtwPerFrame" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="RPS.Verbose.Memory" Base="RPS.Verbose.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="Memory" DetailLevel="Verbose"/>
 
     <Profile Id="Performance.Light.File" Name="Performance" Description="Perf related MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
@@ -210,6 +250,8 @@
             <EventProviderId Value="EP_WinSockEtw" />
             <EventProviderId Value="EP_SChannelWpp" />
             <EventProviderId Value="EP_NCryptWpp" />
+            <EventProviderId Value="EP_XdpEtwPerFrame" />
+            <EventProviderId Value="EP_XdpWpp" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>

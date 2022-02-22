@@ -142,12 +142,29 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
+// When state is Resolved, LocalLinkLayerAddress and NextHopLinkLayerAddress of CXPLAT_ROUTE are valid.
+//
+typedef enum CXPLAT_ROUTE_STATE {
+    RouteUnresolved,
+    RouteResolving,
+    RouteResolved,
+} CXPLAT_ROUTE_STATE;
+
+//
 // Structure to represent a network route.
 //
 typedef struct CXPLAT_ROUTE {
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    uint8_t LocalLinkLayerAddress[6];
+    uint8_t NextHopLinkLayerAddress[6];
+    void* Queue;
+
+    CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
+#endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
 
@@ -193,6 +210,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
+    uint8_t Reserved : 6;
 
 } CXPLAT_RECV_DATA;
 
@@ -632,6 +650,50 @@ CxPlatSocketGetParam(
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     );
+
+#ifdef QUIC_USE_RAW_DATAPATH
+//
+// Copies L2 address into route object and sets route state to resolved.
+//
+void
+CxPlatResolveRouteComplete(
+    _In_ void* Connection,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
+    );
+
+//
+// Function pointer type for datapath route resolution callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+(CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
+    _In_ void* Context,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    );
+
+typedef CXPLAT_ROUTE_RESOLUTION_CALLBACK *CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER;
+
+//
+// Tries to resolve route and neighbor for the given destination address.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    );
+#endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)
 }

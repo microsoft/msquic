@@ -247,7 +247,7 @@ MsQuicLibraryInitialize(
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         QuicBindingReceive,
-        QuicBindingUnreachable
+        QuicBindingUnreachable,
     };
 
     Status = CxPlatInitialize();
@@ -1340,7 +1340,7 @@ MsQuicOpenVersion(
     QUIC_STATUS Status;
     BOOLEAN ReleaseRefOnFailure = FALSE;
 
-    if (Version != 2) {
+    if (Version != QUIC_API_VERSION_2) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",

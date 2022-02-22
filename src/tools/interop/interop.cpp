@@ -601,12 +601,12 @@ public:
         Alpn = strdup(NegotiatedAlpn);
         return true;
     }
-    bool GetStatistics(QUIC_STATISTICS& Stats) {
+    bool GetStatistics(QUIC_STATISTICS_V2& Stats) {
         uint32_t BufferLength = sizeof(Stats);
         if (QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &BufferLength,
                 &Stats)) &&
             BufferLength == sizeof(Stats)) {
@@ -780,7 +780,7 @@ RunInteropTest(
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            QUIC_STATISTICS Stats;
+            QUIC_STATISTICS_V2 Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.VersionNegotiation != 0;
             }
@@ -817,7 +817,7 @@ RunInteropTest(
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == StatelessRetry) {
-                QUIC_STATISTICS Stats;
+                QUIC_STATISTICS_V2 Stats;
                 if (Connection.GetStatistics(Stats)) {
                     Success = Stats.StatelessRetry != 0;
                 }
@@ -874,9 +874,9 @@ RunInteropTest(
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             CxPlatSleep(2000); // Allow keep alive packets to trigger key updates.
-            QUIC_STATISTICS Stats;
+            QUIC_STATISTICS_V2 Stats;
             if (Connection.GetStatistics(Stats)) {
-                Success = Stats.Misc.KeyUpdateCount > 1;
+                Success = Stats.KeyUpdateCount > 1;
             }
             if (Success && CustomUrlPath) {
                 Success = Connection.SendHttpRequests();

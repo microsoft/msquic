@@ -254,7 +254,7 @@ public:
     uint16_t GetLocalBidiStreamCount();
     uint16_t GetLocalUnidiStreamCount();
 
-    QUIC_STATISTICS GetStatistics();
+    QUIC_STATISTICS_V2 GetStatistics();
 
     bool GetUseSendBuffer();
     QUIC_STATUS SetUseSendBuffer(bool value);

@@ -90,12 +90,12 @@ void QuicTestRegistrationShutdownAfterConnOpen()
 
     // Call something that will hit the worker thread, that will ensure conn has
     // been triggered
-    QUIC_STATISTICS Stats;
+    QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Stats);
     TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, Status);
@@ -126,12 +126,12 @@ void QuicTestRegistrationShutdownAfterConnOpenBeforeStart()
 
     // Call something that will hit the worker thread, that will ensure conn has
     // been triggered
-    QUIC_STATISTICS Stats;
+    QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Stats);
     TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, Status);
@@ -150,7 +150,7 @@ void QuicTestRegistrationShutdownAfterConnOpenBeforeStart()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Stats);
     TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, Status);
@@ -194,12 +194,12 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
 
     // Call something that will hit the worker thread, that will ensure conn has
     // been triggered
-    QUIC_STATISTICS Stats;
+    QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Stats);
     TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, Status);
@@ -219,7 +219,7 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
     Status =
         MsQuic->GetParam(
             Conn.Connection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Stats);
     TEST_QUIC_STATUS(QUIC_STATUS_SUCCESS, Status);

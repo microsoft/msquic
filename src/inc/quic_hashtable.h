@@ -198,7 +198,7 @@ CxPlatHashtableRemove(
 _Must_inspect_result_
 CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableLookup(
-    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _In_ uint64_t Signature,
     _Out_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     );
@@ -206,7 +206,7 @@ CxPlatHashtableLookup(
 _Must_inspect_result_
 CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableLookupNext(
-    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _Inout_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 

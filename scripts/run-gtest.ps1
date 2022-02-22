@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-This script runs a google test executable and collects and logs or process dumps
+This script runs a google test executable and collects logs or dumps
 as necessary.
 
 .PARAMETER Path
@@ -446,7 +446,7 @@ function Wait-TestCase($TestCase) {
             $StdOutTxt = $StdOut.Result
             $StdErrorTxt = $StdError.Result
 
-            if (!$isWindows -and !$ProcessCrashed) {
+            if (!$IsWindows -and !$ProcessCrashed) {
                 $ProcessCrashed = $StdErrorTxt.Contains("Aborted")
             }
             $AnyTestFailed = $StdOutTxt.Contains("[  FAILED  ]")
@@ -714,7 +714,7 @@ try {
         & $LogScript -Cancel | Out-Null
     }
 
-    if ($isWindows) {
+    if ($IsWindows) {
         # Cleanup the WER registry.
         if (Test-Administrator) {
             Remove-Item -Path $WerDumpRegPath -Force | Out-Null

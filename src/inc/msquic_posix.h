@@ -147,12 +147,9 @@ typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
 typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
-//
-// Defines match windows values.
-//
-#define QUIC_ADDRESS_FAMILY_UNSPEC 0
-#define QUIC_ADDRESS_FAMILY_INET 2
-#define QUIC_ADDRESS_FAMILY_INET6 23
+#define QUIC_ADDRESS_FAMILY_UNSPEC AF_UNSPEC
+#define QUIC_ADDRESS_FAMILY_INET AF_INET
+#define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
 
 typedef union QUIC_ADDR {
     struct sockaddr Ip;

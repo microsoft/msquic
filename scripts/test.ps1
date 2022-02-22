@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-This script provides helpers for running executing the MsQuic tests.
+This script runs the MsQuic tests.
 
 .PARAMETER Config
     Specifies the build configuration to test.
@@ -175,7 +175,7 @@ if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";
 }
 
-#Validate the code coverage switch.
+# Validate the code coverage switch.
 if ($CodeCoverage) {
     if (!$IsWindows) {
         Write-Error "-CodeCoverage switch only supported on Windows";
@@ -217,7 +217,7 @@ if ("" -ne $ExtraArtifactDir -and $Kernel) {
     Write-Error "Kernel not supported with extra artifact dir"
 }
 
-# Path to the msquictest exectuable.
+# Path to the msquictest executable.
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
 $MsQuicPlatTest = $null

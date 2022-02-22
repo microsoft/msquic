@@ -904,12 +904,12 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
-    GetStatistics(_Out_ QUIC_STATISTICS* Statistics) const noexcept {
+    GetStatistics(_Out_ QUIC_STATISTICS_V2* Statistics) const noexcept {
         uint32_t Size = sizeof(*Statistics);
         return
             MsQuic->GetParam(
                 Handle,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &Size,
                 Statistics);
     }
