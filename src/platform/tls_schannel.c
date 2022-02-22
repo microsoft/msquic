@@ -1589,73 +1589,47 @@ CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsIndicateCertificateReceived(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ CXPLAT_TLS_PROCESS_STATE* State,
-    _In_ SecPkgContext_CertificateValidationResult* CertValidationResult
+    _In_ SecPkgContext_CertificateValidationResult* CertValidationResult,
+#ifdef _KERNEL_MODE
+    _In_ SecPkgContext_Certificates* PeerCert
+#else
+    _In_ PCCERT_CONTEXT PeerCert
+#endif
     )
 {
     SECURITY_STATUS SecStatus;
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
-    QUIC_CERTIFICATE* Certificate = NULL;
-    QUIC_CERTIFICATE_CHAIN* CertificateChain = NULL;
+    QUIC_CERTIFICATE* Certificate;
+    QUIC_CERTIFICATE_CHAIN* CertificateChain;
 #ifndef _KERNEL_MODE
     QUIC_PORTABLE_CERTIFICATE PortableCertificate = {0};
 #endif
 
 #ifdef _KERNEL_MODE
-    SecPkgContext_Certificates PeerCert;
-    CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
-    SecStatus =
-        QueryContextAttributesW(
-            &TlsContext->SchannelContext,
-            SECPKG_ATTR_REMOTE_CERTIFICATES,
-            (PVOID)&PeerCert);
+    Certificate = (QUIC_CERTIFICATE*)PeerCert;
+    CertificateChain = (QUIC_CERTIFICATE_CHAIN*)PeerCert;
 #else
-    PCCERT_CONTEXT PeerCert = NULL;
-    SecStatus =
-        QueryContextAttributesW(
-            &TlsContext->SchannelContext,
-            SECPKG_ATTR_REMOTE_CERT_CONTEXT,
-            (PVOID)&PeerCert);
-#endif
-    if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(
-            TlsErrorStatus,
-            "[ tls][%p] ERROR, %u, %s.",
-            TlsContext->Connection,
-            SecStatus,
-            "Query peer cert");
-        if (!TlsContext->IsServer ||
-            TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+    if (PeerCert == NULL) {
+        Certificate = NULL;
+        CertificateChain = NULL;
+    } else if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
+        QUIC_STATUS Status =
+            CxPlatGetPortableCertificate(
+                (QUIC_CERTIFICATE*)PeerCert,
+                &PortableCertificate);
+        if (QUIC_FAILED(Status)) {
             Result |= CXPLAT_TLS_RESULT_ERROR;
             State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
             goto Exit;
-        } else {
-            goto Exit;
         }
+        Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
     } else {
-#ifdef _KERNEL_MODE
-        Certificate = (QUIC_CERTIFICATE*)&PeerCert;
-        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCert;
-#else
-        CXPLAT_DBG_ASSERT(PeerCert != NULL);
-
-        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
-            QUIC_STATUS Status =
-                CxPlatGetPortableCertificate(
-                    (QUIC_CERTIFICATE*)PeerCert,
-                    &PortableCertificate);
-            if (QUIC_FAILED(Status)) {
-                Result |= CXPLAT_TLS_RESULT_ERROR;
-                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
-                goto Exit;
-            }
-            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
-            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
-        } else {
-            Certificate = (QUIC_CERTIFICATE*)PeerCert;
-            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
-        }
-#endif
+        Certificate = (QUIC_CERTIFICATE*)PeerCert;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
     }
+#endif
+
     if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
             Certificate,
@@ -1674,17 +1648,8 @@ CxPlatTlsIndicateCertificateReceived(
 
 Exit:
 
-#ifdef _KERNEL_MODE
-    if (PeerCert.pbCertificateChain != NULL) {
-        FreeContextBuffer(PeerCert.pbCertificateChain);
-    }
-#else
-
+#ifndef _KERNEL_MODE
     CxPlatFreePortableCertificate(&PortableCertificate);
-
-    if (PeerCert != NULL) {
-        CertFreeCertificateContext(PeerCert);
-    }
 #endif
 
     return Result;
@@ -2148,15 +2113,61 @@ CxPlatTlsWriteDataToSchannel(
                 State->SessionResumed = TRUE;
             }
 
+        const BOOLEAN RequirePeerCert =
+            !TlsContext->IsServer ||
+            TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+
+#ifdef _KERNEL_MODE
+            SecPkgContext_Certificates _PeerCert;
+            CxPlatZeroMemory(&_PeerCert, sizeof(_PeerCert));
+            SecPkgContext_Certificates* PeerCert = &_PeerCert;
+            SecStatus =
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_REMOTE_CERTIFICATES,
+                    (PVOID)PeerCert);
+#else
+            PCCERT_CONTEXT PeerCert = NULL;
+            SecStatus =
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                    (PVOID)&PeerCert);
+#endif
+            if (SecStatus != SEC_E_OK && RequirePeerCert &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "Query peer cert");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                break;
+            }
+
             if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
                 Result |=
                      CxPlatTlsIndicateCertificateReceived(
                         TlsContext,
                         State,
-                        &CertValidationResult);
-                if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
-                    break;
-                }
+                        &CertValidationResult,
+                        PeerCert);
+            }
+
+#ifdef _KERNEL_MODE
+            if (_PeerCert.pbCertificateChain != NULL) {
+                FreeContextBuffer(_PeerCert.pbCertificateChain);
+            }
+#else
+            if (PeerCert != NULL) {
+                CertFreeCertificateContext(PeerCert);
+            }
+#endif
+
+            if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
+                break;
             }
 
             if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
