@@ -409,11 +409,11 @@ CxPlatResolveRoute(
         Status);
     //
     // We need to force neighbor solicitation (NS) if any of the following is true:
-    // 1. No neighbor entry for the given destination address.
-    // 2. The neighbor entry isn't in usuable state.
+    // 1. No cached neighbor entry for the given destination address.
+    // 2. The neighbor entry isn't in a usable state.
     // 3. When we are re-resolving a suspected route, the neighbor entry is the same as the existing one.
     //
-    // We queue an operation on route worker for NS because it involves network IO and
+    // We queue an operation on the route worker for NS because it involves network IO and
     // we don't want our connection worker queue blocked.
     //
     if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
