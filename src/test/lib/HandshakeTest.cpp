@@ -1035,7 +1035,7 @@ QuicTestCompatibleVersionNegotiation(
 
     MsQuicVersionSettings ClientVersionSettings;
     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
@@ -1231,7 +1231,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
     MsQuicVersionSettings ClientVersionSettings;
     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
@@ -1245,9 +1245,10 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ServerSettings),
-            &ServerSettings));
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
+    ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1327,7 +1328,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     ClientSettings.SetIdleTimeoutMs(3000);
 
     MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
+    ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
