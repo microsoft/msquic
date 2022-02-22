@@ -443,9 +443,6 @@ CxPlatResolveRoute(
         CxPlatDispatchLockRelease(&Worker->Lock);
         CxPlatEventSet(Worker->Ready);
         Status = ERROR_IO_PENDING;
-        CXPLAT_STATIC_ASSERT(
-            SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) == QUIC_STATUS_PENDING,
-            "SUCCESS_HRESULT_FROM_WIN32(ERROR_IO_PENDING) must be QUIC_STATUS_PENDING");
     } else {
         CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
