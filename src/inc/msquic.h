@@ -527,10 +527,13 @@ typedef struct QUIC_VERSION_SETTINGS {
         } IsSet;
     };
 
-    const uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
+    //
+    // Flags first so we can use offset to get versioned length of struct.
+    //
     uint8_t VersionNegotiationExtEnabled    : 1;
     uint8_t RESERVED                        : 7;
+    const uint32_t* DesiredVersionsList;
+    uint32_t DesiredVersionsListLength;
 } QUIC_VERSION_SETTINGS;
 
 typedef struct QUIC_GLOBAL_SETTINGS {
@@ -575,13 +578,13 @@ typedef struct QUIC_SETTINGS {
             uint64_t StatelessOperationExpirationMs         : 1;
             uint64_t MinimumMtu                             : 1;
             uint64_t MaximumMtu                             : 1;
-            uint64_t MaxOperationsPerDrain                  : 1;
-            uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t SendBufferingEnabled                   : 1;
             uint64_t PacingEnabled                          : 1;
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
             uint64_t ServerResumptionLevel                  : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t RESERVED                               : 33;
         } IsSet;
     };
@@ -610,14 +613,14 @@ typedef struct QUIC_SETTINGS {
     uint16_t StatelessOperationExpirationMs;
     uint16_t MinimumMtu;
     uint16_t MaximumMtu;
-    uint8_t MaxOperationsPerDrain;
-    uint8_t MtuDiscoveryMissingProbeCount;
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t RESERVED                        : 2;
+    uint8_t MaxOperationsPerDrain;
+    uint8_t MtuDiscoveryMissingProbeCount;
 
 } QUIC_SETTINGS;
 

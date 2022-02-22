@@ -165,56 +165,56 @@ QuicSettingsDumpNew(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsSetSettings(
+QuicSettingsSettingsToInternal(
     _In_ uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
         const QUIC_SETTINGS* Settings,
-    _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsSetGlobalSettings(
+QuicSettingsGlobalSettingsToInternal(
     _In_ uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
         const QUIC_GLOBAL_SETTINGS* Settings,
-    _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsSetVersionSettings(
+QuicSettingsVersionSettingsToInternal(
     _In_ uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
         const QUIC_VERSION_SETTINGS* Settings,
-    _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGetSettings(
     _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        QUIC_SETTINGS* Buffer
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_SETTINGS* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGetGlobalSettings(
     _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        QUIC_GLOBAL_SETTINGS* Buffer
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_GLOBAL_SETTINGS* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGetVersionSettings(
     _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
-    _Inout_ uint32_t *BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        QUIC_VERSION_SETTINGS* Buffer
+    _Inout_ uint32_t *SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_VERSION_SETTINGS* Settings
     );
 
 #if defined(__cplusplus)

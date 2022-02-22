@@ -103,14 +103,15 @@ main(
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
-        Settings.VersionNegotiationExtEnabled = TRUE;
-        Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        QUIC_VERSION_SETTINGS VersionSettings{0};
+        VersionSettings.VersionNegotiationExtEnabled = TRUE;
+        VersionSettings.IsSet.VersionNegotiationExtEnabled = TRUE;
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(Settings),
-                &Settings))) {
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(VersionSettings),
+                &VersionSettings))) {
             printf("Failed to enable Version Negotiation Extension!\n");
             return -1;
         }

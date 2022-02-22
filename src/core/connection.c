@@ -45,33 +45,11 @@ typedef struct QUIC_RECEIVE_PROCESSING_STATE {
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicConnApplyNewInternalSettings(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
-    _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
-    _In_ uint32_t NewSettingsSize,
-    _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* NewSettings
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnApplyNewVersionSettings(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
-    _In_ uint32_t NewSettingsSize,
-    _In_reads_bytes_opt_(NewSettingsSize)
-        const uint32_t* NewSettings
+    _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2460,7 +2438,7 @@ QuicConnSetConfiguration(
 
     QuicConfigurationAddRef(Configuration);
     Connection->Configuration = Configuration;
-    QuicConnApplyNewInternalSettings(
+    QuicConnApplyNewSettings(
         Connection,
         FALSE,
         FALSE,
@@ -5889,6 +5867,7 @@ QuicConnParamSet(
     )
 {
     QUIC_STATUS Status;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     switch (Param) {
 
@@ -6020,12 +5999,22 @@ QuicConnParamSet(
         }
 
         Status =
-            QuicConnApplyNewSettings(
+            QuicSettingsSettingsToInternal(
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
                 TRUE,
-                BufferLength,
-                (QUIC_SETTINGS*)Buffer);
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
 
         break;
 
@@ -6037,12 +6026,22 @@ QuicConnParamSet(
         }
 
         Status =
-            QuicConnApplyNewVersionSettings(
+            QuicSettingsVersionSettingsToInternal(
+                BufferLength,
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
                 TRUE,
-                BufferLength,
-                (uint32_t*)Buffer);
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
 
         break;
 
@@ -6826,7 +6825,7 @@ QuicConnParamGet(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicConnApplyNewInternalSettings(
+QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,

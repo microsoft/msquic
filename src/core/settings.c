@@ -235,9 +235,6 @@ QuicSettingsCopy(
     }
 }
 
-#define SETTING_HAS_FIELD(Size, Field) \
-    (Size >= (FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, Field) + sizeof(((QUIC_SETTINGS_INTERNAL*)0)->Field)))
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
@@ -1125,5 +1122,258 @@ QuicSettingsGetDesiredVersions(
 
     *BufferLength = ListLength;
     CxPlatCopyMemory(Buffer, Settings->DesiredVersionsList, *BufferLength);
+    return QUIC_STATUS_SUCCESS;
+}
+
+#define SETTING_HAS_FIELD(SettingsType, Size, Field) \
+    (Size >= (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field)))
+
+#define SETTING_COPY_TO_INTERNAL(Field, Settings, InternalSettings) \
+    InternalSettings->IsSet.Field = Settings->IsSet.Field;          \
+    InternalSettings->Field = Settings->Field;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGlobalSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_GLOBAL_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    )
+{
+    if (!SETTING_HAS_FIELD(QUIC_GLOBAL_SETTINGS, SettingsSize, LoadBalancingMode)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    InternalSettings->IsSetFlags = 0;
+    SETTING_COPY_TO_INTERNAL(RetryMemoryLimit, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(LoadBalancingMode, Settings, InternalSettings);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsVersionSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_VERSION_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    )
+{
+    if (!SETTING_HAS_FIELD(QUIC_VERSION_SETTINGS, SettingsSize, DesiredVersionsListLength)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    InternalSettings->IsSetFlags = 0;
+    SETTING_COPY_TO_INTERNAL(VersionNegotiationExtEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(DesiredVersionsList, Settings, InternalSettings);
+    InternalSettings->DesiredVersionsListLength = Settings->DesiredVersionsListLength;
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    )
+{
+    if (!SETTING_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    SETTING_COPY_TO_INTERNAL(MaxBytesPerKey, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(HandshakeIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(IdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MtuDiscoverySearchCompleteTimeoutUs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(TlsClientMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(TlsServerMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(StreamRecvWindowDefault, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(StreamRecvBufferDefault, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(ConnFlowControlWindow, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxWorkerQueueDelayUs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(InitialWindowPackets, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(SendIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(InitialRttMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxAckDelayMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(DisconnectTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(KeepAliveIntervalMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(CongestionControlAlgorithm, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(PeerBidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(PeerUnidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxBindingStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(StatelessOperationExpirationMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MinimumMtu, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaximumMtu, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxOperationsPerDrain, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MtuDiscoveryMissingProbeCount, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(SendBufferingEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(PacingEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+#define SETTING_COPY_FROM_INTERNAL(Field, Settings, InternalSettings)   \
+    Settings->IsSet.Field = InternalSettings->IsSet.Field;              \
+    Settings->Field = InternalSettings->Field;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_SETTINGS* Settings
+    )
+{
+    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+
+    if (*SettingsLength == 0) {
+        *SettingsLength = sizeof(QUIC_SETTINGS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*SettingsLength < MinimumSettingsSize) {
+        *SettingsLength = MinimumSettingsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Settings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Settings->IsSetFlags = 0;
+    SETTING_COPY_FROM_INTERNAL(MaxBytesPerKey, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(HandshakeIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(IdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MtuDiscoverySearchCompleteTimeoutUs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(TlsClientMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(TlsServerMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(StreamRecvWindowDefault, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(StreamRecvBufferDefault, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(ConnFlowControlWindow, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxWorkerQueueDelayUs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(InitialWindowPackets, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(SendIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(InitialRttMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxAckDelayMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(DisconnectTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(KeepAliveIntervalMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(CongestionControlAlgorithm, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(PeerBidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(PeerUnidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxBindingStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(StatelessOperationExpirationMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MinimumMtu, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaximumMtu, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxOperationsPerDrain, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MtuDiscoveryMissingProbeCount, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(SendBufferingEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(PacingEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetGlobalSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_GLOBAL_SETTINGS* Settings
+    )
+{
+    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+
+    if (*SettingsLength == 0) {
+        *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*SettingsLength < MinimumSettingsSize) {
+        *SettingsLength = MinimumSettingsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Settings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Settings->IsSetFlags = 0;
+    SETTING_COPY_FROM_INTERNAL(RetryMemoryLimit, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(LoadBalancingMode, Settings, InternalSettings);
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetVersionSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t *SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_VERSION_SETTINGS* Settings
+    )
+{
+    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_VERSION_SETTINGS, DesiredVersionsListLength);
+    BOOLEAN LengthValid;
+
+    if (*SettingsLength == 0) {
+        *SettingsLength = sizeof(QUIC_VERSION_SETTINGS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*SettingsLength < MinimumSettingsSize) {
+        *SettingsLength = MinimumSettingsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Settings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+#pragma prefast(suppress:6001, "This read is a hack for now")
+    LengthValid = Settings->IsSet.DesiredVersionsList ? 1 : 0;
+    Settings->IsSetFlags = 0;
+    SETTING_COPY_FROM_INTERNAL(VersionNegotiationExtEnabled, Settings, InternalSettings);
+
+    if (LengthValid &&
+        Settings->DesiredVersionsListLength >= InternalSettings->DesiredVersionsListLength &&
+        Settings->DesiredVersionsList != NULL) {
+        Settings->IsSet.DesiredVersionsList = TRUE;
+        Settings->DesiredVersionsListLength = InternalSettings->DesiredVersionsListLength;
+        CxPlatCopyMemory(
+            (uint32_t*)Settings->DesiredVersionsList,
+            InternalSettings->DesiredVersionsList,
+            InternalSettings->DesiredVersionsListLength);
+    } else {
+        Settings->DesiredVersionsList = NULL;
+        Settings->DesiredVersionsListLength = InternalSettings->DesiredVersionsListLength;
+    }
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
     return QUIC_STATUS_SUCCESS;
 }

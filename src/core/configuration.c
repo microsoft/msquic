@@ -37,6 +37,7 @@ MsQuicConfigurationOpen(
     QUIC_CONFIGURATION* Configuration = NULL;
     uint8_t* AlpnList;
     uint32_t AlpnListLength;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     QuicTraceEvent(
         ApiEnter,
@@ -168,11 +169,20 @@ MsQuicConfigurationOpen(
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
         Status =
-            QuicSettingsSetSettings(
+            QuicSettingsSettingsToInternal(
                 SettingsSize,
                 Settings,
-                &Configuration->Settings);
+                &InternalSettings);
         if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
     }
@@ -439,6 +449,9 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
+    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_STATUS Status;
+
     switch (Param) {
     case QUIC_PARAM_CONFIGURATION_SETTINGS:
 
@@ -451,11 +464,23 @@ QuicConfigurationParamSet(
             "[cnfg][%p] Setting new settings",
             Configuration);
 
-        return
-            QuicSettingsSetSettings(
+        Status =
+            QuicSettingsSettingsToInternal(
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer,
-                &Configuration->Settings);
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
 
     case QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS:
 
@@ -468,11 +493,23 @@ QuicConfigurationParamSet(
             "[cnfg][%p] Setting new settings",
             Configuration);
 
-        return
-            QuicSettingsSetVersionSettings(
+        Status =
+            QuicSettingsVersionSettingsToInternal(
                 BufferLength,
                 (QUIC_VERSION_SETTINGS*)Buffer,
-                &Configuration->Settings);
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
 
     case QUIC_PARAM_CONFIGURATION_TICKET_KEYS:
 

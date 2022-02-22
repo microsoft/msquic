@@ -77,16 +77,22 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.IdleTimeoutMs = 10 * 1000;
     Settings.IsSet.IdleTimeoutMs = TRUE;
-    if (InputVersion) {
-        Settings.IsSet.DesiredVersionsList = TRUE;
-        Settings.DesiredVersionsList = &InputVersion;
-        Settings.DesiredVersionsListLength = 1;
-    }
 
     HQUIC Configuration = nullptr;
     if (QUIC_FAILED(MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
         printf("ConfigurationOpen failed.\n");
         exit(1);
+    }
+
+    if (InputVersion) {
+        QUIC_VERSION_SETTINGS VersionSettings{0};
+        VersionSettings.IsSet.DesiredVersionsList = TRUE;
+        VersionSettings.DesiredVersionsList = &InputVersion;
+        VersionSettings.DesiredVersionsListLength = 1;
+        if (QUIC_FAILED(MsQuic->SetParam(Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS, sizeof(VersionSettings), &VersionSettings))) {
+            printf("Version SetParam failed.\n");
+            exit(1);
+        }
     }
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
