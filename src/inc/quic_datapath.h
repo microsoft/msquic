@@ -141,12 +141,10 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 //
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
-//
-// When state is Resolved, LocalLinkLayerAddress and NextHopLinkLayerAddress of CXPLAT_ROUTE are valid.
-//
 typedef enum CXPLAT_ROUTE_STATE {
     RouteUnresolved,
     RouteResolving,
+    RouteSuspected,
     RouteResolved,
 } CXPLAT_ROUTE_STATE;
 

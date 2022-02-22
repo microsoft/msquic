@@ -278,14 +278,14 @@ CxPlatResolveRouteComplete(
     QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
-        "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+        "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
-        PhysicalAddress[0],
-        PhysicalAddress[1],
-        PhysicalAddress[2],
-        PhysicalAddress[3],
-        PhysicalAddress[4],
-        PhysicalAddress[5]);
+        Route->NextHopLinkLayerAddress[0],
+        Route->NextHopLinkLayerAddress[1],
+        Route->NextHopLinkLayerAddress[2],
+        Route->NextHopLinkLayerAddress[3],
+        Route->NextHopLinkLayerAddress[4],
+        Route->NextHopLinkLayerAddress[5]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -299,15 +299,16 @@ CxPlatResolveRoute(
     )
 {
 #ifdef _WIN32
-    NETIO_STATUS Status = 0;
+    NETIO_STATUS Status = ERROR_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
+    CXPLAT_ROUTE_STATE State = Route->State;
+    QUIC_ADDR LocalAddress = {0};
 
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
     //
     // Find the best next hop IP address.
     //
-    uint16_t SavedLocalPort = Route->LocalAddress.Ipv4.sin_port;
     Status =
         GetBestRoute2(
             NULL, // InterfaceLuid
@@ -316,8 +317,8 @@ CxPlatResolveRoute(
             &Route->RemoteAddress, // DestinationAddress
             0, // AddressSortOptions
             &IpforwardRow,
-            &Route->LocalAddress); // BestSourceAddress
-    Route->LocalAddress.Ipv4.sin_port = SavedLocalPort;
+            &LocalAddress); // BestSourceAddress
+
     if (Status != ERROR_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -326,6 +327,23 @@ CxPlatResolveRoute(
             Status,
             "GetBestRoute2");
         goto Done;
+    }
+
+    if (State == RouteSuspected && !QuicAddrCompare(&LocalAddress, &Route->LocalAddress)) {
+        //
+        // We can't handle local address change here easily due to lack of full migration support.
+        //
+        Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetBestRoute2 returned different local address for the suspected route");
+        goto Done;
+    } else {
+        LocalAddress.Ipv4.sin_port = Route->LocalAddress.Ipv4.sin_port; // Preserve local port.
+        Route->LocalAddress = LocalAddress;
     }
 
     //
@@ -380,10 +398,7 @@ CxPlatResolveRoute(
     }
 
     //
-    // First call GetIpNetEntry2 to see if there's already a cached neighbor. If there
-    // isn't one, or if the cached neighbor's state is unreachable (which, NB, can happen
-    // in the case where a route lookup resulted in a dummy neighbor entry being created
-    // in TCPIP.sys) or incomplete, then queue up a solicitation event.
+    // Call GetIpNetEntry2 to see if there's already a cached neighbor.
     //
     Status = GetIpNetEntry2(&IpnetRow);
     QuicTraceLogConnInfo(
@@ -392,7 +407,21 @@ CxPlatResolveRoute(
         "Starting to look up neighbor on Path[%hhu] with status %u",
         PathId,
         Status);
-    if (Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) {
+    //
+    // We need to force neighbor solicitation (NS) if any of the following is true:
+    // 1. No cached neighbor entry for the given destination address.
+    // 2. The neighbor entry isn't in a usable state.
+    // 3. When we are re-resolving a suspected route, the neighbor entry is the same as the existing one.
+    //
+    // We queue an operation on the route worker for NS because it involves network IO and
+    // we don't want our connection worker queue blocked.
+    //
+    if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
+        (State == RouteSuspected &&
+         memcmp(
+             Route->NextHopLinkLayerAddress,
+             IpnetRow.PhysicalAddress,
+             sizeof(Route->NextHopLinkLayerAddress)) == 0)) {
         CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
         if (Operation == NULL) {
@@ -408,6 +437,7 @@ CxPlatResolveRoute(
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
+        Route->State = RouteResolving;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
@@ -422,7 +452,11 @@ Done:
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    return HRESULT_FROM_WIN32(Status);
+    if (Status > 0) {
+        return SUCCESS_HRESULT_FROM_WIN32(Status);
+    } else {
+        return HRESULT_FROM_WIN32(Status);
+    }
 #else // _WIN32
     return QUIC_STATUS_NOT_SUPPORTED;
 #endif // _WIN32
