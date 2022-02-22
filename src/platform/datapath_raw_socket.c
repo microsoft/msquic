@@ -408,7 +408,6 @@ CxPlatResolveRoute(
         PathId,
         Status);
     //
-    // 
     // We need to force neighbor solicitation (NS) if any of the following is true:
     // 1. No neighbor entry for the given destination address.
     // 2. The neighbor entry isn't in usuable state.

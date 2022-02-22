@@ -13,30 +13,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "DatapathWorkerThreadStart": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Worker start",
-      "UniqueId": "DatapathWorkerThreadStart",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "DatapathWorkerThreadStop": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Worker stop",
-      "UniqueId": "DatapathWorkerThreadStop",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
     "DatapathResolveHostNameFailed": {
       "ModuleProperites": {},
       "TraceString": "[%p] Couldn't resolve hostname '%s' to an IP address",
@@ -1418,7 +1394,7 @@
     },
     "RouteResolutionEnd": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+      "TraceString": "[conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
       "UniqueId": "RouteResolutionEnd",
       "splitArgs": [
         {
@@ -1430,27 +1406,27 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hhx",
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hhx",
           "MacroVariableName": "arg5"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hhx",
           "MacroVariableName": "arg6"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hhx",
           "MacroVariableName": "arg7"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hhx",
           "MacroVariableName": "arg8"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hhx",
           "MacroVariableName": "arg9"
         }
       ],
@@ -1600,6 +1576,30 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "PlatformWorkerThreadStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker start",
+      "UniqueId": "PlatformWorkerThreadStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PlatformWorkerThreadStop": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker stop",
+      "UniqueId": "PlatformWorkerThreadStop",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
     },
     "ApiEnter": {
       "ModuleProperites": {},
@@ -10697,154 +10697,6 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
-    },
-    "CertCapiVerifiedChain": {
-      "ModuleProperites": {},
-      "TraceString": "CertVerifyChain: %S 0x%x, result=0x%x",
-      "UniqueId": "CertCapiVerifiedChain",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "S",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "PerfControlInitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[perf] Control interface initialized",
-      "UniqueId": "PerfControlInitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "WindowsUserInitialized2": {
-      "ModuleProperites": {},
-      "TraceString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
-      "UniqueId": "WindowsUserInitialized2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "FrameLogImmediateAck": {
-      "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   IMMEDIATE_ACK",
-      "UniqueId": "FrameLogImmediateAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionUnsupported": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion, Only version 2 supported",
-      "UniqueId": "LibraryMsQuicOpenVersionUnsupported",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionNull": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion, NULL",
-      "UniqueId": "LibraryMsQuicOpenVersionNull",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionEntry": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion",
-      "UniqueId": "LibraryMsQuicOpenVersionEntry",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionExit": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion, status=0x%x",
-      "UniqueId": "LibraryMsQuicOpenVersionExit",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "ListenerIndicateStopComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[list][%p] Indicating STOP_COMPLETE",
-      "UniqueId": "ListenerIndicateStopComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "ApiError": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] Error %u",
-      "UniqueId": "ApiError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "PlatformWorkerThreadStart": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib][%p] Worker start",
-      "UniqueId": "PlatformWorkerThreadStart",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "PlatformWorkerThreadStop": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib][%p] Worker stop",
-      "UniqueId": "PlatformWorkerThreadStop",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
     }
   },
   "ConfigFile": {
@@ -11377,16 +11229,6 @@
         "EncodingString": "[ lib] ERROR, %s."
       },
       {
-        "UniquenessHash": "f2af462d-2374-ab88-bb90-5b540254387e",
-        "TraceID": "DatapathWorkerThreadStart",
-        "EncodingString": "[data][%p] Worker start"
-      },
-      {
-        "UniquenessHash": "1033d20d-4c1c-25d6-ee0f-5f449e3ed6d5",
-        "TraceID": "DatapathWorkerThreadStop",
-        "EncodingString": "[data][%p] Worker stop"
-      },
-      {
         "UniquenessHash": "8c0dc882-517e-cd8f-df0b-0b892d83bb00",
         "TraceID": "DatapathResolveHostNameFailed",
         "EncodingString": "[%p] Couldn't resolve hostname '%s' to an IP address"
@@ -11882,9 +11724,9 @@
         "EncodingString": "[data][%p] Received larger than expected datagram from %!ADDR!"
       },
       {
-        "UniquenessHash": "0267d256-55e3-42eb-b15d-538473aca440",
+        "UniquenessHash": "9bc1fa4d-99a3-dcfe-2650-d4effac253ba",
         "TraceID": "RouteResolutionEnd",
-        "EncodingString": "[conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu"
+        "EncodingString": "[conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx"
       },
       {
         "UniquenessHash": "8662b462-9871-7631-034d-9d175232ab4f",
@@ -11935,6 +11777,16 @@
         "UniquenessHash": "86a081de-c71a-7043-b507-672561f5fd36",
         "TraceID": "StorageOpenKey",
         "EncodingString": "[ reg] Opening %s"
+      },
+      {
+        "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",
+        "TraceID": "PlatformWorkerThreadStart",
+        "EncodingString": "[ lib][%p] Worker start"
+      },
+      {
+        "UniquenessHash": "317dc2da-d83f-49ec-c0f0-872bcbf594dd",
+        "TraceID": "PlatformWorkerThreadStop",
+        "EncodingString": "[ lib][%p] Worker stop"
       },
       {
         "UniquenessHash": "92b1bb9f-afd4-62fa-3fb6-1021c09c5916",
@@ -14705,76 +14557,6 @@
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop",
         "EncodingString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s."
-      },
-      {
-        "UniquenessHash": "6fb480dc-d71f-74f2-dc75-559a5591fe3d",
-        "TraceID": "CertCapiVerifiedChain",
-        "EncodingString": "CertVerifyChain: %S 0x%x, result=0x%x"
-      },
-      {
-        "UniquenessHash": "0ba57698-ca5f-449b-4d87-183b7ea2918b",
-        "TraceID": "PerfControlInitialized",
-        "EncodingString": "[perf] Control interface initialized"
-      },
-      {
-        "UniquenessHash": "e7d3b50d-c315-3189-9752-de68bf66c705",
-        "TraceID": "LogPacketVersionNegotiation",
-        "EncodingString": "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)"
-      },
-      {
-        "UniquenessHash": "4f262ea3-4eb1-45f3-019c-54d89cf92893",
-        "TraceID": "WindowsUserInitialized2",
-        "EncodingString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])"
-      },
-      {
-        "UniquenessHash": "7470e68a-8ad6-563a-4957-76dc22e5deeb",
-        "TraceID": "FrameLogAckFrequency",
-        "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu"
-      },
-      {
-        "UniquenessHash": "d0932f9a-e8e8-65d9-692c-3bd379a86d58",
-        "TraceID": "FrameLogImmediateAck",
-        "EncodingString": "[%c][%cX][%llu]   IMMEDIATE_ACK"
-      },
-      {
-        "UniquenessHash": "a9f59856-9834-de26-4bb6-bb8a05fc47ab",
-        "TraceID": "LibraryMsQuicOpenVersionUnsupported",
-        "EncodingString": "[ api] MsQuicOpenVersion, Only version 2 supported"
-      },
-      {
-        "UniquenessHash": "9dbf9e05-d5cd-4ec3-ea93-fb33942ff968",
-        "TraceID": "LibraryMsQuicOpenVersionNull",
-        "EncodingString": "[ api] MsQuicOpenVersion, NULL"
-      },
-      {
-        "UniquenessHash": "108ce8c8-296c-0dfd-9efc-9ed86bcb1c7d",
-        "TraceID": "LibraryMsQuicOpenVersionEntry",
-        "EncodingString": "[ api] MsQuicOpenVersion"
-      },
-      {
-        "UniquenessHash": "fc39ba20-c315-583e-6b62-656fbbd3d077",
-        "TraceID": "LibraryMsQuicOpenVersionExit",
-        "EncodingString": "[ api] MsQuicOpenVersion, status=0x%x"
-      },
-      {
-        "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
-        "TraceID": "ListenerIndicateStopComplete",
-        "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
-      },
-      {
-        "UniquenessHash": "dddba4c1-201c-11ae-51de-155523e40b7e",
-        "TraceID": "ApiError",
-        "EncodingString": "[ api] Error %u"
-      },
-      {
-        "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",
-        "TraceID": "PlatformWorkerThreadStart",
-        "EncodingString": "[ lib][%p] Worker start"
-      },
-      {
-        "UniquenessHash": "317dc2da-d83f-49ec-c0f0-872bcbf594dd",
-        "TraceID": "PlatformWorkerThreadStop",
-        "EncodingString": "[ lib][%p] Worker stop"
       }
     ]
   }
