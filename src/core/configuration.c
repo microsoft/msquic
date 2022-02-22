@@ -482,6 +482,8 @@ QuicConfigurationParamSet(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
+        return QUIC_STATUS_SUCCESS;
+
     case QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS:
 
         if (Buffer == NULL) {
@@ -510,6 +512,8 @@ QuicConfigurationParamSet(
                 &InternalSettings)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
+
+        return QUIC_STATUS_SUCCESS;
 
     case QUIC_PARAM_CONFIGURATION_TICKET_KEYS:
 
