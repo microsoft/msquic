@@ -410,7 +410,7 @@ CxPlatResolveRoute(
     //
     // We need to force neighbor solicitation (NS) if any of the following is true:
     // 1. No cached neighbor entry for the given destination address.
-    // 2. The neighbor entry isn't in usuable state.
+    // 2. The neighbor entry isn't in a usable state.
     // 3. In refresh scenario, the neighbor entry is the same as the existing one.
     //
     // We queue an operation on the route worker for NS because it involves network IO and
