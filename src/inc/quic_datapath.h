@@ -159,7 +159,6 @@ typedef struct CXPLAT_ROUTE {
 #ifdef QUIC_USE_RAW_DATAPATH
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
-    void* Interface;
     void* Queue;
 
     CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
