@@ -1047,9 +1047,9 @@ QuicTestCompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ServerSettings),
-            &ServerSettings));
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1150,9 +1150,9 @@ QuicTestCompatibleVersionNegotiationRetry(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ServerSettings),
-            &ServerSettings));
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
     ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
@@ -1339,9 +1339,9 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ServerSettings),
-            &ServerSettings));
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
     ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
@@ -1432,9 +1432,9 @@ QuicTestIncompatibleVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ServerSettings),
-            &ServerSettings));
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
     ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
@@ -1523,9 +1523,9 @@ RunFailedVersionNegotiation(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             NULL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ServerSettings),
-            &ServerSettings));
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
     ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
