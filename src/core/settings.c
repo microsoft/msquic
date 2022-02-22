@@ -1186,6 +1186,7 @@ QuicSettingsSettingsToInternal(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    InternalSettings->IsSetFlags = 0;
     SETTING_COPY_TO_INTERNAL(MaxBytesPerKey, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(HandshakeIdleTimeoutMs, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(IdleTimeoutMs, Settings, InternalSettings);

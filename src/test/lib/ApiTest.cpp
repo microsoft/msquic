@@ -1818,13 +1818,13 @@ QuicTestDesiredVersionSettings()
 
         TEST_QUIC_SUCCEEDED(
             Connection.SetParam(
-                QUIC_PARAM_CONN_SETTINGS,
+                QUIC_PARAM_CONN_VERSION_SETTINGS,
                 sizeof(InputSettings),
                 &InputSettings));
 
         TEST_QUIC_SUCCEEDED(
             Connection.GetParam(
-                QUIC_PARAM_CONN_SETTINGS,
+                QUIC_PARAM_CONN_VERSION_SETTINGS,
                 &BufferLength,
                 &OutputSettings));
 
