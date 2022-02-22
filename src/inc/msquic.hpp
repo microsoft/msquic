@@ -382,6 +382,8 @@ public:
     MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 
+static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
+
 class MsQuicSettings : public QUIC_SETTINGS {
 public:
     MsQuicSettings() noexcept { IsSetFlags = 0; }
@@ -428,6 +430,8 @@ public:
                 Settings);
     }
 };
+
+static_assert(sizeof(QUIC_SETTINGS) == sizeof(MsQuicSettings), "Cpp wrappers must not change size");
 
 class MsQuicCertificateHash : public QUIC_CERTIFICATE_HASH {
 public:

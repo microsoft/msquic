@@ -53,7 +53,7 @@ QuicConnApplyNewInternalSettings(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+QUIC_STATUS
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
@@ -64,7 +64,7 @@ QuicConnApplyNewSettings(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+QUIC_STATUS
 QuicConnApplyNewVersionSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
@@ -6014,38 +6014,36 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength != sizeof(QUIC_SETTINGS)) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        if (!QuicConnApplyNewSettings(
+        Status =
+            QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
                 TRUE,
                 BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
+                (QUIC_SETTINGS*)Buffer);
 
-        Status = QUIC_STATUS_SUCCESS;
         break;
 
     case QUIC_PARAM_CONN_VERSION_SETTINGS:
 
-        if (!QuicConnApplyNewVersionSettings(
-                Connection,
-                TRUE,
-                TRUE,
-                BufferLength,
-                (uint32_t*)Buffer)) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Status = QUIC_STATUS_SUCCESS;
+        Status =
+            QuicConnApplyNewVersionSettings(
+                Connection,
+                TRUE,
+                TRUE,
+                BufferLength,
+                (uint32_t*)Buffer);
+
         break;
 
     case QUIC_PARAM_CONN_SHARE_UDP_BINDING:
@@ -6845,7 +6843,6 @@ QuicConnApplyNewInternalSettings(
             OverWrite,
             CopyExternalToInternal,
             !Connection->State.Started,
-            sizeof(QUIC_SETTINGS_INTERNAL),
             NewSettings)) {
         return FALSE;
     }
@@ -6916,7 +6913,7 @@ QuicConnApplyNewInternalSettings(
     }
 
     if (OverWrite) {
-        QuicSettingsDumpNew(sizeof(QUIC_SETTINGS_INTERNAL), NewSettings);
+        QuicSettingsDumpNew(NewSettings);
     } else {
         QuicSettingsDump(&Connection->Settings); // TODO - Really necessary?
     }

@@ -123,8 +123,7 @@ QuicSettingApply(
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
-    _In_ uint32_t NewSettingsSize,
-    _In_reads_bytes_(NewSettingsSize)
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
         const QUIC_SETTINGS_INTERNAL* Source
     );
 
@@ -153,37 +152,41 @@ QuicSettingsLoad(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDump(
-    _In_ const QUIC_SETTINGS_INTERNAL* Settings
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDumpNew(
-    _In_ uint32_t SettingsSize,
-    _In_reads_bytes_(SettingsSize)
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
         const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsSetSettings(
-    _In_ const QUIC_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
     _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsSetGlobalSettings(
-    _In_ const QUIC_GLOBAL_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_GLOBAL_SETTINGS* Settings,
     _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsSetVersionSettings(
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(*BufferLength)
-        QUIC_VERSION_SETTINGS* Buffer,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_VERSION_SETTINGS* Settings,
     _Inout_ QUIC_SETTINGS_INTERNAL* InternalSettings
     );
 

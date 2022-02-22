@@ -554,6 +554,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxBytesPerKey                         : 1;
             uint64_t HandshakeIdleTimeoutMs                 : 1;
             uint64_t IdleTimeoutMs                          : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
             uint64_t TlsClientMaxSendBuffer                 : 1;
             uint64_t TlsServerMaxSendBuffer                 : 1;
             uint64_t StreamRecvWindowDefault                : 1;
@@ -567,21 +568,20 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxAckDelayMs                          : 1;
             uint64_t DisconnectTimeoutMs                    : 1;
             uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t CongestionControlAlgorithm             : 1;
             uint64_t PeerBidiStreamCount                    : 1;
             uint64_t PeerUnidiStreamCount                   : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
             uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t SendBufferingEnabled                   : 1;
             uint64_t PacingEnabled                          : 1;
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
             uint64_t ServerResumptionLevel                  : 1;
-            uint64_t MinimumMtu                             : 1;
-            uint64_t MaximumMtu                             : 1;
-            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
-            uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t MaxBindingStatelessOperations          : 1;
-            uint64_t StatelessOperationExpirationMs         : 1;
-            uint64_t CongestionControlAlgorithm             : 1;
             uint64_t RESERVED                               : 33;
         } IsSet;
     };
@@ -715,7 +715,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            0x01000002  // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x01000003  // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 #define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000004  // QUIC_SETTINGS
-#define QUIC_PARAM_GLOBAL_ONLY_SETTINGS                 0x01000005  // QUIC_GLOBAL_SETTINGS
+#define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS               0x01000005  // QUIC_GLOBAL_SETTINGS
 #define QUIC_PARAM_GLOBAL_VERSION                       0x01000006  // uint32_t[4]
 #define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
 

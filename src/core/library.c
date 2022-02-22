@@ -799,8 +799,7 @@ QuicLibrarySetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength != sizeof(QUIC_SETTINGS)) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -811,6 +810,7 @@ QuicLibrarySetGlobalParam(
 
         Status =
             QuicSettingsSetSettings(
+                BufferLength,
                 (QUIC_SETTINGS*)Buffer,
                 &MsQuicLib.Settings);
 
@@ -820,10 +820,9 @@ QuicLibrarySetGlobalParam(
 
         break;
 
-    case QUIC_PARAM_GLOBAL_ONLY_SETTINGS:
+    case QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength != sizeof(QUIC_GLOBAL_SETTINGS)) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -834,6 +833,7 @@ QuicLibrarySetGlobalParam(
 
         Status =
             QuicSettingsSetGlobalSettings(
+                BufferLength,
                 (QUIC_GLOBAL_SETTINGS*)Buffer,
                 &MsQuicLib.Settings);
 
@@ -844,6 +844,11 @@ QuicLibrarySetGlobalParam(
         break;
 
     case QUIC_PARAM_GLOBAL_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
 
         QuicTraceLogInfo(
             LibrarySetSettings,
@@ -1030,7 +1035,7 @@ QuicLibraryGetGlobalParam(
         Status = QuicSettingsGetVersionSettings(&MsQuicLib.Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
         break;
 
-    case QUIC_PARAM_GLOBAL_ONLY_SETTINGS:
+    case QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS:
 
         Status = QuicSettingsGetGlobalSettings(&MsQuicLib.Settings, BufferLength, (QUIC_GLOBAL_SETTINGS*)Buffer);
         break;

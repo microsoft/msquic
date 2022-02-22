@@ -167,11 +167,12 @@ MsQuicConfigurationOpen(
     }
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
-        CXPLAT_DBG_ASSERT(SettingsSize == sizeof(QUIC_SETTINGS));
-        if (!QuicSettingsSetSettings(
+        Status =
+            QuicSettingsSetSettings(
+                SettingsSize,
                 Settings,
-                &Configuration->Settings)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
+                &Configuration->Settings);
+        if (QUIC_FAILED(Status)) {
             goto Error;
         }
     }
@@ -441,8 +442,7 @@ QuicConfigurationParamSet(
     switch (Param) {
     case QUIC_PARAM_CONFIGURATION_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength != sizeof(QUIC_SETTINGS)) {
+        if (Buffer == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
@@ -453,10 +453,15 @@ QuicConfigurationParamSet(
 
         return
             QuicSettingsSetSettings(
+                BufferLength,
                 (QUIC_SETTINGS*)Buffer,
                 &Configuration->Settings);
 
     case QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
 
         QuicTraceLogInfo(
             ConfigurationSetSettings,
