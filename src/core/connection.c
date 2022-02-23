@@ -6779,7 +6779,7 @@ QuicConnParamGet(
             Stats->TimingHandshakeFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingHandshakeFlightEnd); // cppcheck-suppress selfAssignment
         }
 
-        *BufferLength = sizeof(QUIC_STATISTICS);
+        *BufferLength = sizeof(QUIC_STATISTICS_V2);
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
