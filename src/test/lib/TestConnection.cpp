@@ -292,7 +292,8 @@ TestConnection::SetQuicVersion(
     )
 {
     MsQuicVersionSettings Settings;
-    Settings.SetDesiredVersionsList(&value, 1);
+    Settings.AcceptableVersions = &value;
+    Settings.AcceptableVersionsLength = 1;
     return
         MsQuic->SetParam(
             QuicConnection,

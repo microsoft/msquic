@@ -2619,18 +2619,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "SettingCongestionControlAlgorithm": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] CongestionControlAlgorithm = %d",
-      "UniqueId": "SettingCongestionControlAlgorithm",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "SettingsInvalidVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid version supplied to settings! 0x%x at position %d",
@@ -4766,22 +4754,6 @@
         }
       ],
       "macroName": "QuicTraceEvent"
-    },
-    "InvalidCongestionControlAlgorithm": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic",
-      "UniqueId": "InvalidCongestionControlAlgorithm",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnWarning"
     },
     "NoSniPresent": {
       "ModuleProperites": {},
@@ -10698,129 +10670,12 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
-    "CertCapiVerifiedChain": {
-      "ModuleProperites": {},
-      "TraceString": "CertVerifyChain: %S 0x%x, result=0x%x",
-      "UniqueId": "CertCapiVerifiedChain",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "S",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "PerfControlInitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[perf] Control interface initialized",
-      "UniqueId": "PerfControlInitialized",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "WindowsUserInitialized2": {
-      "ModuleProperites": {},
-      "TraceString": "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
-      "UniqueId": "WindowsUserInitialized2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "FrameLogImmediateAck": {
-      "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   IMMEDIATE_ACK",
-      "UniqueId": "FrameLogImmediateAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "LibraryMsQuicOpenVersionUnsupported": {
       "ModuleProperites": {},
       "TraceString": "[ api] MsQuicOpenVersion, Only version 2 supported",
       "UniqueId": "LibraryMsQuicOpenVersionUnsupported",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionNull": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion, NULL",
-      "UniqueId": "LibraryMsQuicOpenVersionNull",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionEntry": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion",
-      "UniqueId": "LibraryMsQuicOpenVersionEntry",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "LibraryMsQuicOpenVersionExit": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] MsQuicOpenVersion, status=0x%x",
-      "UniqueId": "LibraryMsQuicOpenVersionExit",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "ListenerIndicateStopComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[list][%p] Indicating STOP_COMPLETE",
-      "UniqueId": "ListenerIndicateStopComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "ApiError": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] Error %u",
-      "UniqueId": "ApiError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
     },
     "PlatformWorkerThreadStart": {
       "ModuleProperites": {},
@@ -10845,6 +10700,34 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "SettingCongestionControlAlgorithm": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] CongestionControlAlgorithm = %hu",
+      "UniqueId": "SettingCongestionControlAlgorithm",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "InvalidCongestionControlAlgorithm": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic",
+      "UniqueId": "InvalidCongestionControlAlgorithm",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
     }
   },
   "ConfigFile": {
@@ -12292,11 +12175,6 @@
         "EncodingString": "[sett] StatelessOperExpirMs   = %hu"
       },
       {
-        "UniquenessHash": "9f10ea4b-b3b0-32c3-daad-f248e6456e44",
-        "TraceID": "SettingCongestionControlAlgorithm",
-        "EncodingString": "[sett] CongestionControlAlgorithm = %d"
-      },
-      {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
         "TraceID": "SettingsInvalidVersion",
         "EncodingString": "Invalid version supplied to settings! 0x%x at position %d"
@@ -12970,11 +12848,6 @@
         "UniquenessHash": "2a4c81a8-bf45-5d2a-fa79-dc075733386b",
         "TraceID": "WorkerStop",
         "EncodingString": "[wrkr][%p] Stop"
-      },
-      {
-        "UniquenessHash": "5090daae-967d-139c-1f8f-c8c716d1391f",
-        "TraceID": "InvalidCongestionControlAlgorithm",
-        "EncodingString": "[conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic"
       },
       {
         "UniquenessHash": "e1f61a3e-5405-efd7-d585-f3a10ab0b6d1",
@@ -14775,6 +14648,16 @@
         "UniquenessHash": "317dc2da-d83f-49ec-c0f0-872bcbf594dd",
         "TraceID": "PlatformWorkerThreadStop",
         "EncodingString": "[ lib][%p] Worker stop"
+      },
+      {
+        "UniquenessHash": "8a9548eb-5ed9-abe8-6008-94b545f099d7",
+        "TraceID": "SettingCongestionControlAlgorithm",
+        "EncodingString": "[sett] CongestionControlAlgorithm = %hu"
+      },
+      {
+        "UniquenessHash": "84d80052-65e2-9ca0-e282-dd91296c0987",
+        "TraceID": "InvalidCongestionControlAlgorithm",
+        "EncodingString": "[conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic"
       }
     ]
   }

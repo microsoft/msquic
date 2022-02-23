@@ -377,10 +377,10 @@ public:
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
-    MsQuicVersionSettings() noexcept { IsSetFlags = 0; }
-    MsQuicVersionSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
-    DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
-    MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
+    MsQuicVersionSettings() noexcept {}
+    // MsQuicVersionSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
+    // DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
+    // MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 
 static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");

@@ -86,9 +86,8 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
 
     if (InputVersion) {
         QUIC_VERSION_SETTINGS VersionSettings{0};
-        VersionSettings.IsSet.DesiredVersionsList = TRUE;
-        VersionSettings.DesiredVersionsList = &InputVersion;
-        VersionSettings.DesiredVersionsListLength = 1;
+        VersionSettings.AcceptableVersions = &InputVersion;
+        VersionSettings.AcceptableVersionsLength = 1;
         if (QUIC_FAILED(MsQuic->SetParam(Configuration, QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS, sizeof(VersionSettings), &VersionSettings))) {
             printf("Version SetParam failed.\n");
             exit(1);

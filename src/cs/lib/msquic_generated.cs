@@ -950,7 +950,8 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         public uint KeepAliveIntervalMs;
 
-        public QUIC_CONGESTION_CONTROL_ALGORITHM CongestionControlAlgorithm;
+        [NativeTypeName("uint16_t")]
+        public ushort CongestionControlAlgorithm;
 
         [NativeTypeName("uint16_t")]
         public ushort PeerBidiStreamCount;

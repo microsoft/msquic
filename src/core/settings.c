@@ -939,7 +939,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,    "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
-    QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+    QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1059,7 +1059,7 @@ QuicSettingsDumpNew(
     }
 
     if (Settings->IsSet.CongestionControlAlgorithm) {
-        QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+        QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     }
 }
 
@@ -1107,9 +1107,22 @@ QuicSettingsVersionSettingsToInternal(
     }
 
     InternalSettings->IsSetFlags = 0;
-    InternalSettings->IsSet.VersionNegotiationExtEnabled = 1;
-    InternalSettings->DesiredVersionsList = Settings->AcceptableVersions;
-    InternalSettings->DesiredVersionsListLength = Settings->AcceptableVersionsLength;
+
+    if (Settings->AcceptableVersionsLength == 0 &&
+        Settings->FullyDeployedVersionsLength == 0 &&
+        Settings->OfferedVersionsLength == 0) {
+        InternalSettings->IsSet.VersionNegotiationExtEnabled = 1;
+        InternalSettings->IsSet.DesiredVersionsList = 1;
+        InternalSettings->VersionNegotiationExtEnabled = 0;
+        InternalSettings->DesiredVersionsList = NULL;
+        InternalSettings->DesiredVersionsListLength = 0;
+    } else {
+        InternalSettings->IsSet.VersionNegotiationExtEnabled = 1;
+        InternalSettings->IsSet.DesiredVersionsList = 1;
+        InternalSettings->VersionNegotiationExtEnabled = 1;
+        InternalSettings->DesiredVersionsList = Settings->AcceptableVersions;
+        InternalSettings->DesiredVersionsListLength = Settings->AcceptableVersionsLength;
+    }
 
     return QUIC_STATUS_SUCCESS;
 }

@@ -89,7 +89,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t MtuDiscoveryMissingProbeCount;
     uint16_t MaxBindingStatelessOperations;
     uint16_t StatelessOperationExpirationMs;
-    QUIC_CONGESTION_CONTROL_ALGORITHM CongestionControlAlgorithm;
+    uint16_t CongestionControlAlgorithm;
 
 } QUIC_SETTINGS_INTERNAL;
 

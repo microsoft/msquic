@@ -14,52 +14,52 @@ Abstract:
 #include "SettingsTest.cpp.clog.h"
 #endif
 
-#define SETTINGS_FEATURE_SET_TEST(Field, Func, GetFieldValue)                               \
+#define SETTINGS_FEATURE_SET_TEST(Field, Func)                                              \
     FieldCount++;                                                                           \
     CxPlatZeroMemory(&Settings, sizeof(Settings));                                          \
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));                          \
     Settings.IsSet.Field = 1;                                                               \
-    Settings.Field = GetFieldValue<decltype(Settings.Field)>(1);                            \
+    Settings.Field = 1;                                                                     \
     ASSERT_EQ(QUIC_STATUS_SUCCESS, Func(sizeof(Settings), &Settings, &InternalSettings));   \
     ASSERT_EQ(1u, InternalSettings.IsSet.Field);                                            \
-    ASSERT_EQ(GetFieldValue<decltype(InternalSettings.Field)>(1), InternalSettings.Field);  \
+    ASSERT_EQ(1u, InternalSettings.Field);                                                   \
     CxPlatZeroMemory(&Settings, sizeof(Settings));                                          \
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));                          \
     Settings.IsSet.Field = 1;                                                               \
-    Settings.Field = GetFieldValue<decltype(Settings.Field)>(0);                            \
-    InternalSettings.Field = GetFieldValue<decltype(InternalSettings.Field)>(1);            \
+    Settings.Field = 0;                                                                     \
+    InternalSettings.Field = 1;                                                             \
     ASSERT_EQ(QUIC_STATUS_SUCCESS, Func(sizeof(Settings), &Settings, &InternalSettings));   \
     ASSERT_EQ(1u, InternalSettings.IsSet.Field);                                            \
-    ASSERT_EQ(GetFieldValue<decltype(InternalSettings.Field)>(0), InternalSettings.Field);  \
+    ASSERT_EQ(0u, InternalSettings.Field);                                                   \
     CxPlatZeroMemory(&Settings, sizeof(Settings));                                          \
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));                          \
-    Settings.Field = GetFieldValue<decltype(Settings.Field)>(1);                            \
+    Settings.Field = 1;                                                                     \
     ASSERT_EQ(QUIC_STATUS_SUCCESS, Func(sizeof(Settings), &Settings, &InternalSettings));   \
     ASSERT_EQ(0u, InternalSettings.IsSet.Field);                                            \
 
 
-#define SETTINGS_FEATURE_GET_TEST(Field, Func, GetFieldValue)                               \
+#define SETTINGS_FEATURE_GET_TEST(Field, Func)                                              \
     FieldCount++;                                                                           \
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));                          \
     CxPlatZeroMemory(&Settings, sizeof(Settings));                                          \
     InternalSettings.IsSet.Field = 1;                                                       \
-    InternalSettings.Field = GetFieldValue<decltype(InternalSettings.Field)>(1);            \
+    InternalSettings.Field = 1;                                                             \
     SettingsLength = sizeof(Settings);                                                      \
     ASSERT_EQ(QUIC_STATUS_SUCCESS, Func(&InternalSettings, &SettingsLength, &Settings));    \
     ASSERT_EQ(1u, Settings.IsSet.Field);                                                    \
-    ASSERT_EQ(GetFieldValue<decltype(Settings.Field)>(1), Settings.Field);                  \
+    ASSERT_EQ(1u, Settings.Field);                                                           \
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));                          \
     CxPlatZeroMemory(&Settings, sizeof(Settings));                                          \
     InternalSettings.IsSet.Field = 1;                                                       \
-    InternalSettings.Field = GetFieldValue<decltype(InternalSettings.Field)>(0);            \
-    Settings.Field = GetFieldValue<decltype(Settings.Field)>(1);                            \
+    InternalSettings.Field = 0;                                                             \
+    Settings.Field = 1;                                                                     \
     SettingsLength = sizeof(Settings);                                                      \
     ASSERT_EQ(QUIC_STATUS_SUCCESS, Func(&InternalSettings, &SettingsLength, &Settings));    \
     ASSERT_EQ(1u, Settings.IsSet.Field);                                                    \
-    ASSERT_EQ(GetFieldValue<decltype(Settings.Field)>(0), Settings.Field);                  \
+    ASSERT_EQ(0u, Settings.Field);                                                           \
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));                          \
     CxPlatZeroMemory(&Settings, sizeof(Settings));                                          \
-    InternalSettings.Field = GetFieldValue<decltype(InternalSettings.Field)>(1);            \
+    InternalSettings.Field = 1;                                                             \
     SettingsLength = sizeof(Settings);                                                      \
     ASSERT_EQ(QUIC_STATUS_SUCCESS, Func(&InternalSettings, &SettingsLength, &Settings));    \
     ASSERT_EQ(0u, Settings.IsSet.Field);
@@ -76,53 +76,43 @@ static uint32_t PopCount(T Value) {
     return Count;
 }
 
-template<typename T>
-T GetIntValue(T val) {
-    return val;
-}
-
-template<typename T>
-T GetCCValue(int val) {
-    return static_cast<QUIC_CONGESTION_CONTROL_ALGORITHM>(val);
-}
-
 TEST(SettingsTest, TestAllSettingsFieldsSet)
 {
     QUIC_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
     uint32_t FieldCount = 0;
 
-    SETTINGS_FEATURE_SET_TEST(MaxBytesPerKey, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(HandshakeIdleTimeoutMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(IdleTimeoutMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MtuDiscoverySearchCompleteTimeoutUs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(TlsClientMaxSendBuffer, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(TlsServerMaxSendBuffer, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(StreamRecvWindowDefault, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(StreamRecvBufferDefault, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(ConnFlowControlWindow, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MaxWorkerQueueDelayUs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MaxStatelessOperations, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(InitialWindowPackets, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(SendIdleTimeoutMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(InitialRttMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MaxAckDelayMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(DisconnectTimeoutMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(KeepAliveIntervalMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(CongestionControlAlgorithm, QuicSettingsSettingsToInternal, GetCCValue);
-    SETTINGS_FEATURE_SET_TEST(PeerBidiStreamCount, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(PeerUnidiStreamCount, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MaxBindingStatelessOperations, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(StatelessOperationExpirationMs, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MinimumMtu, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MaximumMtu, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MaxOperationsPerDrain, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MtuDiscoveryMissingProbeCount, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(SendBufferingEnabled, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(PacingEnabled, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(MigrationEnabled, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(DatagramReceiveEnabled, QuicSettingsSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(ServerResumptionLevel, QuicSettingsSettingsToInternal, GetIntValue);
+    SETTINGS_FEATURE_SET_TEST(MaxBytesPerKey, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(HandshakeIdleTimeoutMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(IdleTimeoutMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MtuDiscoverySearchCompleteTimeoutUs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(TlsClientMaxSendBuffer, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(TlsServerMaxSendBuffer, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(StreamRecvWindowDefault, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(StreamRecvBufferDefault, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(ConnFlowControlWindow, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MaxWorkerQueueDelayUs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MaxStatelessOperations, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(InitialWindowPackets, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(SendIdleTimeoutMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(InitialRttMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MaxAckDelayMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(DisconnectTimeoutMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(KeepAliveIntervalMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(CongestionControlAlgorithm, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(PeerBidiStreamCount, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(PeerUnidiStreamCount, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MaxBindingStatelessOperations, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(StatelessOperationExpirationMs, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MinimumMtu, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MaximumMtu, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MaxOperationsPerDrain, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MtuDiscoveryMissingProbeCount, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(SendBufferingEnabled, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(PacingEnabled, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(MigrationEnabled, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(DatagramReceiveEnabled, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(ServerResumptionLevel, QuicSettingsSettingsToInternal);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -135,28 +125,28 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsSet)
     QUIC_SETTINGS_INTERNAL InternalSettings;
     uint32_t FieldCount = 0;
 
-    SETTINGS_FEATURE_SET_TEST(RetryMemoryLimit, QuicSettingsGlobalSettingsToInternal, GetIntValue);
-    SETTINGS_FEATURE_SET_TEST(LoadBalancingMode, QuicSettingsGlobalSettingsToInternal, GetIntValue);
+    SETTINGS_FEATURE_SET_TEST(RetryMemoryLimit, QuicSettingsGlobalSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(LoadBalancingMode, QuicSettingsGlobalSettingsToInternal);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
     ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
 }
 
-TEST(SettingsTest, TestAllVersionSettingsFieldsSet)
-{
-    QUIC_VERSION_SETTINGS Settings;
-    QUIC_SETTINGS_INTERNAL InternalSettings;
-    uint32_t FieldCount = 0;
+// TEST(SettingsTest, TestAllVersionSettingsFieldsSet)
+// {
+//     QUIC_VERSION_SETTINGS Settings;
+//     QUIC_SETTINGS_INTERNAL InternalSettings;
+//     uint32_t FieldCount = 0;
 
-    SETTINGS_FEATURE_SET_TEST(VersionNegotiationExtEnabled, QuicSettingsVersionSettingsToInternal, GetIntValue);
+//     SETTINGS_FEATURE_SET_TEST(VersionNegotiationExtEnabled, QuicSettingsVersionSettingsToInternal);
 
-    FieldCount++; // Force increment field count for separately tested version field
+//     FieldCount++; // Force increment field count for separately tested version field
 
-    Settings.IsSetFlags = 0;
-    Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
-    ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
-}
+//     Settings.IsSetFlags = 0;
+//     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
+//     ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
+// }
 
 TEST(SettingsTest, TestAllSettingsFieldsGet)
 {
@@ -165,37 +155,37 @@ TEST(SettingsTest, TestAllSettingsFieldsGet)
     uint32_t SettingsLength;
     uint32_t FieldCount = 0;
 
-    SETTINGS_FEATURE_GET_TEST(MaxBytesPerKey, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(HandshakeIdleTimeoutMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(IdleTimeoutMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MtuDiscoverySearchCompleteTimeoutUs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(TlsClientMaxSendBuffer, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(TlsServerMaxSendBuffer, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(StreamRecvWindowDefault, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(StreamRecvBufferDefault, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(ConnFlowControlWindow, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MaxWorkerQueueDelayUs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MaxStatelessOperations, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(InitialWindowPackets, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(SendIdleTimeoutMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(InitialRttMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MaxAckDelayMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(DisconnectTimeoutMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(KeepAliveIntervalMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(CongestionControlAlgorithm, QuicSettingsGetSettings, GetCCValue);
-    SETTINGS_FEATURE_GET_TEST(PeerBidiStreamCount, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(PeerUnidiStreamCount, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MaxBindingStatelessOperations, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(StatelessOperationExpirationMs, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MinimumMtu, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MaximumMtu, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MaxOperationsPerDrain, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MtuDiscoveryMissingProbeCount, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(SendBufferingEnabled, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(PacingEnabled, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(MigrationEnabled, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(DatagramReceiveEnabled, QuicSettingsGetSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(ServerResumptionLevel, QuicSettingsGetSettings, GetIntValue);
+    SETTINGS_FEATURE_GET_TEST(MaxBytesPerKey, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(HandshakeIdleTimeoutMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(IdleTimeoutMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MtuDiscoverySearchCompleteTimeoutUs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(TlsClientMaxSendBuffer, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(TlsServerMaxSendBuffer, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(StreamRecvWindowDefault, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(StreamRecvBufferDefault, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(ConnFlowControlWindow, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MaxWorkerQueueDelayUs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MaxStatelessOperations, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(InitialWindowPackets, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(SendIdleTimeoutMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(InitialRttMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MaxAckDelayMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(DisconnectTimeoutMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(KeepAliveIntervalMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(CongestionControlAlgorithm, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(PeerBidiStreamCount, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(PeerUnidiStreamCount, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MaxBindingStatelessOperations, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(StatelessOperationExpirationMs, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MinimumMtu, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MaximumMtu, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MaxOperationsPerDrain, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MtuDiscoveryMissingProbeCount, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(SendBufferingEnabled, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(PacingEnabled, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(MigrationEnabled, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(DatagramReceiveEnabled, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(ServerResumptionLevel, QuicSettingsGetSettings);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -209,29 +199,29 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsGet)
     uint32_t SettingsLength;
     uint32_t FieldCount = 0;
 
-    SETTINGS_FEATURE_GET_TEST(RetryMemoryLimit, QuicSettingsGetGlobalSettings, GetIntValue);
-    SETTINGS_FEATURE_GET_TEST(LoadBalancingMode, QuicSettingsGetGlobalSettings, GetIntValue);
+    SETTINGS_FEATURE_GET_TEST(RetryMemoryLimit, QuicSettingsGetGlobalSettings);
+    SETTINGS_FEATURE_GET_TEST(LoadBalancingMode, QuicSettingsGetGlobalSettings);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
     ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
 }
 
-TEST(SettingsTest, TestAllVersionSettingsFieldsGet)
-{
-    QUIC_VERSION_SETTINGS Settings;
-    QUIC_SETTINGS_INTERNAL InternalSettings;
-    uint32_t SettingsLength;
-    uint32_t FieldCount = 0;
+// TEST(SettingsTest, TestAllVersionSettingsFieldsGet)
+// {
+//     QUIC_VERSION_SETTINGS Settings;
+//     QUIC_SETTINGS_INTERNAL InternalSettings;
+//     uint32_t SettingsLength;
+//     uint32_t FieldCount = 0;
 
-    SETTINGS_FEATURE_GET_TEST(VersionNegotiationExtEnabled, QuicSettingsGetVersionSettings, GetIntValue);
+//     SETTINGS_FEATURE_GET_TEST(VersionNegotiationExtEnabled, QuicSettingsGetVersionSettings);
 
-    FieldCount++; // Force increment field count for separately tested version field
+//     FieldCount++; // Force increment field count for separately tested version field
 
-    Settings.IsSetFlags = 0;
-    Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
-    ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
-}
+//     Settings.IsSetFlags = 0;
+//     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
+//     ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
+// }
 
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
