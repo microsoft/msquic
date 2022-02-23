@@ -65,9 +65,9 @@ Abstract:
     ASSERT_EQ(0u, Settings.IsSet.Field);
 
 template<typename T>
-static int PopCount(T Value) {
-    int Count = 0;
-    for (int i = 0; i < sizeof(Value) * 8; i++) {
+static uint32_t PopCount(T Value) {
+    uint32_t Count = 0;
+    for (uint32_t i = 0; i < (uint32_t)sizeof(Value) * 8; i++) {
         if (Value & 0x1) {
             Count++;
         }
@@ -90,7 +90,7 @@ TEST(SettingsTest, TestAllSettingsFieldsSet)
 {
     QUIC_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
-    int FieldCount = 0;
+    uint32_t FieldCount = 0;
 
     SETTINGS_FEATURE_SET_TEST(MaxBytesPerKey, QuicSettingsSettingsToInternal, GetIntValue);
     SETTINGS_FEATURE_SET_TEST(HandshakeIdleTimeoutMs, QuicSettingsSettingsToInternal, GetIntValue);
@@ -133,7 +133,7 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsSet)
 {
     QUIC_GLOBAL_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
-    int FieldCount = 0;
+    uint32_t FieldCount = 0;
 
     SETTINGS_FEATURE_SET_TEST(RetryMemoryLimit, QuicSettingsGlobalSettingsToInternal, GetIntValue);
     SETTINGS_FEATURE_SET_TEST(LoadBalancingMode, QuicSettingsGlobalSettingsToInternal, GetIntValue);
@@ -147,7 +147,7 @@ TEST(SettingsTest, TestAllVersionSettingsFieldsSet)
 {
     QUIC_VERSION_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
-    int FieldCount = 0;
+    uint32_t FieldCount = 0;
 
     SETTINGS_FEATURE_SET_TEST(VersionNegotiationExtEnabled, QuicSettingsVersionSettingsToInternal, GetIntValue);
 
@@ -163,7 +163,7 @@ TEST(SettingsTest, TestAllSettingsFieldsGet)
     QUIC_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
     uint32_t SettingsLength;
-    int FieldCount = 0;
+    uint32_t FieldCount = 0;
 
     SETTINGS_FEATURE_GET_TEST(MaxBytesPerKey, QuicSettingsGetSettings, GetIntValue);
     SETTINGS_FEATURE_GET_TEST(HandshakeIdleTimeoutMs, QuicSettingsGetSettings, GetIntValue);
@@ -207,7 +207,7 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsGet)
     QUIC_GLOBAL_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
     uint32_t SettingsLength;
-    int FieldCount = 0;
+    uint32_t FieldCount = 0;
 
     SETTINGS_FEATURE_GET_TEST(RetryMemoryLimit, QuicSettingsGetGlobalSettings, GetIntValue);
     SETTINGS_FEATURE_GET_TEST(LoadBalancingMode, QuicSettingsGetGlobalSettings, GetIntValue);
@@ -222,7 +222,7 @@ TEST(SettingsTest, TestAllVersionSettingsFieldsGet)
     QUIC_VERSION_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
     uint32_t SettingsLength;
-    int FieldCount = 0;
+    uint32_t FieldCount = 0;
 
     SETTINGS_FEATURE_GET_TEST(VersionNegotiationExtEnabled, QuicSettingsGetVersionSettings, GetIntValue);
 
