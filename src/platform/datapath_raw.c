@@ -610,11 +610,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     Operation->Callback(
                         Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
                 }
-                CxPlatPoolFree(&Worker->OperationPool ,Operation);
             } else {
                 Operation->Callback(
                     Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
             }
+
+            CxPlatPoolFree(&Worker->OperationPool, Operation);
         }
     }
 

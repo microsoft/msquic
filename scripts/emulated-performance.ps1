@@ -475,9 +475,6 @@ Write-Host "BaseRandomSeed: $($BaseRandomSeed)"
 $ExeName = $IsWindows ? "secnetperf.exe" : "secnetperf"
 $SecNetPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
 
-Get-NetAdapter | Write-Debug
-ipconfig -all | Write-Debug
-
 # Make sure to kill any old processes
 try { Stop-Process -Name secnetperf } catch { }
 
@@ -627,7 +624,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $Results.Add($Rate) | Out-Null
 
             Write-Debug (Out-String -InputObject (Invoke-Expression "pktmon stop"))
-            Write-Debug (Out-String -InputObject (Get-Counter -Counter "\Network Adapter(DuoNIC)\packets received discarded","\Network Adapter(DuoNIC)\packets outbound discarded","\Network Adapter(DuoNIC _2)\packets received discarded","\Network Adapter(DuoNIC _2)\packets outbound discarded").CounterSamples)
 
             if ($LogProfile -ne "None") {
                 $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
