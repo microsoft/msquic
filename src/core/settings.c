@@ -1063,70 +1063,11 @@ QuicSettingsDumpNew(
     }
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicSettingsGetParam(
-    _In_ const QUIC_SETTINGS_INTERNAL* IncomingSettings,
-    _Inout_ uint32_t* OutgoingSize,
-    _Out_writes_bytes_opt_(*OutgoingSize)
-        QUIC_SETTINGS_INTERNAL* OutgoingSettings
-    )
-{
-    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList);
-
-    if (*OutgoingSize < MinimumSettingsSize) {
-        *OutgoingSize = MinimumSettingsSize;
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    if (OutgoingSettings == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    CxPlatZeroMemory(OutgoingSettings, *OutgoingSize);
-    uint32_t CopySize = CXPLAT_MIN(*OutgoingSize, sizeof(QUIC_SETTINGS_INTERNAL));
-
-    CxPlatCopyMemory(OutgoingSettings, IncomingSettings, CopySize);
-    *OutgoingSize = CopySize;
-
-    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsList)) {
-        OutgoingSettings->DesiredVersionsList = NULL;
-    }
-
-    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, DesiredVersionsListLength)) {
-        OutgoingSettings->DesiredVersionsListLength = 0;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicSettingsGetDesiredVersions(
-    _In_ const QUIC_SETTINGS_INTERNAL* Settings,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint32_t* Buffer
-    )
-{
-    uint32_t ListLength = Settings->DesiredVersionsListLength * sizeof(uint32_t);
-
-    if (*BufferLength < ListLength) {
-        *BufferLength = ListLength;
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    if (Buffer == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    *BufferLength = ListLength;
-    CxPlatCopyMemory(Buffer, Settings->DesiredVersionsList, *BufferLength);
-    return QUIC_STATUS_SUCCESS;
-}
+#define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
+    (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
 
 #define SETTING_HAS_FIELD(SettingsType, Size, Field) \
-    (Size >= (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field)))
+    (Size >= SETTINGS_SIZE_THRU_FIELD(SettingsType, Field))
 
 #define SETTING_COPY_TO_INTERNAL(Field, Settings, InternalSettings) \
     InternalSettings->IsSet.Field = Settings->IsSet.Field;          \
@@ -1235,7 +1176,7 @@ QuicSettingsGetSettings(
         QUIC_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_SETTINGS);
@@ -1288,6 +1229,8 @@ QuicSettingsGetSettings(
     // N.B. Anything after this needs to be size checked
     //
 
+    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1300,7 +1243,7 @@ QuicSettingsGetGlobalSettings(
         QUIC_GLOBAL_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);
@@ -1324,6 +1267,8 @@ QuicSettingsGetGlobalSettings(
     // N.B. Anything after this needs to be size checked
     //
 
+    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_GLOBAL_SETTINGS));
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1336,7 +1281,7 @@ QuicSettingsGetVersionSettings(
         QUIC_VERSION_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_VERSION_SETTINGS, DesiredVersionsListLength);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_VERSION_SETTINGS, DesiredVersionsListLength);
     BOOLEAN LengthValid;
 
     if (*SettingsLength == 0) {
@@ -1375,6 +1320,8 @@ QuicSettingsGetVersionSettings(
     //
     // N.B. Anything after this needs to be size checked
     //
+
+    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_VERSION_SETTINGS));
 
     return QUIC_STATUS_SUCCESS;
 }
