@@ -27,8 +27,8 @@ Environment:
 #include <sys/resource.h>
 #include <unistd.h>
 #if defined(__APPLE__) || defined(__FreeBSD__)
-#include <sys/param.h>
 #include <sys/mount.h>
+#include <sys/param.h>
 #else
 #include <sys/vfs.h>
 #endif

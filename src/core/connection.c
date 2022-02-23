@@ -69,7 +69,7 @@ QuicConnAlloc(
     BOOLEAN IsServer = Datagram != NULL;
     uint32_t CurProcIndex = CxPlatProcCurrentNumber();
     *NewConnection = NULL;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_STATUS Status;
 
     //
     // For client, the datapath partitioning info is not known yet, so just use
