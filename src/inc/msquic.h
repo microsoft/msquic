@@ -166,9 +166,6 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
 typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_NONE                 = 0x0000,
     QUIC_STREAM_START_FLAG_IMMEDIATE            = 0x0001,   // Immediately informs peer that stream is open.
-#ifdef QUIC_LEGACY_COMPILE_MODE
-    QUIC_STREAM_START_FLAG_ASYNC                = 0x0000,   // No-op, but included for legacy compiles.
-#endif
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0002,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0004,   // Shutdown the stream immediately after start failure.
     QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,   // Indicate PEER_ACCEPTED event if not accepted at start.
@@ -691,18 +688,6 @@ void
 #define QUIC_PARAM_PREFIX_STREAM                        0x08000000
 
 #define QUIC_PARAM_IS_GLOBAL(Param) ((Param & 0x7F000000) == QUIC_PARAM_PREFIX_GLOBAL)
-
-#ifdef QUIC_LEGACY_COMPILE_MODE
-typedef enum QUIC_PARAM_LEVEL {
-    QUIC_PARAM_LEVEL_GLOBAL = 0,
-    QUIC_PARAM_LEVEL_REGISTRATION = 0,
-    QUIC_PARAM_LEVEL_CONFIGURATION = 0,
-    QUIC_PARAM_LEVEL_LISTENER = 0,
-    QUIC_PARAM_LEVEL_CONNECTION = 0,
-    QUIC_PARAM_LEVEL_TLS = 0,
-    QUIC_PARAM_LEVEL_STREAM = 0,
-} QUIC_PARAM_LEVEL;
-#endif
 
 //
 // Parameters for Global.
@@ -1365,15 +1350,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_GET_CONTEXT_FN                 GetContext;
     QUIC_SET_CALLBACK_HANDLER_FN        SetCallbackHandler;
 
-#ifdef QUIC_LEGACY_COMPILE_MODE
-    QUIC_SET_PARAM_FN                   SetParam2;
-    QUIC_GET_PARAM_FN                   GetParam2;
-    #define SetParam(Handle, Level, Param, BufferLength, Buffer) SetParam2(Handle, ((uint32_t)Level)|Param, BufferLength, Buffer)
-    #define GetParam(Handle, Level, Param, BufferLength, Buffer) GetParam2(Handle, ((uint32_t)Level)|Param, BufferLength, Buffer)
-#else
     QUIC_SET_PARAM_FN                   SetParam;
     QUIC_GET_PARAM_FN                   GetParam;
-#endif
 
     QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
     QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;
