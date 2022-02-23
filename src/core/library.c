@@ -1080,7 +1080,7 @@ QuicLibraryGetGlobalParam(
         Status = QuicSettingsGetGlobalSettings(&MsQuicLib.Settings, BufferLength, (QUIC_GLOBAL_SETTINGS*)Buffer);
         break;
 
-    case QUIC_PARAM_GLOBAL_VERSION:
+    case QUIC_PARAM_GLOBAL_LIBRARY_VERSION:
 
         if (*BufferLength < sizeof(MsQuicLib.Version)) {
             *BufferLength = sizeof(MsQuicLib.Version);
