@@ -278,15 +278,15 @@ TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     }
 }
 
-TEST(ParameterValidation, ValidateDesiredVersionSettings) {
-    TestLogger Logger("QuicTestDesiredVersionSettings");
-    // TODO Fix these tests
-    if (TestingKernelMode) {
-        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS));
-    } else {
-        //QuicTestDesiredVersionSettings();
-    }
-}
+// TEST(ParameterValidation, ValidateDesiredVersionSettings) {
+//     TestLogger Logger("QuicTestDesiredVersionSettings");
+//     // TODO Fix these tests
+//     if (TestingKernelMode) {
+//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS));
+//     } else {
+//         QuicTestDesiredVersionSettings();
+//     }
+// }
 
 TEST(ParameterValidation, ValidateParamApi) {
     TestLogger Logger("QuicTestValidateParamApi");
