@@ -517,6 +517,32 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+typedef struct QUIC_VERSION_SETTINGS {
+
+    uint32_t* AcceptableVersions;
+    uint32_t* OfferedVersions;
+    uint32_t* FullyDeployedVersions;
+    uint32_t AcceptableVersionsLength;
+    uint32_t OfferedVersionsLength;
+    uint32_t FullyDeployedVersionsLength;
+
+} QUIC_VERSION_SETTINGS;
+#endif
+
+typedef struct QUIC_GLOBAL_SETTINGS {
+    union {
+        uint64_t IsSetFlags;
+        struct {
+            uint64_t RetryMemoryLimit                       : 1;
+            uint64_t LoadBalancingMode                      : 1;
+            uint64_t RESERVED                               : 62;
+        } IsSet;
+    };
+    uint16_t RetryMemoryLimit;
+    uint16_t LoadBalancingMode;
+} QUIC_GLOBAL_SETTINGS;
+
 typedef struct QUIC_SETTINGS {
 
     union {
@@ -525,6 +551,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxBytesPerKey                         : 1;
             uint64_t HandshakeIdleTimeoutMs                 : 1;
             uint64_t IdleTimeoutMs                          : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
             uint64_t TlsClientMaxSendBuffer                 : 1;
             uint64_t TlsServerMaxSendBuffer                 : 1;
             uint64_t StreamRecvWindowDefault                : 1;
@@ -538,32 +565,28 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxAckDelayMs                          : 1;
             uint64_t DisconnectTimeoutMs                    : 1;
             uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t CongestionControlAlgorithm             : 1;
             uint64_t PeerBidiStreamCount                    : 1;
             uint64_t PeerUnidiStreamCount                   : 1;
-            uint64_t RetryMemoryLimit                       : 1;
-            uint64_t LoadBalancingMode                      : 1;
-            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
             uint64_t SendBufferingEnabled                   : 1;
             uint64_t PacingEnabled                          : 1;
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
             uint64_t ServerResumptionLevel                  : 1;
-            uint64_t DesiredVersionsList                    : 1;
-            uint64_t VersionNegotiationExtEnabled           : 1;
-            uint64_t MinimumMtu                             : 1;
-            uint64_t MaximumMtu                             : 1;
-            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t MaxBindingStatelessOperations          : 1;
-            uint64_t StatelessOperationExpirationMs         : 1;
-            uint64_t CongestionControlAlgorithm             : 1;
-            uint64_t RESERVED                               : 29;
+            uint64_t RESERVED                               : 33;
         } IsSet;
     };
 
     uint64_t MaxBytesPerKey;
     uint64_t HandshakeIdleTimeoutMs;
     uint64_t IdleTimeoutMs;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
     uint32_t TlsClientMaxSendBuffer;
     uint32_t TlsServerMaxSendBuffer;
     uint32_t StreamRecvWindowDefault;
@@ -577,27 +600,21 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
+    uint16_t CongestionControlAlgorithm; // QUIC_CONGESTION_CONTROL_ALGORITHM
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint16_t RetryMemoryLimit;              // Global only
-    uint16_t LoadBalancingMode;             // Global only
-    uint8_t MaxOperationsPerDrain;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t VersionNegotiationExtEnabled    : 1;
-    uint8_t RESERVED                        : 1;
-    const uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
-    uint16_t MinimumMtu;
-    uint16_t MaximumMtu;
-    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t RESERVED                        : 2;
+    uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
-    uint16_t MaxBindingStatelessOperations;
-    uint16_t StatelessOperationExpirationMs;
-    QUIC_CONGESTION_CONTROL_ALGORITHM CongestionControlAlgorithm;
 
 } QUIC_SETTINGS;
 
@@ -694,9 +711,12 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            0x01000001  // uint32_t[] - network byte order
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            0x01000002  // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x01000003  // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
-#define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000004  // QUIC_SETTINGS
-#define QUIC_PARAM_GLOBAL_VERSION                       0x01000005  // uint32_t[4]
-#define QUIC_PARAM_GLOBAL_DESIRED_VERSIONS              0x01000006  // uint32_t[]
+#define QUIC_PARAM_GLOBAL_LIBRARY_VERSION               0x01000004  // uint32_t[4]
+#define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000005  // QUIC_SETTINGS
+#define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS               0x01000006  // QUIC_GLOBAL_SETTINGS
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
+#endif
 
 //
 // Parameters for Registration.
@@ -707,7 +727,9 @@ typedef enum QUIC_PARAM_LEVEL {
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0x03000000  // QUIC_SETTINGS
 #define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0x03000001  // QUIC_TICKET_KEY_CONFIG[]
-#define QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS       0x03000002  // uint32_t[]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS       0x03000002  // QUIC_VERSION_SETTINGS
+#endif
 
 //
 // Parameters for Listener.
@@ -741,7 +763,9 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x05000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x05000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
-#define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x05000014  // uint32_t[]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONN_VERSION_SETTINGS                0x05000014  // QUIC_VERSION_SETTINGS
+#endif
 #define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2

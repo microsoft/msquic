@@ -13,7 +13,7 @@
 #include <mutex>
 #include <algorithm>
 
-#define QUIC_LEGACY_COMPILE_MODE 1 // To test legacy compiling
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #include "quic_datapath.h"
 #include "msquic.h"
@@ -51,7 +51,7 @@ ConnectionHandler(
         Context->GotConnected = true;
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         uint32_t Size = sizeof(Context->QuicVersion);
-        MsQuic->GetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
+        MsQuic->GetParam(Connection, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
         break;
     }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
@@ -77,16 +77,21 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.IdleTimeoutMs = 10 * 1000;
     Settings.IsSet.IdleTimeoutMs = TRUE;
-    if (InputVersion) {
-        Settings.IsSet.DesiredVersionsList = TRUE;
-        Settings.DesiredVersionsList = &InputVersion;
-        Settings.DesiredVersionsListLength = 1;
-    }
 
     HQUIC Configuration = nullptr;
     if (QUIC_FAILED(MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
         printf("ConfigurationOpen failed.\n");
         exit(1);
+    }
+
+    if (InputVersion) {
+        QUIC_VERSION_SETTINGS VersionSettings{0};
+        VersionSettings.AcceptableVersions = &InputVersion;
+        VersionSettings.AcceptableVersionsLength = 1;
+        if (QUIC_FAILED(MsQuic->SetParam(Configuration, QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS, sizeof(VersionSettings), &VersionSettings))) {
+            printf("Version SetParam failed.\n");
+            exit(1);
+        }
     }
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
@@ -107,7 +112,7 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
         exit(1);
     }
 
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
+    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
         printf("SetParam QUIC_PARAM_CONN_REMOTE_ADDRESS failed.\n");
         exit(1);
     }
@@ -254,17 +259,10 @@ main(int argc, char **argv)
         }
     }
 
-#ifdef QUIC_API_VERSION_2
     if (QUIC_FAILED(MsQuicOpen2(&MsQuic))) {
         printf("MsQuicOpen2 failed.\n");
         exit(1);
     }
-#else
-    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed.\n");
-        exit(1);
-    }
-#endif
 
     const QUIC_REGISTRATION_CONFIG RegConfig = { "reach", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {

@@ -11,6 +11,10 @@ Abstract:
 
 #include "InteropServer.h"
 
+#define QUIC_VERSION_1          0x01000000U     // First official version
+#define QUIC_VERSION_MS_1       0x0000cdabU     // First Microsoft version (currently same as latest draft)
+#define QUIC_VERSION_DRAFT_29   0x1d0000ffU     // IETF draft 29
+
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
 const char* RootFolderPath;
@@ -103,14 +107,16 @@ main(
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
-        Settings.VersionNegotiationExtEnabled = TRUE;
-        Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        uint32_t SupportedVersions[] = {QUIC_VERSION_1, QUIC_VERSION_DRAFT_29, QUIC_VERSION_MS_1};
+        QUIC_VERSION_SETTINGS VersionSettings{0};
+        VersionSettings.AcceptableVersions = SupportedVersions;
+        VersionSettings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(Settings),
-                &Settings))) {
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(VersionSettings),
+                &VersionSettings))) {
             printf("Failed to enable Version Negotiation Extension!\n");
             return -1;
         }

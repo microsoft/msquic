@@ -746,6 +746,7 @@ QuicLibrarySetGlobalParam(
     )
 {
     QUIC_STATUS Status;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -799,9 +800,7 @@ QuicLibrarySetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
-            BufferLength > sizeof(QUIC_SETTINGS)) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -810,21 +809,101 @@ QuicLibrarySetGlobalParam(
             LibrarySetSettings,
             "[ lib] Setting new settings");
 
+        Status =
+            QuicSettingsSettingsToInternal(
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
                 TRUE,
-                BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
-        MsQuicLibraryOnSettingsChanged(TRUE);
+        if (QUIC_SUCCEEDED(Status)) {
+            MsQuicLibraryOnSettingsChanged(TRUE);
+        }
 
-        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS:
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicTraceLogInfo(
+            LibrarySetSettings,
+            "[ lib] Setting new settings");
+
+        Status =
+            QuicSettingsGlobalSettingsToInternal(
+                BufferLength,
+                (QUIC_GLOBAL_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicSettingApply(
+                &MsQuicLib.Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QUIC_SUCCEEDED(Status)) {
+            MsQuicLibraryOnSettingsChanged(TRUE);
+        }
+
+        break;
+
+    case QUIC_PARAM_GLOBAL_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicTraceLogInfo(
+            LibrarySetSettings,
+            "[ lib] Setting new settings");
+
+        Status =
+            QuicSettingsVersionSettingsToInternal(
+                BufferLength,
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicSettingApply(
+                &MsQuicLib.Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QUIC_SUCCEEDED(Status)) {
+            MsQuicLibraryOnSettingsChanged(TRUE);
+        }
+
         break;
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -988,15 +1067,20 @@ QuicLibraryGetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        Status = QuicSettingsGetParam(&MsQuicLib.Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        Status = QuicSettingsGetSettings(&MsQuicLib.Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
         break;
 
-    case QUIC_PARAM_GLOBAL_DESIRED_VERSIONS:
+    case QUIC_PARAM_GLOBAL_VERSION_SETTINGS:
 
-        Status = QuicSettingsGetDesiredVersions(&MsQuicLib.Settings, BufferLength, (uint32_t*)Buffer);
+        Status = QuicSettingsGetVersionSettings(&MsQuicLib.Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
         break;
 
-    case QUIC_PARAM_GLOBAL_VERSION:
+    case QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS:
+
+        Status = QuicSettingsGetGlobalSettings(&MsQuicLib.Settings, BufferLength, (QUIC_GLOBAL_SETTINGS*)Buffer);
+        break;
+
+    case QUIC_PARAM_GLOBAL_LIBRARY_VERSION:
 
         if (*BufferLength < sizeof(MsQuicLib.Version)) {
             *BufferLength = sizeof(MsQuicLib.Version);

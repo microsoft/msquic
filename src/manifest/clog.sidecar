@@ -2621,11 +2621,11 @@
     },
     "SettingCongestionControlAlgorithm": {
       "ModuleProperites": {},
-      "TraceString": "[sett] CongestionControlAlgorithm = %d",
+      "TraceString": "[sett] CongestionControlAlgorithm = %hu",
       "UniqueId": "SettingCongestionControlAlgorithm",
       "splitArgs": [
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg2"
         }
       ],
@@ -4769,7 +4769,7 @@
     },
     "InvalidCongestionControlAlgorithm": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic",
+      "TraceString": "[conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic",
       "UniqueId": "InvalidCongestionControlAlgorithm",
       "splitArgs": [
         {
@@ -4777,7 +4777,7 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -12144,9 +12144,9 @@
         "EncodingString": "[sett] StatelessOperExpirMs   = %hu"
       },
       {
-        "UniquenessHash": "9f10ea4b-b3b0-32c3-daad-f248e6456e44",
+        "UniquenessHash": "8a9548eb-5ed9-abe8-6008-94b545f099d7",
         "TraceID": "SettingCongestionControlAlgorithm",
-        "EncodingString": "[sett] CongestionControlAlgorithm = %d"
+        "EncodingString": "[sett] CongestionControlAlgorithm = %hu"
       },
       {
         "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
@@ -12824,9 +12824,9 @@
         "EncodingString": "[wrkr][%p] Stop"
       },
       {
-        "UniquenessHash": "5090daae-967d-139c-1f8f-c8c716d1391f",
+        "UniquenessHash": "84d80052-65e2-9ca0-e282-dd91296c0987",
         "TraceID": "InvalidCongestionControlAlgorithm",
-        "EncodingString": "[conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic"
+        "EncodingString": "[conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic"
       },
       {
         "UniquenessHash": "e1f61a3e-5405-efd7-d585-f3a10ab0b6d1",

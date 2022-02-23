@@ -15,6 +15,7 @@
 
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
+#define QUIC_API_ENABLE_PREVIEW_FEATURES // Needed for VN
 #include "msquichelper.h"
 
 #define ASSERT_ON_FAILURE(x) \
@@ -439,7 +440,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_TLS_SECRETS:                               // QUIC_TLS_SECRETS
         // TODO
         break;
-    case QUIC_PARAM_CONN_DESIRED_VERSIONS:                          // uint32_t[]
+    case QUIC_PARAM_CONN_VERSION_SETTINGS:                          // uint32_t[]
         break; // Get-only
     case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:                       // bytes[]
         CxPlatRandom(sizeof(RandomBuffer), RandomBuffer);
@@ -478,9 +479,9 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 }
 
 const uint32_t ParamCounts[] = {
-    QUIC_PARAM_GLOBAL_DESIRED_VERSIONS + 1,
+    QUIC_PARAM_GLOBAL_VERSION_SETTINGS + 1,
     0,
-    QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS + 1,
+    QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS + 1,
     QUIC_PARAM_LISTENER_CID_PREFIX + 1,
     QUIC_PARAM_CONN_STATISTICS_V2_PLAT + 1,
     QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
