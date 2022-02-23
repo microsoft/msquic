@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #define QUIC_LEGACY_COMPILE_MODE 1 // To test legacy compiling
+#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
 
 #include "quic_datapath.h"
 #include "msquic.h"

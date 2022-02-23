@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+
 #include "msquic.hpp"
 
 //#define QUIC_COMPARTMENT_TESTS 1

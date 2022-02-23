@@ -374,6 +374,7 @@ public:
     uint32_t Length() const noexcept { return BuffersLength; }
 };
 
+#ifdef QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept { IsSetFlags = 0; }
@@ -383,6 +384,7 @@ public:
 };
 
 static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
+#endif
 
 class MsQuicSettings : public QUIC_SETTINGS {
 public:
@@ -583,6 +585,8 @@ public:
                 sizeof(*QSettings),
                 QSettings);
     }
+
+#ifdef QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
     QUIC_STATUS
     SetVersionSettings(
         _In_ const MsQuicVersionSettings& Settings) noexcept {
@@ -594,6 +598,7 @@ public:
                 sizeof(*QSettings),
                 QSettings);
     }
+#endif
 };
 
 struct MsQuicListener {

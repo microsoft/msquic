@@ -15,6 +15,7 @@
 
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
+#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION // Needed for VN
 #include "msquichelper.h"
 
 #define ASSERT_ON_FAILURE(x) \
