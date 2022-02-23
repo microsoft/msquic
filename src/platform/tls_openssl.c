@@ -215,7 +215,6 @@ CxPlatTlsCertificateVerifyCallback(
     int CertificateVerified = 0;
     int status = TRUE;
     unsigned char* OpenSSLCertBuffer = NULL;
-    int OpenSSLCertLength;
     QUIC_BUFFER PortableCertificate = { 0, 0 };
     QUIC_BUFFER PortableChain = { 0, 0 };
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
@@ -239,7 +238,7 @@ CxPlatTlsCertificateVerifyCallback(
                 return FALSE;
             }
 
-            OpenSSLCertLength = i2d_X509(Cert, &OpenSSLCertBuffer);
+            int OpenSSLCertLength = i2d_X509(Cert, &OpenSSLCertBuffer);
             if (OpenSSLCertLength <= 0) {
                 QuicTraceEvent(
                     LibraryError,

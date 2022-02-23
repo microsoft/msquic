@@ -2289,9 +2289,7 @@ CxPlatDataPathRunEC(
     const size_t EventListMax = 16; // TODO: Experiment.
     struct kevent EventList[EventListMax];
 
-    if (ProcContext->ThreadId != CurThreadId) {
-        ProcContext->ThreadId = CurThreadId;
-    }
+    ProcContext->ThreadId = CurThreadId;
 
     struct timespec Timeout = {0, 0};
     if (WaitTime != UINT32_MAX) {
