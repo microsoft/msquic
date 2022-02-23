@@ -788,124 +788,28 @@ namespace Microsoft.Quic
 
     public unsafe partial struct QUIC_VERSION_SETTINGS
     {
-        [NativeTypeName("QUIC_VERSION_SETTINGS::(anonymous union at src/inc/msquic.h:521:5)")]
-        public _Anonymous_e__Union Anonymous;
+        [NativeTypeName("uint32_t *")]
+        public uint* AcceptableVersions;
 
-        public byte _bitfield;
+        [NativeTypeName("uint32_t *")]
+        public uint* OfferedVersions;
 
-        [NativeTypeName("uint8_t : 1")]
-        public byte VersionNegotiationExtEnabled
-        {
-            get
-            {
-                return (byte)(_bitfield & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 7")]
-        public byte RESERVED
-        {
-            get
-            {
-                return (byte)((_bitfield >> 1) & 0x7Fu);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
-            }
-        }
-
-        [NativeTypeName("const uint32_t *")]
-        public uint* DesiredVersionsList;
+        [NativeTypeName("uint32_t *")]
+        public uint* FullyDeployedVersions;
 
         [NativeTypeName("uint32_t")]
-        public uint DesiredVersionsListLength;
+        public uint AcceptableVersionsLength;
 
-        public ref ulong IsSetFlags
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSetFlags, 1));
-            }
-        }
+        [NativeTypeName("uint32_t")]
+        public uint OfferedVersionsLength;
 
-        public ref _Anonymous_e__Union._IsSet_e__Struct IsSet
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSet, 1));
-            }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
-        {
-            [FieldOffset(0)]
-            [NativeTypeName("uint64_t")]
-            public ulong IsSetFlags;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:523:9)")]
-            public _IsSet_e__Struct IsSet;
-
-            public partial struct _IsSet_e__Struct
-            {
-                public ulong _bitfield;
-
-                [NativeTypeName("uint64_t : 1")]
-                public ulong DesiredVersionsList
-                {
-                    get
-                    {
-                        return _bitfield & 0x1UL;
-                    }
-
-                    set
-                    {
-                        _bitfield = (_bitfield & ~0x1UL) | (value & 0x1UL);
-                    }
-                }
-
-                [NativeTypeName("uint64_t : 1")]
-                public ulong VersionNegotiationExtEnabled
-                {
-                    get
-                    {
-                        return (_bitfield >> 1) & 0x1UL;
-                    }
-
-                    set
-                    {
-                        _bitfield = (_bitfield & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
-                    }
-                }
-
-                [NativeTypeName("uint64_t : 62")]
-                public ulong RESERVED
-                {
-                    get
-                    {
-                        return (_bitfield >> 2) & 0x3FFFFFFFUL;
-                    }
-
-                    set
-                    {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 2)) | ((value & 0x3FFFFFFFUL) << 2);
-                    }
-                }
-            }
-        }
+        [NativeTypeName("uint32_t")]
+        public uint FullyDeployedVersionsLength;
     }
 
     public partial struct QUIC_GLOBAL_SETTINGS
     {
-        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union at src/inc/msquic.h:540:5)")]
+        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union at src/inc/msquic.h:534:5)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
@@ -938,7 +842,7 @@ namespace Microsoft.Quic
             public ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:542:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:536:9)")]
             public _IsSet_e__Struct IsSet;
 
             public partial struct _IsSet_e__Struct
@@ -992,7 +896,7 @@ namespace Microsoft.Quic
 
     public partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union at src/inc/msquic.h:554:5)")]
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union at src/inc/msquic.h:548:5)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint64_t")]
@@ -1182,7 +1086,7 @@ namespace Microsoft.Quic
             public ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:556:9)")]
+            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:550:9)")]
             public _IsSet_e__Struct IsSet;
 
             public partial struct _IsSet_e__Struct
@@ -1645,7 +1549,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t")]
         public byte SecretLength;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:635:5)")]
+        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:629:5)")]
         public _IsSet_e__Struct IsSet;
 
         [NativeTypeName("uint8_t [32]")]

@@ -517,24 +517,16 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
-#ifdef QUIC_PREVIEW_FEATURES
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 typedef struct QUIC_VERSION_SETTINGS {
-    union {
-        uint64_t IsSetFlags;
-        struct {
-            uint64_t DesiredVersionsList                    : 1;
-            uint64_t VersionNegotiationExtEnabled           : 1;
-            uint64_t RESERVED                               : 62;
-        } IsSet;
-    };
 
-    //
-    // Flags first so we can use offset to get versioned length of struct.
-    //
-    uint8_t VersionNegotiationExtEnabled    : 1;
-    uint8_t RESERVED                        : 7;
-    const uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
+    uint32_t* AcceptableVersions;
+    uint32_t* OfferedVersions;
+    uint32_t* FullyDeployedVersions;
+    uint32_t AcceptableVersionsLength;
+    uint32_t OfferedVersionsLength;
+    uint32_t FullyDeployedVersionsLength;
+
 } QUIC_VERSION_SETTINGS;
 #endif
 
@@ -722,7 +714,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_LIBRARY_VERSION               0x01000004  // uint32_t[4]
 #define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000005  // QUIC_SETTINGS
 #define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS               0x01000006  // QUIC_GLOBAL_SETTINGS
-#ifdef QUIC_PREVIEW_FEATURES
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
 #endif
 
@@ -735,7 +727,7 @@ typedef enum QUIC_PARAM_LEVEL {
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0x03000000  // QUIC_SETTINGS
 #define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0x03000001  // QUIC_TICKET_KEY_CONFIG[]
-#ifdef QUIC_PREVIEW_FEATURES
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS       0x03000002  // QUIC_VERSION_SETTINGS
 #endif
 
@@ -771,7 +763,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x05000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x05000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
-#ifdef QUIC_PREVIEW_FEATURES
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_VERSION_SETTINGS                0x05000014  // QUIC_VERSION_SETTINGS
 #endif
 #define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]

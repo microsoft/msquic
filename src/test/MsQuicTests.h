@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#define QUIC_PREVIEW_FEATURES
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #include "msquic.hpp"
 

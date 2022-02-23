@@ -1102,14 +1102,14 @@ QuicSettingsVersionSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!SETTING_HAS_FIELD(QUIC_VERSION_SETTINGS, SettingsSize, DesiredVersionsListLength)) {
+    if (SettingsSize < sizeof(QUIC_VERSION_SETTINGS)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     InternalSettings->IsSetFlags = 0;
-    SETTING_COPY_TO_INTERNAL(VersionNegotiationExtEnabled, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(DesiredVersionsList, Settings, InternalSettings);
-    InternalSettings->DesiredVersionsListLength = Settings->DesiredVersionsListLength;
+    InternalSettings->IsSet.VersionNegotiationExtEnabled = 1;
+    InternalSettings->DesiredVersionsList = Settings->AcceptableVersions;
+    InternalSettings->DesiredVersionsListLength = Settings->AcceptableVersionsLength;
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1281,16 +1281,12 @@ QuicSettingsGetVersionSettings(
         QUIC_VERSION_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_VERSION_SETTINGS, DesiredVersionsListLength);
-    BOOLEAN LengthValid;
+    uint32_t MinimumSize =
+        sizeof(QUIC_VERSION_SETTINGS) +
+        InternalSettings->DesiredVersionsListLength * sizeof(uint32_t);
 
-    if (*SettingsLength == 0) {
-        *SettingsLength = sizeof(QUIC_VERSION_SETTINGS);
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    if (*SettingsLength < MinimumSettingsSize) {
-        *SettingsLength = MinimumSettingsSize;
+    if (*SettingsLength < MinimumSize) {
+        *SettingsLength = MinimumSize;
         return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
@@ -1298,30 +1294,18 @@ QuicSettingsGetVersionSettings(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-#pragma prefast(suppress:6001, "This read is a hack for now")
-    LengthValid = Settings->IsSet.DesiredVersionsList ? 1 : 0;
-    Settings->IsSetFlags = 0;
-    SETTING_COPY_FROM_INTERNAL(VersionNegotiationExtEnabled, Settings, InternalSettings);
+    Settings->AcceptableVersions = (uint32_t*)(Settings + 1);
+    Settings->AcceptableVersionsLength = InternalSettings->DesiredVersionsListLength;
 
-    if (LengthValid &&
-        Settings->DesiredVersionsListLength >= InternalSettings->DesiredVersionsListLength &&
-        Settings->DesiredVersionsList != NULL) {
-        Settings->IsSet.DesiredVersionsList = TRUE;
-        Settings->DesiredVersionsListLength = InternalSettings->DesiredVersionsListLength;
-        CxPlatCopyMemory(
-            (uint32_t*)Settings->DesiredVersionsList,
-            InternalSettings->DesiredVersionsList,
-            InternalSettings->DesiredVersionsListLength);
-    } else {
-        Settings->DesiredVersionsList = NULL;
-        Settings->DesiredVersionsListLength = InternalSettings->DesiredVersionsListLength;
-    }
+    CxPlatCopyMemory(
+        Settings->AcceptableVersions,
+        InternalSettings->DesiredVersionsList,
+        InternalSettings->DesiredVersionsListLength * sizeof(uint32_t));
 
-    //
-    // N.B. Anything after this needs to be size checked
-    //
+    Settings->FullyDeployedVersionsLength = 0;
+    Settings->OfferedVersionsLength = 0;
 
-    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_VERSION_SETTINGS));
+    *SettingsLength = MinimumSize;
 
     return QUIC_STATUS_SUCCESS;
 }
