@@ -3093,18 +3093,16 @@ QuicConnQueueRouteCompletion(
             memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
         }
         QuicConnQueueOper(Connection, ConnOper);
-    } else {
-        if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
-            QUIC_OPERATION* Oper = &Connection->BackUpOper;
-            Oper->FreeAfterProcess = FALSE;
-            Oper->Type = QUIC_OPER_TYPE_API_CALL;
-            Oper->API_CALL.Context = &Connection->BackupApiContext;
-            Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
-            QuicConnQueueHighestPriorityOper(Connection, Oper);
-        }
+    } else if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+        QUIC_OPERATION* Oper = &Connection->BackUpOper;
+        Oper->FreeAfterProcess = FALSE;
+        Oper->Type = QUIC_OPER_TYPE_API_CALL;
+        Oper->API_CALL.Context = &Connection->BackupApiContext;
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        QuicConnQueueHighestPriorityOper(Connection, Oper);
     }
 
     QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
@@ -6810,7 +6808,7 @@ QuicConnParamGet(
             Stats->TimingHandshakeFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingHandshakeFlightEnd); // cppcheck-suppress selfAssignment
         }
 
-        *BufferLength = sizeof(QUIC_STATISTICS);
+        *BufferLength = sizeof(QUIC_STATISTICS_V2);
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
