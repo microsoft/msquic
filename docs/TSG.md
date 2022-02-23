@@ -20,6 +20,8 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 4. [Why is this API failing?](#why-is-this-api-failing)
 5. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
 6. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
+7. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
+8. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
 
 ## Understanding Error Codes
 
@@ -203,6 +205,24 @@ t.cmd off
 
 Share the generated cab file with SMB developers.
 ```
+
+## Convert PEM to PKCS#12 for Schannel
+
+When using Schannel, a certificate imported by `X509Certificate2.CreateFromPem()` in .NET needs to be exported to a `byte[]` in PKCS#12 (aka PFX) format and re-imported to be used as a server certificate.
+
+```cs
+static X509Certificate2 CreatePkcs12FromPem(string certPem, string keyPem)
+{
+    using var cert = X509Certificate2.CreateFromPem(certPem, keyPem);
+    return new(cert.Export(X509ContentType.Pkcs12));
+}
+```
+
+## Using a self-signed certificate for HTTP/3
+
+Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to white list its fingerprint (or that of any certificate in the chain) via the `--ignore-certificate-errors-spki-list` switch.
+
+See [Chromium network switches](https://source.chromium.org/chromium/chromium/src/+/main:services/network/public/cpp/network_switches.cc;l=36;drc=f8c933c2bd17344ce7ac61be2ac7725ed840b19f)
 
 # Trouble Shooting a Performance Issue
 
