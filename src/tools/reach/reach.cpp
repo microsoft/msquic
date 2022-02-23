@@ -13,7 +13,6 @@
 #include <mutex>
 #include <algorithm>
 
-#define QUIC_LEGACY_COMPILE_MODE 1 // To test legacy compiling
 #define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
 
 #include "quic_datapath.h"
@@ -52,7 +51,7 @@ ConnectionHandler(
         Context->GotConnected = true;
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         uint32_t Size = sizeof(Context->QuicVersion);
-        MsQuic->GetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
+        MsQuic->GetParam(Connection, QUIC_PARAM_CONN_QUIC_VERSION, &Size, &Context->QuicVersion);
         break;
     }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
@@ -90,7 +89,7 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
         VersionSettings.IsSet.DesiredVersionsList = TRUE;
         VersionSettings.DesiredVersionsList = &InputVersion;
         VersionSettings.DesiredVersionsListLength = 1;
-        if (QUIC_FAILED(MsQuic->SetParam(Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS, sizeof(VersionSettings), &VersionSettings))) {
+        if (QUIC_FAILED(MsQuic->SetParam(Configuration, QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS, sizeof(VersionSettings), &VersionSettings))) {
             printf("Version SetParam failed.\n");
             exit(1);
         }
@@ -114,7 +113,7 @@ CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
         exit(1);
     }
 
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
+    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
         printf("SetParam QUIC_PARAM_CONN_REMOTE_ADDRESS failed.\n");
         exit(1);
     }
