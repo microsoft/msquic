@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+#define QUIC_PREVIEW_FEATURES
 
 #include "msquic.hpp"
 

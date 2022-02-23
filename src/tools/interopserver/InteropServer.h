@@ -7,7 +7,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+#define QUIC_PREVIEW_FEATURES
 
 #include "msquichelper.h"
 

@@ -374,7 +374,7 @@ public:
     uint32_t Length() const noexcept { return BuffersLength; }
 };
 
-#ifdef QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+#ifdef QUIC_PREVIEW_FEATURES
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept { IsSetFlags = 0; }
@@ -586,7 +586,7 @@ public:
                 QSettings);
     }
 
-#ifdef QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+#ifdef QUIC_PREVIEW_FEATURES
     QUIC_STATUS
     SetVersionSettings(
         _In_ const MsQuicVersionSettings& Settings) noexcept {

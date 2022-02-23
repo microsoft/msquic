@@ -13,7 +13,7 @@
 #include <mutex>
 #include <algorithm>
 
-#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+#define QUIC_PREVIEW_FEATURES
 
 #include "quic_datapath.h"
 #include "msquic.h"

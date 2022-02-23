@@ -8,7 +8,7 @@
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#define QUIC_PREVIEW_FEATURE_VERSION_NEGOTIATION
+#define QUIC_PREVIEW_FEATURES
 
 #include <string>
 #include <vector>
