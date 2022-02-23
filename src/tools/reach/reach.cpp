@@ -260,17 +260,10 @@ main(int argc, char **argv)
         }
     }
 
-#ifdef QUIC_API_VERSION_2
     if (QUIC_FAILED(MsQuicOpen2(&MsQuic))) {
         printf("MsQuicOpen2 failed.\n");
         exit(1);
     }
-#else
-    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed.\n");
-        exit(1);
-    }
-#endif
 
     const QUIC_REGISTRATION_CONFIG RegConfig = { "reach", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
