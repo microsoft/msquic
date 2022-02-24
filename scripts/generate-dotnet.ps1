@@ -28,5 +28,6 @@ $ReplaceDir = $RootDir + "\"
     .Replace($ReplaceDir, "") `
     .Replace($ReplaceDir.Replace("\", "/"), "") `
     .Replace('(?<!(\[Flags\])\n    )public enum .*?_FLAGS','[Flags]\n    $0') `
+    .Replace('(?<!using System;\n)(?!using System;\n)(using .*?;\n)+', 'using System;\n$0') `
     | `
     Out-File $MsQuicGeneratedSource
