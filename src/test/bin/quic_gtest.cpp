@@ -1702,10 +1702,10 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-INSTANTIATE_TEST_SUITE_P(
-    Basic,
-    WithVersionNegotiationExtArgs,
-    testing::ValuesIn(VersionNegotiationExtArgs::Generate()));
+// INSTANTIATE_TEST_SUITE_P(
+//     Basic,
+//     WithVersionNegotiationExtArgs,
+//     testing::ValuesIn(VersionNegotiationExtArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
