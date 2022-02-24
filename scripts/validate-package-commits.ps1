@@ -12,10 +12,18 @@ param (
     [string]$PipelineBranch
 )
 
-Write-Host $ResourceCommit
-Write-Host $ResourceBranch
+$Failed = $false
 
-Write-Host $PipelineCommit
-Write-Host $PipelineBranch
+if ($ResourceCommit -ne $PipelineCommit) {
+    Write-Host "##vso[task.LogIssue type=error;]Mismatched commits. Resource: $ResourceCommit Pipeline: $PipelineCommit"
+    $Failed = $true
+}
 
-exit 1
+if ($ResourceBranch -ne $PipelineBranch) {
+    Write-Host "##vso[task.LogIssue type=error;]Mismatched branches. Resource: $ResourceBranch Pipeline: $PipelineBranch"
+    $Failed = $true
+}
+
+if ($Failed) {
+    exit 1
+}
