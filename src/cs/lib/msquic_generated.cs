@@ -36,6 +36,7 @@ namespace Microsoft.Quic
         QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
     }
 
+    [Flags]
     public enum QUIC_CREDENTIAL_FLAGS
     {
         QUIC_CREDENTIAL_FLAG_NONE = 0x00000000,
@@ -56,6 +57,7 @@ namespace Microsoft.Quic
         QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES = 0x00004000,
     }
 
+    [Flags]
     public enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
     {
         QUIC_ALLOWED_CIPHER_SUITE_NONE = 0x0,
@@ -64,12 +66,14 @@ namespace Microsoft.Quic
         QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 = 0x4,
     }
 
+    [Flags]
     public enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
     {
         QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE = 0x0000,
         QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE = 0x0001,
     }
 
+    [Flags]
     public enum QUIC_CONNECTION_SHUTDOWN_FLAGS
     {
         QUIC_CONNECTION_SHUTDOWN_FLAG_NONE = 0x0000,
@@ -83,6 +87,7 @@ namespace Microsoft.Quic
         QUIC_SERVER_RESUME_AND_ZERORTT,
     }
 
+    [Flags]
     public enum QUIC_SEND_RESUMPTION_FLAGS
     {
         QUIC_SEND_RESUMPTION_FLAG_NONE = 0x0000,
@@ -96,6 +101,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_SCHEDULING_SCHEME_COUNT,
     }
 
+    [Flags]
     public enum QUIC_STREAM_OPEN_FLAGS
     {
         QUIC_STREAM_OPEN_FLAG_NONE = 0x0000,
@@ -103,6 +109,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_OPEN_FLAG_0_RTT = 0x0002,
     }
 
+    [Flags]
     public enum QUIC_STREAM_START_FLAGS
     {
         QUIC_STREAM_START_FLAG_NONE = 0x0000,
@@ -112,6 +119,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,
     }
 
+    [Flags]
     public enum QUIC_STREAM_SHUTDOWN_FLAGS
     {
         QUIC_STREAM_SHUTDOWN_FLAG_NONE = 0x0000,
@@ -123,6 +131,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_SHUTDOWN_FLAG_INLINE = 0x0010,
     }
 
+    [Flags]
     public enum QUIC_RECEIVE_FLAGS
     {
         QUIC_RECEIVE_FLAG_NONE = 0x0000,
@@ -130,6 +139,7 @@ namespace Microsoft.Quic
         QUIC_RECEIVE_FLAG_FIN = 0x0002,
     }
 
+    [Flags]
     public enum QUIC_SEND_FLAGS
     {
         QUIC_SEND_FLAG_NONE = 0x0000,
