@@ -565,9 +565,11 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
             # add checks to ignore here:
-            -altera-struct-pack-align
+            -altera-*
             -android-cloexec-fopen
             -android-cloexec-socket
+            -bugprone-easily-swappable-parameters
+            -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
@@ -604,10 +606,10 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
             --suppress=duplicateValueTernary --suppress=objectIndex
-            --suppress=varFuncNullUB
+            --suppress=varFuncNullUB --suppress=constParameter
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
-            --suppress=knownConditionTrueFalse
+            --suppress=knownConditionTrueFalse --suppress=invalidscanf
             --enable=warning,style,performance,portability -D__linux__)
     else()
         message(STATUS "cppcheck not found")

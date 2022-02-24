@@ -283,8 +283,6 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 - No more need to check for a return code from `StreamReceiveComplete`.
 - QUIC_ADDRESS_FAMILY_IPV6 has been changed to be platform specific rather then always windows values. For C/C++ consumers this is only a binary breaking change. For Interop consumers, the value will change for linux and macOS.
 
-> **Note** - While support for `QUIC_LEGACY_COMPILE_MODE` is included, its use is **not recommended** and it **will be removed** in an upcoming release.
-
 ### Other Changes
 
 - Various Linux build and packaging improvements (#2090, #2092, #2097)

@@ -2736,9 +2736,7 @@ CxPlatDataPathRunEC(
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
 
-    if (ProcContext->ThreadId != CurThreadId) {
-        ProcContext->ThreadId = CurThreadId;
-    }
+    ProcContext->ThreadId = CurThreadId;
 
     int ReadyEventCount =
         TEMP_FAILURE_RETRY(

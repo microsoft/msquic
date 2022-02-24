@@ -54,7 +54,7 @@ namespace MsQuicTool
                 config.Flags = QUIC_CREDENTIAL_FLAGS.QUIC_CREDENTIAL_FLAG_CLIENT;
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationLoadCredential(configuration, &config));
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionOpen(registration, &NativeCallback, ApiTable, &connection));
-                byte* google = stackalloc byte[50];
+                sbyte* google = stackalloc sbyte[50];
                 int written = Encoding.UTF8.GetBytes("google.com", new Span<byte>(google, 50));
                 google[written] = 0;
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionStart(connection, configuration, 0, google, 443));

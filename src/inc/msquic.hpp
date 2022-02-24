@@ -374,6 +374,18 @@ public:
     uint32_t Length() const noexcept { return BuffersLength; }
 };
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
+public:
+    MsQuicVersionSettings() noexcept {}
+    // MsQuicVersionSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
+    // DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
+    // MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
+};
+
+static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
+#endif
+
 class MsQuicSettings : public QUIC_SETTINGS {
 public:
     MsQuicSettings() noexcept { IsSetFlags = 0; }
@@ -390,9 +402,6 @@ public:
     MsQuicSettings& SetPeerUnidiStreamCount(uint16_t Value) { PeerUnidiStreamCount = Value; IsSet.PeerUnidiStreamCount = TRUE; return *this; }
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
     MsQuicSettings& SetMaxAckDelayMs(uint32_t Value) { MaxAckDelayMs = Value; IsSet.MaxAckDelayMs = TRUE; return *this; }
-    MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
-        DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
-    MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
     MsQuicSettings& SetMaximumMtu(uint16_t Mtu) { MaximumMtu = Mtu; IsSet.MaximumMtu = TRUE; return *this; }
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
@@ -423,6 +432,8 @@ public:
                 Settings);
     }
 };
+
+static_assert(sizeof(QUIC_SETTINGS) == sizeof(MsQuicSettings), "Cpp wrappers must not change size");
 
 class MsQuicCertificateHash : public QUIC_CERTIFICATE_HASH {
 public:
@@ -574,6 +585,20 @@ public:
                 sizeof(*QSettings),
                 QSettings);
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetVersionSettings(
+        _In_ const MsQuicVersionSettings& Settings) noexcept {
+        const QUIC_VERSION_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
+    }
+#endif
 };
 
 struct MsQuicListener {

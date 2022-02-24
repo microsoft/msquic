@@ -563,15 +563,15 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpStatelessOperExpirMs,
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingCongestionControlAlgorithm
-// [sett] CongestionControlAlgorithm = %d
-// QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+// [sett] CongestionControlAlgorithm = %hu
+// QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
 // arg2 = arg2 = Settings->CongestionControlAlgorithm = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm,
     TP_ARGS(
-        int, arg2), 
+        unsigned short, arg2), 
     TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
+        ctf_integer(unsigned short, arg2, arg2)
     )
 )
 

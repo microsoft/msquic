@@ -37,6 +37,7 @@ MsQuicConfigurationOpen(
     QUIC_CONFIGURATION* Configuration = NULL;
     uint8_t* AlpnList;
     uint32_t AlpnListLength;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     QuicTraceEvent(
         ApiEnter,
@@ -49,12 +50,6 @@ MsQuicConfigurationOpen(
         AlpnBuffers == NULL ||
         AlpnBufferCount == 0 ||
         NewConfiguration == NULL) {
-        goto Error;
-    }
-
-    if (Settings != NULL &&
-        SettingsSize < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
@@ -173,14 +168,20 @@ MsQuicConfigurationOpen(
     }
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
-        CXPLAT_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList));
+        Status =
+            QuicSettingsSettingsToInternal(
+                SettingsSize,
+                Settings,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
                 TRUE,
-                SettingsSize,
-                Settings)) {
+                &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
@@ -429,10 +430,10 @@ QuicConfigurationParamGet(
     )
 {
     if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
-        return QuicSettingsGetParam(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        return QuicSettingsGetSettings(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
     }
-    if (Param == QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS) {
-        return QuicSettingsGetDesiredVersions(&Configuration->Settings, BufferLength, (uint32_t*)Buffer);
+    if (Param == QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS) {
+        return QuicSettingsGetVersionSettings(&Configuration->Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;
@@ -448,12 +449,13 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
+    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_STATUS Status;
+
     switch (Param) {
     case QUIC_PARAM_CONFIGURATION_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
-            BufferLength > sizeof(QUIC_SETTINGS)) {
+        if (Buffer == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
@@ -462,17 +464,54 @@ QuicConfigurationParamSet(
             "[cnfg][%p] Setting new settings",
             Configuration);
 
+        Status =
+            QuicSettingsSettingsToInternal(
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
                 TRUE,
-                BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                &InternalSettings)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+        return QUIC_STATUS_SUCCESS;
+
+    case QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        QuicTraceLogInfo(
+            ConfigurationSetSettings,
+            "[cnfg][%p] Setting new settings",
+            Configuration);
+
+        Status =
+            QuicSettingsVersionSettingsToInternal(
+                BufferLength,
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
 
         return QUIC_STATUS_SUCCESS;
 
