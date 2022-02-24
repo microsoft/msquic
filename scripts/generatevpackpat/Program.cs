@@ -20,9 +20,9 @@ namespace GenerateVpackPat
     {
         public static async Task Main()
         {
-            VssCredentials credentials = new VssClientCredentials();
+            var credentials = new VssClientCredentials();
 
-            var scopes = "vso.build vso.code_write vso.drop_manage vso.packaging";
+            var scopes = "vso.build vso.code_write vso.drop_manage vso.identity vso.packaging";
             var tokenAccounts = new[] { "mscodehub", "microsoft" };
 
             var accountsUrl = "https://app.vssps.visualstudio.com";
@@ -50,7 +50,7 @@ namespace GenerateVpackPat
                 ValidTo = now + TimeSpan.FromDays(180)
             };
 
-            SessionToken Pat = await tokenClient.CreateSessionTokenAsync(session, SessionTokenType.Compact, isPublic: false);
+            var Pat = await tokenClient.CreateSessionTokenAsync(session, SessionTokenType.Compact, isPublic: false);
 
             Console.WriteLine($"Your PAT is: {Pat.Token}");
         }
