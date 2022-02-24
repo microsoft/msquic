@@ -24,5 +24,9 @@ ClangSharpPInvokeGenerator -f $MsQuicHeader -n Microsoft.Quic -o $MsQuicGenerate
 
 $ReplaceDir = $RootDir + "\"
 
-(Get-Content $MsQuicGeneratedSource).Replace($ReplaceDir, "").Replace($ReplaceDir.Replace("\", "/"), "") | `
+(Get-Content $MsQuicGeneratedSource)
+    .Replace($ReplaceDir, "") `
+    .Replace($ReplaceDir.Replace("\", "/"), "") `
+    .Replace('(?<!(\[Flags\])\n    )public enum .*?_FLAGS','[Flags]\n    $0') `
+    | `
     Out-File $MsQuicGeneratedSource
