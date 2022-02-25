@@ -219,9 +219,9 @@ std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& arg
         (args.DisableVNEServer ? "DisableServer" : "EnableServer");
 }
 
-class WithVersionNegotiationExtArgs : public testing::Test,
-    public testing::WithParamInterface<VersionNegotiationExtArgs> {
-};
+// class WithVersionNegotiationExtArgs : public testing::Test,
+//     public testing::WithParamInterface<VersionNegotiationExtArgs> {
+// };
 
 struct HandshakeArgs6 {
     int Family;
