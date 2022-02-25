@@ -2,8 +2,11 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
+#[allow(unused_imports)]
 use c_types::AF_UNSPEC;
+#[allow(unused_imports)]
 use c_types::AF_INET;
+#[allow(unused_imports)]
 use c_types::AF_INET6;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
