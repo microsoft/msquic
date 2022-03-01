@@ -869,8 +869,8 @@ QuicConnGenerateNewSourceCid(
                 Connection,
                 Connection->ServerID,
                 Connection->PartitionID,
-                Connection->CidPrefix[0],
-                Connection->CidPrefix+1);
+                Connection->CibirId[1],
+                Connection->CibirId+2);
         if (SourceCid == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1915,8 +1915,8 @@ QuicConnStart(
                 Connection,
                 NULL,
                 Connection->PartitionID,
-                Connection->CidPrefix[0],
-                Connection->CidPrefix+1);
+                Connection->CibirId[1],
+                Connection->CibirId+2);
     } else {
         SourceCid = QuicCidNewNullSource(Connection);
     }
@@ -6278,25 +6278,41 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:
-
-        if (BufferLength == 0 || BufferLength > MSQUIC_CID_MAX_DCID_PREFIX ||
-            Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
+    case QUIC_PARAM_CONN_CIBIR_ID: {
 
         if (QuicConnIsServer(Connection) ||
             QUIC_CONN_BAD_START_STATE(Connection)) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
+            return QUIC_STATUS_INVALID_STATE;
+        }
+        if (!Connection->State.ShareBinding) {
+            //
+            // We aren't sharing the binding, and therefore we don't use source
+            // connection IDs, so CIBIR is not supported.
+            //
+            return QUIC_STATUS_INVALID_STATE;
         }
 
-        CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid);
-        CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid->CID.Length > BufferLength);
-        CxPlatCopyMemory(Connection->Paths[0].DestCid->CID.Data, Buffer, BufferLength);
-        Status = QUIC_STATUS_SUCCESS;
-        break;
+        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (BufferLength == 0) {
+            CxPlatZeroMemory(Connection->CibirId, sizeof(Connection->CibirId));
+            return QUIC_STATUS_SUCCESS;
+        }
+        if (BufferLength < sizeof(QUIC_CIBIR_ID)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        const QUIC_CIBIR_ID* NewCibirId = (const QUIC_CIBIR_ID*)Buffer;
+        if (NewCibirId->Offset != 0) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
+        }
+
+        Connection->CibirId[0] = (uint8_t)NewCibirId->Offset;
+        Connection->CibirId[1] = (uint8_t)BufferLength - 1;
+        memcpy(Connection->CibirId+2, NewCibirId->Value, BufferLength - 1);
+        return QUIC_STATUS_SUCCESS;
+    }
 
     //
     // Private

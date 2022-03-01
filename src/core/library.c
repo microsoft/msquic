@@ -723,12 +723,12 @@ QuicLibApplyLoadBalancingSetting(
 
     MsQuicLib.CidTotalLength =
         MsQuicLib.CidServerIdLength +
-        MSQUIC_CID_PID_LENGTH +
-        MSQUIC_CID_PAYLOAD_LENGTH;
+        QUIC_CID_PID_LENGTH +
+        QUIC_CID_PAYLOAD_LENGTH;
 
-    CXPLAT_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_CID_SID_LENGTH);
+    CXPLAT_FRE_ASSERT(MsQuicLib.CidServerIdLength <= QUIC_MAX_CID_SID_LENGTH);
     CXPLAT_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
-    CXPLAT_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
+    CXPLAT_FRE_ASSERT(MsQuicLib.CidTotalLength <= QUIC_CID_MAX_LENGTH);
 
     QuicTraceLogInfo(
         LibraryCidLengthSet,
