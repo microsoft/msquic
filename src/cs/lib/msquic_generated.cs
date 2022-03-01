@@ -225,7 +225,7 @@ namespace Microsoft.Quic
 
         public QUIC_CREDENTIAL_FLAGS Flags;
 
-        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:276:5)")]
+        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
@@ -819,7 +819,7 @@ namespace Microsoft.Quic
 
     public partial struct QUIC_GLOBAL_SETTINGS
     {
-        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:531:5)")]
+        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
@@ -906,7 +906,7 @@ namespace Microsoft.Quic
 
     public partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:545:5)")]
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint64_t")]
@@ -1689,7 +1689,7 @@ namespace Microsoft.Quic
     {
         public QUIC_LISTENER_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:905:5)")]
+        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
@@ -1787,7 +1787,7 @@ namespace Microsoft.Quic
     {
         public QUIC_CONNECTION_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1003:5)")]
+        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
@@ -2156,7 +2156,7 @@ namespace Microsoft.Quic
     {
         public QUIC_STREAM_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at C:/Users/thhous/Documents/GitHub/msquic/src/inc/msquic.h:1184:5)")]
+        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE

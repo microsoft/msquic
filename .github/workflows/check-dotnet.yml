@@ -1,4 +1,4 @@
-name: CLOG
+name: CheckDotnet
 
 on:
   push:
