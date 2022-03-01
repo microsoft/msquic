@@ -2837,58 +2837,6 @@ QuicConnProcessPeerVersionNegotiationTP(
     return QUIC_STATUS_SUCCESS;
 }
 
-//
-// Called after the configuration has been set. This happens immediately on the
-// client side, but not until after the listener accecpt on the server side.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicConnPostAcceptValidatePeerTransportParameters(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    //
-    // CIBIR encoding transport parameter validation.
-    //
-    if (Connection->CibirId[0] != 0) {
-        if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING)) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Peer isn't using CIBIR but we are");
-            return FALSE;
-        }
-        if (Connection->PeerTransportParams.CibirLength != Connection->CibirId[0]) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Peer isn't using a matching CIBIR length");
-            return FALSE;
-        }
-        if (Connection->PeerTransportParams.CibirOffset != Connection->CibirId[1]) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Peer isn't using a matching CIBIR offset");
-            return FALSE;
-        }
-    } else { // CIBIR not in use
-        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Peer is using CIBIR but we aren't");
-            return FALSE;
-        }
-    }
-
-    return TRUE;
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnProcessPeerTransportParameters(
@@ -3011,6 +2959,58 @@ Error:
         Status = QUIC_STATUS_PROTOCOL_ERROR;
     }
     return Status;
+}
+
+//
+// Called after the configuration has been set. This happens immediately on the
+// client side, but not until after the listener accepted on the server side.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPostAcceptValidatePeerTransportParameters(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // CIBIR encoding transport parameter validation.
+    //
+    if (Connection->CibirId[0] != 0) {
+        if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using CIBIR but we are");
+            return FALSE;
+        }
+        if (Connection->PeerTransportParams.CibirLength != Connection->CibirId[0]) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR length");
+            return FALSE;
+        }
+        if (Connection->PeerTransportParams.CibirOffset != Connection->CibirId[1]) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR offset");
+            return FALSE;
+        }
+    } else { // CIBIR not in use
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer is using CIBIR but we aren't");
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
