@@ -10697,6 +10697,46 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "EncodeTPCibirEncoding": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)",
+      "UniqueId": "EncodeTPCibirEncoding",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPCibirEncoding": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)",
+      "UniqueId": "DecodeTPCibirEncoding",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     }
   },
   "ConfigFile": {
@@ -14557,6 +14597,16 @@
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop",
         "EncodingString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s."
+      },
+      {
+        "UniquenessHash": "aaf030f3-46be-72b4-807a-08aea8ec0362",
+        "TraceID": "EncodeTPCibirEncoding",
+        "EncodingString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)"
+      },
+      {
+        "UniquenessHash": "bcca8105-4c4b-0733-5277-ca216bcd792b",
+        "TraceID": "DecodeTPCibirEncoding",
+        "EncodingString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)"
       }
     ]
   }
