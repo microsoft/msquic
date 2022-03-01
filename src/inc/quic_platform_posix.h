@@ -315,7 +315,7 @@ typedef struct CXPLAT_LOCK {
     // Mutex and condition. The alignas is important, as the perf tanks
     // if the event is not aligned to the size of 2 pointers.
     //
-    _Alignas(sizeof(void*) * 2) pthread_mutex_t Mutex;
+    alignas(sizeof(void*) * 2) pthread_mutex_t Mutex;
 
 } CXPLAT_LOCK;
 
@@ -694,7 +694,7 @@ typedef struct CXPLAT_EVENT {
     // Mutex and condition. The alignas is important, as the perf tanks
     // if the event is not aligned to the size of 2 pointers.
     //
-    _Alignas(sizeof(void*) * 2) pthread_mutex_t Mutex;
+    alignas(sizeof(void*) * 2) pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
     //
