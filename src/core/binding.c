@@ -988,7 +988,7 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        uint8_t NewDestCid[MSQUIC_CID_MAX_LENGTH];
+        uint8_t NewDestCid[QUIC_CID_MAX_LENGTH];
         CXPLAT_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
         CxPlatRandom(sizeof(NewDestCid), NewDestCid);
 

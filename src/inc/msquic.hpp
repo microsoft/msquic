@@ -669,6 +669,20 @@ struct MsQuicListener {
                 &Addr.SockAddr);
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetCibirId(
+        _In_reads_(Length) const uint8_t* Value,
+        _In_ uint8_t Length) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_CIBIR_ID,
+                Length,
+                Value);
+    }
+#endif
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicListener(MsQuicListener& other) = delete;
@@ -932,6 +946,20 @@ struct MsQuicConnection {
                 sizeof(Value),
                 &Value);
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetCibirId(
+        _In_reads_(Length) const uint8_t* Value,
+        _In_ uint8_t Length) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                Length,
+                Value);
+    }
+#endif
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }

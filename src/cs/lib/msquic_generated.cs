@@ -2561,8 +2561,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x04000001")]
         public const int QUIC_PARAM_LISTENER_STATS = 0x04000001;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_CID_PREFIX 0x04000002")]
-        public const int QUIC_PARAM_LISTENER_CID_PREFIX = 0x04000002;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
+        public const int QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x05000000")]
         public const int QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;
@@ -2627,8 +2627,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_VERSION_SETTINGS 0x05000014")]
         public const int QUIC_PARAM_CONN_VERSION_SETTINGS = 0x05000014;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX 0x05000015")]
-        public const int QUIC_PARAM_CONN_INITIAL_DCID_PREFIX = 0x05000015;
+        [NativeTypeName("#define QUIC_PARAM_CONN_CIBIR_ID 0x05000015")]
+        public const int QUIC_PARAM_CONN_CIBIR_ID = 0x05000015;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2 0x05000016")]
         public const int QUIC_PARAM_CONN_STATISTICS_V2 = 0x05000016;

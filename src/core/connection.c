@@ -869,8 +869,8 @@ QuicConnGenerateNewSourceCid(
                 Connection,
                 Connection->ServerID,
                 Connection->PartitionID,
-                Connection->CidPrefix[0],
-                Connection->CidPrefix+1);
+                Connection->CibirId[0],
+                Connection->CibirId+2);
         if (SourceCid == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1915,8 +1915,8 @@ QuicConnStart(
                 Connection,
                 NULL,
                 Connection->PartitionID,
-                Connection->CidPrefix[0],
-                Connection->CidPrefix+1);
+                Connection->CibirId[0],
+                Connection->CibirId+2);
     } else {
         SourceCid = QuicCidNewNullSource(Connection);
     }
@@ -2258,6 +2258,12 @@ QuicConnCleanupServerResumptionState(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPostAcceptValidatePeerTransportParameters(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnGenerateLocalTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
@@ -2319,6 +2325,12 @@ QuicConnGenerateLocalTransportParameters(
 
     if (Connection->State.Disable1RttEncrytion) {
         LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
+    }
+
+    if (Connection->CibirId[0] != 0) {
+        LocalTP->Flags |= QUIC_TP_FLAG_CIBIR_ENCODING;
+        LocalTP->CibirLength = Connection->CibirId[0];
+        LocalTP->CibirOffset = Connection->CibirId[1];
     }
 
     if (Connection->Settings.VersionNegotiationExtEnabled) {
@@ -2484,6 +2496,13 @@ QuicConnSetConfiguration(
             Connection->OrigDestCID->Data,
             DestCid->CID.Data,
             DestCid->CID.Length);
+
+    } else {
+        if (!QuicConnPostAcceptValidatePeerTransportParameters(Connection)) {
+            QuicConnTransportError(Connection, QUIC_ERROR_CONNECTION_REFUSED);
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
     }
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
@@ -2591,6 +2610,7 @@ QuicConnValidateTransportParameterCIDs(
             }
         }
     }
+
     return TRUE;
 }
 
@@ -2897,6 +2917,11 @@ QuicConnProcessPeerTransportParameters(
         if (!QuicConnValidateTransportParameterCIDs(Connection)) {
             goto Error;
         }
+
+        if (QuicConnIsClient(Connection) &&
+            !QuicConnPostAcceptValidatePeerTransportParameters(Connection)) {
+            goto Error;
+        }
     }
 
     Connection->Send.PeerMaxData =
@@ -2934,6 +2959,58 @@ Error:
         Status = QUIC_STATUS_PROTOCOL_ERROR;
     }
     return Status;
+}
+
+//
+// Called after the configuration has been set. This happens immediately on the
+// client side, but not until after the listener accepted on the server side.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPostAcceptValidatePeerTransportParameters(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // CIBIR encoding transport parameter validation.
+    //
+    if (Connection->CibirId[0] != 0) {
+        if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using CIBIR but we are");
+            return FALSE;
+        }
+        if (Connection->PeerTransportParams.CibirLength != Connection->CibirId[0]) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR length");
+            return FALSE;
+        }
+        if (Connection->PeerTransportParams.CibirOffset != Connection->CibirId[1]) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR offset");
+            return FALSE;
+        }
+    } else { // CIBIR not in use
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer is using CIBIR but we aren't");
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6278,25 +6355,47 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_INITIAL_DCID_PREFIX:
-
-        if (BufferLength == 0 || BufferLength > MSQUIC_CID_MAX_DCID_PREFIX ||
-            Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
+    case QUIC_PARAM_CONN_CIBIR_ID: {
 
         if (QuicConnIsServer(Connection) ||
             QUIC_CONN_BAD_START_STATE(Connection)) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
+            return QUIC_STATUS_INVALID_STATE;
+        }
+        if (!Connection->State.ShareBinding) {
+            //
+            // We aren't sharing the binding, and therefore we don't use source
+            // connection IDs, so CIBIR is not supported.
+            //
+            return QUIC_STATUS_INVALID_STATE;
         }
 
-        CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid);
-        CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid->CID.Length > BufferLength);
-        CxPlatCopyMemory(Connection->Paths[0].DestCid->CID.Data, Buffer, BufferLength);
-        Status = QUIC_STATUS_SUCCESS;
-        break;
+        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (BufferLength == 0) {
+            CxPlatZeroMemory(Connection->CibirId, sizeof(Connection->CibirId));
+            return QUIC_STATUS_SUCCESS;
+        }
+        if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        if (((uint8_t*)Buffer)[0] != 0) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
+        }
+
+        Connection->CibirId[0] = (uint8_t)BufferLength - 1;
+        memcpy(Connection->CibirId + 1, Buffer, BufferLength);
+
+        QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+
+        return QUIC_STATUS_SUCCESS;
+    }
 
     //
     // Private

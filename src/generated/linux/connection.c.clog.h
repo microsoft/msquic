@@ -819,6 +819,28 @@ tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for CibirIdSet
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->CibirId[0] = arg3
+// arg4 = arg4 = Connection->CibirId[1] = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CibirIdSet
+#define _clog_5_ARGS_TRACE_CibirIdSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, CibirIdSet , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApplySettings
 // [conn][%p] Applying new settings
 // QuicTraceLogConnInfo(

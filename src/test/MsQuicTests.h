@@ -207,6 +207,12 @@ QuicTestInterfaceBinding(
     _In_ int Family
     );
 
+void
+QuicTestCibirExtension(
+    _In_ int Family,
+    _In_ uint8_t Mode // server = &1, client = &2
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -976,4 +982,13 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION \
     QUIC_CTL_CODE(84, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 84
+typedef struct {
+    int Family;
+    uint8_t Mode;
+} QUIC_RUN_CIBIR_EXTENSION;
+
+#define IOCTL_QUIC_RUN_CIBIR_EXTENSION \
+    QUIC_CTL_CODE(85, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CIBIR_EXTENSION
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 85

@@ -359,7 +359,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
+    uint8_t ServerID[QUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -464,9 +464,10 @@ typedef struct QUIC_CONNECTION {
 
     //
     // An app configured prefix for all connection IDs. The first byte indicates
-    // the length.
+    // the length of the ID, the second byte the offset of the ID in the CID and
+    // the rest payload of the identifier.
     //
-    uint8_t CidPrefix[1 + MSQUIC_CID_MAX_APP_PREFIX];
+    uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
     //
     // Sorted array of all timers for the connection.

@@ -585,6 +585,33 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+            EncodeTPCibirEncoding,
+            Connection,
+            "TP: CIBIR Encoding (%llu length, %llu offset)",
+            TransportParams->CibirLength,
+            TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPCibirEncoding,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -1078,6 +1105,33 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+                DecodeTPCibirEncoding,
+                Connection,
+                "TP: CIBIR Encoding (%llu length, %llu offset)",
+                TransportParams->CibirLength,
+                TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPCibirEncoding,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 

@@ -773,6 +773,19 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
     }
 }
 
+TEST_P(WithHandshakeArgs7, CibirExtension) {
+    TestLoggerT<ParamType> Logger("QuicTestCibirExtension", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CIBIR_EXTENSION Params = {
+            GetParam().Family,
+            GetParam().Mode
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CIBIR_EXTENSION, Params));
+    } else {
+        QuicTestCibirExtension(GetParam().Family, GetParam().Mode);
+    }
+}
+
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
@@ -1740,6 +1753,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs6,
     testing::ValuesIn(HandshakeArgs6::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs7,
+    testing::ValuesIn(HandshakeArgs7::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,

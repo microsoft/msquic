@@ -116,7 +116,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
-| `QUIC_PARAM_LISTENER_CID_PREFIX`<br> 2    | uint8_t[]  | Both  | CID prefix prepended to all CIDs.        |
+| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2    | uint8_t[]  | Both  | The CIBIR well-known idenfitier.        |
 
 ### Connection Parameters
 
@@ -145,7 +145,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18          | uint32_t                      | Set-only  | The local interface index to bind to.                                                     |
 | `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19              | QUIC_TLS_SECRETS              | Set-only  | The TLS secrets struct to be populated by MsQuic.                                         |
 | `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both  | The desired QUIC versions for the connection.                                                 |
-| `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 21      | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.                                                             |
+| `QUIC_PARAM_CONN_CIBIR_ID`<br> 21      | uint8_t[]  | Set-only  | The CIBIR well-known identifier.                                                             |
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5             | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6        | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 

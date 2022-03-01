@@ -454,7 +454,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(QUIC_RUN_CRED_VALIDATION)
+    sizeof(QUIC_RUN_CRED_VALIDATION),
+    sizeof(QUIC_RUN_CIBIR_EXTENSION),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -486,6 +487,7 @@ typedef union {
     uint32_t Test;
     QUIC_RUN_REBIND_PARAMS RebindParams;
     UINT8 RejectByClosing;
+    QUIC_RUN_CIBIR_EXTENSION CibirParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1168,6 +1170,14 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestCredentialLoad(
                 &Params->CredValidationParams.CredConfig));
+        break;
+
+    case IOCTL_QUIC_RUN_CIBIR_EXTENSION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCibirExtension(
+                Params->CibirParams.Family,
+                Params->CibirParams.Mode));
         break;
 
     default:

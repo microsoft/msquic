@@ -47,6 +47,18 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_INITIAL_WINDOW_PACKETS             10
 
 //
+// Maximum number of bytes allowed for a connection ID.
+//
+#define QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT 255
+#define QUIC_MAX_CONNECTION_ID_LENGTH_V1        20
+
+//
+// Minimum number of bytes required for a connection ID in the client's
+// Initial packet.
+//
+#define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH   8
+
+//
 // The amount of packet amplification allowed by the server. Until the
 // client address is validated, a server will send no more than
 // QUIC_AMPLIFICATION_RATIO UDP payload bytes for each received byte.

@@ -10697,6 +10697,86 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "EncodeTPCibirEncoding": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)",
+      "UniqueId": "EncodeTPCibirEncoding",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPCibirEncoding": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)",
+      "UniqueId": "DecodeTPCibirEncoding",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "CibirIdSet": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] CIBIR ID set (len %hhu, offset %hhu)",
+      "UniqueId": "CibirIdSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "ListenerCibirIdSet": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+      "UniqueId": "ListenerCibirIdSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "ConfigFile": {
@@ -14557,6 +14637,26 @@
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop",
         "EncodingString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s."
+      },
+      {
+        "UniquenessHash": "aaf030f3-46be-72b4-807a-08aea8ec0362",
+        "TraceID": "EncodeTPCibirEncoding",
+        "EncodingString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)"
+      },
+      {
+        "UniquenessHash": "bcca8105-4c4b-0733-5277-ca216bcd792b",
+        "TraceID": "DecodeTPCibirEncoding",
+        "EncodingString": "[conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)"
+      },
+      {
+        "UniquenessHash": "02c2201b-fb0a-daed-b336-7d413eeed4f7",
+        "TraceID": "CibirIdSet",
+        "EncodingString": "[conn][%p] CIBIR ID set (len %hhu, offset %hhu)"
+      },
+      {
+        "UniquenessHash": "d1af42ed-141c-9600-a11e-61b6bfce2853",
+        "TraceID": "ListenerCibirIdSet",
+        "EncodingString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu)"
       }
     ]
   }
