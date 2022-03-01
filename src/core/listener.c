@@ -672,6 +672,15 @@ QuicListenerAcceptConnection(
 
     memcpy(Connection->CibirId, Listener->CibirId, sizeof(Listener->CibirId));
 
+    if (Connection->CibirId[0] != 0) {
+        QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+    }
+
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
         return;
     }
@@ -713,6 +722,14 @@ QuicListenerParamSet(
 
         Listener->CibirId[0] = (uint8_t)BufferLength - 1;
         memcpy(Listener->CibirId + 1, Buffer, BufferLength);
+
+        QuicTraceLogVerbose(
+            ListenerCibirIdSet,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            Listener,
+            Listener->CibirId[0],
+            Listener->CibirId[1]);
+
         return QUIC_STATUS_SUCCESS;
     }
 
