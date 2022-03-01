@@ -1,0 +1,41 @@
+name: CheckDotnet
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+permissions: read-all
+
+jobs:
+  validate:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+    name: Validate
+    runs-on: windows-latest
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
+      with:
+        egress-policy: audit
+    - name: Setup .NET
+      uses: actions/setup-dotnet@9211491ffb35dd6a6657ca4f45d43dfe6e97c829
+      with:
+        dotnet-version: 6.0.x
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Configuration Dev
+      shell: pwsh
+    - name: Run DotNet Update
+      run: scripts/generate-dotnet.ps1
+      shell: pwsh
+    - name: Check for Changes
+      run: |
+        git add .
+        git --no-pager diff --exit-code HEAD
