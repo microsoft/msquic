@@ -3,7 +3,6 @@
 // Licensed under the MIT License.
 //
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
@@ -37,7 +36,7 @@ namespace Microsoft.Quic
         QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_CREDENTIAL_FLAGS
     {
         QUIC_CREDENTIAL_FLAG_NONE = 0x00000000,
@@ -58,7 +57,7 @@ namespace Microsoft.Quic
         QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES = 0x00004000,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
     {
         QUIC_ALLOWED_CIPHER_SUITE_NONE = 0x0,
@@ -67,14 +66,14 @@ namespace Microsoft.Quic
         QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 = 0x4,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
     {
         QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE = 0x0000,
         QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE = 0x0001,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_CONNECTION_SHUTDOWN_FLAGS
     {
         QUIC_CONNECTION_SHUTDOWN_FLAG_NONE = 0x0000,
@@ -88,7 +87,7 @@ namespace Microsoft.Quic
         QUIC_SERVER_RESUME_AND_ZERORTT,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_SEND_RESUMPTION_FLAGS
     {
         QUIC_SEND_RESUMPTION_FLAG_NONE = 0x0000,
@@ -102,7 +101,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_SCHEDULING_SCHEME_COUNT,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_STREAM_OPEN_FLAGS
     {
         QUIC_STREAM_OPEN_FLAG_NONE = 0x0000,
@@ -110,7 +109,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_OPEN_FLAG_0_RTT = 0x0002,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_STREAM_START_FLAGS
     {
         QUIC_STREAM_START_FLAG_NONE = 0x0000,
@@ -120,7 +119,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_STREAM_SHUTDOWN_FLAGS
     {
         QUIC_STREAM_SHUTDOWN_FLAG_NONE = 0x0000,
@@ -132,7 +131,7 @@ namespace Microsoft.Quic
         QUIC_STREAM_SHUTDOWN_FLAG_INLINE = 0x0010,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_RECEIVE_FLAGS
     {
         QUIC_RECEIVE_FLAG_NONE = 0x0000,
@@ -140,7 +139,7 @@ namespace Microsoft.Quic
         QUIC_RECEIVE_FLAG_FIN = 0x0002,
     }
 
-    [Flags]
+    [System.Flags]
     public enum QUIC_SEND_FLAGS
     {
         QUIC_SEND_FLAG_NONE = 0x0000,
@@ -226,7 +225,7 @@ namespace Microsoft.Quic
 
         public QUIC_CREDENTIAL_FLAGS Flags;
 
-        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at src/inc/msquic.h:279:5)")]
+        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
@@ -501,19 +500,19 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         public uint MaxRtt;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:396:5)")]
+        [NativeTypeName("struct (anonymous struct)")]
         public _Timing_e__Struct Timing;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:401:5)")]
+        [NativeTypeName("struct (anonymous struct)")]
         public _Handshake_e__Struct Handshake;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:406:5)")]
+        [NativeTypeName("struct (anonymous struct)")]
         public _Send_e__Struct Send;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:417:5)")]
+        [NativeTypeName("struct (anonymous struct)")]
         public _Recv_e__Struct Recv;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:427:5)")]
+        [NativeTypeName("struct (anonymous struct)")]
         public _Misc_e__Struct Misc;
 
         public partial struct _Timing_e__Struct
@@ -820,7 +819,7 @@ namespace Microsoft.Quic
 
     public partial struct QUIC_GLOBAL_SETTINGS
     {
-        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union at src/inc/msquic.h:534:5)")]
+        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
@@ -853,7 +852,7 @@ namespace Microsoft.Quic
             public ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:536:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _IsSet_e__Struct IsSet;
 
             public partial struct _IsSet_e__Struct
@@ -907,7 +906,7 @@ namespace Microsoft.Quic
 
     public partial struct QUIC_SETTINGS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union at src/inc/msquic.h:548:5)")]
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint64_t")]
@@ -1098,7 +1097,7 @@ namespace Microsoft.Quic
             public ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:550:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _IsSet_e__Struct IsSet;
 
             public partial struct _IsSet_e__Struct
@@ -1561,7 +1560,7 @@ namespace Microsoft.Quic
         [NativeTypeName("uint8_t")]
         public byte SecretLength;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:629:5)")]
+        [NativeTypeName("struct (anonymous struct)")]
         public _IsSet_e__Struct IsSet;
 
         [NativeTypeName("uint8_t [32]")]
@@ -1690,7 +1689,7 @@ namespace Microsoft.Quic
     {
         public QUIC_LISTENER_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at src/inc/msquic.h:920:5)")]
+        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
@@ -1713,11 +1712,11 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:921:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:925:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _STOP_COMPLETE_e__Struct STOP_COMPLETE;
 
             public unsafe partial struct _NEW_CONNECTION_e__Struct
@@ -1788,7 +1787,7 @@ namespace Microsoft.Quic
     {
         public QUIC_CONNECTION_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at src/inc/msquic.h:1018:5)")]
+        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
@@ -1915,63 +1914,63 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1019:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _CONNECTED_e__Struct CONNECTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1026:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1029:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1032:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1037:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1040:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1043:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1047:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1051:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1054:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1058:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1062:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1066:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _RESUMED_e__Struct RESUMED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1070:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1076:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
 
             public unsafe partial struct _CONNECTED_e__Struct
@@ -2157,7 +2156,7 @@ namespace Microsoft.Quic
     {
         public QUIC_STREAM_EVENT_TYPE Type;
 
-        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at src/inc/msquic.h:1199:5)")]
+        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union)")]
         public _Anonymous_e__Union Anonymous;
 
         public ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
@@ -2228,35 +2227,35 @@ namespace Microsoft.Quic
         public partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1200:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _START_COMPLETE_e__Struct START_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1206:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _RECEIVE_e__Struct RECEIVE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1215:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _SEND_COMPLETE_e__Struct SEND_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1219:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1222:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1225:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1228:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1233:9)")]
+            [NativeTypeName("struct (anonymous struct)")]
             public _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
 
             public partial struct _START_COMPLETE_e__Struct
