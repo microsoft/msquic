@@ -33,7 +33,7 @@ jobs:
       run: scripts/prepare-machine.ps1 -Configuration Dev
       shell: pwsh
     - name: Run CLOG Update
-      run: scripts/generate-dotnet.ps1
+      run: scripts/update-sidecar.ps1
       shell: pwsh
     - name: Check for Changes
       run: |

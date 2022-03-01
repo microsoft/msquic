@@ -32,7 +32,7 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Configuration Dev
       shell: pwsh
-    - name: Run CLOG Update
+    - name: Run DotNet Update
       run: scripts/generate-dotnet.ps1
       shell: pwsh
     - name: Check for Changes
