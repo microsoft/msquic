@@ -755,7 +755,7 @@ CxPlatDpRawInterfaceUpdateRules(
         .SubLayer = XDP_HOOK_INSPECT,
     };
 
-    const UINT32 Flags = 0; // TODO: support native/generic forced flags.
+    const UINT32 Flags = XDP_CREATE_PROGRAM_FLAG_SHARE; // TODO: support native/generic forced flags.
 
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
