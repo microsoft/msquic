@@ -22,12 +22,8 @@ ClangSharpPInvokeGenerator -f $MsQuicHeader -n Microsoft.Quic -o $MsQuicGenerate
     -e QUIC_UINT62_MAX -e MsQuicOpen2 -e QUIC_API_VERSION_1 -D QUIC_API_ENABLE_INSECURE_FEATURES `
     -D QUIC_API_ENABLE_PREVIEW_FEATURES
 
-$ReplaceDir = $RootDir + "\"
-
-(Get-Content $MsQuicGeneratedSource)
-    .Replace($ReplaceDir, "") `
-    .Replace($ReplaceDir.Replace("\", "/"), "") `
-    .Replace('(?<!(\[Flags\])\n    )public enum .*?_FLAGS','[Flags]\n    $0') `
-    .Replace('(?<!using System;\n)(?!using System;\n)(using .*?;\n)+', 'using System;\n$0') `
+(Get-Content $MsQuicGeneratedSource) `
+    -replace '\(anonymous struct.+\)\"', "(anonymous struct)`"" `
+    -replace "public enum .*?_FLAGS","[System.Flags]`n    `$0" `
     | `
     Out-File $MsQuicGeneratedSource
