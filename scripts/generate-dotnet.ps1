@@ -14,6 +14,8 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 $ToolPath = Join-Path $RootDir build dotnetgenerator
 
+if (Test-Path $ToolPath) { Remove-Item $ToolPath -Recurse -Force | Out-Null }
+
 dotnet tool install ClangSharpPInvokeGenerator --version 13.0.0-beta1 --tool-path $ToolPath
 
 $MsQuicHeader = Join-Path $RootDir src inc msquic.h
@@ -38,6 +40,8 @@ $Arguments = @(
     "-e QUIC_API_VERSION_1", # Exclude v1 API define
     "-D QUIC_API_ENABLE_INSECURE_FEATURES", # Enable insecure features to be generated
     "-D QUIC_API_ENABLE_PREVIEW_FEATURES" # Enable preview features to be generated
+    "-e QUIC_DATAGRAM_SEND_STATE_IS_FINAL" # Cannot generate macro functions
+    "-e QUIC_PARAM_IS_GLOBAL" # Cannot generate macro functions
 )
 
 $FullArgs = $Arguments -join " "
@@ -50,3 +54,5 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace "public enum .*?_FLAGS","[System.Flags]`n    `$0" `
     | `
     Out-File $MsQuicGeneratedSource
+
+$LASTEXITCODE = 0
