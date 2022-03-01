@@ -38,6 +38,8 @@ QuicStreamInitialize(
         goto Exit;
     }
 
+    CXPLAT_DBG_ASSERT(((intptr_t)Stream % _Alignof(struct QUIC_STREAM)) == 0);
+
     QuicTraceEvent(
         StreamAlloc,
         "[strm][%p] Allocated, Conn=%p",
