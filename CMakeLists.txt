@@ -143,6 +143,18 @@ endif()
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
 
+string(GENEX_STRIP ${QUIC_OUTPUT_DIR} QUIC_OUTPUT_DIR_STRIPPED)
+
+string(COMPARE EQUAL ${QUIC_OUTPUT_DIR} ${QUIC_OUTPUT_DIR_STRIPPED} QUIC_HAS_GENERATOR_OUTPUT_DIR)
+
+if (QUIC_HAS_GENERATOR_OUTPUT_DIR)
+    set(QUIC_PGO_DIR ${QUIC_OUTPUT_DIR})
+else ()
+    set(QUIC_PGO_DIR ${QUIC_BUILD_DIR}/PGO)
+endif ()
+
+message(STATUS "QUIC PGO DIR: ${QUIC_PGO_DIR}")
+
 set(QUIC_VER_BUILD_ID "0" CACHE STRING "The version build ID")
 set(QUIC_VER_SUFFIX "-private" CACHE STRING "The version suffix")
 
@@ -443,8 +455,8 @@ if(WIN32)
         # Configured for training mode. Use the previous PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "/GENPROFILE:PDG")
-            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_PGO_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_PGO_DIR}/msquic.pgd\"")
         else()
             message(STATUS "/GENPROFILE")
             set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
@@ -454,8 +466,9 @@ if(WIN32)
         # Just doing a normal build. Use the PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "Using profile-guided optimization")
-            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
+            file(MAKE_DIRECTORY ${QUIC_PGO_DIR})
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_PGO_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_PGO_DIR}/msquic.pgd\"")
         endif()
     endif()
 
