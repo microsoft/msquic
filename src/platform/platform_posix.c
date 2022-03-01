@@ -242,7 +242,7 @@ CxPlatUninitialize(
         "[ dso] Uninitialized");
 }
 
-CXPLAT_STATIC_ASSERT(alignof(max_align_t) >= sizeof(void*) * 2);
+CXPLAT_STATIC_ASSERT(alignof(max_align_t) >= sizeof(void*) * 2, "Must have an alignment that works for locks");
 
 void*
 CxPlatAlloc(
