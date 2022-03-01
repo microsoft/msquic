@@ -1172,7 +1172,7 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
-    case IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION:
+    case IOCTL_QUIC_RUN_CIBIR_EXTENSION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestCibirExtension(
