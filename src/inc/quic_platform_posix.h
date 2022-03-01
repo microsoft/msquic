@@ -311,7 +311,11 @@ CxPlatFree(
 
 typedef struct CXPLAT_LOCK {
 
-    alignas(16) pthread_mutex_t Mutex;
+    //
+    // Mutex and condition. The alignas is important, as the perf tanks
+    // if the event is not aligned to the size of 2 pointers.
+    //
+    alignas(sizeof(void*) * 2) pthread_mutex_t Mutex;
 
 } CXPLAT_LOCK;
 
@@ -688,9 +692,9 @@ typedef struct CXPLAT_EVENT {
 
     //
     // Mutex and condition. The alignas is important, as the perf tanks
-    // if the event is not aligned.
+    // if the event is not aligned to the size of 2 pointers.
     //
-    alignas(16) pthread_mutex_t Mutex;
+    alignas(sizeof(void*) * 2) pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
     //

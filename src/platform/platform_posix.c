@@ -242,6 +242,8 @@ CxPlatUninitialize(
         "[ dso] Uninitialized");
 }
 
+CXPLAT_STATIC_ASSERT(alignof(max_align_t) >= sizeof(void*) * 2);
+
 void*
 CxPlatAlloc(
     _In_ size_t ByteCount,
