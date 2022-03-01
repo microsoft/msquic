@@ -2321,6 +2321,12 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
     }
 
+    if (Connection->CibirId[1] != 0) {
+        LocalTP->Flags |= QUIC_TP_FLAG_CIBIR_ENCODING;
+        LocalTP->CibirOffset = Connection->CibirId[0];
+        LocalTP->CibirLength = Connection->CibirId[1];
+    }
+
     if (Connection->Settings.VersionNegotiationExtEnabled) {
         uint32_t VersionInfoLength = 0;
         LocalTP->VersionInfo =
@@ -2591,6 +2597,46 @@ QuicConnValidateTransportParameterCIDs(
             }
         }
     }
+
+    //
+    // CIBIR encoding transport parameter validation.
+    //
+    if (Connection->CibirId[1] != 0) {
+        if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using CIBIR but we are");
+            return FALSE;
+        }
+        if (!(Connection->PeerTransportParams.CibirOffset != Connection->CibirId[0])) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR offset");
+            return FALSE;
+        }
+        if (!(Connection->PeerTransportParams.CibirLength != Connection->CibirId[1])) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR length");
+            return FALSE;
+        }
+    } else { // CIBIR not in use
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer is using CIBIR but we aren't");
+            return FALSE;
+        }
+    }
+
     return TRUE;
 }
 
