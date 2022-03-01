@@ -64,7 +64,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD          // N/A
 #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB        // Blob
 #define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF03DE1AULL   // varint
-#define QUIC_TP_ID_CIBIR_ENCODING                           48              // {varint, varint}
+#define QUIC_TP_ID_CIBIR_ENCODING                           0x1000          // {varint, varint}
 
 BOOLEAN
 QuicTpIdIsReserved(

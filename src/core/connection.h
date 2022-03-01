@@ -464,8 +464,8 @@ typedef struct QUIC_CONNECTION {
 
     //
     // An app configured prefix for all connection IDs. The first byte indicates
-    // the offset, the second byte the length and the rest indicates the
-    // identifier.
+    // the length of the ID, the second byte the offset of the ID in the CID and
+    // the rest payload of the identifier.
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 

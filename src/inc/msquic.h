@@ -640,15 +640,6 @@ typedef struct QUIC_TLS_SECRETS {
 } QUIC_TLS_SECRETS;
 
 //
-// This struct abstracts the well-known identifier used for the QUIC CIBIR
-// extension.
-//
-typedef struct QUIC_CIBIR_ID {
-    uint8_t Offset;
-    uint8_t Value[1]; // May be larger than one byte, but must be at least one.
-} QUIC_CIBIR_ID;
-
-//
 // Functions for associating application contexts with QUIC handles. MsQuic
 // provides no explicit synchronization between parallel calls to these
 // functions.
@@ -731,7 +722,7 @@ void
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x04000000  // QUIC_ADDR
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // QUIC_CIBIR_ID
+#define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
 #endif
 
 //
@@ -761,7 +752,7 @@ void
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_VERSION_SETTINGS                0x05000014  // QUIC_VERSION_SETTINGS
-#define QUIC_PARAM_CONN_CIBIR_ID                        0x05000015  // QUIC_CIBIR_ID
+#define QUIC_PARAM_CONN_CIBIR_ID                        0x05000015  // uint8_t[] {offset, id[]}
 #endif
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
