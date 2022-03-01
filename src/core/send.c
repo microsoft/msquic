@@ -975,8 +975,10 @@ QuicSendGetNextStream(
                 //
                 CXPLAT_LIST_ENTRY* LastEntry = Stream->SendLink.Flink;
                 while (Stream->SendLink.Flink != &Send->SendStreams) {
-                    if (Stream->SendPriority >
-                        CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink)->SendPriority) {
+                    QUIC_STREAM* EntryStream = CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink);
+                    CXPLAT_DBG_ASSERT(((intptr_t)EntryStream % _Alignof(struct QUIC_STREAM)) == 0);
+                    CXPLAT_DBG_ASSERT(((intptr_t)Stream % _Alignof(struct QUIC_STREAM)) == 0);
+                    if (Stream->SendPriority > EntryStream->SendPriority) {
                         break;
                     }
                     LastEntry = LastEntry->Flink;
