@@ -259,9 +259,10 @@ $TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile"
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"
 }
-if ("" -ne $Filter) {
-    $TestArguments += " -Filter $Filter"
-}
+$TestArguments += " -Filter *StreamPriority*"
+# if ("" -ne $Filter) {
+#     $TestArguments += " -Filter $Filter"
+# }
 if ($ListTestCases) {
     $TestArguments += " -ListTestCases"
 }
@@ -305,11 +306,19 @@ if ($ErrorsAsWarnings) {
     $TestArguments += " -ErrorsAsWarnings"
 }
 
-# Run the script.
-if (!$Kernel -and !$SkipUnitTests) {
-    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
-    Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
+
+if ($Kernel) {
+    exit 0
+}
+
+# # Run the script.
+# if (!$Kernel -and !$SkipUnitTests) {
+#     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+#     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+# }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
 if ($CodeCoverage) {

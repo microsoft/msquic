@@ -139,8 +139,13 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 $ExeName = Split-Path $Path -Leaf
 $CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
+$ExeLogFolder = $ExeName
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $ExeLogFolder += "_$ExtraArtifactDir"
+}
+
 # Path for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogDir = Join-Path $RootDir "artifacts" "logs" $ExeLogFolder (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
 # Folder for coverage files
@@ -253,8 +258,69 @@ function PrintDumpCallStack($DumpFile) {
         Write-Host " $(Split-Path $DumpFile -Leaf)"
         Write-Host "=================================================================================="
         $Output -replace "quit:", "=================================================================================="
+        $Output | Out-File "$DumpFile.txt"
     } catch {
         # Silently fail
+    }
+}
+
+function PrintLldbCoreCallStack($CoreFile) {
+    try {
+        $Output = lldb $Path -c $CoreFile -b -o "`"bt all`""
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $CoreFile -Leaf)"
+        Write-Host "=================================================================================="
+        # Find line containing Current thread
+        $Found = $false
+        $LastThreadStart = 0
+        for ($i = 0; $i -lt $Output.Length; $i++) {
+            if ($Output[$i] -like "*stop reason =*") {
+                if ($Found) {
+                    break
+                }
+                $LastThreadStart = $i
+            }
+            if ($Output[$i] -like "*quic_bugcheck*") {
+                $Found = $true
+                for ($j = $LastThreadStart; $j -lt $i; $j++) {
+                    $Output[$j]
+                }
+            }
+            if ($Found) {
+                $Output[$i]
+            }
+        }
+        if (!$Found) {
+            $Output | Join-String -Separator "`n"
+        }
+        $Output | Join-String -Separator "`n" | Out-File "$CoreFile.txt"
+    } catch {
+        # Silently Fail
+    }
+}
+
+function PrintGdbCoreCallStack($CoreFile) {
+    try {
+        $Output = gdb $Path $CoreFile -batch -ex "`"bt`"" -ex "`"quit`""
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $CoreFile -Leaf)"
+        Write-Host "=================================================================================="
+        # Find line containing Current thread
+        $Found = $false
+        for ($i = 0; $i -lt $Output.Length; $i++) {
+            if ($Output[$i] -like "*Current thread*") {
+                $Found = $true
+            }
+            if ($Found) {
+                $Output[$i]
+            }
+        }
+        if (!$Found) {
+            $Output | Join-String -Separator "`n"
+        }
+        $Output | Join-String -Separator "`n" | Out-File "$CoreFile.txt"
+    } catch {
+        # Silently Fail
     }
 }
 
@@ -304,6 +370,18 @@ function Wait-Executable($Exe) {
             LogErr "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
                 PrintDumpCallStack($File)
+            }
+            $KeepOutput = $true
+        }
+        $CoreFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".core" }
+        if ($CoreFiles) {
+            LogWrn "Core file(s) generated"
+            foreach ($File in $CoreFiles) {
+                if ($IsMacOS) {
+                    PrintLldbCoreCallStack $File
+                } else {
+                    PrintGdbCoreCallStack $File
+                }
             }
             $KeepOutput = $true
         }

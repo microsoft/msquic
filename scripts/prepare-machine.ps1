@@ -401,7 +401,7 @@ if ($IsWindows) {
 } elseif ($IsMacOS) {
     if ($Configuration -eq "Test") {
         Write-Host "[$(Get-Date)] Setting core dump pattern..."
-        sudo sysctl -w kern.corefile=%N.%P.%H.core
+        sudo sysctl -w kern.corefile=%N.%P.core
     }
 }
 
