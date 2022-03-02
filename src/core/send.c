@@ -974,7 +974,7 @@ QuicSendGetNextStream(
                 // that entry.
                 //
                 CXPLAT_LIST_ENTRY* LastEntry = Stream->SendLink.Flink;
-                while (Stream->SendLink.Flink != &Send->SendStreams) {
+                while (LastEntry != &Send->SendStreams) {
                     if (Stream->SendPriority >
                         CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink)->SendPriority) {
                         break;
