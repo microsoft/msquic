@@ -305,6 +305,10 @@ if ($ErrorsAsWarnings) {
     $TestArguments += " -ErrorsAsWarnings"
 }
 
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
+}
+
 # Run the script.
 if (!$Kernel -and !$SkipUnitTests) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)

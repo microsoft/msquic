@@ -358,6 +358,7 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.12
             sudo apt-get update
             sudo apt-get install -y lttng-tools
+            sudo apt-get install -y gdb
 
             # Enable core dumps for the system.
             Write-Host "[$(Get-Date)] Setting core dump size limit..."
@@ -401,7 +402,7 @@ if ($IsWindows) {
 } elseif ($IsMacOS) {
     if ($Configuration -eq "Test") {
         Write-Host "[$(Get-Date)] Setting core dump pattern..."
-        sudo sysctl -w kern.corefile=%N.%P.%H.core
+        sudo sysctl -w kern.corefile=%N.%P.core
     }
 }
 
