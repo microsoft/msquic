@@ -196,11 +196,15 @@ function Log-Stop {
             Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
             babeltrace --names all $TempDir/* > $BableTraceFile
 
-            Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
-            Write-Host $Command
-            Invoke-Expression $Command | Write-Debug
-            Remove-Item -Path $BableTraceFile -Force | Out-Null
+            Write-Host "Babeltrace ran. Compile clog2text and run the following command"
+            $Command = "clog2text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+            $Command
+
+            # Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
+            # $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+            # Write-Host $Command
+            # Invoke-Expression $Command | Write-Debug
+            # Remove-Item -Path $BableTraceFile -Force | Out-Null
         }
 
         Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
@@ -234,10 +238,14 @@ function Log-Decode {
         Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
         babeltrace --names all $DecompressedLogs/* > $BableTraceFile
 
-        Write-Host "Decoding Babeltrace into human text using CLOG"
-        $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
-        Write-Host $Command
-        Invoke-Expression $Command
+        Write-Host "Babeltrace ran. Compile clog2text and run the following command"
+        $Command = "clog2text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+        $Command
+
+        #Write-Host "Decoding Babeltrace into human text using CLOG"
+        #$Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+        #Write-Host $Command
+        #Invoke-Expression $Command
     }
 }
 

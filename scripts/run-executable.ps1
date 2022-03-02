@@ -373,7 +373,7 @@ function Wait-Executable($Exe) {
             }
             $KeepOutput = $true
         }
-        $CoreFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".core" }
+        $CoreFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".core" }
         if ($CoreFiles) {
             LogWrn "Core file(s) generated"
             foreach ($File in $CoreFiles) {

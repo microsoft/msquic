@@ -169,7 +169,7 @@ if ($AZP) {
 }
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
-    $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
+    $Arguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
 # Run the script.
