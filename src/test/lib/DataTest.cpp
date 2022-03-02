@@ -2405,7 +2405,11 @@ QuicTestStreamPriority(
     TEST_TRUE(Context.ReceiveEvents[1] == Stream3.ID());
     TEST_TRUE(Context.ReceiveEvents[2] == Stream1.ID());
 
+
     const QUIC_API_TABLE* ApiTable;
+#if DEBUG
+    ApiTable = NULL;
+#endif
     (void)MsQuicOpenVersion(42, (const void**)&ApiTable);
     ApiTable->RegistrationOpen(nullptr, nullptr);
 }

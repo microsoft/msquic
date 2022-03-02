@@ -323,7 +323,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             }
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $OutputDir
         }
     }
@@ -415,7 +415,15 @@ function PrintDumpCallStack($DumpFile) {
     $env:_NT_SYMBOL_PATH = Split-Path $Path
     try {
         Write-Host $env:BUILD_BUILDNUMBER
+        try {
+        Get-ChildItem -Path "c:\Program Files (x86)"
+        Get-ChildItem -Path "c:\Program Files (x86)\Windows Kits"
+        Get-ChildItem -Path "c:\Program Files (x86)\Windows Kits\10"
+        Get-ChildItem -Path "c:\Program Files (x86)\Windows Kits\10\Debuggers"
         Get-ChildItem -Path "c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
+        } catch {
+
+        }
         if ($env:BUILD_BUILDNUMBER -ne $null) {
             $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
         }
@@ -434,7 +442,7 @@ function PrintDumpCallStack($DumpFile) {
 
 function PrintLldbCoreCallStack($CoreFile) {
     try {
-        Write-Host "Running  lldb $Path -c $CoreFile -b -o `"bt all`""
+        Write-Host "Running lldb $Path -c $CoreFile -b -o `"bt all`""
         $Output = lldb $Path -c $CoreFile -b -o "`"bt all`""
         Write-Host "=================================================================================="
         Write-Host " $(Split-Path $CoreFile -Leaf)"
