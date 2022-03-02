@@ -28,12 +28,14 @@ PrintHelp(
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "  -conns:<####>               The number of connections to use. (def:%u)\n"
         "  -requests:<####>            The number of requests to send at a time. (def:2*conns)\n"
         "  -request:<####>             The length of request payloads. (def:%u)\n"
         "  -response:<####>            The length of request payloads. (def:%u)\n"
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
         "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
+        "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -58,7 +60,8 @@ RpsClient::Init(
     }
 
     const char* target;
-    if (!TryGetValue(argc, argv, "target", &target)) {
+    if (!TryGetValue(argc, argv, "target", &target) &&
+        !TryGetValue(argc, argv, "server", &target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -80,6 +83,15 @@ RpsClient::Init(
     TryGetValue(argc, argv, "requests", &RequestCount);
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
+
+    const char* CibirBytes = nullptr;
+    if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
+        CibirId[0] = 0; // offset
+        if ((CibirIdLength = DecodeHexBuffer(CibirBytes, 6, CibirId+1)) == 0) {
+            WriteOutput("Cibir ID must be a hex string <= 6 bytes.\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
 
     uint16_t Ip;
     if (TryGetValue(argc, argv, "ip", &Ip)) {
@@ -243,6 +255,19 @@ RpsClient::Start(
         if (QUIC_FAILED(Status)) {
             WriteOutput("SetParam(CONN_SHARE_UDP_BINDING) failed, 0x%x\n", Status);
             return Status;
+        }
+
+        if (CibirIdLength) {
+            Status =
+                MsQuic->SetParam(
+                    Connections[i],
+                    QUIC_PARAM_CONN_CIBIR_ID,
+                    CibirIdLength+1,
+                    CibirId);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("SetParam(CONN_CIBIR_ID) failed, 0x%x\n", Status);
+                return Status;
+            }
         }
 
         if (i >= RPS_MAX_CLIENT_PORT_COUNT) {
