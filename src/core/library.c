@@ -245,10 +245,6 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        QuicBindingReceive,
-        QuicBindingUnreachable,
-    };
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -389,21 +385,6 @@ MsQuicLibraryInitialize(
                 "Create reset token hash");
             goto Error;
         }
-    }
-
-    Status =
-        CxPlatDataPathInitialize(
-            sizeof(CXPLAT_RECV_PACKET),
-            &DatapathCallbacks,
-            NULL,                   // TcpCallbacks
-            &MsQuicLib.Datapath);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatDataPathInitialize");
-        goto Error;
     }
 
     QuicTraceEvent(

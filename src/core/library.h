@@ -95,6 +95,11 @@ typedef struct QUIC_LIBRARY {
 #endif
 
     //
+    // Tracks whether datapath is initialized.
+    //
+    BOOLEAN DataPathInitialized : 1;
+
+    //
     // Tracks whether the library has started being used, either by a listener
     // or a client connection being started. Once this state is set, some
     // global settings are not allowed to change.

@@ -36,6 +36,11 @@ MsQuicRegistrationOpen(
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration = NULL;
     size_t AppNameLength = 0;
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        QuicBindingReceive,
+        QuicBindingUnreachable,
+    };
+
     if (Config != NULL && Config->AppName != NULL) {
         AppNameLength = strlen(Config->AppName);
     }
@@ -45,6 +50,27 @@ MsQuicRegistrationOpen(
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
+
+    CxPlatLockAcquire(&MsQuicLib.Lock);
+    if (!MsQuicLib.DataPathInitialized) {
+        Status =
+            CxPlatDataPathInitialize(
+                sizeof(CXPLAT_RECV_PACKET),
+                &DatapathCallbacks,
+                NULL,                   // TcpCallbacks
+                &MsQuicLib.Datapath);
+        if (QUIC_FAILED(Status)) {
+            CxPlatLockRelease(&MsQuicLib.Lock);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatDataPathInitialize");
+            goto Error;
+        }
+        MsQuicLib.DataPathInitialized = TRUE;
+    }
+    CxPlatLockRelease(&MsQuicLib.Lock);
 
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
