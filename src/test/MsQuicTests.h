@@ -428,6 +428,10 @@ QuicTestStreamPriority(
     );
 
 void
+QuicTestStreamPriorityInfiniteLoop(
+    );
+
+void
 QuicTestStreamDifferentAbortErrors(
     );
 
@@ -976,4 +980,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION \
     QUIC_CTL_CODE(84, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 84
+#define IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP \
+    QUIC_CTL_CODE(85, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 85

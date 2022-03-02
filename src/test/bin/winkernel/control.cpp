@@ -454,7 +454,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(QUIC_RUN_CRED_VALIDATION)
+    sizeof(QUIC_RUN_CRED_VALIDATION),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1168,6 +1169,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestCredentialLoad(
                 &Params->CredValidationParams.CredConfig));
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP:
+        QuicTestCtlRun(QuicTestStreamPriorityInfiniteLoop());
         break;
 
     default:
