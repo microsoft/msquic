@@ -8,7 +8,7 @@
 #endif
 
 #ifndef VER_MINOR
-#define VER_MINOR 0
+#define VER_MINOR 1
 #endif
 
 #ifndef VER_PATCH
