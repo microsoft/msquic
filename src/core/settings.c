@@ -273,7 +273,7 @@ QuicSettingsCopyVersionSettings(
     CxPlatCopyMemory(
         Destination->OfferedVersions,
         Source->OfferedVersions,
-        Destination->OfferedVersionsLength);
+        Destination->OfferedVersionsLength * sizeof(uint32_t));
 
     Destination->FullyDeployedVersions =
         Destination->OfferedVersions + Destination->OfferedVersionsLength;
@@ -281,7 +281,7 @@ QuicSettingsCopyVersionSettings(
     CxPlatCopyMemory(
         Destination->FullyDeployedVersions,
         Source->FullyDeployedVersions,
-        Destination->FullyDeployedVersionsLength);
+        Destination->FullyDeployedVersionsLength * sizeof(uint32_t));
 
     if (CopyExternalToInternal) {
         //

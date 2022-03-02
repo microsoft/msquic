@@ -10777,6 +10777,114 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpAcceptedVersionsLength": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] AcceptedVersionslength = %u",
+      "UniqueId": "SettingDumpAcceptedVersionsLength",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpOfferedVersionsLength": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] OfferedVersionslength  = %u",
+      "UniqueId": "SettingDumpOfferedVersionsLength",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpAcceptableVersions": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] AcceptableVersions[0]  = 0x%x",
+      "UniqueId": "SettingDumpAcceptableVersions",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpOfferedVersions": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] OfferedVersions[0]     = 0x%x",
+      "UniqueId": "SettingDumpOfferedVersions",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpFullyDeployedVersions": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] FullyDeployedVersion[0]= 0x%x",
+      "UniqueId": "SettingDumpFullyDeployedVersions",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingsInvalidAcceptableVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidAcceptableVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "SettingsInvalidOfferedVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidOfferedVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "SettingsInvalidFullyDeployedVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid FullyDeployedVersion supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidFullyDeployedVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     }
   },
   "ConfigFile": {
@@ -14657,6 +14765,46 @@
         "UniquenessHash": "d1af42ed-141c-9600-a11e-61b6bfce2853",
         "TraceID": "ListenerCibirIdSet",
         "EncodingString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu)"
+      },
+      {
+        "UniquenessHash": "c0266d26-3804-aad5-8d4d-4f93de41b025",
+        "TraceID": "SettingDumpAcceptedVersionsLength",
+        "EncodingString": "[sett] AcceptedVersionslength = %u"
+      },
+      {
+        "UniquenessHash": "0f868c36-d81d-43d0-15d1-292fee929a4b",
+        "TraceID": "SettingDumpOfferedVersionsLength",
+        "EncodingString": "[sett] OfferedVersionslength  = %u"
+      },
+      {
+        "UniquenessHash": "0262f547-c129-94ac-98c0-6e3eac0b0e16",
+        "TraceID": "SettingDumpAcceptableVersions",
+        "EncodingString": "[sett] AcceptableVersions[0]  = 0x%x"
+      },
+      {
+        "UniquenessHash": "bd61d1c2-8ff7-c2fd-b902-f3b6eb7f5958",
+        "TraceID": "SettingDumpOfferedVersions",
+        "EncodingString": "[sett] OfferedVersions[0]     = 0x%x"
+      },
+      {
+        "UniquenessHash": "ec059c88-2d48-e261-c956-4c75902bed79",
+        "TraceID": "SettingDumpFullyDeployedVersions",
+        "EncodingString": "[sett] FullyDeployedVersion[0]= 0x%x"
+      },
+      {
+        "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
+        "TraceID": "SettingsInvalidAcceptableVersion",
+        "EncodingString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "dad8e0fd-193d-ff7c-1657-2f8eebc1d457",
+        "TraceID": "SettingsInvalidOfferedVersion",
+        "EncodingString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "cdf8543c-9ea9-1078-8200-1ff0a8786dd0",
+        "TraceID": "SettingsInvalidFullyDeployedVersion",
+        "EncodingString": "Invalid FullyDeployedVersion supplied to settings! 0x%x at position %d"
       }
     ]
   }

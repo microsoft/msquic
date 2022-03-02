@@ -143,10 +143,10 @@ tracepoint(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded , arg1, arg3, arg4);\
             Connection,
             "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
-            DesiredVersionsListLength);
+            OtherVersionsListLength);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Stats.QuicVersion = arg3
-// arg4 = arg4 = DesiredVersionsListLength = arg4
+// arg4 = arg4 = OtherVersionsListLength = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ServerVersionNegotiationInfoEncoded
 #define _clog_5_ARGS_TRACE_ServerVersionNegotiationInfoEncoded(uniqueId, arg1, encoded_arg_string, arg3, arg4)\

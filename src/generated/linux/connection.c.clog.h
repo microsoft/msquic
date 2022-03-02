@@ -124,26 +124,6 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInfoVersionMismatch , arg1, arg3, arg
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ServerVersionInformationChosenVersionNotInOtherVerList
-// [conn][%p] Server Chosen Version is not in Server Other Versions list: 0x%x
-// QuicTraceLogConnError(
-                ServerVersionInformationChosenVersionNotInOtherVerList,
-                Connection,
-                "Server Chosen Version is not in Server Other Versions list: 0x%x",
-                ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = ServerVI.ChosenVersion = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationChosenVersionNotInOtherVerList
-#define _clog_4_ARGS_TRACE_ServerVersionInformationChosenVersionNotInOtherVerList(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, ServerVersionInformationChosenVersionNotInOtherVerList , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ClientChosenVersionMismatchServerChosenVersion
 // [conn][%p] Client Chosen Version doesn't match Server Chosen Version: 0x%x vs. 0x%x
 // QuicTraceLogConnError(
