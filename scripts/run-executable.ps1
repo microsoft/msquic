@@ -77,7 +77,10 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = ""
 )
 
 Set-StrictMode -Version 'Latest'
