@@ -1588,6 +1588,15 @@ TEST(Misc, StreamPriority) {
     }
 }
 
+TEST(Misc, StreamPriorityInfiniteLoop) {
+    TestLogger Logger("StreamPriorityInfiniteLoop");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP));
+    } else {
+        QuicTestStreamPriorityInfiniteLoop();
+    }
+}
+
 TEST(Misc, StreamDifferentAbortErrors) {
     TestLogger Logger("StreamDifferentAbortErrors");
     if (TestingKernelMode) {
