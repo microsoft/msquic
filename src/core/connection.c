@@ -48,7 +48,6 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
     _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     );
 
@@ -2453,7 +2452,6 @@ QuicConnSetConfiguration(
     QuicConnApplyNewSettings(
         Connection,
         FALSE,
-        FALSE,
         &Configuration->Settings);
 
     if (QuicConnIsClient(Connection)) {
@@ -2622,13 +2620,13 @@ QuicConnProcessPeerVersionNegotiationTP(
     QUIC_STATUS Status;
     if (QuicConnIsServer(Connection)) {
         //
-        // Check whether version is in (App-specified) list of supported versions
+        // Check whether version is in (App-specified) list of acceptable versions.
         //
         uint32_t SupportedVersionsLength = 0;
         const uint32_t* SupportedVersions = NULL;
-        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
-            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
-            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
+        if (MsQuicLib.Settings.IsSet.VersionSettings) {
+            SupportedVersionsLength = MsQuicLib.Settings.VersionSettings->AcceptableVersionsLength;
+            SupportedVersions = MsQuicLib.Settings.VersionSettings->AcceptableVersions;
         } else {
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
             SupportedVersions = DefaultSupportedVersionsList;
@@ -2644,7 +2642,7 @@ QuicConnProcessPeerVersionNegotiationTP(
             CXPLAT_DBG_ASSERTMSG(FALSE,"Incompatible Version Negotation should happen in binding layer");
             //
             // Current version not supported, start incompatible version negotiation.
-            // This path should only hit when the DesiredVersions are changed globally
+            // This path should only hit when the AcceptableVersions are changed globally
             // between when the first flight was received, and this point.
             //
             return QUIC_STATUS_VER_NEG_ERROR;
@@ -2730,22 +2728,6 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
-        BOOLEAN ChosenVersionFound = FALSE;
-        for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
-            if (ServerVI.OtherVersions[i] == ServerVI.ChosenVersion) {
-                ChosenVersionFound = TRUE;
-                break;
-            }
-        }
-        if (!ChosenVersionFound) {
-            QuicTraceLogConnError(
-                ServerVersionInformationChosenVersionNotInOtherVerList,
-                Connection,
-                "Server Chosen Version is not in Server Other Versions list: 0x%x",
-                ServerVI.ChosenVersion);
-            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
-            return QUIC_STATUS_PROTOCOL_ERROR;
-        }
         uint32_t ClientChosenVersion = 0;
         BOOLEAN OriginalVersionFound = FALSE;
         for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
@@ -2759,6 +2741,10 @@ QuicConnProcessPeerVersionNegotiationTP(
             if (Connection->OriginalQuicVersion == ServerVI.OtherVersions[i]) {
                 OriginalVersionFound = TRUE;
             }
+        }
+        if (ClientChosenVersion == 0 &&
+            QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.ChosenVersion)) {
+            ClientChosenVersion = ServerVI.ChosenVersion;
         }
         if (ClientChosenVersion == 0 || (ClientChosenVersion != Connection->OriginalQuicVersion &&
             ClientChosenVersion != ServerVI.ChosenVersion)) {
@@ -6085,7 +6071,6 @@ QuicConnParamSet(
         if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -6112,11 +6097,12 @@ QuicConnParamSet(
         if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        QuicSettingsCleanup(&InternalSettings);
 
         break;
 
@@ -6925,7 +6911,6 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
     _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     )
 {
@@ -6937,7 +6922,6 @@ QuicConnApplyNewSettings(
     if (!QuicSettingApply(
             &Connection->Settings,
             OverWrite,
-            CopyExternalToInternal,
             !Connection->State.Started,
             NewSettings)) {
         return FALSE;
@@ -6969,8 +6953,8 @@ QuicConnApplyNewSettings(
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
         QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
 
-        if (QuicConnIsClient(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
-            Connection->Stats.QuicVersion = Connection->Settings.DesiredVersionsList[0];
+        if (QuicConnIsClient(Connection) && Connection->Settings.IsSet.VersionSettings) {
+            Connection->Stats.QuicVersion = Connection->Settings.VersionSettings->FullyDeployedVersions[0];
             QuicConnOnQuicVersionSet(Connection);
             //
             // The version has changed AFTER the crypto layer has been initialized,

@@ -180,7 +180,6 @@ MsQuicConfigurationOpen(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
@@ -477,7 +476,6 @@ QuicConfigurationParamSet(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
@@ -508,10 +506,11 @@ QuicConfigurationParamSet(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
+        QuicSettingsCleanup(&InternalSettings);
 
         return QUIC_STATUS_SUCCESS;
 

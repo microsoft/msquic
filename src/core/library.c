@@ -822,7 +822,6 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -856,7 +855,6 @@ QuicLibrarySetGlobalParam(
 
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
-                TRUE,
                 TRUE,
                 TRUE,
                 &InternalSettings)) {
@@ -894,11 +892,12 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        QuicSettingsCleanup(&InternalSettings);
 
         if (QUIC_SUCCEEDED(Status)) {
             MsQuicLibraryOnSettingsChanged(TRUE);

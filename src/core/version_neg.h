@@ -52,9 +52,9 @@ QuicVersionNegotiationExtIsVersionCompatible(
 QUIC_STATUS
 QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     _In_ uint32_t OriginalVersion,
-    _In_reads_bytes_(DesiredVersionsLength * sizeof(uint32_t))
-        const uint32_t* const DesiredVersions,
-    _In_ uint32_t DesiredVersionsLength,
+    _In_reads_bytes_(FullyDeployedVersionsLength * sizeof(uint32_t))
+        const uint32_t* const FullyDeployedVersions,
+    _In_ uint32_t FullyDeployedVersionsLength,
     _Out_writes_bytes_(*BufferLength) uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength
     );
