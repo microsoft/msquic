@@ -456,6 +456,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CIBIR_EXTENSION),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1178,6 +1179,11 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestCibirExtension(
                 Params->CibirParams.Family,
                 Params->CibirParams.Mode));
+        break;
+
+
+    case IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP:
+        QuicTestCtlRun(QuicTestStreamPriorityInfiniteLoop());
         break;
 
     default:
