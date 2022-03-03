@@ -687,6 +687,8 @@ void
 #define QUIC_PARAM_PREFIX_TLS_SCHANNEL                  0x07000000
 #define QUIC_PARAM_PREFIX_STREAM                        0x08000000
 
+
+
 #define QUIC_PARAM_IS_GLOBAL(Param) ((Param & 0x7F000000) == QUIC_PARAM_PREFIX_GLOBAL)
 
 //
