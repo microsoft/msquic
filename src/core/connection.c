@@ -6513,8 +6513,9 @@ QuicConnGetV2Statistics(
     _Inout_ uint32_t* StatsLength,
     _Out_writes_bytes_opt_(*StatsLength)
         QUIC_STATISTICS_V2* Stats
-) {
-    uint32_t MinimumStatsSize = (uint32_t)STATISTICS_SIZE_THRU_FIELD(KeyUpdateCount);
+    )
+{
+    const uint32_t MinimumStatsSize = (uint32_t)STATISTICS_SIZE_THRU_FIELD(KeyUpdateCount);
 
     if (*StatsLength == 0) {
         *StatsLength = sizeof(QUIC_STATISTICS_V2);
