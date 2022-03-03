@@ -1073,6 +1073,12 @@ QuicSettingsDumpNew(
     InternalSettings->IsSet.Field = Settings->IsSet.Field;          \
     InternalSettings->Field = Settings->Field;
 
+#define SETTING_COPY_TO_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings)   \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+        InternalSettings->IsSet.Field = Settings->IsSet.Field;                                          \
+        InternalSettings->Field = Settings->Field;                                                      \
+    }
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGlobalSettingsToInternal(
@@ -1089,6 +1095,10 @@ QuicSettingsGlobalSettingsToInternal(
     InternalSettings->IsSetFlags = 0;
     SETTING_COPY_TO_INTERNAL(RetryMemoryLimit, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(LoadBalancingMode, Settings, InternalSettings);
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1173,12 +1183,32 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
 
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    //
+    // The below is how to add a new field while checking size.
+    //
+    // SETTING_COPY_TO_INTERNAL_SIZED(
+    //     MtuDiscoveryMissingProbeCount,
+    //     QUIC_SETTINGS,
+    //     Settings,
+    //     SettingsSize,
+    //     InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
 #define SETTING_COPY_FROM_INTERNAL(Field, Settings, InternalSettings)   \
     Settings->IsSet.Field = InternalSettings->IsSet.Field;              \
     Settings->Field = InternalSettings->Field;
+
+#define SETTING_COPY_FROM_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings) \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+        Settings->IsSet.Field = InternalSettings->IsSet.Field;                                          \
+        Settings->Field = InternalSettings->Field;                                                      \
+    }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1241,6 +1271,16 @@ QuicSettingsGetSettings(
     //
     // N.B. Anything after this needs to be size checked
     //
+
+    //
+    // The below is how to add a new field while checking size.
+    //
+    // SETTING_COPY_FROM_INTERNAL_SIZED(
+    //     MtuDiscoveryMissingProbeCount,
+    //     QUIC_SETTINGS,
+    //     Settings,
+    //     *SettingsLength,
+    //     InternalSettings);
 
     *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
 
