@@ -378,8 +378,10 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
-    // MsQuicVersionSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
-    // DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
+    MsQuicVersionSettings& SetClientVersionsList(const uint32_t* Versions, uint32_t Length) {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length; return *this;
+    }
     // MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 

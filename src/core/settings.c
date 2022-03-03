@@ -1385,29 +1385,33 @@ QuicSettingsGetVersionSettings(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    Settings->AcceptableVersions = (uint32_t*)(Settings + 1);
-    Settings->AcceptableVersionsLength = InternalSettings->VersionSettings->AcceptableVersionsLength;
+    if (InternalSettings->IsSet.VersionSettings) {
+        Settings->AcceptableVersions = (uint32_t*)(Settings + 1);
+        Settings->AcceptableVersionsLength = InternalSettings->VersionSettings->AcceptableVersionsLength;
 
-    Settings->OfferedVersions = Settings->AcceptableVersions + Settings->AcceptableVersionsLength;
-    Settings->OfferedVersionsLength = InternalSettings->VersionSettings->OfferedVersionsLength;
+        Settings->OfferedVersions = Settings->AcceptableVersions + Settings->AcceptableVersionsLength;
+        Settings->OfferedVersionsLength = InternalSettings->VersionSettings->OfferedVersionsLength;
 
-    Settings->FullyDeployedVersions = Settings->OfferedVersions + Settings->OfferedVersionsLength;
-    Settings->FullyDeployedVersionsLength = InternalSettings->VersionSettings->FullyDeployedVersionsLength;
+        Settings->FullyDeployedVersions = Settings->OfferedVersions + Settings->OfferedVersionsLength;
+        Settings->FullyDeployedVersionsLength = InternalSettings->VersionSettings->FullyDeployedVersionsLength;
 
-    CxPlatCopyMemory(
-        Settings->AcceptableVersions,
-        InternalSettings->VersionSettings->AcceptableVersions,
-        InternalSettings->VersionSettings->AcceptableVersionsLength * sizeof(uint32_t));
+        CxPlatCopyMemory(
+            Settings->AcceptableVersions,
+            InternalSettings->VersionSettings->AcceptableVersions,
+            InternalSettings->VersionSettings->AcceptableVersionsLength * sizeof(uint32_t));
 
-    CxPlatCopyMemory(
-        Settings->OfferedVersions,
-        InternalSettings->VersionSettings->OfferedVersions,
-        InternalSettings->VersionSettings->OfferedVersionsLength * sizeof(uint32_t));
+        CxPlatCopyMemory(
+            Settings->OfferedVersions,
+            InternalSettings->VersionSettings->OfferedVersions,
+            InternalSettings->VersionSettings->OfferedVersionsLength * sizeof(uint32_t));
 
-    CxPlatCopyMemory(
-        Settings->FullyDeployedVersions,
-        InternalSettings->VersionSettings->FullyDeployedVersions,
-        InternalSettings->VersionSettings->FullyDeployedVersionsLength * sizeof(uint32_t));
+        CxPlatCopyMemory(
+            Settings->FullyDeployedVersions,
+            InternalSettings->VersionSettings->FullyDeployedVersions,
+            InternalSettings->VersionSettings->FullyDeployedVersionsLength * sizeof(uint32_t));
+    } else {
+        CxPlatZeroMemory(Settings, MinimumSize);
+    }
 
     *SettingsLength = MinimumSize;
 

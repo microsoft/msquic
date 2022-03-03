@@ -946,7 +946,7 @@ QuicTestCtlEvtIoDeviceControl(
     //     break;
 
     // case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
-    //     QuicTestCtlRun(QuicTestDesiredVersionSettings());
+    //     QuicTestCtlRun(QuicTestVersionSettings());
     //     break;
 
     case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:

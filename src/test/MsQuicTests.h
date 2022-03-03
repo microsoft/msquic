@@ -37,7 +37,7 @@ void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
-void QuicTestDesiredVersionSettings();
+void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
 

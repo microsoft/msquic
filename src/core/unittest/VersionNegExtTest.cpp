@@ -88,10 +88,12 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
 
 TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
 {
-    uint32_t TestVersions[] = {QUIC_VERSION_1, QUIC_VERSION_MS_1};
+    uint32_t TestAcceptableVersions[] = {QUIC_VERSION_1, QUIC_VERSION_MS_1};
+    uint32_t TestOfferedVersions[] = {QUIC_VERSION_DRAFT_29, QUIC_VERSION_1};
+    uint32_t TestFullyDeployedVersions[] = {QUIC_VERSION_MS_1, QUIC_VERSION_DRAFT_29};
     QUIC_VERSION_SETTINGS VerSettings = {
-        TestVersions, TestVersions, TestVersions,
-        ARRAYSIZE(TestVersions), ARRAYSIZE(TestVersions), ARRAYSIZE(TestVersions)
+        TestAcceptableVersions, TestOfferedVersions, TestFullyDeployedVersions,
+        ARRAYSIZE(TestAcceptableVersions), ARRAYSIZE(TestOfferedVersions), ARRAYSIZE(TestFullyDeployedVersions)
     };
 
     for (auto Type : {QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT}) {
@@ -126,8 +128,12 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
                 &ParsedVI));
 
         ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Connection.Stats.QuicVersion);
-        ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(TestVersions));
-        ASSERT_TRUE(memcmp(TestVersions, ParsedVI.OtherVersions, sizeof(TestVersions)) == 0);
+        ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(TestFullyDeployedVersions));
+        ASSERT_TRUE(
+            memcmp(
+                TestFullyDeployedVersions,
+                ParsedVI.OtherVersions,
+                sizeof(TestFullyDeployedVersions)) == 0);
 
         CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
         if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
