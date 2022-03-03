@@ -473,8 +473,10 @@ MsQuicLibraryUninitialize(
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
-    CxPlatDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
+    if (MsQuicLib.DataPathInitialized) {
+        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
+        MsQuicLib.Datapath = NULL;
+    }
 
     //
     // Wait for the final clean up of everything in the stateless registration
