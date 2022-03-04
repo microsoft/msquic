@@ -495,9 +495,9 @@ tracepoint(CLOG_LIBRARY_C, LibraryServerInit );\
             LibraryRundown,
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
+// arg3 = arg3 = MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0 = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryRundown
 #define _clog_4_ARGS_TRACE_LibraryRundown(uniqueId, encoded_arg_string, arg2, arg3)\

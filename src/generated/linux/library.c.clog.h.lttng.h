@@ -483,9 +483,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
             LibraryRundown,
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
+// arg3 = arg3 = MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
     TP_ARGS(
