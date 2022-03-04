@@ -268,6 +268,22 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicDataPathRundownEvent : QuicEvent
+    {
+        public uint DatapathFeatures { get; }
+
+        public QuicDatapathFeatures Features => (QuicDatapathFeatures)DatapathFeatures;
+
+        public override string PayloadString =>
+            string.Format("Initialized,  DatapathFeatures=[{1}]", Features);
+
+        internal QuicDataPathRundownEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint datapathFeatures) :
+            base(QuicEventId.LibraryInitialized, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            DatapathFeatures = datapathFeatures;
+        }
+    }
+
     public class QuicLibraryRundownEvent : QuicEvent
     {
         public uint PartitionCount { get; }
@@ -284,6 +300,20 @@ namespace QuicTrace.DataModel
         {
             PartitionCount = partitionCount;
             DatapathFeatures = datapathFeatures;
+        }
+    }
+
+    public class QuicLibraryRundownV2Event : QuicEvent
+    {
+        public uint PartitionCount { get; }
+
+        public override string PayloadString =>
+            string.Format("Rundown, PartitionCount={0}", PartitionCount);
+
+        internal QuicLibraryRundownV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint partitionCount) :
+            base(QuicEventId.LibraryRundown, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            PartitionCount = partitionCount;
         }
     }
 
