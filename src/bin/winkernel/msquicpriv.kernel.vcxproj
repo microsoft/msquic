@@ -38,20 +38,14 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <PropertyGroup Condition="$(Platform.Contains('64'))">
-    <Is64Bit>true</Is64Bit>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(Is64Bit)'=='true'">
+  <ItemGroup>
     <ClCompile Include="driver.c" />
     <ClCompile Include="msquicpcw.c" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(Is64Bit)'!='true'">
-    <ClCompile Include="driver32.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
   </ItemGroup>
-  <ItemGroup Condition="'$(Is64Bit)'=='true'">
+  <ItemGroup>
     <ProjectReference Include="..\..\core\core.kernel.vcxproj">
       <Project>{E862BE76-298B-4021-8105-A3E115FA2900}</Project>
     </ProjectReference>

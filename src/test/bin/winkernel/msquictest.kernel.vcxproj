@@ -34,20 +34,28 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
+  <PropertyGroup Condition="$(Platform.Contains('64'))">
+    <Is64Bit>true</Is64Bit>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Is64Bit)'=='true'">
     <ClCompile Include="driver.cpp" />
     <ClCompile Include="control.cpp" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Is64Bit)'!='true'">
+    <ClCompile Include="driver32.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\MsQuicTests.h" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(Is64Bit)'=='true'">
     <ProjectReference Include="..\..\..\platform\platform.kernel.vcxproj">
       <Project>{5f99f713-bf5f-44eb-90fe-fea03906bba9}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lib\testlib.kernel.vcxproj">
       <Project>{A295E4D7-A50A-4771-8383-608258C23442}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\bin\winkernel\msquic.kernel.vcxproj">
       <Project>{C31B028C-E91C-4CF7-A8E7-F385B2AF5F85}</Project>
     </ProjectReference>
