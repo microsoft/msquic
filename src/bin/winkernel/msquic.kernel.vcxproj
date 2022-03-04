@@ -122,6 +122,10 @@
       <AdditionalOptions>/kernel /NOOPTIDATA /pdbcompress /MERGE:.gfids=GFIDS /MERGE:.orpc=.text /MERGE:_PAGE=PAGE /MERGE:_RDATA=.rdata /MERGE:_TEXT=.text /section:GFIDS,d</AdditionalOptions>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
+    <PreBuildEvent Condition="'$(Is64Bit)'!='true'">
+      <Command>mkdir $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc
+mc.exe -um -h $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc -r $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc $(SolutionDir)src\manifest\MsQuicEtw.man</Command>
+    </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(UM_IncludePath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
