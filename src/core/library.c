@@ -388,7 +388,7 @@ MsQuicLibraryInitialize(
     }
 
     QuicTraceEvent(
-        LibraryInitializedV1,
+        LibraryInitializedV2,
         "[ lib] Initialized, PartitionCount=%u",
         MsQuicLib.PartitionCount);
     QuicTraceEvent(
@@ -1872,10 +1872,17 @@ QuicTraceRundown(
 
     if (MsQuicLib.OpenRefCount > 0) {
         QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0);
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
+
+        if (MsQuicLib.Datapath != NULL) {
+            QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        }
+
         QuicTraceEvent(
             LibraryVersion,
             "[ lib] Version %u.%u.%u.%u",

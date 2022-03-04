@@ -321,15 +321,15 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitializedV1
+// Decoder Ring for LibraryInitializedV2
 // [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitializedV1,
+        LibraryInitializedV2,
         "[ lib] Initialized, PartitionCount=%u",
         MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV1,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV2,
     TP_ARGS(
         unsigned int, arg2), 
     TP_FIELDS(
@@ -477,23 +477,38 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRundown
-// [ lib] Rundown, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryRundownV2
+// [ lib] Rundown, PartitionCount=%u
 // QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0);
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0 = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DataPathRundown
+// [data] Rundown, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 

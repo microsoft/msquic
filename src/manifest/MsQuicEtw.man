@@ -557,7 +557,7 @@
                 name="DatapathFeatures"
                 />
           </template>
-          <template tid="tid_LIBRARY_INIT_V1">
+          <template tid="tid_LIBRARY_INIT_V2">
             <data
                 inType="win:UInt32"
                 name="PartitionCount"
@@ -2012,10 +2012,10 @@
           <event
               keywords="ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.LibraryInitializedV1)"
+              message="$(string.Etw.LibraryInitializedV2)"
               opcode="Global"
-              symbol="QuicLibraryInitializedV1"
-              template="tid_LIBRARY_INIT_V1"
+              symbol="QuicLibraryInitializedV2"
+              template="tid_LIBRARY_INIT_V2"
               value="19"
               />
           <event
@@ -2026,6 +2026,24 @@
               symbol="QuicDataPathInitialized"
               template="tid_DATAPATH_INIT"
               value="20"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryRundownV2)"
+              opcode="Global"
+              symbol="QuicLibraryRundownV2"
+              template="tid_LIBRARY_INIT_V2"
+              value="21"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DataPathRundown)"
+              opcode="Global"
+              symbol="QuicDataPathRundown"
+              template="tid_DATAPATH_INIT"
+              value="22"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3669,16 +3687,24 @@
             value="[data] Initialized, DatapathFeatures=%1"
             />
         <string
+            id="Etw.DataPathRundown"
+            value="[data] Rundown, DatapathFeatures=%1"
+            />
+        <string
             id="Etw.LibraryInitialized"
             value="[ lib] Initialized, PartitionCount=%1 DatapathFeatures=%2"
             />
         <string
-            id="Etw.LibraryInitializedV1"
+            id="Etw.LibraryInitializedV2"
             value="[ lib] Initialized, PartitionCount=%1"
             />
         <string
             id="Etw.LibraryRundown"
             value="[ lib] Rundown, PartitionCount=%1 DatapathFeatures=%2"
+            />
+        <string
+            id="Etw.LibraryRundownV2"
+            value="[ lib] Rundown, PartitionCount=%1"
             />
         <string
             id="Etw.LibraryUninitialized"

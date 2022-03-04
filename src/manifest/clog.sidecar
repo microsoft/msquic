@@ -9704,10 +9704,10 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogError"
     },
-    "LibraryInitializedV1": {
+    "LibraryInitializedV2": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Initialized, PartitionCount=%u",
-      "UniqueId": "LibraryInitializedV1",
+      "UniqueId": "LibraryInitializedV2",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -9784,18 +9784,26 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
-    "LibraryRundown": {
+    "LibraryRundownV2": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-      "UniqueId": "LibraryRundown",
+      "TraceString": "[ lib] Rundown, PartitionCount=%u",
+      "UniqueId": "LibraryRundownV2",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
-        },
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "DataPathRundown": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Rundown, DatapathFeatures=%u",
+      "UniqueId": "DataPathRundown",
+      "splitArgs": [
         {
           "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -14282,8 +14290,8 @@
         "EncodingString": "[ lib] Tried to change load balancing mode after library in use!"
       },
       {
-        "UniquenessHash": "38cc058c-0cb9-320a-ad2d-47bcf54642e6",
-        "TraceID": "LibraryInitializedV1",
+        "UniquenessHash": "49364a79-a042-c58c-1024-f2b92b2bf039",
+        "TraceID": "LibraryInitializedV2",
         "EncodingString": "[ lib] Initialized, PartitionCount=%u"
       },
       {
@@ -14317,9 +14325,14 @@
         "EncodingString": "[ lib] Shared server state initializing"
       },
       {
-        "UniquenessHash": "4810c9e0-dcf7-bc55-81bb-684627b092b1",
-        "TraceID": "LibraryRundown",
-        "EncodingString": "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u"
+        "UniquenessHash": "43bfaa48-1837-fff4-58c5-196814e7775c",
+        "TraceID": "LibraryRundownV2",
+        "EncodingString": "[ lib] Rundown, PartitionCount=%u"
+      },
+      {
+        "UniquenessHash": "d61f461f-19e4-23db-3546-54de3c8ce838",
+        "TraceID": "DataPathRundown",
+        "EncodingString": "[data] Rundown, DatapathFeatures=%u"
       },
       {
         "UniquenessHash": "e1750b05-bb04-6a2d-d4d6-99892dd266cd",

@@ -68,11 +68,11 @@ MsQuicRegistrationOpen(
                 "CxPlatDataPathInitialize");
             goto Error;
         }
+        QuicTraceEvent(
+            DataPathInitialized,
+            "[data] Initialized, DatapathFeatures=%u",
+            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
     }
-    QuicTraceEvent(
-        DataPathInitialized,
-        "[data] Initialized, DatapathFeatures=%u",
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
     CxPlatLockRelease(&MsQuicLib.Lock);
 
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {

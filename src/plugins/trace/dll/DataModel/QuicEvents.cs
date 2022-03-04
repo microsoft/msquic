@@ -195,7 +195,7 @@ namespace QuicTrace.DataModel
         }
     }
 
-    public class QuicLibraryInitializedV1Event : QuicEvent
+    public class QuicLibraryInitializedV2Event : QuicEvent
     {
         public uint PartitionCount { get; }
 
@@ -204,7 +204,7 @@ namespace QuicTrace.DataModel
         public override string PayloadString =>
             string.Format("Initialized, PartitionCount={0}", PartitionCount);
 
-        internal QuicLibraryInitializedV1Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint partitionCount) :
+        internal QuicLibraryInitializedV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint partitionCount) :
             base(QuicEventId.LibraryInitialized, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
         {
             PartitionCount = partitionCount;

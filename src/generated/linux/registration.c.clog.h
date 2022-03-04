@@ -87,9 +87,9 @@ tracepoint(CLOG_REGISTRATION_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for DataPathInitialized
 // [data] Initialized, DatapathFeatures=%u
 // QuicTraceEvent(
-        DataPathInitialized,
-        "[data] Initialized, DatapathFeatures=%u",
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            DataPathInitialized,
+            "[data] Initialized, DatapathFeatures=%u",
+            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 // arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DataPathInitialized
