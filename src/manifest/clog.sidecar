@@ -1935,6 +1935,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "DataPathInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Initialized, DatapathFeatures=%u",
+      "UniqueId": "DataPathInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "RegistrationCreated": {
       "ModuleProperites": {},
       "TraceString": "[ reg][%p] Created, AppName=%s",
@@ -9692,18 +9704,14 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogError"
     },
-    "LibraryInitialized": {
+    "LibraryInitializedV1": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-      "UniqueId": "LibraryInitialized",
+      "TraceString": "[ lib] Initialized, PartitionCount=%u",
+      "UniqueId": "LibraryInitializedV1",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -11967,6 +11975,11 @@
         "UniquenessHash": "cf0f3e68-b28d-2378-09be-480fa6147054",
         "TraceID": "RegistrationVerifierEnabled",
         "EncodingString": "[ reg][%p] Verifing enabled!"
+      },
+      {
+        "UniquenessHash": "d68a3d43-333c-e62d-ec53-bb88a64aa2f4",
+        "TraceID": "DataPathInitialized",
+        "EncodingString": "[data] Initialized, DatapathFeatures=%u"
       },
       {
         "UniquenessHash": "71276afe-f6b2-286a-bc47-a9d4176e00a3",
@@ -14269,9 +14282,9 @@
         "EncodingString": "[ lib] Tried to change load balancing mode after library in use!"
       },
       {
-        "UniquenessHash": "8f218f73-51d3-e674-6f43-937ce1e861c9",
-        "TraceID": "LibraryInitialized",
-        "EncodingString": "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u"
+        "UniquenessHash": "38cc058c-0cb9-320a-ad2d-47bcf54642e6",
+        "TraceID": "LibraryInitializedV1",
+        "EncodingString": "[ lib] Initialized, PartitionCount=%u"
       },
       {
         "UniquenessHash": "c5092562-eb73-dded-1d42-ad7fdd896841",

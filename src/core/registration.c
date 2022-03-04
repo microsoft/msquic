@@ -70,7 +70,12 @@ MsQuicRegistrationOpen(
         }
         MsQuicLib.DataPathInitialized = TRUE;
     }
+    QuicTraceEvent(
+        DataPathInitialized,
+        "[data] Initialized, DatapathFeatures=%u",
+        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
     CxPlatLockRelease(&MsQuicLib.Lock);
+
 
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;

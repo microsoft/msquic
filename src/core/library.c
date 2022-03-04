@@ -388,10 +388,9 @@ MsQuicLibraryInitialize(
     }
 
     QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV1,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
     QuicTraceEvent(
         LibraryVersion,
         "[ lib] Version %u.%u.%u.%u",

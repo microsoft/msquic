@@ -321,23 +321,19 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitialized
-// [ lib] Initialized, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryInitializedV1
+// [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV1,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV1,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

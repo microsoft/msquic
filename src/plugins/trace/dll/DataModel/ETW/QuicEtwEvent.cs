@@ -115,6 +115,12 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.LibraryInitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
+                case QuicEventId.LibraryInitializedV1:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryInitializedV1Event(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
+                case QuicEventId.DataPathInitialized:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicDataPathInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
                 case QuicEventId.LibraryUninitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryUninitializedEvent(timestamp, processor, processId, threadId, pointerSize);

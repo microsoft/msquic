@@ -49,6 +49,8 @@ namespace QuicTrace.DataModel
         PerfCountersRundown,
         LibrarySendRetryStateUpdated,
         LibraryVersion,
+        LibraryInitializedV1,
+        DataPathInitialized,
 
         RegistrationCreated = 1024,
         RegistrationDestroyed,

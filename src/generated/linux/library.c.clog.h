@@ -345,19 +345,17 @@ tracepoint(CLOG_LIBRARY_C, LibraryErrorStatus , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitialized
-// [ lib] Initialized, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryInitializedV1
+// [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV1,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryInitialized
-#define _clog_4_ARGS_TRACE_LibraryInitialized(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibraryInitialized , arg2, arg3);\
+#ifndef _clog_3_ARGS_TRACE_LibraryInitializedV1
+#define _clog_3_ARGS_TRACE_LibraryInitializedV1(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryInitializedV1 , arg2);\
 
 #endif
 
