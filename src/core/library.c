@@ -475,6 +475,7 @@ MsQuicLibraryUninitialize(
     if (MsQuicLib.DataPathInitialized) {
         CxPlatDataPathUninitialize(MsQuicLib.Datapath);
         MsQuicLib.Datapath = NULL;
+        MsQuicLib.DataPathInitialized = FALSE;
     }
 
     //
