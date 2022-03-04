@@ -52,7 +52,7 @@ MsQuicRegistrationOpen(
         NULL);
 
     CxPlatLockAcquire(&MsQuicLib.Lock);
-    if (!MsQuicLib.DataPathInitialized) {
+    if (MsQuicLib.Datapath == NULL) {
         Status =
             CxPlatDataPathInitialize(
                 sizeof(CXPLAT_RECV_PACKET),
@@ -68,7 +68,6 @@ MsQuicRegistrationOpen(
                 "CxPlatDataPathInitialize");
             goto Error;
         }
-        MsQuicLib.DataPathInitialized = TRUE;
     }
     QuicTraceEvent(
         DataPathInitialized,

@@ -472,10 +472,9 @@ MsQuicLibraryUninitialize(
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
-    if (MsQuicLib.DataPathInitialized) {
+    if (MsQuicLib.Datapath != NULL) {
         CxPlatDataPathUninitialize(MsQuicLib.Datapath);
         MsQuicLib.Datapath = NULL;
-        MsQuicLib.DataPathInitialized = FALSE;
     }
 
     //
@@ -1876,7 +1875,7 @@ QuicTraceRundown(
             LibraryRundown,
             "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            MsQuicLib.Datapath != NULL ? CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) : 0);
         QuicTraceEvent(
             LibraryVersion,
             "[ lib] Version %u.%u.%u.%u",
