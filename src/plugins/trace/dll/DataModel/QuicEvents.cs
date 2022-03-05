@@ -167,7 +167,7 @@ namespace QuicTrace.DataModel
         public QuicDatapathFeatures Features => (QuicDatapathFeatures)DatapathFeatures;
 
         public override string PayloadString =>
-            string.Format("Initialized,  DatapathFeatures=[{1}]", Features);
+            string.Format("Initialized, DatapathFeatures=[{1}]", Features);
 
         internal QuicDataPathInitializedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint datapathFeatures) :
             base(QuicEventId.LibraryInitialized, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
