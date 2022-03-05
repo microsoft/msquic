@@ -6583,6 +6583,10 @@ QuicConnGetV2Statistics(
     //     Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
     // }
 
+    if (STATISTICS_HAS_FIELD(*StatsLength, CongestionWindow)) {
+        Stats->CongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl));
+    }
+
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 
     return QUIC_STATUS_SUCCESS;
