@@ -373,7 +373,7 @@ QuicCongestionControlLogOutFlowStatus(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-CubicCongestionControlGetCongestionWindow(
+QuicCongestionControlGetCongestionWindow(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
