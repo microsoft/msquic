@@ -1,9 +1,6 @@
 name: Scorecards supply-chain security
+
 on:
-  # Only the default branch is supported.
-  branch_protection_rule:
-  schedule:
-    - cron: '36 2 * * 6'
   push:
     branches: [ main ]
   pull_request:
@@ -40,7 +37,7 @@ jobs:
           # https://github.com/ossf/scorecard-action#publishing-results.
           # For private repositories, `publish_results` will automatically be set to `false`,
           # regardless of the value entered here.
-          publish_results: false # ${{ github.event_name != 'pull_request' }}
+          publish_results: ${{ github.event_name != 'pull_request' }}
 
       # Upload the results as artifacts (optional).
       - name: "Upload artifact"
