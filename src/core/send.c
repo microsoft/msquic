@@ -173,15 +173,13 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
     )
 {
-    if (!WasPreviouslyQueued) {
+    if (Stream->SendLink.Flink == NULL) {
         //
         // Not previously queued, so add the stream to the end of the queue.
         //
-        CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
         CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
         while (Entry != &Send->SendStreams) {
             //
@@ -446,11 +444,7 @@ QuicSendSetStreamSendFlag(
             // Since this is new data for a started stream, we need to queue
             // up the send to flush the stream data.
             //
-            QuicSendQueueFlushForStream(
-                Send,
-                Stream,
-                Stream->SendFlags != 0,
-                DelaySend);
+            QuicSendQueueFlushForStream(Send, Stream, DelaySend);
         }
         Stream->SendFlags |= SendFlags;
     }
@@ -481,11 +475,10 @@ QuicSendClearStreamSendFlag(
         //
         Stream->SendFlags &= ~SendFlags;
 
-        if (Stream->SendFlags == 0 && Stream->Flags.Started) {
+        if (Stream->SendFlags == 0 && Stream->SendLink.Flink != NULL) {
             //
             // Since there are no flags left, remove the stream from the queue.
             //
-            CXPLAT_DBG_ASSERT(Stream->SendLink.Flink != NULL);
             CxPlatListEntryRemove(&Stream->SendLink);
             Stream->SendLink.Flink = NULL;
             QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
@@ -1269,7 +1262,7 @@ QuicSendFlush(
             //
             WrotePacketFrames |= QuicStreamSendWrite(Stream, &Builder);
 
-            if (Stream->SendFlags == 0) {
+            if (Stream->SendFlags == 0 && Stream->SendLink.Flink != NULL) {
                 //
                 // If the stream no longer has anything to send, remove it from the
                 // list and release Send's reference on it.

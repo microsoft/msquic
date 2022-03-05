@@ -277,8 +277,7 @@ QuicStreamStart(
         // Send flags were queued up before starting so we need to queue the
         // stream data to be sent out now.
         //
-        QuicSendQueueFlushForStream(
-            &Stream->Connection->Send, Stream, FALSE, FALSE);
+        QuicSendQueueFlushForStream(&Stream->Connection->Send, Stream, FALSE);
     }
 
     Stream->Flags.SendOpen = !!(Flags & QUIC_STREAM_START_FLAG_IMMEDIATE);
