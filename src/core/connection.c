@@ -6584,7 +6584,7 @@ QuicConnGetV2Statistics(
     // }
 
     if (STATISTICS_HAS_FIELD(*StatsLength, CongestionWindow)) {
-        Stats->CongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl));
+        Stats->CongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl);
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
