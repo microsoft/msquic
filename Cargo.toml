@@ -19,6 +19,7 @@ include = [
     "/submodules/CMakeLists.txt",
     "/submodules/openssl/*.*",
     "/submodules/openssl/apps",
+    "/submodules/openssl/CHANGES",
     "/submodules/openssl/config",
     "/submodules/openssl/Configure",
     "/submodules/openssl/Configurations",
