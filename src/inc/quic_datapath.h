@@ -466,6 +466,12 @@ typedef struct CXPLAT_UDP_CONFIG {
 #ifdef QUIC_OWNING_PROCESS
     QUIC_PROCESS OwningProcess;         // Kernel client-only
 #endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    uint8_t CibirIdLength;              // Value of 0 indicated CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;
+    uint8_t CibirIdOffsetDst;
+    uint8_t CibirId[6];
+#endif
 } CXPLAT_UDP_CONFIG;
 
 //

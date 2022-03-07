@@ -256,8 +256,13 @@ typedef struct CXPLAT_SOCKET {
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
-    BOOLEAN Wildcard;   // Using a wildcard local address. Optimization to avoid always reading LocalAddress.
-    BOOLEAN Connected;  // Bound to a remote address
+    BOOLEAN Wildcard;           // Using a wildcard local address. Optimization
+                                // to avoid always reading LocalAddress.
+    BOOLEAN Connected;          // Bound to a remote address
+    uint8_t CibirIdLength;      // Value of 0 indicated CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;
+    uint8_t CibirIdOffsetDst;
+    uint8_t CibirId[6];
 
 } CXPLAT_SOCKET;
 
