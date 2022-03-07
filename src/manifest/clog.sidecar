@@ -9806,7 +9806,7 @@
     },
     "ConnStats": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
+      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u",
       "UniqueId": "ConnStats",
       "splitArgs": [
         {
@@ -9832,6 +9832,10 @@
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg8"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -14319,11 +14323,6 @@
         "EncodingString": "[conn][%p] IN: BytesRecv=%llu"
       },
       {
-        "UniquenessHash": "7a9075aa-0c84-7fed-6142-be1d15c7f7dd",
-        "TraceID": "ConnStats",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu"
-      },
-      {
         "UniquenessHash": "86c5e382-0fbb-1fd6-cdaa-a3d988861364",
         "TraceID": "ConnPacketStats",
         "EncodingString": "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu"
@@ -14657,6 +14656,11 @@
         "UniquenessHash": "d1af42ed-141c-9600-a11e-61b6bfce2853",
         "TraceID": "ListenerCibirIdSet",
         "EncodingString": "[list][%p] CIBIR ID set (len %hhu, offset %hhu)"
+      },
+      {
+        "UniquenessHash": "8a578804-829f-fb41-f1d7-f4b5c356a328",
+        "TraceID": "ConnStats",
+        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u"
       }
     ]
   }

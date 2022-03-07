@@ -466,6 +466,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t KeyUpdateCount;
 
+    uint32_t SendCongestionWindow;          // Congestion window size
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;

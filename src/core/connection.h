@@ -818,13 +818,14 @@ QuicConnLogStatistics(
 
     QuicTraceEvent(
         ConnStats,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
+        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes);
+        Connection->Stats.Recv.TotalBytes,
+        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl));
 
     QuicTraceEvent(
         ConnPacketStats,

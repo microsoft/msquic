@@ -94,6 +94,10 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ const struct QUIC_CONGESTION_CONTROL* Cc
         );
 
+    uint32_t (*QuicCongestionControlGetCongestionWindow)(
+        _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+        );
+
     //
     // Algorithm specific state.
     //
@@ -261,4 +265,14 @@ QuicCongestionControlGetBytesInFlightMax(
     )
 {
     return Cc->QuicCongestionControlGetBytesInFlightMax(Cc);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint32_t
+QuicCongestionControlGetCongestionWindow(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    return Cc->QuicCongestionControlGetCongestionWindow(Cc);
 }
