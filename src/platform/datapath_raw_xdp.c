@@ -1099,9 +1099,9 @@ CxPlatDpRawPlumbRulesOnSocket(
             for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
                 XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
                 if (IsCreated) {
-                    CxPlatDpRawInterfaceAddRule(Interface, Rules, 2);
+                    CxPlatDpRawInterfaceAddRules(Interface, Rules, 2);
                 } else {
-                    CxPlatDpRawInterfaceRemoveRule(Interface, Rules, 2);
+                    CxPlatDpRawInterfaceRemoveRules(Interface, Rules, 2);
                 }
             }
         } else {
@@ -1117,9 +1117,9 @@ CxPlatDpRawPlumbRulesOnSocket(
             for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
                 XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
                 if (IsCreated) {
-                    CxPlatDpRawInterfaceAddRule(Interface, &Rule, 1);
+                    CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
                 } else {
-                    CxPlatDpRawInterfaceRemoveRule(Interface, &Rule, 1);
+                    CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
                 }
             }
         }
@@ -1152,9 +1152,9 @@ CxPlatDpRawPlumbRulesOnSocket(
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             if (IsCreated) {
-                CxPlatDpRawInterfaceAddRule(Interface, &Rule, 1);
+                CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
             } else {
-                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule, 1);
+                CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
             }
         }
     }
