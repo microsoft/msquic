@@ -245,10 +245,6 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        QuicBindingReceive,
-        QuicBindingUnreachable,
-    };
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -391,26 +387,10 @@ MsQuicLibraryInitialize(
         }
     }
 
-    Status =
-        CxPlatDataPathInitialize(
-            sizeof(CXPLAT_RECV_PACKET),
-            &DatapathCallbacks,
-            NULL,                   // TcpCallbacks
-            &MsQuicLib.Datapath);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatDataPathInitialize");
-        goto Error;
-    }
-
     QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV2,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
     QuicTraceEvent(
         LibraryVersion,
         "[ lib] Version %u.%u.%u.%u",
@@ -492,8 +472,10 @@ MsQuicLibraryUninitialize(
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
-    CxPlatDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
+    if (MsQuicLib.Datapath != NULL) {
+        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
+        MsQuicLib.Datapath = NULL;
+    }
 
     //
     // Wait for the final clean up of everything in the stateless registration
@@ -1890,10 +1872,17 @@ QuicTraceRundown(
 
     if (MsQuicLib.OpenRefCount > 0) {
         QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
+
+        if (MsQuicLib.Datapath != NULL) {
+            QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        }
+
         QuicTraceEvent(
             LibraryVersion,
             "[ lib] Version %u.%u.%u.%u",
