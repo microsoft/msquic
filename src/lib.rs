@@ -1430,7 +1430,7 @@ extern "C" fn test_stream_callback(
 ) -> u32 {
     let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
-        STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {
+        STREAM_EVENT_START_COMPLETE => println!("Stream start complete 0x{:x}", unsafe {
             event.payload.start_complete.status
         }),
         STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {
@@ -1442,7 +1442,7 @@ extern "C" fn test_stream_callback(
         STREAM_EVENT_PEER_RECEIVE_ABORTED => println!("Peer receive aborted"),
         STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
         STREAM_EVENT_SHUTDOWN_COMPLETE => {
-            println!("Shutdown complete");
+            println!("Stream shutdown complete");
             connection.stream_close(stream);
         }
         STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),

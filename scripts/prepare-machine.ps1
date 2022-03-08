@@ -198,15 +198,18 @@ if ($IsWindows) {
                 Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
-            $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
-            $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
-            $env:PATH = "${env:PATH};$NasmPath"
-            [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
             if ($env:GITHUB_PATH -ne $null) {
                 Write-Host $NasmPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+                Write-Host "GITHUB_PATH has been updated."
+                Write-Host $env:GITHUB_PATH
+            } else {
+                $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
+                $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
+                $env:PATH = "${env:PATH};$NasmPath"
+                [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
+                Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
+                Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
             }
-            Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
 
         $JomVersion = "1_1_3"
@@ -222,15 +225,18 @@ if ($IsWindows) {
             }
             New-Item -Path $JomPath -ItemType Directory -Force
             Expand-Archive -Path "build\jom.zip" -DestinationPath $JomPath -Force
-            $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
-            $CurrentSystemPath = "$CurrentSystemPath;$JomPath"
-            $env:PATH = "${env:PATH};$JomPath"
-            [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
             if ($env:GITHUB_PATH -ne $null) {
                 Write-Host $JomPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+                Write-Host "GITHUB_PATH has been updated."
+                Write-Host $env:GITHUB_PATH
+            } else {
+                $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
+                $CurrentSystemPath = "$CurrentSystemPath;$JomPath"
+                $env:PATH = "${env:PATH};$JomPath"
+                [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
+                Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
+                Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
             }
-            Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
     }
 
