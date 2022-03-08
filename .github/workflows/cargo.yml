@@ -13,12 +13,16 @@ on:
 permissions: read-all
 
 jobs:
-  cargo-linux:
-    name: Cargo Linux
-    runs-on: ubuntu-latest
+  cargo:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    name: Cargo
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
+      if: runner.os == 'Linux'
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -27,22 +31,8 @@ jobs:
       run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Tls openssl -FailOnError
       shell: pwsh
     - name: Install Cargo
+      if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
-    - name: Cargo build
-      run: cargo build --all
-    - name: Cargo test
-      run: cargo test --all
-    - name: Cargo Publish (dry run)
-      run: cargo publish --dry-run
-  cargo-windows:
-    name: Cargo Windows
-    runs-on: windows-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
-    - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Tls openssl -FailOnError
-      shell: pwsh
     - name: Cargo build
       run: cargo build --all
     - name: Cargo test
