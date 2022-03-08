@@ -303,6 +303,18 @@ MsQuicListenerStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
 #endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    UdpConfig.CibirIdLength = Listener->CibirId[0];
+    UdpConfig.CibirIdOffsetSrc = MsQuicLib.CidServerIdLength + 2;
+    UdpConfig.CibirIdOffsetDst = MsQuicLib.CidServerIdLength + 2;
+    if (UdpConfig.CibirIdLength) {
+        CXPLAT_DBG_ASSERT(UdpConfig.CibirIdLength <= sizeof(UdpConfig.CibirId));
+        CxPlatCopyMemory(
+            UdpConfig.CibirId,
+            &Listener->CibirId[2],
+            UdpConfig.CibirIdLength);
+    }
+#endif
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =

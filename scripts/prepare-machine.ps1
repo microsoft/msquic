@@ -66,7 +66,10 @@ param (
     [switch]$NoCodeCoverage,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Xdp
+    [switch]$Xdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
 )
 
 #Requires -RunAsAdministrator
@@ -137,12 +140,13 @@ function Download-CoreNet-Deps {
 }
 
 function Download-Xdp-Kit {
+    if ($Force) { rm -Force -Recurse $ArtifactsPath }
     if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP Kit"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp.zip" -OutFile $ZipPath
+        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp-latest.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
