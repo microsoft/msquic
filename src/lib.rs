@@ -1194,7 +1194,7 @@ impl Connection {
                 configuration.handle,
                 0,
                 server_name_safe.as_ptr(),
-                server_port.to_be(),
+                server_port,
             )
         };
         if Status::failed(status) {
