@@ -1,4 +1,4 @@
-name: cargo
+name: Cargo
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run
   cargo-windows:
-    name: Cargo Linux
+    name: Cargo Windows
     runs-on: windows-latest
     steps:
     - name: Checkout repository

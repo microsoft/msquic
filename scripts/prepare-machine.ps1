@@ -203,6 +203,7 @@ if ($IsWindows) {
             $env:PATH = "${env:PATH};$NasmPath"
             [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
             Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
+            Write-Host $NasmPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
 
@@ -224,6 +225,7 @@ if ($IsWindows) {
             $env:PATH = "${env:PATH};$JomPath"
             [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
             Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH}"
+            Write-Host $JomPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
     }
