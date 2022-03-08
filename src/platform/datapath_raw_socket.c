@@ -144,6 +144,27 @@ CxPlatTryAddSocket(
         goto Error;
     }
 
+    if (Socket->CibirIdLength) {
+        Option = TRUE;
+        Result =
+            setsockopt(
+                Socket->AuxSocket,
+                SOL_SOCKET,
+                SO_REUSEADDR,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int Error = SocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Error,
+                "Set SO_REUSEADDR");
+            goto Error;
+        }
+    }
+
     CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
 #if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
     if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
