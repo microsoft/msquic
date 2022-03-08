@@ -41,7 +41,7 @@ MsQuicRegistrationOpen(
         QuicBindingUnreachable,
     };
     const BOOLEAN ExternalRegistration =
-        Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
+        Config == NULL || Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
 
     if (Config != NULL && Config->AppName != NULL) {
         AppNameLength = strlen(Config->AppName);
