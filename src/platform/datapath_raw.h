@@ -259,10 +259,10 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN Wildcard;           // Using a wildcard local address. Optimization
                                 // to avoid always reading LocalAddress.
     BOOLEAN Connected;          // Bound to a remote address
-    uint8_t CibirIdLength;      // Value of 0 indicates CIBIR isn't used
-    uint8_t CibirIdOffsetSrc;
-    uint8_t CibirIdOffsetDst;
-    uint8_t CibirId[6];
+    uint8_t CibirIdLength;      // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;   // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;   // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];         // CIBIR ID data
 
 } CXPLAT_SOCKET;
 
