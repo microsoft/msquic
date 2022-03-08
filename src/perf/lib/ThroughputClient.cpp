@@ -31,6 +31,7 @@ PrintHelp(
         "  -bind:<addr>                 A local IP address to bind to.\n"
         "  -port:<####>                 The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                  A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -cibir:<hex_bytes>           A CIBIR well-known idenfitier.\n"
         "  -encrypt:<0/1>               Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>               Whether to use send buffering. (def:0)\n"
         "  -pacing:<0/1>                Whether to use pacing. (def:1)\n"
@@ -61,7 +62,8 @@ ThroughputClient::Init(
     }
 
     const char* Target = nullptr;
-    if (!TryGetValue(argc, argv, "target", &Target)) {
+    if (!TryGetValue(argc, argv, "target", &Target) &&
+        !TryGetValue(argc, argv, "server", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -114,6 +116,15 @@ ThroughputClient::Init(
         }
     }
 #endif
+
+    const char* CibirBytes = nullptr;
+    if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
+        CibirId[0] = 0; // offset
+        if ((CibirIdLength = DecodeHexBuffer(CibirBytes, 6, CibirId+1)) == 0) {
+            WriteOutput("Cibir ID must be a hex string <= 6 bytes.\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
 
     QUIC_STATUS Status;
 
@@ -286,6 +297,31 @@ ThroughputClient::StartQuic()
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             sizeof(LocalIpAddr),
             &LocalIpAddr);
+    }
+
+    if (CibirIdLength) {
+        BOOLEAN Opt = TRUE;
+        Status =
+            MsQuic->SetParam(
+                Shutdown.ConnHandle,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Opt),
+                &Opt);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetParam(CONN_SHARE_UDP_BINDING) failed, 0x%x\n", Status);
+            return Status;
+        }
+
+        Status =
+            MsQuic->SetParam(
+                Shutdown.ConnHandle,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                CibirIdLength+1,
+                CibirId);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetParam(CONN_CIBIR_ID) failed, 0x%x\n", Status);
+            return Status;
+        }
     }
 
     StreamContext* StrmContext = StreamContextAllocator.Alloc(this);

@@ -6498,6 +6498,100 @@ QuicConnParamSet(
     return Status;
 }
 
+#define STATISTICS_SIZE_THRU_FIELD(Field) \
+    (FIELD_OFFSET(QUIC_STATISTICS_V2, Field) + sizeof(((QUIC_STATISTICS_V2*)0)->Field))
+
+#define STATISTICS_HAS_FIELD(Size, Field) \
+    (Size >= STATISTICS_SIZE_THRU_FIELD(Field))
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+QuicConnGetV2Statistics(
+    _In_ const QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsPlat,
+    _Inout_ uint32_t* StatsLength,
+    _Out_writes_bytes_opt_(*StatsLength)
+        QUIC_STATISTICS_V2* Stats
+    )
+{
+    const uint32_t MinimumStatsSize = (uint32_t)STATISTICS_SIZE_THRU_FIELD(KeyUpdateCount);
+
+    if (*StatsLength == 0) {
+        *StatsLength = sizeof(QUIC_STATISTICS_V2);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*StatsLength < MinimumStatsSize) {
+        *StatsLength = MinimumStatsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Stats == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    const QUIC_PATH* Path = &Connection->Paths[0];
+
+    Stats->CorrelationId = Connection->Stats.CorrelationId;
+    Stats->VersionNegotiation = Connection->Stats.VersionNegotiation;
+    Stats->StatelessRetry = Connection->Stats.StatelessRetry;
+    Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
+    Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
+    Stats->Rtt = Path->SmoothedRtt;
+    Stats->MinRtt = Path->MinRtt;
+    Stats->MaxRtt = Path->MaxRtt;
+    Stats->TimingStart = Connection->Stats.Timing.Start;
+    Stats->TimingInitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
+    Stats->TimingHandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
+    Stats->HandshakeClientFlight1Bytes = Connection->Stats.Handshake.ClientFlight1Bytes;
+    Stats->HandshakeServerFlight1Bytes = Connection->Stats.Handshake.ServerFlight1Bytes;
+    Stats->HandshakeClientFlight2Bytes = Connection->Stats.Handshake.ClientFlight2Bytes;
+    Stats->SendPathMtu = Path->Mtu;
+    Stats->SendTotalPackets = Connection->Stats.Send.TotalPackets;
+    Stats->SendRetransmittablePackets = Connection->Stats.Send.RetransmittablePackets;
+    Stats->SendSuspectedLostPackets = Connection->Stats.Send.SuspectedLostPackets;
+    Stats->SendSpuriousLostPackets = Connection->Stats.Send.SpuriousLostPackets;
+    Stats->SendTotalBytes = Connection->Stats.Send.TotalBytes;
+    Stats->SendTotalStreamBytes = Connection->Stats.Send.TotalStreamBytes;
+    Stats->SendCongestionCount = Connection->Stats.Send.CongestionCount;
+    Stats->SendPersistentCongestionCount = Connection->Stats.Send.PersistentCongestionCount;
+    Stats->RecvTotalPackets = Connection->Stats.Recv.TotalPackets;
+    Stats->RecvReorderedPackets = Connection->Stats.Recv.ReorderedPackets;
+    Stats->RecvDroppedPackets = Connection->Stats.Recv.DroppedPackets;
+    Stats->RecvDuplicatePackets = Connection->Stats.Recv.DuplicatePackets;
+    Stats->RecvTotalBytes = Connection->Stats.Recv.TotalBytes;
+    Stats->RecvTotalStreamBytes = Connection->Stats.Recv.TotalStreamBytes;
+    Stats->RecvDecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
+    Stats->RecvValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
+    Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
+
+    if (IsPlat) {
+        Stats->TimingStart = CxPlatTimeUs64ToPlat(Stats->TimingStart); // cppcheck-suppress selfAssignment
+        Stats->TimingInitialFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingInitialFlightEnd); // cppcheck-suppress selfAssignment
+        Stats->TimingHandshakeFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingHandshakeFlightEnd); // cppcheck-suppress selfAssignment
+    }
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    //
+    // The below is how to add a new field while checking size.
+    //
+    // if (STATISTICS_HAS_FIELD(*StatsLength, KeyUpdateCount)) {
+    //     Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
+    // }
+
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendCongestionWindow)) {
+        Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl);
+    }
+
+    *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
+
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamGet(
@@ -6854,61 +6948,12 @@ QuicConnParamGet(
     case QUIC_PARAM_CONN_STATISTICS_V2:
     case QUIC_PARAM_CONN_STATISTICS_V2_PLAT: {
 
-        if (*BufferLength < sizeof(QUIC_STATISTICS_V2)) {
-            *BufferLength = sizeof(QUIC_STATISTICS_V2);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QUIC_STATISTICS_V2* Stats = (QUIC_STATISTICS_V2*)Buffer;
-        const QUIC_PATH* Path = &Connection->Paths[0];
-
-        Stats->CorrelationId = Connection->Stats.CorrelationId;
-        Stats->VersionNegotiation = Connection->Stats.VersionNegotiation;
-        Stats->StatelessRetry = Connection->Stats.StatelessRetry;
-        Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
-        Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
-        Stats->Rtt = Path->SmoothedRtt;
-        Stats->MinRtt = Path->MinRtt;
-        Stats->MaxRtt = Path->MaxRtt;
-        Stats->TimingStart = Connection->Stats.Timing.Start;
-        Stats->TimingInitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
-        Stats->TimingHandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
-        Stats->HandshakeClientFlight1Bytes = Connection->Stats.Handshake.ClientFlight1Bytes;
-        Stats->HandshakeServerFlight1Bytes = Connection->Stats.Handshake.ServerFlight1Bytes;
-        Stats->HandshakeClientFlight2Bytes = Connection->Stats.Handshake.ClientFlight2Bytes;
-        Stats->SendPathMtu = Path->Mtu;
-        Stats->SendTotalPackets = Connection->Stats.Send.TotalPackets;
-        Stats->SendRetransmittablePackets = Connection->Stats.Send.RetransmittablePackets;
-        Stats->SendSuspectedLostPackets = Connection->Stats.Send.SuspectedLostPackets;
-        Stats->SendSpuriousLostPackets = Connection->Stats.Send.SpuriousLostPackets;
-        Stats->SendTotalBytes = Connection->Stats.Send.TotalBytes;
-        Stats->SendTotalStreamBytes = Connection->Stats.Send.TotalStreamBytes;
-        Stats->SendCongestionCount = Connection->Stats.Send.CongestionCount;
-        Stats->SendPersistentCongestionCount = Connection->Stats.Send.PersistentCongestionCount;
-        Stats->RecvTotalPackets = Connection->Stats.Recv.TotalPackets;
-        Stats->RecvReorderedPackets = Connection->Stats.Recv.ReorderedPackets;
-        Stats->RecvDroppedPackets = Connection->Stats.Recv.DroppedPackets;
-        Stats->RecvDuplicatePackets = Connection->Stats.Recv.DuplicatePackets;
-        Stats->RecvTotalBytes = Connection->Stats.Recv.TotalBytes;
-        Stats->RecvTotalStreamBytes = Connection->Stats.Recv.TotalStreamBytes;
-        Stats->RecvDecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
-        Stats->RecvValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
-        Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
-
-        if (Param == QUIC_PARAM_CONN_STATISTICS_PLAT) {
-            Stats->TimingStart = CxPlatTimeUs64ToPlat(Stats->TimingStart); // cppcheck-suppress selfAssignment
-            Stats->TimingInitialFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingInitialFlightEnd); // cppcheck-suppress selfAssignment
-            Stats->TimingHandshakeFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingHandshakeFlightEnd); // cppcheck-suppress selfAssignment
-        }
-
-        *BufferLength = sizeof(QUIC_STATISTICS_V2);
-        Status = QUIC_STATUS_SUCCESS;
+        Status =
+            QuicConnGetV2Statistics(
+                Connection,
+                Param == QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
+                BufferLength,
+                (QUIC_STATISTICS_V2*)Buffer);
         break;
     }
 

@@ -1212,6 +1212,12 @@ impl Connection {
         }
     }
 
+    pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
+        unsafe {
+            ((*self.table).connection_shutdown)(self.handle, flags, error_code);
+        }
+    }
+
     pub fn stream_close(&self, stream: Handle) {
         unsafe {
             ((*self.table).stream_close)(stream);

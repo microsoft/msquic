@@ -180,6 +180,8 @@ public:
     uint32_t RequestCount {RPS_DEFAULT_CONNECTION_COUNT * 2};
     uint32_t RequestLength {RPS_DEFAULT_REQUEST_LENGTH};
     uint32_t ResponseLength {RPS_DEFAULT_RESPONSE_LENGTH};
+    uint32_t CibirIdLength {0};
+    uint8_t CibirId[7]; // {offset, values}
 
     struct QuicBufferScopeQuicAlloc {
         QUIC_BUFFER* Buffer;

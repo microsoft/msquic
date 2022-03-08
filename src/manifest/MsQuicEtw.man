@@ -1217,6 +1217,10 @@
                 inType="win:UInt64"
                 name="RecvTotalBytes"
                 />
+			<data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
           </template>
           <template tid="tid_CONN_PACKET_STATISTICS">
             <data
@@ -3504,7 +3508,7 @@
             />
         <string
             id="Etw.ConnStats"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7"
             />
         <string
             id="Etw.ConnPacketStats"

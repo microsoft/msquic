@@ -309,7 +309,6 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
     );
 

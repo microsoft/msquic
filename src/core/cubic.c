@@ -124,6 +124,7 @@ CubicCongestionControlReset(
     if (FullReset) {
         Cubic->BytesInFlight = 0;
     }
+
     QuicConnLogOutFlowStats(Connection);
     QuicConnLogCubic(Connection);
 }
@@ -658,6 +659,14 @@ CubicCongestionControlGetExemptions(
     return Cc->Cubic.Exemptions;
 }
 
+uint32_t
+CubicCongestionControlGetCongestionWindow(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    return Cc->Cubic.CongestionWindow;
+}
+
 static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .Name = "Cubic",
     .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
@@ -672,6 +681,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
     .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
+    .QuicCongestionControlGetCongestionWindow = CubicCongestionControlGetCongestionWindow,
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -693,6 +703,7 @@ CubicCongestionControlInitialize(
     Cubic->InitialWindowPackets = Settings->InitialWindowPackets;
     Cubic->CongestionWindow = DatagramPayloadLength * Cubic->InitialWindowPackets;
     Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
+
     QuicConnLogOutFlowStats(Connection);
     QuicConnLogCubic(Connection);
 }

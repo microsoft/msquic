@@ -135,6 +135,8 @@ private:
     uint64_t UploadLength {0};
     uint64_t DownloadLength {0};
     uint32_t IoSize {0};
+    uint32_t CibirIdLength {0};
+    uint8_t CibirId[7]; // {offset, values}
 
     TcpEngine Engine;
     CXPLAT_LOCK TcpLock;
