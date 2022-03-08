@@ -40,6 +40,7 @@ MsQuicRegistrationOpen(
         QuicBindingReceive,
         QuicBindingUnreachable,
     };
+    BOOLEAN ExternalRegistration = Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
 
     if (Config != NULL && Config->AppName != NULL) {
         AppNameLength = strlen(Config->AppName);
@@ -51,7 +52,9 @@ MsQuicRegistrationOpen(
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
-    CxPlatLockAcquire(&MsQuicLib.Lock);
+    if (ExternalRegistration) {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+    }
     if (MsQuicLib.Datapath == NULL) {
         Status =
             CxPlatDataPathInitialize(
@@ -60,7 +63,9 @@ MsQuicRegistrationOpen(
                 NULL,                   // TcpCallbacks
                 &MsQuicLib.Datapath);
         if (QUIC_FAILED(Status)) {
-            CxPlatLockRelease(&MsQuicLib.Lock);
+            if (ExternalRegistration) {
+                CxPlatLockRelease(&MsQuicLib.Lock);
+            }
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
@@ -73,7 +78,9 @@ MsQuicRegistrationOpen(
             "[data] Initialized, DatapathFeatures=%u",
             CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
     }
-    CxPlatLockRelease(&MsQuicLib.Lock);
+    if (ExternalRegistration) {
+        CxPlatLockRelease(&MsQuicLib.Lock);
+    }
 
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -177,7 +184,7 @@ MsQuicRegistrationOpen(
     }
 #endif
 
-    if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+    if (ExternalRegistration) {
         CxPlatLockAcquire(&MsQuicLib.Lock);
         CxPlatListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
         CxPlatLockRelease(&MsQuicLib.Lock);
