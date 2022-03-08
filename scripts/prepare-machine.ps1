@@ -189,6 +189,9 @@ if ($IsWindows) {
 
         $NasmVersion = "2.15.05"
         $NasmPath = Join-Path $InstallDir "nasm-$NasmVersion"
+        if ($env:GITHUB_PATH -ne $null) {
+            $NasmPath = $InstallDir
+        }
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
             New-Item -Path .\build -ItemType Directory -Force
@@ -213,6 +216,9 @@ if ($IsWindows) {
 
         $JomVersion = "1_1_3"
         $JomPath = Join-Path $InstallDir "jom_$JomVersion"
+        if ($env:GITHUB_PATH -ne $null) {
+            $JomPath = $InstallDir
+        }
         $JomExe = Join-Path $JomPath "jom.exe"
         if (!(Test-Path $JomExe)) {
             New-Item -Path .\build -ItemType Directory -Force
