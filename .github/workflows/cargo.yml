@@ -1,0 +1,60 @@
+name: cargo
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+permissions: read-all
+
+jobs:
+  cargo-linux:
+    name: Cargo Linux
+    runs-on: ubuntu-latest
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
+      with:
+        egress-policy: audit
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Tls openssl -FailOnError
+      shell: pwsh
+    - name: Install Cargo
+      run: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      shell: pwsh
+    - name: Cargo build
+      run: cargo build --all
+    - name: Cargo test
+      run: cargo test --all
+    - name: Cargo Publish (dry run)
+      run: cargo publish --dry-run
+  cargo-windows:
+    name: Cargo Linux
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Tls openssl -FailOnError
+      shell: pwsh
+    - name: Install Cargo
+      run: |
+        Invoke-WebRequest -Uri "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe" -OutFile "rustup-init.exe"
+        .\rustup-init.exe -y
+        echo "%USERPROFILE%\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+    - name: Cargo build
+      run: cargo build --all
+    - name: Cargo test
+      run: cargo test --all
+    - name: Cargo Publish (dry run)
+      run: cargo publish --dry-run
