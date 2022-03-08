@@ -47,10 +47,10 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiEnter,
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatDataPathInitialize");
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "CxPlatDataPathInitialize");
 // arg2 = arg2 = Status = arg2
 // arg3 = arg3 = "CxPlatDataPathInitialize" = arg3
 ----------------------------------------------------------*/
@@ -70,9 +70,9 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, LibraryErrorStatus,
 // Decoder Ring for DataPathInitialized
 // [data] Initialized, DatapathFeatures=%u
 // QuicTraceEvent(
-            DataPathInitialized,
-            "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 // arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, DataPathInitialized,
