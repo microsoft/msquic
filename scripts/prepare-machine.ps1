@@ -183,11 +183,11 @@ if ($IsWindows) {
 
     if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
         $InstallDir = $env:Programfiles
-
-        $NasmVersion = "2.15.05"
         if ($env:GITHUB_PATH -ne $null) {
             $InstallDir = $env:USERPROFILE
         }
+
+        $NasmVersion = "2.15.05"
         $NasmPath = Join-Path $InstallDir "nasm-$NasmVersion"
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
