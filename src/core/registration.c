@@ -40,7 +40,8 @@ MsQuicRegistrationOpen(
         QuicBindingReceive,
         QuicBindingUnreachable,
     };
-    BOOLEAN ExternalRegistration = Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
+    const BOOLEAN ExternalRegistration =
+        Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
 
     if (Config != NULL && Config->AppName != NULL) {
         AppNameLength = strlen(Config->AppName);
@@ -52,39 +53,37 @@ MsQuicRegistrationOpen(
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
-    if (ExternalRegistration) {
-        CxPlatLockAcquire(&MsQuicLib.Lock);
-    }
-    if (MsQuicLib.Datapath == NULL) {
-        Status =
-            CxPlatDataPathInitialize(
-                sizeof(CXPLAT_RECV_PACKET),
-                &DatapathCallbacks,
-                NULL,                   // TcpCallbacks
-                &MsQuicLib.Datapath);
-        if (QUIC_FAILED(Status)) {
-            if (ExternalRegistration) {
-                CxPlatLockRelease(&MsQuicLib.Lock);
-            }
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatDataPathInitialize");
-            goto Error;
-        }
-        QuicTraceEvent(
-            DataPathInitialized,
-            "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-    }
-    if (ExternalRegistration) {
-        CxPlatLockRelease(&MsQuicLib.Lock);
-    }
-
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
+    }
+
+    CXPLAT_DBG_ASSERT(ExternalRegistration || MsQuicLib.Datapath != NULL);
+
+    if (ExternalRegistration) {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        if (MsQuicLib.Datapath == NULL) {
+            Status =
+                CxPlatDataPathInitialize(
+                    sizeof(CXPLAT_RECV_PACKET),
+                    &DatapathCallbacks,
+                    NULL,                   // TcpCallbacks
+                    &MsQuicLib.Datapath);
+            if (QUIC_FAILED(Status)) {
+                CxPlatLockRelease(&MsQuicLib.Lock);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "CxPlatDataPathInitialize");
+                goto Error;
+            }
+            QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        }
+        CxPlatLockRelease(&MsQuicLib.Lock);
     }
 
     Registration =
