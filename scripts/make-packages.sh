@@ -82,10 +82,6 @@ else
 fi
 
 ARTIFACTS="artifacts/bin/${OS}/${ARCH}_${CONFIG}_openssl"
-if [ ! -e "$ARTIFACTS/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ] && [ ! -e "$ARTIFACTS/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.${LIBEXT}" ]; then
-    echo "$ARTIFACTS/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" does not exist. Run build first.
-    exit 1
-fi
 
 if [ -z ${OUTPUT} ]; then
     OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
@@ -131,5 +127,5 @@ if [ "$OS" == "macos" ]; then
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
     --provides libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib \
-    "$ARTIFACTS/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib"=/usr/local/lib/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib
+    "$ARTIFACTS/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib2"=/usr/local/lib/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib
 fi
