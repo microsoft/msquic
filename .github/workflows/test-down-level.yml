@@ -38,26 +38,9 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Configuration Dev -Tls ${{ matrix.tls }} -TestCertificates -FailOnError
       shell: pwsh
-    # TEMP START
-    - name: Download Release (Linux)
-      if: runner.os == 'Linux'
+    - name: Build Release
       shell: pwsh
-      run: |
-        mkdir artifacts && mkdir artifacts/release
-        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
-        Expand-Archive -Path artifacts/release.zip -DestinationPath artifacts/release
-        mkdir artifacts/bin && mkdir artifacts/bin/linux && mkdir artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}
-        Move-Item -Path artifacts/release/bin/* -Destination artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}
-    - name: Download Release (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        mkdir artifacts && mkdir artifacts/release
-        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
-        Expand-Archive -Path artifacts/release.zip -DestinationPath artifacts/release
-        mkdir artifacts/bin && mkdir artifacts/bin/windows && mkdir artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}
-        Move-Item -Path artifacts/release/bin/* -Destination artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}
-    # TEMP END
+      run: scripts/build.ps1 -Configuration Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -FailOnError
     - name: Download Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
