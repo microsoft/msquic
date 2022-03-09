@@ -157,7 +157,7 @@ param (
     [switch]$SkipUnitTests = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ErrorsAsWarnings = $false
+    [switch]$ErrorsAsWarnings = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$DuoNic = $false

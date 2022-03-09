@@ -125,7 +125,7 @@ param (
     [switch]$ErrorsAsWarnings = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$DuoNic = $false
