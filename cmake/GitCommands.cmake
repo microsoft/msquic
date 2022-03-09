@@ -3,7 +3,7 @@
 
 find_package(Git REQUIRED QUIET)
 if (NOT Git_FOUND)
-    message(FATAL_ERROR "Unable to find git, which is needed for versioning")
+    message(STATUS "Unable to find git, which is needed for versioning")
 endif()
 
 function(get_git_dir DIRECTORY OUTPUT_VAR)
@@ -39,10 +39,10 @@ function(get_git_current_hash DIRECTORY OUTPUT_VAR)
 
     if (NOT ("${GIT_CURRENT_HASH_RESULT}" STREQUAL "0"))
         message(${GIT_CURRENT_HASH_OUTPUT})
-        message(FATAL_ERROR "Failed to get ${DIRECTORY} git hash")
+        message("Failed to get ${DIRECTORY} git hash")
+    else()
+        set(${OUTPUT_VAR} ${GIT_CURRENT_HASH_OUTPUT} PARENT_SCOPE)
     endif()
-
-    set(${OUTPUT_VAR} ${GIT_CURRENT_HASH_OUTPUT} PARENT_SCOPE)
 endfunction()
 
 function(get_git_remote_url DIRECTORY OUTPUT_VAR)

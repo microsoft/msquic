@@ -124,6 +124,15 @@ if (QUIC_PDBALTPATH AND MSVC)
 #    message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 endif()
 
+include(${PROJECT_SOURCE_DIR}/cmake/GitCommands.cmake)
+get_git_current_hash(${PROJECT_SOURCE_DIR} GIT_CURRENT_HASH)
+
+if(NOT GIT_CURRENT_HASH)
+    message("Failed to get git hash. Binary will not contain git hash")
+    set(QUIC_SOURCE_LINK OFF)
+    set(QUIC_EMBED_GIT_HASH OFF)
+endif()
+
 if (QUIC_SOURCE_LINK AND MSVC)
     if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
         include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
@@ -289,8 +298,6 @@ list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
 
 if (QUIC_EMBED_GIT_HASH)
-    include(${PROJECT_SOURCE_DIR}/cmake/GitCommands.cmake)
-    get_git_current_hash(${PROJECT_SOURCE_DIR} GIT_CURRENT_HASH)
     list(APPEND QUIC_COMMON_DEFINES VER_GIT_HASH=${GIT_CURRENT_HASH})
 endif()
 
