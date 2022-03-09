@@ -59,6 +59,9 @@ as necessary.
 .Parameter ErrorsAsWarnings
     Treats all errors as warnings.
 
+.PARAMETER DuoNic
+    Uses DuoNic instead of loopback.
+
 #>
 
 param (
@@ -123,6 +126,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = ""
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DuoNic = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -689,6 +695,11 @@ function Get-WindowsKitTool {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
+
+if ($DuoNic) {
+    Log "Short-circuiting unimplemented DuoNic tests."
+    exit
+}
 
 # Query all the test cases.
 $TestCases = GetTestCases

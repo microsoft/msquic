@@ -64,6 +64,9 @@ This script runs the MsQuic tests.
 .Parameter ErrorsAsWarnings
     Treats all errors as warnings.
 
+.Parameter DuoNic
+    Uses DuoNic instead of loopback (DuoNic must already be installed by prepare-machine.ps1).
+
 .EXAMPLE
     test.ps1
 
@@ -155,6 +158,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$ErrorsAsWarnings = $false
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DuoNic = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -256,6 +262,9 @@ if (!(Test-Path $PfxFile)) {
 # Build up all the arguments to pass to the Powershell script.
 $TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile"
 
+if ($DuoNic) {
+    $TestArguments += " -DuoNic"
+}
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"
 }
