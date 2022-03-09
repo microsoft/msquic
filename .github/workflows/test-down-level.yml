@@ -64,7 +64,7 @@ jobs:
       run: |
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
         Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}
-        chmod +x artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
+        chmod +x artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
     - name: Download Tests (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
