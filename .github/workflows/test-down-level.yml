@@ -15,6 +15,7 @@ permissions: read-all
 jobs:
   test-down-level:
     strategy:
+      fail-fast: false
       matrix:
         release: ['2.0.0']
         os: [ubuntu-latest, windows-latest]
@@ -44,32 +45,35 @@ jobs:
       run: |
         mkdir artifacts && mkdir artifacts/release
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
-        Expand-Archive -Path "artifacts/release.zip" -DestinationPath "artifacts/release"
+        Expand-Archive -Path artifacts/release.zip -DestinationPath artifacts/release
+        mkdir artifacts/bin && mkdir artifacts/bin/linux && mkdir artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}
+        Move-Item -Path artifacts/release/bin/* -Destination artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}
     - name: Download Release (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
         mkdir artifacts && mkdir artifacts/release
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
-        Expand-Archive -Path "artifacts/release.zip" -DestinationPath "artifacts/release"
+        Expand-Archive -Path artifacts/release.zip -DestinationPath artifacts/release
+        mkdir artifacts/bin && mkdir artifacts/bin/windows && mkdir artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}
+        Move-Item -Path artifacts/release/bin/* -Destination artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}
     # TEMP END
     - name: Download Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
       run: |
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
-        Expand-Archive -Path "artifacts/test.zip" -DestinationPath "artifacts/release/bin"
-        chmod +x artifacts/release/bin/msquictest
-        export LD_LIBRARY_PATH=./artifacts/release/bin
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}
+        chmod +x artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
     - name: Download Tests (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
-        Expand-Archive -Path "artifacts/test.zip" -DestinationPath "artifacts/release/bin"
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
-      run: artifacts/release/bin/msquictest --gtest_filter=-*CredValidation*
+      run: artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest --gtest_filter=-*CredValidation*
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
-      run: artifacts/release/bin/msquictest --gtest_filter=-*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*
+      run: artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest --gtest_filter=-*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*
