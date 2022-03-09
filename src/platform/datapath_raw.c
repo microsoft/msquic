@@ -286,6 +286,12 @@ CxPlatSocketCreateUdp(
     CxPlatRundownInitialize(&(*NewSocket)->Rundown);
     (*NewSocket)->Datapath = Datapath;
     (*NewSocket)->CallbackContext = Config->CallbackContext;
+    (*NewSocket)->CibirIdLength = Config->CibirIdLength;
+    (*NewSocket)->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
+    (*NewSocket)->CibirIdOffsetDst = Config->CibirIdOffsetDst;
+    if (Config->CibirIdLength) {
+        memcpy((*NewSocket)->CibirId, Config->CibirId, Config->CibirIdLength);
+    }
 
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
