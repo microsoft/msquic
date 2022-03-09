@@ -40,7 +40,7 @@ jobs:
       shell: pwsh
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Configuration Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -FailOnError
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -FailOnError
     - name: Download Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
