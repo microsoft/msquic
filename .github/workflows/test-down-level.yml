@@ -73,7 +73,7 @@ jobs:
         Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
-      run: artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest --gtest_filter=-*CredValidation*
+      run: LD_LIBRARY_PATH=artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}} artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest --gtest_filter=-*CredValidation*
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
       run: artifacts/bin/windows/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest --gtest_filter=-*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*
