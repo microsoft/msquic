@@ -30,7 +30,6 @@ jobs:
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
-      if: runner.os == 'Linux'
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -45,6 +44,8 @@ jobs:
         mkdir artifacts && mkdir artifacts/release
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
+        Expand-Archive -Path "artifacts/release.zip" -DestinationPath "artifacts/release"
+        Expand-Archive -Path "artifacts/test.zip" -DestinationPath "artifacts/release/bin"
     - name: Download Tests (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
@@ -52,8 +53,7 @@ jobs:
         mkdir artifacts && mkdir artifacts/release
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
-    - name: Exctract and Run Tests
-      run: |
         Expand-Archive -Path "artifacts/release.zip" -DestinationPath "artifacts/release"
         Expand-Archive -Path "artifacts/test.zip" -DestinationPath "artifacts/release/bin"
-        & artifacts/release/bin/msquictest
+    - name: Run Tests
+      run: artifacts/release/bin/msquictest
