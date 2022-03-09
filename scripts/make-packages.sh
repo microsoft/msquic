@@ -127,5 +127,5 @@ if [ "$OS" == "macos" ]; then
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
     --provides libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib \
-    "$ARTIFACTS/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib2"=/usr/local/lib/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib
+    "$ARTIFACTS/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib"=/usr/local/lib/libmsquic.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}.dylib
 fi
