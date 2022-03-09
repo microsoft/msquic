@@ -44,8 +44,9 @@ jobs:
     - name: Download Tests
       shell: pwsh
       run: |
+        $osName = "${{runner.os}}".ToLower()
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_${{runner.os}}_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
-        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/${{runner.os}}/${{matrix.arch}}_Release_${{matrix.tls}}
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.arch}}_Release_${{matrix.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
