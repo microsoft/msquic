@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-find_package(Git REQUIRED QUIET)
+find_package(Git QUIET)
 if (NOT Git_FOUND)
     message(STATUS "Unable to find git, which is needed for versioning")
 endif()
