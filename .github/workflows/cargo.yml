@@ -33,6 +33,14 @@ jobs:
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: Debug PATH & NASM
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        echo $env:USERPROFILE
+        dir $env:USERPROFILE
+        echo $env:PATH
+        where.exe nasm.exe
     - name: Cargo build
       run: cargo build --all
     - name: Cargo test
