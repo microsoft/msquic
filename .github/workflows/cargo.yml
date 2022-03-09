@@ -30,6 +30,14 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Tls openssl -FailOnError
       shell: pwsh
+    - name: Install Perl
+      if: runner.os == 'Windows'
+      uses: shogo82148/actions-setup-perl@b0e06be5e74c57449d895dfe5b3792563c214e8f
+      with:
+        perl-version: '5.34'
+    - name: Install NASM
+      if: runner.os == 'Windows'
+      uses: ilammy/setup-nasm@10788e307d96af7013172d66126322c70b22efb9
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y

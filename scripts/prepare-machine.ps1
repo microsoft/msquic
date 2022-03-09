@@ -189,7 +189,7 @@ if ($IsWindows) {
         $NasmVersion = "2.15.05"
         $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
         $NasmExe = Join-Path $NasmPath "nasm.exe"
-        if (!(Test-Path $NasmExe)) {
+        if (!(Test-Path $NasmExe) -and $env:GITHUB_PATH -eq $null) {
             New-Item -Path .\build -ItemType Directory -Force
             $NasmArch = "win64"
             if (![System.Environment]::Is64BitOperatingSystem) {
@@ -202,9 +202,6 @@ if ($IsWindows) {
                 Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
-            if ($env:GITHUB_PATH -ne $null) {
-                Move-Item -Path (Join-Path $NasmPath "*") -Destination (Join-Path $env:SystemRoot "system32") -Force
-            }
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
             $env:PATH = "${env:PATH};$NasmPath"
@@ -216,7 +213,7 @@ if ($IsWindows) {
         $JomVersion = "1_1_3"
         $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
         $JomExe = Join-Path $JomPath "jom.exe"
-        if (!(Test-Path $JomExe)) {
+        if (!(Test-Path $JomExe) -and $env:GITHUB_PATH -eq $null) {
             New-Item -Path .\build -ItemType Directory -Force
             try {
                 Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "build\jom.zip"
@@ -226,9 +223,6 @@ if ($IsWindows) {
             }
             New-Item -Path $JomPath -ItemType Directory -Force
             Expand-Archive -Path "build\jom.zip" -DestinationPath $JomPath -Force
-            if ($env:GITHUB_PATH -ne $null) {
-                Move-Item -Path (Join-Path $JomPath "*") -Destination (Join-Path $env:SystemRoot "system32") -Force
-            }
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$JomPath"
             $env:PATH = "${env:PATH};$JomPath"
