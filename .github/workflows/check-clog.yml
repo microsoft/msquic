@@ -20,11 +20,11 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24
+      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
       with:
         egress-policy: audit
     - name: Setup .NET
-      uses: actions/setup-dotnet@499789684c9a0d41c9b3f0d66a785ba17b1d51ab
+      uses: actions/setup-dotnet@9211491ffb35dd6a6657ca4f45d43dfe6e97c829
       with:
         dotnet-version: 6.0.x
     - name: Checkout repository

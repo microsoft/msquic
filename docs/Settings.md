@@ -78,14 +78,17 @@ MsQuic API Objects have a number of settings, or parameters, which can be querie
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_GLOBAL_*` and a `NULL` object handle.
 
-| Setting                                           | Type          | Get/Set   | Description                                                                                           |
-|---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT`<br> 0    | uint16_t      | Both      | The percentage of available memory usable for handshake connections before stateless retry is used.   |
-| `QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS`<br> 1      | uint32_t[]    | Get-only  | List of QUIC protocol versions supported in network byte order.                                       |
-| `QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE`<br> 2      | uint16_t      | Both      | Must be a `QUIC_LOAD_BALANCING_MODE`.                                                                 |
-| `QUIC_PARAM_GLOBAL_PERF_COUNTERS`<br> 3           | uint64_t[]    | Get-only  | Array size is QUIC_PERF_COUNTER_MAX.                                                                  |
-| `QUIC_PARAM_GLOBAL_SETTINGS`<br> 4                | QUIC_SETTINGS | Both      | Globally change settings for all subsequent connections.                                              |
-| `QUIC_PARAM_GLOBAL_VERSION`<br> 5                 | uint32_t[4]   | Get-only  | MsQuic API version.                                                                                   |
+| Setting                                           | Type                    | Get/Set   | Description                                                                                           |
+|---------------------------------------------------|-------------------------|-----------|-------------------------------------------------------------------------------------------------------|
+| `QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT`<br> 0    | uint16_t                | Both      | The percentage of available memory usable for handshake connections before stateless retry is used.   |
+| `QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS`<br> 1      | uint32_t[]              | Get-only  | List of QUIC protocol versions supported in network byte order.                                       |
+| `QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE`<br> 2      | uint16_t                | Both      | Must be a `QUIC_LOAD_BALANCING_MODE`.                                                                 |
+| `QUIC_PARAM_GLOBAL_PERF_COUNTERS`<br> 3           | uint64_t[]              | Get-only  | Array size is QUIC_PERF_COUNTER_MAX.                                                                  |
+| `QUIC_PARAM_GLOBAL_LIBRARY_VERSION`<br> 4         | uint32_t[4]             | Get-only  | MsQuic API version.                                                                                   |
+| `QUIC_PARAM_GLOBAL_SETTINGS`<br> 5                | QUIC_SETTINGS           | Both      | Globally change settings for all subsequent connections.                                              |
+| `QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS`<br> 6         | QUIC_GLOBAL_SETTINGS    | Both      | Globally change global only settings.                                                                 |
+| `QUIC_PARAM_GLOBAL_VERSION_SETTINGS`<br> 7        | QUIC_VERSIONS_SETTINGS  | Both      | Globally change version settings for all subsequent connections.                                      |
+
 
 ### Registration Parameters
 
@@ -99,10 +102,11 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONFIGURATION_*` and a Configuration object handle.
 
-| Setting                                       | Type                      | Get/Set   | Description                                                                                                       |
-|-----------------------------------------------|---------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0     | QUIC_SETTINGS             | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
-| `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1  | QUIC_TICKET_KEY_CONFIG[]  | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
+| Setting                                            | Type                      | Get/Set   | Description                                                                                                       |
+|----------------------------------------------------|---------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
+| `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0          | QUIC_SETTINGS             | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
+| `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1       | QUIC_TICKET_KEY_CONFIG[]  | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
+| `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2  | QUIC_VERSIONS_SETTINGS    | Both      | Change version settings for all connections on the configuration.                                                 |
 
 ### Listener Parameters
 
@@ -112,7 +116,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
-| `QUIC_PARAM_LISTENER_CID_PREFIX`<br> 2    | uint8_t[]  | Both  | CID prefix prepended to all CIDs.        |
+| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2    | uint8_t[]  | Both  | The CIBIR well-known idenfitier.        |
 
 ### Connection Parameters
 
@@ -138,10 +142,12 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION`<br> 15  | uint8_t (BOOLEAN)             | Both      | Application must `#define QUIC_API_ENABLE_INSECURE_FEATURES` before including msquic.h.   |
 | `QUIC_PARAM_CONN_RESUMPTION_TICKET`<br> 16        | uint8_t[]                     | Set-only  | Must be set on client before starting connection.                                         |
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
-| `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18    | uint32_t  | Set-only  | The local interface index to bind to.        |
-| `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19    | QUIC_TLS_SECRETS  | Set-only  | The TLS secrets struct to be populated by MsQuic.        |
-| `QUIC_PARAM_CONN_DESIRED_VERSIONS`<br> 20    | uint8_t[]  | Get-only  | The desired QUIC versions for the connection.        |
-| `QUIC_PARAM_CONN_INITIAL_DCID_PREFIX`<br> 21    | uint8_t[]  | Set-only  | CID prefix prepended to initial destination CID.        |
+| `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18          | uint32_t                      | Set-only  | The local interface index to bind to.                                                     |
+| `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19              | QUIC_TLS_SECRETS              | Set-only  | The TLS secrets struct to be populated by MsQuic.                                         |
+| `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both  | The desired QUIC versions for the connection.                                                 |
+| `QUIC_PARAM_CONN_CIBIR_ID`<br> 21      | uint8_t[]  | Set-only  | The CIBIR well-known identifier.                                                             |
+| `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5             | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
+| `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6        | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 
 ### TLS Parameters
 

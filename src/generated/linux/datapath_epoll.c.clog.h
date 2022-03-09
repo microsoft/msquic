@@ -18,10 +18,6 @@
 #define _clog_MACRO_QuicTraceLogWarning  1
 #define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
-#ifndef _clog_MACRO_QuicTraceLogInfo
-#define _clog_MACRO_QuicTraceLogInfo  1
-#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceLogError
 #define _clog_MACRO_QuicTraceLogError  1
 #define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -81,42 +77,6 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathQueryUdpSegmentFailed , arg2);\
 #ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
 #define _clog_3_ARGS_TRACE_DatapathRecvEmpty(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStart
-// [data][%p] Worker start
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        ProcContext);
-// arg2 = arg2 = ProcContext = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathWorkerThreadStart
-#define _clog_3_ARGS_TRACE_DatapathWorkerThreadStart(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStart , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStop
-// [data][%p] Worker stop
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        ProcContext);
-// arg2 = arg2 = ProcContext = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathWorkerThreadStop
-#define _clog_3_ARGS_TRACE_DatapathWorkerThreadStop(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStop , arg2);\
 
 #endif
 

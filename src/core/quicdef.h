@@ -47,6 +47,18 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_INITIAL_WINDOW_PACKETS             10
 
 //
+// Maximum number of bytes allowed for a connection ID.
+//
+#define QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT 255
+#define QUIC_MAX_CONNECTION_ID_LENGTH_V1        20
+
+//
+// Minimum number of bytes required for a connection ID in the client's
+// Initial packet.
+//
+#define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH   8
+
+//
 // The amount of packet amplification allowed by the server. Until the
 // client address is validated, a server will send no more than
 // QUIC_AMPLIFICATION_RATIO UDP payload bytes for each received byte.
@@ -191,13 +203,16 @@ typedef struct QUIC_PATH QUIC_PATH;
 // connection. When this limit is reached, any additional packets are dropped.
 //
 #ifdef _KERNEL_MODE
-//
-// Kernel modes receive path is slightly different, so allow larger queue sizes.
-//
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
 #else
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 #endif
+
+//
+// The maximum number of received packets that may be processed in a single
+// flush operation.
+//
+#define QUIC_MAX_RECEIVE_FLUSH_COUNT            100
 
 //
 // The maximum number of pending datagrams we will hold on to, per connection,
@@ -219,7 +234,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // The initial stream FC window size reported to peers.
 //
-#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x8000  // 32768
+#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x10000  // 65536
 
 //
 // The initial stream receive buffer allocation size.

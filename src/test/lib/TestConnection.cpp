@@ -291,14 +291,13 @@ TestConnection::SetQuicVersion(
     uint32_t value
     )
 {
-    QUIC_SETTINGS Settings = {0};
-    Settings.IsSet.DesiredVersionsList = TRUE;
-    Settings.DesiredVersionsList = &value;
-    Settings.DesiredVersionsListLength = 1;
+    MsQuicVersionSettings Settings;
+    Settings.AcceptableVersions = &value;
+    Settings.AcceptableVersionsLength = 1;
     return
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_CONN_SETTINGS,
+            QUIC_PARAM_CONN_VERSION_SETTINGS,
             sizeof(Settings),
             &Settings);
 }
@@ -510,15 +509,15 @@ TestConnection::GetLocalUnidiStreamCount()
     return value;
 }
 
-QUIC_STATISTICS
+QUIC_STATISTICS_V2
 TestConnection::GetStatistics()
 {
-    QUIC_STATISTICS value = {};
+    QUIC_STATISTICS_V2 value = {};
     uint32_t valueSize = sizeof(value);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &valueSize,
             &value);
     if (QUIC_FAILED(Status)) {

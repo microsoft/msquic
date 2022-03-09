@@ -77,7 +77,10 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -139,8 +142,13 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 $ExeName = Split-Path $Path -Leaf
 $CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
+$ExeLogFolder = $ExeName
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $ExeLogFolder += "_$ExtraArtifactDir"
+}
+
 # Path for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogDir = Join-Path $RootDir "artifacts" "logs" $ExeLogFolder (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
 # Folder for coverage files
@@ -221,7 +229,7 @@ function Start-Executable {
             }
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $LogDir
         }
     }
@@ -253,8 +261,69 @@ function PrintDumpCallStack($DumpFile) {
         Write-Host " $(Split-Path $DumpFile -Leaf)"
         Write-Host "=================================================================================="
         $Output -replace "quit:", "=================================================================================="
+        $Output | Out-File "$DumpFile.txt"
     } catch {
         # Silently fail
+    }
+}
+
+function PrintLldbCoreCallStack($CoreFile) {
+    try {
+        $Output = lldb $Path -c $CoreFile -b -o "`"bt all`""
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $CoreFile -Leaf)"
+        Write-Host "=================================================================================="
+        # Find line containing Current thread
+        $Found = $false
+        $LastThreadStart = 0
+        for ($i = 0; $i -lt $Output.Length; $i++) {
+            if ($Output[$i] -like "*stop reason =*") {
+                if ($Found) {
+                    break
+                }
+                $LastThreadStart = $i
+            }
+            if ($Output[$i] -like "*quic_bugcheck*") {
+                $Found = $true
+                for ($j = $LastThreadStart; $j -lt $i; $j++) {
+                    $Output[$j]
+                }
+            }
+            if ($Found) {
+                $Output[$i]
+            }
+        }
+        if (!$Found) {
+            $Output | Join-String -Separator "`n"
+        }
+        $Output | Join-String -Separator "`n" | Out-File "$CoreFile.txt"
+    } catch {
+        # Silently Fail
+    }
+}
+
+function PrintGdbCoreCallStack($CoreFile) {
+    try {
+        $Output = gdb $Path $CoreFile -batch -ex "`"bt`"" -ex "`"quit`""
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $CoreFile -Leaf)"
+        Write-Host "=================================================================================="
+        # Find line containing Current thread
+        $Found = $false
+        for ($i = 0; $i -lt $Output.Length; $i++) {
+            if ($Output[$i] -like "*Current thread*") {
+                $Found = $true
+            }
+            if ($Found) {
+                $Output[$i]
+            }
+        }
+        if (!$Found) {
+            $Output | Join-String -Separator "`n"
+        }
+        $Output | Join-String -Separator "`n" | Out-File "$CoreFile.txt"
+    } catch {
+        # Silently Fail
     }
 }
 
@@ -283,7 +352,7 @@ function Wait-Executable($Exe) {
         if (!$Debugger) {
             $stdout = $Exe.Process.StandardOutput.ReadToEnd()
             $stderr = $Exe.Process.StandardError.ReadToEnd()
-            if (!$isWindows) {
+            if (!$IsWindows) {
                 $KeepOutput = $stderr.Contains("Aborted")
             }
         } else {
@@ -304,6 +373,18 @@ function Wait-Executable($Exe) {
             LogErr "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
                 PrintDumpCallStack($File)
+            }
+            $KeepOutput = $true
+        }
+        $CoreFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".core" }
+        if ($CoreFiles) {
+            LogWrn "Core file(s) generated"
+            foreach ($File in $CoreFiles) {
+                if ($IsMacOS) {
+                    PrintLldbCoreCallStack $File
+                } else {
+                    PrintGdbCoreCallStack $File
+                }
             }
             $KeepOutput = $true
         }
@@ -386,7 +467,7 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
 # Start the executable, wait for it to complete and then generate any output.
 Wait-Executable (Start-Executable)
 
-if ($isWindows) {
+if ($IsWindows) {
     # Cleanup the WER registry.
     Remove-Item -Path $WerDumpRegPath -Force | Out-Null
 }

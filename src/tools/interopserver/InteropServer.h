@@ -7,6 +7,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #include "msquichelper.h"
 
 extern const QUIC_API_TABLE* MsQuic;

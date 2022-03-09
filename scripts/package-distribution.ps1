@@ -19,7 +19,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.0.0"
+$Version = "2.1.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -84,16 +84,21 @@ foreach ($Build in $AllBuilds) {
 
     $Binaries = @()
     $DebugFolders = @()
+    $TestBinary = ""
 
     if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
+        if ($Platform -eq "windows") {
+            $TestBinary = Join-Path $ArtifactsDir "msquictest.exe"
+        }
     } elseif ($Platform -eq "linux") {
         $Binaries += Join-Path $ArtifactsDir "libmsquic.so.$Version"
         $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so.$Version"
         if (Test-Path $LttngBin) {
             $Binaries += $LttngBin
         }
+        $TestBinary = Join-Path $ArtifactsDir "msquictest"
     } else {
         # macos
         $Binaries += Join-Path $ArtifactsDir "libmsquic.$Version.dylib"
@@ -101,6 +106,7 @@ foreach ($Build in $AllBuilds) {
         if (Test-Path $DebugFolder) {
             $DebugFolders += $DebugFolder
         }
+        $TestBinary = Join-Path $ArtifactsDir "msquictest"
     }
 
     $Libraries = @()
@@ -148,6 +154,7 @@ foreach ($Build in $AllBuilds) {
         # Only need license, no 3rd party code
         Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $TempDir
     }
+
     # Package zip archive
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
 
@@ -158,5 +165,10 @@ foreach ($Build in $AllBuilds) {
         Set-Location $RootDir
         & $RootDir/scripts/make-packages.sh --output $DistDir
         Set-Location $OldLoc
+    }
+
+    # Package msquictest in separate test package.
+    if ($TestBinary -ne "") {
+        Compress-Archive -Path $TestBinary -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$($BuildBaseName)_test.zip") -Force
     }
 }

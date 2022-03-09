@@ -245,10 +245,6 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        QuicBindingReceive,
-        QuicBindingUnreachable
-    };
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -391,26 +387,10 @@ MsQuicLibraryInitialize(
         }
     }
 
-    Status =
-        CxPlatDataPathInitialize(
-            sizeof(CXPLAT_RECV_PACKET),
-            &DatapathCallbacks,
-            NULL,                   // TcpCallbacks
-            &MsQuicLib.Datapath);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatDataPathInitialize");
-        goto Error;
-    }
-
     QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV2,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
     QuicTraceEvent(
         LibraryVersion,
         "[ lib] Version %u.%u.%u.%u",
@@ -492,8 +472,10 @@ MsQuicLibraryUninitialize(
     // Clean up the data path first, which can continue to cause new connections
     // to get created.
     //
-    CxPlatDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
+    if (MsQuicLib.Datapath != NULL) {
+        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
+        MsQuicLib.Datapath = NULL;
+    }
 
     //
     // Wait for the final clean up of everything in the stateless registration
@@ -723,12 +705,12 @@ QuicLibApplyLoadBalancingSetting(
 
     MsQuicLib.CidTotalLength =
         MsQuicLib.CidServerIdLength +
-        MSQUIC_CID_PID_LENGTH +
-        MSQUIC_CID_PAYLOAD_LENGTH;
+        QUIC_CID_PID_LENGTH +
+        QUIC_CID_PAYLOAD_LENGTH;
 
-    CXPLAT_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_CID_SID_LENGTH);
+    CXPLAT_FRE_ASSERT(MsQuicLib.CidServerIdLength <= QUIC_MAX_CID_SID_LENGTH);
     CXPLAT_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
-    CXPLAT_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
+    CXPLAT_FRE_ASSERT(MsQuicLib.CidTotalLength <= QUIC_CID_MAX_LENGTH);
 
     QuicTraceLogInfo(
         LibraryCidLengthSet,
@@ -746,6 +728,7 @@ QuicLibrarySetGlobalParam(
     )
 {
     QUIC_STATUS Status;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -799,9 +782,7 @@ QuicLibrarySetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList) ||
-            BufferLength > sizeof(QUIC_SETTINGS)) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -810,21 +791,101 @@ QuicLibrarySetGlobalParam(
             LibrarySetSettings,
             "[ lib] Setting new settings");
 
+        Status =
+            QuicSettingsSettingsToInternal(
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
                 TRUE,
-                BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
-        MsQuicLibraryOnSettingsChanged(TRUE);
+        if (QUIC_SUCCEEDED(Status)) {
+            MsQuicLibraryOnSettingsChanged(TRUE);
+        }
 
-        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS:
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicTraceLogInfo(
+            LibrarySetSettings,
+            "[ lib] Setting new settings");
+
+        Status =
+            QuicSettingsGlobalSettingsToInternal(
+                BufferLength,
+                (QUIC_GLOBAL_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicSettingApply(
+                &MsQuicLib.Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QUIC_SUCCEEDED(Status)) {
+            MsQuicLibraryOnSettingsChanged(TRUE);
+        }
+
+        break;
+
+    case QUIC_PARAM_GLOBAL_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicTraceLogInfo(
+            LibrarySetSettings,
+            "[ lib] Setting new settings");
+
+        Status =
+            QuicSettingsVersionSettingsToInternal(
+                BufferLength,
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicSettingApply(
+                &MsQuicLib.Settings,
+                TRUE,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QUIC_SUCCEEDED(Status)) {
+            MsQuicLibraryOnSettingsChanged(TRUE);
+        }
+
         break;
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -988,15 +1049,20 @@ QuicLibraryGetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_SETTINGS:
 
-        Status = QuicSettingsGetParam(&MsQuicLib.Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        Status = QuicSettingsGetSettings(&MsQuicLib.Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
         break;
 
-    case QUIC_PARAM_GLOBAL_DESIRED_VERSIONS:
+    case QUIC_PARAM_GLOBAL_VERSION_SETTINGS:
 
-        Status = QuicSettingsGetDesiredVersions(&MsQuicLib.Settings, BufferLength, (uint32_t*)Buffer);
+        Status = QuicSettingsGetVersionSettings(&MsQuicLib.Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
         break;
 
-    case QUIC_PARAM_GLOBAL_VERSION:
+    case QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS:
+
+        Status = QuicSettingsGetGlobalSettings(&MsQuicLib.Settings, BufferLength, (QUIC_GLOBAL_SETTINGS*)Buffer);
+        break;
+
+    case QUIC_PARAM_GLOBAL_LIBRARY_VERSION:
 
         if (*BufferLength < sizeof(MsQuicLib.Version)) {
             *BufferLength = sizeof(MsQuicLib.Version);
@@ -1301,7 +1367,7 @@ MsQuicOpenVersion(
     QUIC_STATUS Status;
     BOOLEAN ReleaseRefOnFailure = FALSE;
 
-    if (Version != 2) {
+    if (Version != QUIC_API_VERSION_2) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1806,10 +1872,17 @@ QuicTraceRundown(
 
     if (MsQuicLib.OpenRefCount > 0) {
         QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
+
+        if (MsQuicLib.Datapath != NULL) {
+            QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        }
+
         QuicTraceEvent(
             LibraryVersion,
             "[ lib] Version %u.%u.%u.%u",

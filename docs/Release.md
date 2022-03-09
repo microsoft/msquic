@@ -49,6 +49,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 | PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
 | PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
+| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Client | Mar 1 2022 | May 1 2022 | Nov 1 2023 |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -255,3 +256,47 @@ Official (v1) RFC and draft-29 are supported by this release.
 - Bug Fix: Fix rare endless loop in send path (#2082)
 
 Official (v1) RFC and draft-29 are supported by this release.
+
+## MsQuic v2.0 (SAC)
+
+[MsQuic v2.0](https://github.com/microsoft/msquic/releases/tag/v2.0.0) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
+
+Official (v1) RFC and draft-29 are supported by this release.
+
+### Breaking Changes
+
+- Fix QUIC_SETTINGS across different versions (#2271)
+- Remove synchronous StreamStart (#2312)
+- Remove Level from SetParam/GetParam (#2322)
+- Add new datagram send state enum (#2342)
+- Add support for async listener stop (#2346)
+- Refactor custom CID prefix (#2363)
+- Make StreamReceiveComplete not fail (#2371)
+
+#### Upgrade Notes
+
+The following changes will be necessary for apps that upgrade from v1.* to v2.0:
+
+- Remove any usage of `QUIC_STREAM_START_FLAG_ASYNC`, replacing with `QUIC_STREAM_START_FLAG_NONE` if no other flags are used. If the flag was not used before, the app code must handle the call not blocking any more.
+- Remove all `Level` parameters passed to `GetParam` or `SetParam`.
+- Ensure the app handles `ListenerStop` not blocking any more. `ListenerClose` still blocks.
+- No more need to check for a return code from `StreamReceiveComplete`.
+- QUIC_ADDRESS_FAMILY_IPV6 has been changed to be platform specific rather then always windows values. For C/C++ consumers this is only a binary breaking change. For Interop consumers, the value will change for linux and macOS.
+
+### Other Changes
+
+- Various Linux build and packaging improvements (#2090, #2092, #2097)
+- Various OpenSSL improvements and refactoring (#2098, #2083, #2111, #2154)
+- Various certificate handling improvements and refactoring (#2155, #2158, #2160, #2164)
+- Mirroring and OneBranch build infrastructure improvements (#2093, #2097, #2125, #2127, #2128, #2129)
+- Datapath refactoring for low latency work (#2107, #2122, #2130, #2132, #2134, #2161, #2168)
+- Various WAN perf improvements (#2266, #2269, #2270, #2296, #2304, #2309, #2343)
+- Updates for ACK Frequency Draft-2 (#2347)
+- Performance tool improvements (#2110, #2113, #2166)
+- Visual Studio 2022 support (#2119)
+- Interop layers for Rust and C# (#1832, #2100, #1917)
+- Update OpenSSL to 1.1.1m (#2229)
+- Various documentation improvements
+- Added scorecard and dependabot support (#2310)
+- Fix macOS datapath asserting in an initialization race (#2398)
+- Add QUIC_STATISTICS_V2 parameter (#2386)

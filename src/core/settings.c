@@ -17,7 +17,7 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
-    _Inout_ QUIC_SETTINGS* Settings
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (!Settings->IsSet.SendBufferingEnabled) {
@@ -127,8 +127,8 @@ QuicSettingsSetDefault(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS* Destination,
-    _In_ const QUIC_SETTINGS* Source
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
+    _In_ const QUIC_SETTINGS_INTERNAL* Source
     )
 {
     if (!Destination->IsSet.SendBufferingEnabled) {
@@ -235,20 +235,15 @@ QuicSettingsCopy(
     }
 }
 
-#define SETTING_HAS_FIELD(Size, Field) \
-    (Size >= (FIELD_OFFSET(QUIC_SETTINGS, Field) + sizeof(((QUIC_SETTINGS*)0)->Field)))
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS* Destination,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
-        uint32_t NewSettingsSize,
-    _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* Source
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Source
     )
 {
     if (Source->IsSet.SendBufferingEnabled && (!Destination->IsSet.SendBufferingEnabled || OverWrite)) {
@@ -384,12 +379,7 @@ QuicSettingApply(
         Destination->IsSet.VersionNegotiationExtEnabled = TRUE;
     }
 
-    //
-    // All new settings MUST explicitly validate they are within NewSettingsSize.
-    //
-
-    if (SETTING_HAS_FIELD(NewSettingsSize, DesiredVersionsListLength) &&
-        Source->IsSet.DesiredVersionsList) {
+    if (Source->IsSet.DesiredVersionsList) {
         if (Destination->IsSet.DesiredVersionsList &&
             (OverWrite || Source->DesiredVersionsListLength == 0)) {
             CXPLAT_FREE(Destination->DesiredVersionsList, QUIC_POOL_DESIRED_VER_LIST);
@@ -441,66 +431,61 @@ QuicSettingApply(
         }
     }
 
-    if (SETTING_HAS_FIELD(NewSettingsSize, MtuDiscoveryMissingProbeCount)) {
-        if (AllowMtuChanges) {
-            uint16_t MinimumMtu = Destination->MinimumMtu;
-            uint16_t MaximumMtu = Destination->MaximumMtu;
-            if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
-                MinimumMtu = Source->MinimumMtu;
-                if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-                    MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
-                } else if (MinimumMtu > CXPLAT_MAX_MTU) {
-                    MinimumMtu = CXPLAT_MAX_MTU;
-                }
+    if (AllowMtuChanges) {
+        uint16_t MinimumMtu = Destination->MinimumMtu;
+        uint16_t MaximumMtu = Destination->MaximumMtu;
+        if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
+            MinimumMtu = Source->MinimumMtu;
+            if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+                MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
+            } else if (MinimumMtu > CXPLAT_MAX_MTU) {
+                MinimumMtu = CXPLAT_MAX_MTU;
             }
-            if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
-                MaximumMtu = Source->MaximumMtu;
-                if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-                    MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
-                } else if (MaximumMtu > CXPLAT_MAX_MTU) {
-                    MaximumMtu = CXPLAT_MAX_MTU;
-                }
+        }
+        if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
+            MaximumMtu = Source->MaximumMtu;
+            if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
+                MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
+            } else if (MaximumMtu > CXPLAT_MAX_MTU) {
+                MaximumMtu = CXPLAT_MAX_MTU;
             }
-            if (MinimumMtu > MaximumMtu) {
-                return FALSE;
-            }
-            if (Destination->MinimumMtu != MinimumMtu) {
-                Destination->IsSet.MinimumMtu = TRUE;
-            }
-            if (Destination->MaximumMtu != MaximumMtu) {
-                Destination->IsSet.MaximumMtu = TRUE;
-            }
-            Destination->MinimumMtu = MinimumMtu;
-            Destination->MaximumMtu = MaximumMtu;
-        } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
+        }
+        if (MinimumMtu > MaximumMtu) {
             return FALSE;
         }
-        if (Source->IsSet.MtuDiscoverySearchCompleteTimeoutUs && (!Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs || OverWrite)) {
-            Destination->MtuDiscoverySearchCompleteTimeoutUs = Source->MtuDiscoverySearchCompleteTimeoutUs;
-            Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+        if (Destination->MinimumMtu != MinimumMtu) {
+            Destination->IsSet.MinimumMtu = TRUE;
         }
-        if (Source->IsSet.MtuDiscoveryMissingProbeCount && (!Destination->IsSet.MtuDiscoveryMissingProbeCount || OverWrite)) {
-            Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
-            Destination->IsSet.MtuDiscoveryMissingProbeCount = TRUE;
+        if (Destination->MaximumMtu != MaximumMtu) {
+            Destination->IsSet.MaximumMtu = TRUE;
         }
+        Destination->MinimumMtu = MinimumMtu;
+        Destination->MaximumMtu = MaximumMtu;
+    } else if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
+        return FALSE;
     }
 
-    if (SETTING_HAS_FIELD(NewSettingsSize, StatelessOperationExpirationMs)) {
-        if (Source->IsSet.MaxBindingStatelessOperations && (!Destination->IsSet.MaxBindingStatelessOperations || OverWrite)) {
-            Destination->MaxBindingStatelessOperations = Source->MaxBindingStatelessOperations;
-            Destination->IsSet.MaxBindingStatelessOperations = TRUE;
-        }
-        if (Source->IsSet.StatelessOperationExpirationMs && (!Destination->IsSet.StatelessOperationExpirationMs || OverWrite)) {
-            Destination->StatelessOperationExpirationMs = Source->StatelessOperationExpirationMs;
-            Destination->IsSet.StatelessOperationExpirationMs = TRUE;
-        }
+    if (Source->IsSet.MtuDiscoverySearchCompleteTimeoutUs && (!Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs || OverWrite)) {
+        Destination->MtuDiscoverySearchCompleteTimeoutUs = Source->MtuDiscoverySearchCompleteTimeoutUs;
+        Destination->IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+    }
+    if (Source->IsSet.MtuDiscoveryMissingProbeCount && (!Destination->IsSet.MtuDiscoveryMissingProbeCount || OverWrite)) {
+        Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
+        Destination->IsSet.MtuDiscoveryMissingProbeCount = TRUE;
     }
 
-    if (SETTING_HAS_FIELD(NewSettingsSize, CongestionControlAlgorithm)) {
-        if (Source->IsSet.CongestionControlAlgorithm && (!Destination->IsSet.CongestionControlAlgorithm || OverWrite)) {
-            Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
-            Destination->IsSet.CongestionControlAlgorithm = TRUE;
-        }
+    if (Source->IsSet.MaxBindingStatelessOperations && (!Destination->IsSet.MaxBindingStatelessOperations || OverWrite)) {
+        Destination->MaxBindingStatelessOperations = Source->MaxBindingStatelessOperations;
+        Destination->IsSet.MaxBindingStatelessOperations = TRUE;
+    }
+    if (Source->IsSet.StatelessOperationExpirationMs && (!Destination->IsSet.StatelessOperationExpirationMs || OverWrite)) {
+        Destination->StatelessOperationExpirationMs = Source->StatelessOperationExpirationMs;
+        Destination->IsSet.StatelessOperationExpirationMs = TRUE;
+    }
+
+    if (Source->IsSet.CongestionControlAlgorithm && (!Destination->IsSet.CongestionControlAlgorithm || OverWrite)) {
+        Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
+        Destination->IsSet.CongestionControlAlgorithm = TRUE;
     }
 
     return TRUE;
@@ -509,7 +494,7 @@ QuicSettingApply(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCleanup(
-    _In_ QUIC_SETTINGS* Settings
+    _In_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (Settings->IsSet.DesiredVersionsList) {
@@ -523,7 +508,7 @@ QuicSettingsCleanup(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
-    _Inout_ QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings,
     _In_ CXPLAT_STORAGE* Storage
     )
 {
@@ -913,7 +898,8 @@ QuicSettingsLoad(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDump(
-    _In_ const QUIC_SETTINGS* Settings
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     QuicTraceLogVerbose(SettingDumpSendBufferingEnabled,    "[sett] SendBufferingEnabled   = %hhu", Settings->SendBufferingEnabled);
@@ -953,16 +939,14 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,    "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
-    QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+    QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDumpNew(
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
-        uint32_t SettingsSize,
-    _In_reads_bytes_(SettingsSize)
-        const QUIC_SETTINGS* Settings
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (Settings->IsSet.SendBufferingEnabled) {
@@ -1044,82 +1028,110 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingDumpServerResumptionLevel,       "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     }
 
+    if (Settings->IsSet.DesiredVersionsList) {
+        QuicTraceLogVerbose(SettingDumpDesiredVersionsListLength,   "[sett] Desired Version length = %u", Settings->DesiredVersionsListLength);
+        if (Settings->DesiredVersionsListLength > 0) {
+            QuicTraceLogVerbose(SettingDumpDesiredVersionsList,     "[sett] Desired Version[0]     = 0x%x", Settings->DesiredVersionsList[0]);
+        }
+    }
+    if (Settings->IsSet.VersionNegotiationExtEnabled) {
+        QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
+    }
+
+    if (Settings->IsSet.MinimumMtu) {
+        QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
+    }
+    if (Settings->IsSet.MaximumMtu) {
+        QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] MaximumMtu             = %hu", Settings->MaximumMtu);
+    }
+    if (Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
+        QuicTraceLogVerbose(SettingDumpMtuCompleteTimeout,          "[sett] MtuCompleteTimeout     = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
+    }
+    if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
+        QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
+    }
+
+    if (Settings->IsSet.MaxBindingStatelessOperations) {
+        QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper,     "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
+    }
+    if (Settings->IsSet.StatelessOperationExpirationMs) {
+        QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
+    }
+
+    if (Settings->IsSet.CongestionControlAlgorithm) {
+        QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
+    }
+}
+
+#define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
+    (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
+
+#define SETTING_HAS_FIELD(SettingsType, Size, Field) \
+    (Size >= SETTINGS_SIZE_THRU_FIELD(SettingsType, Field))
+
+#define SETTING_COPY_TO_INTERNAL(Field, Settings, InternalSettings) \
+    InternalSettings->IsSet.Field = Settings->IsSet.Field;          \
+    InternalSettings->Field = Settings->Field;
+
+#define SETTING_COPY_TO_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings)   \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+        InternalSettings->IsSet.Field = Settings->IsSet.Field;                                          \
+        InternalSettings->Field = Settings->Field;                                                      \
+    }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGlobalSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_GLOBAL_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    )
+{
+    if (!SETTING_HAS_FIELD(QUIC_GLOBAL_SETTINGS, SettingsSize, LoadBalancingMode)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    InternalSettings->IsSetFlags = 0;
+    SETTING_COPY_TO_INTERNAL(RetryMemoryLimit, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(LoadBalancingMode, Settings, InternalSettings);
+
     //
-    // All new settings MUST explicitly validate they are within SettingsSize.
+    // N.B. Anything after this needs to be size checked
     //
 
-    if (SETTING_HAS_FIELD(SettingsSize, DesiredVersionsListLength)) {
-        if (Settings->IsSet.DesiredVersionsList) {
-            QuicTraceLogVerbose(SettingDumpDesiredVersionsListLength,   "[sett] Desired Version length = %u", Settings->DesiredVersionsListLength);
-            if (Settings->DesiredVersionsListLength > 0) {
-                QuicTraceLogVerbose(SettingDumpDesiredVersionsList,     "[sett] Desired Version[0]     = 0x%x", Settings->DesiredVersionsList[0]);
-            }
-        }
-        if (Settings->IsSet.VersionNegotiationExtEnabled) {
-            QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
-        }
-    }
-    if (SETTING_HAS_FIELD(SettingsSize, MtuDiscoveryMissingProbeCount)) {
-        if (Settings->IsSet.MinimumMtu) {
-            QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
-        }
-        if (Settings->IsSet.MaximumMtu) {
-            QuicTraceLogVerbose(SettingDumpMaximumMtu,                  "[sett] MaximumMtu             = %hu", Settings->MaximumMtu);
-        }
-        if (Settings->IsSet.MtuDiscoverySearchCompleteTimeoutUs) {
-            QuicTraceLogVerbose(SettingDumpMtuCompleteTimeout,          "[sett] MtuCompleteTimeout     = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
-        }
-        if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
-            QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
-        }
-    }
-    if (SETTING_HAS_FIELD(SettingsSize, StatelessOperationExpirationMs)) {
-        if (Settings->IsSet.MaxBindingStatelessOperations) {
-            QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper,     "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
-        }
-        if (Settings->IsSet.StatelessOperationExpirationMs) {
-            QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
-        }
-    }
-    if (SETTING_HAS_FIELD(SettingsSize, CongestionControlAlgorithm)) {
-        if (Settings->IsSet.CongestionControlAlgorithm) {
-            QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
-        }
-    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsGetParam(
-    _In_ const QUIC_SETTINGS* IncomingSettings,
-    _Inout_ uint32_t* OutgoingSize,
-    _Out_writes_bytes_opt_(*OutgoingSize)
-        QUIC_SETTINGS* OutgoingSettings
+QuicSettingsVersionSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_VERSION_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList);
-
-    if (*OutgoingSize < MinimumSettingsSize) {
-        *OutgoingSize = MinimumSettingsSize;
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    if (OutgoingSettings == NULL) {
+    if (SettingsSize < sizeof(QUIC_VERSION_SETTINGS)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CxPlatZeroMemory(OutgoingSettings, *OutgoingSize);
-    uint32_t CopySize = CXPLAT_MIN(*OutgoingSize, sizeof(QUIC_SETTINGS));
+    InternalSettings->IsSetFlags = 0;
 
-    CxPlatCopyMemory(OutgoingSettings, IncomingSettings, CopySize);
-    *OutgoingSize = CopySize;
-
-    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
-        OutgoingSettings->DesiredVersionsList = NULL;
-    }
-
-    if (*OutgoingSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsListLength)) {
-        OutgoingSettings->DesiredVersionsListLength = 0;
+    if (Settings->AcceptableVersionsLength == 0 &&
+        Settings->FullyDeployedVersionsLength == 0 &&
+        Settings->OfferedVersionsLength == 0) {
+        InternalSettings->IsSet.VersionNegotiationExtEnabled = 1;
+        InternalSettings->IsSet.DesiredVersionsList = 1;
+        InternalSettings->VersionNegotiationExtEnabled = 0;
+        InternalSettings->DesiredVersionsList = NULL;
+        InternalSettings->DesiredVersionsListLength = 0;
+    } else {
+        InternalSettings->IsSet.VersionNegotiationExtEnabled = 1;
+        InternalSettings->IsSet.DesiredVersionsList = 1;
+        InternalSettings->VersionNegotiationExtEnabled = 1;
+        InternalSettings->DesiredVersionsList = Settings->AcceptableVersions;
+        InternalSettings->DesiredVersionsListLength = Settings->AcceptableVersionsLength;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -1127,25 +1139,226 @@ QuicSettingsGetParam(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSettingsGetDesiredVersions(
-    _In_ const QUIC_SETTINGS* Settings,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint32_t* Buffer
+QuicSettingsSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    uint32_t ListLength = Settings->DesiredVersionsListLength * sizeof(uint32_t);
-
-    if (*BufferLength < ListLength) {
-        *BufferLength = ListLength;
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    if (Buffer == NULL) {
+    if (!SETTING_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    *BufferLength = ListLength;
-    CxPlatCopyMemory(Buffer, Settings->DesiredVersionsList, *BufferLength);
+    InternalSettings->IsSetFlags = 0;
+    SETTING_COPY_TO_INTERNAL(MaxBytesPerKey, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(HandshakeIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(IdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MtuDiscoverySearchCompleteTimeoutUs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(TlsClientMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(TlsServerMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(StreamRecvWindowDefault, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(StreamRecvBufferDefault, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(ConnFlowControlWindow, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxWorkerQueueDelayUs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(InitialWindowPackets, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(SendIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(InitialRttMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxAckDelayMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(DisconnectTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(KeepAliveIntervalMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(CongestionControlAlgorithm, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(PeerBidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(PeerUnidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxBindingStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(StatelessOperationExpirationMs, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MinimumMtu, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaximumMtu, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MaxOperationsPerDrain, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MtuDiscoveryMissingProbeCount, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(SendBufferingEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(PacingEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    //
+    // The below is how to add a new field while checking size.
+    //
+    // SETTING_COPY_TO_INTERNAL_SIZED(
+    //     MtuDiscoveryMissingProbeCount,
+    //     QUIC_SETTINGS,
+    //     Settings,
+    //     SettingsSize,
+    //     InternalSettings);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+#define SETTING_COPY_FROM_INTERNAL(Field, Settings, InternalSettings)   \
+    Settings->IsSet.Field = InternalSettings->IsSet.Field;              \
+    Settings->Field = InternalSettings->Field;
+
+#define SETTING_COPY_FROM_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings) \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+        Settings->IsSet.Field = InternalSettings->IsSet.Field;                                          \
+        Settings->Field = InternalSettings->Field;                                                      \
+    }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_SETTINGS* Settings
+    )
+{
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+
+    if (*SettingsLength == 0) {
+        *SettingsLength = sizeof(QUIC_SETTINGS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*SettingsLength < MinimumSettingsSize) {
+        *SettingsLength = MinimumSettingsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Settings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Settings->IsSetFlags = 0;
+    SETTING_COPY_FROM_INTERNAL(MaxBytesPerKey, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(HandshakeIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(IdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MtuDiscoverySearchCompleteTimeoutUs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(TlsClientMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(TlsServerMaxSendBuffer, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(StreamRecvWindowDefault, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(StreamRecvBufferDefault, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(ConnFlowControlWindow, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxWorkerQueueDelayUs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(InitialWindowPackets, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(SendIdleTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(InitialRttMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxAckDelayMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(DisconnectTimeoutMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(KeepAliveIntervalMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(CongestionControlAlgorithm, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(PeerBidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(PeerUnidiStreamCount, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxBindingStatelessOperations, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(StatelessOperationExpirationMs, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MinimumMtu, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaximumMtu, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MaxOperationsPerDrain, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MtuDiscoveryMissingProbeCount, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(SendBufferingEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(PacingEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    //
+    // The below is how to add a new field while checking size.
+    //
+    // SETTING_COPY_FROM_INTERNAL_SIZED(
+    //     MtuDiscoveryMissingProbeCount,
+    //     QUIC_SETTINGS,
+    //     Settings,
+    //     *SettingsLength,
+    //     InternalSettings);
+
+    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetGlobalSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_GLOBAL_SETTINGS* Settings
+    )
+{
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+
+    if (*SettingsLength == 0) {
+        *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*SettingsLength < MinimumSettingsSize) {
+        *SettingsLength = MinimumSettingsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Settings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Settings->IsSetFlags = 0;
+    SETTING_COPY_FROM_INTERNAL(RetryMemoryLimit, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(LoadBalancingMode, Settings, InternalSettings);
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_GLOBAL_SETTINGS));
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetVersionSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t *SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_VERSION_SETTINGS* Settings
+    )
+{
+    uint32_t MinimumSize =
+        sizeof(QUIC_VERSION_SETTINGS) +
+        InternalSettings->DesiredVersionsListLength * sizeof(uint32_t);
+
+    if (*SettingsLength < MinimumSize) {
+        *SettingsLength = MinimumSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Settings == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Settings->AcceptableVersions = (uint32_t*)(Settings + 1);
+    Settings->AcceptableVersionsLength = InternalSettings->DesiredVersionsListLength;
+
+    CxPlatCopyMemory(
+        Settings->AcceptableVersions,
+        InternalSettings->DesiredVersionsList,
+        InternalSettings->DesiredVersionsListLength * sizeof(uint32_t));
+
+    Settings->FullyDeployedVersionsLength = 0;
+    Settings->OfferedVersionsLength = 0;
+
+    *SettingsLength = MinimumSize;
+
     return QUIC_STATUS_SUCCESS;
 }

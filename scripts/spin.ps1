@@ -168,5 +168,9 @@ if ($AZP) {
     $Arguments += " -AZP"
 }
 
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $Arguments += " -ExtraArtifactDir $ExtraArtifactDir"
+}
+
 # Run the script.
 Invoke-Expression ($RunExecutable + " " + $Arguments)

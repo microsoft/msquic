@@ -34,6 +34,15 @@ PerfServer::Init(
         }
     }
 
+    const char* CibirBytes = nullptr;
+    if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
+        CibirId[0] = 0; // offset
+        if ((CibirIdLength = DecodeHexBuffer(CibirBytes, 6, CibirId+1)) == 0) {
+            WriteOutput("Cibir ID must be a hex string <= 6 bytes.\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+
     DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
     if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -56,6 +65,13 @@ PerfServer::Start(
     }
 
     StopEvent = _StopEvent;
+
+    QUIC_STATUS Status;
+    if (CibirIdLength &&
+        QUIC_FAILED(Status = Listener.SetCibirId(CibirId, (uint8_t)CibirIdLength+1))) {
+        WriteOutput("Failed to set CibirId!\n");
+        return Status;
+    }
 
     return Listener.Start(Alpn, &LocalAddr);
 }

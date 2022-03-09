@@ -13,9 +13,8 @@ WORKDIR /src/Debug
 RUN     chmod +x /src/scripts/install-powershell-docker.sh
 RUN     /src/scripts/install-powershell-docker.sh
 ENV     PATH="/root/.dotnet/tools:${PATH}"
-RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF \
-            -DQUIC_ENABLE_LOGGING=on \
-            -DQUIC_DISABLE_POSIX_GSO=on ..
+RUN     cmake -DQUIC_BUILD_TOOLS=on -DQUIC_ENABLE_LOGGING=on \
+              -DQUIC_DISABLE_POSIX_GSO=on ..
 RUN     cmake --build .
 
 FROM    martenseemann/quic-network-simulator-endpoint@sha256:ff6ab6273c22d0609e2c0a123a15310da8bcd27052e8aaf10a6cc799a0218a4c

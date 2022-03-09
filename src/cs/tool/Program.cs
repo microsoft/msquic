@@ -54,7 +54,7 @@ namespace MsQuicTool
                 config.Flags = QUIC_CREDENTIAL_FLAGS.QUIC_CREDENTIAL_FLAG_CLIENT;
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationLoadCredential(configuration, &config));
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionOpen(registration, &NativeCallback, ApiTable, &connection));
-                byte* google = stackalloc byte[50];
+                sbyte* google = stackalloc sbyte[50];
                 int written = Encoding.UTF8.GetBytes("google.com", new Span<byte>(google, 50));
                 google[written] = 0;
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionStart(connection, configuration, 0, google, 443));
@@ -83,6 +83,16 @@ namespace MsQuicTool
         private static unsafe int NativeCallback(QUIC_HANDLE* handle, void* context, QUIC_CONNECTION_EVENT* evnt)
         {
             Console.WriteLine(evnt->Type);
+            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_CONNECTED)
+            {
+                QUIC_API_TABLE* ApiTable = (QUIC_API_TABLE*)context;
+                void* buf = stackalloc byte[128];
+                uint len = 128;
+                if (MsQuic.StatusSucceeded(ApiTable->GetParam(handle, MsQuic.QUIC_PARAM_CONN_REMOTE_ADDRESS, &len, buf))) {
+                    QuicAddr* addr = (QuicAddr*)(buf);
+                    Console.WriteLine($"Connected Family: {addr->Family}");
+                }
+            }
             if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED)
             {
                 Console.WriteLine("Aborting Stream");

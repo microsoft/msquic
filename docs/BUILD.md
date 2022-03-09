@@ -1,8 +1,6 @@
 # Building MsQuic
 
-The MsQuic build system relies on [CMake](https://cmake.org/) and [Powershell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (7.0 or better) on all platforms.
-
-> **Note** - clone the repo recursively or run `git submodule update --init --recursive`
+First, clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.
 
 # Source Code
@@ -107,6 +105,7 @@ Note at minimum CMake 3.20 on windows and 3.16 on other platforms is required. I
   * [Visual Studio 2019 or 2022](https://www.visualstudio.com/vs/) (or Build Tools for Visual Studio 2019/2022) with
     - C++ CMake tools for Windows
     - MSVC v142 - VS 2019 (or 2022) C++ (_Arch_) build tools
+    - Windows SDK
   * Latest [Windows Insider](https://insider.windows.com/en-us/) builds (required for SChannel build)
 
 ## Running a Build

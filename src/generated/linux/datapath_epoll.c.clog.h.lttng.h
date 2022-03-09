@@ -59,44 +59,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStart
-// [data][%p] Worker start
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        ProcContext);
-// arg2 = arg2 = ProcContext = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStart,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStop
-// [data][%p] Worker stop
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        ProcContext);
-// arg2 = arg2 = ProcContext = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStop,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(

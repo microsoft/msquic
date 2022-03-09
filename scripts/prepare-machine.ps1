@@ -63,7 +63,13 @@ param (
     [switch]$DuoNic,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoCodeCoverage
+    [switch]$NoCodeCoverage,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Xdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
 )
 
 #Requires -RunAsAdministrator
@@ -129,6 +135,19 @@ function Download-CoreNet-Deps {
         $ZipPath = Join-Path $ArtifactsPath "corenet-ci.zip"
         Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
+        Remove-Item -Path $ZipPath
+    }
+}
+
+function Download-Xdp-Kit {
+    if ($Force) { rm -Force -Recurse $ArtifactsPath }
+    if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) {
+        Write-Host "Downloading XDP Kit"
+        $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
+        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp-latest.zip" -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
 }
@@ -323,6 +342,10 @@ if ($IsWindows) {
         }
     }
 
+    if ($Xdp) {
+        Download-Xdp-Kit
+    }
+
 } elseif ($IsLinux) {
     switch ($Configuration) {
         "Build" {
@@ -339,6 +362,7 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.12
             sudo apt-get update
             sudo apt-get install -y lttng-tools
+            sudo apt-get install -y gdb
 
             # Enable core dumps for the system.
             Write-Host "[$(Get-Date)] Setting core dump size limit..."
@@ -382,7 +406,7 @@ if ($IsWindows) {
 } elseif ($IsMacOS) {
     if ($Configuration -eq "Test") {
         Write-Host "[$(Get-Date)] Setting core dump pattern..."
-        sudo sysctl -w kern.corefile=%N.%P.%H.core
+        sudo sysctl -w kern.corefile=%N.%P.core
     }
 }
 

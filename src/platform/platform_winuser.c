@@ -284,6 +284,7 @@ CxPlatInitialize(
     )
 {
     QUIC_STATUS Status;
+    BOOLEAN CryptoInitialized = FALSE;
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
@@ -312,6 +313,8 @@ CxPlatInitialize(
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
+
+    CxPlatTotalMemory = memInfo.ullTotalPageFile;
 
 #ifdef TIMERR_NOERROR
     MMRESULT mmResult;
@@ -342,8 +345,12 @@ CxPlatInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
+    CryptoInitialized = TRUE;
 
-    CxPlatTotalMemory = memInfo.ullTotalPageFile;
+    if (!CxPlatWorkersInit()) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
 #ifdef TIMERR_NOERROR
     QuicTraceLogInfo(
@@ -362,6 +369,9 @@ CxPlatInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
+        if (CryptoInitialized) {
+            CxPlatCryptUninitialize();
+        }
         if (CxPlatform.Heap) {
             HeapDestroy(CxPlatform.Heap);
             CxPlatform.Heap = NULL;
@@ -377,6 +387,7 @@ CxPlatUninitialize(
     void
     )
 {
+    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR

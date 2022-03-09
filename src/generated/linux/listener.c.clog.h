@@ -18,6 +18,10 @@
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogConnInfo
+#define _clog_MACRO_QuicTraceLogConnInfo  1
+#define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -57,6 +61,50 @@ tracepoint(CLOG_LISTENER_C, ListenerIndicateStopComplete , arg2);\
 #ifndef _clog_4_ARGS_TRACE_ListenerIndicateNewConnection
 #define _clog_4_ARGS_TRACE_ListenerIndicateNewConnection(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_LISTENER_C, ListenerIndicateNewConnection , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ListenerCibirIdSet
+// [list][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogVerbose(
+            ListenerCibirIdSet,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            Listener,
+            Listener->CibirId[0],
+            Listener->CibirId[1]);
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->CibirId[0] = arg3
+// arg4 = arg4 = Listener->CibirId[1] = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ListenerCibirIdSet
+#define _clog_5_ARGS_TRACE_ListenerCibirIdSet(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_LISTENER_C, ListenerCibirIdSet , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CibirIdSet
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->CibirId[0] = arg3
+// arg4 = arg4 = Connection->CibirId[1] = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CibirIdSet
+#define _clog_5_ARGS_TRACE_CibirIdSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_LISTENER_C, CibirIdSet , arg1, arg3, arg4);\
 
 #endif
 

@@ -426,16 +426,59 @@ typedef struct QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+typedef struct QUIC_STATISTICS_V2 {
+
+    uint64_t CorrelationId;
+    uint32_t VersionNegotiation     : 1;
+    uint32_t StatelessRetry         : 1;
+    uint32_t ResumptionAttempted    : 1;
+    uint32_t ResumptionSucceeded    : 1;
+    uint32_t Rtt;                           // In microseconds
+    uint32_t MinRtt;                        // In microseconds
+    uint32_t MaxRtt;                        // In microseconds
+
+    uint64_t TimingStart;
+    uint64_t TimingInitialFlightEnd;        // Processed all peer's Initial packets
+    uint64_t TimingHandshakeFlightEnd;      // Processed all peer's Handshake packets
+
+    uint32_t HandshakeClientFlight1Bytes;   // Sum of TLS payloads
+    uint32_t HandshakeServerFlight1Bytes;   // Sum of TLS payloads
+    uint32_t HandshakeClientFlight2Bytes;   // Sum of TLS payloads
+
+    uint16_t SendPathMtu;                   // Current path MTU.
+    uint64_t SendTotalPackets;              // QUIC packets; could be coalesced into fewer UDP datagrams.
+    uint64_t SendRetransmittablePackets;
+    uint64_t SendSuspectedLostPackets;
+    uint64_t SendSpuriousLostPackets;       // Actual lost is (SuspectedLostPackets - SpuriousLostPackets)
+    uint64_t SendTotalBytes;                // Sum of UDP payloads
+    uint64_t SendTotalStreamBytes;          // Sum of stream payloads
+    uint32_t SendCongestionCount;           // Number of congestion events
+    uint32_t SendPersistentCongestionCount; // Number of persistent congestion events
+
+    uint64_t RecvTotalPackets;              // QUIC packets; could be coalesced into fewer UDP datagrams.
+    uint64_t RecvReorderedPackets;          // Packets where packet number is less than highest seen.
+    uint64_t RecvDroppedPackets;            // Includes DuplicatePackets.
+    uint64_t RecvDuplicatePackets;
+    uint64_t RecvTotalBytes;                // Sum of UDP payloads
+    uint64_t RecvTotalStreamBytes;          // Sum of stream payloads
+    uint64_t RecvDecryptionFailures;        // Count of packet decryption failures.
+    uint64_t RecvValidAckFrames;            // Count of receive ACK frames.
+
+    uint32_t KeyUpdateCount;
+
+    uint32_t SendCongestionWindow;          // Congestion window size
+
+    // N.B. New fields must be appended to end
+
+} QUIC_STATISTICS_V2;
+
 typedef struct QUIC_LISTENER_STATISTICS {
 
     uint64_t TotalAcceptedConnections;
     uint64_t TotalRejectedConnections;
 
-    struct {
-        struct {
-            uint64_t DroppedPackets;
-        } Recv;
-    } Binding;
+    uint64_t BindingRecvDroppedPackets;
+
 } QUIC_LISTENER_STATISTICS;
 
 typedef enum QUIC_PERFORMANCE_COUNTERS {
@@ -473,6 +516,32 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+typedef struct QUIC_VERSION_SETTINGS {
+
+    uint32_t* AcceptableVersions;
+    uint32_t* OfferedVersions;
+    uint32_t* FullyDeployedVersions;
+    uint32_t AcceptableVersionsLength;
+    uint32_t OfferedVersionsLength;
+    uint32_t FullyDeployedVersionsLength;
+
+} QUIC_VERSION_SETTINGS;
+#endif
+
+typedef struct QUIC_GLOBAL_SETTINGS {
+    union {
+        uint64_t IsSetFlags;
+        struct {
+            uint64_t RetryMemoryLimit                       : 1;
+            uint64_t LoadBalancingMode                      : 1;
+            uint64_t RESERVED                               : 62;
+        } IsSet;
+    };
+    uint16_t RetryMemoryLimit;
+    uint16_t LoadBalancingMode;
+} QUIC_GLOBAL_SETTINGS;
+
 typedef struct QUIC_SETTINGS {
 
     union {
@@ -481,6 +550,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxBytesPerKey                         : 1;
             uint64_t HandshakeIdleTimeoutMs                 : 1;
             uint64_t IdleTimeoutMs                          : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
             uint64_t TlsClientMaxSendBuffer                 : 1;
             uint64_t TlsServerMaxSendBuffer                 : 1;
             uint64_t StreamRecvWindowDefault                : 1;
@@ -494,32 +564,28 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxAckDelayMs                          : 1;
             uint64_t DisconnectTimeoutMs                    : 1;
             uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t CongestionControlAlgorithm             : 1;
             uint64_t PeerBidiStreamCount                    : 1;
             uint64_t PeerUnidiStreamCount                   : 1;
-            uint64_t RetryMemoryLimit                       : 1;
-            uint64_t LoadBalancingMode                      : 1;
-            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
             uint64_t SendBufferingEnabled                   : 1;
             uint64_t PacingEnabled                          : 1;
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
             uint64_t ServerResumptionLevel                  : 1;
-            uint64_t DesiredVersionsList                    : 1;
-            uint64_t VersionNegotiationExtEnabled           : 1;
-            uint64_t MinimumMtu                             : 1;
-            uint64_t MaximumMtu                             : 1;
-            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t MaxBindingStatelessOperations          : 1;
-            uint64_t StatelessOperationExpirationMs         : 1;
-            uint64_t CongestionControlAlgorithm             : 1;
-            uint64_t RESERVED                               : 29;
+            uint64_t RESERVED                               : 33;
         } IsSet;
     };
 
     uint64_t MaxBytesPerKey;
     uint64_t HandshakeIdleTimeoutMs;
     uint64_t IdleTimeoutMs;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
     uint32_t TlsClientMaxSendBuffer;
     uint32_t TlsServerMaxSendBuffer;
     uint32_t StreamRecvWindowDefault;
@@ -533,27 +599,21 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
+    uint16_t CongestionControlAlgorithm; // QUIC_CONGESTION_CONTROL_ALGORITHM
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint16_t RetryMemoryLimit;              // Global only
-    uint16_t LoadBalancingMode;             // Global only
-    uint8_t MaxOperationsPerDrain;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t VersionNegotiationExtEnabled    : 1;
-    uint8_t RESERVED                        : 1;
-    const uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
-    uint16_t MinimumMtu;
-    uint16_t MaximumMtu;
-    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t RESERVED                        : 2;
+    uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
-    uint16_t MaxBindingStatelessOperations;
-    uint16_t StatelessOperationExpirationMs;
-    QUIC_CONGESTION_CONTROL_ALGORITHM CongestionControlAlgorithm;
 
 } QUIC_SETTINGS;
 
@@ -638,9 +698,12 @@ void
 #define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            0x01000001  // uint32_t[] - network byte order
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            0x01000002  // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 0x01000003  // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
-#define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000004  // QUIC_SETTINGS
-#define QUIC_PARAM_GLOBAL_VERSION                       0x01000005  // uint32_t[4]
-#define QUIC_PARAM_GLOBAL_DESIRED_VERSIONS              0x01000006  // uint32_t[]
+#define QUIC_PARAM_GLOBAL_LIBRARY_VERSION               0x01000004  // uint32_t[4]
+#define QUIC_PARAM_GLOBAL_SETTINGS                      0x01000005  // QUIC_SETTINGS
+#define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS               0x01000006  // QUIC_GLOBAL_SETTINGS
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
+#endif
 
 //
 // Parameters for Registration.
@@ -651,14 +714,18 @@ void
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0x03000000  // QUIC_SETTINGS
 #define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            0x03000001  // QUIC_TICKET_KEY_CONFIG[]
-#define QUIC_PARAM_CONFIGURATION_DESIRED_VERSIONS       0x03000002  // uint32_t[]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS       0x03000002  // QUIC_VERSION_SETTINGS
+#endif
 
 //
 // Parameters for Listener.
 //
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x04000000  // QUIC_ADDR
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
-#define QUIC_PARAM_LISTENER_CID_PREFIX                  0x04000002  // uint8_t[]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
+#endif
 
 //
 // Parameters for Connection.
@@ -685,8 +752,12 @@ void
 #define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          0x05000011  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_LOCAL_INTERFACE                 0x05000012  // uint32_t
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
-#define QUIC_PARAM_CONN_DESIRED_VERSIONS                0x05000014  // uint32_t[]
-#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONN_VERSION_SETTINGS                0x05000014  // QUIC_VERSION_SETTINGS
+#define QUIC_PARAM_CONN_CIBIR_ID                        0x05000015  // uint8_t[] {offset, id[]}
+#endif
+#define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
+#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 
 //
 // Parameters for TLS.
@@ -1320,6 +1391,20 @@ typedef struct QUIC_API_TABLE {
 
 } QUIC_API_TABLE;
 
+#define QUIC_API_VERSION_1      1 // Not supported any more
+#define QUIC_API_VERSION_2      2 // Current latest
+
+#if defined(_KERNEL_MODE) && !defined(_WIN64)
+
+//
+// 32 bit kernel mode is no longer supported, so shim behavior in 32 bit kernel
+// mode
+//
+#define MsQuicClose(QuicApi) UNREFERENCED_PARAMETER((QuicApi))
+#define MsQuicOpenVersion(Version, QuicApi) QUIC_STATUS_NOT_SUPPORTED
+
+#else
+
 //
 // Opens the API library and initializes it if this is the first call for the
 // process. It returns API function table for the rest of the API's functions.
@@ -1336,6 +1421,19 @@ MsQuicOpenVersion(
     _In_ uint32_t Version,
     _Out_ _Pre_defensive_ const void** QuicApi
     );
+
+//
+// Cleans up the function table returned from MsQuicOpenVersion and releases the
+// reference on the API.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicClose(
+    _In_ _Pre_defensive_ const void* QuicApi
+    );
+
+#endif
 
 //
 // Version specific helpers that wrap MsQuicOpenVersion.
@@ -1358,7 +1456,7 @@ MsQuicOpen2(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
-    return MsQuicOpenVersion(2, (const void**)QuicApi);
+    return MsQuicOpenVersion(QUIC_API_VERSION_2, (const void**)QuicApi);
 }
 
 #else
@@ -1366,17 +1464,6 @@ MsQuicOpen2(
 #define MsQuicOpen2(QuicApi) MsQuicOpenVersion(2, (const void**)QuicApi)
 
 #endif // defined(__cplusplus)
-
-//
-// Cleans up the function table returned from MsQuicOpenVersion and releases the
-// reference on the API.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicClose(
-    _In_ _Pre_defensive_ const void* QuicApi
-    );
 
 #if defined(__cplusplus)
 }

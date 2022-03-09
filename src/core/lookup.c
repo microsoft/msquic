@@ -5,7 +5,7 @@
 
 Abstract:
 
-    CID-keyed lookup for connections.
+    Lookup tables for connections.
 
 --*/
 
@@ -362,7 +362,7 @@ QuicLookupFindConnectionByLocalCidInternal(
         // partitioned hash table array, and look up the connection in that
         // hash table.
         //
-        CXPLAT_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
+        CXPLAT_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
         uint16_t PartitionIndex;
         CxPlatCopyMemory(&PartitionIndex, CID + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
@@ -401,7 +401,6 @@ QuicLookupFindConnectionByLocalCidInternal(
 
 //
 // Requires Lookup->RwLock to be held (shared).
-
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
@@ -476,12 +475,12 @@ QuicLookupInsertLocalCid(
         }
 
     } else {
-        CXPLAT_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + MSQUIC_CID_PID_LENGTH);
+        CXPLAT_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH);
 
         //
         // Insert the source connection ID into the hash table.
         //
-        CXPLAT_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
+        CXPLAT_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
         uint16_t PartitionIndex;
         CxPlatCopyMemory(&PartitionIndex, SourceCid->CID.Data + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
@@ -607,12 +606,12 @@ QuicLookupRemoveLocalCidInt(
             Lookup->SINGLE.Connection = NULL;
         }
     } else {
-        CXPLAT_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + MSQUIC_CID_PID_LENGTH);
+        CXPLAT_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH);
 
         //
         // Remove the source connection ID from the multi-hash table.
         //
-        CXPLAT_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
+        CXPLAT_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
         uint16_t PartitionIndex;
         CxPlatCopyMemory(&PartitionIndex, SourceCid->CID.Data + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;

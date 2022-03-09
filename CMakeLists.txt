@@ -55,7 +55,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.0.0)
+set(QUIC_FULL_VERSION 2.1.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -78,9 +78,9 @@ else()
     set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
 endif()
 
-option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
-option(QUIC_BUILD_TEST "Builds the test code" ON)
-option(QUIC_BUILD_PERF "Builds the perf code" ON)
+option(QUIC_BUILD_TOOLS "Builds the tools code" OFF)
+option(QUIC_BUILD_TEST "Builds the test code" OFF)
+option(QUIC_BUILD_PERF "Builds the perf code" OFF)
 option(QUIC_BUILD_SHARED "Builds msquic as a dynamic library" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
@@ -97,6 +97,8 @@ option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
+option(QUIC_SHARED_EC "Use shared execution contexts between QUIC and UDP" OFF)
+option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
@@ -141,6 +143,18 @@ endif()
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
 
+string(GENEX_STRIP ${QUIC_OUTPUT_DIR} QUIC_OUTPUT_DIR_STRIPPED)
+
+string(COMPARE EQUAL ${QUIC_OUTPUT_DIR} ${QUIC_OUTPUT_DIR_STRIPPED} QUIC_HAS_GENERATOR_OUTPUT_DIR)
+
+if (QUIC_HAS_GENERATOR_OUTPUT_DIR)
+    set(QUIC_PGO_DIR ${QUIC_OUTPUT_DIR})
+else ()
+    set(QUIC_PGO_DIR ${QUIC_BUILD_DIR}/PGO)
+endif ()
+
+message(STATUS "QUIC PGO DIR: ${QUIC_PGO_DIR}")
+
 set(QUIC_VER_BUILD_ID "0" CACHE STRING "The version build ID")
 set(QUIC_VER_SUFFIX "-private" CACHE STRING "The version suffix")
 
@@ -159,7 +173,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if (WIN32)
-    set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
 
     include(CheckCCompilerFlag)
@@ -281,6 +295,14 @@ endif()
 
 if(QUIC_HIGH_RES_TIMERS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_HIGH_RES_TIMERS=1)
+endif()
+
+if(QUIC_SHARED_EC)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1)
+endif()
+
+if(QUIC_USE_XDP)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1 QUIC_USE_RAW_DATAPATH=1)
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")
@@ -433,8 +455,8 @@ if(WIN32)
         # Configured for training mode. Use the previous PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "/GENPROFILE:PDG")
-            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_PGO_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_PGO_DIR}/msquic.pgd\"")
         else()
             message(STATUS "/GENPROFILE")
             set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
@@ -444,8 +466,9 @@ if(WIN32)
         # Just doing a normal build. Use the PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "Using profile-guided optimization")
-            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
+            file(MAKE_DIRECTORY ${QUIC_PGO_DIR})
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_PGO_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_PGO_DIR}/msquic.pgd\"")
         endif()
     endif()
 
@@ -516,7 +539,7 @@ else() #!WIN32
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CX_PLATFORM STREQUAL "darwin")
             list(APPEND QUIC_COMMON_FLAGS -gdwarf)
         else()
@@ -555,9 +578,11 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
             # add checks to ignore here:
-            -altera-struct-pack-align
+            -altera-*
             -android-cloexec-fopen
             -android-cloexec-socket
+            -bugprone-easily-swappable-parameters
+            -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
@@ -594,10 +619,10 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
             --suppress=duplicateValueTernary --suppress=objectIndex
-            --suppress=varFuncNullUB
+            --suppress=varFuncNullUB --suppress=constParameter
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
-            --suppress=knownConditionTrueFalse
+            --suppress=knownConditionTrueFalse --suppress=invalidscanf
             --enable=warning,style,performance,portability -D__linux__)
     else()
         message(STATUS "cppcheck not found")

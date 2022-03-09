@@ -129,7 +129,7 @@ PingStreamShutdown(
 
     // TODO - More Validation
     if (!Stream->GetSendShutdown()) {
-        TEST_FAILURE("Send path not shutdown.");
+        TEST_FAILURE("Send path not shut down.");
     }
     if (!ConnState->GetPingStats()->AllowDataIncomplete) {
         if (!Stream->GetAllDataSent()) {
@@ -1833,18 +1833,18 @@ QuicAckDelayStreamHandler(
         //
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE: {
-            QUIC_STATISTICS Stats{};
+            QUIC_STATISTICS_V2 Stats{};
             uint32_t StatsSize = sizeof(Stats);
             Status = MsQuic->GetParam(
                 TestContext->ClientConnection.Handle,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &StatsSize,
                 &Stats);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
                 return Status;
             }
-            TestContext->AckCountStop = Stats.Recv.ValidAckFrames;
+            TestContext->AckCountStop = Stats.RecvValidAckFrames;
             Event->RECEIVE.TotalBufferLength = 0;
             CxPlatEventSet(TestContext->ClientReceiveDataEvent.Handle);
             break;
@@ -2012,19 +2012,19 @@ QuicTestAckSendDelay(
         //
         CxPlatSleep(100);
 
-        QUIC_STATISTICS Stats{};
+        QUIC_STATISTICS_V2 Stats{};
         uint32_t StatsSize = sizeof(Stats);
         Status =
             MsQuic->GetParam(
                 TestContext.ClientConnection.Handle,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &StatsSize,
                 &Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
             return;
         }
-        TestContext.AckCountStart = Stats.Recv.ValidAckFrames;
+        TestContext.AckCountStart = Stats.RecvValidAckFrames;
         Status =
             MsQuic->StreamOpen(
                 TestContext.ClientConnection.Handle,
@@ -2404,6 +2404,59 @@ QuicTestStreamPriority(
     TEST_TRUE(Context.ReceiveEvents[0] == Stream2.ID());
     TEST_TRUE(Context.ReceiveEvents[1] == Stream3.ID());
     TEST_TRUE(Context.ReceiveEvents[2] == Stream1.ID());
+}
+
+void
+QuicTestStreamPriorityInfiniteLoop(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(3), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamPriorityTestContext Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamPriorityTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    uint8_t RawBuffer[100];
+    QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+
+    QUIC_STREAM_SCHEDULING_SCHEME Value = QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN;
+    Connection.SetParam(QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME, sizeof(Value), &Value);
+
+    MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream1.SetPriority(0));
+    TEST_QUIC_SUCCEEDED(Stream1.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+    MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream2.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream2.SetPriority(0));
+    TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+    MsQuicStream Stream3(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream3.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    QUIC_STATISTICS_V2 Stats;
+    Connection.GetStatistics(&Stats);
+
+    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
 }
 
 struct StreamDifferentAbortErrors {
