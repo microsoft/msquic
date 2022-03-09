@@ -1,0 +1,59 @@
+name: Test Down Level
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+permissions: read-all
+
+jobs:
+  test-down-level:
+    strategy:
+      matrix:
+        release: ['2.0.0']
+        os: [ubuntu-latest, windows-latest]
+        arch: [x64]
+        tls: [schannel, openssl]
+        exclude:
+        - os: ubuntu-latest
+          tls: schannel
+        - os: windows-latest
+          tls: openssl
+    runs-on: ${{ matrix.os }}
+    name: Test
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
+      if: runner.os == 'Linux'
+      with:
+        egress-policy: audit
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Configuration Test -Tls ${{ matrix.tls }} -FailOnError
+      shell: pwsh
+    - name: Download Tests (Linux)
+      if: runner.os == 'Linux'
+      shell: pwsh
+      run: |
+        mkdir artifacts && mkdir artifacts/release
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_linux_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
+    - name: Download Tests (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        mkdir artifacts && mkdir artifacts/release
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}.zip" -OutFile "artifacts/release.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_windows_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
+    - name: Exctract and Run Tests
+      run: |
+        Expand-Archive -Path "artifacts/release.zip" -DestinationPath "artifacts/release"
+        Expand-Archive -Path "artifacts/test.zip" -DestinationPath "artifacts/release/bin"
+        & artifacts/release/bin/msquictest
