@@ -186,13 +186,8 @@ if ($IsWindows) {
     }
 
     if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
-        $InstallDir = $env:Programfiles
-        if ($env:GITHUB_PATH -ne $null) {
-            $InstallDir = $env:USERPROFILE
-        }
-
         $NasmVersion = "2.15.05"
-        $NasmPath = Join-Path $InstallDir "nasm-$NasmVersion"
+        $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
             New-Item -Path .\build -ItemType Directory -Force
@@ -206,9 +201,9 @@ if ($IsWindows) {
                 # Mirror fallback
                 Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
-            Expand-Archive -Path "build\nasm.zip" -DestinationPath $InstallDir -Force
+            Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             if ($env:GITHUB_PATH -ne $null) {
-                Move-Item -Path (Join-Path $NasmPath "*") -Destination $InstallDir -Force
+                Move-Item -Path (Join-Path $NasmPath "*") -Destination (Join-Path $env:SystemRoot "system32") -Force
             }
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
@@ -219,7 +214,7 @@ if ($IsWindows) {
         }
 
         $JomVersion = "1_1_3"
-        $JomPath = Join-Path $InstallDir "jom_$JomVersion"
+        $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
         $JomExe = Join-Path $JomPath "jom.exe"
         if (!(Test-Path $JomExe)) {
             New-Item -Path .\build -ItemType Directory -Force
@@ -232,7 +227,7 @@ if ($IsWindows) {
             New-Item -Path $JomPath -ItemType Directory -Force
             Expand-Archive -Path "build\jom.zip" -DestinationPath $JomPath -Force
             if ($env:GITHUB_PATH -ne $null) {
-                Move-Item -Path (Join-Path $JomPath "*") -Destination $InstallDir -Force
+                Move-Item -Path (Join-Path $JomPath "*") -Destination (Join-Path $env:SystemRoot "system32") -Force
             }
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$JomPath"
