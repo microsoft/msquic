@@ -55,6 +55,7 @@ MsQuicLibraryLoad(
         MsQuicLib.Version[1] = VER_MINOR;
         MsQuicLib.Version[2] = VER_PATCH;
         MsQuicLib.Version[3] = VER_BUILD_ID;
+        MsQuicLib.GitHash = VER_GIT_HASH_STR;
     }
 }
 
@@ -1077,6 +1078,28 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(MsQuicLib.Version);
         CxPlatCopyMemory(Buffer, MsQuicLib.Version, sizeof(MsQuicLib.Version));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH:
+
+        uint32_t HashLength = (uint32_t)strlen(MsQuicLib.GitHash) + 1;
+
+        if (*BufferLength < HashLength) {
+            *BufferLength = HashLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = HashLength - 1;
+        CxPlatCopyMemory(Buffer, MsQuicLib.GitHash, *BufferLength);
+        ((char*)Buffer)[*BufferLength] = '\0';
 
         Status = QUIC_STATUS_SUCCESS;
         break;
