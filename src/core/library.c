@@ -958,6 +958,7 @@ QuicLibraryGetGlobalParam(
     )
 {
     QUIC_STATUS Status;
+    uint32_t GitHashLength;
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -1084,10 +1085,10 @@ QuicLibraryGetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH:
 
-        uint32_t HashLength = (uint32_t)strlen(MsQuicLib.GitHash) + 1;
+        GitHashLength = (uint32_t)strlen(MsQuicLib.GitHash) + 1;
 
-        if (*BufferLength < HashLength) {
-            *BufferLength = HashLength;
+        if (*BufferLength < GitHashLength) {
+            *BufferLength = GitHashLength;
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -1097,9 +1098,8 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        *BufferLength = HashLength - 1;
-        CxPlatCopyMemory(Buffer, MsQuicLib.GitHash, *BufferLength);
-        ((char*)Buffer)[*BufferLength] = '\0';
+        *BufferLength = GitHashLength;
+        CxPlatCopyMemory(Buffer, MsQuicLib.GitHash, GitHashLength);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
