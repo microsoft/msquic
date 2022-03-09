@@ -23,6 +23,10 @@
 #define VER_SUFFIX -private
 #endif
 
+#ifndef VER_GIT_HASH
+#define VER_GIT_HASH "Unknown"
+#endif
+
 #ifndef QUIC_VERSION_ONLY
 
 #define VER_COMPANYNAME_STR         "Microsoft Corporation"
