@@ -117,6 +117,11 @@ typedef struct QUIC_LIBRARY {
     uint32_t Version[4];
 
     //
+    // Binary Git Hash
+    //
+    const char* GitHash;
+
+    //
     // Configurable (app & registry) settings.
     //
     QUIC_SETTINGS_INTERNAL Settings;
