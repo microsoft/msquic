@@ -1779,10 +1779,10 @@ QuicTestGetPerfCounters()
 
 void
 ValidateVersionSettings(
-    _In_ QUIC_VERSION_SETTINGS* OutputVersionSettings,
+    _In_ const QUIC_VERSION_SETTINGS* const OutputVersionSettings,
     _In_reads_bytes_(ValidVersionsLength * sizeof(uint32_t))
-        uint32_t* ValidVersions,
-    _In_ size_t ValidVersionsLength
+        const uint32_t* const ValidVersions,
+    _In_ const size_t ValidVersionsLength
     )
 {
     TEST_EQUAL(OutputVersionSettings->AcceptableVersionsLength, ValidVersionsLength);
@@ -1807,7 +1807,7 @@ QuicTestVersionSettings()
 {
     const uint32_t ValidVersions[] = {0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a};
     const uint32_t InvalidVersions[] = {0x00000001, 0x00000002};
-    uint8_t OutputVersionBuffer[sizeof(QUIC_VERSION_SETTINGS) + (3 * ARRAYSIZE(ValidVersions))];
+    uint8_t OutputVersionBuffer[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(ValidVersions))];
     uint32_t BufferLength = sizeof(OutputVersionBuffer);
     QUIC_VERSION_SETTINGS* OutputVersionSettings = (QUIC_VERSION_SETTINGS*)OutputVersionBuffer;
 
@@ -1826,7 +1826,7 @@ QuicTestVersionSettings()
         //
         // Test invalid versions are failed on Connection
         //
-        InputSettings.SetClientVersionsList(InvalidVersions, ARRAYSIZE(InvalidVersions));
+        InputSettings.SetAllVersionLists(InvalidVersions, ARRAYSIZE(InvalidVersions));
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             Connection.SetParam(
@@ -1837,7 +1837,7 @@ QuicTestVersionSettings()
         //
         // Test setting/getting valid versions list on Connection
         //
-        InputSettings.SetClientVersionsList(ValidVersions, ARRAYSIZE(ValidVersions));
+        InputSettings.SetAllVersionLists(ValidVersions, ARRAYSIZE(ValidVersions));
 
         TEST_QUIC_SUCCEEDED(
             Connection.SetParam(
@@ -1893,7 +1893,7 @@ QuicTestVersionSettings()
                 nullptr,
                 &Configuration.Handle));
 
-        InputSettings.SetClientVersionsList(InvalidVersions, ARRAYSIZE(InvalidVersions));
+        InputSettings.SetAllVersionLists(InvalidVersions, ARRAYSIZE(InvalidVersions));
 
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
@@ -1903,7 +1903,7 @@ QuicTestVersionSettings()
                 sizeof(InputSettings),
                 &InputSettings));
 
-        InputSettings.SetClientVersionsList(ValidVersions, ARRAYSIZE(ValidVersions));
+        InputSettings.SetAllVersionLists(ValidVersions, ARRAYSIZE(ValidVersions));
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
@@ -1919,7 +1919,7 @@ QuicTestVersionSettings()
                 Configuration.Handle,
                 QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 &BufferLength,
-                &OutputSettings));
+                OutputVersionBuffer));
 
         TEST_EQUAL(BufferLength, sizeof(OutputVersionBuffer));
         ValidateVersionSettings(OutputVersionSettings, ValidVersions, ARRAYSIZE(ValidVersions));
@@ -1944,7 +1944,7 @@ QuicTestVersionSettings()
                 &BufferLength,
                 OutputVersionBuffer));
 
-        TEST_EQUAL(BufferLength, sizeof(ValidVersions));
+        TEST_EQUAL(BufferLength, sizeof(OutputVersionBuffer));
 
         ValidateVersionSettings(OutputVersionSettings, ValidVersions, ARRAYSIZE(ValidVersions));
     }
@@ -1953,7 +1953,7 @@ QuicTestVersionSettings()
         //
         // Test invalid versions are failed on Global
         //
-        InputSettings.SetClientVersionsList(InvalidVersions, ARRAYSIZE(InvalidVersions));
+        InputSettings.SetAllVersionLists(InvalidVersions, ARRAYSIZE(InvalidVersions));
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
@@ -1966,7 +1966,7 @@ QuicTestVersionSettings()
         // Test setting/getting valid desired versions on global
         //
         BufferLength = sizeof(InputSettings);
-        InputSettings.SetClientVersionsList(ValidVersions, ARRAYSIZE(ValidVersions));
+        InputSettings.SetAllVersionLists(ValidVersions, ARRAYSIZE(ValidVersions));
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
@@ -1987,7 +1987,7 @@ QuicTestVersionSettings()
                 &BufferLength,
                 NULL));
 
-        TEST_EQUAL(BufferLength, sizeof(ValidVersions));
+        TEST_EQUAL(BufferLength, sizeof(OutputVersionBuffer));
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
@@ -1996,7 +1996,7 @@ QuicTestVersionSettings()
                 &BufferLength,
                 OutputVersionBuffer));
 
-        TEST_EQUAL(BufferLength, sizeof(ValidVersions));
+        TEST_EQUAL(BufferLength, sizeof(OutputVersionBuffer));
 
         ValidateVersionSettings(OutputVersionSettings, ValidVersions, ARRAYSIZE(ValidVersions));
     }

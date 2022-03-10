@@ -434,6 +434,22 @@ QuicConfigurationParamGet(
     if (Param == QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS) {
         return QuicSettingsGetVersionSettings(&Configuration->Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
     }
+    if (Param  == QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED) {
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Configuration->Settings.VersionNegotiationExtEnabled;
+
+        return QUIC_STATUS_SUCCESS;
+    }
 
     return QUIC_STATUS_INVALID_PARAMETER;
 }
@@ -530,6 +546,18 @@ QuicConfigurationParamSet(
                 Configuration->SecurityConfig,
                 (QUIC_TICKET_KEY_CONFIG*)Buffer,
                 (uint8_t)(BufferLength / sizeof(QUIC_TICKET_KEY_CONFIG)));
+
+    case QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED:
+
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        Configuration->Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        Configuration->Settings.VersionNegotiationExtEnabled = *(BOOLEAN*)Buffer;
+
+        return QUIC_STATUS_SUCCESS;
 
     default:
         break;

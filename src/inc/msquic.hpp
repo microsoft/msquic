@@ -378,11 +378,11 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
-    MsQuicVersionSettings& SetClientVersionsList(const uint32_t* Versions, uint32_t Length) {
-        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
-        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length; return *this;
+    MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+        return *this;
     }
-    // MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 
 static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
@@ -599,6 +599,15 @@ public:
                 QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 sizeof(*QSettings),
                 QSettings);
+    }
+
+    QUIC_STATUS
+    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+        return MsQuic->SetParam(
+            Handle,
+            QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
+            sizeof(Value),
+            &Value);
     }
 #endif
 };

@@ -956,6 +956,20 @@ QuicLibrarySetGlobalParam(
     }
 #endif
 
+    case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
+
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        MsQuicLib.Settings.VersionNegotiationExtEnabled = *(BOOLEAN*)Buffer;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1094,6 +1108,25 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(MsQuicLib.Version);
         CxPlatCopyMemory(Buffer, MsQuicLib.Version, sizeof(MsQuicLib.Version));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = MsQuicLib.Settings.VersionNegotiationExtEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

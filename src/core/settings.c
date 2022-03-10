@@ -258,7 +258,7 @@ QuicSettingsCopyVersionSettings(
             "Allocation of '%s' failed. (%llu bytes)",
             "VersionSettings",
             AllocSize);
-        goto Fail;
+        return Destination;
     }
     Destination->AcceptableVersions = (uint32_t*)(Destination + 1);
     Destination->AcceptableVersionsLength = Source->AcceptableVersionsLength;
@@ -298,7 +298,6 @@ QuicSettingsCopyVersionSettings(
         }
     }
 
-Fail:
     return Destination;
 }
 
@@ -1059,14 +1058,14 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
         QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,       "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
         QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] FullyDeployedVerlength = %u", Settings->VersionSettings->FullyDeployedVersionsLength);
-        if (Settings->VersionSettings->AcceptableVersionsLength > 0) {
-            QuicTraceLogVerbose(SettingDumpAcceptableVersions,      "[sett] AcceptableVersions[0]  = 0x%x", Settings->VersionSettings->AcceptableVersions[0]);
+        for (uint32_t i = 0; i < Settings->VersionSettings->AcceptableVersionsLength; ++i) {
+            QuicTraceLogVerbose(SettingDumpAcceptableVersions,      "[sett] AcceptableVersions[%u]  = 0x%x", i, Settings->VersionSettings->AcceptableVersions[i]);
         }
-        if (Settings->VersionSettings->OfferedVersionsLength > 0) {
-            QuicTraceLogVerbose(SettingDumpOfferedVersions,         "[sett] OfferedVersions[0]     = 0x%x", Settings->VersionSettings->OfferedVersions[0]);
+        for (uint32_t i = 0; i < Settings->VersionSettings->OfferedVersionsLength; ++i) {
+            QuicTraceLogVerbose(SettingDumpOfferedVersions,         "[sett] OfferedVersions[%u]     = 0x%x", i, Settings->VersionSettings->OfferedVersions[i]);
         }
-        if (Settings->VersionSettings->FullyDeployedVersionsLength > 0) {
-            QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[0]= 0x%x", Settings->VersionSettings->FullyDeployedVersions[0]);
+        for (uint32_t i = 0; i < Settings->VersionSettings->FullyDeployedVersionsLength; ++i) {
+            QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[%u]= 0x%x", i, Settings->VersionSettings->FullyDeployedVersions[i]);
         }
     }
     if (Settings->IsSet.VersionNegotiationExtEnabled) {
@@ -1185,7 +1184,7 @@ QuicSettingsVersionSettingsToInternal(
         Settings->OfferedVersionsLength == 0) {
         InternalSettings->IsSet.VersionNegotiationExtEnabled = TRUE;
         InternalSettings->IsSet.VersionSettings = FALSE;
-        InternalSettings->VersionNegotiationExtEnabled = 0;
+        InternalSettings->VersionNegotiationExtEnabled = TRUE;
         InternalSettings->VersionSettings = NULL;
     } else {
         InternalSettings->IsSet.VersionNegotiationExtEnabled = TRUE;
