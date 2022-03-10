@@ -40,7 +40,7 @@ jobs:
       shell: pwsh
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTest -DisableTools -DisablePerf
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
     - name: Download Tests
       shell: pwsh
       run: |
