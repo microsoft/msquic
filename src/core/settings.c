@@ -243,7 +243,7 @@ QuicSettingsCopyVersionSettings(
     )
 {
     QUIC_VERSION_SETTINGS* Destination = NULL;
-    uint32_t AllocSize =
+    size_t AllocSize =
         sizeof(*Destination) +
         (Source->AcceptableVersionsLength * sizeof(uint32_t)) +
         (Source->OfferedVersionsLength * sizeof(uint32_t)) +
