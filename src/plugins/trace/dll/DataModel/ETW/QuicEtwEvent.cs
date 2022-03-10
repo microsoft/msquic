@@ -115,6 +115,12 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.LibraryInitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
+                case QuicEventId.LibraryInitializedV2:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryInitializedV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
+                case QuicEventId.DataPathInitialized:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicDataPathInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
                 case QuicEventId.LibraryUninitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryUninitializedEvent(timestamp, processor, processId, threadId, pointerSize);
@@ -130,9 +136,15 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.AllocFailure:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicAllocFailureEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadString(), data.ReadULong());
+                case QuicEventId.DataPathRundown:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicDataPathRundownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
                 case QuicEventId.LibraryRundown:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryRundownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
+                case QuicEventId.LibraryRundownV2:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryRundownV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
                 case QuicEventId.LibraryError:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryErrorEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadString());

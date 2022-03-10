@@ -66,7 +66,10 @@ param (
     [switch]$NoCodeCoverage,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Xdp
+    [switch]$Xdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
 )
 
 #Requires -RunAsAdministrator
@@ -137,12 +140,13 @@ function Download-CoreNet-Deps {
 }
 
 function Download-Xdp-Kit {
+    if ($Force) { rm -Force -Recurse $ArtifactsPath }
     if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP Kit"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp.zip" -OutFile $ZipPath
+        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp-latest.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
@@ -185,7 +189,7 @@ if ($IsWindows) {
         $NasmVersion = "2.15.05"
         $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
         $NasmExe = Join-Path $NasmPath "nasm.exe"
-        if (!(Test-Path $NasmExe)) {
+        if (!(Test-Path $NasmExe) -and $env:GITHUB_PATH -eq $null) {
             New-Item -Path .\build -ItemType Directory -Force
             $NasmArch = "win64"
             if (![System.Environment]::Is64BitOperatingSystem) {
@@ -209,7 +213,7 @@ if ($IsWindows) {
         $JomVersion = "1_1_3"
         $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
         $JomExe = Join-Path $JomPath "jom.exe"
-        if (!(Test-Path $JomExe)) {
+        if (!(Test-Path $JomExe) -and $env:GITHUB_PATH -eq $null) {
             New-Item -Path .\build -ItemType Directory -Force
             try {
                 Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "build\jom.zip"
@@ -228,7 +232,7 @@ if ($IsWindows) {
         }
     }
 
-    if ($Configuration -eq "Test") {
+    if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
         $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
         if ($SignCode -and !(Test-Path c:\CodeSign.pfx)) {
             $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")

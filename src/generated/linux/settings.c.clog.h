@@ -571,13 +571,14 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpOfferedVersionsLength , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingDumpAcceptableVersions
-// [sett] AcceptableVersions[0]  = 0x%x
-// QuicTraceLogVerbose(SettingDumpAcceptableVersions,      "[sett] AcceptableVersions[0]  = 0x%x", Settings->VersionSettings->AcceptableVersions[0]);
-// arg2 = arg2 = Settings->VersionSettings->AcceptableVersions[0] = arg2
+// [sett] AcceptableVersions[%u]  = 0x%x
+// QuicTraceLogVerbose(SettingDumpAcceptableVersions,      "[sett] AcceptableVersions[%u]  = 0x%x", i, Settings->VersionSettings->AcceptableVersions[i]);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Settings->VersionSettings->AcceptableVersions[i] = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_SettingDumpAcceptableVersions
-#define _clog_3_ARGS_TRACE_SettingDumpAcceptableVersions(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_SETTINGS_C, SettingDumpAcceptableVersions , arg2);\
+#ifndef _clog_4_ARGS_TRACE_SettingDumpAcceptableVersions
+#define _clog_4_ARGS_TRACE_SettingDumpAcceptableVersions(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_SETTINGS_C, SettingDumpAcceptableVersions , arg2, arg3);\
 
 #endif
 
@@ -586,13 +587,14 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpAcceptableVersions , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingDumpOfferedVersions
-// [sett] OfferedVersions[0]     = 0x%x
-// QuicTraceLogVerbose(SettingDumpOfferedVersions,         "[sett] OfferedVersions[0]     = 0x%x", Settings->VersionSettings->OfferedVersions[0]);
-// arg2 = arg2 = Settings->VersionSettings->OfferedVersions[0] = arg2
+// [sett] OfferedVersions[%u]     = 0x%x
+// QuicTraceLogVerbose(SettingDumpOfferedVersions,         "[sett] OfferedVersions[%u]     = 0x%x", i, Settings->VersionSettings->OfferedVersions[i]);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Settings->VersionSettings->OfferedVersions[i] = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_SettingDumpOfferedVersions
-#define _clog_3_ARGS_TRACE_SettingDumpOfferedVersions(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_SETTINGS_C, SettingDumpOfferedVersions , arg2);\
+#ifndef _clog_4_ARGS_TRACE_SettingDumpOfferedVersions
+#define _clog_4_ARGS_TRACE_SettingDumpOfferedVersions(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_SETTINGS_C, SettingDumpOfferedVersions , arg2, arg3);\
 
 #endif
 
@@ -601,13 +603,14 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpOfferedVersions , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingDumpFullyDeployedVersions
-// [sett] FullyDeployedVersion[0]= 0x%x
-// QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[0]= 0x%x", Settings->VersionSettings->FullyDeployedVersions[0]);
-// arg2 = arg2 = Settings->VersionSettings->FullyDeployedVersions[0] = arg2
+// [sett] FullyDeployedVersion[%u]= 0x%x
+// QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[%u]= 0x%x", i, Settings->VersionSettings->FullyDeployedVersions[i]);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Settings->VersionSettings->FullyDeployedVersions[i] = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_SettingDumpFullyDeployedVersions
-#define _clog_3_ARGS_TRACE_SettingDumpFullyDeployedVersions(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_SETTINGS_C, SettingDumpFullyDeployedVersions , arg2);\
+#ifndef _clog_4_ARGS_TRACE_SettingDumpFullyDeployedVersions
+#define _clog_4_ARGS_TRACE_SettingDumpFullyDeployedVersions(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_SETTINGS_C, SettingDumpFullyDeployedVersions , arg2, arg3);\
 
 #endif
 

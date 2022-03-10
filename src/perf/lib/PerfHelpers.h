@@ -20,6 +20,7 @@ Abstract:
 #endif
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // For disabling encryption
+#define QUIC_API_ENABLE_PREVIEW_FEATURES  1 // For CIBIR extension
 
 #include "quic_platform.h"
 #include "quic_trace.h"

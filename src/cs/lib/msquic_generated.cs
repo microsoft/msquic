@@ -746,6 +746,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         public uint KeyUpdateCount;
+
+        [NativeTypeName("uint32_t")]
+        public uint SendCongestionWindow;
     }
 
     public partial struct QUIC_LISTENER_STATISTICS

@@ -84,6 +84,7 @@ PrintHelp(
         "Server: secnetperf [options]\n"
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "\n"
