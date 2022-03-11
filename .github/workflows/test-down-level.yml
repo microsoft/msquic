@@ -53,7 +53,7 @@ jobs:
       run: |
         chmod +x artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
         $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}"
-        scripts/test.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*
+        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
-      run: scripts/test.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*
+      run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*
