@@ -1393,7 +1393,7 @@ typedef struct QUIC_API_TABLE {
 } QUIC_API_TABLE;
 
 #define QUIC_API_VERSION_1      1 // Not supported any more
-#define QUIC_API_VERSION_2      3 // Current latest
+#define QUIC_API_VERSION_2      2 // Current latest
 
 #if defined(_KERNEL_MODE) && !defined(_WIN64)
 
