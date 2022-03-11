@@ -763,7 +763,7 @@ QuicTraceConnEvent(
             "RACK",
             "PROBE"
         };
-        printf("Setting loss detection %s timer for %u ms. (ProbeCount=%hu)\n",
+        printf("Setting loss detection %s timer for %u us. (ProbeCount=%hu)\n",
             TypeStr[EvData->LossDetectionTimerSet.Type], EvData->LossDetectionTimerSet.DelayMs,
             EvData->LossDetectionTimerSet.ProbeCount);
         break;
