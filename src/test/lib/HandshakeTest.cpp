@@ -2000,10 +2000,15 @@ QuicTestKeyUpdate(
                     // Send some data to perform the key update.
                     // TODO: Update this to send stream data, like QuicConnectAndPing does.
                     //
-                    TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101+i)));
-                    TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());
-                    CxPlatSleep(100);
-                    TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
+                    uint16_t PeerCount, Expected = 101+i, Tries = 0;
+                    TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(Expected));
+                    TEST_EQUAL(Expected, Client.GetPeerBidiStreamCount());
+
+                    do {
+                        CxPlatSleep(100);
+                        PeerCount =  Server->GetLocalBidiStreamCount();
+                    } while (PeerCount != Expected && Tries++ < 10);
+                    TEST_EQUAL(Expected, PeerCount);
 
                     //
                     // Force a client key update to occur again to check for double update
@@ -2013,10 +2018,16 @@ QuicTestKeyUpdate(
                         TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
                     }
 
-                    TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
-                    TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
-                    CxPlatSleep(100);
-                    TEST_EQUAL((uint16_t)(100+i), Client.GetLocalBidiStreamCount());
+                    Expected = 100+i;
+                    TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(Expected));
+                    TEST_EQUAL(Expected, Server->GetPeerBidiStreamCount());
+
+                    Tries = 0;
+                    do {
+                        CxPlatSleep(100);
+                        PeerCount =  Client.GetLocalBidiStreamCount();
+                    } while (PeerCount != Expected && Tries++ < 10);
+                    TEST_EQUAL(Expected, PeerCount);
                 }
 
                 CxPlatSleep(100);
