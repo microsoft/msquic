@@ -246,7 +246,7 @@ CxPlatAlloc(
 
 void
 CxPlatFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
     _In_ uint32_t Tag
     );
 
