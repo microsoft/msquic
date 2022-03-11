@@ -263,7 +263,9 @@ Next:
 
 Error:
 
-    CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Buffer) {
+        CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
 
     if (!Result) {
         if (CxPlatNumaMasks) {
