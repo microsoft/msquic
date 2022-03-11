@@ -277,6 +277,8 @@ function Install-OpenCppCoverage {
     }
 }
 
+# Checks the OS version number to see if it's recent enough (> 2019) to support
+# the necessary features for creating and installing the test certificates.
 function Win-SupportsCerts {
     $ver = [environment]::OSVersion.Version
     if ($ver.Build -lt 20000) { return $false }
@@ -303,7 +305,6 @@ function Install-TestCertificates {
     if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
     $NewRoot = $false
     Write-Host "Searching for MsQuicTestRoot certificate..."
-    return;
     $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
     if (!$RootCert) {
         Write-Host "MsQuicTestRoot not found! Creating new MsQuicTestRoot certificate..."
