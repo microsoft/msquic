@@ -93,7 +93,7 @@ After installing .NET Core, you will need to restart your terminal.
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
 
 ```PowerShell
-./scripts/prepare-machine.ps1 -Configuration Dev
+./scripts/prepare-machine.ps1
 ```
 
 Note at minimum CMake 3.20 on windows and 3.16 on other platforms is required. Instructions for installing the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.

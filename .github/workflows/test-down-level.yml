@@ -36,7 +36,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Configuration Dev -Tls ${{ matrix.tls }} -InitSubmodules -TestCertificates -FailOnError
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -DisableTest
       shell: pwsh
     - name: Build Release
       shell: pwsh
