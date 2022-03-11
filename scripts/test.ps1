@@ -65,7 +65,7 @@ This script runs the MsQuic tests.
     Treats all errors as warnings.
 
 .Parameter DuoNic
-    Uses DuoNic instead of loopback (DuoNic must already be installed by prepare-machine.ps1).
+    Uses DuoNic instead of loopback (DuoNic must already be installed via 'prepare-machine.ps1 -InstallDuoNic').
 
 .EXAMPLE
     test.ps1

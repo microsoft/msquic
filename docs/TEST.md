@@ -5,13 +5,7 @@
 First [build](./BUILD.md). Then prepare the machine:
 
 ```PowerShell
-.\scripts\prepare-machine.ps1 -Configuration Test -TestCertificates
-```
-
-If not testing on Windows, omit `-TestCertificates`:
-
-```PowerShell
-.\scripts\prepare-machine.ps1 -Configuration Test
+.\scripts\prepare-machine.ps1 -ForTest
 ```
 
 Then all the tests can be run with:

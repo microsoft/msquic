@@ -47,7 +47,7 @@ jobs:
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -Configuration Build -InitSubmodules -Extra "-DisableTest -DisableTools"
+      run: scripts/prepare-machine.ps1 -ForBuild -DisableTest
     - name: Prepare Machine
       shell: pwsh
       run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
@@ -98,7 +98,7 @@ jobs:
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -Configuration Test -DuoNic -NoCodeCoverage
+      run: scripts/prepare-machine.ps1 -ForTest -InstallDuoNic
     - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
       with:
         name: bin
