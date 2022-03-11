@@ -163,7 +163,7 @@ function Download-CoreNet-Deps {
 
 # Downloads the latest version of XDP (for building).
 function Install-Xdp {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if ($Force) { rm -Force -Recurse $XdpPath -ErrorAction Ignore }
     if (!(Test-Path $XdpPath)) {
@@ -177,7 +177,7 @@ function Install-Xdp {
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     # Check to see if test signing is enabled.
     $HasTestSigning = $false
     try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
@@ -212,7 +212,7 @@ function Update-Path($NewPath) {
 
 # Installs NASM from the public release.
 function Install-NASM {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     $NasmVersion = "2.15.05"
     $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
     $NasmExe = Join-Path $NasmPath "nasm.exe"
@@ -237,7 +237,7 @@ function Install-NASM {
 
 # Installs JOM from the public release.
 function Install-JOM {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     $JomVersion = "1_1_3"
     $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
     $JomExe = Join-Path $JomPath "jom.exe"
