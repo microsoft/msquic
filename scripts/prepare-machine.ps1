@@ -77,7 +77,7 @@ param (
     [switch]$InstallJom,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallXdp,
+    [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableTest
@@ -112,7 +112,7 @@ if ($ForBuild) {
     # enabled for any possible build.
     $InstallNasm = $true
     $InstallJom = $true
-    $InstallXdp = $true
+    $InstallXdpSdk = $true
     $InitSubmodules = $true
 }
 
@@ -159,7 +159,7 @@ function Download-CoreNet-Deps {
 }
 
 # Downloads the latest version of XDP (for building).
-function Install-Xdp {
+function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if ($Force) { rm -Force -Recurse $XdpPath -ErrorAction Ignore }
@@ -404,7 +404,7 @@ if ($InitSubmodules) {
 }
 
 if ($InstallDuoNic) { Install-DuoNic }
-if ($InstallXdp) { Install-Xdp }
+if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
