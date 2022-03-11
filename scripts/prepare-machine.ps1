@@ -107,8 +107,6 @@ if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest) {
     if ("" -eq $Tls -and !$ForKernel) { $Tls = "openssl" }
 }
 
-return
-
 if ($ForBuild) {
     # When configured for building, make sure we have all possible dependencies
     # enabled for any possible build.
