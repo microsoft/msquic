@@ -4,7 +4,7 @@ The QUIC protocol features a Version field to enable the protocol to evolve and 
 MsQuic is no exception and currently supports Draft-29 and Version 1 of the QUIC protocol.
 By default, MsQuic clients start all connections with Version 1.  MsQuic servers support Version 1 and Draft-29.
 
-The [Version Negotiation Extension](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation) is supported in MsQuic and is keeping pace with changes in the standard.  It is disabled by default on both MsQuic client and server.
+The [Version Negotiation Extension](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation) is supported in MsQuic and is keeping pace with changes in the standard.  It is enabled by default on both MsQuic client and server.
 
 ## Configuring QUIC Versions on MsQuic Clients
 
@@ -93,7 +93,7 @@ MsQuic->SetParam(
 
 # QUIC Version Negotiation Extension
 
-The Version Negotiation Extension is on by default in our officially-released binaries. However, unless an app which builds its own version of MsQuic sets the `QUIC_API_ENABLE_PREVIEW_FEATURES`, the Version Negotiation Extension will be disabled by default. Since the standard is not yet complete, incompatible changes may be made preventing different drafts from working with each other. An application using MsQuic should be cautious about enabling the Version Negotiation Extension in production scenarios until the standard is complete.
+The Version Negotiation Extension is on by default in our officially-released binaries. Since the standard is not yet complete, incompatible changes may be made preventing different drafts from working with each other. An application using MsQuic should be cautious about enabling the Version Negotiation Extension in production scenarios until the standard is complete.
 
 ## Enabling Version Negotiation Extension on MsQuic Client
 
