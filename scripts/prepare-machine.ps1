@@ -47,7 +47,7 @@ param (
     [switch]$ForOneBranch,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranchPackaging,
+    [switch]$ForOneBranchPackage,
 
     [Parameter(Mandatory = $false)]
     [switch]$ForBuild,
@@ -413,7 +413,7 @@ if ($IsLinux) {
         $ForBuild = $true
     }
 
-    if ($OneBranchPackage) {
+    if ($ForOneBranchPackage) {
         sudo apt-get update
         # used for packaging
         sudo apt-get install -y ruby ruby-dev rpm
