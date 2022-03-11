@@ -1921,7 +1921,7 @@
     },
     "ConnStats": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u",
+      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
       "UniqueId": "ConnStats",
       "splitArgs": [
         {
@@ -1947,10 +1947,6 @@
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg7"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg8"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -5602,6 +5598,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
+      "UniqueId": "LibraryInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "LibraryInitializedV2": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Initialized, PartitionCount=%u",
@@ -5698,6 +5710,22 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "LibraryRundown": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
+      "UniqueId": "LibraryRundown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "LibraryRundownV2": {
       "ModuleProperites": {},
@@ -11894,9 +11922,9 @@
         "EncodingString": "[conn][%p] Spurious congestion event"
       },
       {
-        "UniquenessHash": "8a578804-829f-fb41-f1d7-f4b5c356a328",
+        "UniquenessHash": "7a9075aa-0c84-7fed-6142-be1d15c7f7dd",
         "TraceID": "ConnStats",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u"
+        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
@@ -12944,6 +12972,11 @@
         "EncodingString": "[ lib] ERROR, %u, %s."
       },
       {
+        "UniquenessHash": "8f218f73-51d3-e674-6f43-937ce1e861c9",
+        "TraceID": "LibraryInitialized",
+        "EncodingString": "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u"
+      },
+      {
         "UniquenessHash": "49364a79-a042-c58c-1024-f2b92b2bf039",
         "TraceID": "LibraryInitializedV2",
         "EncodingString": "[ lib] Initialized, PartitionCount=%u"
@@ -12997,6 +13030,11 @@
         "UniquenessHash": "71c0b89c-7bb8-4a53-be34-dd9a4170850c",
         "TraceID": "LibraryRetryMemoryLimitSet",
         "EncodingString": "[ lib] Updated retry memory limit = %hu"
+      },
+      {
+        "UniquenessHash": "4810c9e0-dcf7-bc55-81bb-684627b092b1",
+        "TraceID": "LibraryRundown",
+        "EncodingString": "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u"
       },
       {
         "UniquenessHash": "43bfaa48-1837-fff4-58c5-196814e7775c",
