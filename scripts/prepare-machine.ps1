@@ -116,7 +116,6 @@ if ($ForBuild) {
     $InstallJom = $true
     $InstallXdp = $true
     $InitSubmodules = $true
-    $InstallSigningCertificate = $true
 }
 
 if ($ForTest) {
