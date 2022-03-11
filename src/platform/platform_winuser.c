@@ -263,15 +263,23 @@ Next:
 
 Error:
 
-    CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Buffer) {
+        CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
 
     if (!Result) {
-        CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
-        CxPlatNumaMasks = NULL;
-        CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-        CxPlatProcessorGroupOffsets = NULL;
-        CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
-        CxPlatProcessorInfo = NULL;
+        if (CxPlatNumaMasks) {
+            CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
+            CxPlatNumaMasks = NULL;
+        }
+        if (CxPlatProcessorGroupOffsets) {
+            CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+            CxPlatProcessorGroupOffsets = NULL;
+        }
+        if (CxPlatProcessorInfo) {
+            CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+            CxPlatProcessorInfo = NULL;
+        }
     }
 
     return Result;
