@@ -4,25 +4,22 @@
 This script installs all necessary dependencies on the machine, depending
 on the provided configuration.
 
-.PARAMETER Configuration
-    The type of configuration to install dependencies for.
+.PARAMETER Tls
+    The TLS library in use.
+
+.PARAMETER Force
+    Overwrite and force installation of all dependencies.
 
 .PARAMETER InitSubmodules
     Dynamically initializes submodules based Tls and Extra configuration knobs.
 
-.PARAMETER Tls
-    The TLS library in use.
-
-.PARAMETER Extra
-    Any extra build flags being used.
-
-.PARAMETER Kernel
+.PARAMETER ForKernel
     Indicates build is for kernel mode.
 
-.PARAMETER TestCertificates
-    Generate test certificates. Only supported for Windows test configuration.
+.PARAMETER InstallTestCertificates
+    Generate test certificates. Only supported on Windows.
 
-.PARAMETER SignCode
+.PARAMETER InstallSigningCertificates
     Generate a code signing certificate for kernel driver tests.
 
 .EXAMPLE
@@ -100,14 +97,17 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
 }
 
-if ($args.Count -eq 0) {
+if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
     # everything is available.
+    Write-Host "No arguments passed, defaulting -ForBuild and -ForTest"
     $ForBuild = $true
     $ForTest = $true
     if ("" -eq $Tls -and !$ForKernel) { $Tls = "openssl" }
 }
+
+return
 
 if ($ForBuild) {
     # When configured for building, make sure we have all possible dependencies
