@@ -260,7 +260,7 @@ function Install-JOM {
 
 # Installs OpenCppCoverage from the public release.
 function Install-OpenCppCoverage {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         # Download the installer.
         $Installer = $null
@@ -282,7 +282,7 @@ function Install-OpenCppCoverage {
 
 # Creates and installs a certificate to use for local signing.
 function Install-SigningCertificate {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     if (!(Test-Path c:\CodeSign.pfx)) {
         Write-Host "Creating signing certificate"
         $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
@@ -297,7 +297,7 @@ function Install-SigningCertificate {
 
 # Creates and installs certificates used for testing.
 function Install-TestCertificates {
-    if ($IsWindows) { return } # Windows only
+    if (!$IsWindows) { return } # Windows only
     $NewRoot = $false
     Write-Host "Searching for MsQuicTestRoot certificate..."
     $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
