@@ -557,7 +557,7 @@ function Wait-TestCase($TestCase) {
     } finally {
         # Add the current test case results.
         if ($IsolationMode -ne "Batch") {
-            Add-XmlResults $TestCase
+            try { Add-XmlResults $TestCase } catch { }
         }
 
         if ($CodeCoverage) {
