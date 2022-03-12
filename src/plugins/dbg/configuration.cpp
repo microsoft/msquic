@@ -20,7 +20,7 @@ EXT_COMMAND(
 {
     Configuration Configuration(GetUnnamedArgU64(0));
 
-    Dml("\n<b>SESSION</b> (<link cmd=\"dt msquic!QUIC_SESSION 0x%I64X\">raw</link>)\n"
+    Dml("\n<b>CONFIGURATION</b> (<link cmd=\"dt msquic!QUIC_CONFIGURATION 0x%I64X\">raw</link>)\n"
         "\n"
         "\tALPN                %s\n"
         "\tRegistration        <link cmd=\"!quicregistration 0x%I64X\">0x%I64X</link>\n",

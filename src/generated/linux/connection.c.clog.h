@@ -169,10 +169,10 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVer
 // Decoder Ring for ServerVersionInformationPreviousVersionInOtherVerList
 // [conn][%p] Previous Client Version in Server Other Versions list: 0x%x
 // QuicTraceLogConnError(
-                        ServerVersionInformationPreviousVersionInOtherVerList,
-                        Connection,
-                        "Previous Client Version in Server Other Versions list: 0x%x",
-                        Connection->PreviousQuicVersion);
+                            ServerVersionInformationPreviousVersionInOtherVerList,
+                            Connection,
+                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            Connection->PreviousQuicVersion);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->PreviousQuicVersion = arg3
 ----------------------------------------------------------*/

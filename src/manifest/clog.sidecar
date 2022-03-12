@@ -1409,7 +1409,7 @@
     },
     "ConnLossDetectionTimerSet": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
+      "TraceString": "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
       "UniqueId": "ConnLossDetectionTimerSet",
       "splitArgs": [
         {
@@ -11828,9 +11828,9 @@
         "EncodingString": "[conn][%p] Removed Local IP: %!ADDR!"
       },
       {
-        "UniquenessHash": "dc75d9a9-d321-f77d-bb01-bf9cbcccfdb5",
+        "UniquenessHash": "d7168272-0b2c-01c7-7a02-dc62ab7e8560",
         "TraceID": "ConnLossDetectionTimerSet",
-        "EncodingString": "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)"
+        "EncodingString": "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)"
       },
       {
         "UniquenessHash": "12872365-4c5b-bfd4-dc5f-83f6aae048cf",
