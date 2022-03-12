@@ -370,7 +370,9 @@ CxPlatXdpReadConfig(
     _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
-    // Default config
+    //
+    // Default config.
+    //
     Xdp->RxBufferCount = 4096;
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
@@ -378,10 +380,16 @@ CxPlatXdpReadConfig(
     Xdp->TxAlwaysPoke = FALSE;
     Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
 
+    //
+    // Read user-specified global config.
+    //
     if (Config != NULL && Config->RawDataPathProcList != NULL) {
         Xdp->Cpu = (uint16_t)Config->RawDataPathProcList[0];
     }
 
+    //
+    // Read config from config file.
+    //
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
         return;
