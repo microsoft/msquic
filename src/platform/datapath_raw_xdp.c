@@ -366,7 +366,8 @@ Cleanup:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
-    _Inout_ XDP_DATAPATH* Xdp
+    _Inout_ XDP_DATAPATH* Xdp,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     // Default config
@@ -376,6 +377,10 @@ CxPlatXdpReadConfig(
     Xdp->TxRingSize = 128;
     Xdp->TxAlwaysPoke = FALSE;
     Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+
+    if (Config != NULL && Config->RawDataPathProcList != NULL) {
+        Xdp->Cpu = (uint16_t)Config->RawDataPathProcList[0];
+    }
 
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
@@ -393,11 +398,7 @@ CxPlatXdpReadConfig(
             Value[strlen(Value) - 1] = '\0';
         }
 
-        if (strcmp(Line, "CpuGroup") == 0) {
-             Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "CpuNumber") == 0) {
-             Xdp->Cpu = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "RxBufferCount") == 0) {
+        if (strcmp(Line, "RxBufferCount") == 0) {
              Xdp->RxBufferCount = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxRingSize") == 0) {
              Xdp->RxRingSize = strtoul(Value, NULL, 10);
@@ -908,11 +909,7 @@ CxPlatDpRawInitialize(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
-    CxPlatXdpReadConfig(Xdp);
-    if (Config != NULL && Config->RawDataPathProcList != NULL) {
-        Xdp->Cpu = Config->RawDataPathProcList[0];
-    }
-
+    CxPlatXdpReadConfig(Xdp, Config);
     CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
 
