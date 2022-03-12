@@ -175,6 +175,19 @@ QuicMainStart(
         return Status;
     }
 
+    uint32_t RawDatapathCpu;
+    if (TryGetValue(argc, argv, "cpu", &RawDatapathCpu)) {
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
+                sizeof(RawDatapathCpu),
+                &RawDatapathCpu))) {
+            WriteOutput("MsQuic Failed To Set Raw DataPath Procs %d\n", Status);
+            return Status;
+        }
+    }
+
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
     } else {
