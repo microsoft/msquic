@@ -578,7 +578,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerResumptionLevel                  : 1;
             uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t RESERVED                               : 32;
+            uint64_t RESERVED                               : 33;
         } IsSet;
     };
 

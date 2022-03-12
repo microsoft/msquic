@@ -49,8 +49,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t MaxBindingStatelessOperations          : 1;
             uint64_t StatelessOperationExpirationMs         : 1;
             uint64_t CongestionControlAlgorithm             : 1;
-            uint64_t RawDataPathProcs                       : 1;
-            uint64_t RESERVED                               : 28;
+            uint64_t RESERVED                               : 29;
         } IsSet;
     };
 

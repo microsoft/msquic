@@ -417,3 +417,42 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
                 &InternalSettings));
     }
 }
+
+TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
+{
+    uint32_t SetCpus[] = {1, 2, 3, 4, 5};
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
+            sizeof(SetCpus),
+            SetCpus));
+    uint32_t BufferLength = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        QuicLibraryGetGlobalParam(
+            QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
+            &BufferLength,
+            NULL));
+    ASSERT_EQ(ARRAYSIZE(SetCpus), BufferLength / sizeof(uint32_t));
+    uint32_t GetCpus[ARRAYSIZE(SetCpus)] = {0};
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibraryGetGlobalParam(
+            QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
+            &BufferLength,
+            GetCpus));
+    ASSERT_EQ(0, memcmp(GetCpus, SetCpus, sizeof(SetCpus)));
+}
+
+TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
+{
+    uint32_t SetCpus[] = {1, 2, 3, 4, 5};
+    MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend datapath has been initialized
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_STATE,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
+            sizeof(SetCpus),
+            SetCpus));
+}
