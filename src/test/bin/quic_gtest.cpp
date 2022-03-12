@@ -614,7 +614,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
         QuicTestConnect(
             GetParam().Family,
             GetParam().ServerStatelessRetry,
-            false,  // ClientUsesOldVersion
+            true,  // ClientUsesOldVersion
             false,  // MultipleALPNs
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             false,  // MultiPacketClientInitial

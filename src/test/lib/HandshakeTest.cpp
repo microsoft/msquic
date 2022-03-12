@@ -888,6 +888,15 @@ QuicTestVersionNegotiation(
     TEST_TRUE(ClientConfiguration.IsValid());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
 
+    ClearGlobalVersionListScope ClearVersionsScope;
+    BOOLEAN Enabled = TRUE;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Enabled),
+            &Enabled));
+
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
@@ -976,6 +985,15 @@ QuicTestVersionNegotiationRetry(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
+
+    ClearGlobalVersionListScope ClearVersionsScope;
+    BOOLEAN Enabled = TRUE;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Enabled),
+            &Enabled));
 
     {
         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
@@ -1530,12 +1548,22 @@ RunFailedVersionNegotiation(
     MsQuicVersionSettings ServerVersionsSettings;
     ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
 
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            NULL,
-            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-            sizeof(ServerVersionsSettings),
-            &ServerVersionsSettings));
+    if (ServerVersions != NULL) {
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(ServerVersionsSettings),
+                &ServerVersionsSettings));
+    } else {
+        BOOLEAN Disabled = FALSE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+                sizeof(Disabled),
+                &Disabled));
+    }
     ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
@@ -1576,9 +1604,7 @@ RunFailedVersionNegotiation(
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
+                Client.WaitForShutdownComplete();
                 TEST_FALSE(Client.GetIsConnected());
 
                 TEST_EQUAL(nullptr, Server);
@@ -1607,15 +1633,14 @@ QuicTestFailedVersionNegotiation(
         QUIC_STATUS_VER_NEG_ERROR,
         Family);
 
-    const uint32_t OriginalInVNClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
-    const uint32_t OriginalInVNServerVersions[] = { 0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a };
+    const uint32_t ClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
 
     RunFailedVersionNegotiation(
-        OriginalInVNClientVersions,
-        OriginalInVNServerVersions,
-        ARRAYSIZE(OriginalInVNClientVersions),
-        ARRAYSIZE(OriginalInVNServerVersions),
-        QUIC_STATUS_CONNECTION_TIMEOUT,
+        ClientVersions,
+        NULL,
+        ARRAYSIZE(ClientVersions),
+        0,
+        QUIC_STATUS_VER_NEG_ERROR,
         Family);
 }
 

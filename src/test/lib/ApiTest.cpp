@@ -1807,6 +1807,7 @@ QuicTestVersionSettings()
 {
     const uint32_t ValidVersions[] = {0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a};
     const uint32_t InvalidVersions[] = {0x00000001, 0x00000002};
+    const uint32_t ZeroVersion[] = { 0 };
     uint8_t OutputVersionBuffer[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(ValidVersions))];
     uint32_t BufferLength = sizeof(OutputVersionBuffer);
     QUIC_VERSION_SETTINGS* OutputVersionSettings = (QUIC_VERSION_SETTINGS*)OutputVersionBuffer;
@@ -1827,6 +1828,14 @@ QuicTestVersionSettings()
         // Test invalid versions are failed on Connection
         //
         InputSettings.SetAllVersionLists(InvalidVersions, ARRAYSIZE(InvalidVersions));
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_VERSION_SETTINGS,
+                sizeof(InputSettings),
+                &InputSettings));
+
+        InputSettings.SetAllVersionLists(ZeroVersion, ARRAYSIZE(ZeroVersion));
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             Connection.SetParam(
@@ -1903,6 +1912,15 @@ QuicTestVersionSettings()
                 sizeof(InputSettings),
                 &InputSettings));
 
+        InputSettings.SetAllVersionLists(ZeroVersion, ARRAYSIZE(ZeroVersion));
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Configuration.Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                sizeof(InputSettings),
+                &InputSettings));
+
         InputSettings.SetAllVersionLists(ValidVersions, ARRAYSIZE(ValidVersions));
 
         TEST_QUIC_SUCCEEDED(
@@ -1954,6 +1972,15 @@ QuicTestVersionSettings()
         // Test invalid versions are failed on Global
         //
         InputSettings.SetAllVersionLists(InvalidVersions, ARRAYSIZE(InvalidVersions));
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(InputSettings),
+                &InputSettings));
+
+        InputSettings.SetAllVersionLists(ZeroVersion, ARRAYSIZE(ZeroVersion));
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(

@@ -453,9 +453,9 @@ CXPLAT_STATIC_ASSERT(
 #define CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION      1
 
 //
-// By default the Version Negotiation Extension is enabled.
+// By default the Version Negotiation Extension is disabled.
 //
-#define QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED    TRUE
+#define QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED    FALSE
 
 //
 // The AEAD Integrity limit for maximum failed decryption packets over the
