@@ -578,7 +578,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerResumptionLevel                  : 1;
             uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t RESERVED                               : 33;
+            uint64_t RESERVED                               : 32;
         } IsSet;
     };
 
@@ -703,6 +703,7 @@ void
 #define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS               0x01000006  // QUIC_GLOBAL_SETTINGS
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
+#define QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS            0x01000008  // uint32_t[]
 #endif
 
 //

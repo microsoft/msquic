@@ -888,6 +888,44 @@ QuicLibrarySetGlobalParam(
 
         break;
 
+    case QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS:
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (BufferLength < sizeof(uint32_t) || BufferLength % sizeof(uint32_t) != 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.Datapath != NULL) {
+            QuicTraceLogError(
+                LibraryRawDataPathProcsSetAfterDataPathInit,
+                "[ lib] Tried to change raw datapath procs after datapath initialization");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+
+        MsQuicLib.Settings.RawDataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
+        if (MsQuicLib.Settings.RawDataPathProcList == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Raw datapath procs",
+                BufferLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            break;
+        }
+
+        CxPlatCopyMemory(MsQuicLib.Settings.RawDataPathProcList, Buffer, BufferLength);
+
+        QuicTraceLogInfo(
+            LibraryRawDataPathProcsSet,
+            "[ lib] Setting raw datapath procs");
+        break;
+
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
