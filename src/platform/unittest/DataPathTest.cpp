@@ -56,7 +56,8 @@ struct QuicAddr
                 0,
                 NULL,
                 NULL,
-                &Datapath))) {
+                &Datapath,
+                nullptr))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
         if (QUIC_FAILED(
@@ -381,7 +382,8 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
-                &Datapath);
+                &Datapath,
+                nullptr);
     }
     ~CxPlatDataPath() noexcept {
         if (Datapath) {
@@ -562,7 +564,7 @@ TEST_F(DataPathTest, Initialize)
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr));
+    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, nullptr));
     {
         const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks = { nullptr, EmptyUnreachableCallback };
         CxPlatDataPath Datapath(&InvalidUdpCallbacks);

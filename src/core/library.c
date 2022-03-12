@@ -907,9 +907,8 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-
-        MsQuicLib.Settings.RawDataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
-        if (MsQuicLib.Settings.RawDataPathProcList == NULL) {
+        uint32_t* RawDataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
+        if (RawDataPathProcList == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
@@ -919,11 +918,15 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        CxPlatCopyMemory(MsQuicLib.Settings.RawDataPathProcList, Buffer, BufferLength);
+        CxPlatCopyMemory(RawDataPathProcList, Buffer, BufferLength);
+        MsQuicLib.Settings.RawDataPathProcList = RawDataPathProcList;
+        MsQuicLib.Settings.RawDataPathProcListLength = BufferLength / sizeof(uint32_t);
 
         QuicTraceLogInfo(
             LibraryRawDataPathProcsSet,
             "[ lib] Setting raw datapath procs");
+
+        Status = QUIC_STATUS_SUCCESS;
         break;
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -1115,6 +1118,26 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(MsQuicLib.Version);
         CxPlatCopyMemory(Buffer, MsQuicLib.Version, sizeof(MsQuicLib.Version));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS:
+
+        if (*BufferLength < sizeof(uint32_t) * MsQuicLib.Settings.RawDataPathProcListLength) {
+            *BufferLength = sizeof(uint32_t) * MsQuicLib.Settings.RawDataPathProcListLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint32_t) * MsQuicLib.Settings.RawDataPathProcListLength;
+
+        CxPlatCopyMemory(Buffer, MsQuicLib.Settings.RawDataPathProcList, *BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

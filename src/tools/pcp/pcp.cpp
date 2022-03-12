@@ -62,7 +62,7 @@ main(
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatRandom(sizeof(PcpNonce), PcpNonce);
-    CxPlatDataPathInitialize(0, nullptr, nullptr, &Datapath);
+    CxPlatDataPathInitialize(0, nullptr, nullptr, &Datapath, NULL);
 
     QUIC_STATUS Status =
         CxPlatPcpInitialize(

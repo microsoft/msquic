@@ -148,7 +148,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
@@ -158,6 +159,7 @@ CxPlatDpRawInitialize(
     const uint32_t AdditionalBufferSize =
         sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
+    UNREFERENCED_PARAMETER(Config);
     CxPlatDpdkReadConfig(Dpdk);
     CxPlatDpRawGenerateCpuTable(Datapath);
 

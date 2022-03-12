@@ -901,13 +901,18 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
     CxPlatXdpReadConfig(Xdp);
+    if (Config != NULL && Config->RawDataPathProcList != NULL) {
+        Xdp->Cpu = Config->RawDataPathProcList[0];
+    }
+
     CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
 

@@ -824,7 +824,8 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _Out_ CXPLAT_DATAPATH* *NewDataPath
+    _Out_ CXPLAT_DATAPATH* *NewDataPath,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     QUIC_STATUS Status;
@@ -840,6 +841,8 @@ CxPlatDataPathInitialize(
     ULONG NoTdi = WSK_TDI_BEHAVIOR_BYPASS_TDI;
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(Config);
+
     if (NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         Datapath = NULL;

@@ -391,7 +391,8 @@ main(
         0,
         &DatapathCallbacks,
         NULL,
-        &Datapath);
+        &Datapath,
+        nullptr);
 
     if (argc < 2) {
         PrintUsage();

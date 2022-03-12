@@ -343,6 +343,11 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+typedef struct CXPLAT_DATAPATH_CONFIG {
+    const uint32_t* RawDataPathProcList; // Processor index candidates
+    uint32_t RawDataPathProcListLength;
+} CXPLAT_DATAPATH_CONFIG;
+
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -352,7 +357,8 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _Out_ CXPLAT_DATAPATH** NewDatapath
+    _Out_ CXPLAT_DATAPATH** NewDatapath,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     );
 
 //

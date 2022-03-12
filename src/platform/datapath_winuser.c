@@ -746,14 +746,18 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _Out_ CXPLAT_DATAPATH** NewDataPath
+    _Out_ CXPLAT_DATAPATH** NewDataPath,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
+
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
     CXPLAT_DATAPATH* Datapath;
     uint32_t DatapathLength;
+
+    UNREFERENCED_PARAMETER(Config);
 
     uint32_t MaxProcCount = CxPlatProcActiveCount();
     CXPLAT_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);

@@ -140,7 +140,8 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
-                &Datapath);
+                &Datapath,
+                NULL);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
             return Status;
