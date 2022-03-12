@@ -5680,6 +5680,20 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryRawDataPathProcsSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting raw datapath procs",
+      "UniqueId": "LibraryRawDataPathProcsSet",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "LibraryRawDataPathProcsSetAfterDataPathInit": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Tried to change raw datapath procs after datapath initialization",
+      "UniqueId": "LibraryRawDataPathProcsSetAfterDataPathInit",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
     "LibraryRelease": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Release",
@@ -12987,6 +13001,16 @@
         "UniquenessHash": "1799d6aa-33d5-cb09-2058-09b8369d852f",
         "TraceID": "LibraryNotInUse",
         "EncodingString": "[ lib] No longer in use."
+      },
+      {
+        "UniquenessHash": "7ba4f1de-7e3e-dc30-4598-7ef5527b83a5",
+        "TraceID": "LibraryRawDataPathProcsSet",
+        "EncodingString": "[ lib] Setting raw datapath procs"
+      },
+      {
+        "UniquenessHash": "4bf51fba-1c46-62f6-d154-1b30ecc46bfd",
+        "TraceID": "LibraryRawDataPathProcsSetAfterDataPathInit",
+        "EncodingString": "[ lib] Tried to change raw datapath procs after datapath initialization"
       },
       {
         "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",

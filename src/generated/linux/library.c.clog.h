@@ -192,6 +192,22 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetSettings );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathProcsSet
+// [ lib] Setting raw datapath procs
+// QuicTraceLogInfo(
+            LibraryRawDataPathProcsSet,
+            "[ lib] Setting raw datapath procs");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSet
+#define _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSet(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryRawDataPathProcsSet );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -299,6 +315,22 @@ tracepoint(CLOG_LIBRARY_C, LibraryMsQuicClose );\
 #ifndef _clog_2_ARGS_TRACE_LibraryLoadBalancingModeSetAfterInUse
 #define _clog_2_ARGS_TRACE_LibraryLoadBalancingModeSetAfterInUse(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathProcsSetAfterDataPathInit
+// [ lib] Tried to change raw datapath procs after datapath initialization
+// QuicTraceLogError(
+                LibraryRawDataPathProcsSetAfterDataPathInit,
+                "[ lib] Tried to change raw datapath procs after datapath initialization");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSetAfterDataPathInit
+#define _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSetAfterDataPathInit(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryRawDataPathProcsSetAfterDataPathInit );\
 
 #endif
 

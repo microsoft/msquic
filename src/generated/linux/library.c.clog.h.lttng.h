@@ -161,6 +161,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathProcsSet
+// [ lib] Setting raw datapath procs
+// QuicTraceLogInfo(
+            LibraryRawDataPathProcsSet,
+            "[ lib] Setting raw datapath procs");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathProcsSet,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -267,6 +283,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicClose,
                 "[ lib] Tried to change load balancing mode after library in use!");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathProcsSetAfterDataPathInit
+// [ lib] Tried to change raw datapath procs after datapath initialization
+// QuicTraceLogError(
+                LibraryRawDataPathProcsSetAfterDataPathInit,
+                "[ lib] Tried to change raw datapath procs after datapath initialization");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathProcsSetAfterDataPathInit,
     TP_ARGS(
 ), 
     TP_FIELDS(
