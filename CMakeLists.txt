@@ -89,6 +89,7 @@ option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_GAMECORE_BUILD "Build for GameCore" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
+option(QUIC_EMBED_GIT_HASH "Embed git commit hash in the binary" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
@@ -123,6 +124,15 @@ if (QUIC_PDBALTPATH AND MSVC)
 #    message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 endif()
 
+include(${PROJECT_SOURCE_DIR}/cmake/GitCommands.cmake)
+get_git_current_hash(${PROJECT_SOURCE_DIR} GIT_CURRENT_HASH)
+
+if(NOT GIT_CURRENT_HASH)
+    message("Failed to get git hash. Binary will not contain git hash")
+    set(QUIC_SOURCE_LINK OFF)
+    set(QUIC_EMBED_GIT_HASH OFF)
+endif()
+
 if (QUIC_SOURCE_LINK AND MSVC)
     if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
         include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
@@ -153,8 +163,6 @@ else ()
     set(QUIC_PGO_DIR ${QUIC_BUILD_DIR}/PGO)
 endif ()
 
-message(STATUS "QUIC PGO DIR: ${QUIC_PGO_DIR}")
-
 set(QUIC_VER_BUILD_ID "0" CACHE STRING "The version build ID")
 set(QUIC_VER_SUFFIX "-private" CACHE STRING "The version suffix")
 
@@ -173,7 +181,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if (WIN32)
-    set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
 
     include(CheckCCompilerFlag)
@@ -288,6 +296,10 @@ endif()
 
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
+
+if (QUIC_EMBED_GIT_HASH)
+    list(APPEND QUIC_COMMON_DEFINES VER_GIT_HASH=${GIT_CURRENT_HASH})
+endif()
 
 if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)

@@ -523,6 +523,7 @@ pub struct Settings {
     pub max_bytes_per_key: u64,
     pub handshake_idle_timeout_ms: u64,
     pub idle_timeout_ms: u64,
+    pub mtu_discovery_search_complete_timeout_us: u64,
     pub tls_client_max_send_buffer: u32,
     pub tls_server_max_send_buffer: u32,
     pub stream_recv_window_default: u32,
@@ -536,33 +537,35 @@ pub struct Settings {
     pub max_ack_delay_ms: u32,
     pub disconnect_timeout_ms: u32,
     pub keep_alive_interval_ms: u32,
+    pub congestion_control_algorithm: u16,
     pub peer_bidi_stream_count: u16,
     pub peer_unidi_stream_count: u16,
-    pub retry_memory_limit: u16,
-    pub load_balancing_mode: u16,
-    pub other_flags: u8,
-    pub desired_version_list: *const u32,
-    pub desired_version_list_length: u32,
-    pub minimum_mtu: u16,
-    pub maximum_mtu: u16,
-    pub mtu_discovery_search_complete_timeout_us: u64,
-    pub mtu_discovery_missing_probe_count: u8,
     pub max_binding_stateless_operations: u16,
     pub stateless_operation_expiration_ms: u16,
+    pub minimum_mtu: u16,
+    pub maximum_mtu: u16,
+    pub other_flags: u8,
+    pub mtu_operations_per_drain: u8,
+    pub mtu_discovery_missing_probe_count: u8,
 }
 
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
 pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 0x01000001;
 pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 0x01000002;
 pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 0x01000003;
-pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000004;
-pub const PARAM_GLOBAL_VERSION: u32 = 0x01000005;
+pub const PARAM_GLOBAL_VERSION: u32 = 0x01000004;
+pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000005;
+pub const PARAM_GLOBAL_GLOBAL_SETTINGS: u32 = 0x01000006;
+pub const PARAM_GLOBAL_VERSION_SETTINGS: u32 = 0x01000007;
+pub const PARAM_GLOBAL_LIBRARY_GIT_HASH: u32 = 0x01000008;
 
 pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
 pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
+pub const PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 0x03000002;
 
 pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 0x04000000;
 pub const PARAM_LISTENER_STATS: u32 = 0x04000001;
+pub const PARAM_LISTENER_CIBIR_ID: u32 = 0x04000002;
 
 pub const PARAM_CONN_QUIC_VERSION: u32 = 0x05000000;
 pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 0x05000001;
@@ -971,6 +974,7 @@ impl Settings {
             max_bytes_per_key: 0,
             handshake_idle_timeout_ms: 0,
             idle_timeout_ms: 0,
+            mtu_discovery_search_complete_timeout_us: 0,
             tls_client_max_send_buffer: 0,
             tls_server_max_send_buffer: 0,
             stream_recv_window_default: 0,
@@ -984,33 +988,30 @@ impl Settings {
             max_ack_delay_ms: 0,
             disconnect_timeout_ms: 0,
             keep_alive_interval_ms: 0,
+            congestion_control_algorithm: 0,
             peer_bidi_stream_count: 0,
             peer_unidi_stream_count: 0,
-            retry_memory_limit: 0,
-            load_balancing_mode: 0,
-            other_flags: 0,
-            desired_version_list: ptr::null(),
-            desired_version_list_length: 0,
-            minimum_mtu: 0,
-            maximum_mtu: 0,
-            mtu_discovery_search_complete_timeout_us: 0,
-            mtu_discovery_missing_probe_count: 0,
             max_binding_stateless_operations: 0,
             stateless_operation_expiration_ms: 0,
+            minimum_mtu: 0,
+            maximum_mtu: 0,
+            other_flags: 0,
+            mtu_operations_per_drain: 0,
+            mtu_discovery_missing_probe_count: 0,
         }
     }
     pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x10000;
+        self.is_set_flags |= 0x40000;
         self.peer_bidi_stream_count = value;
         self
     }
     pub fn set_peer_unidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x20000;
+        self.is_set_flags |= 0x80000;
         self.peer_unidi_stream_count = value;
         self
     }
     pub fn set_idle_timeout_ms(&mut self, value: u64) -> &mut Settings {
-        self.is_set_flags |= 0x8;
+        self.is_set_flags |= 0x4;
         self.idle_timeout_ms = value;
         self
     }
@@ -1198,7 +1199,7 @@ impl Connection {
                 configuration.handle,
                 0,
                 server_name_safe.as_ptr(),
-                server_port.to_be(),
+                server_port,
             )
         };
         if Status::failed(status) {
@@ -1434,7 +1435,7 @@ extern "C" fn test_stream_callback(
 ) -> u32 {
     let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
-        STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {
+        STREAM_EVENT_START_COMPLETE => println!("Stream start complete 0x{:x}", unsafe {
             event.payload.start_complete.status
         }),
         STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {
@@ -1446,7 +1447,7 @@ extern "C" fn test_stream_callback(
         STREAM_EVENT_PEER_RECEIVE_ABORTED => println!("Peer receive aborted"),
         STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
         STREAM_EVENT_SHUTDOWN_COMPLETE => {
-            println!("Shutdown complete");
+            println!("Stream shutdown complete");
             connection.stream_close(stream);
         }
         STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
@@ -1478,7 +1479,7 @@ fn test_module() {
         test_conn_callback,
         &connection as *const Connection as *const c_void,
     );
-    connection.start(&configuration, "google.com", 443);
+    connection.start(&configuration, "www.cloudflare.com", 443);
 
     let duration = std::time::Duration::from_millis(1000);
     std::thread::sleep(duration);

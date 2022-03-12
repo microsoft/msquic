@@ -2295,7 +2295,8 @@ CxPlatDataPathRunEC(
 
     struct timespec Timeout = {0, 0};
     if (WaitTime != UINT32_MAX) {
-        CxPlatGetAbsoluteTime(WaitTime, &Timeout);
+        Timeout.tv_sec += (WaitTime / CXPLAT_MS_PER_SECOND);
+        Timeout.tv_nsec += ((WaitTime % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
     }
 
     int ReadyEventCount =

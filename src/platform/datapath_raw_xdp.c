@@ -764,7 +764,7 @@ CxPlatDpRawInterfaceUpdateRules(
         .SubLayer = XDP_HOOK_INSPECT,
     };
 
-    const UINT32 Flags = 0; // TODO: support native/generic forced flags.
+    const UINT32 Flags = XDP_CREATE_PROGRAM_FLAG_SHARE; // TODO: support native/generic forced flags.
 
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
@@ -807,9 +807,10 @@ CxPlatDpRawInterfaceUpdateRules(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawInterfaceAddRule(
+CxPlatDpRawInterfaceAddRules(
     _In_ XDP_INTERFACE* Interface,
-    _In_ const XDP_RULE* NewRule
+    _In_reads_(Count) const XDP_RULE* Rules,
+    _In_ uint8_t Count
     )
 {
 #pragma warning(push)
@@ -818,7 +819,7 @@ CxPlatDpRawInterfaceAddRule(
     CxPlatLockAcquire(&Interface->RuleLock);
     // TODO - Don't always allocate a new array?
 
-    if (Interface->RuleCount + 1 == 0) {
+    if ((uint32_t)Interface->RuleCount + (uint32_t)Count > UINT8_MAX) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -828,7 +829,7 @@ CxPlatDpRawInterfaceAddRule(
     }
 
     const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
-    const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + 1);
+    const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + Count);
 
     XDP_RULE* NewRules = CxPlatAlloc(NewSize, RULE_TAG);
     if (NewRules == NULL) {
@@ -844,8 +845,9 @@ CxPlatDpRawInterfaceAddRule(
     if (Interface->RuleCount > 0) {
         memcpy(NewRules, Interface->Rules, OldSize);
     }
-    NewRules[Interface->RuleCount] = *NewRule;
-    Interface->RuleCount++;
+    for (uint8_t i = 0; i < Count; i++) {
+        NewRules[Interface->RuleCount++] = Rules[i];
+    }
 
     if (Interface->Rules != NULL) {
         CxPlatFree(Interface->Rules, RULE_TAG);
@@ -861,46 +863,62 @@ CxPlatDpRawInterfaceAddRule(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawInterfaceRemoveRule(
+CxPlatDpRawInterfaceRemoveRules(
     _In_ XDP_INTERFACE* Interface,
-    _In_ const XDP_RULE* Rule
+    _In_reads_(Count) const XDP_RULE* Rules,
+    _In_ uint8_t Count
     )
 {
     CxPlatLockAcquire(&Interface->RuleLock);
 
-    for (uint8_t i = 0; i < Interface->RuleCount; i++) {
-        if (Interface->Rules[i].Match != Rule->Match) {
-            continue;
-        }
+    BOOLEAN UpdateRules = FALSE;
 
-        if (Rule->Match == XDP_MATCH_UDP_DST) {
-            if (Rule->Pattern.Port != Interface->Rules[i].Pattern.Port) {
+    for (uint8_t j = 0; j < Count; j++) {
+        for (uint8_t i = 0; i < Interface->RuleCount; i++) {
+            if (Interface->Rules[i].Match != Rules[j].Match) {
                 continue;
             }
-        } else if (Rule->Match == XDP_MATCH_IPV4_UDP_TUPLE) {
-            if (Rule->Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
-                Rule->Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
-                memcmp(&Rule->Pattern.Tuple.DestinationAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv4, sizeof(IN_ADDR)) != 0 ||
-                memcmp(&Rule->Pattern.Tuple.SourceAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv4, sizeof(IN_ADDR)) != 0) {
-                continue;
-            }
-        } else if (Rule->Match == XDP_MATCH_IPV6_UDP_TUPLE) {
-            if (Rule->Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
-                Rule->Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
-                memcmp(&Rule->Pattern.Tuple.DestinationAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv6, sizeof(IN6_ADDR)) != 0 ||
-                memcmp(&Rule->Pattern.Tuple.SourceAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv6, sizeof(IN6_ADDR)) != 0) {
-                continue;
-            }
-        } else {
-            CXPLAT_FRE_ASSERT(FALSE); // Should not be possible!
-        }
 
-        if (i < Interface->RuleCount - 1) {
-            memmove(&Interface->Rules[i], &Interface->Rules[i + 1], sizeof(XDP_RULE) * (Interface->RuleCount - i - 1));
+            if (Rules[j].Match == XDP_MATCH_UDP_DST) {
+                if (Rules[j].Pattern.Port != Interface->Rules[i].Pattern.Port) {
+                    continue;
+                }
+            } else if (Rules[j].Match == XDP_MATCH_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_QUIC_FLOW_DST_CID) {
+                if (Rules[j].Pattern.QuicFlow.UdpPort != Interface->Rules[i].Pattern.QuicFlow.UdpPort ||
+                    Rules[j].Pattern.QuicFlow.CidLength != Interface->Rules[i].Pattern.QuicFlow.CidLength ||
+                    Rules[j].Pattern.QuicFlow.CidOffset != Interface->Rules[i].Pattern.QuicFlow.CidOffset ||
+                    memcmp(Rules[j].Pattern.QuicFlow.CidData, Interface->Rules[i].Pattern.QuicFlow.CidData, Rules[j].Pattern.QuicFlow.CidLength) != 0) {
+                    continue;
+                }
+            } else if (Rules[j].Match == XDP_MATCH_IPV4_UDP_TUPLE) {
+                if (Rules[j].Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
+                    Rules[j].Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
+                    memcmp(&Rules[j].Pattern.Tuple.DestinationAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv4, sizeof(IN_ADDR)) != 0 ||
+                    memcmp(&Rules[j].Pattern.Tuple.SourceAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv4, sizeof(IN_ADDR)) != 0) {
+                    continue;
+                }
+            } else if (Rules[j].Match == XDP_MATCH_IPV6_UDP_TUPLE) {
+                if (Rules[j].Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
+                    Rules[j].Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
+                    memcmp(&Rules[j].Pattern.Tuple.DestinationAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv6, sizeof(IN6_ADDR)) != 0 ||
+                    memcmp(&Rules[j].Pattern.Tuple.SourceAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv6, sizeof(IN6_ADDR)) != 0) {
+                    continue;
+                }
+            } else {
+                CXPLAT_FRE_ASSERT(FALSE); // Should not be possible!
+            }
+
+            if (i < Interface->RuleCount - 1) {
+                memmove(&Interface->Rules[i], &Interface->Rules[i + 1], sizeof(XDP_RULE) * (Interface->RuleCount - i - 1));
+            }
+            Interface->RuleCount--;
+            UpdateRules = TRUE;
+            break;
         }
-        Interface->RuleCount--;
+    }
+
+    if (UpdateRules) {
         CxPlatDpRawInterfaceUpdateRules(Interface);
-        break;
     }
 
     CxPlatLockRelease(&Interface->RuleLock);
@@ -1062,21 +1080,57 @@ CxPlatDpRawPlumbRulesOnSocket(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
 
     if (Socket->Wildcard) {
-        const XDP_RULE Rule = {
-            .Match = XDP_MATCH_UDP_DST,
-            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
-            .Action = XDP_PROGRAM_ACTION_REDIRECT,
-            .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-            .Redirect.Target = NULL,
-        };
 
-        CXPLAT_LIST_ENTRY* Entry;
-        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-            if (IsCreated) {
-                CxPlatDpRawInterfaceAddRule(Interface, &Rule);
-            } else {
-                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule);
+        if (Socket->CibirIdLength) {
+            XDP_RULE Rules[] = {
+                {
+                .Match = XDP_MATCH_QUIC_FLOW_SRC_CID,
+                .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
+                .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
+                .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc,
+                .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                .Redirect.Target = NULL,
+                },
+                {
+                .Match = XDP_MATCH_QUIC_FLOW_DST_CID,
+                .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
+                .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
+                .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst,
+                .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                .Redirect.Target = NULL,
+                }
+            };
+            memcpy(Rules[0].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+
+            CXPLAT_LIST_ENTRY* Entry;
+            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+                if (IsCreated) {
+                    CxPlatDpRawInterfaceAddRules(Interface, Rules, 2);
+                } else {
+                    CxPlatDpRawInterfaceRemoveRules(Interface, Rules, 2);
+                }
+            }
+        } else {
+            const XDP_RULE Rule = {
+                .Match = XDP_MATCH_UDP_DST,
+                .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
+                .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                .Redirect.Target = NULL,
+            };
+
+            CXPLAT_LIST_ENTRY* Entry;
+            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+                if (IsCreated) {
+                    CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
+                } else {
+                    CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
+                }
             }
         }
 
@@ -1108,9 +1162,9 @@ CxPlatDpRawPlumbRulesOnSocket(
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             if (IsCreated) {
-                CxPlatDpRawInterfaceAddRule(Interface, &Rule);
+                CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
             } else {
-                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule);
+                CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
             }
         }
     }

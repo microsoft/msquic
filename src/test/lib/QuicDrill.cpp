@@ -312,17 +312,15 @@ QuicDrillInitialPacketFailureTest(
             return false;
         }
 
-        //
-        // Generously wait for server to process packet.
-        //
-        CxPlatSleep(100);
-
-        Status = Listener.GetStatistics(Stats);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
-            return false;
-        }
-        DroppedPacketsAfter = Stats.BindingRecvDroppedPackets;
+        uint32_t Tries = 0;
+        do {
+            CxPlatSleep(100);
+            if (QUIC_FAILED(Status = Listener.GetStatistics(Stats))) {
+                TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
+                return false;
+            }
+            DroppedPacketsAfter = Stats.BindingRecvDroppedPackets;
+        } while (DroppedPacketsAfter - DroppedPacketsBefore != 1 && Tries++ < 10);
 
         //
         // Validate the server rejected the packet just sent.

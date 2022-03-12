@@ -25,6 +25,8 @@ $Configs = [System.Tuple]::Create("Debug","chk"), [System.Tuple]::Create("Releas
 $Archs = [System.Tuple]::Create("ARM","arm","arm"), [System.Tuple]::Create("ARM64","arm64","arm64"), `
          [System.Tuple]::Create("Win32","x86","x86"), [System.Tuple]::Create("x64","x64","amd64")
 
+$SkipKernelArchs = @("Win32", "ARM")
+
 function Force-Copy($Source, $Destination) {
     New-Item -Path $Destination -ItemType Directory -Force | Out-Null
     Copy-Item $Source $Destination -Force | Out-Null
@@ -51,14 +53,16 @@ foreach ($Config in $Configs) {
         Force-Copy (Join-Path $InputDir "secnetperf.exe") (Join-Path $PlatformPackageDir "bin/user")
         Force-Copy (Join-Path $InputDir "secnetperf.pdb") (Join-Path $PlatformPackageDir "bin/user")
 
-        $InputDir = Join-Path $ArtifactsDir "bin/winkernel/$($Arch.Item1)_$($Config.Item1)_schannel"
-        Force-Copy (Join-Path $InputDir "msquic.lib") (Join-Path $PlatformPackageDir "lib/kernel")
-        Force-Copy (Join-Path $InputDir "msquic.sys") (Join-Path $PlatformPackageDir "bin/kernel")
-        Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
-        Force-Copy (Join-Path $InputDir "msquictest.sys") (Join-Path $PlatformPackageDir "bin/kernel")
-        Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
-        Force-Copy (Join-Path $InputDir "secnetperfdrv.sys") (Join-Path $PlatformPackageDir "bin/kernel")
-        Force-Copy (Join-Path $InputDir "secnetperfdrv.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
+        if (!$SkipKernelArchs.Contains($Arch.Item1)) {
+            $InputDir = Join-Path $ArtifactsDir "bin/winkernel/$($Arch.Item1)_$($Config.Item1)_schannel"
+            Force-Copy (Join-Path $InputDir "msquic.lib") (Join-Path $PlatformPackageDir "lib/kernel")
+            Force-Copy (Join-Path $InputDir "msquic.sys") (Join-Path $PlatformPackageDir "bin/kernel")
+            Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
+            Force-Copy (Join-Path $InputDir "msquictest.sys") (Join-Path $PlatformPackageDir "bin/kernel")
+            Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
+            Force-Copy (Join-Path $InputDir "secnetperfdrv.sys") (Join-Path $PlatformPackageDir "bin/kernel")
+            Force-Copy (Join-Path $InputDir "secnetperfdrv.pdb") (Join-Path $PlatformPackageDir "bin/kernel")
+        }
     }
 
     # Special case chpe

@@ -82,10 +82,6 @@ else
 fi
 
 ARTIFACTS="artifacts/bin/${OS}/${ARCH}_${CONFIG}_openssl"
-if [ ! -e "$ARTIFACTS/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
-    echo "$ARTIFACTS/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" does not exist. Run build first.
-    exit 1
-fi
 
 if [ -z ${OUTPUT} ]; then
     OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
