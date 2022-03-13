@@ -42,7 +42,7 @@ QuicVersionNegotiationExtIsVersionServerSupported(
         if (QuicIsVersionReserved(Version)) {
             return FALSE;
         }
-        for (uint32_t i = 0; i < MsQuicLib.Settings.VersionSettings->AcceptableVersionsLength; ++i) { // TODO: check if this is 
+        for (uint32_t i = 0; i < MsQuicLib.Settings.VersionSettings->AcceptableVersionsLength; ++i) {
             if (MsQuicLib.Settings.VersionSettings->AcceptableVersions[i] == Version) {
                 return TRUE;
             }
@@ -106,7 +106,11 @@ QuicVersionNegotiationExtIsVersionCompatible(
     const uint32_t* CompatibleVersions;
     uint32_t CompatibleVersionsLength;
     if (Connection->Settings.IsSet.VersionSettings) {
-        CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions; // TODO: check if this is the correct usage
+        //
+        // This should be the list of versions compatible with the FullyDeployedVersions
+        // (which includes all versions in the FullyDeployedVersions.)
+        //
+        CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
         CompatibleVersionsLength = Connection->Settings.VersionSettings->FullyDeployedVersionsLength;
     } else {
         CompatibleVersions = MsQuicLib.DefaultCompatibilityList;

@@ -61,7 +61,7 @@ struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
         MsQuicVersionSettings Settings;
         Settings.SetAllVersionLists(nullptr, 0);
-        BOOLEAN Default = TRUE;
+        BOOLEAN Default = FALSE;
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
