@@ -2552,6 +2552,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH 0x01000008")]
         public const int QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH = 0x01000008;
 
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS 0x01000009")]
+        public const int QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS = 0x01000009;
+
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
 
