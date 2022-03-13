@@ -1159,9 +1159,7 @@ QuicLibraryGetGlobalParam(
         }
 
         *BufferLength = sizeof(uint32_t) * MsQuicLib.Settings.RawDataPathProcListLength;
-
         CxPlatCopyMemory(Buffer, MsQuicLib.Settings.RawDataPathProcList, *BufferLength);
-
         Status = QUIC_STATUS_SUCCESS;
         break;
 
