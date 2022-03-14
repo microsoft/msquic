@@ -2,17 +2,15 @@ name: Plugins
 
 on:
   push:
-    branches:
-    - main
+    branches: [ main ]
     paths:
-      - .github/workflows/plugins.yml
-      - src/plugins
+    - .github/workflows/plugins.yml
+    - src/plugins
   pull_request:
-    branches:
-    - main
+    branches: [ main ]
     paths:
-      - .github/workflows/plugins.yml
-      - src/plugins
+    - .github/workflows/plugins.yml
+    - src/plugins
 
 permissions: read-all
 
@@ -34,7 +32,7 @@ jobs:
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
     - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
-        name: bin
+        name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
         path: artifacts/bin
 
   build_quictrace:
@@ -56,6 +54,6 @@ jobs:
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
     - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
-        name: bin
+        name: bin_quictrace_${{ matrix.configuration }}
         path: artifacts/bin
 
