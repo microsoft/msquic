@@ -450,7 +450,7 @@ QuicSettingApply(
             Destination->VersionSettings = NULL;
             Destination->IsSet.VersionSettings = FALSE;
         }
-        if (!Destination->IsSet.VersionSettings) {
+        if (!Destination->IsSet.VersionSettings && Source->VersionSettings != NULL) {
             Destination->VersionSettings =
                 QuicSettingsCopyVersionSettings(Source->VersionSettings, FALSE);
             if (Destination->VersionSettings == NULL) {
@@ -1193,7 +1193,7 @@ QuicSettingsVersionSettingsToInternal(
         Settings->FullyDeployedVersionsLength == 0 &&
         Settings->OfferedVersionsLength == 0) {
         InternalSettings->IsSet.VersionNegotiationExtEnabled = TRUE;
-        InternalSettings->IsSet.VersionSettings = FALSE;
+        InternalSettings->IsSet.VersionSettings = TRUE;
         InternalSettings->VersionNegotiationExtEnabled = TRUE;
         InternalSettings->VersionSettings = NULL;
     } else {
