@@ -5680,6 +5680,13 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryRawDataPathInvalidProcs": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Tried to set invalid raw datapath procs",
+      "UniqueId": "LibraryRawDataPathInvalidProcs",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
     "LibraryRawDataPathProcsSet": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Setting raw datapath procs",
@@ -13001,6 +13008,11 @@
         "UniquenessHash": "1799d6aa-33d5-cb09-2058-09b8369d852f",
         "TraceID": "LibraryNotInUse",
         "EncodingString": "[ lib] No longer in use."
+      },
+      {
+        "UniquenessHash": "9a01e720-3c07-588a-6529-96d6248f5cd5",
+        "TraceID": "LibraryRawDataPathInvalidProcs",
+        "EncodingString": "[ lib] Tried to set invalid raw datapath procs"
       },
       {
         "UniquenessHash": "7ba4f1de-7e3e-dc30-4598-7ef5527b83a5",

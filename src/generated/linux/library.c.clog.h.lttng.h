@@ -308,6 +308,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathProcsSetAfterDataPathInit,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathInvalidProcs
+// [ lib] Tried to set invalid raw datapath procs
+// QuicTraceLogError(
+                LibraryRawDataPathInvalidProcs,
+                "[ lib] Tried to set invalid raw datapath procs");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathInvalidProcs,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

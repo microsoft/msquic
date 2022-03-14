@@ -460,6 +460,16 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
             &BufferLength,
             NULL));
     ASSERT_EQ((uint32_t)0, BufferLength);
+    //
+    // Passing an invalid processor number.
+    //
+    SetCpus[0] = (uint16_t)CxPlatProcActiveCount();
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
+            sizeof(SetCpus),
+            SetCpus));
 }
 
 TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)

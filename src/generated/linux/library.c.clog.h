@@ -338,6 +338,22 @@ tracepoint(CLOG_LIBRARY_C, LibraryRawDataPathProcsSetAfterDataPathInit );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathInvalidProcs
+// [ lib] Tried to set invalid raw datapath procs
+// QuicTraceLogError(
+                LibraryRawDataPathInvalidProcs,
+                "[ lib] Tried to set invalid raw datapath procs");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryRawDataPathInvalidProcs
+#define _clog_2_ARGS_TRACE_LibraryRawDataPathInvalidProcs(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryRawDataPathInvalidProcs );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

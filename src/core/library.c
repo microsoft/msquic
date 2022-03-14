@@ -733,7 +733,7 @@ QuicLibrarySetGlobalParam(
         const void* Buffer
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_SETTINGS_INTERNAL InternalSettings;
 
     switch (Param) {
@@ -920,12 +920,19 @@ QuicLibrarySetGlobalParam(
 
         uint32_t RawDataPathProcListLength = BufferLength / sizeof(uint16_t);
         uint16_t* Cpus = (uint16_t*)Buffer;
-        _Analysis_assume_(BufferLength >= 4);
+        _Analysis_assume_(BufferLength >= 4); // SAL incorrectly thinks 4 bytes will be accessed.
         for (uint32_t i = 0; i < RawDataPathProcListLength; ++i) {
             if (Cpus[i] >= CxPlatProcActiveCount()) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 break;
             }
+        }
+
+        if (Status == QUIC_STATUS_INVALID_PARAMETER) {
+            QuicTraceLogError(
+                LibraryRawDataPathInvalidProcs,
+                "[ lib] Tried to set invalid raw datapath procs");
+            break;
         }
 
         if (MsQuicLib.RawDataPathProcList != NULL) {
