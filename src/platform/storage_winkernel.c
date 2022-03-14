@@ -215,6 +215,7 @@ CxPlatStorageCreateAppKey(
         return Status;
     }
 
+    UnicodeString->Length = (USHORT)UnicodeLength;
     *NewUnicodeString = UnicodeString;
 
     return Status;
