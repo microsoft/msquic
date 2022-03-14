@@ -128,10 +128,11 @@ if ($ForTest) {
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
                                   # for jobs that absoultely need it.
+}
 
-    if ($InstallXdpDriver) {
-        $InstallXdpSdk = $true
-    }
+if ($InstallXdpDriver) {
+    # The XDP SDK contains XDP driver, so ensure it's downloaded.
+    $InstallXdpSdk = $true
 }
 
 # Default TLS based on current platform.
