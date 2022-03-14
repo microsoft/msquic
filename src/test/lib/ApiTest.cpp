@@ -2265,7 +2265,7 @@ QuicTestStorage()
 #ifdef _KERNEL_MODE
     TEST_QUIC_SUCCEEDED(
         ZwSetValueKey(
-            GlobalKey,
+            AppKey,
             (PUNICODE_STRING)&ValueName,
             0,
             REG_DWORD,
