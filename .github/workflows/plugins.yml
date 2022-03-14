@@ -33,7 +33,11 @@ jobs:
     - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
         name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
-        path: artifacts/bin
+        path: |
+          artifacts/bin
+          !artifacts/bin/**/*.ilk
+          !artifacts/bin/**/*.exp
+          !artifacts/bin/**/*.lib
 
   build_quictrace:
     name: Build QuicTrace
