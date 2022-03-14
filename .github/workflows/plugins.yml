@@ -19,8 +19,9 @@ permissions: read-all
 jobs:
   build_dbgext:
     name: Build WinDbg Extension
-    runs-on: windows-latest
+    runs-on: windows-2019 # TODO - Need to figure out why -2022 doesn't have the prerequisites
     strategy:
+      fail-fast: false
       matrix:
         configuration: [Release, Debug]
         platform: [x86, x64]
@@ -31,13 +32,17 @@ jobs:
       uses: microsoft/setup-msbuild@9546707e6b8f513d3a2af998e51e3b995c9fbe81
     - name: Build
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
-    # TODO - Upload artifacts
+    - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      with:
+        name: bin
+        path: artifacts/bin
 
   build_quictrace:
     name: Build QuicTrace
     needs: []
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         configuration: [Release, Debug]
     steps:
@@ -49,5 +54,8 @@ jobs:
         dotnet-version: 6.0.x
     - name: Build
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
-    # TODO - Upload artifacts
+    - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      with:
+        name: bin
+        path: artifacts/bin
 
