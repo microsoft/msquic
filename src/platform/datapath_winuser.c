@@ -746,11 +746,10 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _Out_ CXPLAT_DATAPATH** NewDataPath,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
-
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;

@@ -128,7 +128,7 @@ QuicMainStart(
         DatapathUnreachable
     };
 
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &Datapath, nullptr);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;

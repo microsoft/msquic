@@ -90,8 +90,6 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint16_t MaxBindingStatelessOperations;
     uint16_t StatelessOperationExpirationMs;
     uint16_t CongestionControlAlgorithm;
-    const uint32_t* RawDataPathProcList;
-    uint32_t RawDataPathProcListLength;
 
 } QUIC_SETTINGS_INTERNAL;
 

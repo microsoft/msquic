@@ -384,7 +384,7 @@ CxPlatXdpReadConfig(
     // Read user-specified global config.
     //
     if (Config != NULL && Config->RawDataPathProcList != NULL) {
-        Xdp->Cpu = (uint16_t)Config->RawDataPathProcList[0];
+        Xdp->Cpu = Config->RawDataPathProcList[0];
     }
 
     //

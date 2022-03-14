@@ -56,8 +56,8 @@ struct QuicAddr
                 0,
                 NULL,
                 NULL,
-                &Datapath,
-                nullptr))) {
+                NULL,
+                &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
         if (QUIC_FAILED(
@@ -382,8 +382,8 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
-                &Datapath,
-                nullptr);
+                nullptr,
+                &Datapath);
     }
     ~CxPlatDataPath() noexcept {
         if (Datapath) {
