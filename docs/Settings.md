@@ -92,7 +92,6 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS`<br> 9      | uint16_t[]              | Both      | Globally change the list of CPUs that raw datapath can use. Must be set before opening registration.  |
 
 
-
 ### Registration Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_REGISTRATION_*` and a Registration object handle.
