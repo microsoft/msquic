@@ -1,4 +1,4 @@
-name: CheckDotnet
+name: Plugins
 
 on:
   push:
