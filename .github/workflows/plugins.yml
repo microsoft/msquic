@@ -56,4 +56,3 @@ jobs:
       with:
         name: bin_quictrace_${{ matrix.configuration }}
         path: artifacts/bin
-
