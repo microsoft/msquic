@@ -187,8 +187,7 @@ function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if (!(Test-Path $XdpPath)) {
-        Write-Host "XDP installation failed: driver file not present"
-        return
+        Write-Error "XDP installation failed: driver file not present"
     }
 
     Write-Host "Installing XDP certificate"
