@@ -80,6 +80,9 @@ param (
     [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallXdpDriver,
+
+    [Parameter(Mandatory = $false)]
     [switch]$DisableTest
 )
 
@@ -125,6 +128,10 @@ if ($ForTest) {
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
                                   # for jobs that absoultely need it.
+
+    if ($InstallXdpDriver) {
+        $InstallXdpSdk = $true
+    }
 }
 
 # Default TLS based on current platform.
@@ -170,6 +177,26 @@ function Install-Xdp-Sdk {
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
+}
+
+# Installs the XDP driver (for testing).
+# NB: XDP can be uninstalled with:
+# netcfg.exe -u ms_xdp
+# pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+function Install-Xdp-Driver {
+    if (!$IsWindows) { return } # Windows only
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) {
+        Write-Host "XDP installation failed: driver file not present"
+        return
+    }
+
+    Write-Host "Installing XDP certificate"
+    CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
+    CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+
+    Write-Host "Installing XDP driver"
+    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
@@ -405,6 +432,7 @@ if ($InitSubmodules) {
 
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
+if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
