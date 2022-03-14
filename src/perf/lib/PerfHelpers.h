@@ -20,6 +20,7 @@ Abstract:
 #endif
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // For disabling encryption
+#define QUIC_API_ENABLE_PREVIEW_FEATURES  1 // For CIBIR extension
 
 #include "quic_platform.h"
 #include "quic_trace.h"
@@ -324,25 +325,24 @@ QuicPrintConnectionStatistics(
     _In_ HQUIC Connection
     )
 {
-    QUIC_STATISTICS Statistics;
+    QUIC_STATISTICS_V2 Statistics;
     uint32_t StatsSize = sizeof(Statistics);
     if (QUIC_SUCCEEDED(
         ApiTable->GetParam(
             Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Statistics))) {
         WriteOutput(
             "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
             Connection,
-            (unsigned long long)Statistics.Send.TotalPackets,
-            (unsigned long long)Statistics.Send.SuspectedLostPackets,
-            (unsigned long long)Statistics.Send.SpuriousLostPackets,
-            (unsigned long long)Statistics.Recv.TotalPackets,
-            (unsigned long long)Statistics.Recv.ReorderedPackets,
-            (unsigned long long)Statistics.Recv.DroppedPackets,
-            (unsigned long long)Statistics.Recv.DuplicatePackets,
-            (unsigned long long)Statistics.Recv.DecryptionFailures);
+            (unsigned long long)Statistics.SendTotalPackets,
+            (unsigned long long)Statistics.SendSuspectedLostPackets,
+            (unsigned long long)Statistics.SendSpuriousLostPackets,
+            (unsigned long long)Statistics.RecvTotalPackets,
+            (unsigned long long)Statistics.RecvReorderedPackets,
+            (unsigned long long)Statistics.RecvDroppedPackets,
+            (unsigned long long)Statistics.RecvDuplicatePackets,
+            (unsigned long long)Statistics.RecvDecryptionFailures);
     }
 }

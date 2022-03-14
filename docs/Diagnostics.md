@@ -14,7 +14,7 @@ On Windows, MsQuic leverages manifested [ETW](https://docs.microsoft.com/en-us/w
 
 ### Linux
 
-On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging. Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running `./scripts/prepare-machine.ps1 -Configuration Test`, but if you only want to collect the traces on the machine, the **minimal dependencies** are:
+On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging. Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running `./scripts/prepare-machine.ps1 -ForTest`, but if you only want to collect the traces on the machine, the **minimal dependencies** are:
 
 ```
 sudo apt-add-repository ppa:lttng/stable-2.12
@@ -203,7 +203,6 @@ uint64_t Counters[QUIC_PERF_COUNTER_MAX];
 uint32_t BufferLength = sizeof(Counters);
 MsQuic->GetParam(
     NULL,
-    QUIC_PARAM_LEVEL_GLOBAL,
     QUIC_PARAM_GLOBAL_PERF_COUNTERS,
     &BufferLength,
     Counters);

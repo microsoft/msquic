@@ -34,6 +34,7 @@ extern "C" {
 #define QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION                0x00040000
 #define QUIC_TP_FLAG_VERSION_NEGOTIATION                    0x00080000
 #define QUIC_TP_FLAG_MIN_ACK_DELAY                          0x00100000
+#define QUIC_TP_FLAG_CIBIR_ENCODING                         0x00200000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -151,6 +152,12 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     uint8_t InitialSourceConnectionID[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
     _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
     uint8_t InitialSourceConnectionIDLength;
+
+    //
+    // The offset and length of the well-known CIBIR idenfitier.
+    //
+    QUIC_VAR_INT CibirLength;
+    QUIC_VAR_INT CibirOffset;
 
     //
     // Server specific.

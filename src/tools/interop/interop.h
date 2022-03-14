@@ -8,6 +8,8 @@
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #include <string>
 #include <vector>
 #include "msquichelper.h"

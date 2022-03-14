@@ -342,9 +342,14 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
     uint32_t Index;
 
     //
-    // The epoll wait thread.
+    // Thread ID of the worker thread that drives execution.
     //
-    CXPLAT_THREAD EpollWaitThread;
+    CXPLAT_THREAD_ID ThreadId;
+
+    //
+    // Completion event to indicate the worker has cleaned up.
+    //
+    CXPLAT_EVENT CompletionEvent;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
@@ -420,11 +425,6 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
-void*
-CxPlatDataPathWorkerThread(
-    _In_ void* Context
-    );
-
 QUIC_STATUS
 CxPlatSocketSendInternal(
     _In_ CXPLAT_SOCKET* Socket,
@@ -489,8 +489,8 @@ CxPlatProcessorContextUninitialize(
 {
     const eventfd_t Value = 1;
     eventfd_write(ProcContext->EventFd, Value);
-    CxPlatThreadWait(&ProcContext->EpollWaitThread);
-    CxPlatThreadDelete(&ProcContext->EpollWaitThread);
+    CxPlatEventWaitForever(ProcContext->CompletionEvent);
+    CxPlatEventUninitialize(ProcContext->CompletionEvent);
 
     epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, ProcContext->EventFd, NULL);
     close(ProcContext->EventFd);
@@ -515,7 +515,6 @@ CxPlatProcessorContextInitialize(
     int Ret = 0;
     uint32_t RecvPacketLength = 0;
     BOOLEAN EventFdAdded = FALSE;
-    BOOLEAN ThreadCreated = FALSE;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
@@ -589,6 +588,7 @@ CxPlatProcessorContextInitialize(
     ProcContext->Datapath = Datapath;
     ProcContext->EpollFd = EpollFd;
     ProcContext->EventFd = EventFd;
+    ProcContext->ThreadId = 0;
 
     //
     // Starting the thread must be done after the rest of the ProcContext
@@ -596,46 +596,25 @@ CxPlatProcessorContextInitialize(
     // ProcContext members.
     //
 
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
-        (uint16_t)Index,
-        NULL,
-        CxPlatDataPathWorkerThread,
-        ProcContext
-    };
-
-    Status = CxPlatThreadCreate(&ThreadConfig, &ProcContext->EpollWaitThread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate failed");
-        goto Exit;
-    }
-
-    ThreadCreated = TRUE;
+    CxPlatEventInitialize(&ProcContext->CompletionEvent, TRUE, FALSE);
+    CxPlatWorkerRegisterDataPath((uint16_t)Index, ProcContext);
 
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        if (ThreadCreated) {
-            CxPlatProcessorContextUninitialize(ProcContext);
-        } else {
-            if (EventFdAdded) {
-                epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
-            }
-            if (EventFd != INVALID_SOCKET) {
-                close(EventFd);
-            }
-            if (EpollFd != INVALID_SOCKET) {
-                close(EpollFd);
-            }
-            CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-            CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-            CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-            CxPlatPoolUninitialize(&ProcContext->SendDataPool);
+        if (EventFdAdded) {
+            epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
         }
+        if (EventFd != INVALID_SOCKET) {
+            close(EventFd);
+        }
+        if (EpollFd != INVALID_SOCKET) {
+            close(EpollFd);
+        }
+        CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+        CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+        CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+        CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     }
 
     return Status;
@@ -1355,19 +1334,6 @@ Exit:
 }
 
 void
-CxPlatSocketContextUninitialize(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
-    )
-{
-    int EpollRes =
-        epoll_ctl(SocketContext->ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-    CXPLAT_FRE_ASSERT(EpollRes == 0);
-
-    const eventfd_t Value = 1;
-    eventfd_write(SocketContext->CleanupFd, Value);
-}
-
-void
 CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
@@ -1393,6 +1359,23 @@ CxPlatSocketContextUninitializeComplete(
     close(SocketContext->SocketFd);
 
     CxPlatRundownRelease(&SocketContext->Binding->Rundown);
+}
+
+void
+CxPlatSocketContextUninitialize(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    )
+{
+    int EpollRes =
+        epoll_ctl(SocketContext->ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    CXPLAT_FRE_ASSERT(EpollRes == 0);
+
+    if (CxPlatCurThreadID() != SocketContext->ProcContext->ThreadId) {
+        const eventfd_t Value = 1;
+        eventfd_write(SocketContext->CleanupFd, Value);
+    } else {
+        CxPlatSocketContextUninitializeComplete(SocketContext);
+    }
 }
 
 QUIC_STATUS
@@ -2054,8 +2037,7 @@ CxPlatSocketDelete(
     Socket->Shutdown = TRUE;
     uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
     for (uint32_t i = 0; i < SocketCount; ++i) {
-        CxPlatSocketContextUninitialize(
-            &Socket->SocketContexts[i]);
+        CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
     }
 
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
@@ -2730,52 +2712,55 @@ CxPlatSocketGetLocalMtu(
     })
 #endif
 
-void*
-CxPlatDataPathWorkerThread(
+void
+CxPlatDataPathWake(
     _In_ void* Context
     )
 {
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
-    CXPLAT_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
+    const eventfd_t Value = 1;
+    eventfd_write(ProcContext->EventFd, Value);
+}
 
-    QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        ProcContext);
+void
+CxPlatDataPathRunEC(
+    _In_ void** Context,
+    _In_ CXPLAT_THREAD_ID CurThreadId,
+    _In_ uint32_t WaitTime
+    )
+{
+    CXPLAT_DATAPATH_PROC_CONTEXT** EcProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT**)Context;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = *EcProcContext;
+    CXPLAT_DBG_ASSERT(ProcContext->Datapath != NULL);
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
 
-    while (!ProcContext->Datapath->Shutdown) {
-        int ReadyEventCount =
-            TEMP_FAILURE_RETRY(
-                epoll_wait(
-                    ProcContext->EpollFd,
-                    EpollEvents,
-                    EpollEventCtMax,
-                    -1));
+    ProcContext->ThreadId = CurThreadId;
 
-        CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
-        for (int i = 0; i < ReadyEventCount; i++) {
-            if (EpollEvents[i].data.ptr == NULL) {
-                //
-                // The processor context is shutting down and the worker thread
-                // needs to clean up.
-                //
-                CXPLAT_DBG_ASSERT(ProcContext->Datapath->Shutdown);
-                break;
-            }
+    int ReadyEventCount =
+        TEMP_FAILURE_RETRY(
+            epoll_wait(
+                ProcContext->EpollFd,
+                EpollEvents,
+                EpollEventCtMax,
+                WaitTime == UINT32_MAX ? -1 : (int)WaitTime)); // TODO - Handle wrap around?
 
+    if (ProcContext->Datapath->Shutdown) {
+        *Context = NULL;
+        CxPlatEventSet(ProcContext->CompletionEvent);
+        return;
+    }
+
+    if (ReadyEventCount == 0) {
+        return; // Wake for timeout.
+    }
+
+    for (int i = 0; i < ReadyEventCount; i++) {
+        if (EpollEvents[i].data.ptr != NULL) {
             CxPlatSocketContextProcessEvents(
                 EpollEvents[i].data.ptr,
                 EpollEvents[i].events);
         }
     }
-
-    QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        ProcContext);
-
-    return 0;
 }

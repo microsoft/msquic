@@ -7,6 +7,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #include "msquichelper.h"
 
 extern const QUIC_API_TABLE* MsQuic;
@@ -149,7 +151,6 @@ struct HttpConnection {
         QUIC_STATUS Status =
             MsQuic->SetParam(
                 QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_TLS_SECRETS,
                 sizeof(TlsSecrets), &TlsSecrets);
         if (QUIC_SUCCEEDED(Status)) {
@@ -198,7 +199,6 @@ struct DatagramConnection {
         BOOLEAN EnableDatagrams = TRUE;
         MsQuic->SetParam(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
             sizeof(EnableDatagrams),
             &EnableDatagrams);

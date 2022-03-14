@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
+
 #include "msquic.hpp"
 
 //#define QUIC_COMPARTMENT_TESTS 1
@@ -122,51 +124,51 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
-void
-QuicTestVersionNegotiation(
-    _In_ int Family
-    );
+// void
+// QuicTestVersionNegotiation(
+//     _In_ int Family
+//     );
 
-void
-QuicTestVersionNegotiationRetry(
-    _In_ int Family
-    );
+// void
+// QuicTestVersionNegotiationRetry(
+//     _In_ int Family
+//     );
 
-void
-QuicTestCompatibleVersionNegotiationRetry(
-    _In_ int Family
-    );
+// void
+// QuicTestCompatibleVersionNegotiationRetry(
+//     _In_ int Family
+//     );
 
-void
-QuicTestCompatibleVersionNegotiation(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
-    );
+// void
+// QuicTestCompatibleVersionNegotiation(
+//     _In_ int Family,
+//     _In_ bool DisableVNEClient,
+//     _In_ bool DisableVNEServer
+//     );
 
-void
-QuicTestCompatibleVersionNegotiationDefaultClient(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
-    );
+// void
+// QuicTestCompatibleVersionNegotiationDefaultClient(
+//     _In_ int Family,
+//     _In_ bool DisableVNEClient,
+//     _In_ bool DisableVNEServer
+//     );
 
-void
-QuicTestCompatibleVersionNegotiationDefaultServer(
-    _In_ int Family,
-    _In_ bool DisableVNEClient,
-    _In_ bool DisableVNEServer
-    );
+// void
+// QuicTestCompatibleVersionNegotiationDefaultServer(
+//     _In_ int Family,
+//     _In_ bool DisableVNEClient,
+//     _In_ bool DisableVNEServer
+//     );
 
-void
-QuicTestIncompatibleVersionNegotiation(
-    _In_ int Family
-    );
+// void
+// QuicTestIncompatibleVersionNegotiation(
+//     _In_ int Family
+//     );
 
-void
-QuicTestFailedVersionNegotiation(
-    _In_ int Family
-    );
+// void
+// QuicTestFailedVersionNegotiation(
+//     _In_ int Family
+//     );
 
 void
 QuicTestCustomCertificateValidation(
@@ -203,6 +205,12 @@ QuicTestClientSharedLocalPort(
 void
 QuicTestInterfaceBinding(
     _In_ int Family
+    );
+
+void
+QuicTestCibirExtension(
+    _In_ int Family,
+    _In_ uint8_t Mode // server = &1, client = &2
     );
 
 //
@@ -423,6 +431,10 @@ QuicTestNthAllocFail(
 
 void
 QuicTestStreamPriority(
+    );
+
+void
+QuicTestStreamPriorityInfiniteLoop(
     );
 
 void
@@ -849,7 +861,7 @@ typedef struct {
     QUIC_CTL_CODE(54, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS \
+#define IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS \
     QUIC_CTL_CODE(55, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
@@ -981,7 +993,19 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION \
     QUIC_CTL_CODE(84, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_STORAGE \
-    QUIC_CTL_CODE(85, METHOD_BUFFERED, FILE_WRITE_DATA)
+typedef struct {
+    int Family;
+    uint8_t Mode;
+} QUIC_RUN_CIBIR_EXTENSION;
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 85
+#define IOCTL_QUIC_RUN_CIBIR_EXTENSION \
+    QUIC_CTL_CODE(85, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CIBIR_EXTENSION
+
+#define IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP \
+    QUIC_CTL_CODE(86, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STORAGE \
+    QUIC_CTL_CODE(87, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 87

@@ -263,15 +263,23 @@ Next:
 
 Error:
 
-    CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Buffer) {
+        CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
 
     if (!Result) {
-        CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
-        CxPlatNumaMasks = NULL;
-        CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-        CxPlatProcessorGroupOffsets = NULL;
-        CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
-        CxPlatProcessorInfo = NULL;
+        if (CxPlatNumaMasks) {
+            CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
+            CxPlatNumaMasks = NULL;
+        }
+        if (CxPlatProcessorGroupOffsets) {
+            CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+            CxPlatProcessorGroupOffsets = NULL;
+        }
+        if (CxPlatProcessorInfo) {
+            CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+            CxPlatProcessorInfo = NULL;
+        }
     }
 
     return Result;
@@ -284,6 +292,7 @@ CxPlatInitialize(
     )
 {
     QUIC_STATUS Status;
+    BOOLEAN CryptoInitialized = FALSE;
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
@@ -312,6 +321,8 @@ CxPlatInitialize(
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
+
+    CxPlatTotalMemory = memInfo.ullTotalPageFile;
 
 #ifdef TIMERR_NOERROR
     MMRESULT mmResult;
@@ -342,8 +353,12 @@ CxPlatInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
+    CryptoInitialized = TRUE;
 
-    CxPlatTotalMemory = memInfo.ullTotalPageFile;
+    if (!CxPlatWorkersInit()) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
 #ifdef TIMERR_NOERROR
     QuicTraceLogInfo(
@@ -362,6 +377,9 @@ CxPlatInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
+        if (CryptoInitialized) {
+            CxPlatCryptUninitialize();
+        }
         if (CxPlatform.Heap) {
             HeapDestroy(CxPlatform.Heap);
             CxPlatform.Heap = NULL;
@@ -377,6 +395,7 @@ CxPlatUninitialize(
     void
     )
 {
+    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR
@@ -493,7 +512,7 @@ CxPlatAlloc(
 
 void
 CxPlatFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
     _In_ uint32_t Tag
     )
 {

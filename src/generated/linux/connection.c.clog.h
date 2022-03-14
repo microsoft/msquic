@@ -699,6 +699,46 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SuccessfulRouteResolution
+// [conn][%p] Processing successful route completion Path[%hhu]
+// QuicTraceLogConnInfo(
+                SuccessfulRouteResolution,
+                Connection,
+                "Processing successful route completion Path[%hhu]",
+                PathId);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = PathId = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SuccessfulRouteResolution
+#define _clog_4_ARGS_TRACE_SuccessfulRouteResolution(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, SuccessfulRouteResolution , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailedRouteResolution
+// [conn][%p] Processing failed route completion Path[%hhu]
+// QuicTraceLogConnInfo(
+                    FailedRouteResolution,
+                    Connection,
+                    "Processing failed route completion Path[%hhu]",
+                    PathId);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = PathId = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_FailedRouteResolution
+#define _clog_4_ARGS_TRACE_FailedRouteResolution(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, FailedRouteResolution , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePeerPacketTolerance
 // [conn][%p] Updating peer packet tolerance to %hhu
 // QuicTraceLogConnInfo(
@@ -772,6 +812,28 @@ tracepoint(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_LocalInterfaceSet
 #define _clog_4_ARGS_TRACE_LocalInterfaceSet(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CibirIdSet
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->CibirId[0] = arg3
+// arg4 = arg4 = Connection->CibirId[1] = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CibirIdSet
+#define _clog_5_ARGS_TRACE_CibirIdSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, CibirIdSet , arg1, arg3, arg4);\
 
 #endif
 

@@ -195,6 +195,7 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_LOOKUP_TABLE,         // Per registered CID.
     QUIC_CONN_REF_LOOKUP_RESULT,        // For connections returned from lookups.
     QUIC_CONN_REF_WORKER,               // Worker is (queued for) processing.
+    QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
 
     QUIC_CONN_REF_COUNT
 
@@ -331,7 +332,7 @@ typedef struct QUIC_CONNECTION {
     // The settings for this connection. Some values may be inherited from the
     // global settings, the configuration setting or explicitly set by the app.
     //
-    QUIC_SETTINGS Settings;
+    QUIC_SETTINGS_INTERNAL Settings;
 
     //
     // Number of references to the handle.
@@ -358,7 +359,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
+    uint8_t ServerID[QUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -460,6 +461,13 @@ typedef struct QUIC_CONNECTION {
     // The original CID used by the Client in its first Initial packet.
     //
     QUIC_CID* OrigDestCID;
+
+    //
+    // An app configured prefix for all connection IDs. The first byte indicates
+    // the length of the ID, the second byte the offset of the ID in the CID and
+    // the rest payload of the identifier.
+    //
+    uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
     //
     // Sorted array of all timers for the connection.
@@ -810,13 +818,14 @@ QuicConnLogStatistics(
 
     QuicTraceEvent(
         ConnStats,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
+        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes);
+        Connection->Stats.Recv.TotalBytes,
+        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl));
 
     QuicTraceEvent(
         ConnPacketStats,
@@ -1396,6 +1405,23 @@ QuicConnQueueUnreachable(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
     );
+
+#ifdef QUIC_USE_RAW_DATAPATH
+//
+// Queues a route completion event to a connection for processing.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+QuicConnQueueRouteCompletion(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    );
+#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Queues up an update to the packet tolerance we want the peer to use.

@@ -14,11 +14,11 @@ Abstract:
 
     The connection drains operations in the QuicConnDrainOperations function.
     The only requirement here is that this function is not called in parallel
-    on multiple threads. The function will drain up to QUIC_SETTINGS's
+    on multiple threads. The function will drain up to QUIC_SETTINGS_INTERNAL's
     MaxOperationsPerDrain operations per call, so as to not starve any other
     work.
 
-    While most of the connection specific work is managed by other interfaces,
+    While most of the connection specific work is managed by other modules,
     the following things are managed in this file:
 
     Connection Lifetime - Initialization, handshake and state changes, shutdown,
@@ -49,10 +49,7 @@ QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
-        uint32_t NewSettingsSize,
-    _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* NewSettings
+    _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -69,7 +66,7 @@ QuicConnAlloc(
     BOOLEAN IsServer = Datagram != NULL;
     uint32_t CurProcIndex = CxPlatProcCurrentNumber();
     *NewConnection = NULL;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_STATUS Status;
 
     //
     // For client, the datapath partitioning info is not known yet, so just use
@@ -184,8 +181,7 @@ QuicConnAlloc(
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
-
-        Path->Route = *Datagram->Route;
+        QuicCopyRouteInfo(&Path->Route, Datagram->Route);
         Connection->State.LocalAddressSet = TRUE;
         Connection->State.RemoteAddressSet = TRUE;
 
@@ -758,7 +754,7 @@ QuicConnQueueOper(
     _In_ QUIC_OPERATION* Oper
     )
 {
-    #if DEBUG
+#if DEBUG
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
@@ -873,8 +869,8 @@ QuicConnGenerateNewSourceCid(
                 Connection,
                 Connection->ServerID,
                 Connection->PartitionID,
-                Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix);
+                Connection->CibirId[0],
+                Connection->CibirId+2);
         if (SourceCid == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1919,8 +1915,8 @@ QuicConnStart(
                 Connection,
                 NULL,
                 Connection->PartitionID,
-                Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix);
+                Connection->CibirId[0],
+                Connection->CibirId+2);
     } else {
         SourceCid = QuicCidNewNullSource(Connection);
     }
@@ -2262,6 +2258,12 @@ QuicConnCleanupServerResumptionState(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPostAcceptValidatePeerTransportParameters(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnGenerateLocalTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
@@ -2323,6 +2325,12 @@ QuicConnGenerateLocalTransportParameters(
 
     if (Connection->State.Disable1RttEncrytion) {
         LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
+    }
+
+    if (Connection->CibirId[0] != 0) {
+        LocalTP->Flags |= QUIC_TP_FLAG_CIBIR_ENCODING;
+        LocalTP->CibirLength = Connection->CibirId[0];
+        LocalTP->CibirOffset = Connection->CibirId[1];
     }
 
     if (Connection->Settings.VersionNegotiationExtEnabled) {
@@ -2446,7 +2454,6 @@ QuicConnSetConfiguration(
         Connection,
         FALSE,
         FALSE,
-        sizeof(Configuration->Settings),
         &Configuration->Settings);
 
     if (QuicConnIsClient(Connection)) {
@@ -2489,6 +2496,13 @@ QuicConnSetConfiguration(
             Connection->OrigDestCID->Data,
             DestCid->CID.Data,
             DestCid->CID.Length);
+
+    } else {
+        if (!QuicConnPostAcceptValidatePeerTransportParameters(Connection)) {
+            QuicConnTransportError(Connection, QUIC_ERROR_CONNECTION_REFUSED);
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
     }
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
@@ -2596,6 +2610,7 @@ QuicConnValidateTransportParameterCIDs(
             }
         }
     }
+
     return TRUE;
 }
 
@@ -2902,6 +2917,11 @@ QuicConnProcessPeerTransportParameters(
         if (!QuicConnValidateTransportParameterCIDs(Connection)) {
             goto Error;
         }
+
+        if (QuicConnIsClient(Connection) &&
+            !QuicConnPostAcceptValidatePeerTransportParameters(Connection)) {
+            goto Error;
+        }
     }
 
     Connection->Send.PeerMaxData =
@@ -2939,6 +2959,58 @@ Error:
         Status = QUIC_STATUS_PROTOCOL_ERROR;
     }
     return Status;
+}
+
+//
+// Called after the configuration has been set. This happens immediately on the
+// client side, but not until after the listener accepted on the server side.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPostAcceptValidatePeerTransportParameters(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    //
+    // CIBIR encoding transport parameter validation.
+    //
+    if (Connection->CibirId[0] != 0) {
+        if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using CIBIR but we are");
+            return FALSE;
+        }
+        if (Connection->PeerTransportParams.CibirLength != Connection->CibirId[0]) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR length");
+            return FALSE;
+        }
+        if (Connection->PeerTransportParams.CibirOffset != Connection->CibirId[1]) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer isn't using a matching CIBIR offset");
+            return FALSE;
+        }
+    } else { // CIBIR not in use
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_CIBIR_ENCODING) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Peer is using CIBIR but we aren't");
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3075,6 +3147,44 @@ QuicConnQueueUnreachable(
             0);
     }
 }
+
+#ifdef QUIC_USE_RAW_DATAPATH
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+QuicConnQueueRouteCompletion(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    QUIC_OPERATION* ConnOper =
+        QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_ROUTE_COMPLETION);
+    if (ConnOper != NULL) {
+        ConnOper->ROUTE.Succeeded = Succeeded;
+        ConnOper->ROUTE.PathId = PathId;
+        if (Succeeded) {
+            memcpy(ConnOper->ROUTE.PhysicalAddress, PhysicalAddress, sizeof(ConnOper->ROUTE.PhysicalAddress));
+        }
+        QuicConnQueueOper(Connection, ConnOper);
+    } else if (InterlockedCompareExchange16((short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+        QUIC_OPERATION* Oper = &Connection->BackUpOper;
+        Oper->FreeAfterProcess = FALSE;
+        Oper->Type = QUIC_OPER_TYPE_API_CALL;
+        Oper->API_CALL.Context = &Connection->BackupApiContext;
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        QuicConnQueueHighestPriorityOper(Connection, Oper);
+    }
+
+    QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+}
+#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Updates the current destination CID to the received packet's source CID, if
@@ -4130,7 +4240,8 @@ QuicConnRecvFrames(
     _In_ CXPLAT_ECN_TYPE ECN
     )
 {
-    BOOLEAN AckPacketImmediately = FALSE; // Allows skipping delayed ACK timer.
+    BOOLEAN AckEliciting = FALSE;
+    BOOLEAN AckImmediately = FALSE;
     BOOLEAN UpdatedFlowControl = FALSE;
     QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
     BOOLEAN Closed = Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
@@ -4241,7 +4352,7 @@ QuicConnRecvFrames(
             // No other payload. Just need to acknowledge the packet this was
             // contained in.
             //
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4296,7 +4407,7 @@ QuicConnRecvFrames(
                     Packet->KeyType,
                     &Frame);
             if (QUIC_SUCCEEDED(Status)) {
-                AckPacketImmediately = TRUE;
+                AckEliciting = TRUE;
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 return FALSE;
             } else {
@@ -4347,7 +4458,7 @@ QuicConnRecvFrames(
             // TODO - Save the token for future use.
             //
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4390,7 +4501,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
 
             BOOLEAN PeerOriginatedStream =
                 QuicConnIsServer(Connection) ?
@@ -4514,7 +4625,7 @@ QuicConnRecvFrames(
                     &Connection->Send, REASON_CONNECTION_FLOW_CONTROL);
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4546,7 +4657,7 @@ QuicConnRecvFrames(
                 Frame.BidirectionalStreams,
                 Frame.MaximumStreams);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4577,7 +4688,7 @@ QuicConnRecvFrames(
                 Frame.DataLimit);
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_MAX_DATA);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4605,7 +4716,7 @@ QuicConnRecvFrames(
                 "Peer Streams[%hu] FC blocked (%llu)",
                 Frame.BidirectionalStreams,
                 Frame.StreamLimit);
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
 
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS; // TODO - Uni/Bidi
@@ -4699,7 +4810,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4751,7 +4862,7 @@ QuicConnRecvFrames(
                 }
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4776,7 +4887,7 @@ QuicConnRecvFrames(
             CxPlatCopyMemory(Path->Response, Frame.Data, sizeof(Frame.Data));
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4807,7 +4918,7 @@ QuicConnRecvFrames(
                 }
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4835,7 +4946,7 @@ QuicConnRecvFrames(
                 Frame.ReasonPhrase,
                 (uint16_t)Frame.ReasonPhraseLength);
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
 
             if (Connection->State.HandleClosed) {
@@ -4867,7 +4978,7 @@ QuicConnRecvFrames(
                 QuicCryptoHandshakeConfirmed(&Connection->Crypto);
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -4898,7 +5009,7 @@ QuicConnRecvFrames(
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
             }
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             break;
         }
 
@@ -4924,7 +5035,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            AckPacketImmediately = TRUE;
+            AckEliciting = TRUE;
             if (Frame.SequenceNumber < Connection->NextRecvAckFreqSeqNum) {
                 //
                 // This sequence number (or a higher one) has already been
@@ -4953,6 +5064,10 @@ QuicConnRecvFrames(
                 Connection->PacketTolerance);
             break;
         }
+
+        case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
+            AckImmediately = TRUE;
+            break;
 
         default:
             //
@@ -4983,12 +5098,21 @@ Done:
             Packet->NewLargestPacketNumber = TRUE;
         }
 
+        QUIC_ACK_TYPE AckType;
+        if (AckImmediately) {
+            AckType = QUIC_ACK_TYPE_ACK_IMMEDIATE;
+        } else if (AckEliciting) {
+            AckType = QUIC_ACK_TYPE_ACK_ELICITING;
+        } else {
+            AckType = QUIC_ACK_TYPE_NON_ACK_ELICITING;
+        }
+
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
             RecvTime,
             ECN,
-            AckPacketImmediately);
+            AckType);
     }
 
     Packet->CompletelyValid = TRUE;
@@ -5498,24 +5622,40 @@ QuicConnRecvDatagrams(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicConnFlushRecv(
     _In_ QUIC_CONNECTION* Connection
     )
 {
+    BOOLEAN FlushedAll;
     uint32_t ReceiveQueueCount;
     CXPLAT_RECV_DATA* ReceiveQueue;
 
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
-    ReceiveQueueCount = Connection->ReceiveQueueCount;
-    Connection->ReceiveQueueCount = 0;
     ReceiveQueue = Connection->ReceiveQueue;
-    Connection->ReceiveQueue = NULL;
-    Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
+    if (Connection->ReceiveQueueCount > QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+        FlushedAll = FALSE;
+        Connection->ReceiveQueueCount -= QUIC_MAX_RECEIVE_FLUSH_COUNT;
+        CXPLAT_RECV_DATA* Tail = Connection->ReceiveQueue;
+        ReceiveQueueCount = 0;
+        while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+            Tail = Connection->ReceiveQueue;
+        }
+        Connection->ReceiveQueue = Tail->Next;
+        Tail->Next = NULL;
+    } else {
+        FlushedAll = TRUE;
+        ReceiveQueueCount = Connection->ReceiveQueueCount;
+        Connection->ReceiveQueueCount = 0;
+        Connection->ReceiveQueue = NULL;
+        Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
+    }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
+
+    return FlushedAll;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -5625,6 +5765,57 @@ QuicConnProcessUdpUnreachable(
             "Received invalid unreachable event");
     }
 }
+
+#ifdef QUIC_USE_RAW_DATAPATH
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnProcessRouteCompletion(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    uint8_t PathIndex;
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
+    if (Path != NULL) {
+        if (Succeeded) {
+            QuicTraceLogConnInfo(
+                SuccessfulRouteResolution,
+                Connection,
+                "Processing successful route completion Path[%hhu]",
+                PathId);
+            CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
+            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+        } else {
+            //
+            // Kill the path that failed route resolution and make the next path active if possible.
+            //
+            if (Path->IsActive && Connection->PathsCount > 1) {
+                QuicTraceLogConnInfo(
+                    FailedRouteResolution,
+                    Connection,
+                    "Processing failed route completion Path[%hhu]",
+                    PathId);
+                QuicPathSetActive(Connection, &Connection->Paths[1]);
+                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            }
+            QuicPathRemove(Connection, PathIndex);
+        }
+    }
+
+    if (Connection->PathsCount == 0) {
+        //
+        // Close the connection since the peer is unreachable.
+        //
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)QUIC_STATUS_UNREACHABLE,
+            NULL);
+    }
+}
+#endif // QUIC_USE_RAW_DATAPATH
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -5751,6 +5942,7 @@ QuicConnParamSet(
     )
 {
     QUIC_STATUS Status;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     switch (Param) {
 
@@ -5876,8 +6068,17 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_SETTINGS:
 
-        if (BufferLength != sizeof(QUIC_SETTINGS)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status =
+            QuicSettingsSettingsToInternal(
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
             break;
         }
 
@@ -5885,13 +6086,38 @@ QuicConnParamSet(
                 Connection,
                 TRUE,
                 TRUE,
-                BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status =
+            QuicSettingsVersionSettingsToInternal(
+                BufferLength,
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (!QuicConnApplyNewSettings(
+                Connection,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
         break;
 
     case QUIC_PARAM_CONN_SHARE_UDP_BINDING:
@@ -6129,6 +6355,48 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_CIBIR_ID: {
+
+        if (QuicConnIsServer(Connection) ||
+            QUIC_CONN_BAD_START_STATE(Connection)) {
+            return QUIC_STATUS_INVALID_STATE;
+        }
+        if (!Connection->State.ShareBinding) {
+            //
+            // We aren't sharing the binding, and therefore we don't use source
+            // connection IDs, so CIBIR is not supported.
+            //
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (BufferLength == 0) {
+            CxPlatZeroMemory(Connection->CibirId, sizeof(Connection->CibirId));
+            return QUIC_STATUS_SUCCESS;
+        }
+        if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        if (((uint8_t*)Buffer)[0] != 0) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
+        }
+
+        Connection->CibirId[0] = (uint8_t)BufferLength - 1;
+        memcpy(Connection->CibirId + 1, Buffer, BufferLength);
+
+        QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+
+        return QUIC_STATUS_SUCCESS;
+    }
+
     //
     // Private
     //
@@ -6228,6 +6496,100 @@ QuicConnParamSet(
     }
 
     return Status;
+}
+
+#define STATISTICS_SIZE_THRU_FIELD(Field) \
+    (FIELD_OFFSET(QUIC_STATISTICS_V2, Field) + sizeof(((QUIC_STATISTICS_V2*)0)->Field))
+
+#define STATISTICS_HAS_FIELD(Size, Field) \
+    (Size >= STATISTICS_SIZE_THRU_FIELD(Field))
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+QuicConnGetV2Statistics(
+    _In_ const QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsPlat,
+    _Inout_ uint32_t* StatsLength,
+    _Out_writes_bytes_opt_(*StatsLength)
+        QUIC_STATISTICS_V2* Stats
+    )
+{
+    const uint32_t MinimumStatsSize = (uint32_t)STATISTICS_SIZE_THRU_FIELD(KeyUpdateCount);
+
+    if (*StatsLength == 0) {
+        *StatsLength = sizeof(QUIC_STATISTICS_V2);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (*StatsLength < MinimumStatsSize) {
+        *StatsLength = MinimumStatsSize;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Stats == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    const QUIC_PATH* Path = &Connection->Paths[0];
+
+    Stats->CorrelationId = Connection->Stats.CorrelationId;
+    Stats->VersionNegotiation = Connection->Stats.VersionNegotiation;
+    Stats->StatelessRetry = Connection->Stats.StatelessRetry;
+    Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
+    Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
+    Stats->Rtt = Path->SmoothedRtt;
+    Stats->MinRtt = Path->MinRtt;
+    Stats->MaxRtt = Path->MaxRtt;
+    Stats->TimingStart = Connection->Stats.Timing.Start;
+    Stats->TimingInitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
+    Stats->TimingHandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
+    Stats->HandshakeClientFlight1Bytes = Connection->Stats.Handshake.ClientFlight1Bytes;
+    Stats->HandshakeServerFlight1Bytes = Connection->Stats.Handshake.ServerFlight1Bytes;
+    Stats->HandshakeClientFlight2Bytes = Connection->Stats.Handshake.ClientFlight2Bytes;
+    Stats->SendPathMtu = Path->Mtu;
+    Stats->SendTotalPackets = Connection->Stats.Send.TotalPackets;
+    Stats->SendRetransmittablePackets = Connection->Stats.Send.RetransmittablePackets;
+    Stats->SendSuspectedLostPackets = Connection->Stats.Send.SuspectedLostPackets;
+    Stats->SendSpuriousLostPackets = Connection->Stats.Send.SpuriousLostPackets;
+    Stats->SendTotalBytes = Connection->Stats.Send.TotalBytes;
+    Stats->SendTotalStreamBytes = Connection->Stats.Send.TotalStreamBytes;
+    Stats->SendCongestionCount = Connection->Stats.Send.CongestionCount;
+    Stats->SendPersistentCongestionCount = Connection->Stats.Send.PersistentCongestionCount;
+    Stats->RecvTotalPackets = Connection->Stats.Recv.TotalPackets;
+    Stats->RecvReorderedPackets = Connection->Stats.Recv.ReorderedPackets;
+    Stats->RecvDroppedPackets = Connection->Stats.Recv.DroppedPackets;
+    Stats->RecvDuplicatePackets = Connection->Stats.Recv.DuplicatePackets;
+    Stats->RecvTotalBytes = Connection->Stats.Recv.TotalBytes;
+    Stats->RecvTotalStreamBytes = Connection->Stats.Recv.TotalStreamBytes;
+    Stats->RecvDecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
+    Stats->RecvValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
+    Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
+
+    if (IsPlat) {
+        Stats->TimingStart = CxPlatTimeUs64ToPlat(Stats->TimingStart); // cppcheck-suppress selfAssignment
+        Stats->TimingInitialFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingInitialFlightEnd); // cppcheck-suppress selfAssignment
+        Stats->TimingHandshakeFlightEnd = CxPlatTimeUs64ToPlat(Stats->TimingHandshakeFlightEnd); // cppcheck-suppress selfAssignment
+    }
+
+    //
+    // N.B. Anything after this needs to be size checked
+    //
+
+    //
+    // The below is how to add a new field while checking size.
+    //
+    // if (STATISTICS_HAS_FIELD(*StatsLength, KeyUpdateCount)) {
+    //     Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
+    // }
+
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendCongestionWindow)) {
+        Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl);
+    }
+
+    *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6340,34 +6702,12 @@ QuicConnParamGet(
 
     case QUIC_PARAM_CONN_SETTINGS:
 
-        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
-            *BufferLength = sizeof(QUIC_SETTINGS);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        } else if (Connection->Settings.IsSet.DesiredVersionsList &&
-            *BufferLength < sizeof(QUIC_SETTINGS) + (Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t))) {
-            *BufferLength = sizeof(QUIC_SETTINGS) + (Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
+        Status = QuicSettingsGetSettings(&Connection->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+        break;
 
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
+    case QUIC_PARAM_CONN_VERSION_SETTINGS:
 
-        *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &Connection->Settings, *BufferLength);
-        if (Connection->Settings.IsSet.DesiredVersionsList) {
-            *BufferLength += (uint32_t)(Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
-            CxPlatCopyMemory(
-                ((QUIC_SETTINGS*)Buffer) + 1,
-                Connection->Settings.DesiredVersionsList,
-                Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
-            ((QUIC_SETTINGS*)Buffer)->DesiredVersionsList = (uint32_t*)(((QUIC_SETTINGS*)Buffer) + 1);
-        }
-
-        Status = QUIC_STATUS_SUCCESS;
+        Status = QuicSettingsGetVersionSettings(&Connection->Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
         break;
 
     case QUIC_PARAM_CONN_STATISTICS:
@@ -6605,6 +6945,18 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_STATISTICS_V2:
+    case QUIC_PARAM_CONN_STATISTICS_V2_PLAT: {
+
+        Status =
+            QuicConnGetV2Statistics(
+                Connection,
+                Param == QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
+                BufferLength,
+                (QUIC_STATISTICS_V2*)Buffer);
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -6619,10 +6971,7 @@ QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
-        uint32_t NewSettingsSize,
-    _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* NewSettings
+    _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     )
 {
     QuicTraceLogConnInfo(
@@ -6635,7 +6984,6 @@ QuicConnApplyNewSettings(
             OverWrite,
             CopyExternalToInternal,
             !Connection->State.Started,
-            NewSettingsSize,
             NewSettings)) {
         return FALSE;
     }
@@ -6706,7 +7054,7 @@ QuicConnApplyNewSettings(
     }
 
     if (OverWrite) {
-        QuicSettingsDumpNew(NewSettingsSize, NewSettings);
+        QuicSettingsDumpNew(NewSettings);
     } else {
         QuicSettingsDump(&Connection->Settings); // TODO - Really necessary?
     }
@@ -6808,7 +7156,6 @@ QuicConnProcessApiOperation(
         Status =
             QuicLibrarySetParam(
                 ApiCtx->SET_PARAM.Handle,
-                ApiCtx->SET_PARAM.Level,
                 ApiCtx->SET_PARAM.Param,
                 ApiCtx->SET_PARAM.BufferLength,
                 ApiCtx->SET_PARAM.Buffer);
@@ -6818,7 +7165,6 @@ QuicConnProcessApiOperation(
         Status =
             QuicLibraryGetParam(
                 ApiCtx->GET_PARAM.Handle,
-                ApiCtx->GET_PARAM.Level,
                 ApiCtx->GET_PARAM.Param,
                 ApiCtx->GET_PARAM.BufferLength,
                 ApiCtx->GET_PARAM.Buffer);
@@ -6930,7 +7276,14 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_FLUSH_RECV:
-            QuicConnFlushRecv(Connection);
+            if (!QuicConnFlushRecv(Connection)) {
+                //
+                // Still have more data to recv. Put the operation back on the
+                // queue.
+                //
+                FreeOper = FALSE;
+                (void)QuicOperationEnqueue(&Connection->OperQ, Oper);
+            }
             break;
 
         case QUIC_OPER_TYPE_UNREACHABLE:
@@ -6966,6 +7319,13 @@ QuicConnDrainOperations(
         case QUIC_OPER_TYPE_TRACE_RUNDOWN:
             QuicConnTraceRundownOper(Connection);
             break;
+
+#ifdef QUIC_USE_RAW_DATAPATH
+        case QUIC_OPER_TYPE_ROUTE_COMPLETION:
+            QuicConnProcessRouteCompletion(
+                Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
+            break;
+#endif // QUIC_USE_RAW_DATAPATH
 
         default:
             CXPLAT_FRE_ASSERT(FALSE);

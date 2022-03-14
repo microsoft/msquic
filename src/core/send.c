@@ -29,7 +29,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     CxPlatListInitializeHead(&Send->SendStreams);
@@ -71,7 +71,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplyNewSettings(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     Send->MaxData = Settings->ConnFlowControlWindow;
@@ -114,6 +114,8 @@ QuicSendCanSendFlagsNow(
     return TRUE;
 }
 
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL thinks Connection could be uninitialized?
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
@@ -121,9 +123,38 @@ QuicSendQueueFlush(
     _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_STATUS Status;
+
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+
+    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+        } else {
+            //
+            // Route resolution failed or pended. We need to pause sending.
+            //
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return;
+        }
+    } else if (Path->Route.State == RouteResolving) {
+        //
+        // Can't send now. Once route resolution completes, we will resume sending.
+        //
+        return;
+    }
+#endif
+
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
-        QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             QuicTraceEvent(
@@ -135,21 +166,20 @@ QuicSendQueueFlush(
         }
     }
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
     )
 {
-    if (!WasPreviouslyQueued) {
+    if (Stream->SendLink.Flink == NULL) {
         //
         // Not previously queued, so add the stream to the end of the queue.
         //
-        CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
         CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
         while (Entry != &Send->SendStreams) {
             //
@@ -414,11 +444,7 @@ QuicSendSetStreamSendFlag(
             // Since this is new data for a started stream, we need to queue
             // up the send to flush the stream data.
             //
-            QuicSendQueueFlushForStream(
-                Send,
-                Stream,
-                Stream->SendFlags != 0,
-                DelaySend);
+            QuicSendQueueFlushForStream(Send, Stream, DelaySend);
         }
         Stream->SendFlags |= SendFlags;
     }
@@ -449,11 +475,10 @@ QuicSendClearStreamSendFlag(
         //
         Stream->SendFlags &= ~SendFlags;
 
-        if (Stream->SendFlags == 0 && Stream->Flags.Started) {
+        if (Stream->SendFlags == 0 && Stream->SendLink.Flink != NULL) {
             //
             // Since there are no flags left, remove the stream from the queue.
             //
-            CXPLAT_DBG_ASSERT(Stream->SendLink.Flink != NULL);
             CxPlatListEntryRemove(&Stream->SendLink);
             Stream->SendLink.Flink = NULL;
             QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
@@ -825,6 +850,7 @@ QuicSendWriteFrames(
                     (uint64_t)Connection->Settings.MaxAckDelayMs +
                     (uint64_t)MsQuicLib.TimerResolutionMs);
             Frame.IgnoreOrder = FALSE;
+            Frame.IgnoreCE = FALSE;
 
             if (QuicAckFrequencyFrameEncode(
                     &Frame,
@@ -941,7 +967,7 @@ QuicSendGetNextStream(
                 // that entry.
                 //
                 CXPLAT_LIST_ENTRY* LastEntry = Stream->SendLink.Flink;
-                while (Stream->SendLink.Flink != &Send->SendStreams) {
+                while (LastEntry != &Send->SendStreams) {
                     if (Stream->SendPriority >
                         CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink)->SendPriority) {
                         break;
@@ -1236,7 +1262,7 @@ QuicSendFlush(
             //
             WrotePacketFrames |= QuicStreamSendWrite(Stream, &Builder);
 
-            if (Stream->SendFlags == 0) {
+            if (Stream->SendFlags == 0 && Stream->SendLink.Flink != NULL) {
                 //
                 // If the stream no longer has anything to send, remove it from the
                 // list and release Send's reference on it.

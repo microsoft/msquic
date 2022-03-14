@@ -2,6 +2,12 @@
 // Licensed under the MIT License.
 
 use libc::c_void;
+#[allow(unused_imports)]
+use c_types::AF_UNSPEC;
+#[allow(unused_imports)]
+use c_types::AF_INET;
+#[allow(unused_imports)]
+use c_types::AF_INET6;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::option::Option;
@@ -23,9 +29,9 @@ pub type BOOLEAN = ::std::os::raw::c_uchar;
 
 /// Family of an IP address.
 pub type AddressFamily = u16;
-pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = 0;
-pub const ADDRESS_FAMILY_INET: AddressFamily = 2;
-pub const ADDRESS_FAMILY_INET6: AddressFamily = 23;
+pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = c_types::AF_UNSPEC as u16;
+pub const ADDRESS_FAMILY_INET: AddressFamily = c_types::AF_INET as u16;
+pub const ADDRESS_FAMILY_INET6: AddressFamily = c_types::AF_INET6 as u16;
 
 /// IPv4 address payload.
 #[repr(C)]
@@ -199,11 +205,10 @@ pub const STREAM_OPEN_FLAG_0_RTT: StreamOpenFlags = 2;
 
 pub type StreamStartFlags = u32;
 pub const STREAM_START_FLAG_NONE: StreamStartFlags = 0;
-pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 1;
-pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 2;
-pub const STREAM_START_FLAG_ASYNC: StreamStartFlags = 4;
-pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 8;
-pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 16;
+pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 1;
+pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 2;
+pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 4;
+pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 8;
 
 /// Controls stream shutdown behavior.
 pub type StreamShutdownFlags = u32;
@@ -518,6 +523,7 @@ pub struct Settings {
     pub max_bytes_per_key: u64,
     pub handshake_idle_timeout_ms: u64,
     pub idle_timeout_ms: u64,
+    pub mtu_discovery_search_complete_timeout_us: u64,
     pub tls_client_max_send_buffer: u32,
     pub tls_server_max_send_buffer: u32,
     pub stream_recv_window_default: u32,
@@ -531,65 +537,63 @@ pub struct Settings {
     pub max_ack_delay_ms: u32,
     pub disconnect_timeout_ms: u32,
     pub keep_alive_interval_ms: u32,
+    pub congestion_control_algorithm: u16,
     pub peer_bidi_stream_count: u16,
     pub peer_unidi_stream_count: u16,
-    pub retry_memory_limit: u16,
-    pub load_balancing_mode: u16,
-    pub other_flags: u8,
-    pub desired_version_list: *const u32,
-    pub desired_version_list_length: u32,
-    pub minimum_mtu: u16,
-    pub maximum_mtu: u16,
-    pub mtu_discovery_search_complete_timeout_us: u64,
-    pub mtu_discovery_missing_probe_count: u8,
     pub max_binding_stateless_operations: u16,
     pub stateless_operation_expiration_ms: u16,
+    pub minimum_mtu: u16,
+    pub maximum_mtu: u16,
+    pub other_flags: u8,
+    pub mtu_operations_per_drain: u8,
+    pub mtu_discovery_missing_probe_count: u8,
 }
 
-pub type ParameterLevel = u32;
-pub const PARAM_LEVEL_GLOBAL: ParameterLevel = 0;
-pub const PARAM_LEVEL_REGISTRATION: ParameterLevel = 1;
-pub const PARAM_LEVEL_CONFIGURATION: ParameterLevel = 2;
-pub const PARAM_LEVEL_LISTENER: ParameterLevel = 3;
-pub const PARAM_LEVEL_CONNECTION: ParameterLevel = 4;
-pub const PARAM_LEVEL_TLS: ParameterLevel = 5;
-pub const PARAM_LEVEL_STREAM: ParameterLevel = 6;
+pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
+pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 0x01000001;
+pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 0x01000002;
+pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 0x01000003;
+pub const PARAM_GLOBAL_VERSION: u32 = 0x01000004;
+pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000005;
+pub const PARAM_GLOBAL_GLOBAL_SETTINGS: u32 = 0x01000006;
+pub const PARAM_GLOBAL_VERSION_SETTINGS: u32 = 0x01000007;
+pub const PARAM_GLOBAL_LIBRARY_GIT_HASH: u32 = 0x01000008;
 
-pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 67108864;
-pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 67108865;
-pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 67108866;
-pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 67108867;
-pub const PARAM_GLOBAL_SETTINGS: u32 = 67108868;
-pub const PARAM_GLOBAL_VERSION: u32 = 67108869;
+pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
+pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
+pub const PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 0x03000002;
 
-pub const PARAM_REGISTRATION_CID_PREFIX: u32 = 134217728;
+pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 0x04000000;
+pub const PARAM_LISTENER_STATS: u32 = 0x04000001;
+pub const PARAM_LISTENER_CIBIR_ID: u32 = 0x04000002;
 
-pub const PARAM_CONFIGURATION_SETTINGS: u32 = 201326592;
-pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 201326593;
+pub const PARAM_CONN_QUIC_VERSION: u32 = 0x05000000;
+pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 0x05000001;
+pub const PARAM_CONN_REMOTE_ADDRESS: u32 = 0x05000002;
+pub const PARAM_CONN_IDEAL_PROCESSOR: u32 = 0x05000003;
+pub const PARAM_CONN_SETTINGS: u32 = 0x05000004;
+pub const PARAM_CONN_STATISTICS: u32 = 0x05000005;
+pub const PARAM_CONN_STATISTICS_PLAT: u32 = 0x05000006;
+pub const PARAM_CONN_SHARE_UDP_BINDING: u32 = 0x05000007;
+pub const PARAM_CONN_LOCAL_BIDI_STREAM_COUNT: u32 = 0x05000008;
+pub const PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT: u32 = 0x05000009;
+pub const PARAM_CONN_MAX_STREAM_IDS: u32 = 0x0500000A;
+pub const PARAM_CONN_CLOSE_REASON_PHRASE: u32 = 0x0500000B;
+pub const PARAM_CONN_STREAM_SCHEDULING_SCHEME: u32 = 0x0500000C;
+pub const PARAM_CONN_DATAGRAM_RECEIVE_ENABLED: u32 = 0x0500000D;
+pub const PARAM_CONN_DATAGRAM_SEND_ENABLED: u32 = 0x0500000E;
+pub const CONN_DISABLE_1RTT_ENCRYPTION: u32 = 0x0500000F;
+pub const PARAM_CONN_RESUMPTION_TICKET: u32 = 0x05000010;
+pub const PARAM_CONN_PEER_CERTIFICATE_VALID: u32 = 0x05000011;
+pub const PARAM_CONN_LOCAL_INTERFACE: u32 = 0x05000012;
+pub const PARAM_CONN_TLS_SECRETS: u32 = 0x05000013;
+pub const PARAM_CONN_VERSION_SETTINGS: u32 = 0x05000014;
+pub const PARAM_CONN_CIBIR_ID: u32 = 0x05000015;
+pub const PARAM_CONN_STATISTICS_V2: u32 = 0x05000016;
+pub const PARAM_CONN_STATISTICS_V2_PLAT: u32 = 0x05000017;
 
-pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 268435456;
-pub const PARAM_LISTENER_STATS: u32 = 268435457;
-
-pub const PARAM_CONN_QUIC_VERSION: u32 = 335544320;
-pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 335544321;
-pub const PARAM_CONN_REMOTE_ADDRESS: u32 = 335544322;
-pub const PARAM_CONN_IDEAL_PROCESSOR: u32 = 335544323;
-pub const PARAM_CONN_SETTINGS: u32 = 335544324;
-pub const PARAM_CONN_STATISTICS: u32 = 335544325;
-pub const PARAM_CONN_STATISTICS_PLAT: u32 = 335544326;
-pub const PARAM_CONN_SHARE_UDP_BINDING: u32 = 335544327;
-pub const PARAM_CONN_LOCAL_BIDI_STREAM_COUNT: u32 = 335544328;
-pub const PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT: u32 = 335544329;
-pub const PARAM_CONN_MAX_STREAM_IDS: u32 = 335544330;
-pub const PARAM_CONN_CLOSE_REASON_PHRASE: u32 = 335544331;
-pub const PARAM_CONN_STREAM_SCHEDULING_SCHEME: u32 = 335544332;
-pub const PARAM_CONN_DATAGRAM_RECEIVE_ENABLED: u32 = 335544333;
-pub const PARAM_CONN_DATAGRAM_SEND_ENABLED: u32 = 335544334;
-pub const PARAM_CONN_RESUMPTION_TICKET: u32 = 335544336;
-pub const PARAM_CONN_PEER_CERTIFICATE_VALID: u32 = 335544337;
-
-pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 402653184;
-pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 402653185;
+pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 0x06000000;
+pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 0x06000001;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -597,12 +601,12 @@ pub struct SchannelContextAttributeW {
     pub attribute: u32,
     pub buffer: *mut c_void,
 }
-pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 419430400;
+pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 0x07000000;
 
-pub const PARAM_STREAM_ID: u32 = 469762048;
-pub const PARAM_STREAM_0RTT_LENGTH: u32 = 469762049;
-pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 469762050;
-pub const PARAM_STREAM_PRIORITY: u32 = 469762051;
+pub const PARAM_STREAM_ID: u32 = 0x08000000;
+pub const PARAM_STREAM_0RTT_LENGTH: u32 = 0x08000001;
+pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 0x08000002;
+pub const PARAM_STREAM_PRIORITY: u32 = 0x08000003;
 
 pub type ListenerEventType = u32;
 pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;
@@ -778,14 +782,12 @@ struct ApiTable {
         extern "C" fn(handle: Handle, handler: *const c_void, context: *const c_void),
     set_param: extern "C" fn(
         handle: Handle,
-        level: ParameterLevel,
         param: u32,
         buffer_length: u32,
         buffer: *const c_void,
     ) -> u32,
     get_param: extern "C" fn(
         handle: Handle,
-        level: ParameterLevel,
         param: u32,
         buffer_length: *mut u32,
         buffer: *const c_void,
@@ -972,6 +974,7 @@ impl Settings {
             max_bytes_per_key: 0,
             handshake_idle_timeout_ms: 0,
             idle_timeout_ms: 0,
+            mtu_discovery_search_complete_timeout_us: 0,
             tls_client_max_send_buffer: 0,
             tls_server_max_send_buffer: 0,
             stream_recv_window_default: 0,
@@ -985,33 +988,30 @@ impl Settings {
             max_ack_delay_ms: 0,
             disconnect_timeout_ms: 0,
             keep_alive_interval_ms: 0,
+            congestion_control_algorithm: 0,
             peer_bidi_stream_count: 0,
             peer_unidi_stream_count: 0,
-            retry_memory_limit: 0,
-            load_balancing_mode: 0,
-            other_flags: 0,
-            desired_version_list: ptr::null(),
-            desired_version_list_length: 0,
-            minimum_mtu: 0,
-            maximum_mtu: 0,
-            mtu_discovery_search_complete_timeout_us: 0,
-            mtu_discovery_missing_probe_count: 0,
             max_binding_stateless_operations: 0,
             stateless_operation_expiration_ms: 0,
+            minimum_mtu: 0,
+            maximum_mtu: 0,
+            other_flags: 0,
+            mtu_operations_per_drain: 0,
+            mtu_discovery_missing_probe_count: 0,
         }
     }
     pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x10000;
+        self.is_set_flags |= 0x40000;
         self.peer_bidi_stream_count = value;
         self
     }
     pub fn set_peer_unidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x20000;
+        self.is_set_flags |= 0x80000;
         self.peer_unidi_stream_count = value;
         self
     }
     pub fn set_idle_timeout_ms(&mut self, value: u64) -> &mut Settings {
-        self.is_set_flags |= 0x8;
+        self.is_set_flags |= 0x4;
         self.idle_timeout_ms = value;
         self
     }
@@ -1036,7 +1036,7 @@ impl CredentialConfig {
 impl Api {
     pub fn new() -> Api {
         let new_table: *const ApiTable = ptr::null();
-        let status = unsafe { MsQuicOpenVersion(1, &new_table) };
+        let status = unsafe { MsQuicOpenVersion(2, &new_table) };
         if Status::failed(status) {
             panic!("MsQuicOpenVersion failure 0x{:x}", status);
         }
@@ -1067,7 +1067,6 @@ impl Api {
         unsafe {
             ((*self.table).get_param)(
                 std::ptr::null(),
-                PARAM_LEVEL_GLOBAL,
                 PARAM_GLOBAL_PERF_COUNTERS,
                 (&perf_length) as *const u32 as *mut u32,
                 perf.counters.as_mut_ptr() as *const c_void,
@@ -1200,7 +1199,7 @@ impl Connection {
                 configuration.handle,
                 0,
                 server_name_safe.as_ptr(),
-                server_port.to_be(),
+                server_port,
             )
         };
         if Status::failed(status) {
@@ -1211,6 +1210,12 @@ impl Connection {
     pub fn close(&self) {
         unsafe {
             ((*self.table).connection_close)(self.handle);
+        }
+    }
+
+    pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
+        unsafe {
+            ((*self.table).connection_shutdown)(self.handle, flags, error_code);
         }
     }
 
@@ -1227,7 +1232,6 @@ impl Connection {
         unsafe {
             ((*self.table).get_param)(
                 self.handle,
-                PARAM_LEVEL_CONNECTION,
                 PARAM_CONN_STATISTICS,
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
                 stat_buffer.as_mut_ptr() as *const c_void,
@@ -1431,7 +1435,7 @@ extern "C" fn test_stream_callback(
 ) -> u32 {
     let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
-        STREAM_EVENT_START_COMPLETE => println!("Start complete 0x{:x}", unsafe {
+        STREAM_EVENT_START_COMPLETE => println!("Stream start complete 0x{:x}", unsafe {
             event.payload.start_complete.status
         }),
         STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {
@@ -1443,7 +1447,7 @@ extern "C" fn test_stream_callback(
         STREAM_EVENT_PEER_RECEIVE_ABORTED => println!("Peer receive aborted"),
         STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
         STREAM_EVENT_SHUTDOWN_COMPLETE => {
-            println!("Shutdown complete");
+            println!("Stream shutdown complete");
             connection.stream_close(stream);
         }
         STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
@@ -1475,7 +1479,7 @@ fn test_module() {
         test_conn_callback,
         &connection as *const Connection as *const c_void,
     );
-    connection.start(&configuration, "google.com", 443);
+    connection.start(&configuration, "www.cloudflare.com", 443);
 
     let duration = std::time::Duration::from_millis(1000);
     std::thread::sleep(duration);

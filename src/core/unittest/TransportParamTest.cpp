@@ -34,12 +34,14 @@ void CompareTransportParams(
     COMPARE_TP_FIELD(IDLE_TIMEOUT, IdleTimeout);
     COMPARE_TP_FIELD(MAX_ACK_DELAY, MaxAckDelay);
     COMPARE_TP_FIELD(ACTIVE_CONNECTION_ID_LIMIT, ActiveConnectionIdLimit);
+    COMPARE_TP_FIELD(CIBIR_ENCODING, CibirLength);
+    COMPARE_TP_FIELD(CIBIR_ENCODING, CibirOffset);
     if (A->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
         ASSERT_EQ(A->VersionInfoLength, B->VersionInfoLength);
         ASSERT_EQ(
             memcmp(A->VersionInfo, B->VersionInfo, (size_t)A->VersionInfoLength),
             0);
-    } 
+    }
     //COMPARE_TP_FIELD(InitialSourceConnectionID);
     //COMPARE_TP_FIELD(InitialSourceConnectionIDLength);
     if (IsServer) { // TODO
@@ -65,7 +67,8 @@ struct TransportParametersScope
 
 void EncodeDecodeAndCompare(
     _In_ const QUIC_TRANSPORT_PARAMETERS* Original,
-    _In_ bool IsServer = false
+    _In_ bool IsServer = false,
+    _In_ bool ShouldDecodeSuccessfully = true
     )
 {
     uint32_t BufferLength;
@@ -87,9 +90,11 @@ void EncodeDecodeAndCompare(
     CXPLAT_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
     TransportParametersScope TPScope(&Decoded);
 
-    ASSERT_TRUE(DecodedSuccessfully);
+    ASSERT_EQ(ShouldDecodeSuccessfully, DecodedSuccessfully);
 
-    CompareTransportParams(Original, &Decoded, IsServer);
+    if (ShouldDecodeSuccessfully) {
+        CompareTransportParams(Original, &Decoded, IsServer);
+    }
 }
 
 TEST(TransportParamTest, EmptyClient)
@@ -142,4 +147,59 @@ TEST(TransportParamTest, VersionNegotiationExtension)
     OriginalTP.Flags = QUIC_TP_FLAG_VERSION_NEGOTIATION;
 
     EncodeDecodeAndCompare(&OriginalTP);
+}
+
+TEST(TransportParamTest, CibirEncodingOne)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_CIBIR_ENCODING;
+    OriginalTP.CibirLength = 1;
+    EncodeDecodeAndCompare(&OriginalTP);
+}
+
+TEST(TransportParamTest, CibirEncodingMax)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_CIBIR_ENCODING;
+    OriginalTP.CibirLength = 255;
+    EncodeDecodeAndCompare(&OriginalTP);
+}
+
+TEST(TransportParamTest, CibirEncodingMax2)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_CIBIR_ENCODING;
+    OriginalTP.CibirLength = 254;
+    OriginalTP.CibirOffset = 1;
+    EncodeDecodeAndCompare(&OriginalTP);
+}
+
+TEST(TransportParamTest, CibirEncodingZero)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_CIBIR_ENCODING;
+    EncodeDecodeAndCompare(&OriginalTP, false, false);
+}
+
+TEST(TransportParamTest, CibirEncodingOverMax)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_CIBIR_ENCODING;
+    OriginalTP.CibirLength = 256;
+    EncodeDecodeAndCompare(&OriginalTP, false, false);
+}
+
+TEST(TransportParamTest, CibirEncodingOverMax2)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_CIBIR_ENCODING;
+    OriginalTP.CibirLength = 255;
+    OriginalTP.CibirOffset = 1;
+    EncodeDecodeAndCompare(&OriginalTP, false, false);
 }

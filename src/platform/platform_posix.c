@@ -21,6 +21,8 @@ Environment:
 #include <limits.h>
 #include <sched.h>
 #include <syslog.h>
+#define QUIC_VERSION_ONLY 1
+#include "msquic.ver"
 #ifdef QUIC_CLOG
 #include "platform_posix.c.clog.h"
 #endif
@@ -28,10 +30,15 @@ Environment:
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
 CX_PLATFORM CxPlatform = { NULL };
-int RandomFd; // Used for reading random numbers.
+int RandomFd = -1; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
-static const char TpLibName[] = "libmsquic.lttng.so";
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define LIBRARY_VERSION STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH)
+
+static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
 uint32_t CxPlatProcessorCount;
 
@@ -112,7 +119,7 @@ CxPlatSystemLoad(
     }
 
     if (!ShouldLoad) {
-        return;
+        goto Exit;
     }
 
     //
@@ -121,7 +128,7 @@ CxPlatSystemLoad(
     Dl_info Info;
     int Succeeded = dladdr((void *)CxPlatSystemLoad, &Info);
     if (!Succeeded) {
-        return;
+        goto Exit;
     }
 
     size_t PathLen = strlen(Info.dli_fname);
@@ -138,7 +145,7 @@ CxPlatSystemLoad(
     }
 
     if (LastTrailingSlashLen == -1) {
-        return;
+        goto Exit;
     }
 
     size_t TpLibNameLen = strlen(TpLibName);
@@ -146,7 +153,7 @@ CxPlatSystemLoad(
 
     char* ProviderFullPath = CXPLAT_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ProviderFullPath == NULL) {
-        return;
+        goto Exit;
     }
 
     CxPlatCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
@@ -160,6 +167,8 @@ CxPlatSystemLoad(
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+Exit:
 
     QuicTraceLogInfo(
         PosixLoaded,
@@ -196,6 +205,11 @@ CxPlatInitialize(
         goto Exit;
     }
 
+    if (!CxPlatWorkersInit()) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
     CxPlatTotalMemory = CGroupGetMemoryLimit();
 
     Status = QUIC_STATUS_SUCCESS;
@@ -207,6 +221,12 @@ CxPlatInitialize(
 
 Exit:
 
+    if (QUIC_FAILED(Status)) {
+        if (RandomFd != -1) {
+            close(RandomFd);
+        }
+    }
+
     return Status;
 }
 
@@ -215,6 +235,7 @@ CxPlatUninitialize(
     void
     )
 {
+    CxPlatWorkersUninit();
     close(RandomFd);
     QuicTraceLogInfo(
         PosixUninitialized,
@@ -240,7 +261,7 @@ CxPlatAlloc(
 
 void
 CxPlatFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
     _In_ uint32_t Tag
     )
 {
@@ -270,22 +291,23 @@ CxPlatRefIncrement(
 
 BOOLEAN
 CxPlatRefIncrementNonZero(
-    _Inout_ volatile CXPLAT_REF_COUNT* RefCount
+    _Inout_ volatile CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Bias
     )
 {
     CXPLAT_REF_COUNT OldValue = *RefCount;
 
     for (;;) {
-        CXPLAT_REF_COUNT NewValue = OldValue + 1;
+        CXPLAT_REF_COUNT NewValue = OldValue + Bias;
 
-        if (NewValue > 1) {
+        if (NewValue > Bias) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
             continue;
         }
 
-        if (NewValue == 1) {
+        if (NewValue == Bias) {
             return FALSE;
         }
 
@@ -353,7 +375,7 @@ CxPlatRundownAcquire(
     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount);
+    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1);
 }
 
 void

@@ -148,7 +148,7 @@ public:
     NewStream(
         _In_opt_ STREAM_SHUTDOWN_CALLBACK_HANDLER StreamShutdownHandler,
         _In_ QUIC_STREAM_OPEN_FLAGS Flags,
-        _In_ NEW_STREAM_START_TYPE StartType = NEW_STREAM_START_SYNC
+        _In_ NEW_STREAM_START_TYPE StartType = NEW_STREAM_START_ASYNC
         );
 
     uint32_t GetWaitTimeout() const {
@@ -254,7 +254,7 @@ public:
     uint16_t GetLocalBidiStreamCount();
     uint16_t GetLocalUnidiStreamCount();
 
-    QUIC_STATISTICS GetStatistics();
+    QUIC_STATISTICS_V2 GetStatistics();
 
     bool GetUseSendBuffer();
     QUIC_STATUS SetUseSendBuffer(bool value);

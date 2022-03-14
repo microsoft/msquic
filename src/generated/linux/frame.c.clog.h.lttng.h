@@ -1479,17 +1479,18 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequencyInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogAckFrequency
-// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu
+// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu
 // QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
-            Frame.IgnoreOrder);
+            Frame.IgnoreOrder,
+            Frame.IgnoreCE);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
@@ -1497,6 +1498,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequencyInvalid,
 // arg6 = arg6 = Frame.PacketTolerance = arg6
 // arg7 = arg7 = Frame.UpdateMaxAckDelay = arg7
 // arg8 = arg8 = Frame.IgnoreOrder = arg8
+// arg9 = arg9 = Frame.IgnoreCE = arg9
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
     TP_ARGS(
@@ -1506,7 +1508,8 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         unsigned long long, arg5,
         unsigned long long, arg6,
         unsigned long long, arg7,
-        unsigned char, arg8), 
+        unsigned char, arg8,
+        unsigned char, arg9), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1515,6 +1518,34 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         ctf_integer(uint64_t, arg6, arg6)
         ctf_integer(uint64_t, arg7, arg7)
         ctf_integer(unsigned char, arg8, arg8)
+        ctf_integer(unsigned char, arg9, arg9)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogImmediateAck
+// [%c][%cX][%llu]   IMMEDIATE_ACK
+// QuicTraceLogVerbose(
+            FrameLogImmediateAck,
+            "[%c][%cX][%llu]   IMMEDIATE_ACK",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogImmediateAck,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 

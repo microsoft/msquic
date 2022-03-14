@@ -151,6 +151,9 @@ private:
     TcpServer Server;
     HashTable StreamTable;
 
+    uint32_t CibirIdLength {0};
+    uint8_t CibirId[7]; // {offset, values}
+
     void
     SendTcpResponse(
         _In_ StreamContext* Context,

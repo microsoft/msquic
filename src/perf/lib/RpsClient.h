@@ -35,10 +35,15 @@ struct StreamContext {
 
 struct RpsConnectionContext {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
+    RpsClient* Client {nullptr};
     RpsWorkerContext* Worker {nullptr};
     HQUIC Handle {nullptr};
     operator HQUIC() const { return Handle; }
     ~RpsConnectionContext() noexcept { if (Handle) { MsQuic->ConnectionClose(Handle); } }
+    QUIC_STATUS
+    ConnectionCallback(
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        );
     QUIC_STATUS
     StreamCallback(
         _In_ StreamContext* StrmContext,
@@ -100,6 +105,14 @@ struct RpsWorkerContext {
         CxPlatListInsertTail(&Connections, &Connection->Link);
         CxPlatLockRelease(&Lock);
     }
+    void UpdateConnection(RpsConnectionContext* Connection) {
+        if (this != Connection->Worker) {
+            CxPlatLockAcquire(&Connection->Worker->Lock);
+            CxPlatListEntryRemove(&Connection->Link);
+            CxPlatLockRelease(&Connection->Worker->Lock);
+            QueueConnection(Connection);
+        }
+    }
     void QueueSendRequest();
 };
 
@@ -143,12 +156,6 @@ public:
         _Inout_ uint32_t* Length
         ) override;
 
-    QUIC_STATUS
-    ConnectionCallback(
-        _In_ HQUIC ConnectionHandle,
-        _Inout_ QUIC_CONNECTION_EVENT* Event
-        );
-
     MsQuicRegistration Registration {
         "secnetperf-client-rps",
         QUIC_EXECUTION_PROFILE_LOW_LATENCY,
@@ -167,11 +174,14 @@ public:
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
+    uint8_t UseEncryption {TRUE};
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
     uint32_t RequestCount {RPS_DEFAULT_CONNECTION_COUNT * 2};
     uint32_t RequestLength {RPS_DEFAULT_REQUEST_LENGTH};
     uint32_t ResponseLength {RPS_DEFAULT_RESPONSE_LENGTH};
+    uint32_t CibirIdLength {0};
+    uint8_t CibirId[7]; // {offset, values}
 
     struct QuicBufferScopeQuicAlloc {
         QUIC_BUFFER* Buffer;

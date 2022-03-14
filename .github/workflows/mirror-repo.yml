@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@14dc64f30986eaa2ad2dddcec073f5aab18e5a24 # v1
+      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
       with:
         egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
       with:
         fetch-depth: 0
     - name: Sync mirror

@@ -242,7 +242,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -265,7 +265,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplyNewSettings(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -287,7 +287,8 @@ typedef enum QUIC_SEND_FLUSH_REASON {
     REASON_STREAM_FLOW_CONTROL,
     REASON_STREAM_ID_FLOW_CONTROL,
     REASON_AMP_PROTECTION,
-    REASON_SCHEDULING
+    REASON_SCHEDULING,
+    REASON_ROUTE_COMPLETION,
 } QUIC_SEND_FLUSH_REASON;
 
 //
@@ -308,7 +309,6 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
     );
 

@@ -739,6 +739,52 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Unreachable,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SuccessfulRouteResolution
+// [conn][%p] Processing successful route completion Path[%hhu]
+// QuicTraceLogConnInfo(
+                SuccessfulRouteResolution,
+                Connection,
+                "Processing successful route completion Path[%hhu]",
+                PathId);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = PathId = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, SuccessfulRouteResolution,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailedRouteResolution
+// [conn][%p] Processing failed route completion Path[%hhu]
+// QuicTraceLogConnInfo(
+                    FailedRouteResolution,
+                    Connection,
+                    "Processing failed route completion Path[%hhu]",
+                    PathId);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = PathId = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, FailedRouteResolution,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePeerPacketTolerance
 // [conn][%p] Updating peer packet tolerance to %hhu
 // QuicTraceLogConnInfo(
@@ -825,6 +871,33 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CibirIdSet
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->CibirId[0] = arg3
+// arg4 = arg4 = Connection->CibirId[1] = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3,
+        unsigned char, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
     )
 )
 

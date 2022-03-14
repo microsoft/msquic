@@ -82,7 +82,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_CID                       'C0cQ' // Qc0C - QUIC CID
 #define QUIC_POOL_CIDHASH                   'D0cQ' // Qc0D - QUIC CID Hash
 #define QUIC_POOL_CIDLIST                   'E0cQ' // Qc0E - QUIC CID List Entry
-#define QUIC_POOL_CIDPREFIX                 'F0cQ' // Qc0F - QUIC CID Prefix
+#define QUIC_POOL__UNUSED_1_                'F0cQ' // Qc0F - UNUSED
 #define QUIC_POOL_ALPN                      '01cQ' // Qc10 - QUIC ALPN
 #define QUIC_POOL_RANGE                     '11cQ' // Qc11 - QUIC Range
 #define QUIC_POOL_SENDBUF                   '21cQ' // Qc12 - QUIC Send Buffer
@@ -140,6 +140,9 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_DATAPATH_ADDRESSES        '64cQ' // Qc46 - QUIC Datapath Addresses
 #define QUIC_POOL_TLS_TICKET_KEY            '74cQ' // Qc47 - QUIC Platform TLS ticket key
 #define QUIC_POOL_TLS_CIPHER_SUITE_STRING   '84cQ' // Qc48 - QUIC TLS cipher suite string
+#define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
+#define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
+#define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -432,14 +435,40 @@ BOOLEAN
     _In_ CXPLAT_THREAD_ID ThreadID  // The current thread ID.
     );
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(*CXPLAT_EXECUTION_WAKE_FN)(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context
+    );
+
 typedef struct CXPLAT_EXECUTION_CONTEXT {
 
+    CXPLAT_SLIST_ENTRY Entry;
     void* Context;
+    void* CxPlatContext;
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
     BOOLEAN Ready;
 
 } CXPLAT_EXECUTION_CONTEXT;
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
+
+void
+CxPlatAddExecutionContext(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _In_ uint16_t IdealProcessor
+    );
+
+void
+CxPlatWakeExecutionContext(
+    _In_ CXPLAT_EXECUTION_CONTEXT* Context
+    );
+
+#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 //
 // Test Interface for loading a self-signed certificate.

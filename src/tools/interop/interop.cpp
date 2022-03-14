@@ -311,7 +311,6 @@ public:
             if (QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     Stream,
-                    QUIC_PARAM_LEVEL_STREAM,
                     QUIC_PARAM_STREAM_0RTT_LENGTH,
                     &LengthLength,
                     &Length)) &&
@@ -374,32 +373,24 @@ public:
                 &Connection));
         if (VerNeg) {
             uint32_t DesiredVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
-            QUIC_SETTINGS Settings = { 0 };
-            Settings.DesiredVersionsList = DesiredVersions;
-            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
-            Settings.IsSet.DesiredVersionsList = TRUE;
-            Settings.VersionNegotiationExtEnabled = TRUE;
-            Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+            QUIC_VERSION_SETTINGS Settings = { 0 };
+            Settings.AcceptableVersions = DesiredVersions;
+            Settings.AcceptableVersionsLength = ARRAYSIZE(DesiredVersions);
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_SETTINGS,
+                    QUIC_PARAM_CONN_VERSION_SETTINGS,
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
             uint32_t DesiredVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
-            QUIC_SETTINGS Settings = { 0 };
-            Settings.DesiredVersionsList = DesiredVersions;
-            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
-            Settings.IsSet.DesiredVersionsList = TRUE;
-            Settings.VersionNegotiationExtEnabled = TRUE;
-            Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+            QUIC_VERSION_SETTINGS Settings = { 0 };
+            Settings.AcceptableVersions = DesiredVersions;
+            Settings.AcceptableVersionsLength = ARRAYSIZE(DesiredVersions);
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_SETTINGS,
+                    QUIC_PARAM_CONN_VERSION_SETTINGS,
                     sizeof(Settings),
                     &Settings));
         }
@@ -407,7 +398,6 @@ public:
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER,
                     sizeof(RandomTransportParameter),
                     &RandomTransportParameter));
@@ -416,7 +406,6 @@ public:
             QUIC_STATUS Status =
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_TLS_SECRETS,
                     sizeof(TlsSecrets),
                     (uint8_t*)&TlsSecrets);
@@ -453,7 +442,6 @@ public:
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
@@ -466,7 +454,6 @@ public:
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
@@ -476,7 +463,6 @@ public:
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_RESUMPTION_TICKET,
                     TicketLength,
                     Ticket));
@@ -525,7 +511,6 @@ public:
         VERIFY_QUIC_SUCCESS(
             MsQuic->SetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(DatagramEnabled),
                 &DatagramEnabled));
@@ -560,7 +545,6 @@ public:
             QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_FORCE_CID_UPDATE,
                 0,
                 nullptr));
@@ -571,7 +555,6 @@ public:
         if (!QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 &LocalAddrSize,
                 &LocalAddress))) {
@@ -583,7 +566,6 @@ public:
             if (QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     sizeof(LocalAddress),
                     &LocalAddress))) {
@@ -598,7 +580,6 @@ public:
         if (QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_QUIC_VERSION,
                 &BufferLength,
                 &Buffer)) &&
@@ -614,13 +595,12 @@ public:
         Alpn = strdup(NegotiatedAlpn);
         return true;
     }
-    bool GetStatistics(QUIC_STATISTICS& Stats) {
+    bool GetStatistics(QUIC_STATISTICS_V2& Stats) {
         uint32_t BufferLength = sizeof(Stats);
         if (QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &BufferLength,
                 &Stats)) &&
             BufferLength == sizeof(Stats)) {
@@ -794,7 +774,7 @@ RunInteropTest(
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            QUIC_STATISTICS Stats;
+            QUIC_STATISTICS_V2 Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.VersionNegotiation != 0;
             }
@@ -831,7 +811,7 @@ RunInteropTest(
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == StatelessRetry) {
-                QUIC_STATISTICS Stats;
+                QUIC_STATISTICS_V2 Stats;
                 if (Connection.GetStatistics(Stats)) {
                     Success = Stats.StatelessRetry != 0;
                 }
@@ -888,9 +868,9 @@ RunInteropTest(
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             CxPlatSleep(2000); // Allow keep alive packets to trigger key updates.
-            QUIC_STATISTICS Stats;
+            QUIC_STATISTICS_V2 Stats;
             if (Connection.GetStatistics(Stats)) {
-                Success = Stats.Misc.KeyUpdateCount > 1;
+                Success = Stats.KeyUpdateCount > 1;
             }
             if (Success && CustomUrlPath) {
                 Success = Connection.SendHttpRequests();
@@ -1213,8 +1193,8 @@ main(
 
     CxPlatLockInitialize(&TestResultsLock);
 
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed, 0x%x!\n", Status);
+    if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
+        printf("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
 

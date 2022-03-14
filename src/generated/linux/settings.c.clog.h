@@ -556,8 +556,8 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpStatelessOperExpirMs , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingCongestionControlAlgorithm
-// [sett] CongestionControlAlgorithm = %d
-// QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %d", Settings->CongestionControlAlgorithm);
+// [sett] CongestionControlAlgorithm = %hu
+// QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
 // arg2 = arg2 = Settings->CongestionControlAlgorithm = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_SettingCongestionControlAlgorithm

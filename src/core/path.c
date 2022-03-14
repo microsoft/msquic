@@ -68,7 +68,6 @@ QuicPathRemove(
     }
 
     Connection->PathsCount--;
-    CXPLAT_DBG_ASSERT(Connection->PathsCount != 0);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -169,6 +168,20 @@ QuicConnGetPathByID(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+#ifdef QUIC_USE_RAW_DATAPATH
+    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
+#else
+    *DstRoute = *SrcRoute;
+#endif
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForDatagram(
@@ -237,7 +250,7 @@ QuicConnGetPathForDatagram(
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
     Path->Binding = Connection->Paths[0].Binding;
-    Path->Route = *Datagram->Route;
+    QuicCopyRouteInfo(&Path->Route, Datagram->Route);
     QuicPathValidate(Path);
 
     return Path;

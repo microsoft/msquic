@@ -5,13 +5,101 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+typedef struct QUIC_SETTINGS_INTERNAL {
+
+    union {
+        uint64_t IsSetFlags;
+        struct {
+            uint64_t MaxBytesPerKey                         : 1;
+            uint64_t HandshakeIdleTimeoutMs                 : 1;
+            uint64_t IdleTimeoutMs                          : 1;
+            uint64_t TlsClientMaxSendBuffer                 : 1;
+            uint64_t TlsServerMaxSendBuffer                 : 1;
+            uint64_t StreamRecvWindowDefault                : 1;
+            uint64_t StreamRecvBufferDefault                : 1;
+            uint64_t ConnFlowControlWindow                  : 1;
+            uint64_t MaxWorkerQueueDelayUs                  : 1;
+            uint64_t MaxStatelessOperations                 : 1;
+            uint64_t InitialWindowPackets                   : 1;
+            uint64_t SendIdleTimeoutMs                      : 1;
+            uint64_t InitialRttMs                           : 1;
+            uint64_t MaxAckDelayMs                          : 1;
+            uint64_t DisconnectTimeoutMs                    : 1;
+            uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t PeerBidiStreamCount                    : 1;
+            uint64_t PeerUnidiStreamCount                   : 1;
+            uint64_t RetryMemoryLimit                       : 1;
+            uint64_t LoadBalancingMode                      : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t SendBufferingEnabled                   : 1;
+            uint64_t PacingEnabled                          : 1;
+            uint64_t MigrationEnabled                       : 1;
+            uint64_t DatagramReceiveEnabled                 : 1;
+            uint64_t ServerResumptionLevel                  : 1;
+            uint64_t DesiredVersionsList                    : 1;
+            uint64_t VersionNegotiationExtEnabled           : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t CongestionControlAlgorithm             : 1;
+            uint64_t RESERVED                               : 29;
+        } IsSet;
+    };
+
+    uint64_t MaxBytesPerKey;
+    uint64_t HandshakeIdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    uint32_t TlsClientMaxSendBuffer;
+    uint32_t TlsServerMaxSendBuffer;
+    uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvBufferDefault;
+    uint32_t ConnFlowControlWindow;
+    uint32_t MaxWorkerQueueDelayUs;
+    uint32_t MaxStatelessOperations;
+    uint32_t InitialWindowPackets;
+    uint32_t SendIdleTimeoutMs;
+    uint32_t InitialRttMs;
+    uint32_t MaxAckDelayMs;
+    uint32_t DisconnectTimeoutMs;
+    uint32_t KeepAliveIntervalMs;
+    uint16_t PeerBidiStreamCount;
+    uint16_t PeerUnidiStreamCount;
+    uint16_t RetryMemoryLimit;              // Global only
+    uint16_t LoadBalancingMode;             // Global only
+    uint8_t MaxOperationsPerDrain;
+    uint8_t SendBufferingEnabled            : 1;
+    uint8_t PacingEnabled                   : 1;
+    uint8_t MigrationEnabled                : 1;
+    uint8_t DatagramReceiveEnabled          : 1;
+    uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
+    uint8_t VersionNegotiationExtEnabled    : 1;
+    uint8_t RESERVED                        : 1;
+    const uint32_t* DesiredVersionsList;
+    uint32_t DesiredVersionsListLength;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t MtuDiscoveryMissingProbeCount;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
+    uint16_t CongestionControlAlgorithm;
+
+} QUIC_SETTINGS_INTERNAL;
+
 //
 // Initializes all settings to default values, if not already set by the app.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
-    _Inout_ QUIC_SETTINGS* Settings
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings
     );
 
 //
@@ -21,8 +109,8 @@ QuicSettingsSetDefault(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS* Destination,
-    _In_ const QUIC_SETTINGS* Source
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
+    _In_ const QUIC_SETTINGS_INTERNAL* Source
     );
 
 //
@@ -31,14 +119,12 @@ QuicSettingsCopy(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS* Destination,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
-        uint32_t NewSettingsSize,
-    _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* Source
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Source
     );
 
 //
@@ -47,7 +133,7 @@ QuicSettingApply(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCleanup(
-    _In_ QUIC_SETTINGS* Settings
+    _In_ QUIC_SETTINGS_INTERNAL* Settings
     );
 
 //
@@ -56,7 +142,7 @@ QuicSettingsCleanup(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
-    _Inout_ QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings,
     _In_ CXPLAT_STORAGE* Storage
     );
 
@@ -66,14 +152,71 @@ QuicSettingsLoad(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDump(
-    _In_ const QUIC_SETTINGS* Settings
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDumpNew(
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList), UINT32_MAX)
-        uint32_t SettingsSize,
-    _In_reads_bytes_(SettingsSize)
-        const QUIC_SETTINGS* Settings
+    _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
+        const QUIC_SETTINGS_INTERNAL* Settings
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGlobalSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_GLOBAL_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsVersionSettingsToInternal(
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_VERSION_SETTINGS* Settings,
+    _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_SETTINGS* Settings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetGlobalSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t* SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_GLOBAL_SETTINGS* Settings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSettingsGetVersionSettings(
+    _In_ const QUIC_SETTINGS_INTERNAL* InternalSettings,
+    _Inout_ uint32_t *SettingsLength,
+    _Out_writes_bytes_opt_(*SettingsLength)
+        QUIC_VERSION_SETTINGS* Settings
+    );
+
+#if defined(__cplusplus)
+}
+#endif

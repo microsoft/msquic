@@ -193,13 +193,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenNull
-// [ api] MsQuicOpen, NULL
+// Decoder Ring for LibraryMsQuicOpenVersionNull
+// [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
-            LibraryMsQuicOpenNull,
-            "[ api] MsQuicOpen, NULL");
+            LibraryMsQuicOpenVersionNull,
+            "[ api] MsQuicOpenVersion, NULL");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenNull,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionNull,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -209,13 +209,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenNull,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenEntry
-// [ api] MsQuicOpen
+// Decoder Ring for LibraryMsQuicOpenVersionEntry
+// [ api] MsQuicOpenVersion
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenEntry,
-        "[ api] MsQuicOpen");
+        LibraryMsQuicOpenVersionEntry,
+        "[ api] MsQuicOpenVersion");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionEntry,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -225,15 +225,15 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenExit
-// [ api] MsQuicOpen, status=0x%x
+// Decoder Ring for LibraryMsQuicOpenVersionExit
+// [ api] MsQuicOpenVersion, status=0x%x
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenExit,
-        "[ api] MsQuicOpen, status=0x%x",
+        LibraryMsQuicOpenVersionExit,
+        "[ api] MsQuicOpenVersion, status=0x%x",
         Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenExit,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit,
     TP_ARGS(
         unsigned int, arg2), 
     TP_FIELDS(
@@ -321,23 +321,19 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitialized
-// [ lib] Initialized, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryInitializedV2
+// [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV2,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -423,6 +419,25 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for BindingError
 // [bind][%p] ERROR, %s.
 // QuicTraceEvent(
@@ -462,23 +477,38 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRundown
-// [ lib] Rundown, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryRundownV2
+// [ lib] Rundown, PartitionCount=%u
 // QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DataPathRundown
+// [data] Rundown, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 
