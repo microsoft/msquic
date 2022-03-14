@@ -593,7 +593,6 @@ public:
         return
             MsQuic->GetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 &Size,
                 QSettings);
