@@ -921,9 +921,8 @@ QuicLibrarySetGlobalParam(
 
         uint32_t RawDataPathProcListLength = BufferLength / sizeof(uint16_t);
         uint16_t* Cpus = (uint16_t*)Buffer;
-        _Analysis_assume_(BufferLength >= 4); // SAL incorrectly thinks 4 bytes will be accessed.
         for (uint32_t i = 0; i < RawDataPathProcListLength; ++i) {
-            if (Cpus[i] >= CxPlatProcActiveCount()) {
+            if (*(Cpus + i) >= CxPlatProcActiveCount()) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 break;
             }
