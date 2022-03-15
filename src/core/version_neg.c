@@ -103,23 +103,20 @@ QuicVersionNegotiationExtIsVersionCompatible(
     _In_ uint32_t NegotiatedVersion
     )
 {
-    const uint32_t* CompatibleVersions;
-    uint32_t CompatibleVersionsLength;
     if (Connection->Settings.IsSet.VersionSettings) {
-        //
-        // This should be the list of versions compatible with the FullyDeployedVersions
-        // (which includes all versions in the FullyDeployedVersions.)
-        //
-        CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
-        CompatibleVersionsLength = Connection->Settings.VersionSettings->FullyDeployedVersionsLength;
-    } else {
-        CompatibleVersions = MsQuicLib.DefaultCompatibilityList;
-        CompatibleVersionsLength = MsQuicLib.DefaultCompatibilityListLength;
-    }
+        uint32_t* CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
+        uint32_t CompatibleVersionsLength = Connection->Settings.VersionSettings->FullyDeployedVersionsLength;
 
-    for (uint32_t i = 0; i < CompatibleVersionsLength; ++i) {
-        if (CompatibleVersions[i] == NegotiatedVersion) {
-            return TRUE;
+        for (uint32_t i = 0; i < CompatibleVersionsLength; ++i) {
+            if (QuicVersionNegotiationExtAreVersionsCompatible(CompatibleVersions[i], NegotiatedVersion)) {
+                return TRUE;
+            }
+        }
+    } else {
+        for (uint32_t i = 0; i < MsQuicLib.DefaultCompatibilityListLength; ++i) {
+            if (MsQuicLib.DefaultCompatibilityList[i] == NegotiatedVersion) {
+                return TRUE;
+            }
         }
     }
 
