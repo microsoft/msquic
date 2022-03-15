@@ -87,6 +87,8 @@ PrintHelp(
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
+        "Both:\n"
+        "  -cpu:<cpu_index>            Specify a processor for raw datapath thread(s) to run on.\n"
         "\n"
         );
 }

@@ -292,38 +292,6 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRawDataPathProcsSetAfterDataPathInit
-// [ lib] Tried to change raw datapath procs after datapath initialization
-// QuicTraceLogError(
-                LibraryRawDataPathProcsSetAfterDataPathInit,
-                "[ lib] Tried to change raw datapath procs after datapath initialization");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathProcsSetAfterDataPathInit,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryRawDataPathInvalidProcs
-// [ lib] Tried to set invalid raw datapath procs
-// QuicTraceLogError(
-                LibraryRawDataPathInvalidProcs,
-                "[ lib] Tried to set invalid raw datapath procs");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathInvalidProcs,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -470,10 +438,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Only v2 is supported in MsQuicOpenVersion");
-// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change raw datapath procs after datapath initialization");
+// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(

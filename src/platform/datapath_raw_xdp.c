@@ -77,7 +77,6 @@ typedef struct XDP_DATAPATH {
 
     // Constants
     DECLSPEC_CACHEALIGN
-    uint16_t DatapathCpuGroup;
     //
     // Currently, all XDP interfaces share the same config.
     //

@@ -420,7 +420,7 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
 
 TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
 {
-    uint16_t SetCpus[] = {0};
+    uint16_t SetCpus[] = {0, 1};
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibrarySetGlobalParam(
@@ -454,7 +454,7 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
             NULL));
     BufferLength = 0;
     ASSERT_EQ(
-        QUIC_STATUS_BUFFER_TOO_SMALL,
+        QUIC_STATUS_SUCCESS,
         QuicLibraryGetGlobalParam(
             QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
             &BufferLength,

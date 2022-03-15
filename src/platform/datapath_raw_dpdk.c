@@ -165,7 +165,6 @@ CxPlatDpRawInitialize(
     const uint32_t AdditionalBufferSize =
         sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
-    UNREFERENCED_PARAMETER(Config);
     CxPlatDpdkReadConfig(Dpdk, Config);
     CxPlatDpRawGenerateCpuTable(Datapath);
 
