@@ -17,6 +17,8 @@ Abstract:
 #include "DataPathTest.cpp.clog.h"
 #endif
 
+extern bool UseDuoNic;
+
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
 
@@ -186,8 +188,13 @@ protected:
         //
         NextPort = 50000 + (CxPlatCurThreadID() % 10000) + (rand() % 5000);
 
-        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
-        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
+        if (UseDuoNic) {
+            LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "192.168.1.11");
+            LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "fc00::1:11");
+        } else {
+            LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
+            LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
+        }
 
         ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
