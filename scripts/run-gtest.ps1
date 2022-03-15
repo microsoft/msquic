@@ -365,6 +365,9 @@ function Start-TestCase([String]$Name) {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
+    if ($DuoNic) {
+        $Arguments += " --duoNic"
+    }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
     }
@@ -401,6 +404,9 @@ function Start-AllTestCases {
     }
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
+    }
+    if ($DuoNic) {
+        $Arguments += " --duoNic"
     }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
@@ -695,11 +701,6 @@ function Get-WindowsKitTool {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
-
-if ($DuoNic) {
-    Log "Short-circuiting unimplemented DuoNic tests."
-    exit
-}
 
 # Query all the test cases.
 $TestCases = GetTestCases
