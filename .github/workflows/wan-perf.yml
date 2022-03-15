@@ -5,30 +5,20 @@ on:
     branches:
     - main
     - release/*
-    paths-ignore:
-    - .azure/*
-    - docs/*
-    - src/cs/*
-    - src/distribution/*
-    - src/plugins/*
-    - src/tools/*
-    - src/lib.rs
-    - Cargo.toml
-    - README.md
+    paths:
+    - .github/workflows/wan-perf.yml
+    - src/core
+    - src/platform
+    - src/perf
   pull_request:
     branches:
     - main
     - release/*
-    paths-ignore:
-    - .azure/*
-    - docs/*
-    - src/cs/*
-    - src/distribution/*
-    - src/plugins/*
-    - src/tools/*
-    - src/lib.rs
-    - Cargo.toml
-    - README.md
+    paths:
+    - .github/workflows/wan-perf.yml
+    - src/core
+    - src/platform
+    - src/perf
 
 permissions: read-all
 

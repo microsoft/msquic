@@ -80,6 +80,9 @@ param (
     [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallXdpDriver,
+
+    [Parameter(Mandatory = $false)]
     [switch]$DisableTest
 )
 
@@ -127,6 +130,11 @@ if ($ForTest) {
                                   # for jobs that absoultely need it.
 }
 
+if ($InstallXdpDriver) {
+    # The XDP SDK contains XDP driver, so ensure it's downloaded.
+    $InstallXdpSdk = $true
+}
+
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
     if ($IsWindows) { $Tls = "schannel" }
@@ -170,6 +178,25 @@ function Install-Xdp-Sdk {
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
+}
+
+# Installs the XDP driver (for testing).
+# NB: XDP can be uninstalled with:
+# netcfg.exe -u ms_xdp
+# pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+function Install-Xdp-Driver {
+    if (!$IsWindows) { return } # Windows only
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) {
+        Write-Error "XDP installation failed: driver file not present"
+    }
+
+    Write-Host "Installing XDP certificate"
+    CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
+    CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+
+    Write-Host "Installing XDP driver"
+    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
@@ -405,6 +432,7 @@ if ($InitSubmodules) {
 
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
+if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
@@ -431,6 +459,7 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
+        sudo apt-get install -y libssl-dev
         # only used for the codecheck CI run:
         sudo apt-get install -y cppcheck clang-tidy
         # used for packaging

@@ -104,10 +104,18 @@ CxPlatDataPathRecvDataToRecvPacket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpdkReadConfig(
-    _Inout_ DPDK_DATAPATH* Dpdk
+    _Inout_ DPDK_DATAPATH* Dpdk,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     Dpdk->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+
+    //
+    // Read user-specified global config.
+    //
+    if (Config != NULL && Config->RawDataPathProcList != NULL) {
+        Dpdk->Cpu = Config->RawDataPathProcList[0];
+    }
 
     FILE *File = fopen("dpdk.ini", "r");
     if (File == NULL) {
@@ -125,9 +133,7 @@ CxPlatDpdkReadConfig(
             Value[strlen(Value) - 1] = '\0';
         }
 
-        if (strcmp(Line, "CPU") == 0) {
-             Dpdk->Cpu = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "DeviceName") == 0) {
+        if (strcmp(Line, "DeviceName") == 0) {
              strcpy(Dpdk->Interface.DeviceName, Value);
         }
     }
@@ -148,7 +154,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
@@ -158,7 +165,7 @@ CxPlatDpRawInitialize(
     const uint32_t AdditionalBufferSize =
         sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
-    CxPlatDpdkReadConfig(Dpdk);
+    CxPlatDpdkReadConfig(Dpdk, Config);
     CxPlatDpRawGenerateCpuTable(Datapath);
 
     BOOLEAN CleanUpThread = FALSE;

@@ -239,6 +239,7 @@ main(int argc, char **argv)
                 0,
                 NULL,
                 NULL,
+                NULL,
                 &Datapath))) {
             printf("CxPlatDataPathInitialize failed.\n");
             exit(1);

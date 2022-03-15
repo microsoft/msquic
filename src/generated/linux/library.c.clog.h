@@ -192,6 +192,22 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetSettings );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRawDataPathProcsSet
+// [ lib] Setting raw datapath procs
+// QuicTraceLogInfo(
+            LibraryRawDataPathProcsSet,
+            "[ lib] Setting raw datapath procs");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSet
+#define _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSet(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryRawDataPathProcsSet );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -438,10 +454,10 @@ tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Only v2 is supported in MsQuicOpenVersion");
-// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change raw datapath procs after datapath initialization");
+// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\

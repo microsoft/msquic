@@ -143,6 +143,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
+#define QUIC_POOL_RAW_DATAPATH_PROCS        'C4cQ' // Qc4C - QUIC raw datapath procs
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
