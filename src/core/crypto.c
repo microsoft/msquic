@@ -1284,7 +1284,9 @@ QuicConnReceiveTP(
         return FALSE;
     }
 
-    (void)QuicConnProcessPeerTransportParameters(Connection, FALSE);
+    if (QUIC_FAILED(QuicConnProcessPeerTransportParameters(Connection, FALSE))) {
+        return FALSE;
+    }
 
     return TRUE;
 }

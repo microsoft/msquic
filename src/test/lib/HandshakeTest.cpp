@@ -1530,7 +1530,9 @@ RunFailedVersionNegotiation(
          const uint32_t* ServerVersions,
     _In_ const uint32_t ClientVersionsLength,
     _In_ const uint32_t ServerVersionsLength,
-    _In_ QUIC_STATUS ExpectedConnectionError,
+    _In_ QUIC_STATUS ExpectedClientError,
+    _In_ QUIC_STATUS ExpectedServerError,
+    _In_ uint32_t ExpectedClientVersion,
     _In_ int Family
     )
 {
@@ -1591,11 +1593,14 @@ RunFailedVersionNegotiation(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             Listener.Context = &ServerAcceptCtx;
+            if (QUIC_FAILED(ExpectedServerError)) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = ExpectedServerError;
+            }
 
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
-                Client.SetExpectedTransportCloseStatus(ExpectedConnectionError);
+                Client.SetExpectedTransportCloseStatus(ExpectedClientError);
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1607,11 +1612,15 @@ RunFailedVersionNegotiation(
                 Client.WaitForShutdownComplete();
                 TEST_FALSE(Client.GetIsConnected());
 
-                TEST_EQUAL(nullptr, Server);
+                if (QUIC_FAILED(ExpectedServerError)) {
+                    TEST_NOT_EQUAL(nullptr, Server);
+                } else {
+                    TEST_EQUAL(nullptr, Server);
+                }
 
-                TEST_EQUAL(Client.GetQuicVersion(), ClientVersions[0]);
+                TEST_EQUAL(Client.GetQuicVersion(), ExpectedClientVersion);
                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
-                TEST_EQUAL(Client.GetTransportCloseStatus(), ExpectedConnectionError);
+                TEST_EQUAL(Client.GetTransportCloseStatus(), ExpectedClientError);
             }
         }
     }
@@ -1631,6 +1640,8 @@ QuicTestFailedVersionNegotiation(
         ARRAYSIZE(NoCommonClientVersions),
         ARRAYSIZE(NoCommonServerVersions),
         QUIC_STATUS_VER_NEG_ERROR,
+        QUIC_STATUS_SUCCESS,
+        QUIC_VERSION_DRAFT_29_H,
         Family);
 
     const uint32_t ClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
@@ -1641,6 +1652,8 @@ QuicTestFailedVersionNegotiation(
         ARRAYSIZE(ClientVersions),
         0,
         QUIC_STATUS_VER_NEG_ERROR,
+        QUIC_STATUS_VER_NEG_ERROR,
+        QUIC_VERSION_1_H,
         Family);
 }
 

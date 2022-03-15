@@ -2875,7 +2875,7 @@ QuicConnProcessPeerTransportParameters(
                 goto Error;
             }
         }
-        if (QuicConnIsClient(Connection) && Connection->Settings.VersionNegotiationExtEnabled &&
+        if (QuicConnIsClient(Connection) &&
             (Connection->State.CompatibleVerNegotiationAttempted || Connection->PreviousQuicVersion != 0) &&
             !(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION)) {
             //
