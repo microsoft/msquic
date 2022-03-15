@@ -459,6 +459,7 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
+        sudo apt-get install -y libssl-dev
         # only used for the codecheck CI run:
         sudo apt-get install -y cppcheck clang-tidy
         # used for packaging
