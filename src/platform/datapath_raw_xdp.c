@@ -77,7 +77,6 @@ typedef struct XDP_DATAPATH {
 
     // Constants
     DECLSPEC_CACHEALIGN
-    uint16_t DatapathCpuGroup;
     //
     // Currently, all XDP interfaces share the same config.
     //
@@ -366,10 +365,13 @@ Cleanup:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
-    _Inout_ XDP_DATAPATH* Xdp
+    _Inout_ XDP_DATAPATH* Xdp,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
-    // Default config
+    //
+    // Default config.
+    //
     Xdp->RxBufferCount = 4096;
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
@@ -377,6 +379,16 @@ CxPlatXdpReadConfig(
     Xdp->TxAlwaysPoke = FALSE;
     Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
 
+    //
+    // Read user-specified global config.
+    //
+    if (Config != NULL && Config->RawDataPathProcList != NULL) {
+        Xdp->Cpu = Config->RawDataPathProcList[0];
+    }
+
+    //
+    // Read config from config file.
+    //
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
         return;
@@ -393,11 +405,7 @@ CxPlatXdpReadConfig(
             Value[strlen(Value) - 1] = '\0';
         }
 
-        if (strcmp(Line, "CpuGroup") == 0) {
-             Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "CpuNumber") == 0) {
-             Xdp->Cpu = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "RxBufferCount") == 0) {
+        if (strcmp(Line, "RxBufferCount") == 0) {
              Xdp->RxBufferCount = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxRingSize") == 0) {
              Xdp->RxRingSize = strtoul(Value, NULL, 10);
@@ -919,13 +927,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
-    CxPlatXdpReadConfig(Xdp);
+    CxPlatXdpReadConfig(Xdp, Config);
     CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
 

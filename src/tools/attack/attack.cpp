@@ -391,6 +391,7 @@ main(
         0,
         &DatapathCallbacks,
         NULL,
+        NULL,
         &Datapath);
 
     if (argc < 2) {

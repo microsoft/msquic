@@ -625,10 +625,12 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(Config);
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }

@@ -206,6 +206,12 @@ typedef struct QUIC_LIBRARY {
     CXPLAT_STORAGE* Storage;
 
     //
+    // Processor candidates for raw datapath threads.
+    //
+    uint16_t* RawDataPathProcList;
+    uint32_t RawDataPathProcListLength;
+
+    //
     // Datapath instance for the library.
     //
     CXPLAT_DATAPATH* Datapath;
