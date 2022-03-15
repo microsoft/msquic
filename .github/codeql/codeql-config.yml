@@ -2,4 +2,15 @@
 name: "CodeQL config"
 
 queries:
- - uses: security-extended  # security-and-quality (very verbose)
+ - uses: security-and-quality # (very verbose)
+
+paths-ignore:
+  - src/core/unittest
+  - src/cs
+  - src/generated
+  - src/perf
+  - src/platform/unittest
+  - src/plugins
+  - src/test
+  - src/tools
+  - submodules
