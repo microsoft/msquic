@@ -420,6 +420,10 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
 
 TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
 {
+    if (CxPlatProcActiveCount() == 1) {
+        return;
+    }
+
     uint16_t SetCpus[] = {0, 1};
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
