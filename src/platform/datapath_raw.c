@@ -117,6 +117,11 @@ CxPlatDataPathInitialize(
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
 
+    if (NewDataPath == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
     *NewDataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
     if (*NewDataPath == NULL) {
         QuicTraceEvent(
@@ -157,6 +162,8 @@ Error:
             *NewDataPath = NULL;
         }
     }
+
+Exit:
 
     return Status;
 }
