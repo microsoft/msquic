@@ -135,6 +135,10 @@ CxPlatDataPathInitialize(
     CxPlatZeroMemory(*NewDataPath, DatapathSize);
 
     if (UdpCallbacks) {
+        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
 
