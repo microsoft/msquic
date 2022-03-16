@@ -527,7 +527,7 @@ QuicSettingsCleanup(
     _In_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
-    if (Settings->IsSet.VersionSettings) {
+    if (Settings->IsSet.VersionSettings && Settings->VersionSettings) {
         CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
         Settings->VersionSettings = NULL;
         Settings->IsSet.VersionSettings = FALSE;
