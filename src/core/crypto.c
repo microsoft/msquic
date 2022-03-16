@@ -381,6 +381,13 @@ QuicCryptoOnVersionChange(
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;
 
+    if (!Crypto->Initialized) {
+        //
+        // Crypto is not initialized yet, so no need to set keys.
+        //
+        return QUIC_STATUS_SUCCESS;
+    }
+
     const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
