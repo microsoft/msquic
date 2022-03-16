@@ -92,6 +92,11 @@ typedef struct CXPLAT_TLS {
     CXPLAT_SEC_CONFIG* SecConfig;
 
     //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
+    //
     // Indicates if this context belongs to server side or client side
     // connection.
     //
@@ -409,6 +414,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         Status =
             QuicPacketKeyDerive(
                 KeyType,
+                TlsContext->HkdfLabels,
                 &Secret,
                 "write secret",
                 TRUE,
@@ -433,6 +439,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         Status =
             QuicPacketKeyDerive(
                 KeyType,
+                TlsContext->HkdfLabels,
                 &Secret,
                 "read secret",
                 TRUE,
@@ -1584,6 +1591,8 @@ CxPlatTlsInitialize(
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
 
+    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
@@ -1598,6 +1607,7 @@ CxPlatTlsInitialize(
     CxPlatZeroMemory(TlsContext, sizeof(CXPLAT_TLS));
 
     TlsContext->Connection = Config->Connection;
+    TlsContext->HkdfLabels = Config->HkdfLabels;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = Config->SecConfig;
     TlsContext->QuicTpExtType = Config->TPType;

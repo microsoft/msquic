@@ -73,6 +73,7 @@ struct TlsContext
         CXPLAT_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
         Config.SecConfig = SecConfig;
+        Config.HkdfLabels = &HkdfLabels;
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.LocalTPBuffer =

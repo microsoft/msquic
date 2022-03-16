@@ -173,6 +173,8 @@ TEST_F(CryptTest, WellKnownClientInitial)
     const QuicBuffer InitialPacketPayload("060040f1010000ed0303ebf8fa56f12939b9584a3896472ec40bb863cfd3e86804fe3a47f06a2b69484c00000413011302010000c000000010000e00000b6578616d706c652e636f6dff01000100000a00080006001d0017001800100007000504616c706e000500050100000000003300260024001d00209370b2c9caa47fbabaf4559fedba753de171fa71f50f1ce15d43e994ec74d748002b0003020304000d0010000e0403050306030203080408050806002d00020101001c00024001003900320408ffffffffffffffff05048000ffff07048000ffff0801100104800075300901100f088394c8f03e51570806048000ffff");
     const uint64_t InitialPacketNumber = 2;
 
+    const QUIC_HKDF_LABELS Labels = { "quic key", "quic iv", "quic hp", "quic ku" };
+
     uint8_t PacketBuffer[1200] = {0};
     memcpy(PacketBuffer, InitialPacketHeader.Data, InitialPacketHeader.Length);
     memcpy(PacketBuffer + InitialPacketHeader.Length, InitialPacketPayload.Data, InitialPacketPayload.Length);
@@ -182,6 +184,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     VERIFY_QUIC_SUCCESS(
         QuicPacketKeyCreateInitial(
             FALSE,
+            &Labels,
             InitialSalt.Data,
             (uint8_t)ConnectionID.Length,
             ConnectionID.Data,
@@ -243,7 +246,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     PacketKey->Type = QUIC_PACKET_KEY_1_RTT;
 
     QUIC_PACKET_KEY* NewPacketKey = NULL;
-    VERIFY_QUIC_SUCCESS(QuicPacketKeyUpdate(PacketKey, &NewPacketKey));
+    VERIFY_QUIC_SUCCESS(QuicPacketKeyUpdate(&Labels, PacketKey, &NewPacketKey));
 
     const QuicBuffer ExpectedTrafficSecret("53dd8c90e78fc6ea92864f791865be060d933be0824befcb2b59ac901f306035");
     //LogTestBuffer("ExpectedTrafficSecret", ExpectedTrafficSecret.Data, ExpectedTrafficSecret.Length);
@@ -272,6 +275,8 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
     QUIC_PACKET_KEY* PacketKey;
     const uint64_t PacketNumber = 654360564ull;
 
+    const QUIC_HKDF_LABELS Labels = { "quic key", "quic iv", "quic hp", "quic ku" };
+
     Secret.Hash = CXPLAT_HASH_SHA256;
     Secret.Aead = CXPLAT_AEAD_CHACHA20_POLY1305;
     memcpy(Secret.Secret, SecretBuffer.Data, SecretBuffer.Length);
@@ -279,7 +284,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
     ASSERT_EQ(sizeof(PacketBuffer), EncryptedPacket.Length);
     memcpy(PacketBuffer, EncryptedPacket.Data, sizeof(PacketBuffer));
 
-    VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
+    VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Labels, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
 
     ASSERT_EQ(0, memcmp(ExpectedIv.Data, PacketKey->Iv, sizeof(PacketKey->Iv)));
 

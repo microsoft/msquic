@@ -116,10 +116,10 @@ QuicCryptoInitialize(
     uint8_t HandshakeCidLength;
     BOOLEAN RecvBufferInitialized = FALSE;
 
-    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
-            Salt = QuicSupportedVersionList[i].Salt;
+            VersionInfo = &QuicSupportedVersionList[i];
             break;
         }
     }
@@ -184,7 +184,8 @@ QuicCryptoInitialize(
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            Salt,
+            &VersionInfo->HkdfLabels,
+            VersionInfo->Salt,
             HandshakeCidLength,
             HandshakeCid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
@@ -305,6 +306,14 @@ QuicCryptoInitializeTls(
     }
     TlsConfig.TlsSecrets = Connection->TlsSecrets;
 
+    TlsConfig.HkdfLabels = &QuicSupportedVersionList[0].HkdfLabels; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            TlsConfig.HkdfLabels = &QuicSupportedVersionList[i].HkdfLabels;
+            break;
+        }
+    }
+
     TlsConfig.TPType =
         Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 ?
             TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS :
@@ -381,10 +390,10 @@ QuicCryptoOnVersionChange(
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;
 
-    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
-            Salt = QuicSupportedVersionList[i].Salt;
+            VersionInfo = &QuicSupportedVersionList[i];
             break;
         }
     }
@@ -423,7 +432,8 @@ QuicCryptoOnVersionChange(
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            Salt,
+            &VersionInfo->HkdfLabels,
+            VersionInfo->Salt,
             HandshakeCidLength,
             HandshakeCid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
@@ -1834,6 +1844,14 @@ QuicCryptoGenerateNewKeys(
     QUIC_PACKET_KEY** NewReadKey = &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_NEW];
     QUIC_PACKET_KEY** NewWriteKey = &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_NEW];
 
+    const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            VersionInfo = &QuicSupportedVersionList[i];
+            break;
+        }
+    }
+
     //
     // Detect torn key updates; either both keys exist, or they don't.
     //
@@ -1845,6 +1863,7 @@ QuicCryptoGenerateNewKeys(
         //
         Status =
             QuicPacketKeyUpdate(
+                &VersionInfo->HkdfLabels,
                 Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],
                 NewReadKey);
         if (QUIC_FAILED(Status)) {
@@ -1859,6 +1878,7 @@ QuicCryptoGenerateNewKeys(
 
         Status =
             QuicPacketKeyUpdate(
+                &VersionInfo->HkdfLabels,
                 Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT],
                 NewWriteKey);
         if (QUIC_FAILED(Status)) {

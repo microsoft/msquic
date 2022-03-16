@@ -25,6 +25,11 @@ typedef struct QUIC_VERSION_INFO {
     //
     uint8_t RetryIntegritySecret[QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH];
 
+    //
+    // Labels used to derive different QUIC keys.
+    //
+    QUIC_HKDF_LABELS HkdfLabels;
+
 } QUIC_VERSION_INFO;
 
 //
@@ -469,8 +474,7 @@ QuicPacketEncodeLongHeaderV1(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketGenerateRetryIntegrity(
-    _In_reads_(QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH)
-        const uint8_t* IntegritySecret,
+    _In_ const QUIC_VERSION_INFO* Version,
     _In_ uint8_t OrigDestCidLength,
     _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
     _In_ uint16_t BufferLength,
