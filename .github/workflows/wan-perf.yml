@@ -7,18 +7,19 @@ on:
     - release/*
     paths:
     - .github/workflows/wan-perf.yml
-    - src/core
-    - src/platform
-    - src/perf
+    - src/core/*
+    - src/platform/*
+    - src/perf/*
   pull_request:
     branches:
     - main
     - release/*
     paths:
     - .github/workflows/wan-perf.yml
-    - src/core
-    - src/platform
-    - src/perf
+    - src/core/*
+    - src/platform/*
+    - src/perf/*
+    - submodules/openssl/*
 
 permissions: read-all
 
