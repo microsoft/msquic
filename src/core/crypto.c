@@ -306,14 +306,13 @@ QuicCryptoInitializeTls(
     }
     TlsConfig.TlsSecrets = Connection->TlsSecrets;
 
-    TlsConfig.HkdfLabels = NULL;
+    TlsConfig.HkdfLabels = &QuicSupportedVersionList[0].HkdfLabels; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
             TlsConfig.HkdfLabels = &QuicSupportedVersionList[i].HkdfLabels;
             break;
         }
     }
-    CXPLAT_FRE_ASSERT(TlsConfig.HkdfLabels != NULL);
 
     TlsConfig.TPType =
         Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 ?
