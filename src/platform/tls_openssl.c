@@ -439,6 +439,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         Status =
             QuicPacketKeyDerive(
                 KeyType,
+                TlsContext->HkdfLabels,
                 &Secret,
                 "read secret",
                 TRUE,
