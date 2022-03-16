@@ -236,7 +236,7 @@ $FailXmlText = @"
 "@
 
 # Global state for tracking if any crashes occurred.
-$AnyProcessCrashes = $false
+$global:CrashedProcessCount = 0
 
 # Path to the WER registry key used for collecting dumps.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$TestExeName"
@@ -587,7 +587,7 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($ProcessCrashed) {
-            $AnyProcessCrashes = $true;
+            $global:CrashedProcessCount++
         }
 
         if ($IsolationMode -eq "Batch") {
@@ -861,12 +861,14 @@ try {
 
     # Print out the results.
     Log "$($TestCount) test(s) run."
-    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
+    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
         if ($ErrorsAsWarnings) {
             Write-Warning "$($TestsFailed) test(s) failed."
+            Write-Warning "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
         } else {
-            Write-Error "$($TestsFailed) test(s) failed."
+            Write-Error "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
+            $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {
         Write-Error "Failed to run any tests."
