@@ -24,6 +24,7 @@ const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 const char* PfxPass = "PLACEHOLDER";        // approved for cred scan
 extern const char* PfxPath;
+const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -247,6 +248,7 @@ protected:
             CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = TRUE;
             Config.SecConfig = (CXPLAT_SEC_CONFIG*)SecConfiguration;
+            Config.HkdfLabels = &HkdfLabels;
             UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
             Config.AlpnBuffer = Alpn;
             Config.AlpnBufferLength = sizeof(Alpn);
@@ -274,6 +276,7 @@ protected:
             CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = FALSE;
             Config.SecConfig = SecConfiguration;
+            Config.HkdfLabels = &HkdfLabels;
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
@@ -1511,10 +1514,12 @@ TEST_P(TlsTest, KeyUpdate)
 
     VERIFY_QUIC_SUCCESS(
         QuicPacketKeyUpdate(
+            &HkdfLabels,
             ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT],
             &UpdateWriteKey));
     VERIFY_QUIC_SUCCESS(
         QuicPacketKeyUpdate(
+            &HkdfLabels,
             ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT],
             &UpdateReadKey));
 

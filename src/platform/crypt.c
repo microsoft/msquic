@@ -197,6 +197,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
     _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,
@@ -243,7 +244,7 @@ QuicPacketKeyDerive(
     Status =
         CxPlatHkdfExpandLabel(
             Hash,
-            "quic iv",
+            HkdfLabels->IvLabel,
             CXPLAT_IV_LENGTH,
             SecretLength,
             Temp);
@@ -257,7 +258,7 @@ QuicPacketKeyDerive(
     Status =
         CxPlatHkdfExpandLabel(
             Hash,
-            "quic key",
+            HkdfLabels->KeyLabel,
             KeyLength,
             SecretLength,
             Temp);
@@ -280,7 +281,7 @@ QuicPacketKeyDerive(
         Status =
             CxPlatHkdfExpandLabel(
                 Hash,
-                "quic hp",
+                HkdfLabels->HpLabel,
                 KeyLength,
                 SecretLength,
                 Temp);
@@ -323,6 +324,7 @@ _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
     _In_reads_(CXPLAT_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,  // Version Specific
     _In_ uint8_t CIDLength,
@@ -351,6 +353,7 @@ QuicPacketKeyCreateInitial(
         Status =
             QuicPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
+                HkdfLabels,
                 IsServer ? &ServerInitial : &ClientInitial,
                 IsServer ? "srv secret" : "cli secret",
                 TRUE,
@@ -364,6 +367,7 @@ QuicPacketKeyCreateInitial(
         Status =
             QuicPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
+                HkdfLabels,
                 IsServer ? &ClientInitial : &ServerInitial,
                 IsServer ? "cli secret" : "srv secret",
                 TRUE,
@@ -414,6 +418,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
 QuicPacketKeyUpdate(
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     )
@@ -439,7 +444,7 @@ QuicPacketKeyUpdate(
     Status =
         CxPlatHkdfExpandLabel(
             Hash,
-            "quic ku",
+            HkdfLabels->KuLabel,
             SecretLength,
             SecretLength,
             NewTrafficSecret.Secret);
@@ -453,6 +458,7 @@ QuicPacketKeyUpdate(
     Status =
         QuicPacketKeyDerive(
             QUIC_PACKET_KEY_1_RTT,
+            HkdfLabels,
             &NewTrafficSecret,
             "update traffic secret",
             FALSE,

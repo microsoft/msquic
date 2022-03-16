@@ -150,6 +150,11 @@ typedef struct CXPLAT_TLS_CONFIG {
     QUIC_CONNECTION* Connection;
 
     //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
+    //
     // The TLS configuration information and credentials.
     //
     CXPLAT_SEC_CONFIG* SecConfig;
