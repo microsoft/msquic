@@ -129,6 +129,8 @@ protected:
     static volatile uint16_t NextPort;
     static QuicAddr LocalIPv4;
     static QuicAddr LocalIPv6;
+    static QuicAddr UnspecIPv4;
+    static QuicAddr UnspecIPv6;
 
     //
     // Helper to get a new port to bind to.
@@ -181,6 +183,48 @@ protected:
         }
     }
 
+    //
+    // Helper to return a new unspecified IPv4 address and port to use.
+    //
+    QuicAddr
+    GetNewUnspecIPv4(bool randomPort = true)
+    {
+        QuicAddr ipv4Copy = UnspecIPv4;
+        if (randomPort) { ipv4Copy.SockAddr.Ipv4.sin_port = GetNextPort(); }
+        else { ipv4Copy.SockAddr.Ipv4.sin_port = 0; }
+        return ipv4Copy;
+    }
+
+    //
+    // Helper to return a new unspecified IPv4 address and port to use.
+    //
+    QuicAddr
+    GetNewUnspecIPv6(bool randomPort = true)
+    {
+        QuicAddr ipv6Copy = UnspecIPv6;
+        if (randomPort) { ipv6Copy.SockAddr.Ipv6.sin6_port = GetNextPort(); }
+        else { ipv6Copy.SockAddr.Ipv6.sin6_port = 0; }
+        return ipv6Copy;
+    }
+
+    //
+    // Helper to return a new unspecified IPv4 or IPv6 address based on the test data.
+    //
+    QuicAddr
+    GetNewUnspecAddr(bool randomPort = true)
+    {
+        int addressFamily = GetParam();
+
+        if (addressFamily == 4) {
+            return GetNewUnspecIPv4(randomPort);
+        } else if (addressFamily == 6) {
+            return GetNewUnspecIPv6(randomPort);
+        } else {
+            GTEST_NONFATAL_FAILURE_("Malconfigured test data; This should never happen!!");
+            return QuicAddr();
+        }
+    }
+
     static void SetUpTestSuite()
     {
         //
@@ -195,6 +239,9 @@ protected:
             LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
             LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
         }
+
+        UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "0.0.0.0");
+        UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "::");
 
         ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
@@ -373,6 +420,8 @@ protected:
 volatile uint16_t DataPathTest::NextPort;
 QuicAddr DataPathTest::LocalIPv4;
 QuicAddr DataPathTest::LocalIPv6;
+QuicAddr DataPathTest::UnspecIPv4;
+QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
     CXPLAT_DATAPATH* Datapath {nullptr};
@@ -620,15 +669,18 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
-    auto serverAddress = GetNewLocalAddr();
-    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     }
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
-    RecvContext.DestinationAddress = Server.GetLocalAddress();
+
+    auto serverAddress = GetNewLocalAddr();
+    RecvContext.DestinationAddress = serverAddress.SockAddr;
+    RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
     CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
