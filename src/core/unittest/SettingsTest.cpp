@@ -421,20 +421,25 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
 TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
 {
     uint16_t SetCpus[] = {0, 1};
+    uint32_t SetCpusSize = ARRAYSIZE(SetCpus);
+    if (CxPlatProcActiveCount() < 2) {
+        SetCpusSize = CxPlatProcActiveCount();
+    }
+    uint32_t BufferLength = SetCpusSize * sizeof(uint16_t);
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibrarySetGlobalParam(
             QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
-            sizeof(SetCpus),
+            BufferLength,
             SetCpus));
-    uint32_t BufferLength = 0;
+    BufferLength = 0;
     ASSERT_EQ(
         QUIC_STATUS_BUFFER_TOO_SMALL,
         QuicLibraryGetGlobalParam(
             QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
             &BufferLength,
             NULL));
-    ASSERT_EQ(ARRAYSIZE(SetCpus), BufferLength / sizeof(uint16_t));
+    ASSERT_EQ(SetCpusSize, BufferLength / sizeof(uint16_t));
     uint16_t GetCpus[ARRAYSIZE(SetCpus)] = {0};
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -442,7 +447,7 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
             QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
             &BufferLength,
             GetCpus));
-    ASSERT_EQ(0, memcmp(GetCpus, SetCpus, sizeof(SetCpus)));
+    ASSERT_EQ(0, memcmp(GetCpus, SetCpus, SetCpusSize * sizeof(uint16_t)));
     //
     // Passing a NULL buffer should clear the proc list.
     //
