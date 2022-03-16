@@ -3437,7 +3437,7 @@ QuicConnRecvRetry(
 
     if (QUIC_FAILED(
         QuicPacketGenerateRetryIntegrity(
-            VersionInfo->RetryIntegritySecret,
+            VersionInfo,
             DestCid->CID.Length,
             DestCid->CID.Data,
             Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
@@ -3503,6 +3503,7 @@ QuicConnRecvRetry(
         Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
+            &VersionInfo->HkdfLabels,
             VersionInfo->Salt,
             DestCid->CID.Length,
             DestCid->CID.Data,

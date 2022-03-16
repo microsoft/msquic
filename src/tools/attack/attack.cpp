@@ -26,6 +26,8 @@
 
 #define ATTACK_PORT_DEFAULT 443
 
+const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
+
 static CXPLAT_DATAPATH* Datapath;
 static PacketWriter* Writer;
 
@@ -241,6 +243,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             QUIC_SUCCEEDED(
             QuicPacketKeyCreateInitial(
                 FALSE,
+                &HkdfLabels,
                 InitialSalt.Data,
                 sizeof(uint64_t),
                 (uint8_t*)DestCid,

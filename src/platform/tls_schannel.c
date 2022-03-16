@@ -558,6 +558,11 @@ typedef struct CXPLAT_TLS {
     //
     CXPLAT_SEC_CONFIG* SecConfig;
 
+    //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
     SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
 
     ULONG AppProtocolsSize;
@@ -1459,6 +1464,8 @@ CxPlatTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_TLS* TlsContext = NULL;
 
+    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+
     if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         QuicTraceEvent(
             TlsError,
@@ -1486,6 +1493,7 @@ CxPlatTlsInitialize(
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->Connection = Config->Connection;
+    TlsContext->HkdfLabels = Config->HkdfLabels;
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
@@ -2942,6 +2950,7 @@ QuicPacketKeyCreate(
     Status =
         QuicPacketKeyDerive(
             KeyType,
+            TlsContext->HkdfLabels,
             &Secret,
             SecretName,
             TRUE,
