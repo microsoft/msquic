@@ -425,12 +425,17 @@ main(
         }
     }
 
+
+    uint8_t CipherSuite = 0;
+    TryGetValue(argc, argv, "cipher", &CipherSuite);
+
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
             DriverName != nullptr ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
                 CXPLAT_SELF_SIGN_CERT_USER,
-            FALSE);
+            FALSE,
+            CipherSuite);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
