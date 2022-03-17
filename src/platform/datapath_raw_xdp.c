@@ -1212,6 +1212,13 @@ CxPlatXdpRx(
             FrameBuffer,
             (uint16_t)Buffer->length);
 
+        //
+        // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+        // mark it resolved. This allows stateless sends to be issued without performing
+        // a route lookup.
+        //
+        Packet->Route->State = RouteResolved;
+
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
             Packet->Queue = Queue;
