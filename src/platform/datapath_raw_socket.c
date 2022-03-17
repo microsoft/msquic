@@ -694,7 +694,8 @@ CxPlatDpRawParseIPv6(
                 uint32_t Version : 4; // Most significant bits.
             };
             uint32_t Value;
-        } VersionClassEcnFlow = { CxPlatByteSwapUint32(IP->VersionClassEcnFlow) };
+        } VersionClassEcnFlow;
+        VersionClassEcnFlow.Value = CxPlatByteSwapUint32(IP->VersionClassEcnFlow);
 
         Packet->TypeOfService = (uint8_t)VersionClassEcnFlow.EcnField;
         Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
