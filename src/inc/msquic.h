@@ -632,7 +632,6 @@ typedef struct QUIC_TLS_SECRETS {
         uint8_t ServerHandshakeTrafficSecret : 1;
         uint8_t ClientTrafficSecret0 : 1;
         uint8_t ServerTrafficSecret0 : 1;
-        uint8_t RESERVED: 2;
     } IsSet;
     uint8_t ClientRandom[32];
     uint8_t ClientEarlyTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
