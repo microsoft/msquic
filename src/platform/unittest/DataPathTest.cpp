@@ -467,8 +467,9 @@ ResolveRouteComplete(
     )
 {
     UNREFERENCED_PARAMETER(PathId);
-    UNREFERENCED_PARAMETER(Succeeded);
-    CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
+    if (Succeeded) {
+        CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
+    }
 }
 #endif // QUIC_USE_RAW_DATAPATH
 
