@@ -121,6 +121,12 @@ CxPlatDataPathInitialize(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
+    if (UdpCallbacks != NULL) {
+        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+    }
 
     *NewDataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
     if (*NewDataPath == NULL) {
@@ -135,10 +141,6 @@ CxPlatDataPathInitialize(
     CxPlatZeroMemory(*NewDataPath, DatapathSize);
 
     if (UdpCallbacks) {
-        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
 
