@@ -11,6 +11,7 @@
 
 const MsQuicApi* MsQuic;
 volatile long ConnectedCount;
+volatile long ConnectionsActive;
 const uint32_t ConnectionCount = 100;
 
 void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
@@ -30,6 +31,8 @@ void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
 QUIC_STATUS ConnectionCallback(_In_ struct MsQuicConnection* , _In_opt_ void* , _Inout_ QUIC_CONNECTION_EVENT* Event) {
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
         InterlockedIncrement(&ConnectedCount);
+    } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+        InterlockedDecrement(&ConnectionsActive);
     } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
         new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, MsQuicStream::NoOpCallback);
     }
@@ -52,11 +55,15 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
         MsQuicAlpn Alpns("h3", "h3-29");
         MsQuicSettings Settings;
         Settings.SetPeerUnidiStreamCount(3);
+        Settings.SetKeepAlive(60 * 1000);
+        Settings.SetIdleTimeoutMs(10 * 60 * 1000);
         MsQuicConfiguration Config(Registration, Alpns, Settings, MsQuicCredentialConfig());
         QUIC_ADDR_STR AddrStr;
         QuicAddrToString(&ServerAddress.SockAddr, &AddrStr);
-        printf("Starting %u connections to %s [%s]\n", ConnectionCount, ServerName, AddrStr.Address);
+        printf("Starting %u connections to %s [%s]\n\n", ConnectionCount, ServerName, AddrStr.Address);
         QuicAddr LocalAddress = {0};
+        ConnectionsActive = ConnectionCount;
+        uint64_t Start = CxPlatTimeMs64();
         for (uint32_t i = 0; i < ConnectionCount; ++i) {
             auto Connection = new(std::nothrow) MsQuicConnection(Registration, CleanUpAutoDelete, ConnectionCallback);
             Connection->SetRemoteAddr(ServerAddress);
@@ -66,7 +73,11 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
             if (i == 0) Connection->GetLocalAddr(LocalAddress);
         }
         CxPlatSleep(5000);
-        printf("%u connections connected\n", (uint32_t)ConnectedCount);
+        printf("%4llu: %u connections connected\n", (long long unsigned)(CxPlatTimeMs64() - Start) / 1000, (uint32_t)ConnectedCount);
+        while (ConnectionsActive != 0) {
+            printf("%4llu: %u connections active\n", (long long unsigned)(CxPlatTimeMs64() - Start) / 1000, (uint32_t)ConnectionsActive);
+            CxPlatSleep(30000);
+        }
     }
 
     delete MsQuic;
