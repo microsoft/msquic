@@ -1308,7 +1308,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN, // unused currently
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize,
     _Inout_ CXPLAT_ROUTE* Route
     )
@@ -1317,7 +1317,6 @@ CxPlatDpRawTxAlloc(
     XDP_QUEUE* Queue = Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
-    UNREFERENCED_PARAMETER(ECN);
     UNREFERENCED_PARAMETER(Datapath);
 
     if (Packet) {
@@ -1326,6 +1325,7 @@ CxPlatDpRawTxAlloc(
         Packet->Queue = Queue;
         Packet->Buffer.Length = MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
+        Packet->ECN = ECN;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;

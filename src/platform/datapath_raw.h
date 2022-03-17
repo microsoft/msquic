@@ -91,6 +91,11 @@ typedef struct CXPLAT_INTERFACE {
 
 typedef struct CXPLAT_SEND_DATA {
 
+    //
+    // The type of ECN markings needed for send.
+    //
+    CXPLAT_ECN_TYPE ECN;
+
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA;
@@ -342,6 +347,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum
     );
