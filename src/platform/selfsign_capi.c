@@ -1029,11 +1029,10 @@ Done:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-const QUIC_CREDENTIAL_CONFIG*
+QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
-    _In_ BOOLEAN IsClient,
-    _In_ uint8_t AllowedCiphers
+    _In_ BOOLEAN IsClient
     )
 {
     QUIC_CREDENTIAL_CONFIG* Params =
@@ -1046,10 +1045,6 @@ CxPlatGetSelfSignedCert(
     Params->Flags = IsClient ?
         (QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) :
         QUIC_CREDENTIAL_FLAG_NONE;
-    if (AllowedCiphers != 0) {
-        Params->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-    }
-    Params->AllowedCipherSuites = AllowedCiphers;
     Params->CertificateContext =
         FindOrCreateCertificate(
             Type == CXPLAT_SELF_SIGN_CERT_USER,

@@ -766,7 +766,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
         // TODO - Randomize more of the settings.
 
-        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, 0);
+        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         if (!CredConfig) {
             continue;
         }

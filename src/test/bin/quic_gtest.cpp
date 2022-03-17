@@ -31,8 +31,7 @@ public:
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
                     CXPLAT_SELF_SIGN_CERT_USER,
-                FALSE,
-                0
+                FALSE
                 )) != nullptr);
 
         ASSERT_TRUE((ClientCertParams =
@@ -40,8 +39,7 @@ public:
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
                     CXPLAT_SELF_SIGN_CERT_USER,
-                TRUE,
-                0
+                TRUE
                 )) != nullptr);
 
         if (TestingKernelMode) {

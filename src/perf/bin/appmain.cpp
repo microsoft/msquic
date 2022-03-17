@@ -372,7 +372,7 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
+    QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
     bool KeyboardWait = false;
     const char* FileName = nullptr;
@@ -426,18 +426,22 @@ main(
         }
     }
 
-    TryGetValue(argc, argv, "cipher", &CipherSuite);
+
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
             DriverName != nullptr ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
                 CXPLAT_SELF_SIGN_CERT_USER,
-            FALSE,
-            CipherSuite);
+            FALSE);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
+    }
+
+    if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
+        SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+        SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
     }
 
     if (DriverName != nullptr) {

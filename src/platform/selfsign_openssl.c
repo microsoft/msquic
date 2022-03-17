@@ -579,11 +579,10 @@ FindOrCreateTempFiles(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-const QUIC_CREDENTIAL_CONFIG*
+QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
-    _In_ BOOLEAN ClientCertificate,
-    _In_ uint8_t AllowedCiphers
+    _In_ BOOLEAN ClientCertificate
     )
 {
     UNREFERENCED_PARAMETER(Type);
@@ -616,10 +615,6 @@ CxPlatGetSelfSignedCert(
 
     CxPlatZeroMemory(Params, sizeof(*Params));
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-    if (AllowedCiphers != 0) {
-        Params->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-    }
-    Params->AllowedCipherSuites = AllowedCiphers;
     Params->CertificateFile = &Params->CertFile;
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
