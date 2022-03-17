@@ -121,7 +121,7 @@ QuicConnAlloc(
     Connection->PeerPacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
-    Connection->Settings = MsQuicLib.Settings;
+    QuicSettingsCopy(&Connection->Settings, &MsQuicLib.Settings);
     Connection->Settings.IsSetFlags = 0; // Just grab the global values, not IsSet flags.
     CxPlatDispatchLockInitialize(&Connection->ReceiveQueueLock);
     CxPlatListInitializeHead(&Connection->DestCids);
@@ -5946,7 +5946,7 @@ QuicConnParamSet(
     )
 {
     QUIC_STATUS Status;
-    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_SETTINGS_INTERNAL InternalSettings = {0};
 
     switch (Param) {
 

@@ -15,6 +15,13 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_VERSION_SETTINGS*
+QuicSettingsCopyVersionSettings(
+    _In_ const QUIC_VERSION_SETTINGS* const Source,
+    _In_ BOOLEAN CopyExternalToInternal
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
     _Inout_ QUIC_SETTINGS_INTERNAL* Settings
@@ -211,6 +218,16 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.VersionNegotiationExtEnabled) {
         Destination->VersionNegotiationExtEnabled = Source->VersionNegotiationExtEnabled;
+    }
+    if (!Destination->IsSet.VersionSettings) {
+        if (Destination->VersionSettings) {
+            CXPLAT_FREE(Destination->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
+            Destination->VersionSettings = NULL;
+        }
+        if (Source->VersionSettings != NULL) {
+            Destination->VersionSettings =
+                QuicSettingsCopyVersionSettings(Source->VersionSettings, FALSE);
+        }
     }
     if (!Destination->IsSet.MinimumMtu) {
         Destination->MinimumMtu = Source->MinimumMtu;
@@ -445,7 +462,8 @@ QuicSettingApply(
     }
 
     if (Source->IsSet.VersionSettings) {
-        if (Destination->IsSet.VersionSettings && OverWrite) {
+        if ((Destination->IsSet.VersionSettings && OverWrite) ||
+            (!Destination->IsSet.VersionSettings && Destination->VersionSettings != NULL)) {
             CXPLAT_FREE(Destination->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
             Destination->VersionSettings = NULL;
             Destination->IsSet.VersionSettings = FALSE;
@@ -527,7 +545,7 @@ QuicSettingsCleanup(
     _In_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
-    if (Settings->IsSet.VersionSettings && Settings->VersionSettings) {
+    if (Settings->VersionSettings) {
         CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
         Settings->VersionSettings = NULL;
         Settings->IsSet.VersionSettings = FALSE;

@@ -464,7 +464,7 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
-    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_SETTINGS_INTERNAL InternalSettings = {0};
     QUIC_STATUS Status;
 
     switch (Param) {

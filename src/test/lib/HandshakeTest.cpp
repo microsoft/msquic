@@ -1191,7 +1191,6 @@ QuicTestCompatibleVersionNegotiationRetry(
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
-    TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
