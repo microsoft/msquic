@@ -453,7 +453,7 @@ struct CxPlatDataPath {
 };
 
 #ifdef QUIC_USE_RAW_DATAPATH
-extern "C" {
+static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
@@ -469,7 +469,6 @@ ResolveRouteComplete(
     UNREFERENCED_PARAMETER(PathId);
     UNREFERENCED_PARAMETER(Succeeded);
     CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
-}
 }
 #endif // QUIC_USE_RAW_DATAPATH
 

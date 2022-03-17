@@ -678,7 +678,7 @@ void
     _Inout_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
-        uint8_t* PhysicalAddress,
+        const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );
