@@ -66,7 +66,7 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
             if (i == 0) Connection->GetLocalAddr(LocalAddress);
         }
         CxPlatSleep(5000);
-        printf("%d connections connected\n", ConnectedCount);
+        printf("%u connections connected\n", (uint32_t)ConnectedCount);
     }
 
     delete MsQuic;
