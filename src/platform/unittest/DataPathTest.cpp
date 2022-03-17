@@ -452,6 +452,27 @@ struct CxPlatDataPath {
     uint32_t GetSupportedFeatures() const noexcept { return CxPlatDataPathGetSupportedFeatures(Datapath); }
 };
 
+#ifdef QUIC_USE_RAW_DATAPATH
+extern "C" {
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+ResolveRouteComplete(
+    _Inout_ void* Context,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    UNREFERENCED_PARAMETER(PathId);
+    UNREFERENCED_PARAMETER(Succeeded);
+    CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
+}
+}
+#endif // QUIC_USE_RAW_DATAPATH
+
 struct CxPlatSocket {
     CXPLAT_SOCKET* Socket {nullptr};
     QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
@@ -511,6 +532,21 @@ struct CxPlatSocket {
         if (QUIC_SUCCEEDED(InitStatus)) {
             CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
             CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
+#ifdef QUIC_USE_RAW_DATAPATH
+            if (!QuicAddrIsWildCard(&Route.RemoteAddress)) {
+                //
+                // This is a connected socket and its route must be resolved
+                // to be able to send traffic.
+                //
+                InitStatus = CxPlatResolveRoute(Socket, &Route, 0, &Route, ResolveRouteComplete);
+                //
+                // Duonic sets up static neighbor entries, so CxPlatResolveRoute should
+                // complete synchronously. If this changes, we will need to add code to
+                // wait for an event set by ResolveRouteComplete.
+                //
+                ASSERT_TRUE(InitStatus == QUIC_STATUS_SUCCESS);
+            }
+#endif
         }
     }
     void CreateTcp(
