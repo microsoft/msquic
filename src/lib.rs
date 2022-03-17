@@ -516,6 +516,21 @@ pub const PERF_COUNTER_WORK_OPER_QUEUED: PerformanceCounter = 25;
 pub const PERF_COUNTER_WORK_OPER_COMPLETED: PerformanceCounter = 26;
 pub const PERF_COUNTER_MAX: PerformanceCounter = 27;
 
+pub const QUIC_TLS_SECRETS_MAX_SECRET_LEN: usize = 64;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct QuicTlsSecrets {
+    pub secret_length: u8,
+    pub flags: u8,
+    pub client_random: [u8; 32],
+    pub client_early_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub client_handshake_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub server_handshake_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub client_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub server_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+}
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Settings {
@@ -1217,6 +1232,12 @@ impl Connection {
         unsafe {
             ((*self.table).connection_shutdown)(self.handle, flags, error_code);
         }
+    }
+    
+    pub fn set_param(&self, param: u32, buffer_length: u32, buffer: *const c_void) -> u32 {
+        unsafe {
+            ((*self.table).set_param)(self.handle, param, buffer_length, buffer)
+        }        
     }
 
     pub fn stream_close(&self, stream: Handle) {
