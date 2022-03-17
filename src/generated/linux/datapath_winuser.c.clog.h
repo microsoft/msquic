@@ -201,8 +201,8 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn , arg2);\
 // QuicTraceLogVerbose(
         DatapathSocketContextComplete,
         "[data][%p] Socket context shutdown",
-        SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent = arg2
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathSocketContextComplete
 #define _clog_3_ARGS_TRACE_DatapathSocketContextComplete(uniqueId, encoded_arg_string, arg2)\
@@ -279,8 +279,8 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge , arg2, arg3_len, arg3);\
 // QuicTraceLogVerbose(
             DatapathWakeupForShutdown,
             "[data][%p] Datapath wakeup for shutdown",
-            DatapathProc->Datapath);
-// arg2 = arg2 = DatapathProc->Datapath = arg2
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathWakeupForShutdown
 #define _clog_3_ARGS_TRACE_DatapathWakeupForShutdown(uniqueId, encoded_arg_string, arg2)\
@@ -293,12 +293,12 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForShutdown , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for DatapathWakeupForECTimeout
-// [data][%p] Datapath wakeup for EC timeout
+// [data][%p] Datapath wakeup for EC wake or timeout
 // QuicTraceLogVerbose(
             DatapathWakeupForECTimeout,
-            "[data][%p] Datapath wakeup for EC timeout",
-            DatapathProc->Datapath);
-// arg2 = arg2 = DatapathProc->Datapath = arg2
+            "[data][%p] Datapath wakeup for EC wake or timeout",
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathWakeupForECTimeout
 #define _clog_3_ARGS_TRACE_DatapathWakeupForECTimeout(uniqueId, encoded_arg_string, arg2)\

@@ -2773,7 +2773,7 @@
     },
     "DatapathWakeupForECTimeout": {
       "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath wakeup for EC timeout",
+      "TraceString": "[data][%p] Datapath wakeup for EC wake or timeout",
       "UniqueId": "DatapathWakeupForECTimeout",
       "splitArgs": [
         {
@@ -12226,9 +12226,9 @@
         "EncodingString": "[data][%p] Exceeded URO preallocation capacity."
       },
       {
-        "UniquenessHash": "8c057641-928b-3b77-3648-99e355ad1f6c",
+        "UniquenessHash": "6482ddf5-3328-7814-1cb9-0eeef2e3afe5",
         "TraceID": "DatapathWakeupForECTimeout",
-        "EncodingString": "[data][%p] Datapath wakeup for EC timeout"
+        "EncodingString": "[data][%p] Datapath wakeup for EC wake or timeout"
       },
       {
         "UniquenessHash": "406ad3fd-813a-21c4-b38a-52fbf3253ff3",
