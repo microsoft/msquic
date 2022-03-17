@@ -833,9 +833,9 @@ QuicBindingProcessStatelessOperation(
 
         const uint32_t* SupportedVersions;
         uint32_t SupportedVersionsLength;
-        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
-            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
-            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
+        if (MsQuicLib.Settings.IsSet.VersionSettings) {
+            SupportedVersions = MsQuicLib.Settings.VersionSettings->OfferedVersions;
+            SupportedVersionsLength = MsQuicLib.Settings.VersionSettings->OfferedVersionsLength;
         } else {
             SupportedVersions = DefaultSupportedVersionsList;
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);

@@ -136,10 +136,10 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded,
             Connection,
             "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
-            DesiredVersionsListLength);
+            OtherVersionsListLength);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Stats.QuicVersion = arg3
-// arg4 = arg4 = DesiredVersionsListLength = arg4
+// arg4 = arg4 = OtherVersionsListLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionNegotiationInfoEncoded,
     TP_ARGS(

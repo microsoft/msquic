@@ -372,10 +372,14 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
-            uint32_t DesiredVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
             QUIC_VERSION_SETTINGS Settings = { 0 };
-            Settings.AcceptableVersions = DesiredVersions;
-            Settings.AcceptableVersionsLength = ARRAYSIZE(DesiredVersions);
+            Settings.AcceptableVersions = SupportedVersions;
+            Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.OfferedVersions = SupportedVersions;
+            Settings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.FullyDeployedVersions = SupportedVersions;
+            Settings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
@@ -383,10 +387,14 @@ public:
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
-            uint32_t DesiredVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
             QUIC_VERSION_SETTINGS Settings = { 0 };
-            Settings.AcceptableVersions = DesiredVersions;
-            Settings.AcceptableVersionsLength = ARRAYSIZE(DesiredVersions);
+            Settings.AcceptableVersions = SupportedVersions;
+            Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.OfferedVersions = SupportedVersions;
+            Settings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.FullyDeployedVersions = SupportedVersions;
+            Settings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,

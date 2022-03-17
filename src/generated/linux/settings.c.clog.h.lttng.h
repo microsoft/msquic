@@ -418,38 +418,6 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpServerResumptionLevel,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingDumpDesiredVersionsListLength
-// [sett] Desired Version length = %u
-// QuicTraceLogVerbose(SettingDumpDesiredVersionsListLength,"[sett] Desired Version length = %u", Settings->DesiredVersionsListLength);
-// arg2 = arg2 = Settings->DesiredVersionsListLength = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpDesiredVersionsListLength,
-    TP_ARGS(
-        unsigned int, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SettingDumpDesiredVersionsList
-// [sett] Desired Version[0]     = 0x%x
-// QuicTraceLogVerbose(SettingDumpDesiredVersionsList, "[sett] Desired Version[0]     = 0x%x", Settings->DesiredVersionsList[0]);
-// arg2 = arg2 = Settings->DesiredVersionsList[0] = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpDesiredVersionsList,
-    TP_ARGS(
-        unsigned int, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SettingDumpVersionNegoExtEnabled
 // [sett] Version Negotiation Ext Enabled = %hhu
 // QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,   "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
@@ -578,17 +546,152 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingsInvalidVersion
-// Invalid version supplied to settings! 0x%x at position %d
+// Decoder Ring for SettingDumpAcceptedVersionsLength
+// [sett] AcceptedVersionslength = %u
+// QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
+// arg2 = arg2 = Settings->VersionSettings->AcceptableVersionsLength = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpAcceptedVersionsLength,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingDumpOfferedVersionsLength
+// [sett] OfferedVersionslength  = %u
+// QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,       "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
+// arg2 = arg2 = Settings->VersionSettings->OfferedVersionsLength = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpOfferedVersionsLength,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingDumpAcceptableVersions
+// [sett] AcceptableVersions[%u]  = 0x%x
+// QuicTraceLogVerbose(SettingDumpAcceptableVersions,      "[sett] AcceptableVersions[%u]  = 0x%x", i, Settings->VersionSettings->AcceptableVersions[i]);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Settings->VersionSettings->AcceptableVersions[i] = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpAcceptableVersions,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingDumpOfferedVersions
+// [sett] OfferedVersions[%u]     = 0x%x
+// QuicTraceLogVerbose(SettingDumpOfferedVersions,         "[sett] OfferedVersions[%u]     = 0x%x", i, Settings->VersionSettings->OfferedVersions[i]);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Settings->VersionSettings->OfferedVersions[i] = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpOfferedVersions,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingDumpFullyDeployedVersions
+// [sett] FullyDeployedVersion[%u]= 0x%x
+// QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[%u]= 0x%x", i, Settings->VersionSettings->FullyDeployedVersions[i]);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Settings->VersionSettings->FullyDeployedVersions[i] = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpFullyDeployedVersions,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingsInvalidAcceptableVersion
+// Invalid AcceptableVersion supplied to settings! 0x%x at position %d
 // QuicTraceLogError(
-                            SettingsInvalidVersion,
-                            "Invalid version supplied to settings! 0x%x at position %d",
-                            Source->DesiredVersionsList[i],
-                            (int32_t)i);
-// arg2 = arg2 = Source->DesiredVersionsList[i] = arg2
+                SettingsInvalidAcceptableVersion,
+                "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
+                Settings->AcceptableVersions[i],
+                (int32_t)i);
+// arg2 = arg2 = Settings->AcceptableVersions[i] = arg2
 // arg3 = arg3 = (int32_t)i = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsInvalidVersion,
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsInvalidAcceptableVersion,
+    TP_ARGS(
+        unsigned int, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingsInvalidOfferedVersion
+// Invalid OfferedVersion supplied to settings! 0x%x at position %d
+// QuicTraceLogError(
+                SettingsInvalidOfferedVersion,
+                "Invalid OfferedVersion supplied to settings! 0x%x at position %d",
+                Settings->OfferedVersions[i],
+                (int32_t)i);
+// arg2 = arg2 = Settings->OfferedVersions[i] = arg2
+// arg3 = arg3 = (int32_t)i = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsInvalidOfferedVersion,
+    TP_ARGS(
+        unsigned int, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingsInvalidFullyDeployedVersion
+// Invalid FullyDeployedVersion supplied to settings! 0x%x at position %d
+// QuicTraceLogError(
+                SettingsInvalidFullyDeployedVersion,
+                "Invalid FullyDeployedVersion supplied to settings! 0x%x at position %d",
+                Settings->FullyDeployedVersions[i],
+                (int32_t)i);
+// arg2 = arg2 = Settings->FullyDeployedVersions[i] = arg2
+// arg3 = arg3 = (int32_t)i = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsInvalidFullyDeployedVersion,
     TP_ARGS(
         unsigned int, arg2,
         int, arg3), 
@@ -604,12 +707,12 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsInvalidVersion,
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "Desired Versions list",
-                    Source->DesiredVersionsListLength * sizeof(uint32_t));
-// arg2 = arg2 = "Desired Versions list" = arg2
-// arg3 = arg3 = Source->DesiredVersionsListLength * sizeof(uint32_t) = arg3
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "VersionSettings",
+            AllocSize);
+// arg2 = arg2 = "VersionSettings" = arg2
+// arg3 = arg3 = AllocSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, AllocFailure,
     TP_ARGS(

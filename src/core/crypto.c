@@ -390,6 +390,13 @@ QuicCryptoOnVersionChange(
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;
 
+    if (!Crypto->Initialized) {
+        //
+        // Crypto is not initialized yet, so no need to set keys.
+        //
+        return QUIC_STATUS_SUCCESS;
+    }
+
     const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
@@ -1294,7 +1301,9 @@ QuicConnReceiveTP(
         return FALSE;
     }
 
-    (void)QuicConnProcessPeerTransportParameters(Connection, FALSE);
+    if (QUIC_FAILED(QuicConnProcessPeerTransportParameters(Connection, FALSE))) {
+        return FALSE;
+    }
 
     return TRUE;
 }

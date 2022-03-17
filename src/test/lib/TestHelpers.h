@@ -57,20 +57,26 @@ struct ServerAcceptContext {
     }
 };
 
-// struct ClearGlobalVersionListScope {
-//     ~ClearGlobalVersionListScope() {
-//         MsQuicVersionSettings Settings;
-//         Settings.SetVersionNegotiationExtEnabled(true);
-//         Settings.SetDesiredVersionsList(nullptr, 0);
+struct ClearGlobalVersionListScope {
+    ~ClearGlobalVersionListScope() {
+        MsQuicVersionSettings Settings;
+        Settings.SetAllVersionLists(nullptr, 0);
+        BOOLEAN Default = FALSE;
 
-//         TEST_QUIC_SUCCEEDED(
-//             MsQuic->SetParam(
-//                 NULL,
-//                 QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//                 sizeof(Settings),
-//                 &Settings));
-//     }
-// };
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(Settings),
+                &Settings));
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+                sizeof(Default),
+                &Default));
+    }
+};
 
 //
 // No 64-bit version for this existed globally. This defines an interlocked
