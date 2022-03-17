@@ -378,6 +378,7 @@ main(
     const char* FileName = nullptr;
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
+    uint8_t CipherSuite = 0;
     constexpr const char* DriverSearch = "driverName";
     size_t DriverLen = strlen(DriverSearch);
 
@@ -425,10 +426,7 @@ main(
         }
     }
 
-
-    uint8_t CipherSuite = 0;
     TryGetValue(argc, argv, "cipher", &CipherSuite);
-
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
             DriverName != nullptr ?
