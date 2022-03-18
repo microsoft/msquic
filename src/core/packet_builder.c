@@ -194,7 +194,7 @@ QuicPacketBuilderPrepare(
     }
 
     BOOLEAN Result = FALSE;
-    uint32_t QuicVersion = Connection->Stats.QuicVersion;
+    uint32_t QuicVersion = QuicConnGetVersion(Connection);
     uint8_t NewPacketType = QuicVersion == QUIC_VERSION_2 ?
         QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
         QuicKeyTypeToPacketTypeV1(NewPacketKeyType);

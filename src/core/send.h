@@ -39,7 +39,7 @@ QuicKeyTypeToPacketTypeV2(
 
 inline
 QUIC_PACKET_KEY_TYPE
-QuicPacketTypeToKeyType(
+QuicPacketTypeToKeyTypeV1(
     uint8_t PacketType
     )
 {
@@ -53,14 +53,43 @@ QuicPacketTypeToKeyType(
 }
 
 inline
+QUIC_PACKET_KEY_TYPE
+QuicPacketTypeToKeyTypeV2(
+    uint8_t PacketType
+    )
+{
+    switch (PacketType) {
+    case QUIC_INITIAL_V2:
+    case QUIC_RETRY_V2:            return QUIC_PACKET_KEY_INITIAL;
+    case QUIC_HANDSHAKE_V2:        return QUIC_PACKET_KEY_HANDSHAKE;
+    case QUIC_0_RTT_PROTECTED_V2:  return QUIC_PACKET_KEY_0_RTT;
+    default:                    return QUIC_PACKET_KEY_1_RTT;
+    }
+}
+
+inline
 uint8_t
-QuicEncryptLevelToPacketType(
+QuicEncryptLevelToPacketTypeV1(
     QUIC_ENCRYPT_LEVEL Level
     )
 {
     switch (Level) {
     case QUIC_ENCRYPT_LEVEL_INITIAL:    return QUIC_INITIAL_V1;
     case QUIC_ENCRYPT_LEVEL_HANDSHAKE:  return QUIC_HANDSHAKE_V1;
+    case QUIC_ENCRYPT_LEVEL_1_RTT:
+    default:                            return SEND_PACKET_SHORT_HEADER_TYPE;
+    }
+}
+
+inline
+uint8_t
+QuicEncryptLevelToPacketTypeV2(
+    QUIC_ENCRYPT_LEVEL Level
+    )
+{
+    switch (Level) {
+    case QUIC_ENCRYPT_LEVEL_INITIAL:    return QUIC_INITIAL_V2;
+    case QUIC_ENCRYPT_LEVEL_HANDSHAKE:  return QUIC_HANDSHAKE_V2;
     case QUIC_ENCRYPT_LEVEL_1_RTT:
     default:                            return SEND_PACKET_SHORT_HEADER_TYPE;
     }

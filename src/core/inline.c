@@ -216,7 +216,12 @@ QuicKeyTypeToEncryptLevel(
     );
 
 QUIC_PACKET_KEY_TYPE
-QuicPacketTypeToKeyType(
+QuicPacketTypeToKeyTypeV1(
+    uint8_t PacketType
+    );
+
+QUIC_PACKET_KEY_TYPE
+QuicPacketTypeToKeyTypeV2(
     uint8_t PacketType
     );
 
@@ -399,7 +404,12 @@ QuicDatagramGetConnection(
     );
 
 uint8_t
-QuicEncryptLevelToPacketType(
+QuicEncryptLevelToPacketTypeV1(
+    QUIC_ENCRYPT_LEVEL Level
+    );
+
+uint8_t
+QuicEncryptLevelToPacketTypeV2(
     QUIC_ENCRYPT_LEVEL Level
     );
 
@@ -408,8 +418,18 @@ QuicPacketTypeToEncryptLevelV1(
     uint8_t PacketType
     );
 
+QUIC_ENCRYPT_LEVEL
+QuicPacketTypeToEncryptLevelV2(
+    uint8_t PacketType
+    );
+
 uint8_t
 QuicKeyTypeToPacketTypeV1(
+    QUIC_PACKET_KEY_TYPE KeyType
+    );
+
+uint8_t
+QuicKeyTypeToPacketTypeV2(
     QUIC_PACKET_KEY_TYPE KeyType
     );
 
@@ -612,6 +632,16 @@ QuicRangeCompare(
 
 uint64_t
 QuicConnGetNextExpirationTime(
+    _In_ const QUIC_CONNECTION * const Connection
+    );
+
+uint64_t
+QuicConnGetNextExpirationTime(
+    _In_ const QUIC_CONNECTION * const Connection
+    );
+
+uint32_t
+QuicConnGetVersion(
     _In_ const QUIC_CONNECTION * const Connection
     );
 

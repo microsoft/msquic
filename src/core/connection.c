@@ -3777,7 +3777,11 @@ QuicConnRecvHeader(
                 Packet->DestCidLen);
         }
 
-        Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);
+        if (Connection->Stats.QuicVersion == QUIC_VERSION_2) {
+            Packet->KeyType = QuicPacketTypeToKeyTypeV2(Packet->LH->Type);
+        } else {
+            Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
+        }
         Packet->Encrypted = TRUE;
 
     } else {
@@ -4163,8 +4167,8 @@ QuicConnRecvDecryptAndAuthenticate(
     //
 
     if (!Packet->IsShortHeader) {
-        switch (Packet->LH->Type) {
-        case QUIC_INITIAL_V1:
+        if ((!QuicConnIsVersion2(Connection) && Packet->LH->Type == QUIC_INITIAL_V1) ||
+            (QuicConnIsVersion2(Connection) && Packet->LH->Type == QUIC_INITIAL_V2)) {
             if (!Connection->State.Connected &&
                 QuicConnIsClient(Connection) &&
                 !QuicConnUpdateDestCid(Connection, Packet)) {
@@ -4174,15 +4178,11 @@ QuicConnRecvDecryptAndAuthenticate(
                 //
                 return FALSE;
             }
-            break;
+        } else if ((!QuicConnIsVersion2(Connection) && Packet->LH->Type == QUIC_0_RTT_PROTECTED_V1) ||
+            (QuicConnIsVersion2(Connection) && Packet->LH->Type == QUIC_0_RTT_PROTECTED_V2)) {
 
-        case QUIC_0_RTT_PROTECTED_V1:
             CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
             Packet->EncryptedWith0Rtt = TRUE;
-            break;
-
-        default:
-            break;
         }
     }
 

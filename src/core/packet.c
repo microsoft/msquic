@@ -234,8 +234,8 @@ QuicPacketValidateLongHeaderV1V2(
     // Validate acceptable types.
     //
     CXPLAT_DBG_ASSERT(IsServer == 0 || IsServer == 1);
-    if (QUIC_HEADER_TYPE_ALLOWED_V1[IsServer][Packet->LH->Type] == FALSE ||
-        QUIC_HEADER_TYPE_ALLOWED_V2[IsServer][Packet->LH->Type] == FALSE) {
+    if ((Packet->LH->Version != QUIC_VERSION_2 && QUIC_HEADER_TYPE_ALLOWED_V1[IsServer][Packet->LH->Type] == FALSE) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && QUIC_HEADER_TYPE_ALLOWED_V2[IsServer][Packet->LH->Type] == FALSE)) {
         QuicPacketLogDropWithValue(Owner, Packet, "Invalid client/server packet type", Packet->LH->Type);
         return FALSE;
     }
@@ -489,7 +489,7 @@ QuicPacketDecodeRetryTokenV1(
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderVer);
     CXPLAT_DBG_ASSERT(Packet->Invariant->IsLongHeader);
-    CXPLAT_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL_V1);
+    CXPLAT_DBG_ASSERT(Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1);
 
     uint16_t Offset =
         sizeof(QUIC_LONG_HEADER_V1) +
