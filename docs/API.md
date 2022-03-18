@@ -23,7 +23,15 @@ Term | Definition
 
 ## Object Model
 
-![API Objects](images/api_objects.png)
+```mermaid
+  graph LR;
+      App-->API;
+      API-->Registration;
+      Registration-->Configuration;
+      Registration-->Listener;
+      Registration-->Connection;
+      Connection-->Stream;
+```
 
 The API supports both server and client applications. All functionality is exposed primarily via a set of different objects:
 
