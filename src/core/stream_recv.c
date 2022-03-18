@@ -1000,6 +1000,13 @@ QuicStreamReceiveComplete(
         QuicStreamTryCompleteShutdown(Stream);
 
         //
+        // Flush the connection-wide MAX_DATA.
+        //
+        QuicSendSetSendFlag(
+            &Stream->Connection->Send,
+            QUIC_CONN_SEND_FLAG_MAX_DATA);
+
+        //
         // Remove any flags we shouldn't be sending now that the receive
         // direction is closed.
         //
