@@ -771,7 +771,7 @@ QuicCryptoWriteCryptoFrames(
         uint32_t EncryptLevelStart;
         uint32_t PacketTypeRight;
         switch (Builder->PacketType) {
-        case QUIC_INITIAL:
+        case QUIC_INITIAL_V1:
             EncryptLevelStart = 0;
             if (Crypto->TlsState.BufferOffsetHandshake != 0) {
                 PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
@@ -779,12 +779,12 @@ QuicCryptoWriteCryptoFrames(
                 PacketTypeRight = Crypto->TlsState.BufferTotalLength;
             }
             break;
-        case QUIC_0_RTT_PROTECTED:
+        case QUIC_0_RTT_PROTECTED_V1:
             CXPLAT_FRE_ASSERT(FALSE);
             EncryptLevelStart = 0;
             PacketTypeRight = 0; // To get build to stop complaining.
             break;
-        case QUIC_HANDSHAKE:
+        case QUIC_HANDSHAKE_V1:
             CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
             CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
             EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;

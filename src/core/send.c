@@ -518,7 +518,7 @@ QuicSendWriteFrames(
     // specific frames.
     //
 
-    if (Builder->PacketType != QUIC_0_RTT_PROTECTED &&
+    if (Builder->PacketType != QUIC_0_RTT_PROTECTED_V1 &&
         QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
         if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, Builder)) {
             RanOutOfRoom = TRUE;
@@ -1253,7 +1253,7 @@ QuicSendFlush(
             //
             QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
             WrotePacketFrames =
-                Builder.PacketType != QUIC_0_RTT_PROTECTED &&
+                Builder.PacketType != QUIC_0_RTT_PROTECTED_V1 &&
                 QuicAckTrackerHasPacketsToAck(&Packets->AckTracker) &&
                 QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder);
 

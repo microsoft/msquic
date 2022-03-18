@@ -269,9 +269,9 @@ PacketWriter::WriteClientInitialPacket(
     uint16_t PayloadLengthOffset = 0;
     uint8_t PacketNumberLength;
     *PacketLength =
-        QuicPacketEncodeLongHeaderV1(
+        QuicPacketEncodeLongHeaderV1V2(
             QuicVersion,
-            QUIC_INITIAL,
+            QUIC_INITIAL_V1,
             Cid,
             Cid,
             0,

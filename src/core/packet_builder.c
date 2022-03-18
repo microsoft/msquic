@@ -194,7 +194,10 @@ QuicPacketBuilderPrepare(
     }
 
     BOOLEAN Result = FALSE;
-    uint8_t NewPacketType = QuicKeyTypeToPacketType(NewPacketKeyType);
+    uint32_t QuicVersion = Connection->Stats.QuicVersion;
+    uint8_t NewPacketType = QuicVersion == QUIC_VERSION_2 ?
+        QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
+        QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -312,7 +315,8 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if (NewPacketType == QUIC_INITIAL) {
+        } else if ((QuicVersion == QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V2) ||
+            (QuicVersion != QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V1)) {
 
             //
             // Make sure to pad Initial packets.
@@ -342,7 +346,9 @@ QuicPacketBuilderPrepare(
         //
 
         Builder->PacketType = NewPacketType;
-        Builder->EncryptLevel = QuicPacketTypeToEncryptLevel(NewPacketType);
+        Builder->EncryptLevel = QuicVersion == QUIC_VERSION_2 ? 
+            QuicPacketTypeToEncryptLevelV2(NewPacketType) :
+            QuicPacketTypeToEncryptLevelV1(NewPacketType);
         Builder->Key = Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType];
         CXPLAT_DBG_ASSERT(Builder->Key != NULL);
         CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
@@ -387,6 +393,7 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_1:
             case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
+            case QUIC_VERSION_2:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
                         &Builder->Path->DestCid->CID,
@@ -410,11 +417,12 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_1:
             case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
+            case QUIC_VERSION_2:
             default:
                 Builder->HeaderLength =
-                    QuicPacketEncodeLongHeaderV1(
+                    QuicPacketEncodeLongHeaderV1V2(
                         Connection->Stats.QuicVersion,
-                        (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
+                        NewPacketType,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,
@@ -735,6 +743,7 @@ QuicPacketBuilderFinalize(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
+        case QUIC_VERSION_2:
         default:
             QuicVarIntEncode2Bytes(
                 (uint16_t)Builder->PacketNumberLength +
@@ -956,7 +965,7 @@ Exit:
                 Builder->BatchId);
         }
 
-        if (Builder->PacketType == QUIC_RETRY) {
+        if (Builder->PacketType == QUIC_RETRY_V1) {
             CXPLAT_DBG_ASSERT(Builder->Metadata->PacketNumber == 0);
             QuicConnCloseLocally(
                 Connection,

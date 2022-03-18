@@ -21,16 +21,18 @@ typedef struct QUIC_COMPATIBLE_VERSION_MAP {
 
 const QUIC_COMPATIBLE_VERSION_MAP CompatibleVersionsMap[] = {
     {QUIC_VERSION_MS_1, QUIC_VERSION_1},
-    {QUIC_VERSION_1, QUIC_VERSION_MS_1}
+    {QUIC_VERSION_1, QUIC_VERSION_MS_1},
+    {QUIC_VERSION_1, QUIC_VERSION_2}
 };
 
 //
 // This list is the versions the server advertises support for.
 //
-const uint32_t DefaultSupportedVersionsList[3] = {
+const uint32_t DefaultSupportedVersionsList[4] = {
     QUIC_VERSION_1,
     QUIC_VERSION_MS_1,
-    QUIC_VERSION_DRAFT_29
+    QUIC_VERSION_DRAFT_29,
+    QUIC_VERSION_2
 };
 
 BOOLEAN

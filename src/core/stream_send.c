@@ -1096,7 +1096,7 @@ QuicStreamSendWrite(
         uint16_t StreamFrameLength = AvailableBufferLength - Builder->DatagramLength;
         QuicStreamWriteStreamFrames(
             Stream,
-            Builder->PacketType == QUIC_INITIAL,
+            Builder->PacketType == QUIC_INITIAL_V1,
             Builder->Metadata,
             &StreamFrameLength,
             Builder->Datagram->Buffer + Builder->DatagramLength);

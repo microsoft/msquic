@@ -1784,6 +1784,7 @@ QuicConnOnQuicVersionSet(
     case QUIC_VERSION_1:
     case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_MS_1:
+    case QUIC_VERSION_2:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
         break;
@@ -3677,7 +3678,7 @@ QuicConnRecvHeader(
         }
 #endif
 
-        if (Packet->LH->Type == QUIC_RETRY) {
+        if (Packet->LH->Type == QUIC_RETRY_V1) {
             QuicConnRecvRetry(Connection, Packet);
             return FALSE;
         }
@@ -3686,7 +3687,7 @@ QuicConnRecvHeader(
         uint16_t TokenLength = 0;
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateLongHeaderV1(
+            !QuicPacketValidateLongHeaderV1V2(
                 Connection,
                 QuicConnIsServer(Connection),
                 Packet,
@@ -3900,7 +3901,7 @@ QuicConnRecvPrepareDecrypt(
         return FALSE;
     }
 
-    CXPLAT_DBG_ASSERT(Packet->IsShortHeader || Packet->LH->Type != QUIC_RETRY);
+    CXPLAT_DBG_ASSERT(Packet->IsShortHeader || Packet->LH->Type != QUIC_RETRY_V1);
 
     //
     // Ensure minimum encrypted payload length.
@@ -4163,7 +4164,7 @@ QuicConnRecvDecryptAndAuthenticate(
 
     if (!Packet->IsShortHeader) {
         switch (Packet->LH->Type) {
-        case QUIC_INITIAL:
+        case QUIC_INITIAL_V1:
             if (!Connection->State.Connected &&
                 QuicConnIsClient(Connection) &&
                 !QuicConnUpdateDestCid(Connection, Packet)) {
@@ -4175,7 +4176,7 @@ QuicConnRecvDecryptAndAuthenticate(
             }
             break;
 
-        case QUIC_0_RTT_PROTECTED:
+        case QUIC_0_RTT_PROTECTED_V1:
             CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
             Packet->EncryptedWith0Rtt = TRUE;
             break;

@@ -1477,7 +1477,13 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            if (Packet->LH->Type != QUIC_INITIAL) {
+            if (Packet->LH->Type != QUIC_INITIAL_V1) {
+                QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
+                return FALSE;
+            }
+            break;
+        case QUIC_VERSION_2:
+            if (Packet->LH->Type != QUIC_INITIAL_V2) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
                 return FALSE;
             }
@@ -1485,7 +1491,7 @@ QuicBindingDeliverDatagrams(
 
         const uint8_t* Token = NULL;
         uint16_t TokenLength = 0;
-        if (!QuicPacketValidateLongHeaderV1(
+        if (!QuicPacketValidateLongHeaderV1V2(
                 Binding,
                 TRUE,
                 Packet,

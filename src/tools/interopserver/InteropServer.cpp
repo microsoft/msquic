@@ -12,6 +12,7 @@ Abstract:
 #include "InteropServer.h"
 
 #define QUIC_VERSION_1          0x01000000U     // First official version
+#define QUIC_VERSION_2          0x709a50c4U     // Second official version
 #define QUIC_VERSION_MS_1       0x0000cdabU     // First Microsoft version (currently same as latest draft)
 #define QUIC_VERSION_DRAFT_29   0x1d0000ffU     // IETF draft 29
 
@@ -107,7 +108,7 @@ main(
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
-        uint32_t SupportedVersions[] = {QUIC_VERSION_1, QUIC_VERSION_DRAFT_29, QUIC_VERSION_MS_1};
+        uint32_t SupportedVersions[] = {QUIC_VERSION_1, QUIC_VERSION_2, QUIC_VERSION_DRAFT_29, QUIC_VERSION_MS_1};
         QUIC_VERSION_SETTINGS VersionSettings{0};
         VersionSettings.AcceptableVersions = SupportedVersions;
         VersionSettings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);

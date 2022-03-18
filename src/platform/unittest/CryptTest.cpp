@@ -164,7 +164,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
     };
 };
 
-TEST_F(CryptTest, WellKnownClientInitial)
+TEST_F(CryptTest, WellKnownClientInitialv1)
 {
     const QuicBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
     const QuicBuffer ConnectionID("8394c8f03e515708");

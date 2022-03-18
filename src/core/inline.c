@@ -404,12 +404,12 @@ QuicEncryptLevelToPacketType(
     );
 
 QUIC_ENCRYPT_LEVEL
-QuicPacketTypeToEncryptLevel(
+QuicPacketTypeToEncryptLevelV1(
     uint8_t PacketType
     );
 
 uint8_t
-QuicKeyTypeToPacketType(
+QuicKeyTypeToPacketTypeV1(
     QUIC_PACKET_KEY_TYPE KeyType
     );
 
@@ -469,7 +469,7 @@ StreamCountToID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeLongHeaderV1(
+QuicPacketEncodeLongHeaderV1V2(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
     _In_ const QUIC_CID* const DestCid,

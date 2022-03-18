@@ -47,7 +47,7 @@ typedef struct CXPLAT_RECV_PACKET {
         const struct QUIC_HEADER_INVARIANT* Invariant;
         const struct QUIC_VERSION_NEGOTIATION_PACKET* VerNeg;
         const struct QUIC_LONG_HEADER_V1* LH;
-        const struct QUIC_RETRY_V1* Retry;
+        const struct QUIC_RETRY_HEADER_V1* Retry;
         const struct QUIC_SHORT_HEADER_V1* SH;
     };
 

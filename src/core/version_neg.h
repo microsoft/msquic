@@ -18,7 +18,7 @@ extern "C" {
 //
 // This list is the versions that the server advertises support for.
 //
-extern const uint32_t DefaultSupportedVersionsList[3];
+extern const uint32_t DefaultSupportedVersionsList[4];
 
 typedef struct QUIC_VERSION_INFORMATION_V1 {
     uint32_t ChosenVersion;
