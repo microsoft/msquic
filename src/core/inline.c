@@ -471,7 +471,7 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeLongHeaderV1V2(
     _In_ uint32_t Version, // Allows for version negotiation forcing
-    _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
+    _In_ uint8_t PacketType,
     _In_ const QUIC_CID* const DestCid,
     _In_ const QUIC_CID* const SourceCid,
     _In_ uint16_t TokenLength,
