@@ -24,7 +24,7 @@ Term | Definition
 ## Object Model
 
 ```mermaid
-  graph TD;
+  graph LR;
       App-->API;
       API-->Registration;
       Registration-->Configuration;
