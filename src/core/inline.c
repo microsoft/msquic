@@ -635,13 +635,13 @@ QuicConnGetNextExpirationTime(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
-uint64_t
-QuicConnGetNextExpirationTime(
+uint32_t
+QuicConnGetVersion(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
-uint32_t
-QuicConnGetVersion(
+BOOLEAN
+QuicConnIsVersion2(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
