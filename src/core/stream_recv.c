@@ -737,6 +737,9 @@ QuicStreamOnBytesDelivered(
     Stream->MaxAllowedRecvOffset =
         Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
 
+    QuicSendSetSendFlag(
+        &Stream->Connection->Send,
+        QUIC_CONN_SEND_FLAG_MAX_DATA);
     QuicSendSetStreamSendFlag(
         &Stream->Connection->Send,
         Stream,
