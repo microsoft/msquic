@@ -3777,7 +3777,7 @@ QuicConnRecvHeader(
                 Packet->DestCidLen);
         }
 
-        if (Connection->Stats.QuicVersion == QUIC_VERSION_2) {
+        if (QuicConnIsVersion2(Connection)) {
             Packet->KeyType = QuicPacketTypeToKeyTypeV2(Packet->LH->Type);
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);

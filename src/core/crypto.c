@@ -922,9 +922,9 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
-    if ((Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType !=
+    if ((!QuicConnIsVersion2(Connection) && Builder->PacketType !=
             QuicEncryptLevelToPacketTypeV1(QuicCryptoGetNextEncryptLevel(Crypto))) ||
-        (Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType !=
+        (QuicConnIsVersion2(Connection) && Builder->PacketType !=
             QuicEncryptLevelToPacketTypeV2(QuicCryptoGetNextEncryptLevel(Crypto)))) {
         //
         // Nothing to send in this packet / encryption level, just continue on.
