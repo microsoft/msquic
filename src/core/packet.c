@@ -255,8 +255,8 @@ QuicPacketValidateLongHeaderV1V2(
 
     uint16_t Offset = Packet->HeaderLength;
 
-    if (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1 ||
-        Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2) {
+    if ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2)) {
         if (IsServer && Packet->BufferLength < QUIC_MIN_INITIAL_PACKET_LENGTH) {
             //
             // All client initial packets need to be padded to a minimum length.
