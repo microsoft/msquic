@@ -104,6 +104,7 @@ QuicCryptoInitialize(
     _Inout_ QUIC_CRYPTO* Crypto
     )
 {
+    CXPLAT_DBG_ASSERT(Crypto->Initialized == FALSE);
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint16_t SendBufferLength =
@@ -403,6 +404,14 @@ QuicCryptoOnVersionChange(
             VersionInfo = &QuicSupportedVersionList[i];
             break;
         }
+    }
+
+    if (Crypto->TLS) {
+        //
+        // If TLS has been initialized, then it needs to have HKDF
+        // labels updated.
+        //
+        CxPlatTlsUpdateHkdfLabels(Crypto->TLS, &VersionInfo->HkdfLabels);
     }
 
     if (QuicConnIsServer(Connection)) {

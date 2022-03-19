@@ -2465,6 +2465,10 @@ QuicConnSetConfiguration(
             //
             Connection->Stats.QuicVersion = QUIC_VERSION_LATEST;
             QuicConnOnQuicVersionSet(Connection);
+            Status = QuicCryptoOnVersionChange(&Connection->Crypto);
+            if (QUIC_FAILED(Status)) {
+                return Status;
+            }
         }
 
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));

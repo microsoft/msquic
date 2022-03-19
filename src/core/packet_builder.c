@@ -314,8 +314,8 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if ((!QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V2) ||
-            (QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V1)) {
+        } else if ((QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V2) ||
+            (!QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V1)) {
 
             //
             // Make sure to pad Initial packets.
