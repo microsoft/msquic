@@ -26,6 +26,8 @@ typedef struct QUIC_VERSION_INFORMATION_V1 {
     const uint32_t* OtherVersions;
 } QUIC_VERSION_INFORMATION_V1;
 
+#define MIN_VERSION_INFO_LENGTH sizeof(uint32_t)
+
 BOOLEAN
 QuicVersionNegotiationExtIsVersionServerSupported(
     _In_ uint32_t Version
