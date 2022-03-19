@@ -964,7 +964,8 @@ Exit:
                 Builder->BatchId);
         }
 
-        if (Builder->PacketType == QUIC_RETRY_V1) {
+        if ((!QuicConnIsVersion2(Connection) && Builder->PacketType == QUIC_RETRY_V1) ||
+            (QuicConnIsVersion2(Connection) && Builder->PacketType == QUIC_RETRY_V2)) {
             CXPLAT_DBG_ASSERT(Builder->Metadata->PacketNumber == 0);
             QuicConnCloseLocally(
                 Connection,

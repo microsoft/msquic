@@ -3660,6 +3660,9 @@ QuicConnRecvHeader(
                 Connection->State.CompatibleVerNegotiationAttempted = TRUE;
                 Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
                 QuicConnOnQuicVersionSet(Connection);
+                if (QUIC_FAILED(QuicCryptoOnVersionChange(&Connection->Crypto))) {
+                    return FALSE;
+                }
                 //
                 // Do not return FALSE here, continue with the connection.
                 //
