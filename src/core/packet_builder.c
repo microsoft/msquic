@@ -194,8 +194,7 @@ QuicPacketBuilderPrepare(
     }
 
     BOOLEAN Result = FALSE;
-    uint32_t QuicVersion = QuicConnGetVersion(Connection);
-    uint8_t NewPacketType = QuicVersion == QUIC_VERSION_2 ?
+    uint8_t NewPacketType = QuicConnIsVersion2(Connection) ?
         QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
         QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
     uint16_t DatagramSize = Builder->Path->Mtu;
@@ -315,8 +314,8 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if ((QuicVersion == QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V2) ||
-            (QuicVersion != QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V1)) {
+        } else if ((!QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V2) ||
+            (QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V1)) {
 
             //
             // Make sure to pad Initial packets.
@@ -346,7 +345,7 @@ QuicPacketBuilderPrepare(
         //
 
         Builder->PacketType = NewPacketType;
-        Builder->EncryptLevel = QuicVersion == QUIC_VERSION_2 ? 
+        Builder->EncryptLevel = QuicConnIsVersion2(Connection) ?
             QuicPacketTypeToEncryptLevelV2(NewPacketType) :
             QuicPacketTypeToEncryptLevelV1(NewPacketType);
         Builder->Key = Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType];

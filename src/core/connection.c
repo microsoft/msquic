@@ -3678,7 +3678,7 @@ QuicConnRecvHeader(
         }
 #endif
 
-        if (Packet->LH->Type == QUIC_RETRY_V1) {
+        if (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_RETRY_V1) {
             QuicConnRecvRetry(Connection, Packet);
             return FALSE;
         }
@@ -3777,7 +3777,7 @@ QuicConnRecvHeader(
                 Packet->DestCidLen);
         }
 
-        if (QuicConnIsVersion2(Connection)) {
+        if (Packet->LH->Version == QUIC_VERSION_2) {
             Packet->KeyType = QuicPacketTypeToKeyTypeV2(Packet->LH->Type);
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
@@ -3905,7 +3905,9 @@ QuicConnRecvPrepareDecrypt(
         return FALSE;
     }
 
-    CXPLAT_DBG_ASSERT(Packet->IsShortHeader || Packet->LH->Type != QUIC_RETRY_V1);
+    CXPLAT_DBG_ASSERT(Packet->IsShortHeader ||
+        ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V2)));
 
     //
     // Ensure minimum encrypted payload length.
