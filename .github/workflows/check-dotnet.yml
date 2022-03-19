@@ -19,10 +19,6 @@ jobs:
     name: Validate
     runs-on: windows-latest
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab
-      with:
-        egress-policy: audit
     - name: Setup .NET
       uses: actions/setup-dotnet@9211491ffb35dd6a6657ca4f45d43dfe6e97c829
       with:
