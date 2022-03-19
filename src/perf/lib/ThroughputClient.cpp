@@ -58,16 +58,16 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (!Configuration.IsValid()) {
+        return Configuration.GetInitStatus();
+    }
+
     const char* Target = nullptr;
     if (!TryGetValue(argc, argv, "target", &Target) &&
         !TryGetValue(argc, argv, "server", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (!Configuration.IsValid()) {
-        return Configuration.GetInitStatus();
     }
 
     TryGetValue(argc, argv, "tcp", &UseTcp);

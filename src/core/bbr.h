@@ -153,5 +153,5 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );

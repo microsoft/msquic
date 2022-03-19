@@ -1107,12 +1107,13 @@ BbrCongestionControlOnDataLost(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 BbrCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
     UNREFERENCED_PARAMETER(Cc);
+    return FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1218,7 +1219,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     *Cc = QuicCongestionControlBbr;

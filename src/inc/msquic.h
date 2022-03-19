@@ -615,9 +615,6 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 2;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
-    uint16_t MaxBindingStatelessOperations;
-    uint16_t StatelessOperationExpirationMs;
-    uint8_t CongestionControlAlgorithm;
 
 } QUIC_SETTINGS;
 
