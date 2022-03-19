@@ -2708,7 +2708,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                     Connection->Stats.QuicVersion = SupportedVersions[ServerVersionIdx];
                     QuicConnOnQuicVersionSet(Connection);
                     Status = QuicCryptoOnVersionChange(&Connection->Crypto);
-                    if (FAILED(Status)) {
+                    if (QUIC_FAILED(Status)) {
                         QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                         return QUIC_STATUS_INTERNAL_ERROR;
                     }
