@@ -3703,7 +3703,8 @@ QuicConnRecvHeader(
         }
 #endif
 
-        if (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_RETRY_V1) {
+        if ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_RETRY_V1) ||
+            (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_RETRY_V2)) {
             QuicConnRecvRetry(Connection, Packet);
             return FALSE;
         }
