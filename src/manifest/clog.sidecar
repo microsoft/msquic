@@ -8245,6 +8245,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "RecvVerNegCryptoError": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Failed to update crypto on ver neg",
+      "UniqueId": "RecvVerNegCryptoError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "RecvVerNegNoMatch": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Version Negotation contained no supported versions",
@@ -13907,6 +13919,11 @@
         "UniquenessHash": "9727ad53-8a0f-e3b3-8def-c1fa820baaa9",
         "TraceID": "RecvVerNeg",
         "EncodingString": "[conn][%p] Received Version Negotation:"
+      },
+      {
+        "UniquenessHash": "c13441c6-4ae4-4459-2078-3ac4175a374b",
+        "TraceID": "RecvVerNegCryptoError",
+        "EncodingString": "[conn][%p] Failed to update crypto on ver neg"
       },
       {
         "UniquenessHash": "c9015186-9937-78ff-24f3-2f08dc9d3c95",

@@ -244,6 +244,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegNoMatch,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for RecvVerNegCryptoError
+// [conn][%p] Failed to update crypto on ver neg
+// QuicTraceLogConnError(
+            RecvVerNegCryptoError,
+            Connection,
+            "Failed to update crypto on ver neg");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegCryptoError,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApiEventNoHandler
 // [conn][%p] Event silently discarded (no handler).
 // QuicTraceLogConnWarning(

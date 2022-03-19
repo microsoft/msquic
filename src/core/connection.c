@@ -2707,6 +2707,11 @@ QuicConnProcessPeerVersionNegotiationTP(
                         SupportedVersions[ServerVersionIdx]);
                     Connection->Stats.QuicVersion = SupportedVersions[ServerVersionIdx];
                     QuicConnOnQuicVersionSet(Connection);
+                    Status = QuicCryptoOnVersionChange(&Connection->Crypto);
+                    if (FAILED(Status)) {
+                        QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                        return QUIC_STATUS_INTERNAL_ERROR;
+                    }
                 }
             }
         }
@@ -3362,6 +3367,19 @@ QuicConnRecvVerNeg(
     Connection->PreviousQuicVersion = Connection->Stats.QuicVersion;
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
+    QUIC_STATUS Status = QuicCryptoOnVersionChange(&Connection->Crypto);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogConnError(
+            RecvVerNegCryptoError,
+            Connection,
+            "Failed to update crypto on ver neg");
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)Status,
+            NULL);
+        return;
+    }
     QuicConnRestart(Connection, TRUE);
 }
 
