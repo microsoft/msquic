@@ -503,7 +503,7 @@ QuicPacketGenerateRetryIntegrity(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeRetryV1(
+QuicPacketEncodeRetryV1V2(
     _In_ uint32_t Version,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,

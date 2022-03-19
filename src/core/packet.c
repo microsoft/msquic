@@ -400,7 +400,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeRetryV1(
+QuicPacketEncodeRetryV1V2(
     _In_ uint32_t Version,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,
@@ -433,7 +433,7 @@ QuicPacketEncodeRetryV1(
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
-    Header->Type            = QUIC_RETRY_V1;
+    Header->Type            = Version == QUIC_VERSION_2 ? QUIC_RETRY_V2 : QUIC_RETRY_V1;
     Header->UNUSED          = RandomBits;
     Header->Version         = Version;
     Header->DestCidLength   = DestCidLength;
@@ -489,7 +489,9 @@ QuicPacketDecodeRetryTokenV1(
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderVer);
     CXPLAT_DBG_ASSERT(Packet->Invariant->IsLongHeader);
-    CXPLAT_DBG_ASSERT(Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1);
+    CXPLAT_DBG_ASSERT(
+        (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2));
 
     uint16_t Offset =
         sizeof(QUIC_LONG_HEADER_V1) +

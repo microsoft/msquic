@@ -1031,7 +1031,7 @@ QuicBindingProcessStatelessOperation(
         }
 
         SendDatagram->Length =
-            QuicPacketEncodeRetryV1(
+            QuicPacketEncodeRetryV1V2(
                 RecvPacket->LH->Version,
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
                 NewDestCid, MsQuicLib.CidTotalLength,
