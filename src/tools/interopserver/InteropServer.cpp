@@ -11,10 +11,10 @@ Abstract:
 
 #include "InteropServer.h"
 
-#define QUIC_VERSION_1          0x01000000U     // First official version
-#define QUIC_VERSION_2          0x709a50c4U     // Second official version
-#define QUIC_VERSION_MS_1       0x0000cdabU     // First Microsoft version (currently same as latest draft)
-#define QUIC_VERSION_DRAFT_29   0x1d0000ffU     // IETF draft 29
+#define QUIC_VERSION_2_H        0x709a50c4U     // Second official version
+#define QUIC_VERSION_1_H        0x00000001U     // First official version
+#define QUIC_VERSION_1_MS_H     0xabcd0000U     // First Microsoft version (-1412628480 in decimal)
+#define QUIC_VERSION_DRAFT_29_H 0xff00001dU     // IETF draft 29
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
@@ -108,10 +108,14 @@ main(
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
-        uint32_t SupportedVersions[] = {QUIC_VERSION_1, QUIC_VERSION_2, QUIC_VERSION_DRAFT_29, QUIC_VERSION_MS_1};
+        uint32_t SupportedVersions[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H};
         QUIC_VERSION_SETTINGS VersionSettings{0};
         VersionSettings.AcceptableVersions = SupportedVersions;
+        VersionSettings.OfferedVersions = SupportedVersions;
+        VersionSettings.FullyDeployedVersions = SupportedVersions;
         VersionSettings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
