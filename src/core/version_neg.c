@@ -202,7 +202,7 @@ QuicVersionNegotiationExtParseVersionInfo(
                 VersionInfoDecodeFailed2,
                 Connection,
                 "Version info too short to contain any Other Versions (%hu bytes)",
-                BufferLength - Offset);
+                (unsigned)(BufferLength - Offset));
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
