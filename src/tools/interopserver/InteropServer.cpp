@@ -115,7 +115,7 @@ main(
         VersionSettings.FullyDeployedVersions = SupportedVersions;
         VersionSettings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
         VersionSettings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
-        VersionSettings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,

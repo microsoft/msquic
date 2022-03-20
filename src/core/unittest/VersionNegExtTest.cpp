@@ -15,7 +15,11 @@ Abstract:
 #include "VersionNegExtTest.cpp.clog.h"
 #endif
 
-TEST(VersionNegExtTest, ParseVersionInfoFail)
+class WithBool : public testing::Test,
+    public testing::WithParamInterface<bool> {
+};
+
+TEST_P(WithBool, ParseVersionInfoFail)
 {
     const uint8_t ValidVI[] = {
         0,0,0,1,        // Chosen Version
@@ -25,7 +29,11 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
     };
 
     QUIC_VERSION_INFORMATION_V1 ParsedVI = {0};
-    QUIC_CONNECTION* NoOpConnection = (QUIC_CONNECTION*)0x1;
+    struct { QUIC_HANDLE Handle;
+        QUIC_CONNECTION Connection;
+    } Connection {};
+    ((QUIC_HANDLE*)&Connection)->Type =
+        GetParam() ? QUIC_HANDLE_TYPE_CONNECTION_SERVER : QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
 
     //
     // Test parsing a valid VI with too short of buffer
@@ -35,25 +43,27 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
-            NoOpConnection,
+            (QUIC_CONNECTION*)&Connection,
             ValidVI,
             3,
             &ParsedVI));
 
-    // Not enough room for Others Versions List
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicVersionNegotiationExtParseVersionInfo(
-            NoOpConnection,
-            ValidVI,
-            4,
-            &ParsedVI));
+    if (Connection.Handle.Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
+        // Not enough room for Others Versions List
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicVersionNegotiationExtParseVersionInfo(
+                (QUIC_CONNECTION*)&Connection,
+                ValidVI,
+                4,
+                &ParsedVI));
+    }
 
     // Partial Other Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
-            NoOpConnection,
+            (QUIC_CONNECTION*)&Connection,
             ValidVI,
             5,
             &ParsedVI));
@@ -62,7 +72,7 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
-            NoOpConnection,
+            (QUIC_CONNECTION*)&Connection,
             ValidVI,
             6,
             &ParsedVI));
@@ -71,7 +81,7 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
-            NoOpConnection,
+            (QUIC_CONNECTION*)&Connection,
             ValidVI,
             11,
             &ParsedVI));
@@ -80,7 +90,7 @@ TEST(VersionNegExtTest, ParseVersionInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
-            NoOpConnection,
+            (QUIC_CONNECTION*)&Connection,
             ValidVI,
             15,
             &ParsedVI));
@@ -140,3 +150,8 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
         }
     }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    VersionNegExtTest,
+    WithBool,
+    ::testing::Values(false, true));
