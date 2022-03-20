@@ -31,9 +31,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
                 VersionInfoDecodeFailed2,
                 Connection,
                 "Version info too short to contain any Other Versions (%hu bytes)",
-                BufferLength - Offset);
+                (unsigned)(BufferLength - Offset));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = BufferLength - Offset = arg3
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
     TP_ARGS(
