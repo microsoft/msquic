@@ -672,9 +672,9 @@ QuicStreamRecvGetState(
 BOOLEAN
 QuicRetryTokenDecrypt(
     _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_reads_(sizeof(QUIC_RETRY_TOKEN_CONTENTS))
+    _In_reads_(sizeof(QUIC_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
-    _Out_ QUIC_RETRY_TOKEN_CONTENTS* Token
+    _Out_ QUIC_TOKEN_CONTENTS* Token
     );
 
 void
