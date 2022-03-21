@@ -3698,62 +3698,68 @@ QuicConnRecvHeader(
         QUIC_PATH* Path = &Connection->Paths[0];
         if (!Path->IsPeerValidated && (Packet->ValidToken || TokenLength != 0)) {
 
+            BOOLEAN InvalidRetryToken = FALSE;
             if (Packet->ValidToken) {
                 CXPLAT_DBG_ASSERT(TokenBuffer == NULL);
                 CXPLAT_DBG_ASSERT(TokenLength == 0);
                 QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
             } else {
                 CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
-                if (!QuicPacketValidateRetryToken(
+                if (!QuicPacketValidateInitialToken(
                         Connection,
                         Packet,
                         TokenLength,
-                        TokenBuffer)) {
+                        TokenBuffer,
+                        &InvalidRetryToken) &&
+                    InvalidRetryToken) {
                     return FALSE;
                 }
             }
 
-            CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
-            CXPLAT_DBG_ASSERT(TokenLength == sizeof(QUIC_RETRY_TOKEN_CONTENTS));
+            if (!InvalidRetryToken) {
+                CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
+                CXPLAT_DBG_ASSERT(TokenLength == sizeof(QUIC_TOKEN_CONTENTS));
 
-            QUIC_RETRY_TOKEN_CONTENTS Token;
-            if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
-                CXPLAT_DBG_ASSERT(FALSE); // Was already decrypted sucessfully once.
-                QuicPacketLogDrop(Connection, Packet, "Retry token decrypt failure");
-                return FALSE;
+                QUIC_TOKEN_CONTENTS Token;
+                if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
+                    CXPLAT_DBG_ASSERT(FALSE); // Was already decrypted sucessfully once.
+                    QuicPacketLogDrop(Connection, Packet, "Retry token decrypt failure");
+                    return FALSE;
+                }
+
+                CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
+                CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->Route.RemoteAddress, &Token.Encrypted.RemoteAddress));
+
+                if (Connection->OrigDestCID != NULL) {
+                    CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
+                }
+
+                Connection->OrigDestCID =
+                    CXPLAT_ALLOC_NONPAGED(
+                        sizeof(QUIC_CID) +
+                        Token.Encrypted.OrigConnIdLength,
+                        QUIC_POOL_CID);
+                if (Connection->OrigDestCID == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "OrigDestCID",
+                        sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
+                    return FALSE;
+                }
+
+                Connection->OrigDestCID->Length = Token.Encrypted.OrigConnIdLength;
+                CxPlatCopyMemory(
+                    Connection->OrigDestCID->Data,
+                    Token.Encrypted.OrigConnId,
+                    Token.Encrypted.OrigConnIdLength);
+                Connection->State.HandshakeUsedRetryPacket = TRUE;
+
+                QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
             }
+        }
 
-            CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
-            CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->Route.RemoteAddress, &Token.Encrypted.RemoteAddress));
-
-            if (Connection->OrigDestCID != NULL) {
-                CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
-            }
-
-            Connection->OrigDestCID =
-                CXPLAT_ALLOC_NONPAGED(
-                    sizeof(QUIC_CID) +
-                    Token.Encrypted.OrigConnIdLength,
-                    QUIC_POOL_CID);
-            if (Connection->OrigDestCID == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "OrigDestCID",
-                    sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
-                return FALSE;
-            }
-
-            Connection->OrigDestCID->Length = Token.Encrypted.OrigConnIdLength;
-            CxPlatCopyMemory(
-                Connection->OrigDestCID->Data,
-                Token.Encrypted.OrigConnId,
-                Token.Encrypted.OrigConnIdLength);
-            Connection->State.HandshakeUsedRetryPacket = TRUE;
-
-            QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
-
-        } else if (Connection->OrigDestCID == NULL) {
+        if (Connection->OrigDestCID == NULL) {
 
             Connection->OrigDestCID =
                 CXPLAT_ALLOC_NONPAGED(

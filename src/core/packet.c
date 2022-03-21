@@ -481,27 +481,37 @@ QuicPacketDecodeRetryTokenV1(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicPacketValidateRetryToken(
+QuicPacketValidateInitialToken(
     _In_ const void* const Owner,
     _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_ uint16_t TokenLength,
+    _In_range_(>, 0) uint16_t TokenLength,
     _In_reads_(TokenLength)
-        const uint8_t* TokenBuffer
+        const uint8_t* TokenBuffer,
+    _Inout_ BOOLEAN* DropPacket
     )
 {
-    if (TokenLength != sizeof(QUIC_RETRY_TOKEN_CONTENTS)) {
-        QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token Length");
+    const BOOLEAN IsNewToken = TokenBuffer[0] & 0x1;
+    if (IsNewToken) {
+        QuicPacketLogDrop(Owner, Packet, "New Token not supported");
+        return FALSE; // TODO - Support NEW_TOKEN tokens.
+    }
+
+    if (TokenLength != sizeof(QUIC_TOKEN_CONTENTS)) {
+        QuicPacketLogDrop(Owner, Packet, "Invalid Token Length");
+        *DropPacket = TRUE;
         return FALSE;
     }
 
-    QUIC_RETRY_TOKEN_CONTENTS Token;
+    QUIC_TOKEN_CONTENTS Token;
     if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Decryption Failure");
+        *DropPacket = TRUE;
         return FALSE;
     }
 
     if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
         QuicPacketLogDrop(Owner, Packet, "Invalid Retry Token OrigConnId Length");
+        *DropPacket = TRUE;
         return FALSE;
     }
 
@@ -509,6 +519,7 @@ QuicPacketValidateRetryToken(
         CxPlatDataPathRecvPacketToRecvData(Packet);
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
+        *DropPacket = TRUE;
         return FALSE;
     }
 
