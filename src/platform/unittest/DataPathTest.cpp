@@ -51,7 +51,6 @@ struct QuicAddr
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
-        UNREFERENCED_PARAMETER(af);
         CXPLAT_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             CxPlatDataPathInitialize(
@@ -61,6 +60,7 @@ struct QuicAddr
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
+        SockAddr.si_family = af;
         if (QUIC_FAILED(
             CxPlatDataPathResolveAddress(
                 Datapath,
