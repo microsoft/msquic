@@ -14,8 +14,8 @@ typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
 //
 typedef struct QUIC_TOKEN_CONTENTS {
     struct {
-        uint64_t Timestamp  : 63;
         uint64_t IsNewToken : 1;
+        uint64_t Timestamp  : 63;
     } Authenticated;
     struct {
         QUIC_ADDR RemoteAddress;
