@@ -503,7 +503,7 @@ typedef struct IPV4_HEADER {
         uint8_t TypeOfServiceAndEcnField;
         struct {
             uint8_t EcnField : 2;
-            uint8_t TypeOfService : 2;
+            uint8_t TypeOfService : 6;
         };
     };
     uint16_t TotalLength;

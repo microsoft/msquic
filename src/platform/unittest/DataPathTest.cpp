@@ -236,8 +236,8 @@ protected:
             LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "192.168.1.11");
             LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "fc00::1:11");
         } else {
-            LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
-            LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
+            LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
+            LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
         }
 
         UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "0.0.0.0");
