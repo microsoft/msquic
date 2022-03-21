@@ -490,8 +490,8 @@ QuicPacketValidateInitialToken(
     _Inout_ BOOLEAN* DropPacket
     )
 {
-    QUIC_TOKEN_CONTENTS* EncryptedToken = (QUIC_TOKEN_CONTENTS*)TokenBuffer;
-    if (EncryptedToken->Authenticated.IsNewToken) {
+    const BOOLEAN IsNewToken = TokenBuffer[0] & 0x1;
+    if (IsNewToken) {
         QuicPacketLogDrop(Owner, Packet, "New Token not supported");
         return FALSE; // TODO - Support NEW_TOKEN tokens.
     }
