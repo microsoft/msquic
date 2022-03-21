@@ -60,7 +60,7 @@ struct QuicAddr
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
-        SockAddr.si_family = af;
+        QuicAddrSetFamily(&SockAddr, af);
         if (QUIC_FAILED(
             CxPlatDataPathResolveAddress(
                 Datapath,
