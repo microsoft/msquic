@@ -137,8 +137,8 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
             CxPlatRandom(Length, SendBuffer->Buffer);
 
             if (ValidQuic) {
-                QUIC_LONG_HEADER_V1* Header =
-                    (QUIC_LONG_HEADER_V1*)SendBuffer->Buffer;
+                QUIC_LONG_HEADER_V1V2* Header =
+                    (QUIC_LONG_HEADER_V1V2*)SendBuffer->Buffer;
                 Header->IsLongHeader = 1;
                 Header->Type = QUIC_INITIAL_V1;
                 Header->FixedBit = 1;
@@ -202,8 +202,8 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
         &HeaderLength);
     uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
-    uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
-    uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
+    uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1V2));
+    uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1V2) + sizeof(uint64_t) + sizeof(uint8_t));
 
     uint64_t* OrigSrcCid = nullptr;
     for (uint16_t i = HeaderLength; i < PacketLength; ++i) {

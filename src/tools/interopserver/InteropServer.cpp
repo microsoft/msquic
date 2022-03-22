@@ -11,11 +11,6 @@ Abstract:
 
 #include "InteropServer.h"
 
-#define QUIC_VERSION_2_H        0x709a50c4U     // Second official version
-#define QUIC_VERSION_1_H        0x00000001U     // First official version
-#define QUIC_VERSION_1_MS_H     0xabcd0000U     // First Microsoft version (-1412628480 in decimal)
-#define QUIC_VERSION_DRAFT_29_H 0xff00001dU     // IETF draft 29
-
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
 const char* RootFolderPath;
@@ -25,7 +20,8 @@ const QUIC_BUFFER SupportedALPNs[] = {
     { sizeof("hq-interop") - 1, (uint8_t*)"hq-interop" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("siduck") - 1, (uint8_t*)"siduck" },
-    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
+    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" },
+    { sizeof("h3") - 1, (uint8_t*)"h3" }
 };
 
 void
@@ -101,7 +97,7 @@ main(
     QUIC_SETTINGS Settings{0};
     Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
-    Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
+    Settings.PeerUnidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;

@@ -152,7 +152,7 @@ typedef enum QUIC_LONG_HEADER_TYPE_V2 {
 // The 4 least significant bits are protected by header protection.
 //
 
-typedef struct QUIC_LONG_HEADER_V1 {
+typedef struct QUIC_LONG_HEADER_V1V2 {
 
     uint8_t PnLength        : 2;
     uint8_t Reserved        : 2;    // Must be 0.
@@ -170,14 +170,14 @@ typedef struct QUIC_LONG_HEADER_V1 {
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
-} QUIC_LONG_HEADER_V1, QUIC_LONG_HEADER_V2;
+} QUIC_LONG_HEADER_V1V2;
 
 //
 // The minimum long header, in bytes.
 //
 #define MIN_LONG_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_LONG_HEADER_V1) + \
+    sizeof(QUIC_LONG_HEADER_V1V2) + \
     sizeof(uint8_t) + \
     sizeof(uint8_t) + \
     4 * sizeof(uint8_t) \
@@ -188,7 +188,7 @@ typedef struct QUIC_LONG_HEADER_V1 {
 // order.
 //
 
-typedef struct QUIC_RETRY_HEADER_V1 {
+typedef struct QUIC_RETRY_PACKET_V1V2 {
 
     uint8_t UNUSED          : 4;
     uint8_t Type            : 2;
@@ -202,14 +202,14 @@ typedef struct QUIC_RETRY_HEADER_V1 {
     //uint8_t Token[*];
     //uint8_t RetryIntegrityField[16];
 
-} QUIC_RETRY_HEADER_V1;
+} QUIC_RETRY_PACKET_V1V2;
 
 //
 // The minimum retry packet header, in bytes.
 //
 #define MIN_RETRY_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_RETRY_HEADER_V1) + \
+    sizeof(QUIC_RETRY_PACKET_V1V2) + \
     sizeof(uint8_t) \
 )
 
@@ -266,9 +266,9 @@ QuicPacketIsHandshake(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED_V1;
+            return ((QUIC_LONG_HEADER_V1V2*)Packet)->Type != QUIC_0_RTT_PROTECTED_V1;
         case QUIC_VERSION_2:
-            return ((QUIC_LONG_HEADER_V2*)Packet)->Type != QUIC_0_RTT_PROTECTED_V2;
+            return ((QUIC_LONG_HEADER_V1V2*)Packet)->Type != QUIC_0_RTT_PROTECTED_V2;
         default:
             return TRUE;
     }
@@ -425,22 +425,24 @@ QuicPacketEncodeLongHeaderV1V2(
     _Out_ uint8_t* PacketNumberLength
     )
 {
+    const BOOLEAN IsInitial =
+        (Version != QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V1) ||
+        (Version == QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V2);
     uint16_t RequiredBufferLength =
-        sizeof(QUIC_LONG_HEADER_V1) +
+        sizeof(QUIC_LONG_HEADER_V1V2) +
         DestCid->Length +
         sizeof(uint8_t) +
         SourceCid->Length +
         sizeof(uint16_t) + // We always encode 2 bytes for the length.
         sizeof(uint32_t);  // We always encode 4 bytes for the packet number.
-    if ((Version != QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V1) ||
-        (Version == QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V2)) {
+    if (IsInitial) {
         RequiredBufferLength += QuicVarIntSize(TokenLength) + TokenLength; // TokenLength
     }
     if (BufferLength < RequiredBufferLength) {
         return 0;
     }
 
-    QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Buffer;
+    QUIC_LONG_HEADER_V1V2* Header = (QUIC_LONG_HEADER_V1V2*)Buffer;
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
@@ -461,8 +463,7 @@ QuicPacketEncodeLongHeaderV1V2(
         memcpy(HeaderBuffer, SourceCid->Data, SourceCid->Length);
         HeaderBuffer += SourceCid->Length;
     }
-    if ((Version != QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V1) ||
-        (Version == QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V2)) {
+    if (IsInitial) {
         HeaderBuffer = QuicVarIntEncode(TokenLength, HeaderBuffer);
         if (TokenLength != 0) {
             _Analysis_assume_(Token != NULL);
