@@ -760,6 +760,7 @@ void
 #endif
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
+#define QUIC_PARAM_CONN_INITAL_TOKEN                    0x05000018  // uint8_t[]
 
 //
 // Parameters for TLS.
@@ -1002,6 +1003,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15,   // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+    QUIC_CONNECTION_EVENT_NEW_TOKEN_RECEIVED                = 16,   // Client-only; provides token to reuse for future connection.
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -1070,6 +1072,12 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
+        struct {
+            _Field_range_(>, 0)
+            uint32_t NewTokenLength;
+            _Field_size_(NewTokenLength)
+            const uint8_t* NewToken;
+        } NEW_TOKEN_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;
 

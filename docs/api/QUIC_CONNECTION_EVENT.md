@@ -72,6 +72,12 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;
             QUIC_CERTIFICATE_CHAIN* Chain;
         } PEER_CERTIFICATE_RECEIVED;
+        struct {
+            _Field_range_(>, 0)
+            uint32_t NewTokenLength;
+            _Field_size_(NewTokenLength)
+            const uint8_t* NewToken;
+        } NEW_TOKEN_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;
 ```
@@ -293,6 +299,18 @@ Most severe error status when doing deferred validation of the certificate. Vali
 Pointer to a platform/TLS specific certificate chain. Valid only during the callback.
 
 If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the PKCS #7 DER (binary) encoded certificate chain.
+
+## QUIC_CONNECTION_EVENT_NEW_TOKEN_RECEIVED
+
+This event indicates a NEW_TOKEN token has been received from the server.
+
+`NewTokenLength`
+
+The length of the `NewToken` buffer.
+
+`NewToken`
+
+The new token received from the server. For a client to later reuse for a new connection, it must pass this data to the new connection via the `QUIC_PARAM_CONN_INITAL_TOKEN` parameter.
 
 # See Also
 
