@@ -1900,6 +1900,9 @@ CxPlatTlsWriteDataToSchannel(
             ContextReq |= ASC_REQ_MUTUAL_AUTH;
         }
     }
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+        ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
+    }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
 
