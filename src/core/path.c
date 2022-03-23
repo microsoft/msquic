@@ -138,6 +138,14 @@ QuicPathSetValid(
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
 
+    if (QuicConnIsServer(Connection)) {
+        //
+        // Once we've validated a particular path, we should send a NEW_TOKEN to
+        // the client for it to revalidate on a future connection.
+        //
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_NEW_TOKEN);
+    }
+
     if (Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
         //
         // If the active path was just validated, then let's queue up DPLPMTUD.

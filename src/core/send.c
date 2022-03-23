@@ -870,6 +870,69 @@ QuicSendWriteFrames(
             }
         }
 
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_NEW_TOKEN) {
+
+            QUIC_TOKEN_CONTENTS Token;
+            Token.Authenticated.IsNewToken = TRUE;
+            Token.Authenticated.Timestamp = (uint64_t)CxPlatTimeEpochMs64();
+
+            Token.Encrypted.RemoteAddress = Builder->Path->Route.RemoteAddress;
+            CxPlatRandom(sizeof(Token.Encrypted.OrigConnId), Token.Encrypted.OrigConnId);
+            Token.Encrypted.OrigConnIdLength = 0;
+
+            uint8_t Iv[CXPLAT_MAX_IV_LENGTH] = {0};
+            /* TODO - What to do here?
+            if (MsQuicLib.CidTotalLength >= CXPLAT_IV_LENGTH) {
+                CxPlatCopyMemory(Iv, NewDestCid, CXPLAT_IV_LENGTH);
+                for (uint8_t i = CXPLAT_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
+                    Iv[i % CXPLAT_IV_LENGTH] ^= NewDestCid[i];
+                }
+            } else {
+                CxPlatZeroMemory(Iv, CXPLAT_IV_LENGTH);
+                CxPlatCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
+            }
+            */
+
+            QUIC_STATUS Status;
+            CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+            CXPLAT_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
+            if (StatelessRetryKey) {
+                Status =
+                    CxPlatEncrypt(
+                        StatelessRetryKey,
+                        Iv,
+                        sizeof(Token.Authenticated),
+                        (uint8_t*)&Token.Authenticated,
+                        sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag),
+                        (uint8_t*)&Token.Encrypted);
+            } else {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+            }
+            CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+
+            if (QUIC_FAILED(Status)) {
+                RanOutOfRoom = TRUE;
+            } else {
+                QUIC_NEW_TOKEN_EX Frame;
+                Frame.TokenLength = sizeof(Token);
+                Frame.Token = (const uint8_t*)&Token;
+
+                if (QuicNewTokenFrameEncode(
+                        &Frame,
+                        &Builder->DatagramLength,
+                        AvailableBufferLength,
+                        Builder->Datagram->Buffer)) {
+
+                    Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_NEW_TOKEN;
+                    if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_NEW_TOKEN, TRUE)) {
+                        return TRUE;
+                    }
+                } else {
+                    RanOutOfRoom = TRUE;
+                }
+            }
+        }
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
             RanOutOfRoom = QuicDatagramWriteFrame(&Connection->Datagram, Builder);
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
