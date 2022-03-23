@@ -85,7 +85,6 @@ PrintHelp(
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
-        "\n"
         "  -cc:<algo>                  Congestion control algorithm to use.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
