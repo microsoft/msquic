@@ -11,6 +11,9 @@
 
 #define QUIC_TEST_APIS 1
 
+#define DUONIC_TESTING 1
+extern bool UseDuoNic;
+
 #include "quic_platform.h"
 
 #include "quic_trace.h"
