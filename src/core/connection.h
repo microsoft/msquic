@@ -690,30 +690,6 @@ QuicConnGetNextExpirationTime(
 }
 
 //
-// Returns the current QUIC version of the connection.
-//
-inline
-uint32_t
-QuicConnGetVersion(
-    _In_ const QUIC_CONNECTION * const Connection
-    )
-{
-    return Connection->Stats.QuicVersion;
-}
-
-//
-// Returns whether the connection is using QUIC version 2 or not.
-//
-inline
-BOOLEAN
-QuicConnIsVersion2(
-    _In_ const QUIC_CONNECTION * const Connection
-    )
-{
-    return (QuicConnGetVersion(Connection) == QUIC_VERSION_2);
-}
-
-//
 // Helper to get the owning QUIC_CONNECTION for the stream set module.
 //
 inline

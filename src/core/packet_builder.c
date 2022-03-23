@@ -194,9 +194,10 @@ QuicPacketBuilderPrepare(
     }
 
     BOOLEAN Result = FALSE;
-    uint8_t NewPacketType = QuicConnIsVersion2(Connection) ?
-        QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
-        QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
+    uint8_t NewPacketType =
+        Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+            QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
+            QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -314,8 +315,8 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if ((QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V2) ||
-            (!QuicConnIsVersion2(Connection) && NewPacketType == QUIC_INITIAL_V1)) {
+        } else if ((Connection->Stats.QuicVersion == QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V2) ||
+            (Connection->Stats.QuicVersion != QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V1)) {
 
             //
             // Make sure to pad Initial packets.
@@ -345,9 +346,10 @@ QuicPacketBuilderPrepare(
         //
 
         Builder->PacketType = NewPacketType;
-        Builder->EncryptLevel = QuicConnIsVersion2(Connection) ?
-            QuicPacketTypeToEncryptLevelV2(NewPacketType) :
-            QuicPacketTypeToEncryptLevelV1(NewPacketType);
+        Builder->EncryptLevel =
+            Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+                QuicPacketTypeToEncryptLevelV2(NewPacketType) :
+                QuicPacketTypeToEncryptLevelV1(NewPacketType);
         Builder->Key = Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType];
         CXPLAT_DBG_ASSERT(Builder->Key != NULL);
         CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
@@ -964,8 +966,8 @@ Exit:
                 Builder->BatchId);
         }
 
-        if ((!QuicConnIsVersion2(Connection) && Builder->PacketType == QUIC_RETRY_V1) ||
-            (QuicConnIsVersion2(Connection) && Builder->PacketType == QUIC_RETRY_V2)) {
+        if ((Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType == QUIC_RETRY_V1) ||
+            (Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType == QUIC_RETRY_V2)) {
             CXPLAT_DBG_ASSERT(Builder->Metadata->PacketNumber == 0);
             QuicConnCloseLocally(
                 Connection,

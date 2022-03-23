@@ -426,7 +426,7 @@ QuicPacketEncodeRetryV1V2(
         return 0;
     }
 
-    QUIC_RETRY_PACKET_V1V2* Header = (QUIC_RETRY_PACKET_V1V2*)Buffer;
+    QUIC_RETRY_PACKET_V1* Header = (QUIC_RETRY_PACKET_V1*)Buffer;
 
     uint8_t RandomBits;
     CxPlatRandom(sizeof(RandomBits), &RandomBits);
@@ -494,7 +494,7 @@ QuicPacketDecodeRetryTokenV1(
         (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2));
 
     uint16_t Offset =
-        sizeof(QUIC_LONG_HEADER_V1V2) +
+        sizeof(QUIC_LONG_HEADER_V1) +
         Packet->DestCidLen +
         sizeof(uint8_t) +
         Packet->SourceCidLen;
@@ -668,8 +668,8 @@ QuicPacketLogHeader(
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
         case QUIC_VERSION_2: {
-            const QUIC_LONG_HEADER_V1V2 * const LongHdr =
-                (const QUIC_LONG_HEADER_V1V2 * const)Packet;
+            const QUIC_LONG_HEADER_V1 * const LongHdr =
+                (const QUIC_LONG_HEADER_V1 * const)Packet;
 
             QUIC_VAR_INT TokenLength;
             QUIC_VAR_INT Length = 0;

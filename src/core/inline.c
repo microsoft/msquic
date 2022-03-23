@@ -635,16 +635,6 @@ QuicConnGetNextExpirationTime(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
-uint32_t
-QuicConnGetVersion(
-    _In_ const QUIC_CONNECTION * const Connection
-    );
-
-BOOLEAN
-QuicConnIsVersion2(
-    _In_ const QUIC_CONNECTION * const Connection
-    );
-
 BOOLEAN
 QuicPacketIsHandshake(
     _In_ const QUIC_HEADER_INVARIANT* Packet

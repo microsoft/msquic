@@ -98,30 +98,28 @@ TEST_P(WithBool, ParseVersionInfoFail)
 
 TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
 {
-    uint32_t TestVersions[] = {QUIC_VERSION_1, QUIC_VERSION_MS_1};
+    uint32_t TestVersions[] = {QUIC_VERSION_1, QUIC_VERSION_2};
     QUIC_VERSION_SETTINGS VerSettings = {
         TestVersions, TestVersions, TestVersions,
         ARRAYSIZE(TestVersions), ARRAYSIZE(TestVersions), ARRAYSIZE(TestVersions)
     };
 
     for (auto Type : {QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT}) {
-        struct { QUIC_HANDLE Handle;
-            QUIC_CONNECTION Connection;
-        } Connection {};
+        QUIC_CONNECTION Connection;
         if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
             MsQuicLib.Settings.VersionSettings = &VerSettings;
             MsQuicLib.Settings.IsSet.VersionSettings = TRUE;
         } else {
-            Connection.Connection.Settings.VersionSettings = &VerSettings;
-            Connection.Connection.Settings.IsSet.VersionSettings = TRUE;
+            Connection.Settings.VersionSettings = &VerSettings;
+            Connection.Settings.IsSet.VersionSettings = TRUE;
         }
 
         ((QUIC_HANDLE*)&Connection)->Type = Type;
-        Connection.Connection.Stats.QuicVersion = QUIC_VERSION_1;
+        Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
         uint32_t VersionInfoLength = 0;
         const uint8_t* VersionInfo =
-            QuicVersionNegotiationExtEncodeVersionInfo((QUIC_CONNECTION*)&Connection, &VersionInfoLength);
+            QuicVersionNegotiationExtEncodeVersionInfo(&Connection, &VersionInfoLength);
 
         ASSERT_NE(VersionInfo, nullptr);
         ASSERT_NE(VersionInfoLength, 0ul);
@@ -130,12 +128,12 @@ TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
         ASSERT_EQ(
             QUIC_STATUS_SUCCESS,
             QuicVersionNegotiationExtParseVersionInfo(
-                (QUIC_CONNECTION*)&Connection,
+                &Connection,
                 VersionInfo,
                 (uint16_t)VersionInfoLength,
                 &ParsedVI));
 
-        ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Connection.Stats.QuicVersion);
+        ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Stats.QuicVersion);
         ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(TestVersions));
         ASSERT_EQ(
             memcmp(

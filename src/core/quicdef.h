@@ -48,6 +48,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 
 //
 // Maximum number of bytes allowed for a connection ID.
+// This is used for both QUIC versions 1 and 2.
 //
 #define QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT 255
 #define QUIC_MAX_CONNECTION_ID_LENGTH_V1        20

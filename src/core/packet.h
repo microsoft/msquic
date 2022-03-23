@@ -125,6 +125,7 @@ typedef struct QUIC_VERSION_NEGOTIATION_PACKET {
 
 //
 // Different types of Long Header packets.
+// QUIC version 2 uses different values than version 1.
 //
 typedef enum QUIC_LONG_HEADER_TYPE_V1 {
 
@@ -150,9 +151,10 @@ typedef enum QUIC_LONG_HEADER_TYPE_V2 {
 //
 // Represents the long header format. All values in Network Byte order.
 // The 4 least significant bits are protected by header protection.
+// This structure is used for both QUIC version 1 and version 2.
 //
 
-typedef struct QUIC_LONG_HEADER_V1V2 {
+typedef struct QUIC_LONG_HEADER_V1 {
 
     uint8_t PnLength        : 2;
     uint8_t Reserved        : 2;    // Must be 0.
@@ -170,14 +172,14 @@ typedef struct QUIC_LONG_HEADER_V1V2 {
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
-} QUIC_LONG_HEADER_V1V2;
+} QUIC_LONG_HEADER_V1;
 
 //
 // The minimum long header, in bytes.
 //
 #define MIN_LONG_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_LONG_HEADER_V1V2) + \
+    sizeof(QUIC_LONG_HEADER_V1) + \
     sizeof(uint8_t) + \
     sizeof(uint8_t) + \
     4 * sizeof(uint8_t) \
@@ -186,9 +188,10 @@ typedef struct QUIC_LONG_HEADER_V1V2 {
 //
 // Represents the long header retry packet format. All values in Network Byte
 // order.
+// This structure is used for both QUIC version 1 and version 2.
 //
 
-typedef struct QUIC_RETRY_PACKET_V1V2 {
+typedef struct QUIC_RETRY_PACKET_V1 {
 
     uint8_t UNUSED          : 4;
     uint8_t Type            : 2;
@@ -202,14 +205,14 @@ typedef struct QUIC_RETRY_PACKET_V1V2 {
     //uint8_t Token[*];
     //uint8_t RetryIntegrityField[16];
 
-} QUIC_RETRY_PACKET_V1V2;
+} QUIC_RETRY_PACKET_V1;
 
 //
 // The minimum retry packet header, in bytes.
 //
 #define MIN_RETRY_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_RETRY_PACKET_V1V2) + \
+    sizeof(QUIC_RETRY_PACKET_V1) + \
     sizeof(uint8_t) \
 )
 
@@ -218,6 +221,7 @@ typedef struct QUIC_RETRY_PACKET_V1V2 {
 //
 // Represents the short header format. All values in Network Byte order.
 // The 5 least significant bits are protected by header protection.
+// This struct is used for both QUIC versions 1 and 2.
 //
 typedef struct QUIC_SHORT_HEADER_V1 {
 
@@ -266,9 +270,9 @@ QuicPacketIsHandshake(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            return ((QUIC_LONG_HEADER_V1V2*)Packet)->Type != QUIC_0_RTT_PROTECTED_V1;
+            return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED_V1;
         case QUIC_VERSION_2:
-            return ((QUIC_LONG_HEADER_V1V2*)Packet)->Type != QUIC_0_RTT_PROTECTED_V2;
+            return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED_V2;
         default:
             return TRUE;
     }
@@ -429,7 +433,7 @@ QuicPacketEncodeLongHeaderV1V2(
         (Version != QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V1) ||
         (Version == QUIC_VERSION_2 && PacketType == QUIC_INITIAL_V2);
     uint16_t RequiredBufferLength =
-        sizeof(QUIC_LONG_HEADER_V1V2) +
+        sizeof(QUIC_LONG_HEADER_V1) +
         DestCid->Length +
         sizeof(uint8_t) +
         SourceCid->Length +
@@ -442,7 +446,7 @@ QuicPacketEncodeLongHeaderV1V2(
         return 0;
     }
 
-    QUIC_LONG_HEADER_V1V2* Header = (QUIC_LONG_HEADER_V1V2*)Buffer;
+    QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;

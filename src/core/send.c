@@ -519,7 +519,7 @@ QuicSendWriteFrames(
     //
 
     uint8_t ZeroRttPacketType =
-        QuicConnIsVersion2(Connection) ?
+        Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
     if (Builder->PacketType != ZeroRttPacketType &&
         QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
@@ -1256,7 +1256,8 @@ QuicSendFlush(
             //
             QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
             uint8_t ZeroRttPacketType =
-                QuicConnIsVersion2(Connection) ? QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
+                Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+                    QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
             WrotePacketFrames =
                 Builder.PacketType != ZeroRttPacketType &&
                 QuicAckTrackerHasPacketsToAck(&Packets->AckTracker) &&

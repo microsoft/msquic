@@ -1018,8 +1018,8 @@ QuicStreamSendWrite(
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
     BOOLEAN RanOutOfRoom = FALSE;
     const BOOLEAN IsInitial =
-        (!QuicConnIsVersion2(Stream->Connection) && Builder->PacketType == QUIC_INITIAL_V1) ||
-        (QuicConnIsVersion2(Stream->Connection) && Builder->PacketType == QUIC_INITIAL_V2);
+        (Stream->Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType == QUIC_INITIAL_V1) ||
+        (Stream->Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType == QUIC_INITIAL_V2);
 
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;

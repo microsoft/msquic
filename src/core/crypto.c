@@ -779,7 +779,7 @@ QuicCryptoWriteCryptoFrames(
 
         uint32_t EncryptLevelStart;
         uint32_t PacketTypeRight;
-        if (QuicConnIsVersion2(QuicCryptoGetConnection(Crypto))) {
+        if (QuicCryptoGetConnection(Crypto)->Stats.QuicVersion == QUIC_VERSION_2) {
             switch (Builder->PacketType) {
             case QUIC_INITIAL_V2:
                 EncryptLevelStart = 0;
@@ -931,9 +931,9 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
-    if ((!QuicConnIsVersion2(Connection) && Builder->PacketType !=
+    if ((Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType !=
             QuicEncryptLevelToPacketTypeV1(QuicCryptoGetNextEncryptLevel(Crypto))) ||
-        (QuicConnIsVersion2(Connection) && Builder->PacketType !=
+        (Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType !=
             QuicEncryptLevelToPacketTypeV2(QuicCryptoGetNextEncryptLevel(Crypto)))) {
         //
         // Nothing to send in this packet / encryption level, just continue on.
