@@ -871,6 +871,42 @@ pub struct StreamEventSendComplete {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct StreamEventPeerSendAborted {
+    pub error_code: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventPeerReceiveAborted {
+    pub error_code: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventSendShutdownComplete {
+    pub graceful: bool,
+}
+
+
+bitfield! {
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct StreamEventShutdownCompleteBitfields(u8);
+    //impl Debug; // TODO Debug causing panic when fmt is called
+    // The fields default to u8
+    app_close_in_progress, _: 1, 0;
+    _reserved, _: 7, 1;
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct StreamEventShutdownComplete {
+    connection_shutdown: bool,
+    flags: StreamEventShutdownCompleteBitfields
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct StreamEventIdealSendBufferSize {
     pub byte_count: u64,
 }
@@ -881,10 +917,10 @@ pub union StreamEventPayload {
     pub start_complete: StreamEventStartComplete,
     pub receive: StreamEventReceive,
     pub send_complete: StreamEventSendComplete,
-    //pub peer_send_aborted: StreamEventPeerSendAborted,
-    //pub peer_receive_aborted: StreamEventPeerReceiveAborted,
-    //pub send_shutdown_complete: StreamEventSendShutdownComplete,
-    //pub shutdown_complete: StreamEventShutdownComplete,
+    pub peer_send_aborted: StreamEventPeerSendAborted,
+    pub peer_receive_aborted: StreamEventPeerReceiveAborted,
+    pub send_shutdown_complete: StreamEventSendShutdownComplete,
+    pub shutdown_complete: StreamEventShutdownComplete,
     pub ideal_send_buffer_size: StreamEventIdealSendBufferSize,
 }
 
