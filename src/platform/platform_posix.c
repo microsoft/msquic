@@ -83,6 +83,7 @@ CxPlatSystemLoad(
     void
     )
 {
+    void* Library = NULL;
     #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
@@ -131,6 +132,8 @@ CxPlatSystemLoad(
         goto Exit;
     }
 
+    printf("Using msquic library %s\n", Info.dli_fname);
+
     size_t PathLen = strlen(Info.dli_fname);
 
     //
@@ -164,7 +167,9 @@ CxPlatSystemLoad(
     // Load the tracepoint provider.
     // It's OK if this fails - that just means that tracing dependencies aren't available.
     //
-    dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
+    Library = dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
+
+    printf("Loading lttng from %s %p\n", ProviderFullPath, Library);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
