@@ -5,6 +5,9 @@
 
 --*/
 
+#define DUONIC_TESTING 1
+extern bool UseDuoNic;
+
 //
 // Test code defaults to disabling certificate validation.
 //
