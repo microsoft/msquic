@@ -83,6 +83,9 @@ param (
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallClog2Text,
+
+    [Parameter(Mandatory = $false)]
     [switch]$DisableTest
 )
 
@@ -124,6 +127,8 @@ if ($ForTest) {
     # enabled for any possible test.
     $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
+
+    $InstallClog2Text = $true
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
@@ -439,7 +444,31 @@ if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
+function Install-DotnetTool {
+    param($ToolName, $Version, $NuGetPath)
+    $NuGetName = "$ToolName.$Version.nupkg"
+    $NuGetFile = Join-Path $NuGetPath $NuGetName
+    if (!(Test-Path -Path $NuGetPath)) {
+        $MessagesAtEnd.Add("$ToolName not found. Parsing lttng logs")
+        return
+    }
+
+    try {
+        Write-Host "Installing: $ToolName"
+        dotnet tool update --global --add-source $NuGetPath $ToolName
+    } catch {
+        $err = $_
+        $MessagesAtEnd.Add("$ToolName could not be installed. Parsing lttng logs")
+        $MessagesAtEnd.Add($err.ToString())
+    }
+}
+
 if ($IsLinux) {
+    if ($InstallClog2Text) {
+        $NuGetPath = Join-Path $RootDir "artifacts" "nupkg"
+        Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text" -Version "0.0.1" -NuGetPath $NuGetPath
+    }
+
     if ($ForOneBranch) {
         sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
         sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
