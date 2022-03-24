@@ -449,7 +449,7 @@ function Install-DotnetTool {
     $NuGetName = "$ToolName.$Version.nupkg"
     $NuGetFile = Join-Path $NuGetPath $NuGetName
     if (!(Test-Path -Path $NuGetPath)) {
-        $MessagesAtEnd.Add("$ToolName not found. Parsing lttng logs")
+        Write-Host "$ToolName not found. Parsing lttng logs"
         return
     }
 
@@ -458,8 +458,8 @@ function Install-DotnetTool {
         dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
         $err = $_
-        $MessagesAtEnd.Add("$ToolName could not be installed. Parsing lttng logs")
-        $MessagesAtEnd.Add($err.ToString())
+        Write-Host "$ToolName could not be installed. Parsing lttng logs"
+        Write-Host $err.ToString()
     }
 }
 
