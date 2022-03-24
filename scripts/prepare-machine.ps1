@@ -500,6 +500,7 @@ if ($IsLinux) {
         sudo apt-add-repository ppa:lttng/stable-2.12
         sudo apt-get update
         sudo apt-get install -y lttng-tools
+        sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
 
         # Enable core dumps for the system.
