@@ -200,10 +200,16 @@ function Log-Stop {
             $Command = "clog2text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
             $Command
 
-            # Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            # $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
-            # Write-Host $Command
-            # Invoke-Expression $Command | Write-Debug
+            try {
+                Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
+                $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+                Write-Host $Command
+                Invoke-Expression $Command | Write-Debug
+            } catch {
+
+            }
+
+
             # Remove-Item -Path $BableTraceFile -Force | Out-Null
         }
 
@@ -242,10 +248,14 @@ function Log-Decode {
         $Command = "clog2text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
         $Command
 
-        #Write-Host "Decoding Babeltrace into human text using CLOG"
-        #$Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
-        #Write-Host $Command
-        #Invoke-Expression $Command
+        try {
+            Write-Host "Decoding Babeltrace into human text using CLOG"
+            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            Write-Host $Command
+            Invoke-Expression $Command
+        } catch {
+            
+        }
     }
 }
 

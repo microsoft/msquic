@@ -1122,6 +1122,8 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
+        
+
         if (*BufferLength < QUIC_PERF_COUNTER_MAX * sizeof(int64_t)) {
             //
             // Copy as many counters will fit completely in the buffer.
@@ -1134,6 +1136,7 @@ QuicLibraryGetGlobalParam(
         QuicLibrarySumPerfCounters(Buffer, *BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
+        CXPLAT_FRE_ASSERT(FALSE);
         break;
     }
 
