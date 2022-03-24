@@ -443,7 +443,6 @@ if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
-
 function Install-DotnetTool {
     param($ToolName, $Version, $NuGetPath)
     $NuGetName = "$ToolName.$Version.nupkg"
