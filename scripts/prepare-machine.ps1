@@ -466,7 +466,7 @@ function Install-DotnetTool {
 if ($IsLinux) {
     if ($InstallClog2Text) {
         $NuGetPath = Join-Path $RootDir "artifacts" "nupkg"
-        Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text" -Version "0.0.1" -NuGetPath $NuGetPath
+        Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
     }
 
     if ($ForOneBranch) {
