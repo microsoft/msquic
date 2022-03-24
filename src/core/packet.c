@@ -205,7 +205,7 @@ QuicPacketValidateInvariant(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicPacketValidateLongHeaderV1V2(
+QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
     _Inout_ CXPLAT_RECV_PACKET* Packet,
@@ -400,7 +400,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeRetryV1V2(
+QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,

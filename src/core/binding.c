@@ -1031,7 +1031,7 @@ QuicBindingProcessStatelessOperation(
         }
 
         SendDatagram->Length =
-            QuicPacketEncodeRetryV1V2(
+            QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
                 NewDestCid, MsQuicLib.CidTotalLength,
@@ -1491,7 +1491,7 @@ QuicBindingDeliverDatagrams(
 
         const uint8_t* Token = NULL;
         uint16_t TokenLength = 0;
-        if (!QuicPacketValidateLongHeaderV1V2(
+        if (!QuicPacketValidateLongHeaderV1(
                 Binding,
                 TRUE,
                 Packet,

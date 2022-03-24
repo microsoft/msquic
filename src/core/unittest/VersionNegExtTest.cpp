@@ -15,11 +15,22 @@ Abstract:
 #include "VersionNegExtTest.cpp.clog.h"
 #endif
 
-class WithBool : public testing::Test,
-    public testing::WithParamInterface<bool> {
+class WithType : public testing::Test,
+    public testing::WithParamInterface<QUIC_HANDLE_TYPE> {
 };
 
-TEST_P(WithBool, ParseVersionInfoFail)
+std::ostream& operator << (std::ostream& o, const QUIC_HANDLE_TYPE& arg) {
+    switch(arg) {
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+        return o << "Client";
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
+        return o << "Server";
+    default:
+        return o << arg;
+    }
+}
+
+TEST_P(WithType, ParseVersionInfoFail)
 {
     const uint8_t ValidVI[] = {
         0,0,0,1,        // Chosen Version
@@ -29,11 +40,8 @@ TEST_P(WithBool, ParseVersionInfoFail)
     };
 
     QUIC_VERSION_INFORMATION_V1 ParsedVI = {0};
-    struct { QUIC_HANDLE Handle;
-        QUIC_CONNECTION Connection;
-    } Connection {};
-    ((QUIC_HANDLE*)&Connection)->Type =
-        GetParam() ? QUIC_HANDLE_TYPE_CONNECTION_SERVER : QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
+    QUIC_CONNECTION Connection {};
+    Connection._.Type = GetParam();
 
     //
     // Test parsing a valid VI with too short of buffer
@@ -48,7 +56,7 @@ TEST_P(WithBool, ParseVersionInfoFail)
             3,
             &ParsedVI));
 
-    if (Connection.Handle.Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
+    if (Connection._.Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
         // Not enough room for Others Versions List
         ASSERT_EQ(
             QUIC_STATUS_INVALID_PARAMETER,
@@ -96,60 +104,59 @@ TEST_P(WithBool, ParseVersionInfoFail)
             &ParsedVI));
 }
 
-TEST(VersionNegExtTest, EncodeDecodeVersionInfo)
+TEST_P(WithType, EncodeDecodeVersionInfo)
 {
+    auto Type = GetParam();
     uint32_t TestVersions[] = {QUIC_VERSION_1, QUIC_VERSION_2};
     QUIC_VERSION_SETTINGS VerSettings = {
         TestVersions, TestVersions, TestVersions,
         ARRAYSIZE(TestVersions), ARRAYSIZE(TestVersions), ARRAYSIZE(TestVersions)
     };
 
-    for (auto Type : {QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT}) {
-        QUIC_CONNECTION Connection;
-        if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
-            MsQuicLib.Settings.VersionSettings = &VerSettings;
-            MsQuicLib.Settings.IsSet.VersionSettings = TRUE;
-        } else {
-            Connection.Settings.VersionSettings = &VerSettings;
-            Connection.Settings.IsSet.VersionSettings = TRUE;
-        }
+    QUIC_CONNECTION Connection {};
+    if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
+        MsQuicLib.Settings.VersionSettings = &VerSettings;
+        MsQuicLib.Settings.IsSet.VersionSettings = TRUE;
+    } else {
+        Connection.Settings.VersionSettings = &VerSettings;
+        Connection.Settings.IsSet.VersionSettings = TRUE;
+    }
 
-        ((QUIC_HANDLE*)&Connection)->Type = Type;
-        Connection.Stats.QuicVersion = QUIC_VERSION_1;
+    Connection._.Type = Type;
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
-        uint32_t VersionInfoLength = 0;
-        const uint8_t* VersionInfo =
-            QuicVersionNegotiationExtEncodeVersionInfo(&Connection, &VersionInfoLength);
+    uint32_t VersionInfoLength = 0;
+    const uint8_t* VersionInfo =
+        QuicVersionNegotiationExtEncodeVersionInfo(&Connection, &VersionInfoLength);
 
-        ASSERT_NE(VersionInfo, nullptr);
-        ASSERT_NE(VersionInfoLength, 0ul);
+    ASSERT_NE(VersionInfo, nullptr);
+    ASSERT_NE(VersionInfoLength, 0ul);
 
-        QUIC_VERSION_INFORMATION_V1 ParsedVI;
-        ASSERT_EQ(
-            QUIC_STATUS_SUCCESS,
-            QuicVersionNegotiationExtParseVersionInfo(
-                &Connection,
-                VersionInfo,
-                (uint16_t)VersionInfoLength,
-                &ParsedVI));
+    QUIC_VERSION_INFORMATION_V1 ParsedVI;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicVersionNegotiationExtParseVersionInfo(
+            &Connection,
+            VersionInfo,
+            (uint16_t)VersionInfoLength,
+            &ParsedVI));
 
-        ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Stats.QuicVersion);
-        ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(TestVersions));
-        ASSERT_EQ(
-            memcmp(
-                TestVersions,
-                ParsedVI.OtherVersions,
-                sizeof(TestVersions)), 0);
+    ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Stats.QuicVersion);
+    ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(TestVersions));
+    ASSERT_EQ(
+        memcmp(
+            TestVersions,
+            ParsedVI.OtherVersions,
+            sizeof(TestVersions)), 0);
 
-        CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
-        if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
-            MsQuicLib.Settings.VersionSettings = NULL;
-            MsQuicLib.Settings.IsSet.VersionSettings = FALSE;
-        }
+    CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);
+    if (Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
+        MsQuicLib.Settings.VersionSettings = NULL;
+        MsQuicLib.Settings.IsSet.VersionSettings = FALSE;
     }
 }
 
 INSTANTIATE_TEST_SUITE_P(
     VersionNegExtTest,
-    WithBool,
-    ::testing::Values(false, true));
+    WithType,
+    ::testing::Values(QUIC_HANDLE_TYPE_CONNECTION_SERVER, QUIC_HANDLE_TYPE_CONNECTION_CLIENT));

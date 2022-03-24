@@ -278,10 +278,13 @@ QuicPacketIsHandshake(
     }
 }
 
+//
+// Validates both QUIC version 1 and version 2 long headers.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicPacketValidateLongHeaderV1V2(
+QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
     _Inout_ CXPLAT_RECV_PACKET* Packet,
@@ -292,7 +295,7 @@ QuicPacketValidateLongHeaderV1V2(
 
 //
 // Decodes the retry token from an initial packet. Only call if a previous call
-// to QuicPacketValidateLongHeaderV1V2 has already succeeded.
+// to QuicPacketValidateLongHeaderV1 has already succeeded.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -407,13 +410,13 @@ QuicPktNumDecompress(
 }
 
 //
-// Encodes the long header fields.
+// Encodes the long header fields for QUIC versions 1 and 2.
 //
 inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeLongHeaderV1V2(
+QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ uint8_t PacketType,
     _In_ const QUIC_CID* const DestCid,
@@ -503,12 +506,12 @@ QuicPacketGenerateRetryIntegrity(
     );
 
 //
-// Encodes the long header fields.
+// Encodes the retry packet fields for QUIC versions 1 and 2.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeRetryV1V2(
+QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,

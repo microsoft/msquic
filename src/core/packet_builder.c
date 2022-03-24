@@ -421,7 +421,7 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_2:
             default:
                 Builder->HeaderLength =
-                    QuicPacketEncodeLongHeaderV1V2(
+                    QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
                         &Builder->Path->DestCid->CID,

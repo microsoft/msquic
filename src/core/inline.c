@@ -489,7 +489,7 @@ StreamCountToID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeLongHeaderV1V2(
+QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ uint8_t PacketType,
     _In_ const QUIC_CID* const DestCid,

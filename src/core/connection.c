@@ -3713,7 +3713,7 @@ QuicConnRecvHeader(
         uint16_t TokenLength = 0;
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateLongHeaderV1V2(
+            !QuicPacketValidateLongHeaderV1(
                 Connection,
                 QuicConnIsServer(Connection),
                 Packet,
