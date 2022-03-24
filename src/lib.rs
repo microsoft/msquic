@@ -470,7 +470,6 @@ bitfield! {
     #[repr(C)]
     #[derive(Serialize, Deserialize, Clone, Copy)]
     pub struct QuicStatisticsBitfields(u32);
-    //impl Debug; // TODO Debug causing panic when fmt is called
     // The fields default to u32
     version_negotiation, _: 1, 0;
     stateless_retry, _: 1, 1;
@@ -478,10 +477,32 @@ bitfield! {
     resumption_succeeded, _: 1, 3;
 }
 
+/// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
+/// This is implemented manually because the derived implementation by the bitfield macro
+/// has been observed to cause panic.
 impl fmt::Debug for QuicStatisticsBitfields {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("{:#06x}", &self.0))
     }
+}
+
+/// A helper struct for accessing connection statistics
+#[repr(C)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
+pub struct QuicStatistics {
+    correlation_id: u64,
+    pub flags: QuicStatisticsBitfields,
+    /// In microseconds
+    pub rtt: u32,
+    /// In microseconds
+    pub min_rtt: u32,
+    /// In microseconds
+    pub max_rtt: u32,
+    pub timing: QuicStatisticsTiming,
+    pub handshake: QuicStatisticsHandshake,
+    pub send: QuicStatisticsSend,
+    pub recv: QuicStatisticsRecv,
+    pub misc: QuicStatisticsMisc,
 }
 
 /// A helper struct for accessing connection statistics
@@ -544,27 +565,6 @@ pub struct QuicStatisticsV2 {
     pub recv_valid_ack_frames: u64,
 
     pub key_update_count: u32,
-    // N.B. New fields must be appended to end
-}
-
-/// A helper struct for accessing connection statistics
-#[repr(C)]
-#[derive(Serialize, Deserialize, Copy, Clone)]
-pub struct QuicStatistics {
-    correlation_id: u64,
-    pub flags: QuicStatisticsBitfields,
-    /// In microseconds
-    pub rtt: u32,
-    /// In microseconds
-    pub min_rtt: u32,
-    /// In microseconds
-    pub max_rtt: u32,
-    pub timing: QuicStatisticsTiming,
-    pub handshake: QuicStatisticsHandshake,
-    pub send: QuicStatisticsSend,
-    pub recv: QuicStatisticsRecv,
-    pub misc: QuicStatisticsMisc,
-    // N.B. New fields must be appended to end
 }
 
 /// A helper struct for accessing listener statistics.
@@ -892,7 +892,6 @@ bitfield! {
     #[repr(C)]
     #[derive(Clone, Copy)]
     struct StreamEventShutdownCompleteBitfields(u8);
-    //impl Debug; // TODO Debug causing panic when fmt is called
     // The fields default to u8
     app_close_in_progress, _: 1, 0;
     _reserved, _: 7, 1;
