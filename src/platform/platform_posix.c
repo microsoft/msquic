@@ -169,7 +169,7 @@ CxPlatSystemLoad(
     //
     Library = dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
-    printf("Loading lttng from %s %p\n", ProviderFullPath, Library);
+    printf("Loading lttng from %s %p %s\n", ProviderFullPath, Library , dlerror());
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
