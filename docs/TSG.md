@@ -282,8 +282,37 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 > TODO
 
 ## Why is Performance bad across all my Connections?
+1. [UDP receive offload is not working.](#diagnosing-udp-receive-offload-issues-windows-only)
 
-1. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
+2. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
+
+### Diagnosing UDP Receive Offload Issues (Windows only)
+
+UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can collect TCPIP ETW traces and look for URO related events. To collect a TCPIP ETW trace, run the below commands and convert the resulting ETL file to text file using `netsh trace convert <etl_file_path>`. [Here's](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/jj129382(v=ws.11)) a MSDN doc for collecting network trace in Windows.
+```
+netsh trace start provider=Microsoft-Windows-TCPIP tracefile=net.etl report=disabled perf=no ov=yes
+<repro the issue as short as possible>
+netsh trace stop
+```
+In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coelesced from 5 UDP packets each with 1000 byte payload.
+```
+[6]0000.0000::2022/03/23-20:27:14.275850900 [Microsoft-Windows-TCPIP]UDP: endpoint 0xFFFFA4033FC652C0: URO SCU received. SegCount = 5, SegSize = 1000, DataLength = 5000.
+```
+If you are not seeing the above event at all, there are several things that can break URO functionality.
+
+- URO can be administratively turned off system-wise from a netsh knob. Check by running `netsh int udp show global`. If `Receive Offload State` is displayed as `disabled`, then URO has been administratively disabled.
+
+- Take a look at the IP interface rundown traces. SW RSC/URO applicable must be TRUE for URO to work. If it is FALSE, it means the underlying miniport driver is using NDIS 5 or the interface medium is not compatible (e.g. KDNic).
+```
+[2]0E64.0E3C::2022/03/22-17:42:50.604598400 [Microsoft-Windows-TCPIP]Framing: interface rundown: Interface = 8, Luid = 0x6008000000000, Address family = 2(IPV4), Compartment = 1, Isolation mode = 0(None), Isolation ID = 0, DL address = 0x00155D563406, Interface type = 6, Physical medium type = 19(NdisPhysicalMediumOther), SW RSC/URO applicable = 0(FALSE), SW RSC enabled = 0(FALSE), Alias = Ethernet (Kernel Debugger).
+```
+- We also have a rundown trace for URO global disabled mark. The mask must be zero for URO to work. It's common that the mask is 2, which means some incompatible WFP callouts have disabled URO. If you are seeing the mask being 2 on a freshly installed machine, try disabling real-time protection from defender settings.
+```
+[2]0E64.0E3C::2022/03/22-17:42:50.604752100 [Microsoft-Windows-TCPIP]TCP software RSC global disabled mask = 0, UDP software URO global disabled mask = 0.
+```
+- UDP packets by design will not be coalesced if they carry different PTP timestamps. PTP timestamp is a feature for accurately synchronizing time supported by some NICs and it should be off by default. You can turn off PTP timestamps in NIC properties.
+
+![600px-AutoUpload_Huanyi@microsoft com_20220324T215716970Z](https://user-images.githubusercontent.com/6022514/160025312-7e70fde5-8d96-48f2-8f48-58742faea016.png)
 
 ### Diagnosing RSS Issues
 
