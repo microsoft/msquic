@@ -286,9 +286,9 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 
 2. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
 
-### Diagnosing UDP Receive Offload Issues (Windows only)
+### Diagnosing Software UDP Receive Offload Issues (Windows only)
 
-UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can collect TCPIP ETW traces and look for URO related events. To collect a TCPIP ETW trace, run the below commands and convert the resulting ETL file to text file using `netsh trace convert <etl_file_path>`. [Here's](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/jj129382(v=ws.11)) a MSDN doc for collecting network trace in Windows.
+Software UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can follow this [guide](https://github.com/microsoft/msquic/blob/main/docs/Diagnostics.md#trace-collection) and use `Full.Verbose` profile to collect TCPIP traces.
 ```
 netsh trace start provider=Microsoft-Windows-TCPIP tracefile=net.etl report=disabled perf=no ov=yes
 <repro the issue as short as possible>
@@ -312,7 +312,7 @@ If you are not seeing the above event at all, there are several things that can 
 ```
 - UDP packets by design will not be coalesced if they carry different PTP timestamps. PTP timestamp is a feature for accurately synchronizing time supported by some NICs and it should be off by default. You can turn off PTP timestamps in NIC properties.
 
-![600px-AutoUpload_Huanyi@microsoft com_20220324T215716970Z](https://user-images.githubusercontent.com/6022514/160025312-7e70fde5-8d96-48f2-8f48-58742faea016.png)
+![](images/ptp-timestamp-config.png)
 
 ### Diagnosing RSS Issues
 
