@@ -413,6 +413,35 @@ function Install-TestCertificates {
     }
 }
 
+function Install-DotnetTool {
+    param($ToolName, $Version, $NuGetPath)
+    $NuGetName = "$ToolName.$Version.nupkg"
+    $NuGetFile = Join-Path $NuGetPath $NuGetName
+    if (!(Test-Path -Path $NuGetFile)) {
+        Write-Host "$ToolName not found. Parsing lttng logs will fail"
+        return
+    }
+
+    try {
+        Write-Host "Installing: $ToolName"
+        dotnet tool update --global --add-source $NuGetPath $ToolName
+    } catch {
+        $err = $_
+        Write-Host "$ToolName could not be installed. Parsing lttng logs will fail"
+        Write-Host $err.ToString()
+    }
+}
+
+function Install-Clog2Text {
+    Write-Host "Initializing clog submodule"
+    git submodule init submodules/clog
+    git submodule update
+
+    dotnet build (Join-Path $RootDir submodules clog)
+    $NuGetPath = Join-Path $RootDir "submodules" "clog" "src" "nupkg"
+    Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
+}
+
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) { git rm submodules/openssl }
 
@@ -443,29 +472,10 @@ if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
-function Install-DotnetTool {
-    param($ToolName, $Version, $NuGetPath)
-    $NuGetName = "$ToolName.$Version.nupkg"
-    $NuGetFile = Join-Path $NuGetPath $NuGetName
-    if (!(Test-Path -Path $NuGetPath)) {
-        Write-Host "$ToolName not found. Parsing lttng logs"
-        return
-    }
-
-    try {
-        Write-Host "Installing: $ToolName"
-        dotnet tool update --global --add-source $NuGetPath $ToolName
-    } catch {
-        $err = $_
-        Write-Host "$ToolName could not be installed. Parsing lttng logs"
-        Write-Host $err.ToString()
-    }
-}
 
 if ($IsLinux) {
     if ($InstallClog2Text) {
-        $NuGetPath = Join-Path $RootDir "artifacts" "nupkg"
-        Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
+        Install-Clog2Text
     }
 
     if ($ForOneBranch) {
