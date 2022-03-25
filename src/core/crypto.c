@@ -2210,12 +2210,12 @@ QuicCryptoDecodeServerTicket(
 
     uint32_t QuicVersion;
     memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
-    if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, QuicVersion)) {
+    if (Connection->Stats.QuicVersion != QuicVersion) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
-            "Resumption Ticket for unsupported QUIC version");
+            "Resumption Ticket for different QUIC version");
         goto Error;
     }
     Offset += sizeof(QuicVersion);
