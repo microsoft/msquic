@@ -306,7 +306,7 @@ If you are not seeing the above event at all, there are several things that can 
 ```
 [2]0E64.0E3C::2022/03/22-17:42:50.604598400 [Microsoft-Windows-TCPIP]Framing: interface rundown: Interface = 8, Luid = 0x6008000000000, Address family = 2(IPV4), Compartment = 1, Isolation mode = 0(None), Isolation ID = 0, DL address = 0x00155D563406, Interface type = 6, Physical medium type = 19(NdisPhysicalMediumOther), SW RSC/URO applicable = 0(FALSE), SW RSC enabled = 0(FALSE), Alias = Ethernet (Kernel Debugger).
 ```
-- We also have a rundown trace for URO global disabled mark. The mask must be zero for URO to work. It's common that the mask is 2, which means some incompatible WFP callouts have disabled URO. If you are seeing the mask being 2 on a freshly installed machine, try disabling real-time protection from defender settings.
+- We also have a rundown trace for URO global disabled mask. The mask must be zero for URO to work. It's common that the mask is 2, which means some incompatible WFP callouts have disabled URO. If you are seeing the mask being 2 on a freshly installed machine, try disabling real-time protection from defender settings.
 ```
 [2]0E64.0E3C::2022/03/22-17:42:50.604752100 [Microsoft-Windows-TCPIP]TCP software RSC global disabled mask = 0, UDP software URO global disabled mask = 0.
 ```
