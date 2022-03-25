@@ -1039,12 +1039,12 @@ QuicTestCompatibleVersionNegotiation(
     _In_ bool DisableVNEServer
     )
 {
-    const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-    const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
-    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
 
     ClearGlobalVersionListScope ClearVersionsScope;
 
@@ -1142,11 +1142,11 @@ QuicTestCompatibleVersionNegotiationRetry(
     _In_ int Family
     )
 {
-    const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-    const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
     const uint16_t RetryMemoryLimit = 0;
 
     MsQuicSettings ClientSettings;
@@ -1248,10 +1248,10 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     _In_ bool DisableVNEServer
     )
 {
-    const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
-    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
@@ -1343,9 +1343,9 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     _In_ bool DisableVNEServer
     )
 {
-    const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_MS_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
 
     MsQuicSettings ClientSettings;
@@ -1439,11 +1439,11 @@ QuicTestIncompatibleVersionNegotiation(
     _In_ int Family
     )
 {
-    const uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H };
-    const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
+    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_H;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
