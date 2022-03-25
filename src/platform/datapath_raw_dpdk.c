@@ -166,7 +166,6 @@ CxPlatDpRawInitialize(
         sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
     CxPlatDpdkReadConfig(Dpdk, Config);
-    CxPlatDpRawGenerateCpuTable(Datapath);
 
     BOOLEAN CleanUpThread = FALSE;
     CxPlatEventInitialize(&Dpdk->StartComplete, TRUE, FALSE);

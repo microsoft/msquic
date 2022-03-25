@@ -61,12 +61,6 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_ROUTE_RESOLUTION_WORKER* RouteResolutionWorker;
 
-    // RSS stuff
-    uint16_t Cpu;
-    uint8_t NumaNode;
-    uint8_t CpuTableSize;
-    uint16_t CpuTable[64];
-
     CXPLAT_LIST_ENTRY Interfaces;
 
 } CXPLAT_DATAPATH;
@@ -128,15 +122,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
-    );
-
-//
-// Upcall from raw datapath to generate the CPU table used for RSS.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawGenerateCpuTable(
-    _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
 //

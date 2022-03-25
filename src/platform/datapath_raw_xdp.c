@@ -365,8 +365,7 @@ Cleanup:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
-    _Inout_ XDP_DATAPATH* Xdp,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _Inout_ XDP_DATAPATH* Xdp
     )
 {
     //
@@ -377,14 +376,6 @@ CxPlatXdpReadConfig(
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
     Xdp->TxAlwaysPoke = FALSE;
-    Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
-
-    //
-    // Read user-specified global config.
-    //
-    if (Config != NULL && Config->RawDataPathProcList != NULL) {
-        Xdp->Cpu = Config->RawDataPathProcList[0];
-    }
 
     //
     // Read config from config file.
@@ -934,8 +925,7 @@ CxPlatDpRawInitialize(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
-    CxPlatXdpReadConfig(Xdp, Config);
-    CxPlatDpRawGenerateCpuTable(Datapath);
+    CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
 
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
