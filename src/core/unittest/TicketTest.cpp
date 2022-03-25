@@ -591,6 +591,12 @@ TEST(ResumptionTicketTest, ServerDecFail)
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
 
+    uint32_t Versions[] = {QUIC_VERSION_1, QUIC_VERSION_2};
+    QUIC_VERSION_SETTINGS VersionSettings = {
+        Versions, Versions,Versions,
+        ARRAYSIZE(Versions), ARRAYSIZE(Versions),ARRAYSIZE(Versions)
+    };
+
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
@@ -659,23 +665,6 @@ TEST(ResumptionTicketTest, ServerDecFail)
             &DecodedAppDataLength));
     ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
     CompareTransportParameters(&HandshakeTP, &DecodedTP);
-
-    //
-    // Validate that if the version doesn't match, it fails.
-    //
-    Connection.Stats.QuicVersion = 0;
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeServerTicket(
-            &Connection,
-            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData),
-            InputTicketBuffer,
-            AlpnList,
-            sizeof(AlpnList),
-            &DecodedTP,
-            &DecodedAppData,
-            &DecodedAppDataLength));
-    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
     //
     // Test decoding of a valid ticket fails when the length is wrong
@@ -868,10 +857,27 @@ TEST(ResumptionTicketTest, ServerDecFail)
             &DecodedTP,
             &DecodedAppData,
             &DecodedAppDataLength));
+
+    // Unsupported QUIC version on connection
+    Connection.Settings.VersionSettings = &VersionSettings;
+    Connection.Settings.IsSet.VersionSettings = true;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            ActualEncodedTicketLength,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
     InputTicketBuffer[1] = 0;
     InputTicketBuffer[2] = 0;
     InputTicketBuffer[3] = 0;
     InputTicketBuffer[4] = 1;
+    Connection.Settings.VersionSettings = nullptr;
+    Connection.Settings.IsSet.VersionSettings = false;
 
     // Negotiated ALPN length shorter than actual
     for (uint8_t s = 0; s < (uint8_t)sizeof(Alpn); ++s) {
