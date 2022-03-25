@@ -19,6 +19,12 @@ Abstract:
 // The list is in priority order (highest to lowest).
 //
 const QUIC_VERSION_INFO QuicSupportedVersionList[] = {
+    { QUIC_VERSION_2,
+      { 0xa7, 0x07, 0xc2, 0x03, 0xa5, 0x9b, 0x47, 0x18, 0x4a, 0x1d,
+        0x62, 0xca, 0x57, 0x04, 0x06, 0xea, 0x7a, 0xe3, 0xe5, 0xd3 },
+      { 0x34, 0x25, 0xc2, 0x0c, 0xf8, 0x87, 0x79, 0xdf, 0x2f, 0xf7, 0x1e, 0x8a, 0xbf, 0xa7, 0x82, 0x49,
+        0x89, 0x1e, 0x76, 0x3b, 0xbe, 0xd2, 0xf1, 0x3c, 0x04, 0x83, 0x43, 0xd3, 0x48, 0xc0, 0x60, 0xe2 },
+      { "quicv2 key", "quicv2 iv", "quicv2 hp", "quicv2 ku" } },
     { QUIC_VERSION_1,
       { 0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17,
         0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a },
@@ -47,25 +53,47 @@ const char PacketLogPrefix[2][2] = {
 // The Long Header types that are allowed to be processed
 // by a Client or Server.
 //
-const BOOLEAN QUIC_HEADER_TYPE_ALLOWED[2][4] = {
+const BOOLEAN QUIC_HEADER_TYPE_ALLOWED_V1[2][4] = {
     //
     // Client
     //
     {
-        TRUE,  // QUIC_INITIAL
-        FALSE, // QUIC_0_RTT_PROTECTED
-        TRUE,  // QUIC_HANDSHAKE
-        TRUE,  // QUIC_RETRY
+        TRUE,  // QUIC_INITIAL_V1
+        FALSE, // QUIC_0_RTT_PROTECTED_V1
+        TRUE,  // QUIC_HANDSHAKE_V1
+        TRUE,  // QUIC_RETRY_V1
     },
 
     //
     // Server
     //
     {
-        TRUE,  // QUIC_INITIAL
-        TRUE,  // QUIC_0_RTT_PROTECTED
-        TRUE,  // QUIC_HANDSHAKE
-        FALSE, // QUIC_RETRY
+        TRUE,  // QUIC_INITIAL_V1
+        TRUE,  // QUIC_0_RTT_PROTECTED_V1
+        TRUE,  // QUIC_HANDSHAKE_V1
+        FALSE, // QUIC_RETRY_V1
+    },
+};
+
+const BOOLEAN QUIC_HEADER_TYPE_ALLOWED_V2[2][4] = {
+    //
+    // Client
+    //
+    {
+        TRUE,  // QUIC_RETRY_V2
+        TRUE,  // QUIC_INITIAL_V2
+        FALSE, // QUIC_0_RTT_PROTECTED_V2
+        TRUE,  // QUIC_HANDSHAKE_V2
+    },
+
+    //
+    // Server
+    //
+    {
+        FALSE, // QUIC_RETRY_V2
+        TRUE,  // QUIC_INITIAL_V2
+        TRUE,  // QUIC_0_RTT_PROTECTED_V2
+        TRUE,  // QUIC_HANDSHAKE_V2
     },
 };
 
@@ -192,7 +220,9 @@ QuicPacketValidateLongHeaderV1(
     //
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
     CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
-    CXPLAT_DBG_ASSERT(Packet->LH->Type != QUIC_RETRY); // Retry uses a different code path.
+    CXPLAT_DBG_ASSERT(
+        (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V2)); // Retry uses a different code path.
 
     if (Packet->DestCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
         Packet->SourceCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
@@ -204,7 +234,8 @@ QuicPacketValidateLongHeaderV1(
     // Validate acceptable types.
     //
     CXPLAT_DBG_ASSERT(IsServer == 0 || IsServer == 1);
-    if (QUIC_HEADER_TYPE_ALLOWED[IsServer][Packet->LH->Type] == FALSE) {
+    if ((Packet->LH->Version != QUIC_VERSION_2 && QUIC_HEADER_TYPE_ALLOWED_V1[IsServer][Packet->LH->Type] == FALSE) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && QUIC_HEADER_TYPE_ALLOWED_V2[IsServer][Packet->LH->Type] == FALSE)) {
         QuicPacketLogDropWithValue(Owner, Packet, "Invalid client/server packet type", Packet->LH->Type);
         return FALSE;
     }
@@ -224,7 +255,8 @@ QuicPacketValidateLongHeaderV1(
 
     uint16_t Offset = Packet->HeaderLength;
 
-    if (Packet->LH->Type == QUIC_INITIAL) {
+    if ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2)) {
         if (IsServer && Packet->BufferLength < QUIC_MIN_INITIAL_PACKET_LENGTH) {
             //
             // All client initial packets need to be padded to a minimum length.
@@ -394,14 +426,14 @@ QuicPacketEncodeRetryV1(
         return 0;
     }
 
-    QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
+    QUIC_RETRY_PACKET_V1* Header = (QUIC_RETRY_PACKET_V1*)Buffer;
 
     uint8_t RandomBits;
     CxPlatRandom(sizeof(RandomBits), &RandomBits);
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
-    Header->Type            = QUIC_RETRY;
+    Header->Type            = Version == QUIC_VERSION_2 ? QUIC_RETRY_V2 : QUIC_RETRY_V1;
     Header->UNUSED          = RandomBits;
     Header->Version         = Version;
     Header->DestCidLength   = DestCidLength;
@@ -457,7 +489,9 @@ QuicPacketDecodeRetryTokenV1(
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderVer);
     CXPLAT_DBG_ASSERT(Packet->Invariant->IsLongHeader);
-    CXPLAT_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL);
+    CXPLAT_DBG_ASSERT(
+        (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2));
 
     uint16_t Offset =
         sizeof(QUIC_LONG_HEADER_V1) +
@@ -568,14 +602,27 @@ QuicPacketValidateShortHeaderV1(
 }
 
 _Null_terminated_ const char*
-QuicLongHeaderTypeToString(uint8_t Type)
+QuicLongHeaderTypeToStringV1(uint8_t Type)
 {
     switch (Type)
     {
-    case QUIC_INITIAL:              return "I";
-    case QUIC_0_RTT_PROTECTED:      return "0P";
-    case QUIC_HANDSHAKE:            return "HS";
-    case QUIC_RETRY:                return "R";
+    case QUIC_INITIAL_V1:              return "I";
+    case QUIC_0_RTT_PROTECTED_V1:      return "0P";
+    case QUIC_HANDSHAKE_V1:            return "HS";
+    case QUIC_RETRY_V1:                return "R";
+    default:                        return "INVALID";
+    }
+}
+
+_Null_terminated_ const char*
+QuicLongHeaderTypeToStringV2(uint8_t Type)
+{
+    switch (Type)
+    {
+    case QUIC_RETRY_V2:                return "R";
+    case QUIC_INITIAL_V2:              return "I";
+    case QUIC_0_RTT_PROTECTED_V2:      return "0P";
+    case QUIC_HANDSHAKE_V2:            return "HS";
     default:                        return "INVALID";
     }
 }
@@ -630,14 +677,16 @@ QuicPacketLogHeader(
 
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
-        case QUIC_VERSION_MS_1: {
+        case QUIC_VERSION_MS_1:
+        case QUIC_VERSION_2: {
             const QUIC_LONG_HEADER_V1 * const LongHdr =
                 (const QUIC_LONG_HEADER_V1 * const)Packet;
 
             QUIC_VAR_INT TokenLength;
             QUIC_VAR_INT Length = 0;
 
-            if (LongHdr->Type == QUIC_INITIAL) {
+            if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_INITIAL_V1) ||
+                (LongHdr->Version == QUIC_VERSION_2 && LongHdr->Type == QUIC_INITIAL_V2)) {
                 if (!QuicVarIntDecode(
                         PacketLength,
                         Packet,
@@ -647,7 +696,8 @@ QuicPacketLogHeader(
                 }
                 Offset += (uint16_t)TokenLength;
 
-            } else if (LongHdr->Type == QUIC_RETRY) {
+            } else if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V1) || 
+                (LongHdr->Version == QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V2)) {
 
                 QuicTraceLogVerbose(
                     LogPacketRetry,
@@ -672,7 +722,8 @@ QuicPacketLogHeader(
                 break;
             }
 
-            if (LongHdr->Type == QUIC_INITIAL) {
+            if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_INITIAL_V1) ||
+                (LongHdr->Version == QUIC_VERSION_2 && LongHdr->Type == QUIC_INITIAL_V2)) {
                 QuicTraceLogVerbose(
                     LogPacketLongHeaderInitial,
                     "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:I (Token %hu bytes) (Payload %hu bytes)",
@@ -694,7 +745,9 @@ QuicPacketLogHeader(
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    QuicLongHeaderTypeToString(LongHdr->Type),
+                    LongHdr->Version == QUIC_VERSION_2 ?
+                        QuicLongHeaderTypeToStringV2(LongHdr->Type) :
+                        QuicLongHeaderTypeToStringV1(LongHdr->Type),
                     (uint16_t)Length);
             }
             break;
@@ -721,7 +774,8 @@ QuicPacketLogHeader(
         switch (Version) {
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
-        case QUIC_VERSION_MS_1: {
+        case QUIC_VERSION_MS_1:
+        case QUIC_VERSION_2: {
             const QUIC_SHORT_HEADER_V1 * const Header =
                 (const QUIC_SHORT_HEADER_V1 * const)Packet;
 

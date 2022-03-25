@@ -145,7 +145,9 @@ tracepoint(CLOG_PACKET_C, LogPacketLongHeaderInitial , arg2, arg3, arg4, arg5, a
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    QuicLongHeaderTypeToString(LongHdr->Type),
+                    LongHdr->Version == QUIC_VERSION_2 ?
+                        QuicLongHeaderTypeToStringV2(LongHdr->Type) :
+                        QuicLongHeaderTypeToStringV1(LongHdr->Type),
                     (uint16_t)Length);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
@@ -153,7 +155,9 @@ tracepoint(CLOG_PACKET_C, LogPacketLongHeaderInitial , arg2, arg3, arg4, arg5, a
 // arg5 = arg5 = LongHdr->Version = arg5
 // arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg6
 // arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg7
-// arg8 = arg8 = QuicLongHeaderTypeToString(LongHdr->Type) = arg8
+// arg8 = arg8 = LongHdr->Version == QUIC_VERSION_2 ?
+                        QuicLongHeaderTypeToStringV2(LongHdr->Type) :
+                        QuicLongHeaderTypeToStringV1(LongHdr->Type) = arg8
 // arg9 = arg9 = (uint16_t)Length = arg9
 ----------------------------------------------------------*/
 #ifndef _clog_10_ARGS_TRACE_LogPacketLongHeader

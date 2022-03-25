@@ -10,6 +10,7 @@
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
 
 #include "msquichelper.h"
+#include "quic_versions.h"
 
 extern const QUIC_API_TABLE* MsQuic;
 extern HQUIC Configuration;

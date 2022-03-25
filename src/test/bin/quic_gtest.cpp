@@ -785,6 +785,14 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
     }
 }
 
+// TEST(Handshake, ResumptionAcrossVersions) {
+//     if (TestingKernelMode) {
+//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS));
+//     } else {
+//         QuicTestResumptionAcrossVersions();
+//     }
+// }
+
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
