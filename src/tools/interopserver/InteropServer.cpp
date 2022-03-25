@@ -20,8 +20,7 @@ const QUIC_BUFFER SupportedALPNs[] = {
     { sizeof("hq-interop") - 1, (uint8_t*)"hq-interop" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("siduck") - 1, (uint8_t*)"siduck" },
-    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" },
-    { sizeof("h3") - 1, (uint8_t*)"h3" }
+    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
 
 void
