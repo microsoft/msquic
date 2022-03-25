@@ -213,6 +213,9 @@ QuicTestCibirExtension(
     _In_ uint8_t Mode // server = &1, client = &2
     );
 
+void
+QuicTestResumptionAcrossVersions();
+
 //
 // Negative Handshake Tests
 //

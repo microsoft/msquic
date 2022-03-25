@@ -785,6 +785,13 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
     }
 }
 
+TEST(Handshake, ResumptionAcrossVersions) {
+    if (TestingKernelMode) {
+    } else {
+        QuicTestResumptionAcrossVersions();
+    }
+}
+
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
