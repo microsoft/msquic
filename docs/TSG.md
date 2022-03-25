@@ -294,7 +294,7 @@ netsh trace start provider=Microsoft-Windows-TCPIP tracefile=net.etl report=disa
 <repro the issue as short as possible>
 netsh trace stop
 ```
-In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coelesced from 5 UDP packets each with 1000 byte payload.
+In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coalesced from 5 UDP packets each with 1000 byte payload.
 ```
 [6]0000.0000::2022/03/23-20:27:14.275850900 [Microsoft-Windows-TCPIP]UDP: endpoint 0xFFFFA4033FC652C0: URO SCU received. SegCount = 5, SegSize = 1000, DataLength = 5000.
 ```
