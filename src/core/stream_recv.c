@@ -629,13 +629,15 @@ QuicStreamRecv(
 }
 
 //
-// Generally, every time bytes are delivered to the application we update our max
-// data (stream and connection) values and queue an update to be sent to the
-// peer. It is done every time, because nearly always an ACK frame is also
-// ready to be sent out, so we might as well take advantage of that packet to
-// send this data as well. If we don't have an ACK ready to be sent out
-// immediately then we only update the values if we have reached the drain
-// limit.
+// Criteria for sending MAX_DATA/MAX_STREAM_DATA frames:
+//
+// Whenever bytes are delivered on a stream, a MAX_STREAM_DATA frame is sent if an ACK
+// is already queued, or if the buffer tuning algorithm below increases the buffer size.
+//
+// The connection-wide MAX_DATA frame is sent independently from MAX_STREAM_DATA (see use
+// of OrderedStreamBytesDeliveredAccumulator). This prevents issues in corner cases, like
+// when many short streams are used, in which case we might never actually send a
+// MAX_STREAM_DATA update since each stream's entire payload fits in the initial window.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -649,6 +651,15 @@ QuicStreamOnBytesDelivered(
 
     Stream->RecvWindowBytesDelivered += BytesDelivered;
     Stream->Connection->Send.MaxData += BytesDelivered;
+
+    Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator += BytesDelivered;
+    if (Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator >=
+        Stream->Connection->Settings.ConnFlowControlWindow / QUIC_RECV_BUFFER_DRAIN_RATIO) {
+        Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator = 0;
+        QuicSendSetSendFlag(
+            &Stream->Connection->Send,
+            QUIC_CONN_SEND_FLAG_MAX_DATA);
+    }
 
     if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
 
@@ -704,7 +715,7 @@ QuicStreamOnBytesDelivered(
     } else if (!(Stream->Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
         //
         // We haven't hit the drain limit AND we don't have any ACKs to send
-        // immediately, so we don't need to immediately update the max data
+        // immediately, so we don't need to immediately update the max stream data
         // values.
         //
         return;

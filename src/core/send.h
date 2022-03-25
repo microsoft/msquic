@@ -274,6 +274,13 @@ typedef struct QUIC_SEND {
     uint64_t OrderedStreamBytesSent;
 
     //
+    // An accumulator for in-order delivered bytes across all streams. When this
+    // reaches ConnFlowControlWindow / QUIC_RECV_BUFFER_DRAIN_RATIO, the accumulator
+    // is reset and a MAX_DATA frame is sent.
+    //
+    uint64_t OrderedStreamBytesDeliveredAccumulator;
+
+    //
     // Set of flags indicating what data is ready to be sent out.
     //
     uint32_t SendFlags;

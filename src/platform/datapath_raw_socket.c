@@ -499,7 +499,13 @@ typedef struct ETHERNET_HEADER {
 
 typedef struct IPV4_HEADER {
     uint8_t VersionAndHeaderLength;
-    uint8_t TypeOfServiceAndEcnField;
+    union {
+        uint8_t TypeOfServiceAndEcnField;
+        struct {
+            uint8_t EcnField : 2;
+            uint8_t TypeOfService : 6;
+        };
+    };
     uint16_t TotalLength;
     uint16_t Identification;
     uint16_t FlagsAndFragmentOffset;
@@ -625,6 +631,7 @@ CxPlatDpRawParseIPv4(
             return;
         }
 
+        Packet->TypeOfService = IP->EcnField;
         Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
         CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
         Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
@@ -675,6 +682,22 @@ CxPlatDpRawParseIPv6(
             return;
         }
 
+        //
+        // IPv6 Version, Traffic Class, ECN Field and Flow Label fields in host
+        // byte order.
+        //
+        union {
+            struct {
+                uint32_t Flow : 20;
+                uint32_t EcnField : 2;
+                uint32_t Class : 6;
+                uint32_t Version : 4; // Most significant bits.
+            };
+            uint32_t Value;
+        } VersionClassEcnFlow;
+        VersionClassEcnFlow.Value = CxPlatByteSwapUint32(IP->VersionClassEcnFlow);
+
+        Packet->TypeOfService = (uint8_t)VersionClassEcnFlow.EcnField;
         Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
         CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
         Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
@@ -733,6 +756,9 @@ CxPlatDpRawParseEthernet(
             "not a unicast packet");
         return;
     }
+
+    CxPlatCopyMemory(&Packet->Route->LocalLinkLayerAddress, Ethernet->Destination, sizeof(Ethernet->Destination));
+    CxPlatCopyMemory(&Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 
     uint16_t EthernetType = Ethernet->Type;
     if (EthernetType == ETHERNET_TYPE_IPV4) {
@@ -833,6 +859,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum
     )
@@ -860,7 +887,8 @@ CxPlatFramingWriteHeaders(
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPV4_HEADER* IPv4 = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
-        IPv4->TypeOfServiceAndEcnField = 0;
+        IPv4->TypeOfService = 0;
+        IPv4->EcnField = ECN;
         IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
@@ -897,7 +925,7 @@ CxPlatFramingWriteHeaders(
 
         VersionClassEcnFlow.Version = IPV6_VERSION;
         VersionClassEcnFlow.Class = 0;
-        VersionClassEcnFlow.EcnField = 0; // Not ECN capable currently.
+        VersionClassEcnFlow.EcnField = ECN;
         VersionClassEcnFlow.Flow = (uint32_t)(uintptr_t)Socket;
 
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);

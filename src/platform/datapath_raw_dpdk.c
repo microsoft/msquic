@@ -562,6 +562,12 @@ CxPlatDpdkRx(
                 (CXPLAT_RECV_DATA*)&Packet,
                 ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
                 Buffer->pkt_len);
+            //
+            // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+            // mark it resolved. This allows stateless sends to be issued without performing
+            // a route lookup.
+            //
+            Packet.Route->State = RouteResolved;
         } else {
             QuicTraceEvent(
                 LibraryErrorStatus,

@@ -9,11 +9,13 @@ typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
 
 //
-// Structure that MsQuic servers use for encoding data for stateless retries.
+// Structure that MsQuic servers use for encoding data for stateless retries and
+// NEW_TOKEN data.
 //
-typedef struct QUIC_RETRY_TOKEN_CONTENTS {
+typedef struct QUIC_TOKEN_CONTENTS {
     struct {
-        int64_t Timestamp;
+        uint64_t IsNewToken : 1;
+        uint64_t Timestamp  : 63;
     } Authenticated;
     struct {
         QUIC_ADDR RemoteAddress;
@@ -21,7 +23,7 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
         uint8_t OrigConnIdLength;
     } Encrypted;
     uint8_t EncryptionTag[CXPLAT_ENCRYPTION_OVERHEAD];
-} QUIC_RETRY_TOKEN_CONTENTS;
+} QUIC_TOKEN_CONTENTS;
 
 //
 // The per recv buffer context type.
@@ -455,15 +457,15 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRetryTokenDecrypt(
     _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_reads_(sizeof(QUIC_RETRY_TOKEN_CONTENTS))
+    _In_reads_(sizeof(QUIC_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
-    _Out_ QUIC_RETRY_TOKEN_CONTENTS* Token
+    _Out_ QUIC_TOKEN_CONTENTS* Token
     )
 {
     //
     // Copy the token locally so as to not effect the original packet buffer,
     //
-    CxPlatCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
+    CxPlatCopyMemory(Token, TokenBuffer, sizeof(QUIC_TOKEN_CONTENTS));
 
     uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
     if (MsQuicLib.CidTotalLength >= CXPLAT_IV_LENGTH) {
@@ -480,7 +482,7 @@ QuicRetryTokenDecrypt(
 
     CXPLAT_KEY* StatelessRetryKey =
         QuicLibraryGetStatelessRetryKeyForTimestamp(
-            Token->Authenticated.Timestamp);
+            (int64_t)Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
         CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return FALSE;
