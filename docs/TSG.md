@@ -286,7 +286,9 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 
 2. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
 
-### Diagnosing Software UDP Receive Offload Issues (Windows only)
+### Diagnosing Software UDP Receive Offload Issues
+
+> **Important** - The following is specific to Windows OS.
 
 Software UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can follow this [guide](https://github.com/microsoft/msquic/blob/main/docs/Diagnostics.md#trace-collection) and use `Full.Verbose` profile to collect TCPIP traces. In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coalesced from 5 UDP packets each with 1000 byte payload.
 ```
