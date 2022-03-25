@@ -319,7 +319,7 @@ CxPlatGetSocket(
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
-BOOLEAN
+QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket

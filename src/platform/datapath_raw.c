@@ -332,8 +332,8 @@ CxPlatSocketCreateUdp(
     CXPLAT_FRE_ASSERT((*NewSocket)->Wildcard ^ (*NewSocket)->Connected); // Assumes either a pure wildcard listener or a
                                                                          // connected socket; not both.
 
-    if (!CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket)) {
-        Status = QUIC_STATUS_ADDRESS_IN_USE;
+    Status = CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
