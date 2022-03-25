@@ -235,7 +235,7 @@ See [Chromium network switches](https://source.chromium.org/chromium/chromium/sr
 
 On Windows, [Packet Monitor](https://docs.microsoft.com/en-us/windows-server/networking/technologies/pktmon/pktmon?msclkid=79c406dcab7711ec976873fd5c4a48bf) (`pktmon`) is the best way to collect a packet capture.
 
-The first step is usually to find the interface you want to collect the capture on. Do this by first running `pktmon list`:
+The (optional) first step is usually to find the interface you want to collect the capture on. Do this by first running `pktmon list`:
 
 ```
 > pktmon list
@@ -247,6 +247,8 @@ Network Adapters:
   104 00-15-5D-D1-5A-30 433db3ea-0acd-457a-9c86-55bb7fa27391
    80 00-15-5D-AD-8B-40 433db3ea-0acd-457a-9c86-55bb7fa27391
 ```
+
+> **Note** - If you don't do this and use it to filter to a specific component, you will get a packet capture at **every** layer, which will include many duplicates of each packet.
 
 Once you find the interface you want, take note of the `Id`. For instance, in the example above, I want to use the Ethernet adapter, so I need `9`.
 
@@ -262,6 +264,8 @@ pktmon etl2pcap pktmon.etl
 ```
 
 This produced `pktmon.pcapng` in your current directory that can then be opened by [Wireshark](https://www.wireshark.org/). If you want to be able to decrypt the QUIC packets, you will need to get/export the TLS secrets from your code (todo: add link/instructions).
+
+> **Note** - If you don't specify the component in the `filter` step, you can specify it at the `etl2pcap` step: `pktmon etl2pcap pktmon.etl -c 9` and it will produce the same final output `pcapng` file.
 
 # Trouble Shooting a Performance Issue
 
