@@ -727,8 +727,6 @@ TestConnection::HandleConnectionEvent(
         Resumed = Event->CONNECTED.SessionResumed != FALSE;
         if (!Resumed && ExpectedResumed) {
             TEST_FAILURE("Resumption was expected!");
-        } else if(Resumed && !ExpectedResumed) {
-            TEST_FAILURE("Resumption was NOT expected!");
         }
         if (IsServer) {
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);

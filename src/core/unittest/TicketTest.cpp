@@ -470,6 +470,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
 
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
@@ -530,6 +531,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
 
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
@@ -591,6 +593,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
 
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
     uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) + sizeof(AppData)] = {
         CXPLAT_TLS_RESUMPTION_TICKET_VERSION,
@@ -656,6 +659,23 @@ TEST(ResumptionTicketTest, ServerDecFail)
             &DecodedAppDataLength));
     ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
     CompareTransportParameters(&HandshakeTP, &DecodedTP);
+
+    //
+    // Validate that if the version doesn't match, it fails.
+    //
+    Connection.Stats.QuicVersion = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
     //
     // Test decoding of a valid ticket fails when the length is wrong
@@ -1042,6 +1062,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
 
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
