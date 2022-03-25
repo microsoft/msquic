@@ -144,9 +144,10 @@ CxPlatDpdkReadConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDapathSize(
-    void
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
+    UNREFERENCED_PARAMETER(Config);
     return sizeof(DPDK_DATAPATH);
 }
 
@@ -155,7 +156,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
