@@ -937,7 +937,7 @@ CxPlatDpRawGetDapathSize(
     )
 {
     const uint32_t WorkerCount =
-        (Config && Config->RawDataPathProcList) ? Config->RawDataPathProcListLength : 1;
+        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
     return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
 }
 
@@ -954,12 +954,12 @@ CxPlatDpRawInitialize(
 
     uint16_t DefaultProc = (uint16_t)(CxPlatProcMaxCount() - 1);
     const uint16_t* ProcList =
-        (Config && Config->RawDataPathProcList) ? Config->RawDataPathProcList : &DefaultProc;
+        (Config && Config->DataPathProcList) ? Config->DataPathProcList : &DefaultProc;
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
     Xdp->WorkerCount =
-        (Config && Config->RawDataPathProcList) ? Config->RawDataPathProcListLength : 1;
+        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
 
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
     ULONG Error;

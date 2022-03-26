@@ -476,10 +476,10 @@ MsQuicLibraryUninitialize(
     if (MsQuicLib.Datapath != NULL) {
         CxPlatDataPathUninitialize(MsQuicLib.Datapath);
         MsQuicLib.Datapath = NULL;
-        if (MsQuicLib.RawDataPathProcList != NULL) {
-            CXPLAT_FREE(MsQuicLib.RawDataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-            MsQuicLib.RawDataPathProcList = NULL;
-            MsQuicLib.RawDataPathProcListLength = 0;
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+            MsQuicLib.DataPathProcList = NULL;
+            MsQuicLib.DataPathProcListLength = 0;
         }
     }
 
@@ -893,12 +893,12 @@ QuicLibrarySetGlobalParam(
 
         break;
 
-    case QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS: {
+    case QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS: {
         if (BufferLength == 0) {
-            if (MsQuicLib.RawDataPathProcList != NULL) {
-                CXPLAT_FREE(MsQuicLib.RawDataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-                MsQuicLib.RawDataPathProcList = NULL;
-                MsQuicLib.RawDataPathProcListLength = 0;
+            if (MsQuicLib.DataPathProcList != NULL) {
+                CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+                MsQuicLib.DataPathProcList = NULL;
+                MsQuicLib.DataPathProcListLength = 0;
             }
             Status = QUIC_STATUS_SUCCESS;
             break;
@@ -918,9 +918,9 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        uint32_t RawDataPathProcListLength = BufferLength / sizeof(uint16_t);
+        uint32_t DataPathProcListLength = BufferLength / sizeof(uint16_t);
         uint16_t* Cpus = (uint16_t*)Buffer;
-        for (uint32_t i = 0; i < RawDataPathProcListLength; ++i) {
+        for (uint32_t i = 0; i < DataPathProcListLength; ++i) {
             if (*(Cpus + i) >= CxPlatProcActiveCount()) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 break;
@@ -935,8 +935,8 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        uint16_t* RawDataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
-        if (RawDataPathProcList == NULL) {
+        uint16_t* DataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
+        if (DataPathProcList == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
@@ -946,19 +946,19 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        if (MsQuicLib.RawDataPathProcList != NULL) {
-            CXPLAT_FREE(MsQuicLib.RawDataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-            MsQuicLib.RawDataPathProcList = NULL;
-            MsQuicLib.RawDataPathProcListLength = 0;
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+            MsQuicLib.DataPathProcList = NULL;
+            MsQuicLib.DataPathProcListLength = 0;
         }
 
-        CxPlatCopyMemory(RawDataPathProcList, Buffer, BufferLength);
-        MsQuicLib.RawDataPathProcList = RawDataPathProcList;
-        MsQuicLib.RawDataPathProcListLength = RawDataPathProcListLength;
+        CxPlatCopyMemory(DataPathProcList, Buffer, BufferLength);
+        MsQuicLib.DataPathProcList = DataPathProcList;
+        MsQuicLib.DataPathProcListLength = DataPathProcListLength;
 
         QuicTraceLogInfo(
-            LibraryRawDataPathProcsSet,
-            "[ lib] Setting raw datapath procs");
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1192,14 +1192,14 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS:
-        if (*BufferLength == 0 && MsQuicLib.RawDataPathProcListLength == 0) {
+    case QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS:
+        if (*BufferLength == 0 && MsQuicLib.DataPathProcListLength == 0) {
             Status = QUIC_STATUS_SUCCESS;
             break;
         }
 
-        if (*BufferLength < sizeof(uint16_t) * MsQuicLib.RawDataPathProcListLength) {
-            *BufferLength = sizeof(uint16_t) * MsQuicLib.RawDataPathProcListLength;
+        if (*BufferLength < sizeof(uint16_t) * MsQuicLib.DataPathProcListLength) {
+            *BufferLength = sizeof(uint16_t) * MsQuicLib.DataPathProcListLength;
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -1209,9 +1209,9 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        *BufferLength = sizeof(uint16_t) * MsQuicLib.RawDataPathProcListLength;
-        if (MsQuicLib.RawDataPathProcList != NULL) {
-            CxPlatCopyMemory(Buffer, MsQuicLib.RawDataPathProcList, *BufferLength);
+        *BufferLength = sizeof(uint16_t) * MsQuicLib.DataPathProcListLength;
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CxPlatCopyMemory(Buffer, MsQuicLib.DataPathProcList, *BufferLength);
         }
         Status = QUIC_STATUS_SUCCESS;
         break;

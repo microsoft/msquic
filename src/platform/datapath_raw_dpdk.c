@@ -113,8 +113,8 @@ CxPlatDpdkReadConfig(
     //
     // Read user-specified global config.
     //
-    if (Config != NULL && Config->RawDataPathProcList != NULL) {
-        Dpdk->Cpu = Config->RawDataPathProcList[0];
+    if (Config != NULL && Config->DataPathProcList != NULL) {
+        Dpdk->Cpu = Config->DataPathProcList[0];
     }
 
     FILE *File = fopen("dpdk.ini", "r");
