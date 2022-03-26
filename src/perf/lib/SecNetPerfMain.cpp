@@ -87,8 +87,10 @@ PrintHelp(
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
+#ifndef _KERNEL_MODE
         "Both:\n"
         "  -cpu:<cpu_index>            Specify a processor for raw datapath thread(s) to run on.\n"
+#endif // _KERNEL_MODE
         "\n"
         );
 }
@@ -177,6 +179,7 @@ QuicMainStart(
         return Status;
     }
 
+#ifndef _KERNEL_MODE
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         uint16_t ProcList[64];
@@ -196,6 +199,7 @@ QuicMainStart(
             return Status;
         }
     }
+#endif // _KERNEL_MODE
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
