@@ -17,6 +17,16 @@ Abstract:
 #include "DataPathTest.cpp.clog.h"
 #endif
 
+extern bool UseDuoNic;
+
+//
+// Override the SDK version of QUIC_LOCALHOST_FOR_AF to use duonic instead of localhost when desired.
+//
+#ifdef _MSQUIC_WINUSER_
+#undef QUIC_LOCALHOST_FOR_AF
+#define QUIC_LOCALHOST_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : "localhost")
+#endif // _MSQUIC_WINUSER_
+
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
 

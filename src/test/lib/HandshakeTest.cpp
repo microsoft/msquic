@@ -835,9 +835,15 @@ QuicTestConnectInvalidAddress(
         TEST_TRUE(Client.IsValid());
 
         QuicAddr LocalAddr{QUIC_ADDRESS_FAMILY_INET, true};
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&LocalAddr.SockAddr);
+        }
         LocalAddr.SetPort(TestUdpPortBase - 2);
 
         QuicAddr RemoteAddr{QUIC_ADDRESS_FAMILY_INET6, true};
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+        }
         RemoteAddr.SetPort(TestUdpPortBase - 1);
 
         TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(LocalAddr));
@@ -2670,10 +2676,18 @@ struct LoadBalancedServer {
         CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
         MsQuicSettings Settings;
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
-        QuicAddrSetToLoopback(&PublicAddress.SockAddr);
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&PublicAddress.SockAddr);
+        } else {
+            QuicAddrSetToLoopback(&PublicAddress.SockAddr);
+        }
         for (uint32_t i = 0; i < ListenerCount; ++i) {
             PrivateAddresses[i] = QuicAddr(QuicAddrFamily);
-            QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
+            if (UseDuoNic) {
+                QuicAddrSetToDuoNic(&PrivateAddresses[i].SockAddr);
+            } else {
+                QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
+            }
             Configurations[i] = new(std::nothrow) MsQuicConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
             TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->SetTicketKey(&KeyConfig));

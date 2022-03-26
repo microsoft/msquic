@@ -451,6 +451,9 @@ QuicTestConnectAndPing(
 
                 if (j == 0) {
                     QuicAddr RemoteAddr(QuicAddrFamily, true);
+                    if (UseDuoNic) {
+                        QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
                     if (i != 0) {

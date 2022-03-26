@@ -5,8 +5,6 @@
 
 --*/
 
-#define DUONIC_TESTING 1
-extern bool UseDuoNic;
 
 //
 // Test code defaults to disabling certificate validation.
@@ -43,3 +41,38 @@ extern bool UseDuoNic;
 #include "TestConnection.h"
 #include "TestListener.h"
 #include "DrillDescriptor.h"
+
+extern bool UseDuoNic;
+
+//
+// Override the SDK version of QUIC_LOCALHOST_FOR_AF to use duonic instead of localhost when desired.
+//
+#ifdef _MSQUIC_WINUSER_
+#undef QUIC_LOCALHOST_FOR_AF
+#define QUIC_LOCALHOST_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : "localhost")
+#endif // _MSQUIC_WINUSER_
+
+//
+// Set a QUIC_ADDR to the duonic "server" address.
+//
+inline
+void
+QuicAddrSetToDuoNic(
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        // 192.168.1.11
+        Addr->Ipv4.sin_addr.S_un.S_addr = 184658112;
+    } else {
+        // fc00::1:11
+        Addr->Ipv6.sin6_addr.u.Word[0] = 252;
+        Addr->Ipv6.sin6_addr.u.Word[1] = 0;
+        Addr->Ipv6.sin6_addr.u.Word[2] = 0;
+        Addr->Ipv6.sin6_addr.u.Word[3] = 0;
+        Addr->Ipv6.sin6_addr.u.Word[4] = 0;
+        Addr->Ipv6.sin6_addr.u.Word[5] = 0;
+        Addr->Ipv6.sin6_addr.u.Word[6] = 256;
+        Addr->Ipv6.sin6_addr.u.Word[7] = 4352;
+    }
+}

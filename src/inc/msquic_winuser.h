@@ -250,35 +250,10 @@ QuicAddrSetToLoopback(
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
-
-#ifdef DUONIC_TESTING
-        if (UseDuoNic) {
-            // 192.168.1.11
-            Addr->Ipv4.sin_addr.S_un.S_addr = 184658112;
-        } else {
-            Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
-            Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
-        }
-#else
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
-#endif
-
     } else {
-
-#ifdef DUONIC_TESTING
-        if (UseDuoNic) {
-            // fc00::1:11
-            Addr->Ipv6.sin6_addr.u.Word[0] = 252;
-            Addr->Ipv6.sin6_addr.u.Word[6] = 256;
-            Addr->Ipv6.sin6_addr.u.Word[7] = 4352;
-        } else {
-            Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
-        }
-#else
         Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
-#endif
-
     }
 }
 
@@ -322,11 +297,7 @@ QuicAddrHash(
     return Hash;
 }
 
-#ifdef DUONIC_TESTING
-#define QUIC_LOCALHOST_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : "localhost")
-#else
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
-#endif
 
 //
 // Rtl String API's are not allowed in gamecore
