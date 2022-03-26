@@ -177,14 +177,37 @@ QuicMainStart(
         return Status;
     }
 
-    uint32_t RawDatapathCpu;
-    if (TryGetValue(argc, argv, "cpu", &RawDatapathCpu)) {
+    const char* CpuStr;
+    if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
+        // Split CpuStr by comma into an array of uint16_t.
+        uint32_t CpuCount = 0;
+        for (size_t i = 0; i < strlen(CpuStr); i++) {
+            if (CpuStr[i] == ',') {
+                CpuCount++;
+            }
+        }
+        CpuCount++;
+        auto RawDatapathCpus = new(std::nothrow) uint16_t[CpuCount];
+        if (RawDatapathCpus == nullptr) {
+            WriteOutput("RawDatapathCpus Alloc Out of Memory\n");
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        char* End = (char*)CpuStr;
+        uint32_t RawDatapathCpuCount = 0;
+        do {
+            End++;
+            if (*End == ',' || *End == 0) {
+                *End = 0;
+                RawDatapathCpus[RawDatapathCpuCount++] = (uint16_t)atoi(CpuStr);
+                CpuStr = End + 1;
+            }
+        } while (*End);
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
-                sizeof(RawDatapathCpu),
-                &RawDatapathCpu))) {
+                RawDatapathCpuCount,
+                RawDatapathCpus))) {
             WriteOutput("MsQuic Failed To Set Raw DataPath Procs %d\n", Status);
             return Status;
         }

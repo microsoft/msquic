@@ -74,7 +74,7 @@ typedef struct QUIC_CACHEALIGN XDP_WORKER {
     const struct XDP_DATAPATH* Xdp;
     HANDLE CompletionEvent;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
-    uint16_t Index;
+    uint16_t ProcIndex;
 } XDP_WORKER;
 
 void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
@@ -930,7 +930,6 @@ CxPlatDpRawInterfaceRemoveRules(
     CxPlatLockRelease(&Interface->RuleLock);
 }
 
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDapathSize(
@@ -953,9 +952,9 @@ CxPlatDpRawInitialize(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
-    uint16_t DefaultCore = (uint16_t)(CxPlatProcMaxCount() - 1);
-    const uint16_t* PollingCores =
-        (Config && Config->RawDataPathProcList) ? Config->RawDataPathProcList : &DefaultCore;
+    uint16_t DefaultProc = (uint16_t)(CxPlatProcMaxCount() - 1);
+    const uint16_t* ProcList =
+        (Config && Config->RawDataPathProcList) ? Config->RawDataPathProcList : &DefaultProc;
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
@@ -1060,9 +1059,9 @@ CxPlatDpRawInitialize(
     Xdp->Running = TRUE;
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
         Xdp->Workers[i].Xdp = Xdp;
-        Xdp->Workers[i].Index = PollingCores[i];
+        Xdp->Workers[i].ProcIndex = ProcList[i];
         CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
-        CxPlatWorkerRegisterDataPath(PollingCores[i], &Xdp->Workers[i]);
+        CxPlatWorkerRegisterDataPath(ProcList[i], &Xdp->Workers[i]);
     }
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1224,7 +1223,7 @@ void
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
     _In_ XDP_QUEUE* Queue,
-    _In_ uint16_t Index
+    _In_ uint16_t ProcIndex
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -1243,7 +1242,7 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = Index;
+        Packet->PartitionIndex = ProcIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -1493,7 +1492,7 @@ CxPlatDataPathRunEC(
 
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        CxPlatXdpRx(Xdp, Queue, Worker->Index);
+        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
