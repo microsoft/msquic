@@ -4450,7 +4450,8 @@ QuicConnRecvFrames(
 
         case QUIC_FRAME_NEW_TOKEN: {
             QUIC_NEW_TOKEN_EX Frame;
-            if (!QuicNewTokenFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+            if (!QuicNewTokenFrameDecode(PayloadLength, Payload, &Offset, &Frame) ||
+                Frame.TokenLength > UINT32_MAX) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -4464,9 +4465,16 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
-            //
-            // TODO - Save the token for future use.
-            //
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_NEW_TOKEN_RECEIVED;
+            Event.NEW_TOKEN_RECEIVED.NewTokenLength = (uint32_t)Frame.TokenLength;
+            Event.NEW_TOKEN_RECEIVED.NewToken = Frame.Token;
+            QuicTraceLogConnVerbose(
+                IndicateNewTokenReceived,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_NEW_TOKEN_RECEIVED [%u bytes]",
+                (uint32_t)Frame.TokenLength);
+            (void)QuicConnIndicateEvent(Connection, &Event);
 
             AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
