@@ -503,7 +503,7 @@ RpsConnectionContext::SendRequest(bool DelaySend) {
 void
 RpsWorkerContext::QueueSendRequest() {
     if (Client->Running) {
-        if (ThreadStarted && !SendInline) {
+        if (ThreadStarted && !Client->SendInline) {
             InterlockedIncrement((long*)&RequestCount);
             CxPlatEventSet(WakeEvent);
         } else {
