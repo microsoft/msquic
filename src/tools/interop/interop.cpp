@@ -372,7 +372,7 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
-            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -387,7 +387,7 @@ public:
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
-            uint32_t SupportedVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { InitialVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);

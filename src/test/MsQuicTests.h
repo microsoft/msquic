@@ -213,6 +213,9 @@ QuicTestCibirExtension(
     _In_ uint8_t Mode // server = &1, client = &2
     );
 
+void
+QuicTestResumptionAcrossVersions();
+
 //
 // Negative Handshake Tests
 //
@@ -998,4 +1001,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP \
     QUIC_CTL_CODE(86, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 86
+#define IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS \
+    QUIC_CTL_CODE(87, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 87
