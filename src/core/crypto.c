@@ -104,6 +104,7 @@ QuicCryptoInitialize(
     _Inout_ QUIC_CRYPTO* Crypto
     )
 {
+    CXPLAT_DBG_ASSERT(Crypto->Initialized == FALSE);
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint16_t SendBufferLength =
@@ -403,6 +404,14 @@ QuicCryptoOnVersionChange(
             VersionInfo = &QuicSupportedVersionList[i];
             break;
         }
+    }
+
+    if (Crypto->TLS) {
+        //
+        // If TLS has been initialized, then it needs to have HKDF
+        // labels updated.
+        //
+        CxPlatTlsUpdateHkdfLabels(Crypto->TLS, &VersionInfo->HkdfLabels);
     }
 
     if (QuicConnIsServer(Connection)) {
@@ -770,34 +779,66 @@ QuicCryptoWriteCryptoFrames(
 
         uint32_t EncryptLevelStart;
         uint32_t PacketTypeRight;
-        switch (Builder->PacketType) {
-        case QUIC_INITIAL:
-            EncryptLevelStart = 0;
-            if (Crypto->TlsState.BufferOffsetHandshake != 0) {
-                PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
-            } else {
+        if (QuicCryptoGetConnection(Crypto)->Stats.QuicVersion == QUIC_VERSION_2) {
+            switch (Builder->PacketType) {
+            case QUIC_INITIAL_V2:
+                EncryptLevelStart = 0;
+                if (Crypto->TlsState.BufferOffsetHandshake != 0) {
+                    PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
+                } else {
+                    PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                }
+                break;
+            case QUIC_0_RTT_PROTECTED_V2:
+                CXPLAT_FRE_ASSERT(FALSE);
+                EncryptLevelStart = 0;
+                PacketTypeRight = 0; // To get build to stop complaining.
+                break;
+            case QUIC_HANDSHAKE_V2:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
+                EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;
+                PacketTypeRight =
+                    Crypto->TlsState.BufferOffset1Rtt == 0 ?
+                        Crypto->TlsState.BufferTotalLength : Crypto->TlsState.BufferOffset1Rtt;
+                break;
+            default:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffset1Rtt != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffset1Rtt);
+                EncryptLevelStart = Crypto->TlsState.BufferOffset1Rtt;
                 PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                break;
             }
-            break;
-        case QUIC_0_RTT_PROTECTED:
-            CXPLAT_FRE_ASSERT(FALSE);
-            EncryptLevelStart = 0;
-            PacketTypeRight = 0; // To get build to stop complaining.
-            break;
-        case QUIC_HANDSHAKE:
-            CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
-            CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
-            EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;
-            PacketTypeRight =
-                Crypto->TlsState.BufferOffset1Rtt == 0 ?
-                    Crypto->TlsState.BufferTotalLength : Crypto->TlsState.BufferOffset1Rtt;
-            break;
-        default:
-            CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffset1Rtt != 0);
-            CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffset1Rtt);
-            EncryptLevelStart = Crypto->TlsState.BufferOffset1Rtt;
-            PacketTypeRight = Crypto->TlsState.BufferTotalLength;
-            break;
+        } else {
+            switch (Builder->PacketType) {
+            case QUIC_INITIAL_V1:
+                EncryptLevelStart = 0;
+                if (Crypto->TlsState.BufferOffsetHandshake != 0) {
+                    PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
+                } else {
+                    PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                }
+                break;
+            case QUIC_0_RTT_PROTECTED_V1:
+                CXPLAT_FRE_ASSERT(FALSE);
+                EncryptLevelStart = 0;
+                PacketTypeRight = 0; // To get build to stop complaining.
+                break;
+            case QUIC_HANDSHAKE_V1:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
+                EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;
+                PacketTypeRight =
+                    Crypto->TlsState.BufferOffset1Rtt == 0 ?
+                        Crypto->TlsState.BufferTotalLength : Crypto->TlsState.BufferOffset1Rtt;
+                break;
+            default:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffset1Rtt != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffset1Rtt);
+                EncryptLevelStart = Crypto->TlsState.BufferOffset1Rtt;
+                PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                break;
+            }
         }
 
         if (Right > PacketTypeRight) {
@@ -890,8 +931,10 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
-    if (Builder->PacketType !=
-        QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(Crypto))) {
+    if ((Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType !=
+            QuicEncryptLevelToPacketTypeV1(QuicCryptoGetNextEncryptLevel(Crypto))) ||
+        (Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType !=
+            QuicEncryptLevelToPacketTypeV2(QuicCryptoGetNextEncryptLevel(Crypto)))) {
         //
         // Nothing to send in this packet / encryption level, just continue on.
         //
@@ -2172,7 +2215,7 @@ QuicCryptoDecodeServerTicket(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
-            "Resumption Ticket for unsupported QUIC version");
+            "Resumption Ticket for different QUIC version");
         goto Error;
     }
     Offset += sizeof(QuicVersion);

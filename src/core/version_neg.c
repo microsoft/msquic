@@ -21,16 +21,18 @@ typedef struct QUIC_COMPATIBLE_VERSION_MAP {
 
 const QUIC_COMPATIBLE_VERSION_MAP CompatibleVersionsMap[] = {
     {QUIC_VERSION_MS_1, QUIC_VERSION_1},
-    {QUIC_VERSION_1, QUIC_VERSION_MS_1}
+    {QUIC_VERSION_1, QUIC_VERSION_MS_1},
+    {QUIC_VERSION_1, QUIC_VERSION_2}
 };
 
 //
 // This list is the versions the server advertises support for.
 //
-const uint32_t DefaultSupportedVersionsList[3] = {
+const uint32_t DefaultSupportedVersionsList[4] = {
+    QUIC_VERSION_2,
     QUIC_VERSION_1,
     QUIC_VERSION_MS_1,
-    QUIC_VERSION_DRAFT_29
+    QUIC_VERSION_DRAFT_29,
 };
 
 BOOLEAN
@@ -191,13 +193,18 @@ QuicVersionNegotiationExtParseVersionInfo(
     CxPlatCopyMemory(&VersionInfo->ChosenVersion, Buffer, sizeof(VersionInfo->ChosenVersion));
     Offset += sizeof(uint32_t);
 
-    if ((unsigned)(BufferLength - Offset) < sizeof(uint32_t)) {
-        QuicTraceLogConnError(
-            VersionInfoDecodeFailed2,
-            Connection,
-            "Version info too short to contain any Other Versions (%hu bytes)",
-            BufferLength);
-        return QUIC_STATUS_INVALID_PARAMETER;
+    if (QuicConnIsServer(Connection)) {
+        //
+        // Client-sent Version Info *MUST* contain OtherVersions.
+        //
+        if ((unsigned)(BufferLength - Offset) < sizeof(uint32_t)) {
+            QuicTraceLogConnError(
+                VersionInfoDecodeFailed2,
+                Connection,
+                "Version info too short to contain any Other Versions (%hu bytes)",
+                (unsigned)(BufferLength - Offset));
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
     }
 
     if ((BufferLength - Offset) % sizeof(uint32_t) > 0) {

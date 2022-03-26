@@ -248,6 +248,24 @@ tracepoint(CLOG_CONNECTION_C, RecvVerNegNoMatch , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for RecvVerNegCryptoError
+// [conn][%p] Failed to update crypto on ver neg
+// QuicTraceLogConnError(
+            RecvVerNegCryptoError,
+            Connection,
+            "Failed to update crypto on ver neg");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecvVerNegCryptoError
+#define _clog_3_ARGS_TRACE_RecvVerNegCryptoError(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, RecvVerNegCryptoError , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApiEventNoHandler
 // [conn][%p] Event silently discarded (no handler).
 // QuicTraceLogConnWarning(
