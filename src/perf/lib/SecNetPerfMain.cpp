@@ -211,6 +211,7 @@ QuicMainStart(
             WriteOutput("MsQuic Failed To Set Raw DataPath Procs %d\n", Status);
             return Status;
         }
+        delete [] RawDatapathCpus;
     }
 
     if (ServerMode) {
