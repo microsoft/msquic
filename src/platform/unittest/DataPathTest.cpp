@@ -241,8 +241,13 @@ protected:
             LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
         }
 
+#ifdef CX_PLATFORM_DARWIN
+        UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
+        UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
+#else
         UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "0.0.0.0");
         UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "::");
+#endif
 
         ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
