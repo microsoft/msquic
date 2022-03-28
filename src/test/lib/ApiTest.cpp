@@ -1023,7 +1023,7 @@ void QuicTestValidateConnection()
             TestScopeLogger logScope("SendResumption in Listener callback");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(2000));
             }
 
@@ -1035,7 +1035,7 @@ void QuicTestValidateConnection()
             TestScopeLogger logScope("SendResumption with resumption disabled");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(2000));
             TEST_TRUE(ListenerContext.HandshakeCompleteEvent.WaitTimeout(2000)); // Wait for server to get connected
             }
@@ -1048,7 +1048,7 @@ void QuicTestValidateConnection()
             TestScopeLogger logScope("SendResumption handshake not complete");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             TEST_TRUE(ListenerContext.ListenerAcceptEvent.WaitTimeout(2000));
             TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(2000)); // Wait for client to get connected
 
@@ -2104,7 +2104,7 @@ QuicTestConnectionRejection(
 
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
     if (RejectByClosing) {
         TEST_TRUE(ShutdownEvent.WaitTimeout(TestWaitTimeout));
