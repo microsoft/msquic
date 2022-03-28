@@ -310,9 +310,6 @@ if ($CodeCoverage) {
 if ($AZP) {
     $TestArguments += " -AZP"
 }
-if ($ErrorsAsWarnings) {
-    $TestArguments += " -ErrorsAsWarnings"
-}
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
@@ -323,6 +320,12 @@ if (!$Kernel -and !$SkipUnitTests) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }
+
+# Still consider units test failures to be errors on all platforms.
+if ($ErrorsAsWarnings) {
+    $TestArguments += " -ErrorsAsWarnings"
+}
+
 # TODO: fix main tests to run with XDP.
 if (!$DuoNic) {
     Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
