@@ -61,18 +61,18 @@ QuicAddrSetToDuoNic(
     _Inout_ QUIC_ADDR* Addr
     )
 {
-    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+    if (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET) {
         // 192.168.1.11
-        Addr->Ipv4.sin_addr.S_un.S_addr = 184658112;
+        ((uint32_t*)&(Addr->Ipv4.sin_addr))[0] = 184658112;
     } else {
         // fc00::1:11
-        Addr->Ipv6.sin6_addr.u.Word[0] = 252;
-        Addr->Ipv6.sin6_addr.u.Word[1] = 0;
-        Addr->Ipv6.sin6_addr.u.Word[2] = 0;
-        Addr->Ipv6.sin6_addr.u.Word[3] = 0;
-        Addr->Ipv6.sin6_addr.u.Word[4] = 0;
-        Addr->Ipv6.sin6_addr.u.Word[5] = 0;
-        Addr->Ipv6.sin6_addr.u.Word[6] = 256;
-        Addr->Ipv6.sin6_addr.u.Word[7] = 4352;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[0] = 252;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[1] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[2] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[3] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[4] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[5] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[6] = 256;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[7] = 4352;
     }
 }
