@@ -5,7 +5,6 @@
 
 --*/
 
-
 //
 // Test code defaults to disabling certificate validation.
 //
