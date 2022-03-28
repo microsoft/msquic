@@ -16,12 +16,9 @@ Abstract:
 extern bool UseDuoNic;
 
 //
-// Override the SDK version of QUIC_LOCALHOST_FOR_AF to use duonic instead of localhost when desired.
+// Connect to the duonic address (if using duonic) or localhost (if not).
 //
-#ifdef _MSQUIC_WINUSER_
-#undef QUIC_LOCALHOST_FOR_AF
-#define QUIC_LOCALHOST_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : "localhost")
-#endif // _MSQUIC_WINUSER_
+#define QUIC_TEST_LOOPBACK_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
 
 //
 // Set a QUIC_ADDR to the duonic "server" address.
