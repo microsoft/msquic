@@ -28,12 +28,12 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
 // Decoder Ring for VersionInfoDecodeFailed2
 // [conn][%p] Version info too short to contain any Other Versions (%hu bytes)
 // QuicTraceLogConnError(
-            VersionInfoDecodeFailed2,
-            Connection,
-            "Version info too short to contain any Other Versions (%hu bytes)",
-            BufferLength);
+                VersionInfoDecodeFailed2,
+                Connection,
+                "Version info too short to contain any Other Versions (%hu bytes)",
+                (unsigned)(BufferLength - Offset));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = BufferLength = arg3
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
     TP_ARGS(

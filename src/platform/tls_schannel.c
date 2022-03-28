@@ -1599,6 +1599,16 @@ CxPlatTlsUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
+    )
+{
+    TlsContext->HkdfLabels = Labels;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsIndicateCertificateReceived(
     _In_ CXPLAT_TLS* TlsContext,
