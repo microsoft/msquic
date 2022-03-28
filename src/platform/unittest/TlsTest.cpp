@@ -2093,25 +2093,25 @@ TEST_F(TlsTest, PortableCertFlags)
             QUIC_ALLOWED_CIPHER_SUITE_NONE
         };
         CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
-        ValidateSecConfigStatusPortableCert(
+        QUIC_STATUS Status =
             CxPlatTlsSecConfigCreate(
                 &TestClientCredConfig,
                 CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsCallbacks,
                 &ClientSecConfig,
-                PortableCertFlagsSecConfigCreateComplete),
-            ClientSecConfig);
+                PortableCertFlagsSecConfigCreateComplete);
+        ValidateSecConfigStatusPortableCert(Status, ClientSecConfig);
 
         SelfSignedCertParams->Flags = TestFlag;
         CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
-        ValidateSecConfigStatusPortableCert(
+        Status =
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
                 CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsCallbacks,
                 &ServerSecConfig,
-                PortableCertFlagsSecConfigCreateComplete),
-            ServerSecConfig);
+                PortableCertFlagsSecConfigCreateComplete);
+        ValidateSecConfigStatusPortableCert(Status, ServerSecConfig);
     }
 }
 
