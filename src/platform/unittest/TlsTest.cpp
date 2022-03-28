@@ -1937,6 +1937,7 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
         }) {
 
         if (TestFlag != QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            printf("client %u\n", (uint32_t)TestFlag);
             QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -1947,27 +1948,28 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
                 QUIC_ALLOWED_CIPHER_SUITE_NONE
             };
             CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
-            ValidateSecConfigStatusSchannel(
+            QUIC_STATUS Status =
                 CxPlatTlsSecConfigCreate(
                     &TestClientCredConfig,
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                     &TlsContext::TlsCallbacks,
                     &ClientSecConfig,
-                    SchannelSecConfigCreateComplete),
-                ClientSecConfig);
+                    SchannelSecConfigCreateComplete);
+            ValidateSecConfigStatusSchannel(Status, ClientSecConfig);
         }
 
         if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            printf("server %u\n", (uint32_t)TestFlag);
             SelfSignedCertParams->Flags = TestFlag;
             CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
-            ValidateSecConfigStatusSchannel(
+            QUIC_STATUS Status =
                 CxPlatTlsSecConfigCreate(
                     SelfSignedCertParams,
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                     &TlsContext::TlsCallbacks,
                     &ServerSecConfig,
-                    SchannelSecConfigCreateComplete),
-                ServerSecConfig);
+                    SchannelSecConfigCreateComplete);
+            ValidateSecConfigStatusSchannel(Status, ServerSecConfig);
         }
     }
 }
@@ -2029,25 +2031,25 @@ TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
             QUIC_ALLOWED_CIPHER_SUITE_NONE
         };
         CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
-        ValidateSecConfigStatusOpenSsl(
+        QUIC_STATUS Status =
             CxPlatTlsSecConfigCreate(
                 &TestClientCredConfig,
                 CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsCallbacks,
                 &ClientSecConfig,
-                OpenSslSecConfigCreateComplete),
-            ClientSecConfig);
+                OpenSslSecConfigCreateComplete);
+        ValidateSecConfigStatusOpenSsl(Status, ClientSecConfig);
 
         SelfSignedCertParams->Flags = TestFlag;
         CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
-        ValidateSecConfigStatusOpenSsl(
+        Status =
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
                 CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsCallbacks,
                 &ServerSecConfig,
-                OpenSslSecConfigCreateComplete),
-            ServerSecConfig);
+                OpenSslSecConfigCreateComplete);
+        ValidateSecConfigStatusOpenSsl(Status, ServerSecConfig);
     }
 }
 
