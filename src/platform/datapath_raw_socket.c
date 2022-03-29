@@ -92,14 +92,14 @@ CxPlatGetSocket(
     return Socket;
 }
 
-BOOLEAN
+QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result;
-    BOOLEAN Success = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     QUIC_ADDR MappedAddress = {0};
@@ -115,13 +115,14 @@ CxPlatTryAddSocket(
             SOCK_DGRAM,
             IPPROTO_UDP);
     if (Socket->AuxSocket == INVALID_SOCKET) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "socket");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
@@ -134,13 +135,14 @@ CxPlatTryAddSocket(
             (char*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "Set IPV6_V6ONLY");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
@@ -154,13 +156,14 @@ CxPlatTryAddSocket(
                 (char*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
-            int Error = SocketError();
+            int WsaError = SocketError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
-                Error,
+                WsaError,
                 "Set SO_REUSEADDR");
+            Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
     }
@@ -180,14 +183,15 @@ CxPlatTryAddSocket(
             (struct sockaddr*)&MappedAddress,
             sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "bind");
         CxPlatRwLockReleaseExclusive(&Pool->Lock);
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
@@ -207,14 +211,15 @@ CxPlatTryAddSocket(
                 (struct sockaddr*)&MappedAddress,
                 sizeof(MappedAddress));
         if (Result == SOCKET_ERROR) {
-            int Error = SocketError();
+            int WsaError = SocketError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
-                Error,
+                WsaError,
                 "connect failed");
             CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
     }
@@ -226,30 +231,30 @@ CxPlatTryAddSocket(
             (struct sockaddr*)&Socket->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "getsockname");
         CxPlatRwLockReleaseExclusive(&Pool->Lock);
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-    Success = TRUE;
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
         if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
-            Success = FALSE;
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }
         Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
     }
-    if (Success) {
+    if (QUIC_SUCCEEDED(Status)) {
         CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
     }
 
@@ -257,11 +262,11 @@ CxPlatTryAddSocket(
 
 Error:
 
-    if (!Success && Socket->AuxSocket != INVALID_SOCKET) {
+    if (QUIC_FAILED(Status) && Socket->AuxSocket != INVALID_SOCKET) {
         closesocket(Socket->AuxSocket);
     }
 
-    return Success;
+    return Status;
 }
 
 void
