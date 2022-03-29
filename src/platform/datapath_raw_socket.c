@@ -580,10 +580,6 @@ CxPlatDpRawParseUdp(
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = Length;
-
-    //const uint32_t Hash = CxPlatHashSimple(sizeof(*Packet->Route), (uint8_t*)Packet->Route);
-    const uint32_t Hash = Udp->SourcePort + Udp->DestinationPort;
-    Packet->PartitionIndex = Datapath->CpuTable[Hash % Datapath->CpuTableSize];
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

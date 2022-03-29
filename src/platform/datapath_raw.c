@@ -113,7 +113,7 @@ CxPlatDataPathInitialize(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const size_t DatapathSize = CxPlatDpRawGetDapathSize();
+    const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
     CXPLAT_FRE_ASSERT(DatapathSize > sizeof(CXPLAT_DATAPATH));
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
@@ -188,26 +188,6 @@ CxPlatDataPathUninitialize(
     CxPlatDpRawUninitialize(Datapath);
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawGenerateCpuTable(
-    _Inout_ CXPLAT_DATAPATH* Datapath
-    )
-{
-    Datapath->NumaNode = (uint8_t)CxPlatProcessorInfo[Datapath->Cpu].NumaNode;
-
-    //
-    // Build up the set of CPUs that are on the same NUMA node as this one.
-    //
-    Datapath->CpuTableSize = 0;
-    for (uint16_t i = 0; i < CxPlatProcMaxCount(); i++) {
-        if (i != Datapath->Cpu && // Skip raw layer's CPU
-            CxPlatProcessorInfo[i].NumaNode == Datapath->NumaNode) {
-            Datapath->CpuTable[Datapath->CpuTableSize++] = i;
-        }
-    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
