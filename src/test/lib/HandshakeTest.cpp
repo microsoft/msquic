@@ -1758,6 +1758,9 @@ QuicTestConnectBadSni(
                 TEST_TRUE(Client.IsValid());
 
                 QuicAddr RemoteAddr(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6, true);
+                if (UseDuoNic) {
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                }
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_REFUSED);
