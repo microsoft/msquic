@@ -143,7 +143,7 @@ CxPlatDpdkReadConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
-CxPlatDpRawGetDapathSize(
+CxPlatDpRawGetDatapathSize(
     _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {

@@ -741,7 +741,7 @@ CxPlatDpRawInterfaceInitialize(
     }
 
     //
-    // Add the queues to a worker (round robin).
+    // Add each queue to a worker (round robin).
     //
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
         XdpWorkerAddQueue(
@@ -932,7 +932,7 @@ CxPlatDpRawInterfaceRemoveRules(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
-CxPlatDpRawGetDapathSize(
+CxPlatDpRawGetDatapathSize(
     _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {

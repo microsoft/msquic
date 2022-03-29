@@ -113,7 +113,7 @@ CxPlatDataPathInitialize(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const size_t DatapathSize = CxPlatDpRawGetDapathSize(Config);
+    const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
     CXPLAT_FRE_ASSERT(DatapathSize > sizeof(CXPLAT_DATAPATH));
 
     UNREFERENCED_PARAMETER(TcpCallbacks);

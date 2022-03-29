@@ -89,7 +89,7 @@ PrintHelp(
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
 #ifndef _KERNEL_MODE
         "Both:\n"
-        "  -cpu:<cpu_index>            Specify a processor for raw datapath thread(s) to run on.\n"
+        "  -cpu:<cpu_index>            Specify the processor(s) for the datapath to use.\n"
 #endif // _KERNEL_MODE
         "\n"
         );
