@@ -24,7 +24,6 @@ extern bool UseDuoNic;
 //
 #define QUIC_TEST_LOOPBACK_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
 
-
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
 
