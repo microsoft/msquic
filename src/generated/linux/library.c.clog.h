@@ -192,15 +192,15 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetSettings );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRawDataPathProcsSet
-// [ lib] Setting raw datapath procs
+// Decoder Ring for LibraryDataPathProcsSet
+// [ lib] Setting datapath procs
 // QuicTraceLogInfo(
-            LibraryRawDataPathProcsSet,
-            "[ lib] Setting raw datapath procs");
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSet
-#define _clog_2_ARGS_TRACE_LibraryRawDataPathProcsSet(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibraryRawDataPathProcsSet );\
+#ifndef _clog_2_ARGS_TRACE_LibraryDataPathProcsSet
+#define _clog_2_ARGS_TRACE_LibraryDataPathProcsSet(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryDataPathProcsSet );\
 
 #endif
 

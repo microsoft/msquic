@@ -106,10 +106,10 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus , arg2, arg3);\
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "socket");
 // arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = Error = arg3
+// arg3 = arg3 = WsaError = arg3
 // arg4 = arg4 = "socket" = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus

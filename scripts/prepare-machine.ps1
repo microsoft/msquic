@@ -83,6 +83,9 @@ param (
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallClog2Text,
+
+    [Parameter(Mandatory = $false)]
     [switch]$DisableTest
 )
 
@@ -124,6 +127,8 @@ if ($ForTest) {
     # enabled for any possible test.
     $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
+
+    $InstallClog2Text = $true
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
@@ -409,6 +414,35 @@ function Install-TestCertificates {
     }
 }
 
+function Install-DotnetTool {
+    param($ToolName, $Version, $NuGetPath)
+    $NuGetName = "$ToolName.$Version.nupkg"
+    $NuGetFile = Join-Path $NuGetPath $NuGetName
+    if (!(Test-Path -Path $NuGetFile)) {
+        Write-Host "$ToolName not found. Parsing lttng logs will fail"
+        return
+    }
+
+    try {
+        Write-Host "Installing: $ToolName"
+        dotnet tool update --global --add-source $NuGetPath $ToolName
+    } catch {
+        $err = $_
+        Write-Host "$ToolName could not be installed. Parsing lttng logs will fail"
+        Write-Host $err.ToString()
+    }
+}
+
+function Install-Clog2Text {
+    Write-Host "Initializing clog submodule"
+    git submodule init submodules/clog
+    git submodule update
+
+    dotnet build (Join-Path $RootDir submodules clog)
+    $NuGetPath = Join-Path $RootDir "submodules" "clog" "src" "nupkg"
+    Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
+}
+
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) { git rm submodules/openssl }
 
@@ -441,6 +475,10 @@ if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
+    if ($InstallClog2Text) {
+        Install-Clog2Text
+    }
+
     if ($ForOneBranch) {
         sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
         sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
@@ -472,6 +510,7 @@ if ($IsLinux) {
         sudo apt-add-repository ppa:lttng/stable-2.12
         sudo apt-get update
         sudo apt-get install -y lttng-tools
+        sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
 
         # Enable core dumps for the system.
