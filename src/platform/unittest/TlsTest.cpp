@@ -1937,7 +1937,6 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
         }) {
 
         if (TestFlag != QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
-            printf("client %u\n", (uint32_t)TestFlag);
             QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -1959,7 +1958,6 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
         }
 
         if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
-            printf("server %u\n", (uint32_t)TestFlag);
             SelfSignedCertParams->Flags = TestFlag;
             CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
             QUIC_STATUS Status =
