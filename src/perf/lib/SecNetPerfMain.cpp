@@ -87,8 +87,10 @@ PrintHelp(
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
+#ifndef _KERNEL_MODE
         "Both:\n"
-        "  -cpu:<cpu_index>            Specify a processor for raw datapath thread(s) to run on.\n"
+        "  -cpu:<cpu_index>            Specify the processor(s) for the datapath to use.\n"
+#endif // _KERNEL_MODE
         "\n"
         );
 }
@@ -177,18 +179,27 @@ QuicMainStart(
         return Status;
     }
 
-    uint32_t RawDatapathCpu;
-    if (TryGetValue(argc, argv, "cpu", &RawDatapathCpu)) {
+#ifndef _KERNEL_MODE
+    const char* CpuStr;
+    if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
+        uint16_t ProcList[64];
+        uint32_t ProcCount = 0;
+        do {
+            if (*CpuStr == ',') CpuStr++;
+            ProcList[ProcCount++] = (uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10);
+        } while (*CpuStr && ProcCount < ARRAYSIZE(ProcList));
         if (QUIC_FAILED(
+            Status =
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS,
-                sizeof(RawDatapathCpu),
-                &RawDatapathCpu))) {
-            WriteOutput("MsQuic Failed To Set Raw DataPath Procs %d\n", Status);
+                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                ProcCount * sizeof(uint16_t),
+                ProcList))) {
+            WriteOutput("MsQuic Failed To Set DataPath Procs %d\n", Status);
             return Status;
         }
     }
+#endif // _KERNEL_MODE
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);

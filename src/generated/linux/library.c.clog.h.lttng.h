@@ -161,13 +161,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRawDataPathProcsSet
-// [ lib] Setting raw datapath procs
+// Decoder Ring for LibraryDataPathProcsSet
+// [ lib] Setting datapath procs
 // QuicTraceLogInfo(
-            LibraryRawDataPathProcsSet,
-            "[ lib] Setting raw datapath procs");
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRawDataPathProcsSet,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryDataPathProcsSet,
     TP_ARGS(
 ), 
     TP_FIELDS(

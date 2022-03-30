@@ -344,8 +344,8 @@ void
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
 typedef struct CXPLAT_DATAPATH_CONFIG {
-    const uint16_t* RawDataPathProcList; // Processor index candidates
-    uint32_t RawDataPathProcListLength;
+    const uint16_t* DataPathProcList; // Processor index candidates
+    uint32_t DataPathProcListLength;
 } CXPLAT_DATAPATH_CONFIG;
 
 //

@@ -26,6 +26,7 @@ PrintHelp(
         "  -target:<####>              The target server to connect to.\n"
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
+        "  -inline:<0/1>               Configured sending requests inline. (def:0)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
@@ -76,6 +77,7 @@ RpsClient::Init(
 
     TryGetValue(argc, argv, "runtime", &RunTime);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
+    TryGetValue(argc, argv, "inline", &SendInline);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "conns", &ConnectionCount);
     RequestCount = 2 * ConnectionCount;
@@ -501,7 +503,7 @@ RpsConnectionContext::SendRequest(bool DelaySend) {
 void
 RpsWorkerContext::QueueSendRequest() {
     if (Client->Running) {
-        if (ThreadStarted) {
+        if (ThreadStarted && !Client->SendInline) {
             InterlockedIncrement((long*)&RequestCount);
             CxPlatEventSet(WakeEvent);
         } else {
