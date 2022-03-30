@@ -942,8 +942,14 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
     }
 
-    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
-        return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    if (IsClient) {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+        }
+    } else {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Using supplied credentials is a client-only flag.
+        }
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
@@ -1909,6 +1915,10 @@ CxPlatTlsWriteDataToSchannel(
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             ContextReq |= ASC_REQ_MUTUAL_AUTH;
         }
+    }
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+        CXPLAT_DBG_ASSERT(!TlsContext->IsServer); // Previously validated, but let's just make sure.
+        ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
     }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
