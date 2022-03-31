@@ -85,6 +85,9 @@ param (
     [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
     [string]$RemoteTls = "",
 
@@ -114,6 +117,9 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$XDP = $false,
+
+    [Parameter(Mandatory = $false)]
     [int]$Timeout = 120,
 
     [Parameter(Mandatory = $false)]
@@ -134,13 +140,25 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-# Validate the the kernel switch.
-if ($Kernel -and !$IsWindows) {
-    Write-Error "-Kernel switch only supported on Windows"
+# Validate the the switches.
+if ($Kernel) {
+    if (!$IsWindows) {
+        Write-Error "'-Kernel' is not supported on this platform"
+    }
+    if ($PGO) {
+        Write-Error "'-PGO' is not supported in kernel mode!"
+    }
+    if ($XDP) {
+        Write-Error "'-XDP' is not supported in kernel mode!"
+    }
 }
-
-if ($Kernel -and $PGO) {
-    Write-Error "PGO is currently not supported in kernel mode"
+if (!$IsWindows) {
+    if ($PGO) {
+        Write-Error "'-PGO' is not supported on this platform!"
+    }
+    if ($XDP) {
+        Write-Error "'-XDP' is not supported on this platform!"
+    }
 }
 
 if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
@@ -173,12 +191,6 @@ if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
     }
 } elseif (($LocalTls -ne "") -xor ($RemoteTls -ne "")) {
     Write-Error "Both TLS arguments must be set if a manual setting is done"
-}
-
-if (!$IsWindows) {
-    if ($PGO) {
-        Write-Error "'-PGO' is not supported on this platform!"
-    }
 }
 
 $TestFileName = ($Protocol -eq "QUIC") ? "RemoteTests.json" : "TcpTests.json"
@@ -327,6 +339,7 @@ function LocalTeardown {
     }
 }
 
+# TODO - Use $ExtraArtifactDir
 $RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
 $LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
@@ -527,9 +540,13 @@ try {
         } -ArgumentList $ExeName
     }
 
+    # TODO - ./scripts/prepare-machine -UninstallXdp (just in case)
+
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
+
+    # TODO - If $XDP, ./scripts/prepare-machine -InstallXdpDriver -Force
 
     foreach ($Test in $Tests.Tests) {
         if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
@@ -550,4 +567,5 @@ try {
         Remove-PSSession -Session $Session
     }
     LocalTeardown($LocalDataCache)
+    # TODO - If $XDP, ./scripts/prepare-machine -UninstallXdp
 }

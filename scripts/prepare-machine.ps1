@@ -83,6 +83,9 @@ param (
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UninstallXdp,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallClog2Text,
 
     [Parameter(Mandatory = $false)]
@@ -103,7 +106,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
 }
 
-if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest) {
+if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
     # everything is available.
@@ -175,7 +178,14 @@ function Download-CoreNet-Deps {
 function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if ($Force) { rm -Force -Recurse $XdpPath -ErrorAction Ignore }
+    if ($Force) {
+        try {
+            # Make sure an old driver isn't installed.
+            netcfg.exe -u ms_xdp
+            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+        } catch {}
+        rm -Force -Recurse $XdpPath -ErrorAction Ignore
+    }
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
@@ -186,9 +196,7 @@ function Install-Xdp-Sdk {
 }
 
 # Installs the XDP driver (for testing).
-# NB: XDP can be uninstalled with:
-# netcfg.exe -u ms_xdp
-# pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+# NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
@@ -202,6 +210,21 @@ function Install-Xdp-Driver {
 
     Write-Host "Installing XDP driver"
     netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+}
+
+# Completely removes the XDP driver and SDK.
+function Uninstall-Xdp {
+    if (!$IsWindows) { return } # Windows only
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) { return; }
+
+    Write-Host "Uninstalling XDP driver"
+    try {
+        netcfg.exe -u ms_xdp
+        pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+    } catch {}
+
+    rm -Force -Recurse $XdpPath -ErrorAction Ignore
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
@@ -468,6 +491,7 @@ if ($InitSubmodules) {
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
+if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
