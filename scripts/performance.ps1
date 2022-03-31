@@ -275,6 +275,7 @@ $RemoteDirectorySMB = $null
 
 # Copy manifest and log script to local directory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
@@ -339,9 +340,8 @@ function LocalTeardown {
     }
 }
 
-# TODO - Use $ExtraArtifactDir
-$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
-$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -ExtraArtifactDir $ExtraArtifactDir
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -ExtraArtifactDir $ExtraArtifactDir
 
 # See if we are an AZP PR
 $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
@@ -540,13 +540,25 @@ try {
         } -ArgumentList $ExeName
     }
 
-    # TODO - ./scripts/prepare-machine -UninstallXdp (just in case)
-
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
-    # TODO - If $XDP, ./scripts/prepare-machine -InstallXdpDriver -Force
+    & "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+    if (!$Local)
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+        } -ArgumentList $RemoteDirectory
+    }
+
+    if ($XDP) {
+        & "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+        } -ArgumentList $RemoteDirectory
+    }
 
     foreach ($Test in $Tests.Tests) {
         if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
@@ -567,5 +579,11 @@ try {
         Remove-PSSession -Session $Session
     }
     LocalTeardown($LocalDataCache)
-    # TODO - If $XDP, ./scripts/prepare-machine -UninstallXdp
+    if ($XDP) {
+        & "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+        } -ArgumentList $RemoteDirectory
+    }
 }

@@ -252,9 +252,9 @@ function Get-CurrentBranch {
 }
 
 function Get-ExePath {
-    param ($PathRoot, $Platform, $IsRemote)
+    param ($PathRoot, $Platform, $IsRemote, $ExtraArtifactDir)
     if ($IsRemote) {
-        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$($ExtraArtifactDir)"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr)
             Join-Path $PathRoot $Platform $ConfigStr
