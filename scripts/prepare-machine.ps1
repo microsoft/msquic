@@ -205,8 +205,10 @@ function Install-Xdp-Driver {
     }
 
     Write-Host "Installing XDP certificate"
-    CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
-    CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+    try {
+        CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+    } catch { }
 
     Write-Host "Installing XDP driver"
     netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
@@ -218,12 +220,9 @@ function Uninstall-Xdp {
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if (!(Test-Path $XdpPath)) { return; }
 
-    Write-Host "Uninstalling XDP driver"
-    try {
-        netcfg.exe -u ms_xdp
-        pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
-    } catch {}
-
+    Write-Host "Uninstalling XDP"
+    try { netcfg.exe -u ms_xdp } catch {}
+    try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
     rm -Force -Recurse $XdpPath -ErrorAction Ignore
 }
 
