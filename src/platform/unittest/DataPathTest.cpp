@@ -725,6 +725,7 @@ TEST_P(DataPathTest, UdpData)
     auto serverAddress = GetNewLocalAddr();
     RecvContext.DestinationAddress = serverAddress.SockAddr;
     RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
+    ASSERT_EQ(RecvContext.DestinationAddress.Ipv4.sin_family, Server.GetLocalAddress().Ipv4.sin_family);
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
     CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
