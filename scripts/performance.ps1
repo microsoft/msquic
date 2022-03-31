@@ -377,8 +377,8 @@ function Invoke-Test {
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
-    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig -ExtraArtifactDir $ExtraArtifactDir
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local -ExtraArtifactDir $ExtraArtifactDir
 
     # Check both Exes
     $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {
