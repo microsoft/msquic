@@ -545,7 +545,7 @@ try {
     }
 
     & "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
-    if (!$Local)
+    if (!$Local) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory)
             & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
