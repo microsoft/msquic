@@ -22,33 +22,15 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "OPENSSL_init_ssl failed");
-// arg2 = arg2 = "OPENSSL_init_ssl failed" = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CRYPT_OPENSSL_C, LibraryError , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
+            cipher_name);
 // arg2 = arg2 = ERR_get_error() = arg2
-// arg3 = arg3 = "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed" = arg3
+// arg3 = arg3 = cipher_name = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -65,14 +47,32 @@ tracepoint(CLOG_CRYPT_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_HP_KEY",
-            sizeof(CXPLAT_HP_KEY));
-// arg2 = arg2 = "CXPLAT_HP_KEY" = arg2
-// arg3 = arg3 = sizeof(CXPLAT_HP_KEY) = arg3
+            "EVP_MAC_CTX_new",
+            0);
+// arg2 = arg2 = "EVP_MAC_CTX_new" = arg2
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPT_OPENSSL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_MAC_CTX_set_params failed");
+// arg2 = arg2 = "EVP_MAC_CTX_set_params failed" = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CRYPT_OPENSSL_C, LibraryError , arg2);\
 
 #endif
 
