@@ -60,7 +60,7 @@ jobs:
       pacing: 1
       reorder: "(0,1000,10000)"
       delay: "(0,5,10)"
-      loss: "("0,1000,10000)"
+      loss: "(0,1000,10000)"
     strategy:
       fail-fast: false
       matrix:
