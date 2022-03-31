@@ -544,19 +544,19 @@ try {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
-    & "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+    Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
     if (!$Local) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory)
-            & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
         } -ArgumentList $RemoteDirectory
     }
 
     if ($XDP) {
-        & "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+        Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory)
-            & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
         } -ArgumentList $RemoteDirectory
     }
 
@@ -580,10 +580,10 @@ try {
     }
     LocalTeardown($LocalDataCache)
     if ($XDP) {
-        & "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+        Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory)
-            & "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
         } -ArgumentList $RemoteDirectory
     }
 }
