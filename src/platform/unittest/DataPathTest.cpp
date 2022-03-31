@@ -66,7 +66,9 @@ struct QuicAddr
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
+#ifndef CX_PLATFORM_DARWIN
         QuicAddrSetFamily(&SockAddr, af);
+#endif
         if (QUIC_FAILED(
             CxPlatDataPathResolveAddress(
                 Datapath,
