@@ -61,12 +61,6 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_ROUTE_RESOLUTION_WORKER* RouteResolutionWorker;
 
-    // RSS stuff
-    uint16_t Cpu;
-    uint8_t NumaNode;
-    uint8_t CpuTableSize;
-    uint16_t CpuTable[64];
-
     CXPLAT_LIST_ENTRY Interfaces;
 
 } CXPLAT_DATAPATH;
@@ -106,8 +100,8 @@ typedef struct CXPLAT_SEND_DATA {
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
-CxPlatDpRawGetDapathSize(
-    void
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     );
 
 //
@@ -118,7 +112,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     );
 
 //
@@ -128,15 +122,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
-    );
-
-//
-// Upcall from raw datapath to generate the CPU table used for RSS.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawGenerateCpuTable(
-    _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
 //
@@ -319,7 +304,7 @@ CxPlatGetSocket(
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
-BOOLEAN
+QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket

@@ -210,7 +210,7 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
             Conn.Connection,
             ClientConfiguration,
             QUIC_ADDRESS_FAMILY_INET,
-            QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+            QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
             ServerLocalAddr.GetPort());
     TEST_TRUE(State.StateEvent.WaitTimeout(2000));
     State.StateEvent.Reset();

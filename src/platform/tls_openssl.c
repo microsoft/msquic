@@ -925,7 +925,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 

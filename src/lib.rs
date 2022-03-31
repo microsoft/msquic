@@ -166,6 +166,7 @@ pub const CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK: CredentialFlags = 2048;
 pub const CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE: CredentialFlags = 4096;
 pub const CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES: CredentialFlags = 8192;
 pub const CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES: CredentialFlags = 16384;
+pub const CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS: CredentialFlags = 32768;
 
 /// Set of allowed TLS cipher suites.
 pub type AllowedCipherSuiteFlags = u32;

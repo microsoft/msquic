@@ -92,7 +92,7 @@ QuicTestDatagramNegotiation(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -184,7 +184,7 @@ QuicTestDatagramSend(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {

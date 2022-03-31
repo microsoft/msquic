@@ -326,10 +326,7 @@ if ($ErrorsAsWarnings) {
     $TestArguments += " -ErrorsAsWarnings"
 }
 
-# TODO: fix main tests to run with XDP.
-if (!$DuoNic) {
-    Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
-}
+Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
 if ($CodeCoverage) {
     # Merge code coverage results

@@ -228,6 +228,12 @@ QuicOperationQueueClear(
                     CXPLAT_DBG_ASSERT(ApiCtx->Completed == NULL);
                     QuicStreamIndicateStartComplete(
                         ApiCtx->STRM_START.Stream, QUIC_STATUS_ABORTED);
+                    if (ApiCtx->STRM_START.Flags & QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL) {
+                        QuicStreamShutdown(
+                            ApiCtx->STRM_START.Stream,
+                            QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
+                            0);
+                    }
                 }
             }
             QuicOperationFree(Worker, Oper);

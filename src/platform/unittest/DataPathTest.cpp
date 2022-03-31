@@ -19,6 +19,11 @@ Abstract:
 
 extern bool UseDuoNic;
 
+//
+// Connect to the duonic address (if using duonic) or localhost (if not).
+//
+#define QUIC_TEST_LOOPBACK_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
+
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
 
@@ -233,13 +238,8 @@ protected:
         //
         NextPort = 50000 + (CxPlatCurThreadID() % 10000) + (rand() % 5000);
 
-        if (UseDuoNic) {
-            LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "192.168.1.11");
-            LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "fc00::1:11");
-        } else {
-            LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
-            LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
-        }
+        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
+        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
 
 #ifdef CX_PLATFORM_DARWIN
         UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");

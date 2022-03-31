@@ -12,6 +12,7 @@
 
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
+bool UseDuoNic = false;
 const MsQuicApi* MsQuic;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
@@ -1860,6 +1861,8 @@ int main(int argc, char** argv) {
             if (strcmp("--kernelPriv", argv[i]) == 0) {
                 PrivateTestLibrary = true;
             }
+        } else if (strcmp("--duoNic", argv[i]) == 0) {
+            UseDuoNic = true;
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
