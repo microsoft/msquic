@@ -238,13 +238,16 @@ protected:
         //
         NextPort = 50000 + (CxPlatCurThreadID() % 10000) + (rand() % 5000);
 
-        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
-        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
+
 
 #ifdef CX_PLATFORM_DARWIN
+        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
+        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
         UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
         UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
 #else
+        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
+        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
         UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "0.0.0.0");
         UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "::");
 #endif
