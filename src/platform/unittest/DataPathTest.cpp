@@ -713,19 +713,15 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
-    auto unspecAddress = GetNewUnspecAddr();
-    CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
     while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
     }
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
-
-    auto serverAddress = GetNewLocalAddr();
-    RecvContext.DestinationAddress = serverAddress.SockAddr;
-    RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
-    ASSERT_EQ(RecvContext.DestinationAddress.Ipv4.sin_family, Server.GetLocalAddress().Ipv4.sin_family);
+    RecvContext.DestinationAddress = Server.GetLocalAddress();
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
     CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
