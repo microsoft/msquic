@@ -1080,12 +1080,12 @@ BbrCongestionControlOnDataLost(
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
     
-    CXPLAT_DBG_ASSERT(LossEvent->NumRetransmittableBytes > 0);
+    CXPLAT_DBG_ASSERT(LossEvent->NumLostRetransmittableBytes > 0);
 
     Bbr->EndOfRecoveryValid = TRUE;
     Bbr->EndOfRecovery = CxPlatTimeUs64();
 
-    CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumLostRetransmittableBytes);
     Bbr->BytesInFlight -= LossEvent->NumLostRetransmittableBytes;
     
     uint32_t RecoveryWindow = Bbr->RecoveryWindow;
