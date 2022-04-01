@@ -83,6 +83,9 @@ param (
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallClog2Text,
+
+    [Parameter(Mandatory = $false)]
     [switch]$DisableTest
 )
 
@@ -124,6 +127,8 @@ if ($ForTest) {
     # enabled for any possible test.
     $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
+
+    $InstallClog2Text = $true
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
@@ -330,6 +335,7 @@ function Install-SigningCertificate {
 # Creates and installs certificates used for testing.
 function Install-TestCertificates {
     if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
+    $DnsNames = $env:computername,"localhost","127.0.0.1","::1","192.168.1.11","192.168.1.12","fc00::1:11","fc00::1:12"
     $NewRoot = $false
     Write-Host "Searching for MsQuicTestRoot certificate..."
     $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
@@ -350,7 +356,7 @@ function Install-TestCertificates {
     $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServer"}
     if (!$ServerCert) {
         Write-Host "MsQuicTestServer not found! Creating new MsQuicTestServer certificate..."
-        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $DnsNames -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
         $TempServerPath = Join-Path $Env:TEMP "MsQuicTestServerCert.pfx"
         Export-PfxCertificate -Cert $ServerCert -Password $PfxPassword -FilePath $TempServerPath
         Import-PfxCertificate -FilePath $TempServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -364,7 +370,7 @@ function Install-TestCertificates {
     $ExpiredServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredServer"}
     if (!$ExpiredServerCert) {
         Write-Host "MsQuicTestExpiredServer not found! Creating new MsQuicTestExpiredServer certificate..."
-        $ExpiredServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestExpiredServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+        $ExpiredServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredServer" -DnsName $DnsNames -FriendlyName MsQuicTestExpiredServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
         $TempExpiredServerPath = Join-Path $Env:TEMP "MsQuicTestExpiredServerCert.pfx"
         Export-PfxCertificate -Cert $ExpiredServerCert -Password $PfxPassword -FilePath $TempExpiredServerPath
         Import-PfxCertificate -FilePath $TempExpiredServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -408,6 +414,35 @@ function Install-TestCertificates {
     }
 }
 
+function Install-DotnetTool {
+    param($ToolName, $Version, $NuGetPath)
+    $NuGetName = "$ToolName.$Version.nupkg"
+    $NuGetFile = Join-Path $NuGetPath $NuGetName
+    if (!(Test-Path -Path $NuGetFile)) {
+        Write-Host "$ToolName not found. Parsing lttng logs will fail"
+        return
+    }
+
+    try {
+        Write-Host "Installing: $ToolName"
+        dotnet tool update --global --add-source $NuGetPath $ToolName
+    } catch {
+        $err = $_
+        Write-Host "$ToolName could not be installed. Parsing lttng logs will fail"
+        Write-Host $err.ToString()
+    }
+}
+
+function Install-Clog2Text {
+    Write-Host "Initializing clog submodule"
+    git submodule init submodules/clog
+    git submodule update
+
+    dotnet build (Join-Path $RootDir submodules clog)
+    $NuGetPath = Join-Path $RootDir "submodules" "clog" "src" "nupkg"
+    Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
+}
+
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) { git rm submodules/openssl }
 
@@ -440,6 +475,10 @@ if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
+    if ($InstallClog2Text) {
+        Install-Clog2Text
+    }
+
     if ($ForOneBranch) {
         sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
         sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
@@ -471,6 +510,7 @@ if ($IsLinux) {
         sudo apt-add-repository ppa:lttng/stable-2.12
         sudo apt-get update
         sudo apt-get install -y lttng-tools
+        sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
 
         # Enable core dumps for the system.

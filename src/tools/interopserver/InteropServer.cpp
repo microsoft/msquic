@@ -11,10 +11,6 @@ Abstract:
 
 #include "InteropServer.h"
 
-#define QUIC_VERSION_1          0x01000000U     // First official version
-#define QUIC_VERSION_MS_1       0x0000cdabU     // First Microsoft version (currently same as latest draft)
-#define QUIC_VERSION_DRAFT_29   0x1d0000ffU     // IETF draft 29
-
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
 const char* RootFolderPath;
@@ -100,17 +96,21 @@ main(
     QUIC_SETTINGS Settings{0};
     Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
-    Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
+    Settings.PeerUnidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
-        uint32_t SupportedVersions[] = {QUIC_VERSION_1, QUIC_VERSION_DRAFT_29, QUIC_VERSION_MS_1};
+        uint32_t SupportedVersions[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H};
         QUIC_VERSION_SETTINGS VersionSettings{0};
         VersionSettings.AcceptableVersions = SupportedVersions;
+        VersionSettings.OfferedVersions = SupportedVersions;
+        VersionSettings.FullyDeployedVersions = SupportedVersions;
         VersionSettings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,

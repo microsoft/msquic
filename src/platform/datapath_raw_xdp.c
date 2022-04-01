@@ -33,8 +33,9 @@ Abstract:
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
 
-typedef struct _XDP_QUEUE {
+typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
+    struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
     XSK_RING RxFillRing;
@@ -66,26 +67,41 @@ typedef struct XDP_INTERFACE {
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
-    XDP_QUEUE* Queues;
+    XDP_QUEUE* Queues; // An array of queues.
 } XDP_INTERFACE;
+
+typedef struct QUIC_CACHEALIGN XDP_WORKER {
+    const struct XDP_DATAPATH* Xdp;
+    HANDLE CompletionEvent;
+    XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
+    uint16_t ProcIndex;
+} XDP_WORKER;
+
+void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
+    XDP_QUEUE** Tail = &Worker->Queues;
+    while (*Tail != NULL) {
+        Tail = &(*Tail)->Next;
+    }
+    *Tail = Queue;
+    Queue->Next = NULL;
+}
 
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
-
-    BOOLEAN Running;
-    HANDLE CompletionEvent;
-
-    // Constants
     DECLSPEC_CACHEALIGN
     //
     // Currently, all XDP interfaces share the same config.
     //
+    uint32_t WorkerCount;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
+    BOOLEAN Running;        // Signal to stop workers.
+
+    XDP_WORKER Workers[0];
 } XDP_DATAPATH;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
@@ -365,8 +381,7 @@ Cleanup:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
-    _Inout_ XDP_DATAPATH* Xdp,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _Inout_ XDP_DATAPATH* Xdp
     )
 {
     //
@@ -377,14 +392,6 @@ CxPlatXdpReadConfig(
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
     Xdp->TxAlwaysPoke = FALSE;
-    Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
-
-    //
-    // Read user-specified global config.
-    //
-    if (Config != NULL && Config->RawDataPathProcList != NULL) {
-        Xdp->Cpu = Config->RawDataPathProcList[0];
-    }
 
     //
     // Read config from config file.
@@ -423,15 +430,6 @@ CxPlatXdpReadConfig(
     }
 
     fclose(File);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-size_t
-CxPlatDpRawGetDapathSize(
-    void
-    )
-{
-    return sizeof(XDP_DATAPATH);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -537,7 +535,7 @@ CxPlatDpRawInterfaceInitialize(
 
     CxPlatZeroMemory(Interface->Queues, Interface->QueueCount * sizeof(*Interface->Queues));
 
-    for (uint32_t i = 0; i < Interface->QueueCount; i++) {
+    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
         Queue->Interface = Interface;
@@ -742,6 +740,15 @@ CxPlatDpRawInterfaceInitialize(
         }
     }
 
+    //
+    // Add each queue to a worker (round robin).
+    //
+    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
+        XdpWorkerAddQueue(
+            &Xdp->Workers[i % Xdp->WorkerCount],
+            &Interface->Queues[i]);
+    }
+
 Error:
     if (QUIC_FAILED(Status)) {
         CxPlatDpRawInterfaceUninitialize(Interface);
@@ -924,19 +931,35 @@ CxPlatDpRawInterfaceRemoveRules(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+size_t
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
+    )
+{
+    const uint32_t WorkerCount =
+        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
+    return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
-    CxPlatXdpReadConfig(Xdp, Config);
-    CxPlatDpRawGenerateCpuTable(Datapath);
+    uint16_t DefaultProc = (uint16_t)(CxPlatProcMaxCount() - 1);
+    const uint16_t* ProcList =
+        (Config && Config->DataPathProcList) ? Config->DataPathProcList : &DefaultProc;
+
+    CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
+    Xdp->WorkerCount =
+        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
 
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
     ULONG Error;
@@ -1034,8 +1057,12 @@ CxPlatDpRawInitialize(
     }
 
     Xdp->Running = TRUE;
-    CxPlatEventInitialize(&Xdp->CompletionEvent, TRUE, FALSE);
-    CxPlatWorkerRegisterDataPath(Xdp->Cpu, Xdp);
+    for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+        Xdp->Workers[i].Xdp = Xdp;
+        Xdp->Workers[i].ProcIndex = ProcList[i];
+        CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
+        CxPlatWorkerRegisterDataPath(ProcList[i], &Xdp->Workers[i]);
+    }
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
@@ -1057,8 +1084,10 @@ CxPlatDpRawUninitialize(
 
     if (Xdp->Running) {
         Xdp->Running = FALSE;
-        CxPlatEventWaitForever(Xdp->CompletionEvent);
-        CxPlatEventUninitialize(Xdp->CompletionEvent);
+        for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+            CxPlatEventWaitForever(Xdp->Workers[i].CompletionEvent);
+            CxPlatEventUninitialize(Xdp->Workers[i].CompletionEvent);
+        }
     }
 
     while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
@@ -1192,9 +1221,9 @@ CxPlatDpRawGetInterfaceFromQueue(
 static
 void
 CxPlatXdpRx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint8_t QueueId,
-    _In_ XDP_INTERFACE* Interface
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue,
+    _In_ uint16_t ProcIndex
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -1202,7 +1231,6 @@ CxPlatXdpRx(
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
-    XDP_QUEUE* Queue = &Interface->Queues[QueueId];
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
     for (uint32_t i = 0; i < BuffersCount; i++) {
@@ -1214,12 +1242,20 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
+        Packet->PartitionIndex = ProcIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
             (CXPLAT_RECV_DATA*)Packet,
             FrameBuffer,
             (uint16_t)Buffer->length);
+
+        //
+        // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+        // mark it resolved. This allows stateless sends to be issued without performing
+        // a route lookup.
+        //
+        Packet->Route->State = RouteResolved;
 
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
@@ -1310,7 +1346,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN, // unused currently
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize,
     _Inout_ CXPLAT_ROUTE* Route
     )
@@ -1319,7 +1355,6 @@ CxPlatDpRawTxAlloc(
     XDP_QUEUE* Queue = Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
-    UNREFERENCED_PARAMETER(ECN);
     UNREFERENCED_PARAMETER(Datapath);
 
     if (Packet) {
@@ -1328,6 +1363,7 @@ CxPlatDpRawTxAlloc(
         Packet->Queue = Queue;
         Packet->Buffer.Length = MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
+        Packet->ECN = ECN;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;
@@ -1359,16 +1395,14 @@ CxPlatDpRawTxEnqueue(
 static
 void
 CxPlatXdpTx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint8_t QueueId,
-    _In_ XDP_INTERFACE* Interface
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue
     )
 {
     uint32_t ProdCount = 0;
     uint32_t CompCount = 0;
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
-    XDP_QUEUE* Queue = &Interface->Queues[QueueId];
 
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
         ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
@@ -1444,23 +1478,22 @@ CxPlatDataPathRunEC(
     _In_ uint32_t WaitTime
     )
 {
-    XDP_DATAPATH* Xdp = *(XDP_DATAPATH**)Context;
+    XDP_WORKER* Worker = *(XDP_WORKER**)Context;
+    const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     UNREFERENCED_PARAMETER(CurThreadId);
     UNREFERENCED_PARAMETER(WaitTime);
 
     if (!Xdp->Running) {
         *Context = NULL;
-        CxPlatEventSet(Xdp->CompletionEvent);
+        CxPlatEventSet(Worker->CompletionEvent);
         return;
     }
 
-    CXPLAT_LIST_ENTRY* Entry;
-    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-        for (uint8_t QueueId = 0; QueueId < Interface->QueueCount; QueueId++) {
-            CxPlatXdpRx(Xdp, QueueId, Interface);
-            CxPlatXdpTx(Xdp, QueueId, Interface);
-        }
+    XDP_QUEUE* Queue = Worker->Queues;
+    while (Queue) {
+        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        CxPlatXdpTx(Xdp, Queue);
+        Queue = Queue->Next;
     }
 }

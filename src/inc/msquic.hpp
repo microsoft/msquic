@@ -800,14 +800,6 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
-    StartLocalhost(
-        _In_ const MsQuicConfiguration& Config,
-        _In_ const QuicAddr& LocalhostAddr
-        ) noexcept {
-        return MsQuic->ConnectionStart(Handle, Config, LocalhostAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()), LocalhostAddr.GetPort());
-    }
-
-    QUIC_STATUS
     SetConfiguration(
         _In_ const MsQuicConfiguration& Config
         ) noexcept {

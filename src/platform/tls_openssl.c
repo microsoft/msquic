@@ -925,7 +925,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -1783,6 +1784,16 @@ CxPlatTlsUninitialize(
 
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
+    )
+{
+    TlsContext->HkdfLabels = Labels;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
