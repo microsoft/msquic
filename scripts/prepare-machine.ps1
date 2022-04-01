@@ -152,7 +152,7 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $ArtifactsPath = Join-Path $RootDir "artifacts"
-if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath | Out-Null }
 
 # Directory for the corenet CI install.
 $CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
@@ -184,7 +184,7 @@ function Install-Xdp-Sdk {
             netcfg.exe -u ms_xdp
             pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
         } catch {}
-        rm -Force -Recurse $XdpPath -ErrorAction Ignore
+        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
     }
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP"
@@ -223,7 +223,7 @@ function Uninstall-Xdp {
     Write-Host "Uninstalling XDP"
     try { netcfg.exe -u ms_xdp } catch {}
     try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
-    rm -Force -Recurse $XdpPath -ErrorAction Ignore
+    rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
 }
 
 # Installs DuoNic from the CoreNet-CI repo.

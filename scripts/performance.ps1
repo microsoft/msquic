@@ -544,7 +544,6 @@ try {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
-    Write-Host "Making sure XDP is uninstalled"
     Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
     if (!$Local) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
@@ -554,7 +553,6 @@ try {
     }
 
     if ($XDP) {
-        Write-Host "Installing XDP"
         Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory)
@@ -578,7 +576,6 @@ try {
 
 } finally {
     if ($XDP) {
-        Write-Host "Uninstalling XDP"
         Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory)
