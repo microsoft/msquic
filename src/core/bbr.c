@@ -266,7 +266,7 @@ BbrBandwidthSamplerOnAppLimited(
     )
 {
     b->AppLimited = TRUE;
-    b->AppLimitedExitTarget = AppLimitedExitTargetCxPlatTimeUs64();
+    b->AppLimitedExitTarget = CxPlatTimeUs64();
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
