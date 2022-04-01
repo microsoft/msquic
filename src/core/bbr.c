@@ -266,7 +266,7 @@ BbrBandwidthSamplerOnAppLimited(
     )
 {
     b->AppLimited = TRUE;
-    b->AppLimitedExitTarget = CxPlatTimeUs64();
+    b->AppLimitedExitTarget = AppLimitedExitTargetCxPlatTimeUs64();
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1170,17 +1170,17 @@ BbrCongestionControlReset(
     Bbr->PreviousStartupBandwidth = 0;
 
     Bbr->AckAggregationStartTimeValid = FALSE;
-    Bbr->AckAggregationStartTime = 0;
+    Bbr->AckAggregationStartTime = CxPlatTimeUs64();
     Bbr->CycleStart = 0;
 
     Bbr->EndOfRecoveryValid = FALSE;
-    Bbr->EndOfRecovery = 0;
+    Bbr->EndOfRecovery = CxPlatTimeUs64();
 
     Bbr->ProbeRttRoundValid = FALSE;
     Bbr->ProbeRttRound = 0;
 
     Bbr->EarliestTimeToExitProbeRttValid = FALSE;
-    Bbr->EarliestTimeToExitProbeRtt = 0;
+    Bbr->EarliestTimeToExitProbeRtt = CxPlatTimeUs64();
 
     Bbr->MinRttSampler = NewBbrRttSampler(kDefaultRttSamplerExpirationInSecond * kMicroSecsInSec);
 
@@ -1189,7 +1189,7 @@ BbrCongestionControlReset(
     Bbr->BandwidthSampler = (BBR_BANDWIDTH_SAMPLER) {
         .WindowedFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0),
         .AppLimited = FALSE,
-        .AppLimitedExitTarget = 0,
+        .AppLimitedExitTarget = CxPlatTimeUs64(),
     };
 
     BbrCongestionControlLogOutFlowStatus(Cc);
@@ -1251,15 +1251,15 @@ BbrCongestionControlInitialize(
     Bbr->AggregatedAckBytes = 0;
     Bbr->AppLimitedSinceProbeRtt = FALSE;
     Bbr->ExitingQuiescene = FALSE;
-    Bbr->EndOfRoundTrip = 0;
+    Bbr->EndOfRoundTrip = CxPlatTimeUs64();
     Bbr->PreviousStartupBandwidth = 0;
     Bbr->CycleStart = 0;
 
     Bbr->AckAggregationStartTimeValid = FALSE;
-    Bbr->AckAggregationStartTime = 0;
+    Bbr->AckAggregationStartTime = CxPlatTimeUs64();
 
     Bbr->EndOfRecoveryValid = FALSE;
-    Bbr->EndOfRecovery = 0;
+    Bbr->EndOfRecovery = CxPlatTimeUs64();
 
     Bbr->ProbeRttRoundValid = FALSE;
     Bbr->ProbeRttRound = 0;
@@ -1274,7 +1274,7 @@ BbrCongestionControlInitialize(
     Bbr->BandwidthSampler = (BBR_BANDWIDTH_SAMPLER) {
         .WindowedFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0),
         .AppLimited = FALSE,
-        .AppLimitedExitTarget = 0,
+        .AppLimitedExitTarget = CxPlatTimeUs64(),
     };
 
     BbrCongestionControlLogOutFlowStatus(Cc);
