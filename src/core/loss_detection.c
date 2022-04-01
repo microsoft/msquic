@@ -919,6 +919,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLossDetectionDetectAndHandleLostPackets(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ uint32_t AckedRetransmittableBytes,
     _In_ uint32_t TimeNow
     )
 {
@@ -1061,7 +1062,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
             QUIC_LOSS_EVENT LossEvent = {
                 .LargestPacketNumberLost = LargestLostPacketNumber,
                 .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
-                .NumRetransmittableBytes = LostRetransmittableBytes,
+                .NumLostRetransmittableBytes = LostRetransmittableBytes,
+                .NumAckedRetransmittableBytes = AckedRetransmittableBytes,
                 .PersistentCongestion =
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
             };
@@ -1500,7 +1502,7 @@ QuicLossDetectionProcessAckBlocks(
         // data acknowledgement so that we have an accurate bytes in flight
         // calculation for congestion events.
         //
-        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, (uint32_t)TimeNow);
+        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, AckedRetransmittableBytes, (uint32_t)TimeNow);
     }
 
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
@@ -1758,7 +1760,7 @@ QuicLossDetectionProcessTimerOperation(
         // Probe or RACK timeout. If no packets can be inferred lost right now,
         // send probes.
         //
-        if (!QuicLossDetectionDetectAndHandleLostPackets(LossDetection, TimeNow)) {
+        if (!QuicLossDetectionDetectAndHandleLostPackets(LossDetection, 0, TimeNow)) {
             QuicLossDetectionScheduleProbe(LossDetection);
         }
 

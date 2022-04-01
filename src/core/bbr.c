@@ -353,10 +353,10 @@ BbrCongestionControlGetBandwidth(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 BbrCongestionControlGetCongestionWindow(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
+    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     if (Bbr->BbrState == BBR_STATE_PROBE_RTT) {
@@ -627,12 +627,14 @@ BbrCongestionControlUpdateRecoveryWindowWithAck(
     if (Bbr->RecoveryState == RECOVERY_STATE_GROWTH) {
         Bbr->RecoveryWindow += BytesAcked;
     }
+    
+    uint32_t RecoveryWindow = Bbr->RecoveryWindow;
 
-    Bbr->RecoveryWindow = CXPLAT_MAX(
-        Bbr->RecoveryWindow, Bbr->BytesInFlight + BytesAcked);
+    RecoveryWindow = CXPLAT_MAX(
+        RecoveryWindow, Bbr->BytesInFlight + BytesAcked);
 
     Bbr->RecoveryWindow = BbrCongestionControlBoundedCongestionWindow(
-        Bbr->RecoveryWindow,
+        RecoveryWindow,
         Connection->Paths[0].Mtu,
         kMinCwndInMssForBbr);
 }
@@ -966,15 +968,17 @@ BbrCongestionControlUpdateCongestionWindow(
     if (Bbr->BtlbwFound) {
         TargetCwnd += WindowedFilterGetBest(&Bbr->MaxAckHeightFilter);
     }
+    
+    uint32_t CongestionWindow = Bbr->CongestionWindow;
 
     if (Bbr->BtlbwFound) {
-        Bbr->CongestionWindow = (uint32_t)CXPLAT_MIN(TargetCwnd, Bbr->CongestionWindow + AckedBytes);
-    } else if (Bbr->CongestionWindow < TargetCwnd || TotalBytesAcked < Bbr->InitialCongestionWindow) {
-        Bbr->CongestionWindow += (uint32_t)AckedBytes;
+        CongestionWindow = (uint32_t)CXPLAT_MIN(TargetCwnd, CongestionWindow + AckedBytes);
+    } else if (CongestionWindow < TargetCwnd || TotalBytesAcked < Bbr->InitialCongestionWindow) {
+        CongestionWindow += (uint32_t)AckedBytes;
     }
 
     Bbr->CongestionWindow = BbrCongestionControlBoundedCongestionWindow(
-        Bbr->CongestionWindow,
+        CongestionWindow,
         Connection->Paths[0].Mtu,
         kMinCwndInMssForBbr);
 
@@ -1075,31 +1079,35 @@ BbrCongestionControlOnDataLost(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
+    
+    CXPLAT_DBG_ASSERT(LossEvent->NumRetransmittableBytes > 0);
 
     Bbr->EndOfRecoveryValid = TRUE;
     Bbr->EndOfRecovery = CxPlatTimeUs64();
 
     CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumRetransmittableBytes);
-    Bbr->BytesInFlight -= LossEvent->NumRetransmittableBytes;
+    Bbr->BytesInFlight -= LossEvent->NumLostRetransmittableBytes;
+    
+    uint32_t RecoveryWindow = Bbr->RecoveryWindow;
 
-    if (Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY) {
+    if (Bbr->RecoveryState == RECOVERY_STATE_NOT_RECOVERY) {
         Bbr->RecoveryState = RECOVERY_STATE_CONSERVATIVE;
-        Bbr->RecoveryWindow = Bbr->BytesInFlight;
-        Bbr->RecoveryWindow = BbrCongestionControlBoundedCongestionWindow(
-            Bbr->RecoveryWindow,
+        RecoveryWindow = Bbr->BytesInFlight + LossEvent->NumAckedRetransmittableBytes;
+        RecoveryWindow = BbrCongestionControlBoundedCongestionWindow(
+            RecoveryWindow,
             Connection->Paths[0].Mtu,
             kMinCwndInMssForBbr);
 
         Bbr->EndOfRoundTrip = CxPlatTimeUs64();
     }
 
-    Bbr->RecoveryWindow =
-        Bbr->RecoveryWindow > LossEvent->NumRetransmittableBytes + Connection->Paths[0].Mtu * kMinCwndInMssForBbr
-        ? Bbr->RecoveryWindow - LossEvent->NumRetransmittableBytes
-        : Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
-
     if (LossEvent->PersistentCongestion) {
         Bbr->RecoveryWindow = Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
+    } else {
+        Bbr->RecoveryWindow =
+            RecoveryWindow > LossEvent->NumLostRetransmittableBytes + Connection->Paths[0].Mtu * kMinCwndInMssForBbr
+            ? RecoveryWindow - LossEvent->NumLostRetransmittableBytes
+            : Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
     }
 
     BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
@@ -1203,6 +1211,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlBbr = {
     .QuicCongestionControlSetExemption = BbrCongestionControlSetExemption,
     .QuicCongestionControlReset = BbrCongestionControlReset,
     .QuicCongestionControlGetSendAllowance = BbrCongestionControlGetSendAllowance,
+    .QuicCongestionControlGetCongestionWindow = BbrCongestionControlGetCongestionWindow,
     .QuicCongestionControlOnDataSent = BbrCongestionControlOnDataSent,
     .QuicCongestionControlOnDataInvalidated = BbrCongestionControlOnDataInvalidated,
     .QuicCongestionControlOnDataAcknowledged = BbrCongestionControlOnDataAcknowledged,

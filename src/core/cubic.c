@@ -573,8 +573,8 @@ CubicCongestionControlOnDataLost(
             LossEvent->PersistentCongestion);
     }
 
-    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
-    Cubic->BytesInFlight -= LossEvent->NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumLostRetransmittableBytes);
+    Cubic->BytesInFlight -= LossEvent->NumLostRetransmittableBytes;
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
