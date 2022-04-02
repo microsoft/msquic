@@ -218,22 +218,32 @@ function createChart(test) {
     addTypeToggle(test, "line", chart)
 }
 
-function computePercentile(value) {
+function computePercentile(value, moreDetail) {
     var logScale = Math.log10(value);
     var mulPower = logScale - 2;
     var percentBase = value - 1;
     var res = percentBase / Math.pow(10, mulPower);
-    if (res < 99) {
-        return Math.round(res) + "%";
+    var offset = -1;
+    if (res >= 99) {
+        if (moreDetail) {
+            offset = -1
+        } else {
+            offset = -2
+        }
+    } else {
+        if (moreDetail) {
+            offset = 0
+        } else {
+            offset = -1
+        }
     }
-    return res + "%";
+    return res.toFixed(logScale+offset) + "%";
 }
 
 function latencyTitleChange(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
-
-    return computePercentile(datapoint.x).toFixed(6) + "%";
+    return computePercentile(datapoint.x, true);
 }
 
 function createLatencyChart(test) {
@@ -259,7 +269,7 @@ function createLatencyChart(test) {
                     },
                     ticks: {
                         callback: function(value) {
-                            return computePercentile(value)
+                            return computePercentile(value, false)
                         }
                     }
                 }],
