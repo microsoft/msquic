@@ -245,7 +245,7 @@ function createLatencyChart(test) {
                 xAxes: [{
                     type: 'logarithmic',
                     afterBuildTicks: function(scale) {
-                        scale.ticks = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000]
+                        scale.ticks = [1, 10, 100, 1000, 10000, 100000]
                     },
                     gridLines: {
                       display: false,
@@ -260,7 +260,8 @@ function createLatencyChart(test) {
                 yAxes: [{
                     display: true,
                     ticks: {
-                        padding: 10
+                        padding: 10,
+                        max: rpsLatencyMax
                     },
                     gridLines: {
                         color: "rgb(234, 236, 244)",

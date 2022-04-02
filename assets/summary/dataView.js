@@ -95,6 +95,8 @@ function generateLineDataset(dataset, maxIndex, commitCount) {
     return output
 }
 
+rpsLatencyMax = 500
+
 function processSearchParams() {
     var url = new URL(window.location.href);
 
@@ -126,5 +128,10 @@ function processSearchParams() {
     } else if (param == "average") {
         pointsToValue = average
         pointsToValueName = "average"
+    }
+
+    var param = url.searchParams.get("latmax")
+    if (param) {
+        rpsLatencyMax = Number(param)
     }
 }
