@@ -222,8 +222,11 @@ function computePercentile(value) {
     var logScale = Math.log10(value);
     var mulPower = logScale - 2;
     var percentBase = value - 1;
-    var  res = percentBase / Math.pow(10, mulPower);
-    return res;
+    var res = percentBase / Math.pow(10, mulPower);
+    if (res < 99) {
+        return Math.round(res) + "%";
+    }
+    return res + "%";
 }
 
 function latencyTitleChange(tooltipItem, data) {
@@ -245,11 +248,14 @@ function createLatencyChart(test) {
                 xAxes: [{
                     type: 'logarithmic',
                     afterBuildTicks: function(scale) {
-                        scale.ticks = [1, 10, 100, 1000, 10000, 100000]
+                        scale.ticks = [2, 4, 10, 20, 100, 1000, 10000, 100000]
                     },
                     gridLines: {
-                      display: false,
-                      drawBorder: false
+                        color: "rgb(200, 200, 200)",
+                        zeroLineColor: "rgb(200, 200, 200)",
+                        drawBorder: false,
+                        borderDash: [2],
+                        zeroLineBorderDash: [2]
                     },
                     ticks: {
                         callback: function(value) {
