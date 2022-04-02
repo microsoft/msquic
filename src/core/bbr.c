@@ -1027,7 +1027,7 @@ BbrCongestionControlOnDataAcknowledged(
         if (NewRoundTrip && Bbr->RecoveryState != RECOVERY_STATE_GROWTH) {
             Bbr->RecoveryState = RECOVERY_STATE_GROWTH;
         }
-        if (CxPlatTimeAtOrBefore32((uint32_t)Bbr->EndOfRecovery, AckEvent->LargestAckedPacketSentTime)) {
+        if (!AckEvent->HasLoss && CxPlatTimeAtOrBefore32((uint32_t)Bbr->EndOfRecovery, AckEvent->LargestAckedPacketSentTime)) {
             Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
         } else {
             BbrCongestionControlUpdateRecoveryWindowWithAck(Cc, AckEvent->NumRetransmittableBytes);
