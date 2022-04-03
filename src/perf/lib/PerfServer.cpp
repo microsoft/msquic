@@ -189,21 +189,27 @@ PerfServer::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Context->ResponseSizeSet) {
-            uint8_t* Dest = (uint8_t*)&Context->ResponseSize;
+            uint8_t* Dest = (uint8_t*)&Context->Parameters;
             uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
-            for (uint32_t i = 0; Offset < sizeof(uint64_t) && i < Event->RECEIVE.BufferCount; ++i) {
-                uint32_t Length = CXPLAT_MIN((uint32_t)(sizeof(uint64_t) - Offset), Event->RECEIVE.Buffers[i].Length);
+            for (uint32_t i = 0; Offset < sizeof(uint64_t) * 2 && i < Event->RECEIVE.BufferCount; ++i) {
+                uint32_t Length = CXPLAT_MIN((uint32_t)(sizeof(uint64_t) * 2 - Offset), Event->RECEIVE.Buffers[i].Length);
                 memcpy(Dest + Offset, Event->RECEIVE.Buffers[i].Buffer, Length);
                 Offset += Length;
             }
-            if (Offset == sizeof(uint64_t)) {
-                Context->ResponseSize = CxPlatByteSwapUint64(Context->ResponseSize);
+            if (Offset == sizeof(uint64_t) * 2) {
+                Context->ResponseSize = CxPlatByteSwapUint64(Context->Parameters[0]);
+                Context->TransferRate = CxPlatByteSwapUint64(Context->Parameters[1]);
+                if (Context->ResponseSize && Context->TransferRate) {
+                    Context->RateLimiter.reset(
+                        new(std::nothrow) TokenBucket(Context->TransferRate, Context->TransferRate + (Context->TransferRate >> 1)));
+                }
                 Context->ResponseSizeSet = true;
             }
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         Context->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
+        delete ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext);
         if (!Event->SEND_COMPLETE.Canceled) {
             SendResponse(Context, StreamHandle);
         }
@@ -250,21 +256,29 @@ PerfServer::SendResponse(
     _In_ HQUIC StreamHandle
     )
 {
+    bool throttledByRateLimiter = false;
     while (Context->BytesSent < Context->ResponseSize &&
-           Context->OutstandingBytes < Context->IdealSendBuffer) {
+           Context->OutstandingBytes < Context->IdealSendBuffer && 
+           !throttledByRateLimiter) {
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
         uint32_t IoSize = Context->IoSize;
-        QUIC_BUFFER* Buffer = DataBuffer;
+
+        if (Context->RateLimiter && !Context->RateLimiter->Consume(IoSize)) {
+            IoSize = 1;
+            throttledByRateLimiter = true;
+        }
+
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
 
         if ((uint64_t)IoSize >= BytesLeftToSend) {
             IoSize = (uint32_t)BytesLeftToSend;
-            Context->LastBuffer.Buffer = Buffer->Buffer;
-            Context->LastBuffer.Length = IoSize;
-            Buffer = &Context->LastBuffer;
             Flags = QUIC_SEND_FLAG_FIN;
         }
+
+        QUIC_BUFFER* Buffer = new(std::nothrow) QUIC_BUFFER();
+        Buffer->Length = IoSize;
+        Buffer->Buffer = DataBuffer->Buffer;
 
         Context->BytesSent += IoSize;
         Context->OutstandingBytes += IoSize;
@@ -288,7 +302,12 @@ PerfServer::SendTcpResponse(
         SendData->StreamId = (uint32_t)Context->Entry.Signature;
         SendData->Open = Context->BytesSent == 0 ? 1 : 0;
         SendData->Buffer = DataBuffer->Buffer;
-        if ((uint64_t)Context->IoSize >= BytesLeftToSend) {
+
+        SendData->Length = Context->IoSize;
+        if (Context->RateLimiter && !Context->RateLimiter->Consume(SendData->Length)) {
+            SendData->Length = 1;
+        }
+        if ((uint64_t)SendData->Length >= BytesLeftToSend) {
             SendData->Length = (uint32_t)BytesLeftToSend;
             SendData->Fin = true;
         } else {

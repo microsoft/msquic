@@ -5,6 +5,7 @@ set(SOURCES
     HpsClient.cpp
     PerfServer.cpp
     SecNetPerfMain.cpp
+    TokenBucket.cpp
     RpsClient.cpp
     Tcp.cpp
     ThroughputClient.cpp

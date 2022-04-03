@@ -38,6 +38,7 @@ PrintHelp(
         "  -timed:<0/1>                 Indicates the upload/download arg time (ms). (def:0)\n"
         "  -upload:<####>               The length of data (or time with -timed:1 arg) to send. (def:0)\n"
         "  -download:<####>             The length of data (or time with -timed:1 arg) to request/receive. (def:0)\n"
+        "  -rate:<###>                  Transfer rate for upload/download (bytes/s, 0 means unlimited). (def:0)\n"
         "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
         "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n"
@@ -74,6 +75,7 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "upload", &UploadLength);
     TryGetValue(argc, argv, "download", &DownloadLength);
+    TryGetValue(argc, argv, "rate", &TransferRate);
     TryGetValue(argc, argv, "stats", &PrintStats);
 
     if (UploadLength && DownloadLength) {
@@ -84,6 +86,10 @@ ThroughputClient::Init(
     if (UploadLength == 0 && DownloadLength == 0) {
         WriteOutput("Must specify non 0 length for either '-upload' or '-download' argument!\n");
         return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (UploadLength && TransferRate) {
+        RateLimiter.reset(new (std::nothrow) TokenBucket(TransferRate, TransferRate + (TransferRate >> 1)));
     }
 
     uint16_t Ip;
@@ -164,13 +170,15 @@ ThroughputClient::Init(
     DataBuffer->Buffer = (uint8_t*)(DataBuffer + 1);
 
     if (DownloadLength) {
-        DataBuffer->Length = sizeof(uint64_t);
+        DataBuffer->Length = sizeof(uint64_t) * 2; // length + rate
         *(uint64_t*)(DataBuffer->Buffer) =
             TimedTransfer ? UINT64_MAX : CxPlatByteSwapUint64(DownloadLength);
+        *(uint64_t*)(DataBuffer->Buffer + sizeof(uint64_t)) = CxPlatByteSwapUint64(TransferRate);
     } else {
-        DataBuffer->Length = IoSize;
+        DataBuffer->Length = sizeof(uint64_t) * 2; // length + rate
         *(uint64_t*)(DataBuffer->Buffer) = CxPlatByteSwapUint64(0); // Zero-length request
-        for (uint32_t i = 0; i < IoSize - sizeof(uint64_t); ++i) {
+        *(uint64_t*)(DataBuffer->Buffer + sizeof(uint64_t)) = CxPlatByteSwapUint64(0);
+        for (uint32_t i = 0; i < IoSize - sizeof(uint64_t) * 2; ++i) {
             DataBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
         }
     }
@@ -391,12 +399,20 @@ ThroughputClient::SendQuicData(
     _In_ StreamContext* Context
     )
 {
-    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer) {
+    bool throttledByRateLimiter = false;
+    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer && !throttledByRateLimiter) {
 
         uint64_t BytesLeftToSend =
             TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
         uint32_t DataLength = IoSize;
+
+        if (Context->Client->RateLimiter && !Context->Client->RateLimiter->Consume(IoSize)) {
+            throttledByRateLimiter = true;
+            DataLength = 1;
+        }
+
         QUIC_BUFFER* Buffer = DataBuffer;
+        Buffer->Length = DataLength;
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
 
         if ((uint64_t)DataLength >= BytesLeftToSend) {
@@ -466,7 +482,8 @@ ThroughputClient::SendTcpData(
     _In_ StreamContext* Context
     )
 {
-    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer) {
+    bool throttledByRateLimiter = false;
+    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer && !throttledByRateLimiter) {
 
         uint64_t BytesLeftToSend =
             TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
@@ -476,7 +493,13 @@ ThroughputClient::SendTcpData(
         SendData->Open = Context->BytesSent == 0 ? TRUE : FALSE;
         SendData->Buffer = DataBuffer->Buffer;
         SendData->Length = IoSize;
-        if ((uint64_t)IoSize >= BytesLeftToSend) {
+
+        if (Context->Client->RateLimiter && !Context->Client->RateLimiter->Consume(IoSize)) {
+            throttledByRateLimiter = true;
+            break;
+        }
+
+        if ((uint64_t)SendData->Length >= BytesLeftToSend) {
             SendData->Length = (uint32_t)BytesLeftToSend;
             SendData->Fin = TRUE;
             Context->Complete = TRUE;
