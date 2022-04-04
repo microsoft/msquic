@@ -113,8 +113,8 @@ CxPlatDpdkReadConfig(
     //
     // Read user-specified global config.
     //
-    if (Config != NULL && Config->RawDataPathProcList != NULL) {
-        Dpdk->Cpu = Config->RawDataPathProcList[0];
+    if (Config != NULL && Config->DataPathProcList != NULL) {
+        Dpdk->Cpu = Config->DataPathProcList[0];
     }
 
     FILE *File = fopen("dpdk.ini", "r");
@@ -143,10 +143,11 @@ CxPlatDpdkReadConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
-CxPlatDpRawGetDapathSize(
-    void
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
+    UNREFERENCED_PARAMETER(Config);
     return sizeof(DPDK_DATAPATH);
 }
 
@@ -155,7 +156,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
@@ -166,7 +167,6 @@ CxPlatDpRawInitialize(
         sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
     CxPlatDpdkReadConfig(Dpdk, Config);
-    CxPlatDpRawGenerateCpuTable(Datapath);
 
     BOOLEAN CleanUpThread = FALSE;
     CxPlatEventInitialize(&Dpdk->StartComplete, TRUE, FALSE);
@@ -562,6 +562,12 @@ CxPlatDpdkRx(
                 (CXPLAT_RECV_DATA*)&Packet,
                 ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
                 Buffer->pkt_len);
+            //
+            // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+            // mark it resolved. This allows stateless sends to be issued without performing
+            // a route lookup.
+            //
+            Packet.Route->State = RouteResolved;
         } else {
             QuicTraceEvent(
                 LibraryErrorStatus,

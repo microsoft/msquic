@@ -53,7 +53,7 @@ struct TlsContext
                 &SecConfig,
                 OnSecConfigCreateComplete));
 
-        QUIC_CONNECTION Connection = {0};
+        QUIC_CONNECTION Connection = {};
 
         QUIC_TRANSPORT_PARAMETERS TP = {0};
         TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_DATA;
@@ -271,7 +271,7 @@ PacketWriter::WriteClientInitialPacket(
     *PacketLength =
         QuicPacketEncodeLongHeaderV1(
             QuicVersion,
-            QUIC_INITIAL,
+            QUIC_INITIAL_V1,
             Cid,
             Cid,
             0,

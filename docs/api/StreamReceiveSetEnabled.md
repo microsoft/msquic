@@ -25,7 +25,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-**TODO**
+This function always delegates to the worker queue, even if called from a quic worker thread. This matters if disabling receives, as there could be a receive in the queue before this call is processed, and that receive would still indicated to the app. To disable receives reliably, reject a receive by draining 0 bytes in the `QUIC_STREAM_EVENT_RECEIVE` callback.
 
 # See Also
 

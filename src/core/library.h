@@ -208,8 +208,8 @@ typedef struct QUIC_LIBRARY {
     //
     // Processor candidates for raw datapath threads.
     //
-    uint16_t* RawDataPathProcList;
-    uint32_t RawDataPathProcListLength;
+    uint16_t* DataPathProcList;
+    uint32_t DataPathProcListLength;
 
     //
     // Datapath instance for the library.

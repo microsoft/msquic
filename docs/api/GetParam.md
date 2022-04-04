@@ -44,26 +44,26 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-While many parameters are staticly-sized, some are dynamically-sized and will require the application to do a double call to `GetParam`: the first to find out the amount of memory needed to allocate, placed in `BufferLength`, and the second call to actually retrieve the parameter's value.  For example, after setting a `DesiredVersionsList` on a `QUIC_SETTINGS`, retrieving the settings from the same API object will require a double call to allocate storage for the `DesiredVersionsList`.
+While many parameters are staticly-sized, some are dynamically-sized and will require the application to do a double call to `GetParam`: the first to find out the amount of memory needed to allocate, placed in `BufferLength`, and the second call to actually retrieve the parameter's value.  For example, after setting a `QUIC_VERSION_SETTINGS` on a `QUIC_CONFIGURATION`, retrieving the settings from the same API object will require a double call to allocate enough storage for the `QUIC_VERSION_SETTINGS` lists.
 
 Sample of double-call:
 ```C
     uint32_t SettingsSize = 0;
-    QUIC_SETTINGS* Settings = NULL;
+    QUIC_VERSION_SETTINGS* Settings = NULL;
 
     if (QUIC_STATUS_BUFFER_TOO_SMALL ==
         MsQuic->GetParam(
             Configuration,
-            QUIC_PARAM_CONFIGURATION_SETTINGS,
+            QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
             &SettingsSize,
             Settings)) {
 
-        Settings = (QUIC_SETTINGS*)malloc(SettingsSize);
+        Settings = (QUIC_VERSION_SETTINGS*)malloc(SettingsSize);
 
         if (QUIC_FAILED(
                 MsQuic->GetParam(
                     Configuration,
-                    QUIC_PARAM_CONFIGURATION_SETTINGS,
+                    QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                     &SettingsSize,
                     Settings))) {
             // Error.

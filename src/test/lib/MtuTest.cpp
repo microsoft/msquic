@@ -121,7 +121,7 @@ QuicTestMtuSettings()
 
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
             //
             // Set connection settings after open, should fail
@@ -179,7 +179,7 @@ QuicTestMtuSettings()
                 0,
                 ServerLocalAddr.GetPort(),
                 1499);
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
             TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
 
@@ -270,7 +270,7 @@ QuicTestMtuDiscovery(
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
     CxPlatSleep(4000); // Wait for the first idle period to expire.
     TEST_NOT_EQUAL(nullptr, Context.Connection);

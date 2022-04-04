@@ -140,7 +140,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
                 QUIC_LONG_HEADER_V1* Header =
                     (QUIC_LONG_HEADER_V1*)SendBuffer->Buffer;
                 Header->IsLongHeader = 1;
-                Header->Type = QUIC_INITIAL;
+                Header->Type = QUIC_INITIAL_V1;
                 Header->FixedBit = 1;
                 Header->Reserved = 0;
                 Header->Version = QUIC_VERSION_LATEST;

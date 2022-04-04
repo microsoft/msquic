@@ -381,7 +381,7 @@ QuicTestValidateConnectionEvents1(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -438,7 +438,7 @@ QuicTestValidateConnectionEvents2(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -512,7 +512,7 @@ QuicTestValidateConnectionEvents3(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(Client.Complete.WaitTimeout(2000));
@@ -638,7 +638,7 @@ QuicTestValidateStreamEvents1(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -725,7 +725,7 @@ QuicTestValidateStreamEvents2(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -824,7 +824,7 @@ QuicTestValidateStreamEvents3(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
@@ -947,7 +947,7 @@ QuicTestValidateStreamEvents4(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
@@ -1075,7 +1075,7 @@ QuicTestValidateStreamEvents5(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -1182,7 +1182,7 @@ QuicTestValidateStreamEvents6(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
@@ -1302,7 +1302,7 @@ QuicTestValidateStreamEvents7(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -1402,7 +1402,7 @@ QuicTestValidateStreamEvents8(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
