@@ -748,13 +748,18 @@ CxPlatGetPkcs12Certificate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    CRYPT_DATA_BLOB BlobData = {
+        .pbData = (BYTE*)CredConfig->CertificatePkcs12->Asn1Blob,
+        .cbData = CredConfig->CertificatePkcs12->Asn1BlobLength
+    };
+
     DWORD MsgAndCertEncodingType;
     DWORD ContentType;
     DWORD FormatType;
 
     if (!CryptQueryObject(
         ObjectType,
-        CredConfig->CertificatePkcs12->Asn1Blob,
+        &BlobData,
         CERT_QUERY_CONTENT_FLAG_PFX,
         CERT_QUERY_FORMAT_FLAG_ALL,
         0,
@@ -783,11 +788,6 @@ CxPlatGetPkcs12Certificate(
         goto Exit;
     }
 
-    CRYPT_DATA_BLOB BlobData = {
-        .pbData = (BYTE*)CredConfig->CertificatePkcs12->Asn1Blob,
-        .cbData = CredConfig->CertificatePkcs12->Asn1BlobLength
-    };
-
     if (CredConfig->CertificatePkcs12->PrivateKeyPassword) {
         Status =
             CxPlatUtf8ToWideChar(
@@ -808,7 +808,7 @@ CxPlatGetPkcs12Certificate(
         PFXImportCertStore(
             &BlobData,
             WidePassword,
-            PKCS12_IMPORT_SILENT | PKCS12_NO_PERSIST_KEY);
+            PKCS12_IMPORT_SILENT);
     if (CertStore == NULL) {
         DWORD LastError = GetLastError();
         Status = HRESULT_FROM_WIN32(GetLastError());
@@ -824,7 +824,7 @@ CxPlatGetPkcs12Certificate(
 
     while (CxPLatEnumerateCertificatesInStore(CertStore, &EnumContext)) {
         DWORD PropSize = 0;
-        BOOL HasPrivateKey = CertGetCertificateContextProperty(EnumContext, CERT_KEY_CONTEXT_PROP_ID, NULL, &PropSize);
+        BOOL HasPrivateKey = CertGetCertificateContextProperty(EnumContext, CERT_KEY_PROV_INFO_PROP_ID, NULL, &PropSize);
         if (HasPrivateKey) {
             if (CertContext == NULL || !CertHasPrivateKey) {
                 if (CertContext != NULL) {
@@ -850,7 +850,7 @@ CxPlatGetPkcs12Certificate(
 
 Exit:
     if (CertStore != NULL) {
-        CertCloseStore(CertStore, 0);
+        //CertCloseStore(CertStore, 0);
     }
 
     if (WidePassword != NULL) {
