@@ -426,7 +426,6 @@ main(
         }
     }
 
-
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
             DriverName != nullptr ?

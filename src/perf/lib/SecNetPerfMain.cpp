@@ -90,6 +90,7 @@ PrintHelp(
 #ifndef _KERNEL_MODE
         "Both:\n"
         "  -cpu:<cpu_index>            Specify the processor(s) for the datapath to use.\n"
+        "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
 #endif // _KERNEL_MODE
         "\n"
         );
