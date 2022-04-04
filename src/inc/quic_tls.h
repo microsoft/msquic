@@ -395,6 +395,16 @@ CxPlatTlsUninitialize(
     );
 
 //
+// Updates the HKDF labels, which occurs on version changes.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
+    );
+
+//
 // Called to process any data received from the peer. In the case of the client,
 // the initial call is made with no input buffer to generate the initial output.
 // The returned CXPLAT_TLS_RESULT_FLAGS and CXPLAT_TLS_PROCESS_STATE are update with

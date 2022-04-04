@@ -88,7 +88,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS`<br> 6         | QUIC_GLOBAL_SETTINGS    | Both      | Globally change global only settings.                                                                 |
 | `QUIC_PARAM_GLOBAL_VERSION_SETTINGS`<br> 7        | QUIC_VERSIONS_SETTINGS  | Both      | Globally change version settings for all subsequent connections.                                      |
 | `QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH`<br> 8        | char[64]                | Get-only  | Git hash used to build MsQuic (null terminated string)                                                |
-| `QUIC_PARAM_GLOBAL_RAW_DATAPATH_PROCS`<br> 9      | uint16_t[]              | Both      | Globally change the list of CPUs that raw datapath can use. Must be set before opening registration.  |
+| `QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS`<br> 9      | uint16_t[]              | Both      | Globally change the list of CPUs that datapath can use. Must be set before opening registration.  |
 
 
 ### Registration Parameters

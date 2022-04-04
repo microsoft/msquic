@@ -12,6 +12,7 @@
 
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
+bool UseDuoNic = false;
 const MsQuicApi* MsQuic;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
@@ -784,6 +785,14 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
         QuicTestCibirExtension(GetParam().Family, GetParam().Mode);
     }
 }
+
+// TEST(Handshake, ResumptionAcrossVersions) {
+//     if (TestingKernelMode) {
+//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS));
+//     } else {
+//         QuicTestResumptionAcrossVersions();
+//     }
+// }
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
@@ -1852,6 +1861,8 @@ int main(int argc, char** argv) {
             if (strcmp("--kernelPriv", argv[i]) == 0) {
                 PrivateTestLibrary = true;
             }
+        } else if (strcmp("--duoNic", argv[i]) == 0) {
+            UseDuoNic = true;
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

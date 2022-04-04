@@ -64,8 +64,8 @@ MsQuicRegistrationOpen(
         CxPlatLockAcquire(&MsQuicLib.Lock);
         if (MsQuicLib.Datapath == NULL) {
             CXPLAT_DATAPATH_CONFIG DataPathConfig = {
-                MsQuicLib.RawDataPathProcList,
-                MsQuicLib.RawDataPathProcListLength
+                MsQuicLib.DataPathProcList,
+                MsQuicLib.DataPathProcListLength
             };
             Status =
                 CxPlatDataPathInitialize(
