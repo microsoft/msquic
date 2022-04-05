@@ -67,7 +67,7 @@ QuicTestPrimeResumption(
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PrimeResumption::ConnCallback, &Context);
     TEST_TRUE(Listener.IsValid());
 
-    QuicAddr ServerLocalAddr{QuicAddrFamily};
+    QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -76,7 +76,7 @@ QuicTestPrimeResumption(
         TEST_TRUE(Client.IsValid());
 
         if (UseDuoNic) {
-            QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+            QuicAddr RemoteAddr{QuicAddrFamily, ServerLocalAddr.GetPort()};
             QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
             TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
         }
@@ -85,7 +85,7 @@ QuicTestPrimeResumption(
             Client.Start(
                 ClientConfiguration,
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                 ServerLocalAddr.GetPort()));
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
