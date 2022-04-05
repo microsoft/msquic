@@ -73,11 +73,18 @@ QuicTestPrimeResumption(
     {
         TestConnection Client(Registration);
         TEST_TRUE(Client.IsValid());
+
+        if (UseDuoNic) {
+            QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+            QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+            TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+        }
+
         TEST_QUIC_SUCCEEDED(
             Client.Start(
                 ClientConfiguration,
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                 ServerLocalAddr.GetPort()));
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
@@ -235,11 +242,17 @@ QuicTestConnect(
                     }
                 }
 
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
+
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (AsyncConfiguration) {
@@ -3008,6 +3021,12 @@ QuicTestResumptionAcrossVersions()
                 TEST_QUIC_SUCCEEDED(Client.SetResumptionTicket(ResumptionTicket));
                 CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
                 Client.SetExpectedResumed(false);
+
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
