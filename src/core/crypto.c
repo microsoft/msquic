@@ -942,9 +942,8 @@ QuicCryptoWriteFrames(
     }
 
     if (QuicConnIsClient(Connection) &&
-        Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_HANDSHAKE &&
-        Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] &&
-        Builder->Key != Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]) {
+        Builder->Key == Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]) {
+        CXPLAT_DBG_ASSERT(Builder->Key);
         //
         // Per spec, client MUST discard Initial keys when it starts
         // encrypting packets with handshake keys.
