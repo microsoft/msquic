@@ -41,6 +41,8 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
+extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
+
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
@@ -768,7 +770,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     )
 {
 #ifdef IS_OPENSSL_3
-    OSSL_PARAM params[3];
+    OSSL_PARAM params[2];
 #endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
@@ -792,7 +794,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
             return -1; // Insufficient random
         }
         CxPlatCopyMemory(key_name, TicketKey->Id, 16);
-        EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        EVP_EncryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
 
 #ifdef IS_OPENSSL_3
         params[0] =
@@ -801,11 +803,6 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
-            OSSL_PARAM_construct_utf8_string(
-                OSSL_MAC_PARAM_DIGEST,
-                "sha256",
-                0);
-        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
@@ -827,17 +824,12 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
-            OSSL_PARAM_construct_utf8_string(
-                OSSL_MAC_PARAM_DIGEST,
-                "sha256",
-                0);
-        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
         HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
 #endif
-        EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        EVP_DecryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
     }
 
     return 1; // This indicates that the ctx and hctx have been set and the
