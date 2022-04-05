@@ -388,6 +388,7 @@ QuicTestConnectAndPing(
 
     if (ClientZeroRtt) {
         QuicTestPrimeResumption(
+            QuicAddrFamily,
             Registration,
             ServerConfiguration,
             ClientConfiguration,
