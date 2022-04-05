@@ -513,15 +513,9 @@ function Invoke-Test {
 $LocalDataCache = LocalSetup
 
 if ($Record -and $IsWindows) {
-    try {
-        wpr.exe -cancel -instancename msquicperf 2> $null
-    } catch {
-    }
+    try { wpr.exe -cancel -instancename msquicperf 2> $null } catch { }
     Invoke-TestCommand -Session $Session -ScriptBlock {
-        try {
-            wpr.exe -cancel -instancename msquicperf 2> $null
-        } catch {
-        }
+        try { wpr.exe -cancel -instancename msquicperf 2> $null } catch { }
     }
 }
 
