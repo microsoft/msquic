@@ -485,7 +485,11 @@ function Invoke-Test {
                     # This will still throw if a file cannot successfuly be deleted
                 }
             } else {
-                Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                try {
+                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                } catch {
+                    Write-Host "Failed to get remote logs"
+                }
             }
         }
     }

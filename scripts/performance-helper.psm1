@@ -399,7 +399,7 @@ function Get-RemoteLogDirectory {
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         Write-Host $SmbDir
         Write-Host $Local
-        robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
+        robocopy $SmbDir $Local /e /IS /IT /IM /COMPRESS | Out-Null
         if ($LASTEXITCODE -ne 3) {
             Write-Error "Robocopy failed: $LASTEXITCODE"
         } else {
