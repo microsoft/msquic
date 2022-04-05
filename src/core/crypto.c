@@ -941,6 +941,16 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
+    if (QuicConnIsClient(Connection) &&
+        Builder->Key == Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]) {
+        CXPLAT_DBG_ASSERT(Builder->Key);
+        //
+        // Per spec, client MUST discard Initial keys when it starts
+        // encrypting packets with handshake keys.
+        //
+        QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
+    }
+
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
 
     uint16_t AvailableBufferLength =
@@ -1405,14 +1415,6 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.WriteKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKeys[Crypto->TlsState.WriteKey] != NULL);
-        if (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_HANDSHAKE &&
-            QuicConnIsClient(Connection)) {
-            //
-            // Per spec, client MUST discard Initial keys when it starts
-            // encrypting packets with handshake keys.
-            //
-            QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
-        }
         if (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT) {
             if (QuicConnIsClient(Connection)) {
                 //
