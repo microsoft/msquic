@@ -694,6 +694,17 @@ struct MsQuicListener {
     }
 #endif
 
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_LISTENER_STATISTICS& Statistics) const noexcept {
+        uint32_t Size = sizeof(Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_STATS,
+                &Size,
+                &Statistics);
+    }
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicListener(MsQuicListener& other) = delete;

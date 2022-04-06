@@ -1111,6 +1111,15 @@ TEST_P(WithFamilyArgs, ServerRejected) {
     }
 }
 
+TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
+    TestLoggerT<ParamType> Logger("QuicTestClientBlockedSourcePort", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT, GetParam().Family));
+    } else {
+        QuicTestClientBlockedSourcePort(GetParam().Family);
+    }
+}
+
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
