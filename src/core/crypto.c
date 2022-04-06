@@ -461,6 +461,7 @@ QuicCryptoOnVersionChange(
             Connection,
             Status,
             "Creating initial keys");
+        QuicConnFatalError(Connection, Status, "New version key OOM");
         goto Exit;
     }
     CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
