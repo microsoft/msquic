@@ -3032,3 +3032,41 @@ QuicTestResumptionAcrossVersions()
         }
     }
 }
+
+void
+QuicTestClientBlockedSourcePort(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetDisconnectTimeoutMs(500);
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    const QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Client(Registration);
+    TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(QuicAddr(QuicAddrFamily, (uint16_t)53 /* DNS server port */)));
+    TEST_QUIC_SUCCEEDED(Client.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Client.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(!Client.HandshakeComplete);
+    TEST_EQUAL(Client.TransportShutdownStatus, QUIC_STATUS_CONNECTION_TIMEOUT);
+
+    QUIC_LISTENER_STATISTICS ListenerStats {0};
+    TEST_QUIC_SUCCEEDED(Listener.GetStatistics(ListenerStats));
+    TEST_TRUE(ListenerStats.BindingRecvDroppedPackets > 0);
+}
