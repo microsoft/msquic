@@ -3060,7 +3060,7 @@ QuicTestClientBlockedSourcePort(
 
     MsQuicConnection Client(Registration);
     TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(QuicAddr(QuicAddrFamily, (uint16_t)53 /* DNS server port */)));
+    TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(QuicAddr(QuicAddrFamily, (uint16_t)11211 /* memcache port */)));
     TEST_QUIC_SUCCEEDED(Client.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(!Client.HandshakeComplete);
