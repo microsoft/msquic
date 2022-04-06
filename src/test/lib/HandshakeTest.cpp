@@ -36,6 +36,7 @@ void QuicTestUninitialize()
 
 void
 QuicTestPrimeResumption(
+    _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _In_ MsQuicRegistration& Registration,
     _In_ MsQuicConfiguration& ServerConfiguration,
     _In_ MsQuicConfiguration& ClientConfiguration,
@@ -73,11 +74,18 @@ QuicTestPrimeResumption(
     {
         TestConnection Client(Registration);
         TEST_TRUE(Client.IsValid());
+
+        if (UseDuoNic) {
+            QuicAddr RemoteAddr{QuicAddrFamily, ServerLocalAddr.GetPort()};
+            QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+            TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+        }
+
         TEST_QUIC_SUCCEEDED(
             Client.Start(
                 ClientConfiguration,
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                 ServerLocalAddr.GetPort()));
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
@@ -135,6 +143,7 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage
     )
 {
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -177,6 +186,7 @@ QuicTestConnect(
     QUIC_BUFFER* ResumptionTicket = nullptr;
     if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
         QuicTestPrimeResumption(
+            QuicAddrFamily,
             Registration,
             ServerConfiguration,
             ClientConfiguration,
@@ -189,8 +199,6 @@ QuicTestConnect(
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
     RandomLossHelper LossHelper(RandomLossPercentage);
-
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     {
         if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
@@ -235,11 +243,17 @@ QuicTestConnect(
                     }
                 }
 
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
+
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (AsyncConfiguration) {
@@ -2982,7 +2996,7 @@ QuicTestResumptionAcrossVersions()
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
     QUIC_BUFFER* ResumptionTicket = nullptr;
 
-    QuicTestPrimeResumption(Registration, ServerConfiguration, ClientConfiguration, &ResumptionTicket);
+    QuicTestPrimeResumption(QuicAddrFamily, Registration, ServerConfiguration, ClientConfiguration, &ResumptionTicket);
     if (ResumptionTicket == nullptr) {
         return;
     }
@@ -3008,6 +3022,12 @@ QuicTestResumptionAcrossVersions()
                 TEST_QUIC_SUCCEEDED(Client.SetResumptionTicket(ResumptionTicket));
                 CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
                 Client.SetExpectedResumed(false);
+
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
