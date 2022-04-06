@@ -1391,7 +1391,8 @@ QuicBindingDropBlockedSourcePorts(
 
     //
     // These UDP source ports are recommended to be blocked by the QUIC WG. See
-    // draft-ietf-quic-applicability for more details.
+    // draft-ietf-quic-applicability for more details on the set of ports that
+    // may cause issues.
     //
     // N.B - This list MUST be sorted in decreasing order.
     //
@@ -1402,8 +1403,8 @@ QuicBindingDropBlockedSourcePorts(
         500,    // IKE
         389,    // CLDAP
         161,    // SNMP
-        128,    // NETBIOS Datagram Service
         137,    // NETBIOS Name Service
+        128,    // NETBIOS Datagram Service
         123,    // NTP
         111,    // Portmap
         53,     // DNS
