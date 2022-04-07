@@ -5820,13 +5820,8 @@ QuicConnProcessRouteCompletion(
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
     if (Path != NULL) {
         if (Succeeded) {
-            QuicTraceLogConnInfo(
-                SuccessfulRouteResolution,
-                Connection,
-                "Processing successful route completion Path[%hhu]",
-                PathId);
             CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            (void)QuicSendFlush(&Connection->Send);
         } else {
             //
             // Kill the path that failed route resolution and make the next path active if possible.
@@ -5835,10 +5830,10 @@ QuicConnProcessRouteCompletion(
                 QuicTraceLogConnInfo(
                     FailedRouteResolution,
                     Connection,
-                    "Processing failed route completion Path[%hhu]",
+                    "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
-                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+                (void)QuicSendFlush(&Connection->Send);
             }
             QuicPathRemove(Connection, PathIndex);
         }
