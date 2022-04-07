@@ -476,7 +476,7 @@ function Get-HpsTestsJs {
 
 #region latency
 
-function Parse-LatencyData {
+function Get-LatencyData {
     param (
         $File)
     $Data = Get-Content -Path $File
@@ -530,7 +530,7 @@ function Get-LatencySummaryDataJs {
             if (!(Test-Path $LatencyFile)) {
                 continue;
             }
-            $LatencyResults = Parse-LatencyData $LatencyFile
+            $LatencyResults = Get-LatencyData $LatencyFile
             $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge 0.9} | Select-Object -First 1 # Find P90
             $null = $platformResults.Add("{x:$($CommitIndexMap[$SingleCommitHis.CommitHash]),y:$($LatencyResults[1])}");
         }
@@ -604,7 +604,7 @@ $DataFileContents = $DataFileContents.Replace("RECENT_COMMITS", (Get-RecentCommi
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
-$DataFileContents = Get-LatencySummaryDataJs $DataFileContents $CommitHistory $BranchFolder $CommitIndexMap
+$DataFileContents = Get-LatencySummaryDataJs -DataFile $DataFileContents -CommitHistory $CommitHistory -BranchFolder $BranchFolder -CommitIndexMap $CommitIndexMap
 
 $OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
