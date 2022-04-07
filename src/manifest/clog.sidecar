@@ -3649,7 +3649,7 @@
     },
     "FailedRouteResolution": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Processing failed route completion Path[%hhu]",
+      "TraceString": "[conn][%p] Route resolution failed on Path[%hhu]. Switching paths...",
       "UniqueId": "FailedRouteResolution",
       "splitArgs": [
         {
@@ -12548,9 +12548,9 @@
         "EncodingString": "[strm][%p] Event silently discarded"
       },
       {
-        "UniquenessHash": "d3e660d6-4f05-fd4d-e6e5-c8967d710df4",
+        "UniquenessHash": "fff5ef57-9005-a7ec-fcbc-d630c6c812fa",
         "TraceID": "FailedRouteResolution",
-        "EncodingString": "[conn][%p] Processing failed route completion Path[%hhu]"
+        "EncodingString": "[conn][%p] Route resolution failed on Path[%hhu]. Switching paths..."
       },
       {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
