@@ -85,13 +85,14 @@ function Get-CpuCommitData {
         [string]$BranchFolder
     )
 
-    $CpuData = @()
+    $Results = [System.Collections.ArrayList]@();
 
     foreach ($SingleCommitHis in $CommitHistory) {
         $CommitDataFile = Join-Path $BranchFolder $SingleCommitHis.CommitHash "cpu_data.json"
-        $CpuData += Get-Content $CommitDataFile | ConvertFrom-Json
+        $null = $Results.Add((Get-Content $CommitDataFile | ConvertFrom-Json));
     }
-    return $CpuData
+
+    return $Results.ToArray();
 }
 
 function Get-RawTestDataJs {
@@ -103,18 +104,9 @@ function Get-RawTestDataJs {
         [hashtable]$CommitIndexMap
     )
 
-    $DataVal = "";
+    $Results = [System.Collections.ArrayList]@();
     foreach ($Test in $TestList) {
-        $TimeUnix = $Test.Date;
         $Index = $CommitIndexMap[$Test.CommitHash];
-        $ResultData = "";
-        foreach ($Result in $Test.Results) {
-            if ($ResultData -eq "") {
-                $ResultData = $Result;
-            } else {
-                $ResultData = "$ResultData, $Result";
-            }
-        }
         $Build = 0
         $Machine = ""
         if ($Test.MachineName.Contains(":")) {
@@ -124,14 +116,10 @@ function Get-RawTestDataJs {
             $Machine = $Test.MachineName
         }
         $Machine = $Machine.Substring($Machine.Length-2)
-        $Data = "{c:$Index, m:`"$Machine`", b:$Build, d:[$ResultData]}";
-        if ($DataVal -eq "") {
-            $DataVal = $Data;
-        } else {
-            $DataVal = "$DataVal, $Data";
-        }
+        $Data = "{c:$Index,m:`"$Machine`",b:$Build,d:[$($Test.Results -Join ",")]}";
+        $null = $Results.Add($Data);
     }
-    return "[$DataVal]";
+    return "[$($Results -Join ",")]";
 }
 
 #region THROUGHPUT
@@ -475,20 +463,78 @@ function Get-HpsTestsJs {
 #endregion
 
 #region latency
-function Get-LatencyDataJs {
+
+function Get-LatencyData {
+    param (
+        $File)
+    $Data = Get-Content -Path $File
+    $Results = [System.Collections.ArrayList]@();
+
+    foreach ($Line in $Data) {
+        if ([string]::IsNullOrWhiteSpace($Line) -or $Line.Trim().StartsWith("#") -or $Line.Trim().StartsWith("Value")) {
+            continue;
+        }
+        $Split = $Line.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries);
+        $YVal = $Split[0];
+        $XVal = $Split[1];
+        $OutVar = 0.0
+        if (![double]::TryParse($XVal, [Ref]$OutVar) -or ![double]::TryParse($YVal, [Ref]$OutVar)) {
+            continue
+        }
+
+        $null = $Results.Add(@($XVal, $YVal));
+    }
+    return $Results
+}
+
+function Get-PerCommitLatencyDataJs {
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [CommitsFileModel[]]$CommitHistory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$BranchFolder,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$CommitIndexMap
+    )
+
+    $DataStrings = @{};
+    $platformNames = @("linux_x64_openssl", "Windows_x64_openssl", "Windows_x64_schannel", "Winkernel_x64_schannel");
+    foreach ($platformName in $platformNames) {
+        $platformResults = [System.Collections.ArrayList]@();
+        foreach ($SingleCommitHis in $CommitHistory) {
+            $LatencyFolder = Join-Path $BranchFolder $SingleCommitHis.CommitHash "RpsLatency"
+            $LatencyFile = Join-Path $LatencyFolder "histogram_RPS_${platformName}_ConnectionCount_1.txt"
+            if (!(Test-Path $LatencyFile)) {
+                continue;
+            }
+            $LatencyResults = Get-LatencyData $LatencyFile
+            $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge 0.9} | Select-Object -First 1 # Find P90
+            $null = $platformResults.Add("{x:$($CommitIndexMap[$SingleCommitHis.CommitHash]),y:$($LatencyResults[1])}");
+        }
+        $DataStrings[$platformName] = "[$($platformResults -Join ",")]";
+    }
+
+    # Replace RPS latency template variables
+    foreach ($key in $DataStrings.keys) {
+        $DataFile = $DataFile.Replace("RPS_LATENCY_$($key.ToUpper())", $DataStrings[$key])
+    }
+
+    return $DataFile;    
+}
+
+function Get-LatestLatencyData {
     param (
         $File)
 
     $Data = Get-Content -Path $File
-    $DataVal = ""
+    $Results = [System.Collections.ArrayList]@();
     foreach ($Line in $Data) {
-        if ([string]::IsNullOrWhiteSpace($Line)) {
-            continue;
-        }
-        if ($Line.Trim().StartsWith("#")) {
-            continue;
-        }
-        if ($Line.Trim().StartsWith("Value")) {
+        if ([string]::IsNullOrWhiteSpace($Line) -or $Line.Trim().StartsWith("#") -or $Line.Trim().StartsWith("Value")) {
             continue;
         }
         $Split = $Line.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries);
@@ -500,15 +546,40 @@ function Get-LatencyDataJs {
         }
         #$XVal = 100.0 - (100.0 / $XVal);
         $ToWrite = "{x:$XVal, y:$YVal}"
-        if ($DataVal -eq "") {
-            $DataVal = $ToWrite
-        } else {
-            $DataVal = "$DataVal, $ToWrite"
-        }
-
-        # [{x: ..., y: ...}, {}]
+        $null = $Results.Add($ToWrite);
     }
-    return "[$DataVal]"
+    # [{x: ..., y: ...}, {}]
+    return "[$($Results -Join ",")]"
+}
+
+function Get-LatestLatencyDataJs {
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [string]$BranchFolder
+    )
+
+    # Grab Latency Data
+    $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
+    $LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
+    $LinuxOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_linux_x64_openssl_ConnectionCount_1.txt"
+    $WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_1.txt"
+    $WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_1.txt"
+    $WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_1.txt"
+
+    $LinuxOpenSslData = Get-LatestLatencyData $LinuxOpenSslLatencyFile
+    $WinOpenSslData = Get-LatestLatencyData $WinOpenSslLatencyFile
+    $WinSchannelData = Get-LatestLatencyData $WinSchannelLatencyFile
+    $WinKernelData = Get-LatestLatencyData $WinKernelLatencyFile
+
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_LINUX_X64_OPENSSL", $LinuxOpenSslData)
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_OPENSSL", $WinOpenSslData)
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_SCHANNEL", $WinSchannelData)
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINKERNEL_X64_SCHANNEL", $WinKernelData)
+
+    return $DataFile
 }
 #endregion
 
@@ -519,19 +590,15 @@ function Get-RecentCommitsJs {
         [TestCommitModel[]]$CpuCommitData
     )
 
-    $DataVal = "";
-
+    $Results = [System.Collections.ArrayList]@();
     foreach ($Commit in $CpuCommitData) {
         $TimeUnix = $Commit.Date
         $Data = "{h:`"$($Commit.CommitHash)`", t:$TimeUnix}";
-        if ($DataVal -eq "") {
-            $DataVal = $Data;
-        } else {
-            $DataVal = "$Data, $DataVal";
-        }
+        $null = $Results.Add($Data);
     }
 
-    return "[$DataVal]";
+    $Results.Reverse();
+    return "[$($Results -Join ",")]";
 }
 
 #endregion
@@ -570,24 +637,8 @@ $DataFileContents = $DataFileContents.Replace("RECENT_COMMITS", (Get-RecentCommi
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
-
-# Grab Latency Data
-$LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
-$LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
-$LinuxOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_linux_x64_openssl_ConnectionCount_1.txt"
-$WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_1.txt"
-$WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_1.txt"
-$WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_1.txt"
-
-$LinuxOpenSslData = Get-LatencyDataJs -File $LinuxOpenSslLatencyFile
-$WinOpenSslData = Get-LatencyDataJs -File $WinOpenSslLatencyFile
-$WinSchannelData = Get-LatencyDataJs -File $WinSchannelLatencyFile
-$WinKernelData = Get-LatencyDataJs -File $WinKernelLatencyFile
-
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_LINUX_X64_OPENSSL", $LinuxOpenSslData)
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_X64_OPENSSL", $WinOpenSslData)
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_X64_SCHANNEL", $WinSchannelData)
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL_X64_SCHANNEL", $WinKernelData)
+$DataFileContents = Get-PerCommitLatencyDataJs -DataFile $DataFileContents -CommitHistory $CommitHistory -BranchFolder $BranchFolder -CommitIndexMap $CommitIndexMap
+$DataFileContents = Get-LatestLatencyDataJs -DataFile $DataFileContents -BranchFolder $BranchFolder
 
 $OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null

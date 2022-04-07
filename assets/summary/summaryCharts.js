@@ -129,4 +129,5 @@ window.onload = function() {
 
     // Summary charts
     testTypes.forEach(x => createChart(x))
+    createLatencyChart("RpsLatency", false);
 };

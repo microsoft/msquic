@@ -416,7 +416,7 @@
                             <div class="card shadow mb-4">
                                 <!-- Card Header -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatency">Requests per Second Latency (μs)</a>
+                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatency">Requests per Second P90 Latency (μs)</a>
                                     <div class="m-0">
                                         This test measures response <a href="https://en.wikipedia.org/wiki/Latency_%28engineering%29">latency</a>
                                         while simulating HTTP-style traffic between the client and server.
@@ -439,6 +439,39 @@
                                 <div class="card-body">
                                     <div class="chart-area-lg">
                                         <canvas id="canvasRpsLatency"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Requests per Second Latency Chart -->
+                        <div class="col-xl-12 col-lg-7" id="rpslatencylatest">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header -->
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatency">Latest-commit Requests per Second Latency (μs)</a>
+                                    <div class="m-0">
+                                        This test measures response <a href="https://en.wikipedia.org/wiki/Latency_%28engineering%29">latency</a>
+                                        while simulating HTTP-style traffic between the client and server.
+                                    </div>
+                                    <div class="dropdown no-arrow">
+                                        <label class="dropdown-toggle" role="button" id="dropdownMenuLink"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                        </label>
+                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                                            <div class="dropdown-header">Customize</div>
+                                            <label class="dropdown-item text-success" id="winKernelSchannelRpsLatencyLatestToggle">Windows Kernel Schannel</label>
+                                            <label class="dropdown-item text-primary" id="winUserSchannelRpsLatencyLatestToggle">Windows User Schannel</label>
+                                            <label class="dropdown-item text-danger" id="winUserOpenSslRpsLatencyLatestToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslRpsLatencyLatestToggle">Linux OpenSSL</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area-lg">
+                                        <canvas id="canvasRpsLatencyLatest"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -519,6 +552,7 @@
     <script src="assets/summary/main/data.js"></script>
     <script src="assets/summary/dataView.js"></script>
     <script src="assets/summary/latestData.js"></script>
+    <script src="assets/summary/rpsLatencyCharts.js"></script>
     <script src="assets/summary/detailedCharts.js"></script>
 
 </body>
