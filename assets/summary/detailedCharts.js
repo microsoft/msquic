@@ -80,26 +80,6 @@ function createPointDataset(test, platform) {
     };
 }
 
-function createLatencyDataset(test, platform) {
-    var data = dataView.find(x => x.name === (platform.name + test))
-    return {
-        type: "line",
-        label: platform.friendly,
-        backgroundColor: platform.color,
-        borderColor: platform.color,
-        borderWidth: dataLineWidth,
-        pointRadius: 1,
-        tension: 0,
-        fill: false,
-        data: data.raw,
-        sortOrder: 1,
-        hidden: false,
-        hiddenType: false,
-        hiddenPlatform: false,
-        platform: platform.name
-    }
-}
-
 function onPlatformToggled(event) {
     var chart = event.srcElement.chart
     for (const val of chart.data.datasets) {
@@ -228,4 +208,5 @@ window.onload = function() {
     // Summary charts
     testTypes.forEach(x => createChart(x))
     createLatencyChart("RpsLatency", true);
+    createLatestLatencyChart("RpsLatencyLatest");
 };

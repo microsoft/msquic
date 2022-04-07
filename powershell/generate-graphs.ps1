@@ -471,13 +471,7 @@ function Get-LatencyData {
     $Results = [System.Collections.ArrayList]@();
 
     foreach ($Line in $Data) {
-        if ([string]::IsNullOrWhiteSpace($Line)) {
-            continue;
-        }
-        if ($Line.Trim().StartsWith("#")) {
-            continue;
-        }
-        if ($Line.Trim().StartsWith("Value")) {
+        if ([string]::IsNullOrWhiteSpace($Line) -or $Line.Trim().StartsWith("#") -or $Line.Trim().StartsWith("Value")) {
             continue;
         }
         $Split = $Line.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries);
@@ -493,7 +487,7 @@ function Get-LatencyData {
     return $Results
 }
 
-function Get-LatencySummaryDataJs {
+function Get-PerCommitLatencyDataJs {
     param (
         [Parameter(Mandatory = $true)]
         $DataFile,
@@ -531,6 +525,61 @@ function Get-LatencySummaryDataJs {
     }
 
     return $DataFile;    
+}
+
+function Get-LatestLatencyData {
+    param (
+        $File)
+
+    $Data = Get-Content -Path $File
+    $Results = [System.Collections.ArrayList]@();
+    foreach ($Line in $Data) {
+        if ([string]::IsNullOrWhiteSpace($Line) -or $Line.Trim().StartsWith("#") -or $Line.Trim().StartsWith("Value")) {
+            continue;
+        }
+        $Split = $Line.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries);
+        $XVal = $Split[3];
+        $YVal = $Split[0];
+        $OutVar = 0.0
+        if (![double]::TryParse($XVal, [Ref]$OutVar) -or ![double]::TryParse($YVal, [Ref]$OutVar)) {
+            continue
+        }
+        #$XVal = 100.0 - (100.0 / $XVal);
+        $ToWrite = "{x:$XVal, y:$YVal}"
+        $null = $Results.Add($ToWrite);
+    }
+    # [{x: ..., y: ...}, {}]
+    return "[$($Results -Join ",")]"
+}
+
+function Get-LatestLatencyDataJs {
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [string]$BranchFolder
+    )
+
+    # Grab Latency Data
+    $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
+    $LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
+    $LinuxOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_linux_x64_openssl_ConnectionCount_1.txt"
+    $WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_1.txt"
+    $WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_1.txt"
+    $WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_1.txt"
+
+    $LinuxOpenSslData = Get-LatestLatencyData $LinuxOpenSslLatencyFile
+    $WinOpenSslData = Get-LatestLatencyData $WinOpenSslLatencyFile
+    $WinSchannelData = Get-LatestLatencyData $WinSchannelLatencyFile
+    $WinKernelData = Get-LatestLatencyData $WinKernelLatencyFile
+
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_LINUX_X64_OPENSSL", $LinuxOpenSslData)
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_OPENSSL", $WinOpenSslData)
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_SCHANNEL", $WinSchannelData)
+    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINKERNEL_X64_SCHANNEL", $WinKernelData)
+
+    return $DataFile
 }
 #endregion
 
@@ -587,7 +636,8 @@ $DataFileContents = $DataFileContents.Replace("RECENT_COMMITS", (Get-RecentCommi
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
-$DataFileContents = Get-LatencySummaryDataJs -DataFile $DataFileContents -CommitHistory $CommitHistory -BranchFolder $BranchFolder -CommitIndexMap $CommitIndexMap
+$DataFileContents = Get-PerCommitLatencyDataJs -DataFile $DataFileContents -CommitHistory $CommitHistory -BranchFolder $BranchFolder -CommitIndexMap $CommitIndexMap
+$DataFileContents = Get-LatestLatencyDataJs -DataFile $DataFileContents -BranchFolder $BranchFolder
 
 $OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
