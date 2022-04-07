@@ -597,6 +597,7 @@ function Get-RecentCommitsJs {
         $null = $Results.Add($Data);
     }
 
+    $Results.Reverse();
     return "[$($Results -Join ",")]";
 }
 
