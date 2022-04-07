@@ -1088,7 +1088,6 @@ QuicSendFlush(
             //
             // Route resolution failed or pended. We need to pause sending.
             //
-            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
             return TRUE;
         }
     } else if (Path->Route.State == RouteResolving) {
