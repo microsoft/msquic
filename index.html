@@ -372,6 +372,26 @@
                         </div>
                     </div>
 
+                    <!-- Content Row -->
+                    <div class="row">
+
+                        <!-- Single Connection RPS Latency Chart -->
+                        <div class="col-xl-6 col-lg-12">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header -->
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatency">Requests per Second P90 Latency (μs)</a>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <canvas id="canvasRpsLatency"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-sm-flex align-items-center justify-content-between mb-4" id="hardware">
                         <a class="h3 mb-0 font-weight-bold text-gray-800" href="index.html#hardware">Hardware</a>
                     </div>
@@ -515,6 +535,7 @@
     <script src="assets/summary/main/data.js"></script>
     <script src="assets/summary/dataView.js"></script>
     <script src="assets/summary/latestData.js"></script>
+    <script src="assets/summary/rpsLatencyCharts.js"></script>
     <script src="assets/summary/summaryCharts.js"></script>
 
 </body>

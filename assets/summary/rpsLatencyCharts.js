@@ -1,60 +1,31 @@
-
-// Default number of commits to slice for each chart type.
-var commitCount = 11
-if (maxIndex < commitCount) {
-    commitCount = maxIndex
-}
-
-function titlePlacement(tooltipItem, data) {
-    var dataset = data.datasets[tooltipItem[0].datasetIndex]
-    var datapoint = dataset.data[tooltipItem[0].index]
-    var time = recentCommits[datapoint.x].t
-    // TODO Fix this, this is very hacky
-    return Chart._adapters._date.prototype.format(time, Chart._adapters._date.prototype.formats().datetime)
-}
-
-function beforeBodyPlacement(tooltipItem, data) {
-    var dataset = data.datasets[tooltipItem[0].datasetIndex]
-    var datapoint = dataset.data[tooltipItem[0].index]
-    return "Commit Hash: " + recentCommits[datapoint.x].h
-}
-
-function chartOnClick(a, activeElements) {
-    if (activeElements.length === 0) return
-    var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
-    var commitIndex = dataset.data[activeElements[0]._index].x
-    var commitHash = recentCommits[commitIndex].h
-    window.open("https://github.com/microsoft/msquic/commit/" + commitHash, "_blank")
-}
-
-function createDataset(test, platform) {
+function createLatencyDataset(test, platform) {
     var data = dataView.find(x => x.name === (platform.name + test))
     return {
         type: "line",
-        label: platform.friendly + " (" + pointsToValueName + ")",
+        label: platform.friendly,
         backgroundColor: platform.color,
         borderColor: platform.color,
         borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
+        pointRadius: 1,
         tension: 0,
-        data: generateLineDataset(data.raw, maxIndex, commitCount),
         fill: false,
+        data: data.raw,
         sortOrder: 1,
         hidden: false,
         hiddenType: false,
         hiddenPlatform: false,
-        isRaw: false,
-        platform: platform.friendly
-    };
+        platform: platform.name
+    }
 }
 
-function createChart(test) {
+function createLatencyChart(test, toggleEnabled) {
     var datasets = []
-    platformTypes.forEach(x => datasets.push(createDataset(test, x)))
+    platformTypes.forEach(x => datasets.push(createLatencyDataset(test, x)))
 
-    var div = dataView.find(x => x.name === platformTypes[0].name + test).div
+    var div = dataView.find(x => x.name === platformTypes[0].name + test).div;
+    console.log(datasets);
 
-    new Chart(document.getElementById("canvas" + test).getContext('2d'), {
+    chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
         options: {
             maintainAspectRatio: false,
@@ -117,17 +88,9 @@ function createChart(test) {
                 }
             }
         }
-    })
+    });
+
+    if (toggleEnabled) {
+        platformTypes.forEach(x => addPlatformToggle(test, x, chart))
+    }
 }
-
-window.onload = function() {
-    // Check for custom parameters
-    processSearchParams()
-
-    // Latest values
-    setLatestData()
-
-    // Summary charts
-    testTypes.forEach(x => createChart(x))
-    createLatencyChart("RpsLatency", false);
-};
