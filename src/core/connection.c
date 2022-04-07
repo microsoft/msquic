@@ -5821,7 +5821,9 @@ QuicConnProcessRouteCompletion(
     if (Path != NULL) {
         if (Succeeded) {
             CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            (void)QuicSendFlush(&Connection->Send);
+            if (!QuicSendFlush(&Connection->Send)) {
+                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            }
         } else {
             //
             // Kill the path that failed route resolution and make the next path active if possible.
@@ -5834,7 +5836,9 @@ QuicConnProcessRouteCompletion(
                     PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
                 QuicPathRemove(Connection, 1);
-                (void)QuicSendFlush(&Connection->Send);
+                if (!QuicSendFlush(&Connection->Send)) {
+                    QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+                }
             } else {
                 QuicPathRemove(Connection, PathIndex);
             }
