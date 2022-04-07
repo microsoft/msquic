@@ -85,13 +85,14 @@ function Get-CpuCommitData {
         [string]$BranchFolder
     )
 
-    $CpuData = @()
+    $Results = [System.Collections.ArrayList]@();
 
     foreach ($SingleCommitHis in $CommitHistory) {
         $CommitDataFile = Join-Path $BranchFolder $SingleCommitHis.CommitHash "cpu_data.json"
-        $CpuData += Get-Content $CommitDataFile | ConvertFrom-Json
+        $null = $Results.Add((Get-Content $CommitDataFile | ConvertFrom-Json));
     }
-    return $CpuData
+
+    return $Results.ToArray();
 }
 
 function Get-RawTestDataJs {
@@ -103,18 +104,9 @@ function Get-RawTestDataJs {
         [hashtable]$CommitIndexMap
     )
 
-    $DataVal = "";
+    $Results = [System.Collections.ArrayList]@();
     foreach ($Test in $TestList) {
-        $TimeUnix = $Test.Date;
         $Index = $CommitIndexMap[$Test.CommitHash];
-        $ResultData = "";
-        foreach ($Result in $Test.Results) {
-            if ($ResultData -eq "") {
-                $ResultData = $Result;
-            } else {
-                $ResultData = "$ResultData, $Result";
-            }
-        }
         $Build = 0
         $Machine = ""
         if ($Test.MachineName.Contains(":")) {
@@ -124,14 +116,10 @@ function Get-RawTestDataJs {
             $Machine = $Test.MachineName
         }
         $Machine = $Machine.Substring($Machine.Length-2)
-        $Data = "{c:$Index, m:`"$Machine`", b:$Build, d:[$ResultData]}";
-        if ($DataVal -eq "") {
-            $DataVal = $Data;
-        } else {
-            $DataVal = "$DataVal, $Data";
-        }
+        $Data = "{c:$Index,m:`"$Machine`",b:$Build,d:[$($Test.Results -Join ",")]}";
+        $null = $Results.Add($Data);
     }
-    return "[$DataVal]";
+    return "[$($Results -Join ",")]";
 }
 
 #region THROUGHPUT
@@ -553,19 +541,14 @@ function Get-RecentCommitsJs {
         [TestCommitModel[]]$CpuCommitData
     )
 
-    $DataVal = "";
-
+    $Results = [System.Collections.ArrayList]@();
     foreach ($Commit in $CpuCommitData) {
         $TimeUnix = $Commit.Date
         $Data = "{h:`"$($Commit.CommitHash)`", t:$TimeUnix}";
-        if ($DataVal -eq "") {
-            $DataVal = $Data;
-        } else {
-            $DataVal = "$Data, $DataVal";
-        }
+        $null = $Results.Add($Data);
     }
 
-    return "[$DataVal]";
+    return "[$($Results -Join ",")]";
 }
 
 #endregion
