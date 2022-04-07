@@ -5833,9 +5833,11 @@ QuicConnProcessRouteCompletion(
                     "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
+                QuicPathRemove(Connection, 1);
                 (void)QuicSendFlush(&Connection->Send);
+            } else {
+                QuicPathRemove(Connection, PathIndex);
             }
-            QuicPathRemove(Connection, PathIndex);
         }
     }
 
