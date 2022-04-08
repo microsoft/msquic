@@ -2966,7 +2966,7 @@ QuicTestCibirExtension(
         // TODO - Set expected transport error
     }
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_EQUAL(Connection.HandshakeComplete, ShouldConnnect);
 }
 
