@@ -118,7 +118,6 @@ if [ "$OS" == "linux" ]; then
   fpm -f -s dir -t deb  -n ${NAME} -v ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} --license MIT --url https://github.com/microsoft/msquic \
     --package "$OUTPUT" --log error \
     --description "${DESCRIPTION}" \
-    --provides libmsquic.so.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     ${CONFLICTS} \
     ${FILES}
 fi
