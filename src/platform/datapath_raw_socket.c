@@ -464,7 +464,6 @@ CxPlatResolveRoute(
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
-        Route->State = RouteResolving;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
