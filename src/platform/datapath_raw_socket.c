@@ -442,6 +442,7 @@ CxPlatResolveRoute(
     // We queue an operation on the route worker for NS because it involves network IO and
     // we don't want our connection worker queue blocked.
     //
+    Route->State = RouteResolving;
     if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
         (State == RouteSuspected &&
          memcmp(
@@ -475,13 +476,6 @@ CxPlatResolveRoute(
 
 Done:
     if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
-        //
-        // Failed to resolve route. Queue route resolution completion with failure and
-        // set route state to resolving in case multiple route resolution jobs get queued
-        // up before the failure gets drained. Conceptually, before the completion gets
-        // drained, we are still "resolving" it.
-        //
-        Route->State = RouteResolving;
         Callback(Context, NULL, PathId, FALSE);
     }
 
