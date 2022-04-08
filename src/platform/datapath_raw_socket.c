@@ -332,6 +332,8 @@ CxPlatResolveRoute(
 
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
+    Route->State = RouteResolving;
+
     //
     // Find the best next hop IP address.
     //
@@ -442,7 +444,6 @@ CxPlatResolveRoute(
     // We queue an operation on the route worker for NS because it involves network IO and
     // we don't want our connection worker queue blocked.
     //
-    Route->State = RouteResolving;
     if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
         (State == RouteSuspected &&
          memcmp(
