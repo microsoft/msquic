@@ -6,7 +6,7 @@ function createLatencyDataset(test, platform) {
         backgroundColor: platform.color,
         borderColor: platform.color,
         borderWidth: dataLineWidth,
-        pointRadius: 1,
+        pointRadius: dataRawPointRadius,
         tension: 0,
         fill: false,
         data: data.raw,
@@ -23,7 +23,6 @@ function createLatencyChart(test, toggleEnabled) {
     platformTypes.forEach(x => datasets.push(createLatencyDataset(test, x)))
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div;
-    console.log(datasets);
 
     chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
@@ -51,7 +50,6 @@ function createLatencyChart(test, toggleEnabled) {
                 }],
                 yAxes: [{
                     ticks: {
-                        min: 0,
                         padding: 10,
                         callback: function(value) {
                             return (value/div).toFixed(2)
@@ -123,9 +121,29 @@ function latencyTitleChange(tooltipItem, data) {
     return computePercentile(datapoint.x, true);
 }
 
+function createLatestLatencyDataset(test, platform) {
+    var data = dataView.find(x => x.name === (platform.name + test))
+    return {
+        type: "line",
+        label: platform.friendly,
+        backgroundColor: platform.color,
+        borderColor: platform.color,
+        borderWidth: dataLineWidth,
+        pointRadius: 1,
+        tension: 0,
+        fill: false,
+        data: data.raw,
+        sortOrder: 1,
+        hidden: false,
+        hiddenType: false,
+        hiddenPlatform: false,
+        platform: platform.name
+    }
+}
+
 function createLatestLatencyChart(test) {
     var datasets = []
-    platformTypes.forEach(x => datasets.push(createLatencyDataset(test, x)))
+    platformTypes.forEach(x => datasets.push(createLatestLatencyDataset(test, x)))
 
     chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},

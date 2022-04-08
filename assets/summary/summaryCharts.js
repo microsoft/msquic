@@ -48,9 +48,29 @@ function createDataset(test, platform) {
     };
 }
 
-function createChart(test) {
+function createLatencyDataset(test, platform) {
+    var data = dataView.find(x => x.name === (platform.name + test))
+    return {
+        type: "line",
+        label: platform.friendly,
+        backgroundColor: platform.color,
+        borderColor: platform.color,
+        borderWidth: dataLineWidth,
+        pointRadius: dataRawPointRadius,
+        tension: 0,
+        fill: false,
+        data: data.raw,
+        sortOrder: 1,
+        hidden: false,
+        hiddenType: false,
+        hiddenPlatform: false,
+        platform: platform.name
+    }
+}
+
+function createChart(test, createDatasetFunc) {
     var datasets = []
-    platformTypes.forEach(x => datasets.push(createDataset(test, x)))
+    platformTypes.forEach(x => datasets.push(createDatasetFunc(test, x)))
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div
 
@@ -128,6 +148,6 @@ window.onload = function() {
     setLatestData()
 
     // Summary charts
-    testTypes.forEach(x => createChart(x))
-    createLatencyChart("RpsLatency", false);
+    testTypes.forEach(x => createChart(x, createDataset))
+    createChart("RpsLatency", createLatencyDataset)
 };
