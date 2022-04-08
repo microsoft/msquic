@@ -67,6 +67,9 @@ param (
     [string]$Seed = "",
 
     [Parameter(Mandatory = $false)]
+    [string]$Target = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
@@ -143,6 +146,9 @@ if ($AllocFail -gt 0) {
 }
 if ($Seed -ne "") {
     $SpinQuicArgs += " -seed:$($Seed)"
+}
+if ($Target -ne "") {
+    $SpinQuicArgs += " -target:$($Target)"
 }
 
 $Arguments = "-Path $($SpinQuic) -Arguments '$($SpinQuicArgs)' -ShowOutput"
