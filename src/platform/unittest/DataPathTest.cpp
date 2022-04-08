@@ -546,7 +546,7 @@ struct CxPlatSocket {
                 // complete synchronously. If this changes, we will need to add code to
                 // wait for an event set by ResolveRouteComplete.
                 //
-                ASSERT_TRUE(InitStatus == QUIC_STATUS_SUCCESS);
+                EXPECT_EQ(InitStatus, QUIC_STATUS_SUCCESS);
             }
 #endif
         }
