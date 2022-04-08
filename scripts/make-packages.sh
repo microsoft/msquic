@@ -14,6 +14,7 @@ NAME=libmsquic
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
 VENDOR="Microsoft"
+MAINTAINER="quicdev@microsoft.com"
 VER_MAJOR=$(cat ./src/inc/msquic.ver | grep 'define VER_MAJOR'| cut -d ' ' -f 3)
 VER_MINOR=$(cat ./src/inc/msquic.ver | grep 'define VER_MINOR'| cut -d ' ' -f 3)
 VER_PATCH=$(cat ./src/inc/msquic.ver | grep 'define VER_PATCH'| cut -d ' ' -f 3)
@@ -110,6 +111,7 @@ if [ "$OS" == "linux" ]; then
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \
+    --maintainer "${MAINTAINER}" \
     --package "${OUTPUT}" \
     --license MIT \
     --url https://github.com/microsoft/msquic \
@@ -135,6 +137,7 @@ if [ "$OS" == "linux" ]; then
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \
+    --maintainer "${MAINTAINER}" \
     --package "${OUTPUT}" \
     --license MIT \
     --url https://github.com/microsoft/msquic \
@@ -154,6 +157,7 @@ if [ "$OS" == "macos" ]; then
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \
+    --maintainer "${MAINTAINER}" \
     --package "${OUTPUT}" \
     --license MIT \
     --url https://github.com/microsoft/msquic \
