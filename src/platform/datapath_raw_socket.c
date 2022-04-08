@@ -479,8 +479,8 @@ Done:
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    if (Status == ERROR_IO_PENDING || Status == ERROR_SUCCESS) {
-        return SUCCESS_HRESULT_FROM_WIN32(Status);
+    if (Status == ERROR_IO_PENDING) {
+        return QUIC_STATUS_PENDING;
     } else {
         return HRESULT_FROM_WIN32(Status);
     }
