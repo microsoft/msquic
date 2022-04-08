@@ -359,7 +359,7 @@ CxPlatResolveRoute(
         //
         // We can't handle local address change here easily due to lack of full migration support.
         //
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status = ERROR_INVALID_STATE;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -385,7 +385,7 @@ CxPlatResolveRoute(
     }
 
     if (Route->Queue == NULL) {
-        Status = QUIC_STATUS_NOT_FOUND;
+        Status = ERROR_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
@@ -475,10 +475,17 @@ CxPlatResolveRoute(
 
 Done:
     if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
+        //
+        // Failed to resolve route. Queue route resolution completion with failure and
+        // set route state to resolving in case multiple route resolution jobs get queued
+        // up before the failure gets drained. Conceptually, before the completion gets
+        // drained, we are still "resolving" it.
+        //
+        Route->State = RouteResolving;
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    if (Status > 0) {
+    if (Status == ERROR_IO_PENDING || Status == ERROR_SUCCESS) {
         return SUCCESS_HRESULT_FROM_WIN32(Status);
     } else {
         return HRESULT_FROM_WIN32(Status);
