@@ -15,32 +15,44 @@ var platformTypes = [
     { name:"linuxOpenSsl", friendly:"Linux OpenSSL", color:"#17a2b8" }
 ]
 
+let latestValueFormartter = function(dv) {
+    return (pointsToValue(dv.raw[0].d) / dv.div).toFixed(2) + " " + dv.unit;
+}
+
+let latestValueLatencyFormartter = function(dv) {
+    return (dv.raw[0].y / dv.div).toFixed(2) + " " + dv.unit;
+}
+
 // The set of data and available properties
 var dataView = [
-    { name:"winKernelSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_WinKernel_x64_Schannel },
-    { name:"winKernelSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_WinKernel_x64_Schannel },
-    { name:"winKernelSchannelRps", unit:"KHz", div:1000, raw:dataRps_WinKernel_x64_Schannel },
-    { name:"winKernelSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_WinKernel_x64_Schannel },
-    { name:"winKernelSchannelRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_WinKernel_x64_Schannel },
-    { name:"winKernelSchannelHps", unit:"Hz", div:1, raw:dataHps_WinKernel_x64_Schannel },
-    { name:"winUserSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Schannel },
-    { name:"winUserSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Schannel },
-    { name:"winUserSchannelRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Schannel },
-    { name:"winUserSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_Schannel },
-    { name:"winUserSchannelRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_Windows_x64_Schannel },
-    { name:"winUserSchannelHps", unit:"Hz", div:1, raw:dataHps_Windows_x64_Schannel },
-    { name:"winUserOpenSslUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Openssl },
-    { name:"winUserOpenSslDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Openssl },
-    { name:"winUserOpenSslRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Openssl },
-    { name:"winUserOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_OpenSsl },
-    { name:"winUserOpenSslRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_Windows_x64_OpenSsl },
-    { name:"winUserOpenSslHps", unit:"Hz", div:1, raw:dataHps_Windows_x64_Openssl },
-    { name:"linuxOpenSslUp", unit:"Gbps", div:1000000, raw:dataUp_Linux_x64_Openssl },
-    { name:"linuxOpenSslDown", unit:"Gbps", div:1000000, raw:dataDown_Linux_x64_Openssl },
-    { name:"linuxOpenSslRps", unit:"KHz", div:1000, raw:dataRps_Linux_x64_Openssl },
-    { name:"linuxOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Linux_x64_OpenSsl },
-    { name:"linuxOpenSslRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_Linux_x64_OpenSsl },
-    { name:"linuxOpenSslHps", unit:"Hz", div:1, raw:dataHps_Linux_x64_Openssl },
+    { name:"winKernelSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_WinKernel_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winKernelSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_WinKernel_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winKernelSchannelRps", unit:"KHz", div:1000, raw:dataRps_WinKernel_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winKernelSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_WinKernel_x64_Schannel.filter(d=>d.c==1), lvformat:latestValueLatencyFormartter},
+    { name:"winKernelSchannelRpsLatencyMultiConn", unit:"μs", div:1, raw:dataRpsLatency_WinKernel_x64_Schannel.filter(d=>d.c==40), lvformat:latestValueLatencyFormartter},
+    { name:"winKernelSchannelRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_WinKernel_x64_Schannel, lvformat:latestValueLatencyFormartter},
+    { name:"winKernelSchannelHps", unit:"Hz", div:1, raw:dataHps_WinKernel_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winUserSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winUserSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winUserSchannelRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winUserSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_Schannel.filter(d => d.c == 1), lvformat:latestValueLatencyFormartter},
+    { name:"winUserSchannelRpsLatencyMultiConn", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_Schannel.filter(d=>d.c==40), lvformat:latestValueLatencyFormartter},
+    { name:"winUserSchannelRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_Windows_x64_Schannel, lvformat:latestValueLatencyFormartter},
+    { name:"winUserSchannelHps", unit:"Hz", div:1, raw:dataHps_Windows_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winUserOpenSslUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"winUserOpenSslDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"winUserOpenSslRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"winUserOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_OpenSsl.filter(d => d.c == 1), lvformat:latestValueLatencyFormartter},
+    { name:"winUserOpenSslRpsLatencyMultiConn", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_OpenSsl.filter(d=>d.c==40), lvformat:latestValueLatencyFormartter},
+    { name:"winUserOpenSslRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_Windows_x64_OpenSsl, lvformat:latestValueLatencyFormartter},
+    { name:"winUserOpenSslHps", unit:"Hz", div:1, raw:dataHps_Windows_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"linuxOpenSslUp", unit:"Gbps", div:1000000, raw:dataUp_Linux_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"linuxOpenSslDown", unit:"Gbps", div:1000000, raw:dataDown_Linux_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"linuxOpenSslRps", unit:"KHz", div:1000, raw:dataRps_Linux_x64_Openssl, lvformat:latestValueFormartter},
+    { name:"linuxOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Linux_x64_OpenSsl.filter(d => d.c == 1), lvformat:latestValueLatencyFormartter},
+    { name:"linuxOpenSslRpsLatencyMultiConn", unit:"μs", div:1, raw:dataRpsLatency_Linux_x64_OpenSsl.filter(d=>d.c==40), lvformat:latestValueLatencyFormartter},
+    { name:"linuxOpenSslRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_Linux_x64_OpenSsl, lvformat:latestValueLatencyFormartter},
+    { name:"linuxOpenSslHps", unit:"Hz", div:1, raw:dataHps_Linux_x64_Openssl, lvformat:latestValueFormartter},
 ]
 
 // Fixed charting values

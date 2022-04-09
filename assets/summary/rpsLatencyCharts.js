@@ -1,5 +1,6 @@
-function createLatencyDataset(test, platform) {
+function createLatencyDataset(test, platform, dataFilter) {
     var data = dataView.find(x => x.name === (platform.name + test))
+    var dataFiltered = data.raw.filter(dataFilter);
     return {
         type: "line",
         label: platform.friendly,
@@ -9,7 +10,7 @@ function createLatencyDataset(test, platform) {
         pointRadius: dataRawPointRadius,
         tension: 0,
         fill: false,
-        data: data.raw,
+        data: dataFiltered,
         sortOrder: 1,
         hidden: false,
         hiddenType: false,
@@ -18,9 +19,9 @@ function createLatencyDataset(test, platform) {
     }
 }
 
-function createLatencyChart(test, toggleEnabled) {
+function createLatencyChart(test, dataFilter) {
     var datasets = []
-    platformTypes.forEach(x => datasets.push(createLatencyDataset(test, x)))
+    platformTypes.forEach(x => datasets.push(createLatencyDataset(test, x, dataFilter)))
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div;
 
@@ -88,9 +89,7 @@ function createLatencyChart(test, toggleEnabled) {
         }
     });
 
-    if (toggleEnabled) {
-        platformTypes.forEach(x => addPlatformToggle(test, x, chart))
-    }
+    platformTypes.forEach(x => addPlatformToggle(test, x, chart))
 }
 
 function computePercentile(value, moreDetail) {

@@ -128,7 +128,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelUp">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelUp" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -136,7 +136,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelDown">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelDown" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -144,7 +144,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelRps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelRps"  data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -152,15 +152,23 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelHps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelHps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
                                                 <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Single-Connection Latency P90</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelRpsLatency">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Multi-Connection Latency P90</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winKernelSchannelRpsLatencyMultiConn" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -182,7 +190,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelUp">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelUp" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -190,7 +198,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelDown">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelDown" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -198,7 +206,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelRps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelRps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -206,15 +214,23 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelHps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelHps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
                                                 <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Single-Connection Latency P90</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelRpsLatency">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Multi-Connection Latency P90</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelRpsLatencyMultiConn" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -236,7 +252,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslUp">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslUp" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -244,7 +260,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslDown">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslDown" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -252,7 +268,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslRps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslRps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -260,15 +276,23 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslHps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslHps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
                                                 <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Single-Connection Latency P90</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslRpsLatency">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Multi-Connection Latency P90</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserOpenSslRpsLatencyMultiConn" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -290,7 +314,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslUp">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslUp" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -298,7 +322,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslDown">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslDown" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -306,7 +330,7 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
@@ -314,15 +338,23 @@
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslHps">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslHps" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                             <div class="row no-gutters align-items-center">
                                                 <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Single-Connection Latency P90</div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRpsLatency">?</div>
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Multi-Connection Latency P90</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRpsLatencyMultiConn" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -479,12 +511,12 @@
                             </div>
                         </div>
 
-                        <!-- Requests per Second Latency Chart -->
+                        <!-- Single Connection Requests per Second Latency Chart -->
                         <div class="col-xl-12 col-lg-7" id="rpslatency">
                             <div class="card shadow mb-4">
                                 <!-- Card Header -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatency">Requests per Second Latency (μs) | 90th Percentile</a>
+                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatency">Single-Connection Requests per Second Latency (μs) | 90th Percentile</a>
                                     <div class="m-0">
                                         This test measures response <a href="https://en.wikipedia.org/wiki/Latency_%28engineering%29">latency</a>
                                         while simulating HTTP-style traffic between the client and server.
@@ -507,6 +539,39 @@
                                 <div class="card-body">
                                     <div class="chart-area-lg">
                                         <canvas id="canvasRpsLatency"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Requests per Second Latency Chart -->
+                        <div class="col-xl-12 col-lg-7" id="rpslatencymulticonn">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header -->
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <a class="m-0 font-weight-bold text-dark" href="detailed.html#rpslatencymulticonn">Multi-Connection Requests per Second Latency (μs) | 90th Percentile</a>
+                                    <div class="m-0">
+                                        This test measures response <a href="https://en.wikipedia.org/wiki/Latency_%28engineering%29">latency</a>
+                                        while simulating HTTP-style traffic between the client and server.
+                                    </div>
+                                    <div class="dropdown no-arrow">
+                                        <label class="dropdown-toggle" role="button" id="dropdownMenuLink"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                        </label>
+                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                                            <div class="dropdown-header">Customize</div>
+                                            <label class="dropdown-item text-success" id="winKernelSchannelRpsLatencyMultiConnToggle">Windows Kernel Schannel</label>
+                                            <label class="dropdown-item text-primary" id="winUserSchannelRpsLatencyMultiConnToggle">Windows User Schannel</label>
+                                            <label class="dropdown-item text-danger" id="winUserOpenSslRpsLatencyMultiConnToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslRpsLatencyMultiConnToggle">Linux OpenSSL</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area-lg">
+                                        <canvas id="canvasRpsLatencyMultiConn"></canvas>
                                     </div>
                                 </div>
                             </div>
