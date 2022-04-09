@@ -52,6 +52,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace '\(anonymous struct.+\)\"', "(anonymous struct)`"" `
     -replace '\(anonymous union.+\)\"', "(anonymous union)`"" `
     -replace "public enum .*?_FLAGS","[System.Flags]`n    `$0" `
+    -replace 'const int', "const uint" `
     | `
     Out-File $MsQuicGeneratedSource
 
