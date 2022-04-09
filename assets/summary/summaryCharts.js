@@ -48,29 +48,9 @@ function createDataset(test, platform) {
     };
 }
 
-function createLatencyDataset(test, platform) {
-    var data = dataView.find(x => x.name === (platform.name + test))
-    return {
-        type: "line",
-        label: platform.friendly,
-        backgroundColor: platform.color,
-        borderColor: platform.color,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        fill: false,
-        data: data.raw,
-        sortOrder: 1,
-        hidden: false,
-        hiddenType: false,
-        hiddenPlatform: false,
-        platform: platform.name
-    }
-}
-
-function createChart(test, createDatasetFunc) {
+function createChart(test, createDatasetFunc, dataFilter) {
     var datasets = []
-    platformTypes.forEach(x => datasets.push(createDatasetFunc(test, x)))
+    platformTypes.forEach(x => datasets.push(createDatasetFunc(test, x, dataFilter)))
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div
 
@@ -148,6 +128,8 @@ window.onload = function() {
     setLatestData()
 
     // Summary charts
+    // TODO: refactor all createChartXxx functions into one.
     testTypes.forEach(x => createChart(x, createDataset))
-    createChart("RpsLatency", createLatencyDataset)
+    createChart("RpsLatency", createLatencyDataset, (data) => maxIndex - 1 - data.x < commitCount);
+    createChart("RpsLatencyMultiConn", createLatencyDataset, (data) => maxIndex - 1 - data.x < commitCount);
 };

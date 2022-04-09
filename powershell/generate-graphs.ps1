@@ -504,17 +504,20 @@ function Get-PerCommitLatencyDataJs {
 
     $DataStrings = @{};
     $platformNames = @("linux_x64_openssl", "Windows_x64_openssl", "Windows_x64_schannel", "Winkernel_x64_schannel");
+    $connCounts = @("1", "40");
     foreach ($platformName in $platformNames) {
         $platformResults = [System.Collections.ArrayList]@();
         foreach ($SingleCommitHis in $CommitHistory) {
-            $LatencyFolder = Join-Path $BranchFolder $SingleCommitHis.CommitHash "RpsLatency"
-            $LatencyFile = Join-Path $LatencyFolder "histogram_RPS_${platformName}_ConnectionCount_1.txt"
-            if (!(Test-Path $LatencyFile)) {
-                continue;
+            foreach ($connCount in $connCounts) {
+                $LatencyFolder = Join-Path $BranchFolder $SingleCommitHis.CommitHash "RpsLatency"
+                $LatencyFile = Join-Path $LatencyFolder "histogram_RPS_${platformName}_ConnectionCount_${connCount}.txt"
+                if (!(Test-Path $LatencyFile)) {
+                    continue;
+                }
+                $LatencyResults = Get-LatencyData $LatencyFile
+                $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge 0.9} | Select-Object -First 1 # Find P90
+                $null = $platformResults.Add("{c:${connCount},x:$($CommitIndexMap[$SingleCommitHis.CommitHash]),y:$($LatencyResults[1])}");
             }
-            $LatencyResults = Get-LatencyData $LatencyFile
-            $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge 0.9} | Select-Object -First 1 # Find P90
-            $null = $platformResults.Add("{x:$($CommitIndexMap[$SingleCommitHis.CommitHash]),y:$($LatencyResults[1])}");
         }
         $DataStrings[$platformName] = "[$($platformResults -Join ",")]";
     }
