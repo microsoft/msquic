@@ -10,7 +10,10 @@
 #include "msquic.h"
 #include "quic_tls.h"
 #ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #endif
 #include <fcntl.h>
 

@@ -23,7 +23,10 @@ Environment:
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <windows.h>
+#pragma warning(pop)
 #include <winsock2.h>
 #include <ws2ipdef.h>
 #pragma warning(push)
