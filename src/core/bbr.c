@@ -449,6 +449,18 @@ QuicConnLogBbr(
         BbrCongestionControlIsAppLimited(Cc));
     fflush(stdout);
     */
+    QuicTraceEvent(
+            ConnBbr,
+            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+            Connection,
+            Bbr->BbrState,
+            Bbr->RecoveryState,
+            BbrCongestionControlGetCongestionWindow(Cc),
+            Bbr->BytesInFlight,
+            Bbr->BytesInFlightMax,
+            BbrCongestionControlGetMinRtt(Cc),
+            BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
+            BbrCongestionControlIsAppLimited(Cc));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -475,7 +487,19 @@ BbrCongestionControlLogOutFlowStatus(
     UNREFERENCED_PARAMETER(Path);
     UNREFERENCED_PARAMETER(Bbr);
 
-    // TODO
+    QuicTraceEvent(
+            ConnOutFlowStats,
+            "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+            Connection,
+            Connection->Stats.Send.TotalBytes,
+            Bbr->BytesInFlight,
+            Bbr->BytesInFlightMax,
+            Bbr->CongestionWindow,
+            0, /* not supported for BBR */
+            Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
+            Connection->SendBuffer.IdealBytes,
+            Connection->SendBuffer.PostedBytes,
+            Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
 }
 
 //
@@ -489,7 +513,7 @@ BbrCongestionControlUpdateBlockedState(
     )
 {
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    BbrCongestionControlLogOutFlowStatus(Cc);
+    QuicConnLogOutFlowStats(Connection);
 
     if (PreviousCanSendState != BbrCongestionControlCanSend(Cc)) {
         if (PreviousCanSendState) {
@@ -995,6 +1019,7 @@ BbrCongestionControlOnDataAcknowledged(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
     if (AckEvent->IsImplicit) {
         BbrCongestionControlUpdateCongestionWindow(
@@ -1029,6 +1054,10 @@ BbrCongestionControlOnDataAcknowledged(
         }
         if (!AckEvent->HasLoss && CxPlatTimeAtOrBefore32((uint32_t)Bbr->EndOfRecovery, AckEvent->LargestAckedPacketSentTime)) {
             Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
+            QuicTraceEvent(
+                ConnRecoveryExit,
+                "[conn][%p] Recovery complete",
+                Connection);
         } else {
             BbrCongestionControlUpdateRecoveryWindowWithAck(Cc, AckEvent->NumRetransmittableBytes);
         }
@@ -1078,6 +1107,12 @@ BbrCongestionControlOnDataLost(
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
+    QuicTraceEvent(
+        ConnCongestion,
+        "[conn][%p] Congestion event",
+        Connection);
+    Connection->Stats.Send.CongestionCount++;
+
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
     
     CXPLAT_DBG_ASSERT(LossEvent->NumLostRetransmittableBytes > 0);
@@ -1103,6 +1138,12 @@ BbrCongestionControlOnDataLost(
 
     if (LossEvent->PersistentCongestion) {
         Bbr->RecoveryWindow = Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
+
+        QuicTraceEvent(
+            ConnPersistentCongestion,
+            "[conn][%p] Persistent congestion event",
+            Connection);
+        Connection->Stats.Send.PersistentCongestionCount++;
     } else {
         Bbr->RecoveryWindow =
             RecoveryWindow > LossEvent->NumLostRetransmittableBytes + Connection->Paths[0].Mtu * kMinCwndInMssForBbr
@@ -1286,6 +1327,6 @@ BbrCongestionControlInitialize(
         .AppLimitedExitTarget = CxPlatTimeUs64(),
     };
 
-    BbrCongestionControlLogOutFlowStatus(Cc);
+    QuicConnLogOutFlowStats(Connection);
     QuicConnLogBbr(Connection);
 }

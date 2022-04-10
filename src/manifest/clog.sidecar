@@ -1921,7 +1921,7 @@
     },
     "ConnStats": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u",
+      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
       "UniqueId": "ConnStats",
       "splitArgs": [
         {
@@ -1951,6 +1951,10 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg9"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -10901,6 +10905,50 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "ConnBbr": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+      "UniqueId": "ConnBbr",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     }
   },
   "ConfigFile": {
@@ -11996,11 +12044,6 @@
         "UniquenessHash": "262484c2-7385-f5dd-c3de-0bb48fe2ffea",
         "TraceID": "ConnSpuriousCongestion",
         "EncodingString": "[conn][%p] Spurious congestion event"
-      },
-      {
-        "UniquenessHash": "8a578804-829f-fb41-f1d7-f4b5c356a328",
-        "TraceID": "ConnStats",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
@@ -14836,7 +14879,17 @@
         "UniquenessHash": "bb841825-a52e-8ecf-243e-1a65d10a3e75",
         "TraceID": "ZeroRttRejected",
         "EncodingString": "[conn][%p] 0-RTT rejected"
-      }
+      },
+      {
+        "UniquenessHash": "471ca3d0-42c2-3bea-6a0d-030e241233d6",
+        "TraceID": "ConnBbr",
+        "EncodingString": "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u"
+      },
+      {
+        "UniquenessHash": "01f1f754-91f7-40ef-ae25-1ee063d86089",
+        "TraceID": "ConnStats",
+        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
+      },
     ]
   }
 }
