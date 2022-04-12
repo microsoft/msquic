@@ -32,6 +32,7 @@ $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
 $CMakeFile = Join-Path $RootDir "CMakeLists.txt"
 $VersionsWriteFile = Join-Path $RootDir "scripts" "write-versions.ps1"
 $CargoFile = Join-Path $RootDir "Cargo.toml"
+$TestDistFile = Join-Path $RootDir ".azure" "templates" "test-distribution.yml"
 
 # Get the current version number from the msquic.ver file.
 $VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
@@ -83,3 +84,6 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 (Get-Content $CargoFile) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $CargoFile
+(Get-Content $TestDistFile) `
+    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
+    Out-File $TestDistFile
