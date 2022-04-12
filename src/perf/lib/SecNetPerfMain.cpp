@@ -331,6 +331,7 @@ QuicMainFree(
 #ifdef QUIC_USE_RAW_DATAPATH
     if (BackdoorThreadHandle) {
         CxPlatThreadWait(&BackdoorThreadHandle);
+        CxPlatThreadDelete(&BackdoorThreadHandle);
     }
 #else
     if (Datapath) {
