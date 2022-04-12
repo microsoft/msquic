@@ -175,19 +175,20 @@ QuicMainStart(
     QUIC_STATUS Status;
 
 #ifdef QUIC_USE_RAW_DATAPATH
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        CXPLAT_THREAD_FLAG_NONE,
-        0,
-        "ControlThread",
-        ControlThread,
-        StopEvent
-    };
+    if (ServerMode) {
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            CXPLAT_THREAD_FLAG_NONE,
+            0,
+            "ControlThread",
+            ControlThread,
+            StopEvent
+        };
 
-    Status = CxPlatThreadCreate(&ThreadConfig, &ControlThreadHandle);
-    if (QUIC_FAILED(Status)) {
-        return Status;
+        Status = CxPlatThreadCreate(&ThreadConfig, &ControlThreadHandle);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
     }
-
 #else
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         DatapathReceive,
