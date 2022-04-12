@@ -32,7 +32,6 @@ const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b25
     0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
 CXPLAT_THREAD BackdoorThreadHandle;
-BOOLEAN BackdoorRunning = false;
 CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
@@ -119,7 +118,7 @@ CXPLAT_THREAD_CALLBACK(BackdoorThread, Context)
         goto Done;
     }
 
-    while (BackdoorRunning) {
+    while (true) {
         int BytesRcvd =
             recvfrom(
                 Listener, (char*)RecvBuf, sizeof(RecvBuf), 0, NULL, NULL);
@@ -134,7 +133,6 @@ CXPLAT_THREAD_CALLBACK(BackdoorThread, Context)
 
         if (BytesRcvd == sizeof(RecvBuf) &&
             memcmp(RecvBuf, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid)) == 0) {
-            printf("matched\n");
             break;
         }
     }
@@ -190,7 +188,6 @@ QuicMainStart(
         return Status;
     }
 
-    BackdoorRunning = TRUE;
 #else
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         DatapathReceive,
