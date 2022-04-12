@@ -31,7 +31,7 @@ PerfBase* TestToRun;
 const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
     0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
-CXPLAT_THREAD BackdoorThreadHandle;
+CXPLAT_THREAD ControlThreadHandle;
 CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
@@ -101,7 +101,7 @@ PrintHelp(
 }
 
 #ifdef QUIC_USE_RAW_DATAPATH
-CXPLAT_THREAD_CALLBACK(BackdoorThread, Context)
+CXPLAT_THREAD_CALLBACK(ControlThread, Context)
 {
     WSADATA WsaData;
     WSAStartup(MAKEWORD(2, 2), &WsaData);
@@ -114,7 +114,7 @@ CXPLAT_THREAD_CALLBACK(BackdoorThread, Context)
     SS_PORT(&Addr) = htons(9999);
     SOCKET Listener = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (bind(Listener, (SOCKADDR*)&Addr, sizeof(Addr)) == SOCKET_ERROR) {
-        printf("backdoor listener failed to bind with error %d\n", WSAGetLastError());
+        printf("control listener failed to bind with error %d\n", WSAGetLastError());
         goto Done;
     }
 
@@ -178,12 +178,12 @@ QuicMainStart(
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         CXPLAT_THREAD_FLAG_NONE,
         0,
-        "BackdoorThread",
-        BackdoorThread,
+        "ControlThread",
+        ControlThread,
         StopEvent
     };
 
-    Status = CxPlatThreadCreate(&ThreadConfig, &BackdoorThreadHandle);
+    Status = CxPlatThreadCreate(&ThreadConfig, &ControlThreadHandle);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -329,9 +329,9 @@ QuicMainFree(
     }
 
 #ifdef QUIC_USE_RAW_DATAPATH
-    if (BackdoorThreadHandle) {
-        CxPlatThreadWait(&BackdoorThreadHandle);
-        CxPlatThreadDelete(&BackdoorThreadHandle);
+    if (ControlThreadHandle) {
+        CxPlatThreadWait(&ControlThreadHandle);
+        CxPlatThreadDelete(&ControlThreadHandle);
     }
 #else
     if (Datapath) {
