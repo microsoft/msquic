@@ -28,6 +28,12 @@ on:
     - Cargo.toml
     - README.md
 
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: wanperf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 permissions: read-all
 
 jobs:
