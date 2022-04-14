@@ -310,10 +310,10 @@ CxPlatGetInterfaceRssQueueCount(
             IUnknown** rawArray;
             SafeArrayAccessData(pSafeArray, (void**)&rawArray);
 
-            // Set up the RSS table according to number of processors
+            // Set up the RSS table according to number of procs and proc groups.
             numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
             numberOfProcGroups = GetActiveProcessorGroupCount();
-            rssTableSize = numberOfProcs * numberOfProcGroups; // large enough to fit the entire indirection table
+            rssTableSize = numberOfProcs * numberOfProcGroups;
             rssTable = malloc(rssTableSize);
             memset(rssTable, 0, rssTableSize);
 
