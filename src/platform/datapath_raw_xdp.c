@@ -63,7 +63,7 @@ typedef struct XDP_QUEUE {
 
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
-    uint32_t QueueCount;
+    uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -139,7 +139,7 @@ CxPlatDataPathRecvDataToRecvPacket(
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
     _In_ uint32_t InterfaceIndex,
-    _Out_ uint32_t* Count
+    _Out_ uint16_t* Count
     )
 {
     HRESULT hRes;
@@ -147,7 +147,7 @@ CxPlatGetInterfaceRssQueueCount(
     IEnumWbemClassObject *pEnum = NULL;
     IWbemServices *pSvc = NULL;
     DWORD ret = 0;
-    uint32_t cnt = 0;
+    uint16_t cnt = 0;
     NET_LUID if_luid = { 0 };
     WCHAR if_alias[256 + 1] = { 0 };
 
@@ -524,6 +524,11 @@ CxPlatDpRawInterfaceInitialize(
 
     if (Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatGetInterfaceRssQueueCount");
         goto Error;
     }
 
