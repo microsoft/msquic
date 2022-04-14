@@ -323,6 +323,11 @@ CxPlatGetInterfaceRssQueueCount(
                 IWbemClassObject *obj = NULL;
                 pIUnk->lpVtbl->QueryInterface(pIUnk, &IID_IWbemClassObject, (void **)&obj);
                 if (obj == NULL) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hRes,
+                        "QueryInterface");
                     free(rssTable);
                     hRes = QUIC_STATUS_OUT_OF_MEMORY;
                     goto Cleanup;
