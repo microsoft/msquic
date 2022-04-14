@@ -299,9 +299,10 @@ CxPlatGetInterfaceRssQueueCount(
         } else {
             long lLower, lUpper;
             SAFEARRAY *pSafeArray = vtProp.parray;
-            UINT8 *rssIndicesBitset = NULL;
+            UINT8 *rssTable = NULL;
             DWORD rssIndicesBitsetBytes;
             DWORD numberOfProcs;
+            DWORD numberOfProcGroups;
 
             SafeArrayGetLBound(pSafeArray, 1, &lLower);
             SafeArrayGetUBound(pSafeArray, 1, &lUpper);
@@ -309,11 +310,12 @@ CxPlatGetInterfaceRssQueueCount(
             IUnknown** rawArray;
             SafeArrayAccessData(pSafeArray, (void**)&rawArray);
 
-            // Set up the RSS bitset according to number of processors
+            // Set up the RSS table according to number of processors
             numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
-            rssIndicesBitsetBytes = (numberOfProcs / 8) + 1;
-            rssIndicesBitset = malloc(rssIndicesBitsetBytes);
-            memset(rssIndicesBitset, 0, rssIndicesBitsetBytes);
+            numberOfProcGroups = GetActiveProcessorGroupCount();
+            rssIndicesBitsetBytes = numberOfProcs * numberOfProcGroups; // large enough to fit the entire indirection table
+            rssTable = malloc(rssIndicesBitsetBytes);
+            memset(rssTable, 0, rssIndicesBitsetBytes);
 
             for (long i = lLower; i <= lUpper; i++)
             {
@@ -321,38 +323,34 @@ CxPlatGetInterfaceRssQueueCount(
                 IWbemClassObject *obj = NULL;
                 pIUnk->lpVtbl->QueryInterface(pIUnk, &IID_IWbemClassObject, (void **)&obj);
                 if (obj == NULL) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        hRes,
-                        "QueryInterface");
-                    //AF_XDP_LOG(ERR, "QueryInterface failed\n");
-                    free(rssIndicesBitset);
+                    free(rssTable);
                     goto Cleanup;
                 }
 
                 hr = obj->lpVtbl->Get(obj, L"ProcessorNumber", 0, &vtProp, 0, 0);
-                UINT32 index = vtProp.iVal / (sizeof(rssIndicesBitset[0])*8);
-                UINT32 offset = vtProp.iVal % (sizeof(rssIndicesBitset[0])*8);
-                rssIndicesBitset[index] |= 1 << offset;
-
+                UINT32 procNum = vtProp.iVal;
                 VariantClear(&vtProp);
+                hr = obj->lpVtbl->Get(obj, L"ProcessorGroup", 0, &vtProp, 0, 0);
+                UINT32 groupNum = vtProp.iVal;
+                VariantClear(&vtProp);
+                CXPLAT_DBG_ASSERT(groupNum < numberOfProcGroups);
+                CXPLAT_DBG_ASSERT(procNum < numberOfProcs);
+                ++*(rssTable + groupNum * numberOfProcs + procNum);
                 obj->lpVtbl->Release(obj);
             }
 
             SafeArrayUnaccessData(pSafeArray);
 
-            for (DWORD i = 0; i < numberOfProcs/(sizeof(rssIndicesBitset[0])*8) + 1; i++) {
-                for (SIZE_T j = 0; j < sizeof(rssIndicesBitset[0])*8; j++) {
-                    if (rssIndicesBitset[i] & (1 << j)) {
-                        //AF_XDP_LOG(INFO, "detected active RSS queue %u on proc index %llu\n", cnt, (i*8 + j));
-                        cnt++;
-                        CXPLAT_FRE_ASSERT(cnt != 0);
+            // Count unique RSS procs.
+            for (DWORD i = 0; i < numberOfProcGroups; ++i) {
+                for (DWORD j = 0; j < numberOfProcs; ++j) {
+                    if (*(rssTable + i * numberOfProcs + j) > 0) {
+                        cnt += 1;
                     }
                 }
             }
 
-            free(rssIndicesBitset);
+            free(rssTable);
         }
 
         VariantClear(&vtProp);
@@ -519,6 +517,11 @@ CxPlatDpRawInterfaceInitialize(
 
     Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    if (Interface->QueueCount == 0) {
+        Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
 
@@ -1032,7 +1035,9 @@ CxPlatDpRawInitialize(
                     continue;
                 }
 #if DEBUG
-                printf("Bound XDP to interface %u (%wS)\n", Adapter->IfIndex, Adapter->Description);
+                printf(
+                    "Bound XDP to interface %u (%wS) with %u RSS procs \n",
+                    Adapter->IfIndex, Adapter->Description, Interface->QueueCount);
 #endif
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
