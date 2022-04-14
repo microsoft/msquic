@@ -556,6 +556,8 @@ try {
             param ($RemoteDirectory)
             Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
         } -ArgumentList $RemoteDirectory
+
+        $Tests.Tests = $Tests.Tests | Where-Object { -not $_.TestName.Contains("Tcp") }
     }
 
     foreach ($Test in $Tests.Tests) {
