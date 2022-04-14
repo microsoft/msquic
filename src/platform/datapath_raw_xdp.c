@@ -300,7 +300,7 @@ CxPlatGetInterfaceRssQueueCount(
             long lLower, lUpper;
             SAFEARRAY *pSafeArray = vtProp.parray;
             UINT8 *rssTable = NULL;
-            DWORD rssIndicesBitsetBytes;
+            DWORD rssTableSize;
             DWORD numberOfProcs;
             DWORD numberOfProcGroups;
 
@@ -313,9 +313,9 @@ CxPlatGetInterfaceRssQueueCount(
             // Set up the RSS table according to number of processors
             numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
             numberOfProcGroups = GetActiveProcessorGroupCount();
-            rssIndicesBitsetBytes = numberOfProcs * numberOfProcGroups; // large enough to fit the entire indirection table
-            rssTable = malloc(rssIndicesBitsetBytes);
-            memset(rssTable, 0, rssIndicesBitsetBytes);
+            rssTableSize = numberOfProcs * numberOfProcGroups; // large enough to fit the entire indirection table
+            rssTable = malloc(rssTableSize);
+            memset(rssTable, 0, rssTableSize);
 
             for (long i = lLower; i <= lUpper; i++)
             {
@@ -324,6 +324,7 @@ CxPlatGetInterfaceRssQueueCount(
                 pIUnk->lpVtbl->QueryInterface(pIUnk, &IID_IWbemClassObject, (void **)&obj);
                 if (obj == NULL) {
                     free(rssTable);
+                    hRes = QUIC_STATUS_OUT_OF_MEMORY;
                     goto Cleanup;
                 }
 
@@ -335,19 +336,15 @@ CxPlatGetInterfaceRssQueueCount(
                 VariantClear(&vtProp);
                 CXPLAT_DBG_ASSERT(groupNum < numberOfProcGroups);
                 CXPLAT_DBG_ASSERT(procNum < numberOfProcs);
-                ++*(rssTable + groupNum * numberOfProcs + procNum);
+                *(rssTable + groupNum * numberOfProcs + procNum) = 1;
                 obj->lpVtbl->Release(obj);
             }
 
             SafeArrayUnaccessData(pSafeArray);
 
-            // Count unique RSS procs.
-            for (DWORD i = 0; i < numberOfProcGroups; ++i) {
-                for (DWORD j = 0; j < numberOfProcs; ++j) {
-                    if (*(rssTable + i * numberOfProcs + j) > 0) {
-                        cnt += 1;
-                    }
-                }
+            // Count unique RSS procs by counting ones in rssTable.
+            for (DWORD i = 0; i < rssTableSize; ++i) {
+                cnt += rssTable[i];
             }
 
             free(rssTable);
