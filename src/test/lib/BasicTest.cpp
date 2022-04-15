@@ -211,6 +211,9 @@ void QuicTestStartListenerExplicit(_In_ int Family)
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr LocalAddress(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&LocalAddress.SockAddr);
+        }
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
             LocalAddress.IncrementPort();
@@ -256,6 +259,9 @@ void QuicTestBindConnectionExplicit(_In_ int Family)
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr LocalAddress(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&LocalAddress.SockAddr);
+        }
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
             LocalAddress.IncrementPort();

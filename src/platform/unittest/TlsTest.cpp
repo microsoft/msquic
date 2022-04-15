@@ -10,7 +10,10 @@
 #include "msquic.h"
 #include "quic_tls.h"
 #ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #endif
 #include <fcntl.h>
 
@@ -93,10 +96,10 @@ protected:
             QUIC_CREDENTIAL_CONFIG CredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 QUIC_CREDENTIAL_FLAG_CLIENT,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
                 QUIC_ALLOWED_CIPHER_SUITE_NONE};
             CredConfig.Flags |= CredFlags;
             CredConfig.AllowedCipherSuites = CipherFlags;
@@ -115,8 +118,8 @@ protected:
     static uint8_t* ReadFile(const char* Name, uint32_t* Length) {
         size_t FileSize = 0;
         FILE* Handle = fopen(Name, "rb");
-        if (Handle == NULL) {
-            return NULL;
+        if (Handle == nullptr) {
+            return nullptr;
         }
 #ifdef _WIN32
         struct _stat Stat;
@@ -131,13 +134,13 @@ protected:
 #endif
         if (FileSize == 0) {
             fclose(Handle);
-            return NULL;
+            return nullptr;
         }
 
         uint8_t* Buffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(FileSize, QUIC_POOL_TEST);
-        if (Buffer == NULL) {
+        if (Buffer == nullptr) {
             fclose(Handle);
-            return NULL;
+            return nullptr;
         }
 
         size_t ReadLength = 0;
@@ -149,7 +152,7 @@ protected:
         fclose(Handle);
         if (*Length != FileSize) {
             CXPLAT_FREE(Buffer, QUIC_POOL_TEST);
-            return NULL;
+            return nullptr;
         }
         return Buffer;
     }
@@ -1529,10 +1532,10 @@ TEST_P(TlsTest, KeyUpdate)
         // key structs.
         //
         UpdateWriteKey->HeaderKey = ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey;
-        ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = NULL;
+        ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = nullptr;
 
         UpdateReadKey->HeaderKey = ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey;
-        ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = NULL;
+        ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = nullptr;
     }
 
     PacketKey ServerKey(UpdateWriteKey);
@@ -1837,10 +1840,10 @@ TEST_F(TlsTest, CipherSuiteInvalid)
             QUIC_CREDENTIAL_CONFIG TestCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 Flag,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
                 QUIC_ALLOWED_CIPHER_SUITE_NONE
             };
             CXPLAT_SEC_CONFIG* TestSecConfig = nullptr;
@@ -1861,10 +1864,10 @@ TEST_F(TlsTest, CipherSuiteInvalid)
             QUIC_CREDENTIAL_CONFIG TestCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 Flag,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
                 (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)0x100
             };
             CXPLAT_SEC_CONFIG* TestSecConfig = nullptr;
@@ -1915,16 +1918,18 @@ ValidateSecConfigStatusSchannel(
 #if QUIC_TEST_SCHANNEL_FLAGS
         VERIFY_QUIC_SUCCESS(Status);
         ASSERT_NE(nullptr, SecConfig);
-        CxPlatTlsSecConfigDelete(SecConfig);
 #else
         ASSERT_TRUE(QUIC_FAILED(Status));
         ASSERT_EQ(nullptr, SecConfig);
 #endif
+    if (SecConfig) {
+        CxPlatTlsSecConfigDelete(SecConfig);
+    }
 }
 
 TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 {
-    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP,
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS,
 #ifndef _WIN32
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK, QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE,
@@ -1934,21 +1939,18 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 #endif
         }) {
 
-        QUIC_STATUS Status;
-
         if (TestFlag != QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
                 QUIC_ALLOWED_CIPHER_SUITE_NONE
             };
             CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
-
-            Status =
+            QUIC_STATUS Status =
                 CxPlatTlsSecConfigCreate(
                     &TestClientCredConfig,
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
@@ -1958,17 +1960,18 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
             ValidateSecConfigStatusSchannel(Status, ClientSecConfig);
         }
 
-        SelfSignedCertParams->Flags = TestFlag;
-        CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
-
-        Status =
-            CxPlatTlsSecConfigCreate(
-                SelfSignedCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsCallbacks,
-                &ServerSecConfig,
-                SchannelSecConfigCreateComplete);
-        ValidateSecConfigStatusSchannel(Status, ServerSecConfig);
+        if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            SelfSignedCertParams->Flags = TestFlag;
+            CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
+            QUIC_STATUS Status =
+                CxPlatTlsSecConfigCreate(
+                    SelfSignedCertParams,
+                    CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                    &TlsContext::TlsCallbacks,
+                    &ServerSecConfig,
+                    SchannelSecConfigCreateComplete);
+            ValidateSecConfigStatusSchannel(Status, ServerSecConfig);
+        }
     }
 }
 
@@ -2006,11 +2009,13 @@ ValidateSecConfigStatusOpenSsl(
 #if QUIC_TEST_OPENSSL_FLAGS
         VERIFY_QUIC_SUCCESS(Status);
         ASSERT_NE(nullptr, SecConfig);
-        CxPlatTlsSecConfigDelete(SecConfig);
 #else
         ASSERT_TRUE(QUIC_FAILED(Status));
         ASSERT_EQ(nullptr, SecConfig);
 #endif
+    if (SecConfig) {
+        CxPlatTlsSecConfigDelete(SecConfig);
+    }
 }
 
 TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
@@ -2020,14 +2025,13 @@ TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
         QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
             TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
             QUIC_ALLOWED_CIPHER_SUITE_NONE
         };
         CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
-
         QUIC_STATUS Status =
             CxPlatTlsSecConfigCreate(
                 &TestClientCredConfig,
@@ -2039,7 +2043,6 @@ TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
 
         SelfSignedCertParams->Flags = TestFlag;
         CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
-
         Status =
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -2059,7 +2062,7 @@ PortableCertFlagsSecConfigCreateComplete(
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
     _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
-)
+    )
 {
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, SecConfig);
@@ -2084,14 +2087,13 @@ TEST_F(TlsTest, PortableCertFlags)
         QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
             TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
             QUIC_ALLOWED_CIPHER_SUITE_NONE
         };
         CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
-
         QUIC_STATUS Status =
             CxPlatTlsSecConfigCreate(
                 &TestClientCredConfig,
@@ -2103,7 +2105,6 @@ TEST_F(TlsTest, PortableCertFlags)
 
         SelfSignedCertParams->Flags = TestFlag;
         CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
-
         Status =
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,

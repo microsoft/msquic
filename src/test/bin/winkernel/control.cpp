@@ -24,6 +24,7 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QUIC_CERTIFICATE_HASH SelfSignedCertHash;
 QUIC_CERTIFICATE_HASH ClientCertHash;
+bool UseDuoNic = false;
 
 #ifdef PRIVATE_LIBRARY
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE);
@@ -457,6 +458,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CIBIR_EXTENSION),
     0,
+    0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -746,10 +749,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
         break;
 
-    // case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(QuicTestVersionNegotiation(Params->Family));
-    //     break;
+    case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestVersionNegotiation(Params->Family));
+        break;
 
     case IOCTL_QUIC_RUN_KEY_UPDATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -898,56 +901,56 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
 
-    // case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
-    //     break;
+    case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
+        break;
 
-    // case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(QuicTestCompatibleVersionNegotiationRetry(Params->Family));
-    //     break;
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationRetry(Params->Family));
+        break;
 
-    // case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(
-    //         QuicTestCompatibleVersionNegotiation(
-    //             Params->VersionNegotiationExtParams.Family,
-    //             Params->VersionNegotiationExtParams.DisableVNEClient,
-    //             Params->VersionNegotiationExtParams.DisableVNEServer));
-    //     break;
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiation(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
 
-    // case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(
-    //         QuicTestCompatibleVersionNegotiationDefaultServer(
-    //             Params->VersionNegotiationExtParams.Family,
-    //             Params->VersionNegotiationExtParams.DisableVNEClient,
-    //             Params->VersionNegotiationExtParams.DisableVNEServer));
-    //     break;
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiationDefaultServer(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
 
-    // case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(
-    //         QuicTestCompatibleVersionNegotiationDefaultClient(
-    //             Params->VersionNegotiationExtParams.Family,
-    //             Params->VersionNegotiationExtParams.DisableVNEClient,
-    //             Params->VersionNegotiationExtParams.DisableVNEServer));
-    //     break;
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiationDefaultClient(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
 
-    // case IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(QuicTestIncompatibleVersionNegotiation(Params->Family));
-    //     break;
+    case IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestIncompatibleVersionNegotiation(Params->Family));
+        break;
 
-    // case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
-    //     CXPLAT_FRE_ASSERT(Params != nullptr);
-    //     QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
-    //     break;
+    case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
+        break;
 
-    // case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
-    //     QuicTestCtlRun(QuicTestDesiredVersionSettings());
-    //     break;
+    case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
+        QuicTestCtlRun(QuicTestVersionSettings());
+        break;
 
     case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1181,9 +1184,19 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CibirParams.Mode));
         break;
 
-
     case IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP:
         QuicTestCtlRun(QuicTestStreamPriorityInfiniteLoop());
+        break;
+
+    case IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS:
+        QuicTestCtlRun(QuicTestResumptionAcrossVersions());
+        break;
+
+    case IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestClientBlockedSourcePort(
+                Params->Family));
         break;
 
     default:

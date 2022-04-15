@@ -833,9 +833,9 @@ QuicBindingProcessStatelessOperation(
 
         const uint32_t* SupportedVersions;
         uint32_t SupportedVersionsLength;
-        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
-            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
-            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
+        if (MsQuicLib.Settings.IsSet.VersionSettings) {
+            SupportedVersions = MsQuicLib.Settings.VersionSettings->OfferedVersions;
+            SupportedVersionsLength = MsQuicLib.Settings.VersionSettings->OfferedVersionsLength;
         } else {
             SupportedVersions = DefaultSupportedVersionsList;
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
@@ -992,8 +992,9 @@ QuicBindingProcessStatelessOperation(
         CXPLAT_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
         CxPlatRandom(sizeof(NewDestCid), NewDestCid);
 
-        QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
-        Token.Authenticated.Timestamp = CxPlatTimeEpochMs64();
+        QUIC_TOKEN_CONTENTS Token = { 0 };
+        Token.Authenticated.Timestamp = (uint64_t)CxPlatTimeEpochMs64();
+        Token.Authenticated.IsNewToken = FALSE;
 
         Token.Encrypted.RemoteAddress = RecvDatagram->Route->RemoteAddress;
         CxPlatCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
@@ -1238,14 +1239,18 @@ QuicBindingShouldRetryConnection(
 
     if (TokenLength != 0) {
         //
-        // Must always validate the token when provided by the client.
+        // Must always validate the token when provided by the client. Failure
+        // to validate retry tokens is fatal. Failure to validate NEW_TOKEN
+        // tokens is not.
         //
-        if (QuicPacketValidateRetryToken(Binding, Packet, TokenLength, Token)) {
+        if (QuicPacketValidateInitialToken(
+                Binding, Packet, TokenLength, Token, DropPacket)) {
             Packet->ValidToken = TRUE;
-        } else {
-            *DropPacket = TRUE;
+            return FALSE;
         }
-        return FALSE;
+        if (*DropPacket) {
+            return FALSE;
+        }
     }
 
     uint64_t CurrentMemoryLimit =
@@ -1375,6 +1380,52 @@ Exit:
     return Connection;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingDropBlockedSourcePorts(
+    _In_ QUIC_BINDING* Binding,
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    )
+{
+    const uint16_t SourcePort = QuicAddrGetPort(&Datagram->Route->RemoteAddress);
+
+    //
+    // These UDP source ports are recommended to be blocked by the QUIC WG. See
+    // draft-ietf-quic-applicability for more details on the set of ports that
+    // may cause issues.
+    //
+    // N.B - This list MUST be sorted in decreasing order.
+    //
+    const uint16_t BlockedPorts[] = {
+        11211,  // memcache
+        5353,   // mDNS
+        1900,   // SSDP
+        500,    // IKE
+        389,    // CLDAP
+        161,    // SNMP
+        137,    // NETBIOS Name Service
+        128,    // NETBIOS Datagram Service
+        123,    // NTP
+        111,    // Portmap
+        53,     // DNS
+        19,     // Chargen
+        17,     // Quote of the Day
+        0,      // Unusable
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(BlockedPorts) && SourcePort <= BlockedPorts[i]; ++i) {
+        if (BlockedPorts[i] == SourcePort) {
+            QuicPacketLogDrop(
+                Binding,
+                CxPlatDataPathRecvDataToRecvPacket(Datagram),
+                "Blocked source port");
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 //
 // Looks up or creates a connection to handle a chain of datagrams.
 // Returns TRUE if the datagrams were delivered, and FALSE if they should be
@@ -1450,6 +1501,10 @@ QuicBindingDeliverDatagrams(
             return FALSE;
         }
 
+        if (QuicBindingDropBlockedSourcePorts(Binding, DatagramChain)) {
+            return FALSE;
+        }
+
         if (Packet->IsShortHeader) {
             //
             // For unattributed short header packets we can try to send a
@@ -1477,7 +1532,13 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            if (Packet->LH->Type != QUIC_INITIAL) {
+            if (Packet->LH->Type != QUIC_INITIAL_V1) {
+                QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
+                return FALSE;
+            }
+            break;
+        case QUIC_VERSION_2:
+            if (Packet->LH->Type != QUIC_INITIAL_V2) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
                 return FALSE;
             }

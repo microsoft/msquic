@@ -294,6 +294,10 @@ TestConnection::SetQuicVersion(
     MsQuicVersionSettings Settings;
     Settings.AcceptableVersions = &value;
     Settings.AcceptableVersionsLength = 1;
+    Settings.OfferedVersions = &value;
+    Settings.OfferedVersionsLength = 1;
+    Settings.FullyDeployedVersions = &value;
+    Settings.FullyDeployedVersionsLength = 1;
     return
         MsQuic->SetParam(
             QuicConnection,

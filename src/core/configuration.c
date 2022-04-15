@@ -180,7 +180,6 @@ MsQuicConfigurationOpen(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
@@ -435,6 +434,22 @@ QuicConfigurationParamGet(
     if (Param == QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS) {
         return QuicSettingsGetVersionSettings(&Configuration->Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
     }
+    if (Param  == QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED) {
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Configuration->Settings.VersionNegotiationExtEnabled;
+
+        return QUIC_STATUS_SUCCESS;
+    }
 
     return QUIC_STATUS_INVALID_PARAMETER;
 }
@@ -449,7 +464,7 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
-    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_SETTINGS_INTERNAL InternalSettings = {0};
     QUIC_STATUS Status;
 
     switch (Param) {
@@ -475,7 +490,6 @@ QuicConfigurationParamSet(
 
         if (!QuicSettingApply(
                 &Configuration->Settings,
-                TRUE,
                 TRUE,
                 TRUE,
                 &InternalSettings)) {
@@ -508,10 +522,11 @@ QuicConfigurationParamSet(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
+        QuicSettingsCleanup(&InternalSettings);
 
         return QUIC_STATUS_SUCCESS;
 
@@ -531,6 +546,18 @@ QuicConfigurationParamSet(
                 Configuration->SecurityConfig,
                 (QUIC_TICKET_KEY_CONFIG*)Buffer,
                 (uint8_t)(BufferLength / sizeof(QUIC_TICKET_KEY_CONFIG)));
+
+    case QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED:
+
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        Configuration->Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        Configuration->Settings.VersionNegotiationExtEnabled = *(BOOLEAN*)Buffer;
+
+        return QUIC_STATUS_SUCCESS;
 
     default:
         break;
