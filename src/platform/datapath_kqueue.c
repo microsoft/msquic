@@ -477,10 +477,12 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(Config);
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -1970,16 +1972,22 @@ CxPlatSendDataFreeBuffer(
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendData->Owner;
+#ifdef DEBUG
     uint8_t* TailBuffer = SendData->Buffers[SendData->BufferCount - 1].Buffer;
+#endif
 
     if (SendData->SegmentSize == 0) {
+#ifdef DEBUG
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
+#endif
 
         CxPlatPoolFree(&DatapathProc->SendBufferPool, Buffer->Buffer);
         --SendData->BufferCount;
     } else {
+#ifdef DEBUG
         TailBuffer += SendData->Buffers[SendData->BufferCount - 1].Length;
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
+#endif
 
         if (SendData->Buffers[SendData->BufferCount - 1].Length == 0) {
             CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Buffer->Buffer);

@@ -80,6 +80,15 @@ param (
     [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallXdpDriver,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UninstallXdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallClog2Text,
+
+    [Parameter(Mandatory = $false)]
     [switch]$DisableTest
 )
 
@@ -97,7 +106,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
 }
 
-if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest) {
+if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
     # everything is available.
@@ -122,9 +131,16 @@ if ($ForTest) {
     $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
 
+    $InstallClog2Text = $true
+
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
                                   # for jobs that absoultely need it.
+}
+
+if ($InstallXdpDriver) {
+    # The XDP SDK contains XDP driver, so ensure it's downloaded.
+    $InstallXdpSdk = $true
 }
 
 # Default TLS based on current platform.
@@ -136,7 +152,7 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $ArtifactsPath = Join-Path $RootDir "artifacts"
-if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath | Out-Null }
 
 # Directory for the corenet CI install.
 $CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
@@ -162,7 +178,14 @@ function Download-CoreNet-Deps {
 function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if ($Force) { rm -Force -Recurse $XdpPath -ErrorAction Ignore }
+    if ($Force) {
+        try {
+            # Make sure an old driver isn't installed.
+            netcfg.exe -u ms_xdp
+            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+        } catch {}
+        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
+    }
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
@@ -170,6 +193,37 @@ function Install-Xdp-Sdk {
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         Remove-Item -Path $ZipPath
     }
+}
+
+# Installs the XDP driver (for testing).
+# NB: XDP can be uninstalled via Uninstall-Xdp
+function Install-Xdp-Driver {
+    if (!$IsWindows) { return } # Windows only
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) {
+        Write-Error "XDP installation failed: driver file not present"
+    }
+
+    Write-Host "Installing XDP certificate"
+    try {
+        CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+    } catch { }
+
+    Write-Host "Installing XDP driver"
+    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+}
+
+# Completely removes the XDP driver and SDK.
+function Uninstall-Xdp {
+    if (!$IsWindows) { return } # Windows only
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) { return; }
+
+    Write-Host "Uninstalling XDP"
+    try { netcfg.exe -u ms_xdp } catch {}
+    try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
+    rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
@@ -303,6 +357,7 @@ function Install-SigningCertificate {
 # Creates and installs certificates used for testing.
 function Install-TestCertificates {
     if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
+    $DnsNames = $env:computername,"localhost","127.0.0.1","::1","192.168.1.11","192.168.1.12","fc00::1:11","fc00::1:12"
     $NewRoot = $false
     Write-Host "Searching for MsQuicTestRoot certificate..."
     $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
@@ -323,7 +378,7 @@ function Install-TestCertificates {
     $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServer"}
     if (!$ServerCert) {
         Write-Host "MsQuicTestServer not found! Creating new MsQuicTestServer certificate..."
-        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $DnsNames -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
         $TempServerPath = Join-Path $Env:TEMP "MsQuicTestServerCert.pfx"
         Export-PfxCertificate -Cert $ServerCert -Password $PfxPassword -FilePath $TempServerPath
         Import-PfxCertificate -FilePath $TempServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -337,7 +392,7 @@ function Install-TestCertificates {
     $ExpiredServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredServer"}
     if (!$ExpiredServerCert) {
         Write-Host "MsQuicTestExpiredServer not found! Creating new MsQuicTestExpiredServer certificate..."
-        $ExpiredServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredServer" -DnsName $env:computername,localhost,"127.0.0.1","::1" -FriendlyName MsQuicTestExpiredServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+        $ExpiredServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredServer" -DnsName $DnsNames -FriendlyName MsQuicTestExpiredServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotBefore (Get-Date).AddYears(-2) -NotAfter(Get-Date).AddYears(-1) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
         $TempExpiredServerPath = Join-Path $Env:TEMP "MsQuicTestExpiredServerCert.pfx"
         Export-PfxCertificate -Cert $ExpiredServerCert -Password $PfxPassword -FilePath $TempExpiredServerPath
         Import-PfxCertificate -FilePath $TempExpiredServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
@@ -381,6 +436,35 @@ function Install-TestCertificates {
     }
 }
 
+function Install-DotnetTool {
+    param($ToolName, $Version, $NuGetPath)
+    $NuGetName = "$ToolName.$Version.nupkg"
+    $NuGetFile = Join-Path $NuGetPath $NuGetName
+    if (!(Test-Path -Path $NuGetFile)) {
+        Write-Host "$ToolName not found. Parsing lttng logs will fail"
+        return
+    }
+
+    try {
+        Write-Host "Installing: $ToolName"
+        dotnet tool update --global --add-source $NuGetPath $ToolName
+    } catch {
+        $err = $_
+        Write-Host "$ToolName could not be installed. Parsing lttng logs will fail"
+        Write-Host $err.ToString()
+    }
+}
+
+function Install-Clog2Text {
+    Write-Host "Initializing clog submodule"
+    git submodule init submodules/clog
+    git submodule update
+
+    dotnet build (Join-Path $RootDir submodules clog)
+    $NuGetPath = Join-Path $RootDir "submodules" "clog" "src" "nupkg"
+    Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
+}
+
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) { git rm submodules/openssl }
 
@@ -405,6 +489,8 @@ if ($InitSubmodules) {
 
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
+if ($InstallXdpDriver) { Install-Xdp-Driver }
+if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
@@ -412,6 +498,10 @@ if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
+    if ($InstallClog2Text) {
+        Install-Clog2Text
+    }
+
     if ($ForOneBranch) {
         sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
         sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
@@ -431,6 +521,7 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
+        sudo apt-get install -y libssl-dev
         # only used for the codecheck CI run:
         sudo apt-get install -y cppcheck clang-tidy
         # used for packaging
@@ -442,6 +533,7 @@ if ($IsLinux) {
         sudo apt-add-repository ppa:lttng/stable-2.12
         sudo apt-get update
         sudo apt-get install -y lttng-tools
+        sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
 
         # Enable core dumps for the system.

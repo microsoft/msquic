@@ -236,7 +236,7 @@ $FailXmlText = @"
 "@
 
 # Global state for tracking if any crashes occurred.
-$AnyProcessCrashes = $false
+$global:CrashedProcessCount = 0
 
 # Path to the WER registry key used for collecting dumps.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$TestExeName"
@@ -365,6 +365,9 @@ function Start-TestCase([String]$Name) {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
+    if ($DuoNic) {
+        $Arguments += " --duoNic"
+    }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
     }
@@ -401,6 +404,9 @@ function Start-AllTestCases {
     }
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
+    }
+    if ($DuoNic) {
+        $Arguments += " --duoNic"
     }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
@@ -587,7 +593,7 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($ProcessCrashed) {
-            $AnyProcessCrashes = $true;
+            $global:CrashedProcessCount++
         }
 
         if ($IsolationMode -eq "Batch") {
@@ -695,11 +701,6 @@ function Get-WindowsKitTool {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
-
-if ($DuoNic) {
-    Log "Short-circuiting unimplemented DuoNic tests."
-    exit
-}
 
 # Query all the test cases.
 $TestCases = GetTestCases
@@ -861,12 +862,14 @@ try {
 
     # Print out the results.
     Log "$($TestCount) test(s) run."
-    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
+    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
         if ($ErrorsAsWarnings) {
             Write-Warning "$($TestsFailed) test(s) failed."
+            Write-Warning "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
         } else {
-            Write-Error "$($TestsFailed) test(s) failed."
+            Write-Error "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
+            $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {
         Write-Error "Failed to run any tests."

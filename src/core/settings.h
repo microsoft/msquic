@@ -40,7 +40,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
             uint64_t ServerResumptionLevel                  : 1;
-            uint64_t DesiredVersionsList                    : 1;
+            uint64_t VersionSettings                        : 1;
             uint64_t VersionNegotiationExtEnabled           : 1;
             uint64_t MinimumMtu                             : 1;
             uint64_t MaximumMtu                             : 1;
@@ -81,8 +81,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t VersionNegotiationExtEnabled    : 1;
     uint8_t RESERVED                        : 1;
-    const uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
+    QUIC_VERSION_SETTINGS* VersionSettings;
     uint16_t MinimumMtu;
     uint16_t MaximumMtu;
     uint64_t MtuDiscoverySearchCompleteTimeoutUs;
@@ -121,7 +120,6 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
     _In_ BOOLEAN AllowMtuChanges,
     _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
         const QUIC_SETTINGS_INTERNAL* Source

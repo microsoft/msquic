@@ -50,7 +50,6 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Client Migration Support           | uint8_t    | MigrationEnabled            |          1 (TRUE) | Enable clients to migrate IP addresses and tuples. Requires a cooperative load-balancer, or no load-balancer.                 |
 | Datagram Receive Support           | uint8_t    | DatagramReceiveEnabled      |         0 (FALSE) | Advertise support for QUIC datagram extension.                                                                                |
 | Server Resumption Level            | uint8_t    | ServerResumptionLevel       | 0 (No resumption) | Server only. Controls resumption tickets and/or 0-RTT server support.                                                         |
-| Version Negotiation Extension      | uint8_t    | VersionNegotiationExtEnabled|         0 (FALSE) | Controls QUIC Version Negotiation Extension support.                                                                          |
 | Minimum MTU                        | uint16_t   | MinimumMtu                  |              1248 | The minimum MTU supported by a connection. This will be used as the starting MTU.                                             |
 | Maximum MTU                        | uint16_t   | MaximumMtu                  |              1500 | The maximum MTU supported by a connection. This will be the maximum probed value.                                             |
 | MTU Discovery Search Timeout       | uint64_t   | MtuDiscoverySearchCompleteTimeoutUs | 600000000 | The time in microseconds to wait before reattempting MTU probing if max was not reached.                                      |
@@ -89,6 +88,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS`<br> 6         | QUIC_GLOBAL_SETTINGS    | Both      | Globally change global only settings.                                                                 |
 | `QUIC_PARAM_GLOBAL_VERSION_SETTINGS`<br> 7        | QUIC_VERSIONS_SETTINGS  | Both      | Globally change version settings for all subsequent connections.                                      |
 | `QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH`<br> 8        | char[64]                | Get-only  | Git hash used to build MsQuic (null terminated string)                                                |
+| `QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS`<br> 9      | uint16_t[]              | Both      | Globally change the list of CPUs that datapath can use. Must be set before opening registration.  |
 
 
 ### Registration Parameters
@@ -117,7 +117,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|-----------------------------------------------------------|
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
-| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2    | uint8_t[]  | Both  | The CIBIR well-known idenfitier.        |
+| `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
 
 ### Connection Parameters
 
@@ -145,8 +145,8 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
 | `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18          | uint32_t                      | Set-only  | The local interface index to bind to.                                                     |
 | `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19              | QUIC_TLS_SECRETS              | Set-only  | The TLS secrets struct to be populated by MsQuic.                                         |
-| `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both  | The desired QUIC versions for the connection.                                                 |
-| `QUIC_PARAM_CONN_CIBIR_ID`<br> 21      | uint8_t[]  | Set-only  | The CIBIR well-known identifier.                                                             |
+| `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both      | The desired QUIC versions for the connection.                                                 |
+| `QUIC_PARAM_CONN_CIBIR_ID`<br> 21                 | uint8_t[]                     | Set-only  | The CIBIR well-known identifier.                                                          |
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5             | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6        | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 

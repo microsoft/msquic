@@ -378,9 +378,11 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
-    // MsQuicVersionSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
-    // DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
-    // MsQuicVersionSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
+    MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+        return *this;
+    }
 };
 
 static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
@@ -610,6 +612,15 @@ public:
                 sizeof(*QSettings),
                 QSettings);
     }
+
+    QUIC_STATUS
+    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+        return MsQuic->SetParam(
+            Handle,
+            QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
+            sizeof(Value),
+            &Value);
+    }
 #endif
 };
 
@@ -694,6 +705,17 @@ struct MsQuicListener {
                 Value);
     }
 #endif
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_LISTENER_STATISTICS& Statistics) const noexcept {
+        uint32_t Size = sizeof(Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_STATS,
+                &Size,
+                &Statistics);
+    }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
@@ -797,14 +819,6 @@ struct MsQuicConnection {
         _In_ uint16_t ServerPort // Host byte order
         ) noexcept {
         return MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
-    }
-
-    QUIC_STATUS
-    StartLocalhost(
-        _In_ const MsQuicConfiguration& Config,
-        _In_ const QuicAddr& LocalhostAddr
-        ) noexcept {
-        return MsQuic->ConnectionStart(Handle, Config, LocalhostAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()), LocalhostAddr.GetPort());
     }
 
     QUIC_STATUS

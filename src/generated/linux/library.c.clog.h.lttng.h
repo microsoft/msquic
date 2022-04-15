@@ -161,6 +161,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDataPathProcsSet
+// [ lib] Setting datapath procs
+// QuicTraceLogInfo(
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryDataPathProcsSet,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -422,10 +438,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Only v2 is supported in MsQuicOpenVersion");
-// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change raw datapath procs after datapath initialization");
+// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(

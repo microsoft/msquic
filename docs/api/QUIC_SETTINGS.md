@@ -14,6 +14,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxBytesPerKey                         : 1;
             uint64_t HandshakeIdleTimeoutMs                 : 1;
             uint64_t IdleTimeoutMs                          : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
             uint64_t TlsClientMaxSendBuffer                 : 1;
             uint64_t TlsServerMaxSendBuffer                 : 1;
             uint64_t StreamRecvWindowDefault                : 1;
@@ -27,31 +28,28 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxAckDelayMs                          : 1;
             uint64_t DisconnectTimeoutMs                    : 1;
             uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t CongestionControlAlgorithm             : 1;
             uint64_t PeerBidiStreamCount                    : 1;
             uint64_t PeerUnidiStreamCount                   : 1;
-            uint64_t RetryMemoryLimit                       : 1;
-            uint64_t LoadBalancingMode                      : 1;
-            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
             uint64_t SendBufferingEnabled                   : 1;
             uint64_t PacingEnabled                          : 1;
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
             uint64_t ServerResumptionLevel                  : 1;
-            uint64_t DesiredVersionsList                    : 1;
-            uint64_t VersionNegotiationExtEnabled           : 1;
-            uint64_t MinimumMtu                             : 1;
-            uint64_t MaximumMtu                             : 1;
-            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t MaxBindingStatelessOperations          : 1;
-            uint64_t StatelessOperationExpirationMs         : 1;
-            uint64_t RESERVED                               : 30;
+            uint64_t RESERVED                               : 33;
         } IsSet;
     };
 
     uint64_t MaxBytesPerKey;
     uint64_t HandshakeIdleTimeoutMs;
     uint64_t IdleTimeoutMs;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
     uint32_t TlsClientMaxSendBuffer;
     uint32_t TlsServerMaxSendBuffer;
     uint32_t StreamRecvWindowDefault;
@@ -65,26 +63,21 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
+    uint16_t CongestionControlAlgorithm; // QUIC_CONGESTION_CONTROL_ALGORITHM
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint16_t RetryMemoryLimit;                  // Global only
-    uint16_t LoadBalancingMode;                 // Global only
-    uint8_t MaxOperationsPerDrain;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t VersionNegotiationExtEnabled    : 1;
-    uint8_t RESERVED                        : 1;
-    const uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
-    uint16_t MinimumMtu;
-    uint16_t MaximumMtu;
-    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint8_t RESERVED                        : 2;
+    uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
-    uint16_t MaxBindingStatelessOperations;
-    uint16_t StatelessOperationExpirationMs;
 
 } QUIC_SETTINGS;
 ```
@@ -250,24 +243,6 @@ Advertise support for QUIC datagram extension. Both sides of a connection need t
 Server only. Controls resumption tickets and/or 0-RTT server support. `QUIC_SERVER_RESUME_ONLY` enables sending and receiving TLS resumption tickets. The server app must call [ConnectionSendResumptionTicket](./ConnectionSendResumptionTicket.md) to send a resumption ticket to the client. `QUIC_SERVER_RESUME_AND_ZERORTT` enables sending and receiving TLS resumption tickets and generating 0-RTT keys and receiving 0-RTT payloads. The server app may decide accept/reject each 0-RTT payload individually.
 
 **Default value:** `QUIC_SERVER_NO_RESUME` (disabled)
-
-`VersionNegotiationExtEnabled`
-
-Controls QUIC Version Negotiation Extension support.
-
-**Default value:** 0 (`FALSE`)
-
-`DesiredVersionsList`
-
-Only takes effect if Version Negotiation Extension is enabled. Must be set to `NULL` unless `VersionNegotiationExtEnabled` is `TRUE`.
-
-**Default value:** `NULL`
-
-`DesiredVersionsListLength`
-
-Number of QUIC protocol versions in the DesiredVersionsList. Must be set to 0 unless `VersionNegotiationExtEnabled` is `TRUE`.
-
-**Default value:** 0
 
 `MinimumMtu`
 

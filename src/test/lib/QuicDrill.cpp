@@ -140,6 +140,7 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
+                NULL,
                 &Datapath);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
@@ -285,7 +286,7 @@ QuicDrillInitialPacketFailureTest(
 
         Status =
             Sender.Initialize(
-                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                 QuicAddrFamily,
                 (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) ?
                     ServerAddress.SockAddr.Ipv4.sin_port :

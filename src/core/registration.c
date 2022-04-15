@@ -63,11 +63,16 @@ MsQuicRegistrationOpen(
     if (ExternalRegistration) {
         CxPlatLockAcquire(&MsQuicLib.Lock);
         if (MsQuicLib.Datapath == NULL) {
+            CXPLAT_DATAPATH_CONFIG DataPathConfig = {
+                MsQuicLib.DataPathProcList,
+                MsQuicLib.DataPathProcListLength
+            };
             Status =
                 CxPlatDataPathInitialize(
                     sizeof(CXPLAT_RECV_PACKET),
                     &DatapathCallbacks,
                     NULL,                   // TcpCallbacks
+                    &DataPathConfig,
                     &MsQuicLib.Datapath);
             if (QUIC_FAILED(Status)) {
                 CxPlatLockRelease(&MsQuicLib.Lock);

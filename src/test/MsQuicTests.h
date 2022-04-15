@@ -37,7 +37,7 @@ void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
-void QuicTestDesiredVersionSettings();
+void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
 
@@ -124,51 +124,51 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
-// void
-// QuicTestVersionNegotiation(
-//     _In_ int Family
-//     );
+void
+QuicTestVersionNegotiation(
+    _In_ int Family
+    );
 
-// void
-// QuicTestVersionNegotiationRetry(
-//     _In_ int Family
-//     );
+void
+QuicTestVersionNegotiationRetry(
+    _In_ int Family
+    );
 
-// void
-// QuicTestCompatibleVersionNegotiationRetry(
-//     _In_ int Family
-//     );
+void
+QuicTestCompatibleVersionNegotiationRetry(
+    _In_ int Family
+    );
 
-// void
-// QuicTestCompatibleVersionNegotiation(
-//     _In_ int Family,
-//     _In_ bool DisableVNEClient,
-//     _In_ bool DisableVNEServer
-//     );
+void
+QuicTestCompatibleVersionNegotiation(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
 
-// void
-// QuicTestCompatibleVersionNegotiationDefaultClient(
-//     _In_ int Family,
-//     _In_ bool DisableVNEClient,
-//     _In_ bool DisableVNEServer
-//     );
+void
+QuicTestCompatibleVersionNegotiationDefaultClient(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
 
-// void
-// QuicTestCompatibleVersionNegotiationDefaultServer(
-//     _In_ int Family,
-//     _In_ bool DisableVNEClient,
-//     _In_ bool DisableVNEServer
-//     );
+void
+QuicTestCompatibleVersionNegotiationDefaultServer(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
 
-// void
-// QuicTestIncompatibleVersionNegotiation(
-//     _In_ int Family
-//     );
+void
+QuicTestIncompatibleVersionNegotiation(
+    _In_ int Family
+    );
 
-// void
-// QuicTestFailedVersionNegotiation(
-//     _In_ int Family
-//     );
+void
+QuicTestFailedVersionNegotiation(
+    _In_ int Family
+    );
 
 void
 QuicTestCustomCertificateValidation(
@@ -212,6 +212,9 @@ QuicTestCibirExtension(
     _In_ int Family,
     _In_ uint8_t Mode // server = &1, client = &2
     );
+
+void
+QuicTestResumptionAcrossVersions();
 
 //
 // Negative Handshake Tests
@@ -259,6 +262,11 @@ QuicTestConnectValidClientCertificate(
 void
 QuicTestConnectExpiredClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    );
+
+void
+QuicTestClientBlockedSourcePort(
+    _In_ int Family
     );
 
 //
@@ -1005,7 +1013,14 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP \
     QUIC_CTL_CODE(86, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_STORAGE \
+#define IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS \
     QUIC_CTL_CODE(87, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 87
+#define IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT \
+    QUIC_CTL_CODE(88, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STORAGE \
+    QUIC_CTL_CODE(89, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 89

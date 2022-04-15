@@ -3649,7 +3649,7 @@
     },
     "FailedRouteResolution": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Processing failed route completion Path[%hhu]",
+      "TraceString": "[conn][%p] Route resolution failed on Path[%hhu]. Switching paths...",
       "UniqueId": "FailedRouteResolution",
       "splitArgs": [
         {
@@ -5574,6 +5574,13 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryDataPathProcsSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting datapath procs",
+      "UniqueId": "LibraryDataPathProcsSet",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -5679,6 +5686,27 @@
       "UniqueId": "LibraryNotInUse",
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
+    },
+    "LibraryRawDataPathInvalidProcs": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Tried to set invalid raw datapath procs",
+      "UniqueId": "LibraryRawDataPathInvalidProcs",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibraryRawDataPathProcsSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting raw datapath procs",
+      "UniqueId": "LibraryRawDataPathProcsSet",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "LibraryRawDataPathProcsSetAfterDataPathInit": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Tried to change raw datapath procs after datapath initialization",
+      "UniqueId": "LibraryRawDataPathProcsSetAfterDataPathInit",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
     },
     "LibraryRelease": {
       "ModuleProperites": {},
@@ -8224,6 +8252,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "RecvVerNegCryptoError": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Failed to update crypto on ver neg",
+      "UniqueId": "RecvVerNegCryptoError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "RecvVerNegNoMatch": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Version Negotation contained no supported versions",
@@ -9045,22 +9085,6 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
-    "ServerVersionInformationChosenVersionNotInOtherVerList": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Server Chosen Version is not in Server Other Versions list: 0x%x",
-      "UniqueId": "ServerVersionInformationChosenVersionNotInOtherVerList",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnError"
-    },
     "ServerVersionInformationPreviousVersionInOtherVerList": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Previous Client Version in Server Other Versions list: 0x%x",
@@ -9181,6 +9205,34 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpAcceptableVersions": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] AcceptableVersions[%u]  = 0x%x",
+      "UniqueId": "SettingDumpAcceptableVersions",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpAcceptedVersionsLength": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] AcceptedVersionslength = %u",
+      "UniqueId": "SettingDumpAcceptedVersionsLength",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpBidiStreamCount": {
       "ModuleProperites": {},
       "TraceString": "[sett] PeerBidiStreamCount    = %hu",
@@ -9217,30 +9269,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "SettingDumpDesiredVersionsList": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] Desired Version[0]     = 0x%x",
-      "UniqueId": "SettingDumpDesiredVersionsList",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingDumpDesiredVersionsListLength": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] Desired Version length = %u",
-      "UniqueId": "SettingDumpDesiredVersionsListLength",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "SettingDumpDisconnectTimeoutMs": {
       "ModuleProperites": {},
       "TraceString": "[sett] DisconnectTimeoutMs    = %u",
@@ -9249,6 +9277,22 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpFullyDeployedVersions": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] FullyDeployedVersion[%u]= 0x%x",
+      "UniqueId": "SettingDumpFullyDeployedVersions",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -9457,6 +9501,34 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpOfferedVersions": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] OfferedVersions[%u]     = 0x%x",
+      "UniqueId": "SettingDumpOfferedVersions",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpOfferedVersionsLength": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] OfferedVersionslength  = %u",
+      "UniqueId": "SettingDumpOfferedVersionsLength",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpPacingEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] PacingEnabled          = %hhu",
@@ -9601,10 +9673,42 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "SettingsInvalidVersion": {
+    "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
-      "TraceString": "Invalid version supplied to settings! 0x%x at position %d",
-      "UniqueId": "SettingsInvalidVersion",
+      "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidAcceptableVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "SettingsInvalidFullyDeployedVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid FullyDeployedVersion supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidFullyDeployedVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "SettingsInvalidOfferedVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidOfferedVersion",
       "splitArgs": [
         {
           "DefinationEncoding": "x",
@@ -12444,9 +12548,9 @@
         "EncodingString": "[strm][%p] Event silently discarded"
       },
       {
-        "UniquenessHash": "d3e660d6-4f05-fd4d-e6e5-c8967d710df4",
+        "UniquenessHash": "fff5ef57-9005-a7ec-fcbc-d630c6c812fa",
         "TraceID": "FailedRouteResolution",
-        "EncodingString": "[conn][%p] Processing failed route completion Path[%hhu]"
+        "EncodingString": "[conn][%p] Route resolution failed on Path[%hhu]. Switching paths..."
       },
       {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
@@ -12934,6 +13038,11 @@
         "EncodingString": "[ lib] CID Length = %hhu"
       },
       {
+        "UniquenessHash": "1324b8f1-5f38-c7ca-d7e9-51314f15e172",
+        "TraceID": "LibraryDataPathProcsSet",
+        "EncodingString": "[ lib] Setting datapath procs"
+      },
+      {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
         "TraceID": "LibraryError",
         "EncodingString": "[ lib] ERROR, %s."
@@ -12987,6 +13096,21 @@
         "UniquenessHash": "1799d6aa-33d5-cb09-2058-09b8369d852f",
         "TraceID": "LibraryNotInUse",
         "EncodingString": "[ lib] No longer in use."
+      },
+      {
+        "UniquenessHash": "9a01e720-3c07-588a-6529-96d6248f5cd5",
+        "TraceID": "LibraryRawDataPathInvalidProcs",
+        "EncodingString": "[ lib] Tried to set invalid raw datapath procs"
+      },
+      {
+        "UniquenessHash": "7ba4f1de-7e3e-dc30-4598-7ef5527b83a5",
+        "TraceID": "LibraryRawDataPathProcsSet",
+        "EncodingString": "[ lib] Setting raw datapath procs"
+      },
+      {
+        "UniquenessHash": "4bf51fba-1c46-62f6-d154-1b30ecc46bfd",
+        "TraceID": "LibraryRawDataPathProcsSetAfterDataPathInit",
+        "EncodingString": "[ lib] Tried to change raw datapath procs after datapath initialization"
       },
       {
         "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",
@@ -13809,6 +13933,11 @@
         "EncodingString": "[conn][%p] Received Version Negotation:"
       },
       {
+        "UniquenessHash": "c13441c6-4ae4-4459-2078-3ac4175a374b",
+        "TraceID": "RecvVerNegCryptoError",
+        "EncodingString": "[conn][%p] Failed to update crypto on ver neg"
+      },
+      {
         "UniquenessHash": "c9015186-9937-78ff-24f3-2f08dc9d3c95",
         "TraceID": "RecvVerNegNoMatch",
         "EncodingString": "[conn][%p] Version Negotation contained no supported versions"
@@ -14054,11 +14183,6 @@
         "EncodingString": "[conn][%p] Version info parsed less than full buffer (%hu bytes vs. %hu bytes"
       },
       {
-        "UniquenessHash": "2ae32fc2-e372-7d38-69d2-e085f736570f",
-        "TraceID": "ServerVersionInformationChosenVersionNotInOtherVerList",
-        "EncodingString": "[conn][%p] Server Chosen Version is not in Server Other Versions list: 0x%x"
-      },
-      {
         "UniquenessHash": "c0975309-af60-f767-e139-f7cb6071e863",
         "TraceID": "ServerVersionInformationPreviousVersionInOtherVerList",
         "EncodingString": "[conn][%p] Previous Client Version in Server Other Versions list: 0x%x"
@@ -14094,6 +14218,16 @@
         "EncodingString": "[sett] CongestionControlAlgorithm = %hu"
       },
       {
+        "UniquenessHash": "67e5d417-58c4-ed4f-c4c3-c3f0b171c9cf",
+        "TraceID": "SettingDumpAcceptableVersions",
+        "EncodingString": "[sett] AcceptableVersions[%u]  = 0x%x"
+      },
+      {
+        "UniquenessHash": "c0266d26-3804-aad5-8d4d-4f93de41b025",
+        "TraceID": "SettingDumpAcceptedVersionsLength",
+        "EncodingString": "[sett] AcceptedVersionslength = %u"
+      },
+      {
         "UniquenessHash": "b6d32b84-af0c-b1cb-5e97-a9fb84980e8d",
         "TraceID": "SettingDumpBidiStreamCount",
         "EncodingString": "[sett] PeerBidiStreamCount    = %hu"
@@ -14109,19 +14243,14 @@
         "EncodingString": "[sett] DatagramReceiveEnabled = %hhu"
       },
       {
-        "UniquenessHash": "d4981da2-783e-a3bb-0f42-7264db208f13",
-        "TraceID": "SettingDumpDesiredVersionsList",
-        "EncodingString": "[sett] Desired Version[0]     = 0x%x"
-      },
-      {
-        "UniquenessHash": "0080f5a7-d4e1-7c9d-e023-eb4dd540fffe",
-        "TraceID": "SettingDumpDesiredVersionsListLength",
-        "EncodingString": "[sett] Desired Version length = %u"
-      },
-      {
         "UniquenessHash": "5bb1bd57-aefe-343c-87d3-c9a8bc30d2c4",
         "TraceID": "SettingDumpDisconnectTimeoutMs",
         "EncodingString": "[sett] DisconnectTimeoutMs    = %u"
+      },
+      {
+        "UniquenessHash": "a4fc8178-7f43-f558-f37c-273bfb44ad5f",
+        "TraceID": "SettingDumpFullyDeployedVersions",
+        "EncodingString": "[sett] FullyDeployedVersion[%u]= 0x%x"
       },
       {
         "UniquenessHash": "155f7518-f6a7-c163-087f-cd860a6b3bb5",
@@ -14209,6 +14338,16 @@
         "EncodingString": "[sett] MtuMissingProbeCount   = %hhu"
       },
       {
+        "UniquenessHash": "7774895d-cb18-b7f5-51e8-7bc0bfbff8e9",
+        "TraceID": "SettingDumpOfferedVersions",
+        "EncodingString": "[sett] OfferedVersions[%u]     = 0x%x"
+      },
+      {
+        "UniquenessHash": "0f868c36-d81d-43d0-15d1-292fee929a4b",
+        "TraceID": "SettingDumpOfferedVersionsLength",
+        "EncodingString": "[sett] OfferedVersionslength  = %u"
+      },
+      {
         "UniquenessHash": "50c8e61a-10db-0422-9497-26f288b36eed",
         "TraceID": "SettingDumpPacingEnabled",
         "EncodingString": "[sett] PacingEnabled          = %hhu"
@@ -14269,9 +14408,19 @@
         "EncodingString": "[sett] Version Negotiation Ext Enabled = %hhu"
       },
       {
-        "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
-        "TraceID": "SettingsInvalidVersion",
-        "EncodingString": "Invalid version supplied to settings! 0x%x at position %d"
+        "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
+        "TraceID": "SettingsInvalidAcceptableVersion",
+        "EncodingString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "cdf8543c-9ea9-1078-8200-1ff0a8786dd0",
+        "TraceID": "SettingsInvalidFullyDeployedVersion",
+        "EncodingString": "Invalid FullyDeployedVersion supplied to settings! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "dad8e0fd-193d-ff7c-1657-2f8eebc1d457",
+        "TraceID": "SettingsInvalidOfferedVersion",
+        "EncodingString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",

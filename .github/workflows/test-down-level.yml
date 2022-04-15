@@ -10,6 +10,12 @@ on:
     - main
     - release/*
 
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: testdownlevel-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 permissions: read-all
 
 jobs:
@@ -17,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.0']
+        release: ['2.0.2']
         os: [ubuntu-latest, windows-latest]
         arch: [x64]
         tls: [schannel, openssl]
@@ -30,7 +36,7 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
+      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab
       with:
         egress-policy: audit
     - name: Checkout repository

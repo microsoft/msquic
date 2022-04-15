@@ -160,6 +160,15 @@ typedef struct QUIC_PACKET_KEY {
 
 } QUIC_PACKET_KEY;
 
+typedef struct QUIC_HKDF_LABELS {
+
+    _Field_z_ const char* KeyLabel;
+    _Field_z_ const char* IvLabel;
+    _Field_z_ const char* HpLabel;  // Header protection
+    _Field_z_ const char* KuLabel;  // Key update
+
+} QUIC_HKDF_LABELS;
+
 //
 // Creates a packet key from the static version specific salt.
 //
@@ -169,6 +178,7 @@ _When_(WriteKey != NULL, _At_(*WriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
     _In_reads_(CXPLAT_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,  // Version Specific
     _In_ uint8_t CIDLength,
@@ -194,6 +204,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
 QuicPacketKeyUpdate(
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     );
@@ -213,6 +224,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
     _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,

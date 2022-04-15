@@ -92,6 +92,11 @@ typedef struct CXPLAT_TLS {
     CXPLAT_SEC_CONFIG* SecConfig;
 
     //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
+    //
     // Indicates if this context belongs to server side or client side
     // connection.
     //
@@ -409,6 +414,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         Status =
             QuicPacketKeyDerive(
                 KeyType,
+                TlsContext->HkdfLabels,
                 &Secret,
                 "write secret",
                 TRUE,
@@ -433,6 +439,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         Status =
             QuicPacketKeyDerive(
                 KeyType,
+                TlsContext->HkdfLabels,
                 &Secret,
                 "read secret",
                 TRUE,
@@ -918,7 +925,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -1584,6 +1592,8 @@ CxPlatTlsInitialize(
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
 
+    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
@@ -1598,6 +1608,7 @@ CxPlatTlsInitialize(
     CxPlatZeroMemory(TlsContext, sizeof(CXPLAT_TLS));
 
     TlsContext->Connection = Config->Connection;
+    TlsContext->HkdfLabels = Config->HkdfLabels;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = Config->SecConfig;
     TlsContext->QuicTpExtType = Config->TPType;
@@ -1773,6 +1784,16 @@ CxPlatTlsUninitialize(
 
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
+    )
+{
+    TlsContext->HkdfLabels = Labels;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

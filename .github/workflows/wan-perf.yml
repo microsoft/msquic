@@ -4,31 +4,26 @@ on:
   push:
     branches:
     - main
-    - release/*
-    paths-ignore:
-    - .azure/*
-    - docs/*
-    - src/cs/*
-    - src/distribution/*
-    - src/plugins/*
-    - src/tools/*
-    - src/lib.rs
-    - Cargo.toml
-    - README.md
+    paths:
+    - .github/workflows/wan-perf.yml
+    - src/core/*
+    - src/platform/*
+    - src/perf/*
   pull_request:
     branches:
     - main
-    - release/*
-    paths-ignore:
-    - .azure/*
-    - docs/*
-    - src/cs/*
-    - src/distribution/*
-    - src/plugins/*
-    - src/tools/*
-    - src/lib.rs
-    - Cargo.toml
-    - README.md
+    paths:
+    - .github/workflows/wan-perf.yml
+    - src/core/*
+    - src/platform/*
+    - src/perf/*
+    - submodules/openssl/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: wanperf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 permissions: read-all
 
@@ -39,10 +34,6 @@ jobs:
     name: Build Perf
     runs-on: windows-latest
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
-      with:
-        egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
     - name: Prepare Machine
@@ -75,13 +66,13 @@ jobs:
       pacing: 1
       reorder: "(0,1000,10000)"
       delay: "(0,5,10)"
+      loss: "(0,1000,10000)"
     strategy:
       fail-fast: false
       matrix:
         rate: [5, 10, 20, 50, 100, 200, 1000]
         rtt: [5, 50, 200, 500]
         queueRatio: [0.2, 1, 5]
-        loss: [0,1000,10000]
         exclude:
         - rate: 5
           rtt: 5
@@ -90,10 +81,6 @@ jobs:
           rtt: 500
           queueRatio: 5 # Exceeds QueueLimitPackets limit of 100000
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
-      with:
-        egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
     - name: Prepare Machine
@@ -106,11 +93,11 @@ jobs:
     - name: Run WAN Perf (QUIC only)
       if: ${{ github.event_name == 'pull_request' }}
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Debug -Protocol QUIC -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ matrix.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+      run: scripts/emulated-performance.ps1 -Debug -Protocol QUIC -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
     - name: Run WAN Perf (QUIC + TCP)
       if: ${{ github.event_name != 'pull_request' }}
       shell: pwsh
-      run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ matrix.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
+      run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }}
     - name: Upload Results
       uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
@@ -127,10 +114,6 @@ jobs:
     runs-on: windows-2022
     needs: wan-perf
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@bdb12b622a910dfdc99a31fdfe6f45a16bc287a4
-      with:
-        egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
       with:

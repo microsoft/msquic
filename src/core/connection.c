@@ -48,7 +48,6 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
     _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     );
 
@@ -122,7 +121,7 @@ QuicConnAlloc(
     Connection->PeerPacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
-    Connection->Settings = MsQuicLib.Settings;
+    QuicSettingsCopy(&Connection->Settings, &MsQuicLib.Settings);
     Connection->Settings.IsSetFlags = 0; // Just grab the global values, not IsSet flags.
     CxPlatDispatchLockInitialize(&Connection->ReceiveQueueLock);
     CxPlatListInitializeHead(&Connection->DestCids);
@@ -1473,6 +1472,7 @@ QuicErrorCodeToStatus(
     case QUIC_ERROR_CRYPTO_USER_CANCELED:           return QUIC_STATUS_USER_CANCELED;
     case QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE:       return QUIC_STATUS_HANDSHAKE_FAILURE;
     case QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL: return QUIC_STATUS_ALPN_NEG_FAILURE;
+    case QUIC_ERROR_VERSION_NEGOTIATION_ERROR:      return QUIC_STATUS_VER_NEG_ERROR;
     default:
         if (IS_QUIC_CRYPTO_ERROR(ErrorCode)) {
             return QUIC_STATUS_TLS_ALERT(ErrorCode);
@@ -1784,6 +1784,7 @@ QuicConnOnQuicVersionSet(
     case QUIC_VERSION_1:
     case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_MS_1:
+    case QUIC_VERSION_2:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
         break;
@@ -2453,7 +2454,6 @@ QuicConnSetConfiguration(
     QuicConnApplyNewSettings(
         Connection,
         FALSE,
-        FALSE,
         &Configuration->Settings);
 
     if (QuicConnIsClient(Connection)) {
@@ -2465,6 +2465,10 @@ QuicConnSetConfiguration(
             //
             Connection->Stats.QuicVersion = QUIC_VERSION_LATEST;
             QuicConnOnQuicVersionSet(Connection);
+            Status = QuicCryptoOnVersionChange(&Connection->Crypto);
+            if (QUIC_FAILED(Status)) {
+                return Status;
+            }
         }
 
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
@@ -2622,13 +2626,13 @@ QuicConnProcessPeerVersionNegotiationTP(
     QUIC_STATUS Status;
     if (QuicConnIsServer(Connection)) {
         //
-        // Check whether version is in (App-specified) list of supported versions
+        // Check whether version is in (App-specified) list of acceptable versions.
         //
         uint32_t SupportedVersionsLength = 0;
         const uint32_t* SupportedVersions = NULL;
-        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
-            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
-            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
+        if (MsQuicLib.Settings.IsSet.VersionSettings) {
+            SupportedVersionsLength = MsQuicLib.Settings.VersionSettings->AcceptableVersionsLength;
+            SupportedVersions = MsQuicLib.Settings.VersionSettings->AcceptableVersions;
         } else {
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
             SupportedVersions = DefaultSupportedVersionsList;
@@ -2644,7 +2648,7 @@ QuicConnProcessPeerVersionNegotiationTP(
             CXPLAT_DBG_ASSERTMSG(FALSE,"Incompatible Version Negotation should happen in binding layer");
             //
             // Current version not supported, start incompatible version negotiation.
-            // This path should only hit when the DesiredVersions are changed globally
+            // This path should only hit when the AcceptableVersions are changed globally
             // between when the first flight was received, and this point.
             //
             return QUIC_STATUS_VER_NEG_ERROR;
@@ -2677,6 +2681,11 @@ QuicConnProcessPeerVersionNegotiationTP(
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
 
+        if (ClientVI.ChosenVersion == 0) {
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+
         //
         // Attempt to upgrade the connection to a compatible version the server prefers.
         //
@@ -2698,6 +2707,11 @@ QuicConnProcessPeerVersionNegotiationTP(
                         SupportedVersions[ServerVersionIdx]);
                     Connection->Stats.QuicVersion = SupportedVersions[ServerVersionIdx];
                     QuicConnOnQuicVersionSet(Connection);
+                    Status = QuicCryptoOnVersionChange(&Connection->Crypto);
+                    if (QUIC_FAILED(Status)) {
+                        QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                        return QUIC_STATUS_INTERNAL_ERROR;
+                    }
                 }
             }
         }
@@ -2730,25 +2744,18 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
-        BOOLEAN ChosenVersionFound = FALSE;
-        for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
-            if (ServerVI.OtherVersions[i] == ServerVI.ChosenVersion) {
-                ChosenVersionFound = TRUE;
-                break;
-            }
-        }
-        if (!ChosenVersionFound) {
-            QuicTraceLogConnError(
-                ServerVersionInformationChosenVersionNotInOtherVerList,
-                Connection,
-                "Server Chosen Version is not in Server Other Versions list: 0x%x",
-                ServerVI.ChosenVersion);
-            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+
+        if (ServerVI.ChosenVersion == 0) {
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
         uint32_t ClientChosenVersion = 0;
         BOOLEAN OriginalVersionFound = FALSE;
         for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
+            if (ServerVI.OtherVersions[i] == 0){
+                QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+                return QUIC_STATUS_PROTOCOL_ERROR;
+            }
             //
             // Keep this logic up to date with the logic in QuicConnRecvVerNeg
             //
@@ -2759,6 +2766,10 @@ QuicConnProcessPeerVersionNegotiationTP(
             if (Connection->OriginalQuicVersion == ServerVI.OtherVersions[i]) {
                 OriginalVersionFound = TRUE;
             }
+        }
+        if (ClientChosenVersion == 0 &&
+            QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.ChosenVersion)) {
+            ClientChosenVersion = ServerVI.ChosenVersion;
         }
         if (ClientChosenVersion == 0 || (ClientChosenVersion != Connection->OriginalQuicVersion &&
             ClientChosenVersion != ServerVI.ChosenVersion)) {
@@ -2788,15 +2799,17 @@ QuicConnProcessPeerVersionNegotiationTP(
             //
             // Ensure the version which generated a VN packet is not in the OtherVersions.
             //
-            for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
-                if (Connection->PreviousQuicVersion == ServerVI.OtherVersions[i]) {
-                    QuicTraceLogConnError(
-                        ServerVersionInformationPreviousVersionInOtherVerList,
-                        Connection,
-                        "Previous Client Version in Server Other Versions list: 0x%x",
-                        Connection->PreviousQuicVersion);
-                    QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
-                    return QUIC_STATUS_PROTOCOL_ERROR;
+            if (!QuicIsVersionReserved(Connection->PreviousQuicVersion)) {
+                for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
+                    if (Connection->PreviousQuicVersion == ServerVI.OtherVersions[i]) {
+                        QuicTraceLogConnError(
+                            ServerVersionInformationPreviousVersionInOtherVerList,
+                            Connection,
+                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            Connection->PreviousQuicVersion);
+                        QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                        return QUIC_STATUS_PROTOCOL_ERROR;
+                    }
                 }
             }
         }
@@ -2872,7 +2885,7 @@ QuicConnProcessPeerTransportParameters(
                 goto Error;
             }
         }
-        if (QuicConnIsClient(Connection) && Connection->Settings.VersionNegotiationExtEnabled &&
+        if (QuicConnIsClient(Connection) &&
             (Connection->State.CompatibleVerNegotiationAttempted || Connection->PreviousQuicVersion != 0) &&
             !(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION)) {
             //
@@ -3319,7 +3332,7 @@ QuicConnRecvVerNeg(
         //
         // Check to see if this is the current version.
         //
-        if (ServerVersion == Connection->Stats.QuicVersion) {
+        if (ServerVersion == Connection->Stats.QuicVersion && !QuicIsVersionReserved(ServerVersion)) {
             QuicPacketLogDrop(Connection, Packet, "Version Negotation that includes the current version");
             return;
         }
@@ -3354,6 +3367,19 @@ QuicConnRecvVerNeg(
     Connection->PreviousQuicVersion = Connection->Stats.QuicVersion;
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
+    QUIC_STATUS Status = QuicCryptoOnVersionChange(&Connection->Crypto);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogConnError(
+            RecvVerNegCryptoError,
+            Connection,
+            "Failed to update crypto on ver neg");
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)Status,
+            NULL);
+        return;
+    }
     QuicConnRestart(Connection, TRUE);
 }
 
@@ -3434,7 +3460,7 @@ QuicConnRecvRetry(
 
     if (QUIC_FAILED(
         QuicPacketGenerateRetryIntegrity(
-            VersionInfo->RetryIntegritySecret,
+            VersionInfo,
             DestCid->CID.Length,
             DestCid->CID.Data,
             Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
@@ -3500,6 +3526,7 @@ QuicConnRecvRetry(
         Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
+            &VersionInfo->HkdfLabels,
             VersionInfo->Salt,
             DestCid->CID.Length,
             DestCid->CID.Data,
@@ -3633,6 +3660,9 @@ QuicConnRecvHeader(
                 Connection->State.CompatibleVerNegotiationAttempted = TRUE;
                 Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
                 QuicConnOnQuicVersionSet(Connection);
+                if (QUIC_FAILED(QuicCryptoOnVersionChange(&Connection->Crypto))) {
+                    return FALSE;
+                }
                 //
                 // Do not return FALSE here, continue with the connection.
                 //
@@ -3673,7 +3703,8 @@ QuicConnRecvHeader(
         }
 #endif
 
-        if (Packet->LH->Type == QUIC_RETRY) {
+        if ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_RETRY_V1) ||
+            (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_RETRY_V2)) {
             QuicConnRecvRetry(Connection, Packet);
             return FALSE;
         }
@@ -3694,62 +3725,69 @@ QuicConnRecvHeader(
         QUIC_PATH* Path = &Connection->Paths[0];
         if (!Path->IsPeerValidated && (Packet->ValidToken || TokenLength != 0)) {
 
+            BOOLEAN InvalidRetryToken = FALSE;
             if (Packet->ValidToken) {
                 CXPLAT_DBG_ASSERT(TokenBuffer == NULL);
                 CXPLAT_DBG_ASSERT(TokenLength == 0);
                 QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
             } else {
                 CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
-                if (!QuicPacketValidateRetryToken(
+                if (!QuicPacketValidateInitialToken(
                         Connection,
                         Packet,
                         TokenLength,
-                        TokenBuffer)) {
+                        TokenBuffer,
+                        &InvalidRetryToken) &&
+                    InvalidRetryToken) {
                     return FALSE;
                 }
             }
 
-            CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
-            CXPLAT_DBG_ASSERT(TokenLength == sizeof(QUIC_RETRY_TOKEN_CONTENTS));
+            if (!InvalidRetryToken) {
+                CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
+                CXPLAT_DBG_ASSERT(TokenLength == sizeof(QUIC_TOKEN_CONTENTS));
 
-            QUIC_RETRY_TOKEN_CONTENTS Token;
-            if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
-                CXPLAT_DBG_ASSERT(FALSE); // Was already decrypted sucessfully once.
-                QuicPacketLogDrop(Connection, Packet, "Retry token decrypt failure");
-                return FALSE;
+                QUIC_TOKEN_CONTENTS Token;
+                if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
+                    CXPLAT_DBG_ASSERT(FALSE); // Was already decrypted sucessfully once.
+                    QuicPacketLogDrop(Connection, Packet, "Retry token decrypt failure");
+                    return FALSE;
+                }
+
+                CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
+                CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->Route.RemoteAddress, &Token.Encrypted.RemoteAddress));
+
+                if (Connection->OrigDestCID != NULL) {
+                    CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
+                }
+
+                Connection->OrigDestCID =
+                    CXPLAT_ALLOC_NONPAGED(
+                        sizeof(QUIC_CID) +
+                        Token.Encrypted.OrigConnIdLength,
+                        QUIC_POOL_CID);
+                if (Connection->OrigDestCID == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "OrigDestCID",
+                        sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
+                    QuicPacketLogDrop(Connection, Packet, "OrigDestCID from Retry OOM");
+                    return FALSE;
+                }
+
+                Connection->OrigDestCID->Length = Token.Encrypted.OrigConnIdLength;
+                CxPlatCopyMemory(
+                    Connection->OrigDestCID->Data,
+                    Token.Encrypted.OrigConnId,
+                    Token.Encrypted.OrigConnIdLength);
+                Connection->State.HandshakeUsedRetryPacket = TRUE;
+
+                QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
             }
+        }
 
-            CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
-            CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->Route.RemoteAddress, &Token.Encrypted.RemoteAddress));
-
-            if (Connection->OrigDestCID != NULL) {
-                CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
-            }
-
-            Connection->OrigDestCID =
-                CXPLAT_ALLOC_NONPAGED(
-                    sizeof(QUIC_CID) +
-                    Token.Encrypted.OrigConnIdLength,
-                    QUIC_POOL_CID);
-            if (Connection->OrigDestCID == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "OrigDestCID",
-                    sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
-                return FALSE;
-            }
-
-            Connection->OrigDestCID->Length = Token.Encrypted.OrigConnIdLength;
-            CxPlatCopyMemory(
-                Connection->OrigDestCID->Data,
-                Token.Encrypted.OrigConnId,
-                Token.Encrypted.OrigConnIdLength);
-            Connection->State.HandshakeUsedRetryPacket = TRUE;
-
-            QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
-
-        } else if (Connection->OrigDestCID == NULL) {
+        if (Connection->OrigDestCID == NULL) {
 
             Connection->OrigDestCID =
                 CXPLAT_ALLOC_NONPAGED(
@@ -3762,6 +3800,7 @@ QuicConnRecvHeader(
                     "Allocation of '%s' failed. (%llu bytes)",
                     "OrigDestCID",
                     sizeof(QUIC_CID) + Packet->DestCidLen);
+                QuicPacketLogDrop(Connection, Packet, "OrigDestCID OOM");
                 return FALSE;
             }
 
@@ -3772,7 +3811,11 @@ QuicConnRecvHeader(
                 Packet->DestCidLen);
         }
 
-        Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);
+        if (Packet->LH->Version == QUIC_VERSION_2) {
+            Packet->KeyType = QuicPacketTypeToKeyTypeV2(Packet->LH->Type);
+        } else {
+            Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
+        }
         Packet->Encrypted = TRUE;
 
     } else {
@@ -3896,7 +3939,9 @@ QuicConnRecvPrepareDecrypt(
         return FALSE;
     }
 
-    CXPLAT_DBG_ASSERT(Packet->IsShortHeader || Packet->LH->Type != QUIC_RETRY);
+    CXPLAT_DBG_ASSERT(Packet->IsShortHeader ||
+        ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V1) ||
+        (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V2)));
 
     //
     // Ensure minimum encrypted payload length.
@@ -4158,8 +4203,9 @@ QuicConnRecvDecryptAndAuthenticate(
     //
 
     if (!Packet->IsShortHeader) {
-        switch (Packet->LH->Type) {
-        case QUIC_INITIAL:
+        BOOLEAN IsVersion2 = (Connection->Stats.QuicVersion == QUIC_VERSION_2);
+        if ((!IsVersion2 && Packet->LH->Type == QUIC_INITIAL_V1) ||
+            (IsVersion2 && Packet->LH->Type == QUIC_INITIAL_V2)) {
             if (!Connection->State.Connected &&
                 QuicConnIsClient(Connection) &&
                 !QuicConnUpdateDestCid(Connection, Packet)) {
@@ -4169,15 +4215,11 @@ QuicConnRecvDecryptAndAuthenticate(
                 //
                 return FALSE;
             }
-            break;
+        } else if ((!IsVersion2 && Packet->LH->Type == QUIC_0_RTT_PROTECTED_V1) ||
+            (IsVersion2 && Packet->LH->Type == QUIC_0_RTT_PROTECTED_V2)) {
 
-        case QUIC_0_RTT_PROTECTED:
             CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
             Packet->EncryptedWith0Rtt = TRUE;
-            break;
-
-        default:
-            break;
         }
     }
 
@@ -4409,6 +4451,7 @@ QuicConnRecvFrames(
             if (QUIC_SUCCEEDED(Status)) {
                 AckEliciting = TRUE;
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
+                QuicPacketLogDrop(Connection, Packet, "Crypto frame process OOM");
                 return FALSE;
             } else {
                 if (Status == QUIC_STATUS_VER_NEG_ERROR) {
@@ -4549,6 +4592,7 @@ QuicConnRecvFrames(
                         &UpdatedFlowControl);
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_LOOKUP);
                 if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
+                    QuicPacketLogDrop(Connection, Packet, "Stream frame process OOM");
                     return FALSE;
                 }
 
@@ -5324,7 +5368,6 @@ QuicConnRecvDatagramBatch(
             }
 
         } else {
-            Connection->Stats.Recv.DroppedPackets++;
             if (Connection->State.CompatibleVerNegotiationAttempted &&
                 !Connection->State.CompatibleVerNegotiationCompleted) {
                 //
@@ -5460,11 +5503,8 @@ QuicConnRecvDatagrams(
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
                 if (Packet->ReleaseDeferred) {
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
-                } else {
-                    Connection->Stats.Recv.DroppedPackets++;
-                    if (!Packet->IsShortHeader && Packet->ValidatedHeaderVer) {
-                        goto NextPacket;
-                    }
+                } else if (!Packet->IsShortHeader && Packet->ValidatedHeaderVer) {
+                    goto NextPacket;
                 }
                 break;
             }
@@ -5780,13 +5820,10 @@ QuicConnProcessRouteCompletion(
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
     if (Path != NULL) {
         if (Succeeded) {
-            QuicTraceLogConnInfo(
-                SuccessfulRouteResolution,
-                Connection,
-                "Processing successful route completion Path[%hhu]",
-                PathId);
             CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            if (!QuicSendFlush(&Connection->Send)) {
+                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            }
         } else {
             //
             // Kill the path that failed route resolution and make the next path active if possible.
@@ -5795,12 +5832,16 @@ QuicConnProcessRouteCompletion(
                 QuicTraceLogConnInfo(
                     FailedRouteResolution,
                     Connection,
-                    "Processing failed route completion Path[%hhu]",
+                    "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
-                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+                QuicPathRemove(Connection, 1);
+                if (!QuicSendFlush(&Connection->Send)) {
+                    QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+                }
+            } else {
+                QuicPathRemove(Connection, PathIndex);
             }
-            QuicPathRemove(Connection, PathIndex);
         }
     }
 
@@ -5942,7 +5983,7 @@ QuicConnParamSet(
     )
 {
     QUIC_STATUS Status;
-    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_SETTINGS_INTERNAL InternalSettings = {0};
 
     switch (Param) {
 
@@ -6085,7 +6126,6 @@ QuicConnParamSet(
         if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -6112,11 +6152,12 @@ QuicConnParamSet(
         if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        QuicSettingsCleanup(&InternalSettings);
 
         break;
 
@@ -6970,7 +7011,6 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyExternalToInternal,
     _In_ const QUIC_SETTINGS_INTERNAL* NewSettings
     )
 {
@@ -6982,7 +7022,6 @@ QuicConnApplyNewSettings(
     if (!QuicSettingApply(
             &Connection->Settings,
             OverWrite,
-            CopyExternalToInternal,
             !Connection->State.Started,
             NewSettings)) {
         return FALSE;
@@ -7014,8 +7053,8 @@ QuicConnApplyNewSettings(
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
         QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
 
-        if (QuicConnIsClient(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
-            Connection->Stats.QuicVersion = Connection->Settings.DesiredVersionsList[0];
+        if (QuicConnIsClient(Connection) && Connection->Settings.IsSet.VersionSettings) {
+            Connection->Stats.QuicVersion = Connection->Settings.VersionSettings->FullyDeployedVersions[0];
             QuicConnOnQuicVersionSet(Connection);
             //
             // The version has changed AFTER the crypto layer has been initialized,

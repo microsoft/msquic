@@ -252,34 +252,34 @@ function Get-CurrentBranch {
 }
 
 function Get-ExePath {
-    param ($PathRoot, $Platform, $IsRemote)
+    param ($PathRoot, $Platform, $IsRemote, $ExtraArtifactDir)
     if ($IsRemote) {
-        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$ExtraArtifactDir"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr)
             Join-Path $PathRoot $Platform $ConfigStr
         } -ArgumentList $PathRoot, $Platform, $ConfigStr
     } else {
-        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
+        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)$ExtraArtifactDir"
         return Join-Path $PathRoot $Platform $ConfigStr
     }
 }
 
 function Get-ExeName {
-    param ($PathRoot, $Platform, $IsRemote, $TestPlat)
+    param ($PathRoot, $Platform, $IsRemote, $TestPlat, $ExtraArtifactDir)
     $ExeName = $TestPlat.Exe
     if ($Platform -eq "windows") {
         $ExeName += ".exe"
     }
 
     if ($IsRemote) {
-        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$ExtraArtifactDir"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr, $ExeName)
             Join-Path $PathRoot $Platform $ConfigStr $ExeName
         } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
-        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
+        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)$ExtraArtifactDir"
         return Join-Path $PathRoot $Platform $ConfigStr $ExeName
     }
 }
@@ -387,7 +387,7 @@ function Invoke-RemoteExe {
         }
 
         if ($Record) {
-            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
 }
@@ -399,7 +399,7 @@ function Get-RemoteLogDirectory {
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         Write-Host $SmbDir
         Write-Host $Local
-        robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
+        robocopy $SmbDir $Local /e /IS /IT /IM /COMPRESS | Out-Null
         if ($LASTEXITCODE -ne 3) {
             Write-Error "Robocopy failed: $LASTEXITCODE"
         } else {
@@ -460,7 +460,7 @@ function Stop-Tracing {
     param($LocalDirectory, $OutputDir, $Test)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
     }
 }
 

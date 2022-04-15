@@ -1724,7 +1724,7 @@ QuicCryptoTlsDecodeTransportParameters(
             break;
 
         case QUIC_TP_ID_VERSION_NEGOTIATION_EXT:
-            if (Length < 5) {
+            if (Length < MIN_VERSION_INFO_LENGTH) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
