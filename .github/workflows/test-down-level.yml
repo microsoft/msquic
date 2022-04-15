@@ -10,6 +10,12 @@ on:
     - main
     - release/*
 
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: testdownlevel-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 permissions: read-all
 
 jobs:
@@ -17,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.1']
+        release: ['2.0.2']
         os: [ubuntu-latest, windows-latest]
         arch: [x64]
         tls: [schannel, openssl]

@@ -465,6 +465,7 @@ QuicTestValidateConnectionEvents3(
 
     QUIC_BUFFER* ResumptionTicket = nullptr;
     QuicTestPrimeResumption(
+        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
         Registration,
         ServerConfiguration,
         ClientConfiguration,

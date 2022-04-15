@@ -459,6 +459,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CIBIR_EXTENSION),
     0,
     0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1189,6 +1190,13 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS:
         QuicTestCtlRun(QuicTestResumptionAcrossVersions());
+        break;
+
+    case IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestClientBlockedSourcePort(
+                Params->Family));
         break;
 
     default:

@@ -387,7 +387,7 @@ function Invoke-RemoteExe {
         }
 
         if ($Record) {
-            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
 }
@@ -399,7 +399,7 @@ function Get-RemoteLogDirectory {
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         Write-Host $SmbDir
         Write-Host $Local
-        robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
+        robocopy $SmbDir $Local /e /IS /IT /IM /COMPRESS | Out-Null
         if ($LASTEXITCODE -ne 3) {
             Write-Error "Robocopy failed: $LASTEXITCODE"
         } else {
@@ -460,7 +460,7 @@ function Stop-Tracing {
     param($LocalDirectory, $OutputDir, $Test)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
     }
 }
 

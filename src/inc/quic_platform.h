@@ -503,7 +503,7 @@ typedef enum CXPLAT_TEST_CERT_TYPE {
 } CXPLAT_TEST_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-const QUIC_CREDENTIAL_CONFIG*
+QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
     _In_ BOOLEAN ClientCertificate

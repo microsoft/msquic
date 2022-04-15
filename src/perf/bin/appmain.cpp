@@ -372,12 +372,13 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
+    QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
     bool KeyboardWait = false;
     const char* FileName = nullptr;
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
+    uint8_t CipherSuite = 0;
     constexpr const char* DriverSearch = "driverName";
     size_t DriverLen = strlen(DriverSearch);
 
@@ -435,6 +436,11 @@ main(
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
+    }
+
+    if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
+        SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+        SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
     }
 
     if (DriverName != nullptr) {
