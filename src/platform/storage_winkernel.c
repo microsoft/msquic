@@ -180,6 +180,11 @@ CxPlatStorageCreateAppKey(
             Utf8String,
             (ULONG)Utf8Length);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
         return Status;
     }
 
@@ -211,11 +216,16 @@ CxPlatStorageCreateAppKey(
             Utf8String,
             (ULONG)Utf8Length);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
         CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
         return Status;
     }
 
-    UnicodeString->Length = (USHORT)UnicodeLength;
+    UnicodeString->Length += (USHORT)UnicodeLength;
     *NewUnicodeString = UnicodeString;
 
     return Status;
