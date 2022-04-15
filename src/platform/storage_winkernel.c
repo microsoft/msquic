@@ -131,6 +131,11 @@ CxPlatConvertUtf8ToUnicode(
         CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (UnicodeString == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "UnicodeString from UTF8",
+            sizeof(UNICODE_STRING) + UnicodeLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -197,6 +202,11 @@ CxPlatStorageCreateAppKey(
     PUNICODE_STRING UnicodeString =
         CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (UnicodeString == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "UnicodeString for app storage key",
+            sizeof(UNICODE_STRING) + UnicodeLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -273,6 +283,11 @@ CxPlatStorageOpen(
 
     Storage = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_STORAGE",
+            sizeof(CXPLAT_STORAGE));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

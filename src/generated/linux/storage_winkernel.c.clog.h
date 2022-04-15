@@ -22,15 +22,35 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "UnicodeString from UTF8",
+            sizeof(UNICODE_STRING) + UnicodeLength);
+// arg2 = arg2 = "UnicodeString from UTF8" = arg2
+// arg3 = arg3 = sizeof(UNICODE_STRING) + UnicodeLength = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STORAGE_WINKERNEL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatStorageCreateAppKey failed");
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
 // arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "CxPlatStorageCreateAppKey failed" = arg3
+// arg3 = arg3 = "RtlUTF8ToUnicodeN failed" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
