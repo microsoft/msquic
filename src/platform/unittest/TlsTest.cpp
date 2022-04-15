@@ -165,13 +165,16 @@ protected:
         SelfSignedCertParamsFlags = SelfSignedCertParams->Flags;
         ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
-        ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCertParams->Flags |=
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #ifndef QUIC_DISABLE_PFX_TESTS
         if (PfxPath != nullptr) {
             CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
             ASSERT_NE(nullptr, CertParamsFromFile);
             CxPlatZeroMemory(CertParamsFromFile, sizeof(*CertParamsFromFile));
             CertParamsFromFile->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12;
+            CertParamsFromFile->Flags |= QUIC_CREDENTIAL_FLAG_CLIENT;
             CertParamsFromFile->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CERTIFICATE_PKCS12), QUIC_POOL_TEST);
             ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12);
             CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
