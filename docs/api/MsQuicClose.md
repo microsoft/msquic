@@ -25,6 +25,8 @@ The function table from a previous call to [MsQuicOpenVersion](MsQuicOpenVersion
 
 This function **must** be called when the app is done with the MsQuic library.
 
+**MsQuicClose** and [MsQuicOpenVersion](MsQuicOpenVersion.md) are not thread-safe if the caller is statically linking MsQuic, and therefore must not be called in parallel.
+
 # See Also
 
 [MsQuicOpenVersion](MsQuicOpenVersion.md)<br>
