@@ -1197,6 +1197,10 @@ impl Api {
         }
         Api { table: new_table }
     }
+    
+    pub fn close(&mut self) {
+        unsafe { MsQuicClose(self.table) };
+    }
 
     pub fn close_listener(&self, listener: Handle) {
         unsafe {
