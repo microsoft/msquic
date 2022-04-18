@@ -1897,7 +1897,6 @@ int main(int argc, char** argv) {
     RegCloseKey(Key);
 #endif
 
-
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
             TestingKernelMode = true;
