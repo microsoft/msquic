@@ -1197,7 +1197,7 @@ impl Api {
         }
         Api { table: new_table }
     }
-    
+
     pub fn close(&mut self) {
         unsafe { MsQuicClose(self.table) };
     }
@@ -1489,6 +1489,12 @@ impl Listener {
         };
         if Status::failed(status) {
             panic!("ListenerStart failed, {:x}!\n", status);
+        }
+    }
+
+    pub fn close(&self) {
+        unsafe {
+            ((*self.table).listener_close)(self.handle);
         }
     }
 }
