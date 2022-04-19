@@ -77,6 +77,18 @@ QuicTestMtuSettings()
     MsQuicAlpn Alpn("MsQuicTest");
     {
         {
+            MsQuicSettings Settings;
+
+            //
+            // Test just setting lower bound
+            //
+            Settings.SetMinimumMtu(1);
+
+            MsQuicCredentialConfig ClientCredConfig;
+            MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+        }
+        {
             MsQuicCredentialConfig ClientCredConfig;
             MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
             TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
