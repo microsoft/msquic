@@ -229,12 +229,20 @@ QuicSettingsCopy(
                 QuicSettingsCopyVersionSettings(Source->VersionSettings, FALSE);
         }
     }
-    if (!Destination->IsSet.MinimumMtu) {
+
+    if (!Destination->IsSet.MinimumMtu && !Destination->IsSet.MaximumMtu) {
         Destination->MinimumMtu = Source->MinimumMtu;
-    }
-    if (!Destination->IsSet.MaximumMtu) {
         Destination->MaximumMtu = Source->MaximumMtu;
+    } else if (Destination->IsSet.MinimumMtu && !Destination->IsSet.MaximumMtu) {
+        if (Source->MaximumMtu > Destination->MinimumMtu) {
+            Destination->MaximumMtu = Source->MaximumMtu;
+        }
+    } else if (Destination->IsSet.MaximumMtu && !Destination->IsSet.MinimumMtu) {
+        if (Source->MinimumMtu < Destination->MaximumMtu) {
+            Destination->MinimumMtu = Source->MinimumMtu;
+        }
     }
+
     if (!Destination->IsSet.MtuDiscoveryMissingProbeCount) {
         Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
     }
@@ -503,8 +511,10 @@ QuicSettingApply(
         if (MinimumMtu > MaximumMtu) {
             return FALSE;
         }
-        if (Source->IsSet.MinimumMtu || Source->IsSet.MaximumMtu) {
+        if (Source->IsSet.MinimumMtu) {
             Destination->IsSet.MinimumMtu = TRUE;
+        }
+        if (Source->IsSet.MaximumMtu) {
             Destination->IsSet.MaximumMtu = TRUE;
         }
         Destination->MinimumMtu = MinimumMtu;
