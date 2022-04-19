@@ -42,7 +42,7 @@ static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _
 
 struct ResetSettings {
     MsQuicSettings CurrentSettings;
-    HRESULT GetResult = QUIC_STATUS_OUT_OF_MEMORY;
+    QUIC_STATUS GetResult = QUIC_STATUS_OUT_OF_MEMORY;
     ResetSettings() {
         GetResult = CurrentSettings.GetGlobal();
     }
