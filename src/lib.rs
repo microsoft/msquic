@@ -1489,6 +1489,12 @@ impl Listener {
     }
 }
 
+impl Drop for Listener {
+    fn drop(&mut self) {
+        unsafe { ((*self.table).listener_close)(self.handle) };
+    }
+}
+
 impl Stream {
     pub fn new(context: *const c_void) -> Stream {
         let api = unsafe { &*(context as *const Api) };
