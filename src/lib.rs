@@ -1198,10 +1198,6 @@ impl Api {
         Api { table: new_table }
     }
 
-    pub fn close(&mut self) {
-        unsafe { MsQuicClose(self.table) };
-    }
-
     pub fn close_listener(&self, listener: Handle) {
         unsafe {
             ((*self.table).listener_close)(listener);
@@ -1491,11 +1487,11 @@ impl Listener {
             panic!("ListenerStart failed, {:x}!\n", status);
         }
     }
+}
 
-    pub fn close(&self) {
-        unsafe {
-            ((*self.table).listener_close)(self.handle);
-        }
+impl Drop for Listener {
+    fn drop(&mut self) {
+        unsafe { ((*self.table).listener_close)(self.handle) };
     }
 }
 
