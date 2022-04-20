@@ -2127,53 +2127,6 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
     TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
 }
 
-#ifdef QUIC_UWP_BUILD
-WINADVAPI
-LSTATUS
-APIENTRY
-RegDeleteKeyValueA(
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey,
-    _In_opt_ LPCSTR lpValueName
-    );
-
-WINADVAPI
-LSTATUS
-APIENTRY
-RegDeleteKeyA (
-    _In_ HKEY hKey,
-    _In_ LPCSTR lpSubKey
-    );
-
-WINADVAPI
-LSTATUS
-APIENTRY
-RegCreateKeyA (
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey,
-    _Out_ PHKEY phkResult
-    );
-
-WINADVAPI
-LSTATUS
-APIENTRY
-RegSetKeyValueA(
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey,
-    _In_opt_ LPCSTR lpValueName,
-    _In_ DWORD dwType,
-    _In_reads_bytes_opt_(cbData) LPCVOID lpData,
-    _In_ DWORD cbData
-    );
-
-WINADVAPI
-LSTATUS
-APIENTRY
-RegCloseKey(
-    _In_ HKEY hKey
-    );
-#endif
-
 void
 QuicTestStorage()
 {

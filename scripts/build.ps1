@@ -381,8 +381,9 @@ function CMake-Generate {
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
+    # On uwp, only the main binary can be built.
     if ($Platform -eq "uwp") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
     }
     # On gamecore, only the main binary can be built.
     if ($Platform -eq "gamecore_console") {
