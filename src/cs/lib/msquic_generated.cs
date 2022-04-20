@@ -14,9 +14,9 @@ namespace Microsoft.Quic
     public enum QUIC_EXECUTION_PROFILE
     {
         LOW_LATENCY,
-        TYPE_MAX_THROUGHPUT,
-        TYPE_SCAVENGER,
-        TYPE_REAL_TIME,
+        MAX_THROUGHPUT,
+        SCAVENGER,
+        REAL_TIME,
     }
 
     public enum QUIC_LOAD_BALANCING_MODE

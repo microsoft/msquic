@@ -53,6 +53,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace '\(anonymous union.+\)\"', "(anonymous union)`"" `
     -replace "public enum .*?_FLAGS","[System.Flags]`n    `$0" `
     -replace "const int", "const uint" `
+    -replace "  QUIC_EXECUTION_PROFILE_TYPE_", "  " `
     -replace "  QUIC_EXECUTION_PROFILE_", "  " `
     -replace "  QUIC_LOAD_BALANCING_", "  " `
     -replace "  QUIC_CREDENTIAL_TYPE_", "  " `
