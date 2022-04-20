@@ -51,7 +51,7 @@ namespace MsQuicTool
                 settings.PeerUnidiStreamCount = 3;
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationOpen(registration, &buffer, 1, &settings, (uint)sizeof(QUIC_SETTINGS), null, &configuration));
                 QUIC_CREDENTIAL_CONFIG config = new();
-                config.Flags = QUIC_CREDENTIAL_FLAGS.QUIC_CREDENTIAL_FLAG_CLIENT;
+                config.Flags = QUIC_CREDENTIAL_FLAGS.CLIENT;
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationLoadCredential(configuration, &config));
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionOpen(registration, &NativeCallback, ApiTable, &connection));
                 sbyte* google = stackalloc sbyte[50];
