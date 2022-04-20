@@ -1882,6 +1882,24 @@ INSTANTIATE_TEST_SUITE_P(
     WithDrillInitialPacketTokenArgs,
     testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
 
+#ifdef QUIC_UWP_BUILD
+WINADVAPI
+LSTATUS
+APIENTRY
+RegCreateKeyA (
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _Out_ PHKEY phkResult
+    );
+
+WINADVAPI
+LSTATUS
+APIENTRY
+RegCloseKey(
+    _In_ HKEY hKey
+    );
+#endif
+
 int main(int argc, char** argv) {
 #ifdef _WIN32
     //
