@@ -5,7 +5,7 @@
 
 namespace Microsoft.Quic
 {
-    public static partial class MsQuic_Windows
+    internal static partial class MsQuic_Windows
     {
         [NativeTypeName("#define QUIC_STATUS_SUCCESS S_OK")]
         public const int QUIC_STATUS_SUCCESS = ((int)(0));

@@ -2,11 +2,11 @@
 
 namespace Microsoft.Quic
 {
-    public class QuicException : Exception
+    public class MsQuicException : Exception
     {
         public int Status { get; }
 
-        public QuicException(int status) : base(GetErrorCodeForStatus(status))
+        public MsQuicException(int status) : base(GetErrorCodeForStatus(status))
         {
             Status = status;
         }
