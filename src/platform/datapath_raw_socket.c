@@ -623,7 +623,7 @@ CxPlatDpRawParseIPv4(
         uint16_t IPTotalLength;
         IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
 
-        if (Length != IPTotalLength) {
+        if (Length < IPTotalLength) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
@@ -674,7 +674,7 @@ CxPlatDpRawParseIPv6(
     if (IP->NextHeader == IPPROTO_UDP) {
         uint16_t IPPayloadLength;
         IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
-        if (IPPayloadLength != Length - sizeof(IPV6_HEADER)) {
+        if (IPPayloadLength + sizeof(IPV6_HEADER) > Length) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
