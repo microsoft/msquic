@@ -75,7 +75,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public static readonly int QUIC_STATUS_SUCCESS => OperatingSystem.IsWindows() ? MsQuic_Windows.QUIC_STATUS_SUCCESS : (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid()) ? MsQuic_Linux.QUIC_STATUS_SUCCESS : MsQuic_MacOS.QUIC_STATUS_SUCCESS;
+        public static int QUIC_STATUS_SUCCESS => OperatingSystem.IsWindows() ? MsQuic_Windows.QUIC_STATUS_SUCCESS : (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid()) ? MsQuic_Linux.QUIC_STATUS_SUCCESS : MsQuic_MacOS.QUIC_STATUS_SUCCESS;
         public static int QUIC_STATUS_PENDING => OperatingSystem.IsWindows() ? MsQuic_Windows.QUIC_STATUS_PENDING : (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid()) ? MsQuic_Linux.QUIC_STATUS_PENDING : MsQuic_Linux.QUIC_STATUS_PENDING;
         public static int QUIC_STATUS_CONTINUE => OperatingSystem.IsWindows() ? MsQuic_Windows.QUIC_STATUS_CONTINUE : (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid()) ? MsQuic_Linux.QUIC_STATUS_CONTINUE : MsQuic_Linux.QUIC_STATUS_CONTINUE;
         public static int QUIC_STATUS_OUT_OF_MEMORY => OperatingSystem.IsWindows() ? MsQuic_Windows.QUIC_STATUS_OUT_OF_MEMORY : (OperatingSystem.IsLinux() || OperatingSystem.IsAndroid()) ? MsQuic_Linux.QUIC_STATUS_OUT_OF_MEMORY : MsQuic_Linux.QUIC_STATUS_OUT_OF_MEMORY;
@@ -136,7 +136,7 @@ namespace Microsoft.Quic
 #else
     internal
 #endif
- struct QuicAddrFamilyAndLen
+    struct QuicAddrFamilyAndLen
     {
         [FieldOffset(0)]
         public ushort sin_family;
@@ -152,7 +152,7 @@ namespace Microsoft.Quic
 #else
     internal
 #endif
-     unsafe struct QuicAddrIn
+    unsafe struct QuicAddrIn
     {
         public QuicAddrFamilyAndLen sin_family;
         public ushort sin_port;
@@ -165,7 +165,7 @@ namespace Microsoft.Quic
 #else
     internal
 #endif
-     unsafe struct QuicAddrIn6
+    unsafe struct QuicAddrIn6
     {
         public QuicAddrFamilyAndLen sin6_family;
         public ushort sin6_port;
@@ -180,7 +180,7 @@ namespace Microsoft.Quic
 #else
     internal
 #endif
-     struct QuicAddr
+    struct QuicAddr
     {
         [FieldOffset(0)]
         public QuicAddrIn Ipv4;
@@ -189,11 +189,13 @@ namespace Microsoft.Quic
         [FieldOffset(0)]
         public QuicAddrFamilyAndLen FamilyLen;
 
+        public static bool SockaddrHasLength => OperatingSystem.IsFreeBSD() || OperatingSystem.IsIOS() || OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst() || OperatingSystem.IsTvOS() || OperatingSystem.IsWatchOS();
+
         public int Family
         {
             get
             {
-                if (OperatingSystem.IsFreeBSD() || OperatingSystem.IsIOS() || OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst() || OperatingSystem.IsTvOS() || OperatingSystem.IsWatchOS())
+                if (SockaddrHasLength)
                 {
                     return FamilyLen.sin_family_bsd;
                 }
@@ -204,7 +206,7 @@ namespace Microsoft.Quic
             }
             set
             {
-                if (OperatingSystem.IsFreeBSD() || OperatingSystem.IsIOS() || OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst() || OperatingSystem.IsTvOS() || OperatingSystem.IsWatchOS())
+                if (SockaddrHasLength)
                 {
                     FamilyLen.sin_family_bsd = (byte)value;
                 }
