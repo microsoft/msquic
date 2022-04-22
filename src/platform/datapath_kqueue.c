@@ -1129,7 +1129,7 @@ CxPlatSocketContextStartReceive(
     struct kevent Event = {0};
     EV_SET(
         &Event, SocketContext->SocketFd,
-        EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
+        EVFILT_READ, EV_ADD | EV_ENABLE,
         0,
         0,
         (void*)SocketContext);
