@@ -3,26 +3,26 @@
 
 /*----------------------------------------------------------
 // Decoder Ring for RouteResolutionEnd
-// [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu
+// [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
 // QuicTraceLogConnInfo(
         RouteResolutionEnd,
         Connection,
-        "Route resolution completed on Path[%hhu] with L2 address %hhu:%hhu:%hhu:%hhu:%hhu:%hhu",
+        "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
-        PhysicalAddress[0],
-        PhysicalAddress[1],
-        PhysicalAddress[2],
-        PhysicalAddress[3],
-        PhysicalAddress[4],
-        PhysicalAddress[5]);
+        Route->NextHopLinkLayerAddress[0],
+        Route->NextHopLinkLayerAddress[1],
+        Route->NextHopLinkLayerAddress[2],
+        Route->NextHopLinkLayerAddress[3],
+        Route->NextHopLinkLayerAddress[4],
+        Route->NextHopLinkLayerAddress[5]);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3
-// arg4 = arg4 = PhysicalAddress[0] = arg4
-// arg5 = arg5 = PhysicalAddress[1] = arg5
-// arg6 = arg6 = PhysicalAddress[2] = arg6
-// arg7 = arg7 = PhysicalAddress[3] = arg7
-// arg8 = arg8 = PhysicalAddress[4] = arg8
-// arg9 = arg9 = PhysicalAddress[5] = arg9
+// arg4 = arg4 = Route->NextHopLinkLayerAddress[0] = arg4
+// arg5 = arg5 = Route->NextHopLinkLayerAddress[1] = arg5
+// arg6 = arg6 = Route->NextHopLinkLayerAddress[2] = arg6
+// arg7 = arg7 = Route->NextHopLinkLayerAddress[3] = arg7
+// arg8 = arg8 = Route->NextHopLinkLayerAddress[4] = arg8
+// arg9 = arg9 = Route->NextHopLinkLayerAddress[5] = arg9
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd,
     TP_ARGS(
@@ -105,10 +105,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, LibraryErrorStatus,
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "socket");
 // arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = Error = arg3
+// arg3 = arg3 = WsaError = arg3
 // arg4 = arg4 = "socket" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,

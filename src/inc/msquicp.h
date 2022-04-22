@@ -102,6 +102,17 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x81000000  // QUIC_TEST_DATAPATH_HOOKS*
 #define QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR        0x81000001  // uint32_t
 #define QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE              0x81000002  // uint32_t
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED   0x81000003  // BOOLEAN
+#endif
+
+//
+// The different private parameters for Configuration.
+//
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED    0x83000001  // BOOLEAN
+#endif
 
 //
 // The different private parameters for Connection.

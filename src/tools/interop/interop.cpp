@@ -372,31 +372,33 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
-            uint32_t DesiredVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
-            QUIC_SETTINGS Settings = { 0 };
-            Settings.DesiredVersionsList = DesiredVersions;
-            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
-            Settings.IsSet.DesiredVersionsList = TRUE;
-            Settings.VersionNegotiationExtEnabled = TRUE;
-            Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
+            QUIC_VERSION_SETTINGS Settings = { 0 };
+            Settings.AcceptableVersions = SupportedVersions;
+            Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.OfferedVersions = SupportedVersions;
+            Settings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.FullyDeployedVersions = SupportedVersions;
+            Settings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_CONN_SETTINGS,
+                    QUIC_PARAM_CONN_VERSION_SETTINGS,
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
-            uint32_t DesiredVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
-            QUIC_SETTINGS Settings = { 0 };
-            Settings.DesiredVersionsList = DesiredVersions;
-            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
-            Settings.IsSet.DesiredVersionsList = TRUE;
-            Settings.VersionNegotiationExtEnabled = TRUE;
-            Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+            uint32_t SupportedVersions[] = { InitialVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
+            QUIC_VERSION_SETTINGS Settings = { 0 };
+            Settings.AcceptableVersions = SupportedVersions;
+            Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.OfferedVersions = SupportedVersions;
+            Settings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+            Settings.FullyDeployedVersions = SupportedVersions;
+            Settings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
-                    QUIC_PARAM_CONN_SETTINGS,
+                    QUIC_PARAM_CONN_VERSION_SETTINGS,
                     sizeof(Settings),
                     &Settings));
         }

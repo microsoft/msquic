@@ -39,13 +39,7 @@ body:
         - main
         - release/1.0
         - release/1.1
-        - prerelease/1.2
-        - prerelease/1.3
-        - prerelease/1.4
-        - prerelease/1.5
-        - prerelease/1.6
-        - prerelease/1.7
-        - prerelease/1.8
+        - release/2.0
   - type: textarea
     validations:
       required: true

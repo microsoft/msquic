@@ -558,6 +558,11 @@ typedef struct CXPLAT_TLS {
     //
     CXPLAT_SEC_CONFIG* SecConfig;
 
+    //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
     SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
 
     ULONG AppProtocolsSize;
@@ -937,8 +942,14 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
     }
 
-    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
-        return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    if (IsClient) {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+        }
+    } else {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Using supplied credentials is a client-only flag.
+        }
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
@@ -1459,6 +1470,8 @@ CxPlatTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_TLS* TlsContext = NULL;
 
+    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+
     if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         QuicTraceEvent(
             TlsError,
@@ -1486,6 +1499,7 @@ CxPlatTlsInitialize(
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->Connection = Config->Connection;
+    TlsContext->HkdfLabels = Config->HkdfLabels;
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
@@ -1582,6 +1596,16 @@ CxPlatTlsUninitialize(
         }
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
+    )
+{
+    TlsContext->HkdfLabels = Labels;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1855,6 +1879,10 @@ CxPlatTlsWriteDataToSchannel(
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             ContextReq |= ASC_REQ_MUTUAL_AUTH;
         }
+    }
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+        CXPLAT_DBG_ASSERT(!TlsContext->IsServer); // Previously validated, but let's just make sure.
+        ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
     }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
@@ -2952,6 +2980,7 @@ QuicPacketKeyCreate(
     Status =
         QuicPacketKeyDerive(
             KeyType,
+            TlsContext->HkdfLabels,
             &Secret,
             SecretName,
             TRUE,

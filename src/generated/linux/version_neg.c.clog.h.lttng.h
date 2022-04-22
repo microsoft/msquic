@@ -28,12 +28,12 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
 // Decoder Ring for VersionInfoDecodeFailed2
 // [conn][%p] Version info too short to contain any Other Versions (%hu bytes)
 // QuicTraceLogConnError(
-            VersionInfoDecodeFailed2,
-            Connection,
-            "Version info too short to contain any Other Versions (%hu bytes)",
-            BufferLength);
+                VersionInfoDecodeFailed2,
+                Connection,
+                "Version info too short to contain any Other Versions (%hu bytes)",
+                (unsigned)(BufferLength - Offset));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = BufferLength = arg3
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
     TP_ARGS(
@@ -136,10 +136,10 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded,
             Connection,
             "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
-            DesiredVersionsListLength);
+            OtherVersionsListLength);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Stats.QuicVersion = arg3
-// arg4 = arg4 = DesiredVersionsListLength = arg4
+// arg4 = arg4 = OtherVersionsListLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionNegotiationInfoEncoded,
     TP_ARGS(

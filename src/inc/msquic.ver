@@ -8,7 +8,7 @@
 #endif
 
 #ifndef VER_MINOR
-#define VER_MINOR 0
+#define VER_MINOR 1
 #endif
 
 #ifndef VER_PATCH
@@ -21,6 +21,14 @@
 
 #ifndef VER_SUFFIX
 #define VER_SUFFIX -private
+#endif
+
+#ifndef VER_GIT_HASH
+#define VER_GIT_HASH_STR "Unknown"
+#else
+#define STR_HELPER_GIT_VER(x) #x
+#define STR_GIT_VER(x) STR_HELPER_GIT_VER(x)
+#define VER_GIT_HASH_STR STR_GIT_VER(VER_GIT_HASH)
 #endif
 
 #ifndef QUIC_VERSION_ONLY

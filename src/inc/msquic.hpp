@@ -374,6 +374,20 @@ public:
     uint32_t Length() const noexcept { return BuffersLength; }
 };
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
+public:
+    MsQuicVersionSettings() noexcept {}
+    MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+        return *this;
+    }
+};
+
+static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
+#endif
+
 class MsQuicSettings : public QUIC_SETTINGS {
 public:
     MsQuicSettings() noexcept { IsSetFlags = 0; }
@@ -390,9 +404,6 @@ public:
     MsQuicSettings& SetPeerUnidiStreamCount(uint16_t Value) { PeerUnidiStreamCount = Value; IsSet.PeerUnidiStreamCount = TRUE; return *this; }
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
     MsQuicSettings& SetMaxAckDelayMs(uint32_t Value) { MaxAckDelayMs = Value; IsSet.MaxAckDelayMs = TRUE; return *this; }
-    MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
-        DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
-    MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
     MsQuicSettings& SetMaximumMtu(uint16_t Mtu) { MaximumMtu = Mtu; IsSet.MaximumMtu = TRUE; return *this; }
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
@@ -423,6 +434,8 @@ public:
                 Settings);
     }
 };
+
+static_assert(sizeof(QUIC_SETTINGS) == sizeof(MsQuicSettings), "Cpp wrappers must not change size");
 
 class MsQuicCertificateHash : public QUIC_CERTIFICATE_HASH {
 public:
@@ -574,6 +587,41 @@ public:
                 sizeof(*QSettings),
                 QSettings);
     }
+
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings& Settings) noexcept {
+        QUIC_SETTINGS* QSettings = &Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                &Size,
+                QSettings);
+    }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetVersionSettings(
+        _In_ const MsQuicVersionSettings& Settings) noexcept {
+        const QUIC_VERSION_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
+    }
+
+    QUIC_STATUS
+    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+        return MsQuic->SetParam(
+            Handle,
+            QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
+            sizeof(Value),
+            &Value);
+    }
+#endif
 };
 
 struct MsQuicListener {
@@ -642,6 +690,31 @@ struct MsQuicListener {
                 QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
                 &Size,
                 &Addr.SockAddr);
+    }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetCibirId(
+        _In_reads_(Length) const uint8_t* Value,
+        _In_ uint8_t Length) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_CIBIR_ID,
+                Length,
+                Value);
+    }
+#endif
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_LISTENER_STATISTICS& Statistics) const noexcept {
+        uint32_t Size = sizeof(Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_STATS,
+                &Size,
+                &Statistics);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -746,14 +819,6 @@ struct MsQuicConnection {
         _In_ uint16_t ServerPort // Host byte order
         ) noexcept {
         return MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
-    }
-
-    QUIC_STATUS
-    StartLocalhost(
-        _In_ const MsQuicConfiguration& Config,
-        _In_ const QuicAddr& LocalhostAddr
-        ) noexcept {
-        return MsQuic->ConnectionStart(Handle, Config, LocalhostAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()), LocalhostAddr.GetPort());
     }
 
     QUIC_STATUS
@@ -907,6 +972,20 @@ struct MsQuicConnection {
                 sizeof(Value),
                 &Value);
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetCibirId(
+        _In_reads_(Length) const uint8_t* Value,
+        _In_ uint8_t Length) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                Length,
+                Value);
+    }
+#endif
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }

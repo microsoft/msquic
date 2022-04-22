@@ -33,8 +33,9 @@ Abstract:
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
 
-typedef struct _XDP_QUEUE {
+typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
+    struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
     XSK_RING RxFillRing;
@@ -62,31 +63,45 @@ typedef struct _XDP_QUEUE {
 
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
-    uint8_t QueueCount;
+    uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
-    XDP_QUEUE* Queues;
+    XDP_QUEUE* Queues; // An array of queues.
 } XDP_INTERFACE;
+
+typedef struct QUIC_CACHEALIGN XDP_WORKER {
+    const struct XDP_DATAPATH* Xdp;
+    HANDLE CompletionEvent;
+    XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
+    uint16_t ProcIndex;
+} XDP_WORKER;
+
+void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
+    XDP_QUEUE** Tail = &Worker->Queues;
+    while (*Tail != NULL) {
+        Tail = &(*Tail)->Next;
+    }
+    *Tail = Queue;
+    Queue->Next = NULL;
+}
 
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
-
-    BOOLEAN Running;
-    HANDLE CompletionEvent;
-
-    // Constants
     DECLSPEC_CACHEALIGN
-    uint16_t DatapathCpuGroup;
     //
     // Currently, all XDP interfaces share the same config.
     //
+    uint32_t WorkerCount;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
+    BOOLEAN Running;        // Signal to stop workers.
+
+    XDP_WORKER Workers[0];
 } XDP_DATAPATH;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
@@ -124,7 +139,7 @@ CxPlatDataPathRecvDataToRecvPacket(
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
     _In_ uint32_t InterfaceIndex,
-    _Out_ uint8_t* Count
+    _Out_ uint16_t* Count
     )
 {
     HRESULT hRes;
@@ -132,7 +147,7 @@ CxPlatGetInterfaceRssQueueCount(
     IEnumWbemClassObject *pEnum = NULL;
     IWbemServices *pSvc = NULL;
     DWORD ret = 0;
-    uint8_t cnt = 0;
+    uint16_t cnt = 0;
     NET_LUID if_luid = { 0 };
     WCHAR if_alias[256 + 1] = { 0 };
 
@@ -284,9 +299,10 @@ CxPlatGetInterfaceRssQueueCount(
         } else {
             long lLower, lUpper;
             SAFEARRAY *pSafeArray = vtProp.parray;
-            UINT8 *rssIndicesBitset = NULL;
-            DWORD rssIndicesBitsetBytes;
+            UINT8 *rssTable = NULL;
+            DWORD rssTableSize;
             DWORD numberOfProcs;
+            DWORD numberOfProcGroups;
 
             SafeArrayGetLBound(pSafeArray, 1, &lLower);
             SafeArrayGetUBound(pSafeArray, 1, &lUpper);
@@ -294,11 +310,12 @@ CxPlatGetInterfaceRssQueueCount(
             IUnknown** rawArray;
             SafeArrayAccessData(pSafeArray, (void**)&rawArray);
 
-            // Set up the RSS bitset according to number of processors
+            // Set up the RSS table according to number of procs and proc groups.
             numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
-            rssIndicesBitsetBytes = (numberOfProcs / 8) + 1;
-            rssIndicesBitset = malloc(rssIndicesBitsetBytes);
-            memset(rssIndicesBitset, 0, rssIndicesBitsetBytes);
+            numberOfProcGroups = GetActiveProcessorGroupCount();
+            rssTableSize = numberOfProcs * numberOfProcGroups;
+            rssTable = malloc(rssTableSize);
+            memset(rssTable, 0, rssTableSize);
 
             for (long i = lLower; i <= lUpper; i++)
             {
@@ -311,33 +328,31 @@ CxPlatGetInterfaceRssQueueCount(
                         "[ lib] ERROR, %u, %s.",
                         hRes,
                         "QueryInterface");
-                    //AF_XDP_LOG(ERR, "QueryInterface failed\n");
-                    free(rssIndicesBitset);
+                    free(rssTable);
+                    hRes = QUIC_STATUS_OUT_OF_MEMORY;
                     goto Cleanup;
                 }
 
                 hr = obj->lpVtbl->Get(obj, L"ProcessorNumber", 0, &vtProp, 0, 0);
-                UINT32 index = vtProp.iVal / (sizeof(rssIndicesBitset[0])*8);
-                UINT32 offset = vtProp.iVal % (sizeof(rssIndicesBitset[0])*8);
-                rssIndicesBitset[index] |= 1 << offset;
-
+                UINT32 procNum = vtProp.iVal;
                 VariantClear(&vtProp);
+                hr = obj->lpVtbl->Get(obj, L"ProcessorGroup", 0, &vtProp, 0, 0);
+                UINT32 groupNum = vtProp.iVal;
+                VariantClear(&vtProp);
+                CXPLAT_DBG_ASSERT(groupNum < numberOfProcGroups);
+                CXPLAT_DBG_ASSERT(procNum < numberOfProcs);
+                *(rssTable + groupNum * numberOfProcs + procNum) = 1;
                 obj->lpVtbl->Release(obj);
             }
 
             SafeArrayUnaccessData(pSafeArray);
 
-            for (DWORD i = 0; i < numberOfProcs/(sizeof(rssIndicesBitset[0])*8) + 1; i++) {
-                for (SIZE_T j = 0; j < sizeof(rssIndicesBitset[0])*8; j++) {
-                    if (rssIndicesBitset[i] & (1 << j)) {
-                        //AF_XDP_LOG(INFO, "detected active RSS queue %u on proc index %llu\n", cnt, (i*8 + j));
-                        cnt++;
-                        CXPLAT_FRE_ASSERT(cnt != 0);
-                    }
-                }
+            // Count unique RSS procs by counting ones in rssTable.
+            for (DWORD i = 0; i < rssTableSize; ++i) {
+                cnt += rssTable[i];
             }
 
-            free(rssIndicesBitset);
+            free(rssTable);
         }
 
         VariantClear(&vtProp);
@@ -369,14 +384,18 @@ CxPlatXdpReadConfig(
     _Inout_ XDP_DATAPATH* Xdp
     )
 {
-    // Default config
+    //
+    // Default config.
+    //
     Xdp->RxBufferCount = 4096;
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
     Xdp->TxAlwaysPoke = FALSE;
-    Xdp->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
 
+    //
+    // Read config from config file.
+    //
     FILE *File = fopen("xdp.ini", "r");
     if (File == NULL) {
         return;
@@ -393,11 +412,7 @@ CxPlatXdpReadConfig(
             Value[strlen(Value) - 1] = '\0';
         }
 
-        if (strcmp(Line, "CpuGroup") == 0) {
-             Xdp->DatapathCpuGroup = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "CpuNumber") == 0) {
-             Xdp->Cpu = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "RxBufferCount") == 0) {
+        if (strcmp(Line, "RxBufferCount") == 0) {
              Xdp->RxBufferCount = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "RxRingSize") == 0) {
              Xdp->RxRingSize = strtoul(Value, NULL, 10);
@@ -415,15 +430,6 @@ CxPlatXdpReadConfig(
     }
 
     fclose(File);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-size_t
-CxPlatDpRawGetDapathSize(
-    void
-    )
-{
-    return sizeof(XDP_DATAPATH);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -516,6 +522,16 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
+    if (Interface->QueueCount == 0) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatGetInterfaceRssQueueCount");
+        goto Error;
+    }
+
     Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
     if (Interface->Queues == NULL) {
         QuicTraceEvent(
@@ -529,7 +545,7 @@ CxPlatDpRawInterfaceInitialize(
 
     CxPlatZeroMemory(Interface->Queues, Interface->QueueCount * sizeof(*Interface->Queues));
 
-    for (uint32_t i = 0; i < Interface->QueueCount; i++) {
+    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
         Queue->Interface = Interface;
@@ -734,6 +750,15 @@ CxPlatDpRawInterfaceInitialize(
         }
     }
 
+    //
+    // Add each queue to a worker (round robin).
+    //
+    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
+        XdpWorkerAddQueue(
+            &Xdp->Workers[i % Xdp->WorkerCount],
+            &Interface->Queues[i]);
+    }
+
 Error:
     if (QUIC_FAILED(Status)) {
         CxPlatDpRawInterfaceUninitialize(Interface);
@@ -755,7 +780,7 @@ CxPlatDpRawInterfaceUpdateRules(
         .SubLayer = XDP_HOOK_INSPECT,
     };
 
-    const UINT32 Flags = 0; // TODO: support native/generic forced flags.
+    const UINT32 Flags = XDP_CREATE_PROGRAM_FLAG_SHARE; // TODO: support native/generic forced flags.
 
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
@@ -798,9 +823,10 @@ CxPlatDpRawInterfaceUpdateRules(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawInterfaceAddRule(
+CxPlatDpRawInterfaceAddRules(
     _In_ XDP_INTERFACE* Interface,
-    _In_ const XDP_RULE* NewRule
+    _In_reads_(Count) const XDP_RULE* Rules,
+    _In_ uint8_t Count
     )
 {
 #pragma warning(push)
@@ -809,7 +835,7 @@ CxPlatDpRawInterfaceAddRule(
     CxPlatLockAcquire(&Interface->RuleLock);
     // TODO - Don't always allocate a new array?
 
-    if (Interface->RuleCount + 1 == 0) {
+    if ((uint32_t)Interface->RuleCount + (uint32_t)Count > UINT8_MAX) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -819,7 +845,7 @@ CxPlatDpRawInterfaceAddRule(
     }
 
     const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
-    const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + 1);
+    const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + Count);
 
     XDP_RULE* NewRules = CxPlatAlloc(NewSize, RULE_TAG);
     if (NewRules == NULL) {
@@ -835,8 +861,9 @@ CxPlatDpRawInterfaceAddRule(
     if (Interface->RuleCount > 0) {
         memcpy(NewRules, Interface->Rules, OldSize);
     }
-    NewRules[Interface->RuleCount] = *NewRule;
-    Interface->RuleCount++;
+    for (uint8_t i = 0; i < Count; i++) {
+        NewRules[Interface->RuleCount++] = Rules[i];
+    }
 
     if (Interface->Rules != NULL) {
         CxPlatFree(Interface->Rules, RULE_TAG);
@@ -852,64 +879,97 @@ CxPlatDpRawInterfaceAddRule(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawInterfaceRemoveRule(
+CxPlatDpRawInterfaceRemoveRules(
     _In_ XDP_INTERFACE* Interface,
-    _In_ const XDP_RULE* Rule
+    _In_reads_(Count) const XDP_RULE* Rules,
+    _In_ uint8_t Count
     )
 {
     CxPlatLockAcquire(&Interface->RuleLock);
 
-    for (uint8_t i = 0; i < Interface->RuleCount; i++) {
-        if (Interface->Rules[i].Match != Rule->Match) {
-            continue;
-        }
+    BOOLEAN UpdateRules = FALSE;
 
-        if (Rule->Match == XDP_MATCH_UDP_DST) {
-            if (Rule->Pattern.Port != Interface->Rules[i].Pattern.Port) {
+    for (uint8_t j = 0; j < Count; j++) {
+        for (uint8_t i = 0; i < Interface->RuleCount; i++) {
+            if (Interface->Rules[i].Match != Rules[j].Match) {
                 continue;
             }
-        } else if (Rule->Match == XDP_MATCH_IPV4_UDP_TUPLE) {
-            if (Rule->Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
-                Rule->Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
-                memcmp(&Rule->Pattern.Tuple.DestinationAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv4, sizeof(IN_ADDR)) != 0 ||
-                memcmp(&Rule->Pattern.Tuple.SourceAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv4, sizeof(IN_ADDR)) != 0) {
-                continue;
-            }
-        } else if (Rule->Match == XDP_MATCH_IPV6_UDP_TUPLE) {
-            if (Rule->Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
-                Rule->Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
-                memcmp(&Rule->Pattern.Tuple.DestinationAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv6, sizeof(IN6_ADDR)) != 0 ||
-                memcmp(&Rule->Pattern.Tuple.SourceAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv6, sizeof(IN6_ADDR)) != 0) {
-                continue;
-            }
-        } else {
-            CXPLAT_FRE_ASSERT(FALSE); // Should not be possible!
-        }
 
-        if (i < Interface->RuleCount - 1) {
-            memmove(&Interface->Rules[i], &Interface->Rules[i + 1], sizeof(XDP_RULE) * (Interface->RuleCount - i - 1));
+            if (Rules[j].Match == XDP_MATCH_UDP_DST) {
+                if (Rules[j].Pattern.Port != Interface->Rules[i].Pattern.Port) {
+                    continue;
+                }
+            } else if (Rules[j].Match == XDP_MATCH_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_QUIC_FLOW_DST_CID) {
+                if (Rules[j].Pattern.QuicFlow.UdpPort != Interface->Rules[i].Pattern.QuicFlow.UdpPort ||
+                    Rules[j].Pattern.QuicFlow.CidLength != Interface->Rules[i].Pattern.QuicFlow.CidLength ||
+                    Rules[j].Pattern.QuicFlow.CidOffset != Interface->Rules[i].Pattern.QuicFlow.CidOffset ||
+                    memcmp(Rules[j].Pattern.QuicFlow.CidData, Interface->Rules[i].Pattern.QuicFlow.CidData, Rules[j].Pattern.QuicFlow.CidLength) != 0) {
+                    continue;
+                }
+            } else if (Rules[j].Match == XDP_MATCH_IPV4_UDP_TUPLE) {
+                if (Rules[j].Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
+                    Rules[j].Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
+                    memcmp(&Rules[j].Pattern.Tuple.DestinationAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv4, sizeof(IN_ADDR)) != 0 ||
+                    memcmp(&Rules[j].Pattern.Tuple.SourceAddress.Ipv4, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv4, sizeof(IN_ADDR)) != 0) {
+                    continue;
+                }
+            } else if (Rules[j].Match == XDP_MATCH_IPV6_UDP_TUPLE) {
+                if (Rules[j].Pattern.Tuple.DestinationPort != Interface->Rules[i].Pattern.Tuple.DestinationPort ||
+                    Rules[j].Pattern.Tuple.SourcePort != Interface->Rules[i].Pattern.Tuple.SourcePort ||
+                    memcmp(&Rules[j].Pattern.Tuple.DestinationAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.DestinationAddress.Ipv6, sizeof(IN6_ADDR)) != 0 ||
+                    memcmp(&Rules[j].Pattern.Tuple.SourceAddress.Ipv6, &Interface->Rules[i].Pattern.Tuple.SourceAddress.Ipv6, sizeof(IN6_ADDR)) != 0) {
+                    continue;
+                }
+            } else {
+                CXPLAT_FRE_ASSERT(FALSE); // Should not be possible!
+            }
+
+            if (i < Interface->RuleCount - 1) {
+                memmove(&Interface->Rules[i], &Interface->Rules[i + 1], sizeof(XDP_RULE) * (Interface->RuleCount - i - 1));
+            }
+            Interface->RuleCount--;
+            UpdateRules = TRUE;
+            break;
         }
-        Interface->RuleCount--;
+    }
+
+    if (UpdateRules) {
         CxPlatDpRawInterfaceUpdateRules(Interface);
-        break;
     }
 
     CxPlatLockRelease(&Interface->RuleLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+size_t
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
+    )
+{
+    const uint32_t WorkerCount =
+        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
+    return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
 
+    uint16_t DefaultProc = (uint16_t)(CxPlatProcMaxCount() - 1);
+    const uint16_t* ProcList =
+        (Config && Config->DataPathProcList) ? Config->DataPathProcList : &DefaultProc;
+
     CxPlatXdpReadConfig(Xdp);
-    CxPlatDpRawGenerateCpuTable(Datapath);
     CxPlatListInitializeHead(&Xdp->Interfaces);
+    Xdp->WorkerCount =
+        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
 
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
     ULONG Error;
@@ -982,7 +1042,9 @@ CxPlatDpRawInitialize(
                     continue;
                 }
 #if DEBUG
-                printf("Bound XDP to interface %u (%wS)\n", Adapter->IfIndex, Adapter->Description);
+                printf(
+                    "Bound XDP to interface %u (%wS) with %u RSS procs \n",
+                    Adapter->IfIndex, Adapter->Description, Interface->QueueCount);
 #endif
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
@@ -1007,8 +1069,12 @@ CxPlatDpRawInitialize(
     }
 
     Xdp->Running = TRUE;
-    CxPlatEventInitialize(&Xdp->CompletionEvent, TRUE, FALSE);
-    CxPlatWorkerRegisterDataPath(Xdp->Cpu, Xdp);
+    for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+        Xdp->Workers[i].Xdp = Xdp;
+        Xdp->Workers[i].ProcIndex = ProcList[i];
+        CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
+        CxPlatWorkerRegisterDataPath(ProcList[i], &Xdp->Workers[i]);
+    }
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
@@ -1030,8 +1096,10 @@ CxPlatDpRawUninitialize(
 
     if (Xdp->Running) {
         Xdp->Running = FALSE;
-        CxPlatEventWaitForever(Xdp->CompletionEvent);
-        CxPlatEventUninitialize(Xdp->CompletionEvent);
+        for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+            CxPlatEventWaitForever(Xdp->Workers[i].CompletionEvent);
+            CxPlatEventUninitialize(Xdp->Workers[i].CompletionEvent);
+        }
     }
 
     while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
@@ -1052,21 +1120,57 @@ CxPlatDpRawPlumbRulesOnSocket(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
 
     if (Socket->Wildcard) {
-        const XDP_RULE Rule = {
-            .Match = XDP_MATCH_UDP_DST,
-            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
-            .Action = XDP_PROGRAM_ACTION_REDIRECT,
-            .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-            .Redirect.Target = NULL,
-        };
 
-        CXPLAT_LIST_ENTRY* Entry;
-        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-            if (IsCreated) {
-                CxPlatDpRawInterfaceAddRule(Interface, &Rule);
-            } else {
-                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule);
+        if (Socket->CibirIdLength) {
+            XDP_RULE Rules[] = {
+                {
+                .Match = XDP_MATCH_QUIC_FLOW_SRC_CID,
+                .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
+                .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
+                .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc,
+                .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                .Redirect.Target = NULL,
+                },
+                {
+                .Match = XDP_MATCH_QUIC_FLOW_DST_CID,
+                .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
+                .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
+                .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst,
+                .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                .Redirect.Target = NULL,
+                }
+            };
+            memcpy(Rules[0].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+
+            CXPLAT_LIST_ENTRY* Entry;
+            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+                if (IsCreated) {
+                    CxPlatDpRawInterfaceAddRules(Interface, Rules, 2);
+                } else {
+                    CxPlatDpRawInterfaceRemoveRules(Interface, Rules, 2);
+                }
+            }
+        } else {
+            const XDP_RULE Rule = {
+                .Match = XDP_MATCH_UDP_DST,
+                .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
+                .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                .Redirect.Target = NULL,
+            };
+
+            CXPLAT_LIST_ENTRY* Entry;
+            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+                if (IsCreated) {
+                    CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
+                } else {
+                    CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
+                }
             }
         }
 
@@ -1098,9 +1202,9 @@ CxPlatDpRawPlumbRulesOnSocket(
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             if (IsCreated) {
-                CxPlatDpRawInterfaceAddRule(Interface, &Rule);
+                CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
             } else {
-                CxPlatDpRawInterfaceRemoveRule(Interface, &Rule);
+                CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
             }
         }
     }
@@ -1129,9 +1233,9 @@ CxPlatDpRawGetInterfaceFromQueue(
 static
 void
 CxPlatXdpRx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint8_t QueueId,
-    _In_ XDP_INTERFACE* Interface
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue,
+    _In_ uint16_t ProcIndex
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -1139,7 +1243,6 @@ CxPlatXdpRx(
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
-    XDP_QUEUE* Queue = &Interface->Queues[QueueId];
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
     for (uint32_t i = 0; i < BuffersCount; i++) {
@@ -1151,12 +1254,20 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
+        Packet->PartitionIndex = ProcIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
             (CXPLAT_RECV_DATA*)Packet,
             FrameBuffer,
             (uint16_t)Buffer->length);
+
+        //
+        // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+        // mark it resolved. This allows stateless sends to be issued without performing
+        // a route lookup.
+        //
+        Packet->Route->State = RouteResolved;
 
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
@@ -1247,7 +1358,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN, // unused currently
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize,
     _Inout_ CXPLAT_ROUTE* Route
     )
@@ -1256,7 +1367,6 @@ CxPlatDpRawTxAlloc(
     XDP_QUEUE* Queue = Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
-    UNREFERENCED_PARAMETER(ECN);
     UNREFERENCED_PARAMETER(Datapath);
 
     if (Packet) {
@@ -1265,6 +1375,7 @@ CxPlatDpRawTxAlloc(
         Packet->Queue = Queue;
         Packet->Buffer.Length = MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
+        Packet->ECN = ECN;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;
@@ -1296,16 +1407,14 @@ CxPlatDpRawTxEnqueue(
 static
 void
 CxPlatXdpTx(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint8_t QueueId,
-    _In_ XDP_INTERFACE* Interface
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue
     )
 {
     uint32_t ProdCount = 0;
     uint32_t CompCount = 0;
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
-    XDP_QUEUE* Queue = &Interface->Queues[QueueId];
 
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
         ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
@@ -1381,23 +1490,22 @@ CxPlatDataPathRunEC(
     _In_ uint32_t WaitTime
     )
 {
-    XDP_DATAPATH* Xdp = *(XDP_DATAPATH**)Context;
+    XDP_WORKER* Worker = *(XDP_WORKER**)Context;
+    const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     UNREFERENCED_PARAMETER(CurThreadId);
     UNREFERENCED_PARAMETER(WaitTime);
 
     if (!Xdp->Running) {
         *Context = NULL;
-        CxPlatEventSet(Xdp->CompletionEvent);
+        CxPlatEventSet(Worker->CompletionEvent);
         return;
     }
 
-    CXPLAT_LIST_ENTRY* Entry;
-    for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-        for (uint8_t QueueId = 0; QueueId < Interface->QueueCount; QueueId++) {
-            CxPlatXdpRx(Xdp, QueueId, Interface);
-            CxPlatXdpTx(Xdp, QueueId, Interface);
-        }
+    XDP_QUEUE* Queue = Worker->Queues;
+    while (Queue) {
+        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        CxPlatXdpTx(Xdp, Queue);
+        Queue = Queue->Next;
     }
 }

@@ -21,7 +21,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     CXPLAT_DBG_ASSERT(Settings->CongestionControlAlgorithm < QUIC_CONGESTION_CONTROL_ALGORITHM_MAX);
@@ -31,7 +31,7 @@ QuicCongestionControlInitialize(
         QuicTraceLogConnWarning(
             InvalidCongestionControlAlgorithm,
             QuicCongestionControlGetConnection(Cc),
-            "Unknown congestion control algorithm: %d, fallback to Cubic",
+            "Unknown congestion control algorithm: %hu, fallback to Cubic",
             Settings->CongestionControlAlgorithm);
         __fallthrough;
     case QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC:

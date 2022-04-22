@@ -143,6 +143,8 @@ else()
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND libtool -static -o \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\" @${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
+            DEPENDS core
+            DEPENDS platform
             DEPENDS msquic_static
         )
     elseif(WIN32)
@@ -172,6 +174,8 @@ else()
             COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
             DEPENDS ${QUIC_DEPS_FILE}
+            DEPENDS core
+            DEPENDS platform
             DEPENDS msquic_static
         )
     else()
@@ -194,6 +198,8 @@ else()
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND ${CMAKE_AR} -M < ${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
+            DEPENDS core
+            DEPENDS platform
             DEPENDS msquic_static
         )
     endif()

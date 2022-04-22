@@ -13,6 +13,39 @@ Abstract:
 #include "TestHelpers.h.clog.h"
 #endif
 
+extern bool UseDuoNic;
+
+//
+// Connect to the duonic address (if using duonic) or localhost (if not).
+//
+#define QUIC_TEST_LOOPBACK_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
+
+//
+// Set a QUIC_ADDR to the duonic "server" address.
+//
+inline
+void
+QuicAddrSetToDuoNic(
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    if (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET) {
+        // 192.168.1.11
+        ((uint32_t*)&(Addr->Ipv4.sin_addr))[0] = 184658112;
+    } else {
+        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET6);
+        // fc00::1:11
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[0] = 252;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[1] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[2] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[3] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[4] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[5] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[6] = 256;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[7] = 4352;
+    }
+}
+
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
 
@@ -59,15 +92,22 @@ struct ServerAcceptContext {
 
 struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
-        MsQuicSettings ClearVNSettings;
-        ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+        MsQuicVersionSettings Settings;
+        Settings.SetAllVersionLists(nullptr, 0);
+        BOOLEAN Default = FALSE;
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 NULL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(ClearVNSettings),
-                &ClearVNSettings));
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(Settings),
+                &Settings));
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+                sizeof(Default),
+                &Default));
     }
 };
 
@@ -93,6 +133,7 @@ InterlockedSubtract64(
 //
 void
 QuicTestPrimeResumption(
+    _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _In_ MsQuicRegistration& Registration,
     _In_ MsQuicConfiguration& ServerConfiguration,
     _In_ MsQuicConfiguration& ClientConfiguration,

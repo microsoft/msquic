@@ -245,6 +245,28 @@ class WithHandshakeArgs6 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs6> {
 };
 
+struct HandshakeArgs7 {
+    int Family;
+    uint8_t Mode;
+    static ::std::vector<HandshakeArgs7> Generate() {
+        ::std::vector<HandshakeArgs7> list;
+        for (int Family : { 4, 6 })
+        for (uint8_t Mode : { 0, 1, 2, 3 })
+            list.push_back({ Family, Mode });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs7& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (int)args.Mode;
+}
+
+class WithHandshakeArgs7 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs7> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

@@ -96,9 +96,10 @@ typedef struct QUIC_LISTENER {
 
     //
     // An app configured prefix for all connection IDs in this listener. The
-    // first byte indicates the length.
+    // first byte indicates the length of the ID, the second byte the offset of
+    // the ID in the CID and the rest payload of the identifier.
     //
-    uint8_t CidPrefix[1 + MSQUIC_CID_MAX_APP_PREFIX];
+    uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
 } QUIC_LISTENER;
 

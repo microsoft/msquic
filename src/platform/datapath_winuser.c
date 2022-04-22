@@ -746,6 +746,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
@@ -754,6 +755,8 @@ CxPlatDataPathInitialize(
     WSADATA WsaData;
     CXPLAT_DATAPATH* Datapath;
     uint32_t DatapathLength;
+
+    UNREFERENCED_PARAMETER(Config);
 
     uint32_t MaxProcCount = CxPlatProcActiveCount();
     CXPLAT_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);
@@ -2561,6 +2564,11 @@ CxPlatDataPathSocketContextShutdown(
 
     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
+    QuicTraceLogVerbose(
+        DatapathSocketContextComplete,
+        "[data][%p] Socket context shutdown",
+        SocketProc);
+
     if (InterlockedDecrement16(
             &SocketProc->Parent->ProcsOutstanding) == 0) {
         //
@@ -4015,10 +4023,18 @@ CxPlatDataPathRunEC(
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
         CxPlatEventSet(DatapathProc->CompletionEvent);
+        QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            DatapathProc);
         return;
     }
 
     if (SocketProc == NULL || Overlapped == NULL) {
+        QuicTraceLogVerbose(
+            DatapathWakeupForECTimeout,
+            "[data][%p] Datapath wakeup for EC wake or timeout",
+            DatapathProc);
         return; // Wake for execution contexts.
     }
 

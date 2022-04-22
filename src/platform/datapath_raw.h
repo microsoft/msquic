@@ -61,13 +61,12 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_ROUTE_RESOLUTION_WORKER* RouteResolutionWorker;
 
-    // RSS stuff
-    uint16_t Cpu;
-    uint8_t NumaNode;
-    uint8_t CpuTableSize;
-    uint16_t CpuTable[64];
-
     CXPLAT_LIST_ENTRY Interfaces;
+
+    //
+    // Rundown for waiting on binding cleanup.
+    //
+    CXPLAT_RUNDOWN_REF SocketsRundown;
 
 } CXPLAT_DATAPATH;
 
@@ -91,6 +90,11 @@ typedef struct CXPLAT_INTERFACE {
 
 typedef struct CXPLAT_SEND_DATA {
 
+    //
+    // The type of ECN markings needed for send.
+    //
+    CXPLAT_ECN_TYPE ECN;
+
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA;
@@ -101,8 +105,8 @@ typedef struct CXPLAT_SEND_DATA {
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
-CxPlatDpRawGetDapathSize(
-    void
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     );
 
 //
@@ -112,7 +116,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     );
 
 //
@@ -122,15 +127,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
-    );
-
-//
-// Upcall from raw datapath to generate the CPU table used for RSS.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawGenerateCpuTable(
-    _Inout_ CXPLAT_DATAPATH* Datapath
     );
 
 //
@@ -256,8 +252,13 @@ typedef struct CXPLAT_SOCKET {
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
-    BOOLEAN Wildcard;   // Using a wildcard local address. Optimization to avoid always reading LocalAddress.
-    BOOLEAN Connected;  // Bound to a remote address
+    BOOLEAN Wildcard;           // Using a wildcard local address. Optimization
+                                // to avoid always reading LocalAddress.
+    BOOLEAN Connected;          // Bound to a remote address
+    uint8_t CibirIdLength;      // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;   // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;   // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];         // CIBIR ID data
 
 } CXPLAT_SOCKET;
 
@@ -308,7 +309,7 @@ CxPlatGetSocket(
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
-BOOLEAN
+QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
@@ -337,6 +338,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum
     );

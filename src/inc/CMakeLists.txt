@@ -21,7 +21,7 @@ if (HAS_GUARDCF)
 endif()
 
 if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
-    target_link_libraries(base_link INTERFACE -fsanitize=address,leak,undefined)
+    target_link_libraries(base_link INTERFACE -fsanitize=address,leak,undefined,alignment)
 endif()
 
 if (NOT MSVC AND NOT APPLE AND NOT ANDROID)

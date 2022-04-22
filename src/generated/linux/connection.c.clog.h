@@ -124,26 +124,6 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInfoVersionMismatch , arg1, arg3, arg
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ServerVersionInformationChosenVersionNotInOtherVerList
-// [conn][%p] Server Chosen Version is not in Server Other Versions list: 0x%x
-// QuicTraceLogConnError(
-                ServerVersionInformationChosenVersionNotInOtherVerList,
-                Connection,
-                "Server Chosen Version is not in Server Other Versions list: 0x%x",
-                ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = ServerVI.ChosenVersion = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationChosenVersionNotInOtherVerList
-#define _clog_4_ARGS_TRACE_ServerVersionInformationChosenVersionNotInOtherVerList(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, ServerVersionInformationChosenVersionNotInOtherVerList , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ClientChosenVersionMismatchServerChosenVersion
 // [conn][%p] Client Chosen Version doesn't match Server Chosen Version: 0x%x vs. 0x%x
 // QuicTraceLogConnError(
@@ -189,10 +169,10 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVer
 // Decoder Ring for ServerVersionInformationPreviousVersionInOtherVerList
 // [conn][%p] Previous Client Version in Server Other Versions list: 0x%x
 // QuicTraceLogConnError(
-                        ServerVersionInformationPreviousVersionInOtherVerList,
-                        Connection,
-                        "Previous Client Version in Server Other Versions list: 0x%x",
-                        Connection->PreviousQuicVersion);
+                            ServerVersionInformationPreviousVersionInOtherVerList,
+                            Connection,
+                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            Connection->PreviousQuicVersion);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->PreviousQuicVersion = arg3
 ----------------------------------------------------------*/
@@ -261,6 +241,24 @@ tracepoint(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionNotFoun
 #ifndef _clog_3_ARGS_TRACE_RecvVerNegNoMatch
 #define _clog_3_ARGS_TRACE_RecvVerNegNoMatch(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, RecvVerNegNoMatch , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for RecvVerNegCryptoError
+// [conn][%p] Failed to update crypto on ver neg
+// QuicTraceLogConnError(
+            RecvVerNegCryptoError,
+            Connection,
+            "Failed to update crypto on ver neg");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecvVerNegCryptoError
+#define _clog_3_ARGS_TRACE_RecvVerNegCryptoError(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, RecvVerNegCryptoError , arg1);\
 
 #endif
 
@@ -699,32 +697,12 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SuccessfulRouteResolution
-// [conn][%p] Processing successful route completion Path[%hhu]
-// QuicTraceLogConnInfo(
-                SuccessfulRouteResolution,
-                Connection,
-                "Processing successful route completion Path[%hhu]",
-                PathId);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = PathId = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_SuccessfulRouteResolution
-#define _clog_4_ARGS_TRACE_SuccessfulRouteResolution(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, SuccessfulRouteResolution , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for FailedRouteResolution
-// [conn][%p] Processing failed route completion Path[%hhu]
+// [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
 // QuicTraceLogConnInfo(
                     FailedRouteResolution,
                     Connection,
-                    "Processing failed route completion Path[%hhu]",
+                    "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3
@@ -812,6 +790,28 @@ tracepoint(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_LocalInterfaceSet
 #define _clog_4_ARGS_TRACE_LocalInterfaceSet(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for CibirIdSet
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->CibirId[0] = arg3
+// arg4 = arg4 = Connection->CibirId[1] = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CibirIdSet
+#define _clog_5_ARGS_TRACE_CibirIdSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, CibirIdSet , arg1, arg3, arg4);\
 
 #endif
 
