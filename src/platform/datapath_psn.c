@@ -1255,7 +1255,7 @@ CxPlatSocketContextUninitializeComplete(
         .completionKey = NULL,
         .eventFilter = SOCK_NOTIFY_REGISTER_EVENTS_ALL,
         .operation = SOCK_NOTIFY_OP_REMOVE,
-        .triggerFlags = SOCK_NOTIFY_TRIGGER_EDGE,
+        .triggerFlags = SOCK_NOTIFY_TRIGGER_LEVEL | SOCK_NOTIFY_TRIGGER_PERSISTENT,
         .registrationResult = 0
     };
     ProcessSocketNotifications(
@@ -1281,7 +1281,7 @@ CxPlatSocketContextUninitialize(
         .completionKey = NULL,
         .eventFilter = SOCK_NOTIFY_REGISTER_EVENTS_ALL,
         .operation = SOCK_NOTIFY_OP_REMOVE,
-        .triggerFlags = SOCK_NOTIFY_TRIGGER_EDGE,
+        .triggerFlags = SOCK_NOTIFY_TRIGGER_LEVEL | SOCK_NOTIFY_TRIGGER_PERSISTENT,
         .registrationResult = 0
     };
     ProcessSocketNotifications(
@@ -1355,7 +1355,7 @@ CxPlatSocketContextStartReceive(
         .completionKey = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET],
         .eventFilter = SOCK_NOTIFY_REGISTER_EVENT_IN | SOCK_NOTIFY_REGISTER_EVENT_HANGUP,
         .operation = SOCK_NOTIFY_OP_ENABLE,
-        .triggerFlags = SOCK_NOTIFY_TRIGGER_EDGE,
+        .triggerFlags = SOCK_NOTIFY_TRIGGER_LEVEL | SOCK_NOTIFY_TRIGGER_PERSISTENT,
         .registrationResult = 0
     };
 
@@ -1571,7 +1571,7 @@ CxPlatSocketContextSendComplete(
         .completionKey = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET],
         .eventFilter = SOCK_NOTIFY_REGISTER_EVENT_IN | SOCK_NOTIFY_REGISTER_EVENT_HANGUP,
         .operation = SOCK_NOTIFY_OP_ENABLE,
-        .triggerFlags = SOCK_NOTIFY_TRIGGER_EDGE,
+        .triggerFlags = SOCK_NOTIFY_TRIGGER_LEVEL | SOCK_NOTIFY_TRIGGER_PERSISTENT,
         .registrationResult = 0
     };
 
@@ -1893,7 +1893,7 @@ Exit:
                             .completionKey = NULL,
                             .eventFilter = SOCK_NOTIFY_REGISTER_EVENTS_ALL,
                             .operation = SOCK_NOTIFY_OP_REMOVE,
-                            .triggerFlags = SOCK_NOTIFY_TRIGGER_EDGE,
+                            .triggerFlags = SOCK_NOTIFY_TRIGGER_LEVEL | SOCK_NOTIFY_TRIGGER_PERSISTENT,
                             .registrationResult = 0
                         };
                         ProcessSocketNotifications(
@@ -2547,7 +2547,7 @@ CxPlatSocketSendInternal(
                 .completionKey = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET],
                 .eventFilter = SOCK_NOTIFY_REGISTER_EVENTS_ALL,
                 .operation = SOCK_NOTIFY_OP_ENABLE,
-                .triggerFlags = SOCK_NOTIFY_TRIGGER_EDGE,
+                .triggerFlags = SOCK_NOTIFY_TRIGGER_LEVEL | SOCK_NOTIFY_TRIGGER_PERSISTENT,
                 .registrationResult = 0
             };
 
@@ -2671,15 +2671,13 @@ CxPlatDataPathRunEC(
     ProcContext->ThreadId = CurThreadId;
 
     DWORD ReadyEventCount = 0;
-    // TODO Handle Result
-    //BOOL Result =
-        GetQueuedCompletionStatusEx(
-            ProcContext->CompletionPort,
-            OverlappedEvents,
-            OVERLAPPED_NUM_EVENTS,
-            &ReadyEventCount,
-            WaitTime == UINT32_MAX ? INFINITE : (DWORD)WaitTime,
-            FALSE);
+    GetQueuedCompletionStatusEx(
+        ProcContext->CompletionPort,
+        OverlappedEvents,
+        OVERLAPPED_NUM_EVENTS,
+        &ReadyEventCount,
+        WaitTime == UINT32_MAX ? INFINITE : (DWORD)WaitTime,
+        FALSE);
 
     if (ProcContext->Datapath->Shutdown) {
         *Context = NULL;
