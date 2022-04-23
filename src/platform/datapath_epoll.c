@@ -1431,7 +1431,7 @@ CxPlatSocketContextStartReceive(
     }
 
     struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN | EPOLLLT,
+        .events = EPOLLIN,
         .data = {
             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
@@ -1644,7 +1644,7 @@ CxPlatSocketContextSendComplete(
     CXPLAT_SEND_DATA* SendData = NULL;
 
     struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN | EPOLLLT,
+        .events = EPOLLIN,
         .data = {
             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
@@ -2611,7 +2611,7 @@ CxPlatSocketSendInternal(
                 }
                 SendPending = TRUE;
                 struct epoll_event SockFdEpEvt = {
-                    .events = EPOLLIN | EPOLLOUT | EPOLLLT,
+                    .events = EPOLLIN | EPOLLOUT,
                     .data = {
                         .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
                     }
