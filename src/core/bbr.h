@@ -67,12 +67,14 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
 
     BOOLEAN EndOfRecoveryValid : 1;
 
+    BOOLEAN EndOfRoundTripValid : 1;
+
     BOOLEAN AckAggregationStartTimeValid : 1;
 
     BOOLEAN ProbeRttRoundValid : 1;
 
     BOOLEAN EarliestTimeToExitProbeRttValid : 1;
-
+    
     //
     // The size of the initial congestion window, in packets.
     //

@@ -14,7 +14,7 @@ typedef struct QUIC_ACK_EVENT {
 
     uint64_t LargestPacketNumberAcked;
 
-    uint32_t LargestAckedPacketSentTime;
+    uint64_t LargestPacketNumberSent;
 
     uint32_t NumRetransmittableBytes;
 

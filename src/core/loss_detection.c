@@ -1201,6 +1201,7 @@ QuicLossDetectionDiscardPackets(
             .IsImplicit = TRUE,
             .TimeNow = TimeNow,
             .LargestPacketNumberAcked = LossDetection->LargestAck,
+            .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
             .SmoothedRtt = Path->SmoothedRtt,
             .MinRttSample = 0,
@@ -1208,7 +1209,6 @@ QuicLossDetectionDiscardPackets(
             .AdjustedAckTime = 0,
             .AckedPackets = NULL,
             .TotalBytesAcked = 0,
-            .LargestAckedPacketSentTime = 0,
             .IsLargestAckedPacketAppLimited = FALSE,
             .MinRttSampleValid = 0
         };
@@ -1430,7 +1430,6 @@ QuicLossDetectionProcessAckBlocks(
     }
 
     uint64_t LargestAckedPacketNum = 0;
-    uint32_t LargestAckedPacketSentTime = 0;
     BOOLEAN IsLargestAckedPacketAppLimited = FALSE;
 
     QUIC_SENT_PACKET_METADATA* AckedPacketsIterator = AckedPackets;
@@ -1472,7 +1471,6 @@ QuicLossDetectionProcessAckBlocks(
 
         if (LargestAckedPacketNum < Packet->PacketNumber) {
             LargestAckedPacketNum = Packet->PacketNumber;
-            LargestAckedPacketSentTime = Packet->SentTime;
             IsLargestAckedPacketAppLimited = Packet->Flags.IsAppLimited;
         }
 
@@ -1510,6 +1508,7 @@ QuicLossDetectionProcessAckBlocks(
             .IsImplicit = FALSE,
             .TimeNow = TimeNow,
             .LargestPacketNumberAcked = LossDetection->LargestAck,
+            .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
             .SmoothedRtt = Connection->Paths[0].SmoothedRtt,
             .MinRttSample = SmallestRtt,
@@ -1518,7 +1517,6 @@ QuicLossDetectionProcessAckBlocks(
             .AckedPackets = AckedPackets,
             .TotalBytesAcked = LossDetection->TotalBytesAcked,
             .IsLargestAckedPacketAppLimited = IsLargestAckedPacketAppLimited,
-            .LargestAckedPacketSentTime = LargestAckedPacketSentTime,
             .MinRttSampleValid = TRUE,
         };
 
