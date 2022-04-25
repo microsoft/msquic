@@ -418,6 +418,14 @@ function Invoke-Test {
         $LocalArguments = "-driverNamePriv:secnetperfdrvpriv $LocalArguments"
     }
 
+    if ($IsWindows) {
+        # Copy to tmp folder
+        $CopyToDirectory = "C:\RunningTests"
+        $ExeFolder = Split-Path $LocalExe -Parent
+        Copy-Item -Path "$ExeFolder\*" -Destination $CopyToDirectory -Recurse -Force
+        $LocalExe = Join-Path $CopyToDirectory (Split-Path $LocalExe -Leaf)
+    }
+
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
@@ -525,6 +533,8 @@ try {
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
     }
+
+    Remove-PerfServices
 
     # Find All Remote processes, and kill them
     if (!$Local) {

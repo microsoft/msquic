@@ -177,7 +177,6 @@ function Wait-ForRemote {
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To, [string]$SmbDir)
-    Remove-PerfServices
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         try {
             Remove-Item -Path "$SmbDir/*" -Recurse -Force
