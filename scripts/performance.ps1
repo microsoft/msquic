@@ -423,11 +423,7 @@ function Invoke-Test {
         $CopyToDirectory = "C:\RunningTests"
         New-Item -Path $CopyToDirectory -ItemType Directory -Force | Out-Null
         $ExeFolder = Split-Path $LocalExe -Parent
-        Write-Host $CopyToDirectory
-        Write-Host $ExeFolder
         Copy-Item -Path "$ExeFolder\*" -Destination $CopyToDirectory -Recurse -Force
-        Get-ChildItem $CopyToDirectory
-        Get-ChildItem $ExeFolder
         $LocalExe = Join-Path $CopyToDirectory (Split-Path $LocalExe -Leaf)
     }
 
@@ -540,6 +536,16 @@ try {
     }
 
     Remove-PerfServices
+
+    if ($IsWindows) {
+        try {
+            $CopyToDirectory = "C:\RunningTests"
+            Remove-Item -Path "$CopyToDirectory/*" -Recurse -Force
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            # Ignore Not Found for when the directory does not exist
+            # This will still throw if a file cannot successfuly be deleted
+        }
+    }
 
     # Find All Remote processes, and kill them
     if (!$Local) {
