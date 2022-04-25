@@ -19,6 +19,15 @@ Environment:
 #include "datapath_psn.c.clog.h"
 #endif
 
+//
+// Not yet available in the SDK. When available this code can be removed.
+//
+#if 1
+#define UDP_SEND_MSG_SIZE           2
+#define UDP_RECV_MAX_COALESCED_SIZE 3
+#define UDP_COALESCED_INFO          3
+#endif
+
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
@@ -39,7 +48,11 @@ CXPLAT_STATIC_ASSERT(
 // segmentation, increase batch size to gain back some performance
 //
 #define CXPLAT_MAX_BATCH_SEND 1
-#define CXPLAT_MAX_BATCH_RECEIVE 43
+
+//
+// The maximum UDP receive coalescing payload.
+//
+#define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
 
 //
 // A receive block to receive a UDP packet over the sockets.
@@ -108,11 +121,6 @@ typedef struct CXPLAT_SEND_DATA {
     struct CXPLAT_DATAPATH_PROC_CONTEXT *Owner;
 
     //
-    // The number of messages of this buffer that have been sent.
-    //
-    size_t SentMessagesCount;
-
-    //
     // The send segmentation size; zero if segmentation is not performed.
     //
     uint16_t SegmentSize;
@@ -135,9 +143,7 @@ typedef struct CXPLAT_SEND_DATA {
     // between QUIC_BUFFER and struct iovec?
     //
     size_t BufferCount;
-    size_t CurrentIndex;
     QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
-    struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
 
     //
     // The QUIC_BUFFER returned to the client for segmented sends.
@@ -374,6 +380,16 @@ typedef struct CXPLAT_DATAPATH {
     uint32_t ProcCount;
 
     //
+    // Function pointer to WSASendMsg.
+    //
+    LPFN_WSASENDMSG WSASendMsg;
+
+    //
+    // Function pointer to WSARecvMsg.
+    //
+    LPFN_WSARECVMSG WSARecvMsg;
+
+    //
     // The per proc datapath contexts.
     //
     CXPLAT_DATAPATH_PROC_CONTEXT ProcContexts[];
@@ -389,53 +405,126 @@ CxPlatSocketSendInternal(
     _In_ BOOLEAN IsPendedSend
     );
 
-#ifdef UDP_SEGMENT
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
     )
 {
     int Result;
-    socklen_t OptionLength;
+    int OptionLength;
+    DWORD BytesReturned;
+    GUID WSASendMsgGuid = WSAID_WSASENDMSG;
+    GUID WSARecvMsgGuid = WSAID_WSARECVMSG;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    int UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    SOCKET UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (UdpSocket == INVALID_SOCKET) {
-        int SockError = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathOpenUdpSocketFailed,
             "[data] UDP send segmentation helper socket failed to open, 0x%x",
-            SockError);
+            WsaError);
         goto Error;
     }
 
-    int SegmentSize;
+    Result =
+        WSAIoctl(
+            UdpSocket,
+            SIO_GET_EXTENSION_FUNCTION_POINTER,
+            &WSASendMsgGuid,
+            sizeof(WSASendMsgGuid),
+            &Datapath->WSASendMsg,
+            sizeof(Datapath->WSASendMsg),
+            &BytesReturned,
+            NULL,
+            NULL);
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            WsaError,
+            "SIO_GET_EXTENSION_FUNCTION_POINTER (WSASendMsg)");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    Result =
+        WSAIoctl(
+            UdpSocket,
+            SIO_GET_EXTENSION_FUNCTION_POINTER,
+            &WSARecvMsgGuid,
+            sizeof(WSARecvMsgGuid),
+            &Datapath->WSARecvMsg,
+            sizeof(Datapath->WSARecvMsg),
+            &BytesReturned,
+            NULL,
+            NULL);
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            WsaError,
+            "SIO_GET_EXTENSION_FUNCTION_POINTER (WSARecvMsg)");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+#ifdef UDP_SEND_MSG_SIZE
+{
+    DWORD SegmentSize;
     OptionLength = sizeof(SegmentSize);
     Result =
         getsockopt(
             UdpSocket,
             IPPROTO_UDP,
-            UDP_SEGMENT,
-            &SegmentSize,
+            UDP_SEND_MSG_SIZE,
+            (char*)&SegmentSize,
             &OptionLength);
-    if (Result != 0) {
-        int SockError = errno;
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
-            DatapathQueryUdpSegmentFailed,
-            "[data] Query for UDP_SEGMENT failed, 0x%x",
-            SockError);
+            DatapathQueryUdpSendMsgFailed,
+            "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
+            WsaError);
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     }
+}
+#endif
+
+#ifdef UDP_RECV_MAX_COALESCED_SIZE
+{
+    DWORD UroMaxCoalescedMsgSize = TRUE;
+    OptionLength = sizeof(UroMaxCoalescedMsgSize);
+    Result =
+        getsockopt(
+            UdpSocket,
+            IPPROTO_UDP,
+            UDP_RECV_MAX_COALESCED_SIZE,
+            (char*)&UroMaxCoalescedMsgSize,
+            &OptionLength);
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathQueryRecvMaxCoalescedSizeFailed,
+            "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
+            WsaError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+    }
+}
+#endif
 
 Error:
+
     if (UdpSocket != INVALID_SOCKET) {
-        close(UdpSocket);
+        closesocket(UdpSocket);
     }
 
     return Status;
 }
-#endif
 
 void
 CxPlatProcessorContextUninitialize(
@@ -582,15 +671,13 @@ CxPlatDataPathInitialize(
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
-    Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
+    Datapath->Features = 0;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
 
-#ifdef UDP_SEGMENT
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-#endif
 
     //
     // Initialize the per processor contexts.
@@ -887,8 +974,9 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ BOOLEAN ForceShare
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_ BOOLEAN ForceShare,
+    _In_ uint16_t Index
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -909,16 +997,36 @@ CxPlatSocketContextInitialize(
     SocketContext->SocketFd =
         socket(
             AF_INET6,
-            SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, // TODO check if SOCK_CLOEXEC is required?
+            SOCK_DGRAM,
             IPPROTO_UDP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "socket failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Exit;
+    }
+
+    //
+    // Set non blocking
+    //
+
+    u_long mode = 1;
+    Result =
+        ioctlsocket(SocketContext->SocketFd, FIONBIO, &mode);
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            WsaError,
+            "ioctlsocket(FIONBIO) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -934,14 +1042,42 @@ CxPlatSocketContextInitialize(
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "setsockopt(IPV6_V6ONLY) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
+    }
+
+    if (RemoteAddress == NULL) {
+        uint16_t Processor = Index;
+        DWORD BytesReturned = 0;
+        Result =
+            WSAIoctl(
+                SocketContext->SocketFd,
+                SIO_CPU_AFFINITY,
+                &Processor,
+                sizeof(Processor),
+                NULL,
+                0,
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result != NO_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Binding,
+                    WsaError,
+                    "SIO_CPU_AFFINITY");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Exit;
+        }
     }
 
     //
@@ -954,22 +1090,23 @@ CxPlatSocketContextInitialize(
     // apparent alternative.
     // TODO: Verify this.
     //
-    Option = IP_PMTUDISC_DO;
+    Option = TRUE;
     Result =
         setsockopt(
             SocketContext->SocketFd,
             IPPROTO_IP,
-            IP_MTU_DISCOVER,
-            (const void*)&Option,
+            IP_DONTFRAGMENT,
+            (char*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
-            "setsockopt(IP_MTU_DISCOVER) failed");
+            WsaError,
+            "setsockopt(IP_DONTFRAGMENT) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -982,13 +1119,14 @@ CxPlatSocketContextInitialize(
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "setsockopt(IPV6_DONTFRAG) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1007,17 +1145,18 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             IPPROTO_IPV6,
-            IPV6_RECVPKTINFO,
+            IPV6_PKTINFO,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
-            "setsockopt(IPV6_RECVPKTINFO) failed");
+            WsaError,
+            "setsockopt(IPV6_PKTINFO) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1030,13 +1169,14 @@ CxPlatSocketContextInitialize(
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "setsockopt(IP_PKTINFO) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1049,17 +1189,18 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             IPPROTO_IPV6,
-            IPV6_RECVTCLASS,
+            IPV6_ECN,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
-            "setsockopt(IPV6_RECVTCLASS) failed");
+            WsaError,
+            "setsockopt(IPV6_ECN) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1068,17 +1209,18 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             IPPROTO_IP,
-            IP_RECVTOS,
+            IP_ECN,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
-            "setsockopt(IP_RECVTOS) failed");
+            WsaError,
+            "setsockopt(IP_ECN) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1095,62 +1237,57 @@ CxPlatSocketContextInitialize(
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "setsockopt(SO_RCVBUF) failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
-    //
-    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-    // assigned a server port (unless it's forcing sharing).
-    //
-    if (ForceShare || RemoteAddress == NULL) {
-        //
-        // The port is shared across processors.
-        //
-        Option = TRUE;
-        Result =
-            setsockopt(
-                SocketContext->SocketFd,
-                SOL_SOCKET,
-                SO_REUSEPORT,
-                (const void*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "setsockopt(SO_REUSEPORT) failed");
-            goto Exit;
+#ifdef UDP_RECV_MAX_COALESCED_SIZE
+        if (SocketContext->Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
+            Option = MAX_URO_PAYLOAD_LENGTH;
+            Result =
+                setsockopt(
+                    SocketContext->SocketFd,
+                    IPPROTO_UDP,
+                    UDP_RECV_MAX_COALESCED_SIZE,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Binding,
+                    WsaError,
+                    "Set UDP_RECV_MAX_COALESCED_SIZE");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Exit;
+            }
         }
-    }
+#endif
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
-    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-        MappedAddress.Ipv6.sin6_family = AF_INET6;
-    }
 
     Result =
         bind(
             SocketContext->SocketFd,
-            &MappedAddress.Ip,
+            &MappedAddress,
             sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "bind failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1165,17 +1302,18 @@ CxPlatSocketContextInitialize(
         Result =
             connect(
                 SocketContext->SocketFd,
-                &MappedAddress.Ip,
+                &MappedAddress,
                 sizeof(MappedAddress));
 
         if (Result == SOCKET_ERROR) {
-            Status = errno;
+            int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
-                Status,
+                WsaError,
                 "connect failed");
+            Status = HRESULT_FROM_WIN32(WsaError);
             goto Exit;
         }
         Binding->Connected = TRUE;
@@ -1193,13 +1331,14 @@ CxPlatSocketContextInitialize(
             (struct sockaddr *)&Binding->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
-            Status,
+            WsaError,
             "getsockname failed");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Exit;
     }
 
@@ -1217,14 +1356,10 @@ CxPlatSocketContextInitialize(
     UNREFERENCED_PARAMETER(LocalAddress);
 #endif
 
-    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
-        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    }
-
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        close(SocketContext->SocketFd);
+        closesocket(SocketContext->SocketFd);
         SocketContext->SocketFd = INVALID_SOCKET;
     }
 
@@ -1700,9 +1835,25 @@ CxPlatSocketContextProcessEvents(
     if (SOCK_NOTIFY_EVENT_IN & Events) {
         while (TRUE) {
 
-            for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
-                CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
+            // for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+            //     CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
+            // }
+
+            CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
+                CxPlatDataPathAllocRecvBlock(SocketContext->ProcContext);
+
+            if (RecvBlock == NULL) {
+                // TODO Log
+                break;
             }
+
+
+
+
+            SocketContext->Binding->Datapath->WSARecvMsg(
+                SocketContext->SocketFd,
+
+            )
 
             int Ret =
                 recvmmsg(
@@ -2402,8 +2553,6 @@ CxPlatSocketSendInternal(
     size_t TotalMessagesCount;
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
-    CXPLAT_DBG_ASSERT(SendData->SentMessagesCount < CXPLAT_MAX_BATCH_SEND);
-    CXPLAT_DBG_ASSERT(IsPendedSend || SendData->SentMessagesCount == 0);
 
     CXPLAT_STATIC_ASSERT(
         CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)),
@@ -2425,10 +2574,6 @@ CxPlatSocketSendInternal(
 
     if (!IsPendedSend) {
         CxPlatSendDataFinalizeSendBuffer(SendData);
-        for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
-            SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
-            SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
-        }
         QuicTraceEvent(
             DatapathSend,
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -2463,70 +2608,94 @@ CxPlatSocketSendInternal(
     //
     CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
-    if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-        MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
-    }
-
-    struct mmsghdr Mhdrs[CXPLAT_MAX_BATCH_SEND];
-    for (TotalMessagesCount = SendData->SentMessagesCount; TotalMessagesCount < SendData->BufferCount; TotalMessagesCount++) {
-        struct msghdr TempMhdr = {
-            .msg_name = &MappedRemoteAddress,
-            .msg_namelen = sizeof(MappedRemoteAddress),
-            .msg_iov = SendData->Iovs + TotalMessagesCount,
-            .msg_iovlen = 1, // 1 until we support GSO
-            .msg_control = ControlBuffer,
-            .msg_controllen = CMSG_SPACE(sizeof(int)),
-            .msg_flags = 0
-        };
-
-        Mhdrs[TotalMessagesCount].msg_hdr = TempMhdr;
-
-        struct msghdr* Mhdr = &Mhdrs[TotalMessagesCount].msg_hdr;
-        Mhdrs[TotalMessagesCount].msg_len = 0;
-
-        CMsg = CMSG_FIRSTHDR(Mhdr);
-        CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
-        CMsg->cmsg_type = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IP_TOS : IPV6_TCLASS;
-        CMsg->cmsg_len = CMSG_LEN(sizeof(int));
-        *(int *)CMSG_DATA(CMsg) = SendData->ECN;
-
-        if (!Socket->Connected) {
-            Mhdr->msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
-            CMsg = CMSG_NXTHDR(Mhdr, CMsg);
-            CXPLAT_DBG_ASSERT(LocalAddress != NULL);
-            CXPLAT_DBG_ASSERT(CMsg != NULL);
-            if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
-                CMsg->cmsg_level = IPPROTO_IP;
-                CMsg->cmsg_type = IP_PKTINFO;
-                CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
-                PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
-                // TODO: Use Ipv4 instead of Ipv6.
-                PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-                PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
-            } else {
-                CMsg->cmsg_level = IPPROTO_IPV6;
-                CMsg->cmsg_type = IPV6_PKTINFO;
-                CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-                PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-                PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-                PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
-            }
-        }
-
-#ifdef UDP_SEGMENT
-        if (SendData->SegmentSize > 0 && (SendData->Iovs + TotalMessagesCount)->iov_len > SendData->SegmentSize) {
-            Mhdr->msg_controllen += CMSG_SPACE(sizeof(uint16_t));
-            CMsg = CMSG_NXTHDR(Mhdr, CMsg);
-            CXPLAT_DBG_ASSERT(CMsg != NULL);
-            CMsg->cmsg_level = SOL_UDP;
-            CMsg->cmsg_type = UDP_SEGMENT;
-            CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
-            *((uint16_t*) CMSG_DATA(CMsg)) = SendData->SegmentSize;
-        }
+    BYTE CtrlBuf[
+        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+#ifdef UDP_SEND_MSG_SIZE
+        WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
 #endif
+        ];
+
+    WSAMSG WSAMhdr;
+    WSAMhdr.dwFlags = 0;
+    if (Socket->HasFixedRemoteAddress) {
+        WSAMhdr.name = NULL;
+        WSAMhdr.namelen = 0;
+    } else {
+        WSAMhdr.name = (LPSOCKADDR)&MappedRemoteAddress;
+        WSAMhdr.namelen = sizeof(MappedRemoteAddress);
+    }
+    WSAMhdr.lpBuffers = SendData->Buffers;
+    WSAMhdr.dwBufferCount = SendData->BufferCount;
+    WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
+    WSAMhdr.Control.len = 0;
+
+    PWSACMSGHDR CMsg = NULL;
+    if (LocalAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
+
+        if (!Socket->HasFixedRemoteAddress) {
+            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
+            CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_PKTINFO;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
+            PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
+            PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
+        }
+
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
+        CMsg->cmsg_level = IPPROTO_IP;
+        CMsg->cmsg_type = IP_ECN;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+
+    } else {
+
+        if (!Socket->HasFixedRemoteAddress) {
+            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
+            CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_PKTINFO;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
+            PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
+            PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+        }
+
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
+        CMsg->cmsg_level = IPPROTO_IPV6;
+        CMsg->cmsg_type = IPV6_ECN;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
     }
 
-    int sendMsgRes = WSASendMsg();
+#ifdef UDP_SEND_MSG_SIZE
+    if (SendData->SegmentSize > 0) {
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(DWORD));
+        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
+        CMsg->cmsg_level = IPPROTO_UDP;
+        CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
+        *(PDWORD)WSA_CMSG_DATA(CMsg) = SendData->SegmentSize;
+    }
+#endif
+
+    DWORD BytesSent = 0;
+
+    int sendMsgRes =
+        Socket->Datapath->WSASendMsg(
+            SocketContext->SocketFd,
+            &WSAMhdr,
+            0,
+            &BytesSent,
+            NULL,
+            NULL);
 
     if (sendMsgRes == SOCKET_ERROR) {
         int WSAError = WSAGetLastError();

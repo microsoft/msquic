@@ -957,7 +957,7 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_ BOOLEAN ForceShare
     )
 {
