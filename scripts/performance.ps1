@@ -421,6 +421,7 @@ function Invoke-Test {
     if ($IsWindows) {
         # Copy to tmp folder
         $CopyToDirectory = "C:\RunningTests"
+        New-Item -Path $CopyToDirectory -ItemType Directory -Force | Out-Null
         $ExeFolder = Split-Path $LocalExe -Parent
         Write-Host $CopyToDirectory
         Write-Host $ExeFolder
