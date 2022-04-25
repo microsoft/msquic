@@ -460,6 +460,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1197,6 +1198,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestClientBlockedSourcePort(
                 Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_STORAGE:
+        QuicTestCtlRun(QuicTestStorage());
         break;
 
     default:

@@ -2564,6 +2564,11 @@ CxPlatDataPathSocketContextShutdown(
 
     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
+    QuicTraceLogVerbose(
+        DatapathSocketContextComplete,
+        "[data][%p] Socket context shutdown",
+        SocketProc);
+
     if (InterlockedDecrement16(
             &SocketProc->Parent->ProcsOutstanding) == 0) {
         //
@@ -4018,10 +4023,18 @@ CxPlatDataPathRunEC(
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
         CxPlatEventSet(DatapathProc->CompletionEvent);
+        QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            DatapathProc);
         return;
     }
 
     if (SocketProc == NULL || Overlapped == NULL) {
+        QuicTraceLogVerbose(
+            DatapathWakeupForECTimeout,
+            "[data][%p] Datapath wakeup for EC wake or timeout",
+            DatapathProc);
         return; // Wake for execution contexts.
     }
 

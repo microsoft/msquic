@@ -2683,6 +2683,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "DatapathSocketContextComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket context shutdown",
+      "UniqueId": "DatapathSocketContextComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathTooLarge": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Received larger than expected datagram from %!ADDR!",
@@ -2758,6 +2770,30 @@
         }
       ],
       "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathWakeupForECTimeout": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath wakeup for EC wake or timeout",
+      "UniqueId": "DatapathWakeupForECTimeout",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathWakeupForShutdown": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath wakeup for shutdown",
+      "UniqueId": "DatapathWakeupForShutdown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
@@ -12243,6 +12279,11 @@
         "EncodingString": "[data][%p] Shut down (return)"
       },
       {
+        "UniquenessHash": "740050a5-e389-9654-6631-ca5f73069045",
+        "TraceID": "DatapathSocketContextComplete",
+        "EncodingString": "[data][%p] Socket context shutdown"
+      },
+      {
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
         "TraceID": "DatapathTooLarge",
         "EncodingString": "[data][%p] Received larger than expected datagram from %!ADDR!"
@@ -12266,6 +12307,16 @@
         "UniquenessHash": "fc873bff-2380-b7f7-a8be-4ff93b6d72d7",
         "TraceID": "DatapathUroPreallocExceeded",
         "EncodingString": "[data][%p] Exceeded URO preallocation capacity."
+      },
+      {
+        "UniquenessHash": "6482ddf5-3328-7814-1cb9-0eeef2e3afe5",
+        "TraceID": "DatapathWakeupForECTimeout",
+        "EncodingString": "[data][%p] Datapath wakeup for EC wake or timeout"
+      },
+      {
+        "UniquenessHash": "406ad3fd-813a-21c4-b38a-52fbf3253ff3",
+        "TraceID": "DatapathWakeupForShutdown",
+        "EncodingString": "[data][%p] Datapath wakeup for shutdown"
       },
       {
         "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",

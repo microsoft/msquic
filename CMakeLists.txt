@@ -104,6 +104,14 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
+if (QUIC_UWP_BUILD OR QUIC_GAMECORE_BUILD)
+    message(STATUS "UWP And GameCore builds disable all executables, and force shared CRT")
+    set(QUIC_BUILD_TOOLS OFF)
+    set(QUIC_BUILD_TEST OFF)
+    set(QUIC_BUILD_PERF OFF)
+    set(QUIC_STATIC_LINK_CRT OFF)
+endif()
+
 if (NOT QUIC_BUILD_SHARED)
     cmake_minimum_required(VERSION 3.20)
 endif()

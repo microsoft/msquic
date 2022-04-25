@@ -229,12 +229,20 @@ QuicSettingsCopy(
                 QuicSettingsCopyVersionSettings(Source->VersionSettings, FALSE);
         }
     }
-    if (!Destination->IsSet.MinimumMtu) {
+
+    if (!Destination->IsSet.MinimumMtu && !Destination->IsSet.MaximumMtu) {
         Destination->MinimumMtu = Source->MinimumMtu;
-    }
-    if (!Destination->IsSet.MaximumMtu) {
         Destination->MaximumMtu = Source->MaximumMtu;
+    } else if (Destination->IsSet.MinimumMtu && !Destination->IsSet.MaximumMtu) {
+        if (Source->MaximumMtu > Destination->MinimumMtu) {
+            Destination->MaximumMtu = Source->MaximumMtu;
+        }
+    } else if (Destination->IsSet.MaximumMtu && !Destination->IsSet.MinimumMtu) {
+        if (Source->MinimumMtu < Destination->MaximumMtu) {
+            Destination->MinimumMtu = Source->MinimumMtu;
+        }
     }
+
     if (!Destination->IsSet.MtuDiscoveryMissingProbeCount) {
         Destination->MtuDiscoveryMissingProbeCount = Source->MtuDiscoveryMissingProbeCount;
     }
@@ -480,8 +488,10 @@ QuicSettingApply(
     }
 
     if (AllowMtuChanges) {
-        uint16_t MinimumMtu = Destination->MinimumMtu;
-        uint16_t MaximumMtu = Destination->MaximumMtu;
+        uint16_t MinimumMtu =
+            Destination->IsSet.MinimumMtu ? Destination->MinimumMtu : QUIC_DPLPMUTD_MIN_MTU;
+        uint16_t MaximumMtu =
+            Destination->IsSet.MaximumMtu ? Destination->MaximumMtu : CXPLAT_MAX_MTU;
         if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
             MinimumMtu = Source->MinimumMtu;
             if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
@@ -501,10 +511,10 @@ QuicSettingApply(
         if (MinimumMtu > MaximumMtu) {
             return FALSE;
         }
-        if (Destination->MinimumMtu != MinimumMtu) {
+        if (Source->IsSet.MinimumMtu) {
             Destination->IsSet.MinimumMtu = TRUE;
         }
-        if (Destination->MaximumMtu != MaximumMtu) {
+        if (Source->IsSet.MaximumMtu) {
             Destination->IsSet.MaximumMtu = TRUE;
         }
         Destination->MinimumMtu = MinimumMtu;
