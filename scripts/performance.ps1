@@ -422,7 +422,11 @@ function Invoke-Test {
         # Copy to tmp folder
         $CopyToDirectory = "C:\RunningTests"
         $ExeFolder = Split-Path $LocalExe -Parent
+        Write-Host $CopyToDirectory
+        Write-Host $ExeFolder
         Copy-Item -Path "$ExeFolder\*" -Destination $CopyToDirectory -Recurse -Force
+        Get-ChildItem $CopyToDirectory
+        Get-ChildItem $ExeFolder
         $LocalExe = Join-Path $CopyToDirectory (Split-Path $LocalExe -Leaf)
     }
 
