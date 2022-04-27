@@ -418,6 +418,15 @@ function Invoke-Test {
         $LocalArguments = "-driverNamePriv:secnetperfdrvpriv $LocalArguments"
     }
 
+    if ($IsWindows) {
+        # Copy to tmp folder
+        $CopyToDirectory = "C:\RunningTests"
+        New-Item -Path $CopyToDirectory -ItemType Directory -Force | Out-Null
+        $ExeFolder = Split-Path $LocalExe -Parent
+        Copy-Item -Path "$ExeFolder\*" -Destination $CopyToDirectory -Recurse -Force
+        $LocalExe = Join-Path $CopyToDirectory (Split-Path $LocalExe -Leaf)
+    }
+
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
@@ -524,6 +533,18 @@ try {
 
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
+    }
+
+    Remove-PerfServices
+
+    if ($IsWindows) {
+        try {
+            $CopyToDirectory = "C:\RunningTests"
+            Remove-Item -Path "$CopyToDirectory/*" -Recurse -Force
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            # Ignore Not Found for when the directory does not exist
+            # This will still throw if a file cannot successfuly be deleted
+        }
     }
 
     # Find All Remote processes, and kill them
