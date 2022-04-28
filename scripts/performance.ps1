@@ -592,7 +592,7 @@ try {
     }
 
     Check-Regressions
-catch {
+} catch {
     Write-Host $_
     Write-Host $error[0]
     Write-Host $error
