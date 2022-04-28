@@ -170,8 +170,14 @@ function Wait-ForRemote {
     }
 
     Stop-Job -Job $Job | Out-Null
-    $RetVal = Receive-Job -Job $Job
-    return $RetVal -join "`n"
+    try {
+        $RetVal = Receive-Job -Job $Job
+        return $RetVal -join "`n"
+    } catch {
+        Write-Host "Failure Retreiving remote job"
+        Write-Host $_
+        return "Receive-Job Exception"
+    }
 }
 
 function Copy-Artifacts {
