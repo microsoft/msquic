@@ -12,22 +12,12 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
 {
-#if PUBLIC_MSQUIC_INTEROP_ACCESS
-    public
-#else
-    internal
-#endif
-    unsafe partial struct QUIC_BUFFER
+    internal unsafe partial struct QUIC_BUFFER
     {
         public Span<byte> Span => new(Buffer, (int)Length);
     }
 
-#if PUBLIC_MSQUIC_INTEROP_ACCESS
-    public
-#else
-    internal
-#endif
-    partial class MsQuic
+    internal partial class MsQuic
     {
         public static unsafe QUIC_API_TABLE* Open()
         {
@@ -131,12 +121,7 @@ namespace Microsoft.Quic
     }
 
     [StructLayout(LayoutKind.Explicit)]
-#if PUBLIC_MSQUIC_INTEROP_ACCESS
-    public
-#else
-    internal
-#endif
-    struct QuicAddrFamilyAndLen
+    internal struct QuicAddrFamilyAndLen
     {
         [FieldOffset(0)]
         public ushort sin_family;
@@ -147,12 +132,7 @@ namespace Microsoft.Quic
     }
 
     [StructLayout(LayoutKind.Sequential)]
-#if PUBLIC_MSQUIC_INTEROP_ACCESS
-    public
-#else
-    internal
-#endif
-    unsafe struct QuicAddrIn
+    internal unsafe struct QuicAddrIn
     {
         public QuicAddrFamilyAndLen sin_family;
         public ushort sin_port;
@@ -160,12 +140,7 @@ namespace Microsoft.Quic
     }
 
     [StructLayout(LayoutKind.Sequential)]
-#if PUBLIC_MSQUIC_INTEROP_ACCESS
-    public
-#else
-    internal
-#endif
-    unsafe struct QuicAddrIn6
+    internal unsafe struct QuicAddrIn6
     {
         public QuicAddrFamilyAndLen sin6_family;
         public ushort sin6_port;
@@ -175,12 +150,7 @@ namespace Microsoft.Quic
     }
 
     [StructLayout(LayoutKind.Explicit)]
-#if PUBLIC_MSQUIC_INTEROP_ACCESS
-    public
-#else
-    internal
-#endif
-    struct QuicAddr
+    internal struct QuicAddr
     {
         [FieldOffset(0)]
         public QuicAddrIn Ipv4;
