@@ -1370,9 +1370,9 @@ CxPlatSocketContextProcessEvents(
 
     if (Event->filter == EVFILT_READ) {
         //
-        // Read up to 1 receives before moving to another event.
+        // Read up to 4 receives before moving to another event.
         //
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 4; i++) {
             CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
 
             ssize_t Ret =

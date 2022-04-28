@@ -1772,9 +1772,9 @@ CxPlatSocketContextProcessEvents(
 
     if (EPOLLIN & Events) {
         //
-        // Read up to 1 receives before moving to another event.
+        // Read up to 4 receives before moving to another event.
         //
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 4; i++) {
 
             for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
                 CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
