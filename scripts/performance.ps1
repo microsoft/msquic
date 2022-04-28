@@ -594,10 +594,6 @@ try {
     Check-Regressions
 } catch {
     Write-Host $_
-    Write-Host $_.ErrorDetails
-    Write-Host $_.SerializedRemoteException
-    Write-Host $_.SerializedRemoteInvocationInfo
-    Write-Host $_.WasThrownFromThrowStatement
     Write-Host $error[0]
     Write-Host $error
     throw $_

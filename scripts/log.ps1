@@ -163,7 +163,13 @@ function Log-Cancel {
 function Log-Stop {
     if ($IsWindows) {
         $EtlPath = $OutputPath + ".etl"
-        wpr.exe -stop $EtlPath -instancename $InstanceName 2>&1
+        try {
+            wpr.exe -stop $EtlPath -instancename $InstanceName 2>&1
+        } catch {
+            Write-Host "WPR.exe failed with $LASTEXITCODE"
+            Write-Host $_
+            return
+        }
         if (!$RawLogOnly) {
             $LogPath = $OutputPath + ".log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
