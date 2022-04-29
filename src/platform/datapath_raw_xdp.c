@@ -391,7 +391,7 @@ CxPlatXdpReadConfig(
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
-    Xdp->TxAlwaysPoke = FALSE;
+    Xdp->TxAlwaysPoke = TRUE;
 
     //
     // Read config from config file.
