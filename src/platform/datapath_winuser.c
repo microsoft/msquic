@@ -927,6 +927,7 @@ CxPlatDataPathInitialize(
     // Check for port reservation support.
     //
 
+#ifndef QUIC_UWP_BUILD
     HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
     if (NtDllHandle) {
         FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
@@ -945,6 +946,7 @@ CxPlatDataPathInitialize(
 
         FreeLibrary(NtDllHandle);
     }
+#endif
 
     *NewDataPath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
