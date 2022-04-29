@@ -608,11 +608,6 @@ try {
     }
 
     Check-Regressions
-} catch {
-    Write-Host $_
-    Write-Host $error[0]
-    Write-Host $error
-    throw $_
 } finally {
     if ($XDP) {
         Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
