@@ -588,6 +588,18 @@ public:
                 QSettings);
     }
 
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings& Settings) noexcept {
+        QUIC_SETTINGS* QSettings = &Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                &Size,
+                QSettings);
+    }
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS
     SetVersionSettings(

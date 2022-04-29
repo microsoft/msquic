@@ -493,6 +493,13 @@ QuicTestDatagramSend(
     );
 
 //
+// Storage tests
+//
+void
+QuicTestStorage(
+    );
+
+//
 // Platform Specific Functions
 //
 
@@ -1013,4 +1020,7 @@ typedef struct {
     QUIC_CTL_CODE(88, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 88
+#define IOCTL_QUIC_RUN_STORAGE \
+    QUIC_CTL_CODE(89, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 89
