@@ -397,14 +397,12 @@ function Invoke-RemoteExe {
 function Cancel-RemoteLogs {
     param ($RemoteDirectory)
     Invoke-TestCommand -Session $Session -ScriptBlock {
-        param ($Record, $RemoteDirectory)
+        param ($RemoteDirectory)
 
         $LogScript = Join-Path $RemoteDirectory log.ps1
 
-        if ($Record) {
-            & $LogScript -Cancel -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
-        }
-    } -ArgumentList $Record, $RemoteDirectory
+        & $LogScript -Cancel -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+    } -ArgumentList $RemoteDirectory
 }
 
 function Stop-RemoteLogs {
@@ -482,6 +480,12 @@ function Start-Tracing {
         $LogScript = Join-Path $LocalDirectory log.ps1
         & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
     }
+}
+
+function Cancel-LocalTracing {
+    param($LocalDirectory)
+    $LogScript = Join-Path $LocalDirectory log.ps1
+    & $LogScript -Cancel -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
 }
 
 function Stop-Tracing {

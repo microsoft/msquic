@@ -549,6 +549,8 @@ try {
     Remove-PerfServices
 
     if ($IsWindows) {
+        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+
         try {
             $CopyToDirectory = "C:\RunningTests"
             Remove-Item -Path "$CopyToDirectory/*" -Recurse -Force
@@ -573,6 +575,9 @@ try {
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
+
+    Cancel-LocalTracing -LocalDirectory $LocalDirectory
+    Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
 
     Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
     if (!$Local) {
