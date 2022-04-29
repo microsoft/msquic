@@ -195,12 +195,19 @@ function Log-Stop {
         if (!$RawLogOnly) {
             Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
             babeltrace --names all $TempDir/* > $BableTraceFile
-
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
             $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
             Write-Host $Command
-            Invoke-Expression $Command | Write-Debug
-            Remove-Item -Path $BableTraceFile -Force | Out-Null
+
+            try {
+                Invoke-Expression $Command | Write-Debug
+            } catch {
+                $err = $_
+                Write-Host "Failed to decode logs."
+                Write-Host "Babeltrace ran. Run `"prepare-machine.ps1 -InstallClog2Text`" and run the following command"
+                $Command
+                Write-Host $err
+            }
         }
 
         Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
@@ -233,11 +240,19 @@ function Log-Decode {
 
         Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
         babeltrace --names all $DecompressedLogs/* > $BableTraceFile
-
         Write-Host "Decoding Babeltrace into human text using CLOG"
         $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
         Write-Host $Command
-        Invoke-Expression $Command
+
+        try {
+            Invoke-Expression $Command
+        } catch {
+            $err = $_
+            Write-Host "Failed to decode logs."
+            Write-Host "Babeltrace ran. Run `"prepare-machine.ps1 -InstallClog2Text`" and run the following command"
+            $Command
+            Write-Host $err
+        }
     }
 }
 

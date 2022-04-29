@@ -175,11 +175,14 @@ public:
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
     uint8_t UseEncryption {TRUE};
+    uint8_t SendInline {FALSE};
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
     uint32_t RequestCount {RPS_DEFAULT_CONNECTION_COUNT * 2};
     uint32_t RequestLength {RPS_DEFAULT_REQUEST_LENGTH};
     uint32_t ResponseLength {RPS_DEFAULT_RESPONSE_LENGTH};
+    uint32_t CibirIdLength {0};
+    uint8_t CibirId[7]; // {offset, values}
 
     struct QuicBufferScopeQuicAlloc {
         QUIC_BUFFER* Buffer;

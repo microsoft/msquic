@@ -192,6 +192,22 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetSettings );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDataPathProcsSet
+// [ lib] Setting datapath procs
+// QuicTraceLogInfo(
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryDataPathProcsSet
+#define _clog_2_ARGS_TRACE_LibraryDataPathProcsSet(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryDataPathProcsSet );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -345,19 +361,17 @@ tracepoint(CLOG_LIBRARY_C, LibraryErrorStatus , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitialized
-// [ lib] Initialized, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryInitializedV2
+// [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV2,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryInitialized
-#define _clog_4_ARGS_TRACE_LibraryInitialized(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibraryInitialized , arg2, arg3);\
+#ifndef _clog_3_ARGS_TRACE_LibraryInitializedV2
+#define _clog_3_ARGS_TRACE_LibraryInitializedV2(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryInitializedV2 , arg2);\
 
 #endif
 
@@ -440,10 +454,10 @@ tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Only v2 is supported in MsQuicOpenVersion");
-// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change raw datapath procs after datapath initialization");
+// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
@@ -491,19 +505,35 @@ tracepoint(CLOG_LIBRARY_C, LibraryServerInit );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRundown
-// [ lib] Rundown, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryRundownV2
+// [ lib] Rundown, PartitionCount=%u
 // QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryRundown
-#define _clog_4_ARGS_TRACE_LibraryRundown(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibraryRundown , arg2, arg3);\
+#ifndef _clog_3_ARGS_TRACE_LibraryRundownV2
+#define _clog_3_ARGS_TRACE_LibraryRundownV2(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryRundownV2 , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DataPathRundown
+// [data] Rundown, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DataPathRundown
+#define _clog_3_ARGS_TRACE_DataPathRundown(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, DataPathRundown , arg2);\
 
 #endif
 

@@ -117,6 +117,11 @@ typedef struct QUIC_LIBRARY {
     uint32_t Version[4];
 
     //
+    // Binary Git Hash
+    //
+    const char* GitHash;
+
+    //
     // Configurable (app & registry) settings.
     //
     QUIC_SETTINGS_INTERNAL Settings;
@@ -173,10 +178,10 @@ typedef struct QUIC_LIBRARY {
     //
     // Length of various parts of locally generated connection IDs.
     //
-    _Field_range_(0, MSQUIC_MAX_CID_SID_LENGTH)
+    _Field_range_(0, QUIC_MAX_CID_SID_LENGTH)
     uint8_t CidServerIdLength;
-    // uint8_t CidPartitionIdLength; // Currently hard coded (MSQUIC_CID_PID_LENGTH)
-    _Field_range_(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, MSQUIC_CID_MAX_LENGTH)
+    // uint8_t CidPartitionIdLength; // Currently hard coded (QUIC_CID_PID_LENGTH)
+    _Field_range_(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, QUIC_CID_MAX_LENGTH)
     uint8_t CidTotalLength;
 
     //
@@ -199,6 +204,12 @@ typedef struct QUIC_LIBRARY {
     // Handle to global persistent storage (registry).
     //
     CXPLAT_STORAGE* Storage;
+
+    //
+    // Processor candidates for raw datapath threads.
+    //
+    uint16_t* DataPathProcList;
+    uint32_t DataPathProcListLength;
 
     //
     // Datapath instance for the library.
@@ -414,8 +425,8 @@ QuicCidNewRandomSource(
     )
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.CidTotalLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-    CXPLAT_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + MSQUIC_CID_PID_LENGTH + MSQUIC_CID_PAYLOAD_LENGTH);
-    CXPLAT_DBG_ASSERT(MSQUIC_CID_PAYLOAD_LENGTH > PrefixLength);
+    CXPLAT_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH + QUIC_CID_PAYLOAD_LENGTH);
+    CXPLAT_DBG_ASSERT(QUIC_CID_PAYLOAD_LENGTH > PrefixLength);
 
     QUIC_CID_HASH_ENTRY* Entry =
         (QUIC_CID_HASH_ENTRY*)
@@ -437,7 +448,7 @@ QuicCidNewRandomSource(
         }
         Data += MsQuicLib.CidServerIdLength;
 
-        CXPLAT_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == sizeof(PartitionID), "Assumes a 2 byte PID");
+        CXPLAT_STATIC_ASSERT(QUIC_CID_PID_LENGTH == sizeof(PartitionID), "Assumes a 2 byte PID");
         CxPlatCopyMemory(Data, &PartitionID, sizeof(PartitionID));
         Data += sizeof(PartitionID);
 
@@ -446,7 +457,7 @@ QuicCidNewRandomSource(
             Data += PrefixLength;
         }
 
-        CxPlatRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
+        CxPlatRandom(QUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
     }
 
     return Entry;

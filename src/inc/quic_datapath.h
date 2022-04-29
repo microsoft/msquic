@@ -343,6 +343,11 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+typedef struct CXPLAT_DATAPATH_CONFIG {
+    const uint16_t* DataPathProcList; // Processor index candidates
+    uint32_t DataPathProcListLength;
+} CXPLAT_DATAPATH_CONFIG;
+
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -352,6 +357,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -466,6 +472,12 @@ typedef struct CXPLAT_UDP_CONFIG {
 #endif
 #ifdef QUIC_OWNING_PROCESS
     QUIC_PROCESS OwningProcess;         // Kernel client-only
+#endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    uint8_t CibirIdLength;              // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];                 // CIBIR ID data
 #endif
 } CXPLAT_UDP_CONFIG;
 
@@ -670,10 +682,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 (CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
-    _In_ void* Context,
+    _Inout_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
-        uint8_t* PhysicalAddress,
+        const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );

@@ -131,7 +131,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_OPER                      'D3cQ' // Qc3D - QUIC Operation
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
 #define QUIC_POOL_TLS_PFX                   'F3cQ' // Qc3F - QUIC Platform PFX
-#define QUIC_POOL_DESIRED_VER_LIST          '04cQ' // Qc40 - QUIC App-supplied desired versions list
+#define QUIC_POOL_VERSION_SETTINGS          '04cQ' // Qc40 - QUIC App-supplied version settings
 #define QUIC_POOL_DEFAULT_COMPAT_VER_LIST   '14cQ' // Qc41 - QUIC Default compatible versions list
 #define QUIC_POOL_VERSION_INFO              '24cQ' // Qc42 - QUIC Version info
 #define QUIC_POOL_PROCESS                   '34cQ' // Qc43 - QUIC Process
@@ -143,6 +143,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
+#define QUIC_POOL_RAW_DATAPATH_PROCS        'C4cQ' // Qc4C - QUIC raw datapath procs
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -502,7 +503,7 @@ typedef enum CXPLAT_TEST_CERT_TYPE {
 } CXPLAT_TEST_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-const QUIC_CREDENTIAL_CONFIG*
+QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
     _In_ BOOLEAN ClientCertificate

@@ -1017,6 +1017,9 @@ QuicStreamSendWrite(
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
     BOOLEAN RanOutOfRoom = FALSE;
+    const BOOLEAN IsInitial =
+        (Stream->Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType == QUIC_INITIAL_V1) ||
+        (Stream->Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType == QUIC_INITIAL_V2);
 
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
@@ -1096,7 +1099,7 @@ QuicStreamSendWrite(
         uint16_t StreamFrameLength = AvailableBufferLength - Builder->DatagramLength;
         QuicStreamWriteStreamFrames(
             Stream,
-            Builder->PacketType == QUIC_INITIAL,
+            IsInitial,
             Builder->Metadata,
             &StreamFrameLength,
             Builder->Datagram->Buffer + Builder->DatagramLength);

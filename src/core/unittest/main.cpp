@@ -19,6 +19,7 @@ public:
     void TearDown() override {
         CxPlatUninitialize();
         CxPlatSystemUnload();
+        CxPlatZeroMemory(&MsQuicLib, sizeof(MsQuicLib));
     }
 };
 

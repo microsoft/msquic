@@ -119,7 +119,6 @@ CxPlatConvertUtf8ToUnicode(
             &UnicodeLength,
             Utf8String,
             (ULONG)Utf8Length);
-
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -132,6 +131,11 @@ CxPlatConvertUtf8ToUnicode(
         CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (UnicodeString == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "UnicodeString from UTF8",
+            sizeof(UNICODE_STRING) + UnicodeLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -146,7 +150,6 @@ CxPlatConvertUtf8ToUnicode(
             &UnicodeLength,
             Utf8String,
             (ULONG)Utf8Length);
-
     if (QUIC_FAILED(Status)) {
         CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
         return Status;
@@ -158,6 +161,85 @@ CxPlatConvertUtf8ToUnicode(
 }
 
 DECLARE_CONST_UNICODE_STRING(BaseKeyPath, CXPLAT_BASE_REG_PATH);
+
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageCreateAppKey(
+    _In_z_ const char* Utf8String,
+    _Out_ PUNICODE_STRING * NewUnicodeString
+    )
+{
+    size_t Utf8Length = strlen(Utf8String);
+    if (Utf8Length > MAXUINT16) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    ULONG UnicodeLength; // In Bytes
+
+    QUIC_STATUS Status =
+        RtlUTF8ToUnicodeN(
+            NULL,
+            0,
+            &UnicodeLength,
+            Utf8String,
+            (ULONG)Utf8Length);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
+        return Status;
+    }
+
+    UnicodeLength += BaseKeyPath.Length;
+
+    if (UnicodeLength > MAXUINT16) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    PUNICODE_STRING UnicodeString =
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (UnicodeString == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "UnicodeString for app storage key",
+            sizeof(UNICODE_STRING) + UnicodeLength);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    UnicodeString->Buffer = (PWCH)(UnicodeString + 1);
+    UnicodeString->MaximumLength = (USHORT)UnicodeLength;
+    UnicodeString->Length = 0;
+
+    RtlCopyUnicodeString(
+        UnicodeString,
+        &BaseKeyPath);
+
+    Status =
+        RtlUTF8ToUnicodeN(
+            (PWSTR)((char*)UnicodeString->Buffer + UnicodeString->Length),
+            UnicodeString->MaximumLength - UnicodeString->Length,
+            &UnicodeLength,
+            Utf8String,
+            (ULONG)Utf8Length);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
+        CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        return Status;
+    }
+
+    UnicodeString->Length += (USHORT)UnicodeLength;
+    *NewUnicodeString = UnicodeString;
+
+    return Status;
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -174,8 +256,13 @@ CxPlatStorageOpen(
     CXPLAT_STORAGE* Storage = NULL;
 
     if (Path != NULL) {
-        Status = CxPlatConvertUtf8ToUnicode(Path, &PathUnicode);
+        Status = CxPlatStorageCreateAppKey(Path, &PathUnicode);
         if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatStorageCreateAppKey failed");
             goto Exit;
         }
 
@@ -185,10 +272,6 @@ CxPlatStorageOpen(
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
             NULL,
             NULL);
-
-        Status = QUIC_STATUS_NOT_SUPPORTED; // TODO
-        goto Exit;
-
     } else {
         InitializeObjectAttributes(
             &Attributes,
@@ -200,6 +283,11 @@ CxPlatStorageOpen(
 
     Storage = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_STORAGE",
+            sizeof(CXPLAT_STORAGE));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -223,6 +311,11 @@ CxPlatStorageOpen(
             KEY_READ | KEY_NOTIFY,
             &Attributes);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "ZwOpenKey failed");
         goto Exit;
     }
 
@@ -239,6 +332,11 @@ CxPlatStorageOpen(
             0,
             TRUE);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "ZwNotifyChangeKey failed");
         goto Exit;
     }
 
@@ -359,6 +457,11 @@ CxPlatStorageReadValue(
             Status == STATUS_BUFFER_TOO_SMALL) {
             Status = QUIC_STATUS_SUCCESS;
         } else if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwQueryValueKey (length) failed");
             goto Exit;
         }
 
@@ -384,6 +487,12 @@ CxPlatStorageReadValue(
         if (QUIC_SUCCEEDED(Status)) {
             CXPLAT_DBG_ASSERT(*BufferLength == Info->DataLength);
             memcpy(Buffer, Info->Data, Info->DataLength);
+        } else if (Status != STATUS_OBJECT_NAME_NOT_FOUND) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwQueryValueKey failed");
         }
 
         CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);

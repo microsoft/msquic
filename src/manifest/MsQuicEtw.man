@@ -199,40 +199,48 @@
                 value="2"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.STRM_CLOSE)"
+                message="$(string.Enum.QUIC_API_TYPE.SET_CONFIGURATION)"
                 value="3"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.STRM_SHUTDOWN)"
+                message="$(string.Enum.QUIC_API_TYPE.SEND_RESUMPTION_TICKET)"
                 value="4"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.STRM_START)"
+                message="$(string.Enum.QUIC_API_TYPE.STRM_CLOSE)"
                 value="5"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.STRM_SEND)"
+                message="$(string.Enum.QUIC_API_TYPE.STRM_SHUTDOWN)"
                 value="6"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.STRM_RECV_COMPLETE)"
+                message="$(string.Enum.QUIC_API_TYPE.STRM_START)"
                 value="7"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.STRM_RECV_SET_ENABLED)"
+                message="$(string.Enum.QUIC_API_TYPE.STRM_SEND)"
                 value="8"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.SET_PARAM)"
+                message="$(string.Enum.QUIC_API_TYPE.STRM_RECV_COMPLETE)"
                 value="9"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.GET_PARAM)"
+                message="$(string.Enum.QUIC_API_TYPE.STRM_RECV_SET_ENABLED)"
                 value="10"
                 />
             <map
-                message="$(string.Enum.QUIC_API_TYPE.DATAGRAM_SEND)"
+                message="$(string.Enum.QUIC_API_TYPE.SET_PARAM)"
                 value="11"
+                />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.GET_PARAM)"
+                value="12"
+                />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.DATAGRAM_SEND)"
+                value="13"
                 />
           </valueMap>
           <valueMap name="map_QUIC_CONN_TIMER_TYPE">
@@ -541,6 +549,12 @@
                 name="Value"
                 />
           </template>
+          <template tid="tid_DATAPATH_INIT">
+            <data
+                inType="win:UInt32"
+                name="DatapathFeatures"
+                />
+          </template>
           <template tid="tid_LIBRARY_INIT">
             <data
                 inType="win:UInt32"
@@ -549,6 +563,12 @@
             <data
                 inType="win:UInt32"
                 name="DatapathFeatures"
+                />
+          </template>
+          <template tid="tid_LIBRARY_INIT_V2">
+            <data
+                inType="win:UInt32"
+                name="PartitionCount"
                 />
           </template>
           <template tid="tid_LIBRARY_ERROR">
@@ -1204,6 +1224,10 @@
             <data
                 inType="win:UInt64"
                 name="RecvTotalBytes"
+                />
+			<data
+                inType="win:UInt32"
+                name="CongestionWindow"
                 />
           </template>
           <template tid="tid_CONN_PACKET_STATISTICS">
@@ -1996,6 +2020,42 @@
               symbol="QuicApiError"
               template="tid_API_EXIT_STATUS"
               value="18"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryInitializedV2)"
+              opcode="Global"
+              symbol="QuicLibraryInitializedV2"
+              template="tid_LIBRARY_INIT_V2"
+              value="19"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DataPathInitialized)"
+              opcode="Global"
+              symbol="QuicDataPathInitialized"
+              template="tid_DATAPATH_INIT"
+              value="20"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryRundownV2)"
+              opcode="Global"
+              symbol="QuicLibraryRundownV2"
+              template="tid_LIBRARY_INIT_V2"
+              value="21"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DataPathRundown)"
+              opcode="Global"
+              symbol="QuicDataPathRundown"
+              template="tid_DATAPATH_INIT"
+              value="22"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3424,7 +3484,7 @@
             />
         <string
             id="Etw.ConnLossDetectionTimerSet"
-            value="[conn][%1] Setting loss detection %2 timer for %3 ms. (ProbeCount=%4)"
+            value="[conn][%1] Setting loss detection %2 timer for %3 us. (ProbeCount=%4)"
             />
         <string
             id="Etw.ConnLossDetectionTimerCancel"
@@ -3456,7 +3516,7 @@
             />
         <string
             id="Etw.ConnStats"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7"
             />
         <string
             id="Etw.ConnPacketStats"
@@ -3635,12 +3695,28 @@
             value="[ reg][%1] Shutting down connections, Flags=%2, ErrorCode=%3"
             />
         <string
+            id="Etw.DataPathInitialized"
+            value="[data] Initialized, DatapathFeatures=%1"
+            />
+        <string
+            id="Etw.DataPathRundown"
+            value="[data] Rundown, DatapathFeatures=%1"
+            />
+        <string
             id="Etw.LibraryInitialized"
             value="[ lib] Initialized, PartitionCount=%1 DatapathFeatures=%2"
             />
         <string
+            id="Etw.LibraryInitializedV2"
+            value="[ lib] Initialized, PartitionCount=%1"
+            />
+        <string
             id="Etw.LibraryRundown"
             value="[ lib] Rundown, PartitionCount=%1 DatapathFeatures=%2"
+            />
+        <string
+            id="Etw.LibraryRundownV2"
+            value="[ lib] Rundown, PartitionCount=%1"
             />
         <string
             id="Etw.LibraryUninitialized"
@@ -3922,6 +3998,14 @@
         <string
             id="Enum.QUIC_API_TYPE.CONN_START"
             value="API.CONN_START"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.SET_CONFIGURATION"
+            value="API.SET_CONFIGURATION"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.SEND_RESUMPTION_TICKET"
+            value="API.SEND_RESUMPTION_TICKET"
             />
         <string
             id="Enum.QUIC_API_TYPE.STRM_CLOSE"

@@ -161,6 +161,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDataPathProcsSet
+// [ lib] Setting datapath procs
+// QuicTraceLogInfo(
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryDataPathProcsSet,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -321,23 +337,19 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitialized
-// [ lib] Initialized, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryInitializedV2
+// [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        LibraryInitializedV2,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -426,10 +438,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Only v2 is supported in MsQuicOpenVersion");
-// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change raw datapath procs after datapath initialization");
+// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(
@@ -481,23 +493,38 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRundown
-// [ lib] Rundown, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryRundownV2
+// [ lib] Rundown, PartitionCount=%u
 // QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
 // arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DataPathRundown
+// [data] Rundown, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 

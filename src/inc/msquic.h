@@ -108,7 +108,8 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK             = 0x00000800, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE              = 0x00001000, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES              = 0x00002000,
-    QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES              = 0x00004000, // OpenSSL only currently
+    QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES              = 0x00004000,
+    QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS               = 0x00008000, // Schannel only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -466,6 +467,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t KeyUpdateCount;
 
+    uint32_t SendCongestionWindow;          // Congestion window size
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -702,6 +705,8 @@ void
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
 #endif
+#define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH              0x01000008  // char[64]
+#define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS           0x01000009  // uint16_t[]
 
 //
 // Parameters for Registration.
@@ -721,7 +726,9 @@ void
 //
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0x04000000  // QUIC_ADDR
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
-#define QUIC_PARAM_LISTENER_CID_PREFIX                  0x04000002  // uint8_t[]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
+#endif
 
 //
 // Parameters for Connection.
@@ -750,8 +757,8 @@ void
 #define QUIC_PARAM_CONN_TLS_SECRETS                     0x05000013  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_VERSION_SETTINGS                0x05000014  // QUIC_VERSION_SETTINGS
+#define QUIC_PARAM_CONN_CIBIR_ID                        0x05000015  // uint8_t[] {offset, id[]}
 #endif
-#define QUIC_PARAM_CONN_INITIAL_DCID_PREFIX             0x05000015  // bytes[]
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 
@@ -1390,6 +1397,17 @@ typedef struct QUIC_API_TABLE {
 #define QUIC_API_VERSION_1      1 // Not supported any more
 #define QUIC_API_VERSION_2      2 // Current latest
 
+#if defined(_KERNEL_MODE) && !defined(_WIN64)
+
+//
+// 32 bit kernel mode is no longer supported, so shim behavior in 32 bit kernel
+// mode
+//
+#define MsQuicClose(QuicApi) UNREFERENCED_PARAMETER((QuicApi))
+#define MsQuicOpenVersion(Version, QuicApi) QUIC_STATUS_NOT_SUPPORTED
+
+#else
+
 //
 // Opens the API library and initializes it if this is the first call for the
 // process. It returns API function table for the rest of the API's functions.
@@ -1406,6 +1424,19 @@ MsQuicOpenVersion(
     _In_ uint32_t Version,
     _Out_ _Pre_defensive_ const void** QuicApi
     );
+
+//
+// Cleans up the function table returned from MsQuicOpenVersion and releases the
+// reference on the API.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicClose(
+    _In_ _Pre_defensive_ const void* QuicApi
+    );
+
+#endif
 
 //
 // Version specific helpers that wrap MsQuicOpenVersion.
@@ -1436,17 +1467,6 @@ MsQuicOpen2(
 #define MsQuicOpen2(QuicApi) MsQuicOpenVersion(2, (const void**)QuicApi)
 
 #endif // defined(__cplusplus)
-
-//
-// Cleans up the function table returned from MsQuicOpenVersion and releases the
-// reference on the API.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicClose(
-    _In_ _Pre_defensive_ const void* QuicApi
-    );
 
 #if defined(__cplusplus)
 }

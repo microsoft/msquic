@@ -303,6 +303,18 @@ MsQuicListenerStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
 #endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    UdpConfig.CibirIdLength = Listener->CibirId[0];
+    UdpConfig.CibirIdOffsetSrc = MsQuicLib.CidServerIdLength + 2;
+    UdpConfig.CibirIdOffsetDst = MsQuicLib.CidServerIdLength + 2;
+    if (UdpConfig.CibirIdLength) {
+        CXPLAT_DBG_ASSERT(UdpConfig.CibirIdLength <= sizeof(UdpConfig.CibirId));
+        CxPlatCopyMemory(
+            UdpConfig.CibirId,
+            &Listener->CibirId[2],
+            UdpConfig.CibirIdLength);
+    }
+#endif
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
@@ -670,7 +682,16 @@ QuicListenerAcceptConnection(
         return;
     }
 
-    memcpy(Connection->CidPrefix, Listener->CidPrefix, sizeof(Listener->CidPrefix));
+    memcpy(Connection->CibirId, Listener->CibirId, sizeof(Listener->CibirId));
+
+    if (Connection->CibirId[0] != 0) {
+        QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+    }
 
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
         return;
@@ -695,23 +716,36 @@ QuicListenerParamSet(
         const void* Buffer
     )
 {
-    QUIC_STATUS Status;
-
-    if (Param == QUIC_PARAM_LISTENER_CID_PREFIX) {
-        if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
+    if (Param == QUIC_PARAM_LISTENER_CIBIR_ID) {
+        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (BufferLength == 0) {
+            CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
+            return QUIC_STATUS_SUCCESS;
+        }
+        if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        Listener->CidPrefix[0] = (uint8_t)BufferLength;
-        if (BufferLength != 0) {
-            memcpy(Listener->CidPrefix+1, Buffer, BufferLength);
+        if (((uint8_t*)Buffer)[0] != 0) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
         }
-        Status = QUIC_STATUS_SUCCESS;
-    } else {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
+
+        Listener->CibirId[0] = (uint8_t)BufferLength - 1;
+        memcpy(Listener->CibirId + 1, Buffer, BufferLength);
+
+        QuicTraceLogVerbose(
+            ListenerCibirIdSet,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            Listener,
+            Listener->CibirId[0],
+            Listener->CibirId[1]);
+
+        return QUIC_STATUS_SUCCESS;
     }
 
-    return Status;
+    return QUIC_STATUS_INVALID_PARAMETER;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -775,24 +809,24 @@ QuicListenerParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_LISTENER_CID_PREFIX:
+    case QUIC_PARAM_LISTENER_CIBIR_ID:
 
-        if (*BufferLength < Listener->CidPrefix[0]) {
-            *BufferLength = Listener->CidPrefix[0];
+        if (Listener->CibirId[0] == 0) {
+            *BufferLength = 0;
+            return QUIC_STATUS_SUCCESS;
+        }
+
+        if (*BufferLength < (uint32_t)Listener->CibirId[0] + 1) {
+            *BufferLength = Listener->CibirId[0] + 1;
             return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
-        if (Listener->CidPrefix[0] > 0) {
-            if (Buffer == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-
-            *BufferLength = Listener->CidPrefix[0];
-            memcpy(Buffer, Listener->CidPrefix+1, Listener->CidPrefix[0]);
-
-        } else {
-            *BufferLength = 0;
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
+
+        *BufferLength = Listener->CibirId[0] + 1;
+        memcpy(Buffer, Listener->CibirId + 1, Listener->CibirId[0]);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

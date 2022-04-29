@@ -17,6 +17,13 @@ Abstract:
 #include "DataPathTest.cpp.clog.h"
 #endif
 
+extern bool UseDuoNic;
+
+//
+// Connect to the duonic address (if using duonic) or localhost (if not).
+//
+#define QUIC_TEST_LOOPBACK_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
+
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
 
@@ -49,16 +56,17 @@ struct QuicAddr
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
-        UNREFERENCED_PARAMETER(af);
         CXPLAT_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             CxPlatDataPathInitialize(
                 0,
                 NULL,
                 NULL,
+                NULL,
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
+        QuicAddrSetFamily(&SockAddr, af);
         if (QUIC_FAILED(
             CxPlatDataPathResolveAddress(
                 Datapath,
@@ -127,6 +135,8 @@ protected:
     static volatile uint16_t NextPort;
     static QuicAddr LocalIPv4;
     static QuicAddr LocalIPv6;
+    static QuicAddr UnspecIPv4;
+    static QuicAddr UnspecIPv6;
 
     //
     // Helper to get a new port to bind to.
@@ -179,6 +189,48 @@ protected:
         }
     }
 
+    //
+    // Helper to return a new unspecified IPv4 address and port to use.
+    //
+    QuicAddr
+    GetNewUnspecIPv4(bool randomPort = true)
+    {
+        QuicAddr ipv4Copy = UnspecIPv4;
+        if (randomPort) { ipv4Copy.SockAddr.Ipv4.sin_port = GetNextPort(); }
+        else { ipv4Copy.SockAddr.Ipv4.sin_port = 0; }
+        return ipv4Copy;
+    }
+
+    //
+    // Helper to return a new unspecified IPv4 address and port to use.
+    //
+    QuicAddr
+    GetNewUnspecIPv6(bool randomPort = true)
+    {
+        QuicAddr ipv6Copy = UnspecIPv6;
+        if (randomPort) { ipv6Copy.SockAddr.Ipv6.sin6_port = GetNextPort(); }
+        else { ipv6Copy.SockAddr.Ipv6.sin6_port = 0; }
+        return ipv6Copy;
+    }
+
+    //
+    // Helper to return a new unspecified IPv4 or IPv6 address based on the test data.
+    //
+    QuicAddr
+    GetNewUnspecAddr(bool randomPort = true)
+    {
+        int addressFamily = GetParam();
+
+        if (addressFamily == 4) {
+            return GetNewUnspecIPv4(randomPort);
+        } else if (addressFamily == 6) {
+            return GetNewUnspecIPv6(randomPort);
+        } else {
+            GTEST_NONFATAL_FAILURE_("Malconfigured test data; This should never happen!!");
+            return QuicAddr();
+        }
+    }
+
     static void SetUpTestSuite()
     {
         //
@@ -186,8 +238,11 @@ protected:
         //
         NextPort = 50000 + (CxPlatCurThreadID() % 10000) + (rand() % 5000);
 
-        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
-        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
+        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
+        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
+
+        UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "0.0.0.0");
+        UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "::");
 
         ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
@@ -366,6 +421,8 @@ protected:
 volatile uint16_t DataPathTest::NextPort;
 QuicAddr DataPathTest::LocalIPv4;
 QuicAddr DataPathTest::LocalIPv6;
+QuicAddr DataPathTest::UnspecIPv4;
+QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
     CXPLAT_DATAPATH* Datapath {nullptr};
@@ -381,6 +438,7 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
+                nullptr,
                 &Datapath);
     }
     ~CxPlatDataPath() noexcept {
@@ -395,6 +453,27 @@ struct CxPlatDataPath {
     operator CXPLAT_DATAPATH* () const noexcept { return Datapath; }
     uint32_t GetSupportedFeatures() const noexcept { return CxPlatDataPathGetSupportedFeatures(Datapath); }
 };
+
+#ifdef QUIC_USE_RAW_DATAPATH
+static
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+ResolveRouteComplete(
+    _Inout_ void* Context,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    UNREFERENCED_PARAMETER(PathId);
+    if (Succeeded) {
+        CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
+    }
+}
+#endif // QUIC_USE_RAW_DATAPATH
 
 struct CxPlatSocket {
     CXPLAT_SOCKET* Socket {nullptr};
@@ -455,6 +534,21 @@ struct CxPlatSocket {
         if (QUIC_SUCCEEDED(InitStatus)) {
             CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
             CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
+#ifdef QUIC_USE_RAW_DATAPATH
+            if (!QuicAddrIsWildCard(&Route.RemoteAddress)) {
+                //
+                // This is a connected socket and its route must be resolved
+                // to be able to send traffic.
+                //
+                InitStatus = CxPlatResolveRoute(Socket, &Route, 0, &Route, ResolveRouteComplete);
+                //
+                // Duonic sets up static neighbor entries, so CxPlatResolveRoute should
+                // complete synchronously. If this changes, we will need to add code to
+                // wait for an event set by ResolveRouteComplete.
+                //
+                EXPECT_EQ(InitStatus, QUIC_STATUS_SUCCESS);
+            }
+#endif
         }
     }
     void CreateTcp(
@@ -562,7 +656,7 @@ TEST_F(DataPathTest, Initialize)
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr));
+    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, nullptr));
     {
         const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks = { nullptr, EmptyUnreachableCallback };
         CxPlatDataPath Datapath(&InvalidUdpCallbacks);
@@ -613,15 +707,18 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
-    auto serverAddress = GetNewLocalAddr();
-    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     }
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
-    RecvContext.DestinationAddress = Server.GetLocalAddress();
+
+    auto serverAddress = GetNewLocalAddr();
+    RecvContext.DestinationAddress = serverAddress.SockAddr;
+    RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
     CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
@@ -645,15 +742,18 @@ TEST_P(DataPathTest, UdpDataRebind)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
-    auto serverAddress = GetNewLocalAddr();
-    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     }
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
-    RecvContext.DestinationAddress = Server.GetLocalAddress();
+
+    auto serverAddress = GetNewLocalAddr();
+    RecvContext.DestinationAddress = serverAddress.SockAddr;
+    RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
     {
@@ -696,15 +796,18 @@ TEST_P(DataPathTest, UdpDataECT0)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
-    auto serverAddress = GetNewLocalAddr();
-    CxPlatSocket Server(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
     }
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
-    RecvContext.DestinationAddress = Server.GetLocalAddress();
+
+    auto serverAddress = GetNewLocalAddr();
+    RecvContext.DestinationAddress = serverAddress.SockAddr;
+    RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
     CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);

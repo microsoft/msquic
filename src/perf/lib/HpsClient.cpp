@@ -72,7 +72,8 @@ HpsClient::Init(
     }
 
     const char* target;
-    if (!TryGetValue(argc, argv, "target", &target)) {
+    if (!TryGetValue(argc, argv, "target", &target) &&
+        !TryGetValue(argc, argv, "server", &target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;

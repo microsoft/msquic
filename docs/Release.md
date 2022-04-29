@@ -259,7 +259,7 @@ Official (v1) RFC and draft-29 are supported by this release.
 
 ## MsQuic v2.0 (SAC)
 
-[MsQuic v2.0](https://github.com/microsoft/msquic/releases/tag/v2.0.0) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
+[MsQuic v2.0](https://github.com/microsoft/msquic/releases/tag/v2.0.1) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
 
 Official (v1) RFC and draft-29 are supported by this release.
 

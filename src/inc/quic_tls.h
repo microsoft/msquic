@@ -150,6 +150,11 @@ typedef struct CXPLAT_TLS_CONFIG {
     QUIC_CONNECTION* Connection;
 
     //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
+    //
     // The TLS configuration information and credentials.
     //
     CXPLAT_SEC_CONFIG* SecConfig;
@@ -387,6 +392,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
     _In_opt_ CXPLAT_TLS* TlsContext
+    );
+
+//
+// Updates the HKDF labels, which occurs on version changes.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
     );
 
 //

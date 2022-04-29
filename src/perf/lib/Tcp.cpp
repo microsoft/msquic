@@ -46,6 +46,8 @@ const uint8_t FixedAlpnBuffer[] = {
 
 const uint8_t FixedIv[CXPLAT_MAX_IV_LENGTH] = { 0 };
 
+const QUIC_HKDF_LABELS TcpHkdfLabels = { "tcp key", "tcp iv", "tcp hp", "tcp ku" };
+
 struct LoadSecConfigHelper {
     LoadSecConfigHelper() : SecConfig(nullptr) { CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE); }
     ~LoadSecConfigHelper() { CxPlatEventUninitialize(CallbackEvent); }
@@ -545,6 +547,7 @@ bool TcpConnection::InitializeTls()
     Config.IsServer = IsServer ? TRUE : FALSE;
     Config.Connection = (QUIC_CONNECTION*)(void*)this;
     Config.SecConfig = SecConfig;
+    Config.HkdfLabels = &TcpHkdfLabels;
     Config.AlpnBuffer = FixedAlpnBuffer;
     Config.AlpnBufferLength = sizeof(FixedAlpnBuffer);
     Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;

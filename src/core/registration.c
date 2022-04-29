@@ -36,6 +36,13 @@ MsQuicRegistrationOpen(
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration = NULL;
     size_t AppNameLength = 0;
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        QuicBindingReceive,
+        QuicBindingUnreachable,
+    };
+    const BOOLEAN ExternalRegistration =
+        Config == NULL || Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
+
     if (Config != NULL && Config->AppName != NULL) {
         AppNameLength = strlen(Config->AppName);
     }
@@ -49,6 +56,39 @@ MsQuicRegistrationOpen(
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
+    }
+
+    CXPLAT_DBG_ASSERT(ExternalRegistration || MsQuicLib.Datapath != NULL);
+
+    if (ExternalRegistration) {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        if (MsQuicLib.Datapath == NULL) {
+            CXPLAT_DATAPATH_CONFIG DataPathConfig = {
+                MsQuicLib.DataPathProcList,
+                MsQuicLib.DataPathProcListLength
+            };
+            Status =
+                CxPlatDataPathInitialize(
+                    sizeof(CXPLAT_RECV_PACKET),
+                    &DatapathCallbacks,
+                    NULL,                   // TcpCallbacks
+                    &DataPathConfig,
+                    &MsQuicLib.Datapath);
+            if (QUIC_FAILED(Status)) {
+                CxPlatLockRelease(&MsQuicLib.Lock);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "CxPlatDataPathInitialize");
+                goto Error;
+            }
+            QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        }
+        CxPlatLockRelease(&MsQuicLib.Lock);
     }
 
     Registration =
@@ -148,7 +188,7 @@ MsQuicRegistrationOpen(
     }
 #endif
 
-    if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+    if (ExternalRegistration) {
         CxPlatLockAcquire(&MsQuicLib.Lock);
         CxPlatListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
         CxPlatLockRelease(&MsQuicLib.Lock);

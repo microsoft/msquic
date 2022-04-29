@@ -542,6 +542,28 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+            EncodeTPCibirEncoding,
+            Connection,
+            "TP: CIBIR Encoding (%llu length, %llu offset)",
+            TransportParams->CibirLength,
+            TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_EncodeTPCibirEncoding
+#define _clog_5_ARGS_TRACE_EncodeTPCibirEncoding(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPCibirEncoding , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -971,6 +993,28 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPRetrySourceCID , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_DecodeTPMaxDatagramFrameSize
 #define _clog_4_ARGS_TRACE_DecodeTPMaxDatagramFrameSize(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+                DecodeTPCibirEncoding,
+                Connection,
+                "TP: CIBIR Encoding (%llu length, %llu offset)",
+                TransportParams->CibirLength,
+                TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DecodeTPCibirEncoding
+#define _clog_5_ARGS_TRACE_DecodeTPCibirEncoding(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPCibirEncoding , arg1, arg3, arg4);\
 
 #endif
 

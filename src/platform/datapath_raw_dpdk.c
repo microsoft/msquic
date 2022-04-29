@@ -104,10 +104,18 @@ CxPlatDataPathRecvDataToRecvPacket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpdkReadConfig(
-    _Inout_ DPDK_DATAPATH* Dpdk
+    _Inout_ DPDK_DATAPATH* Dpdk,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     Dpdk->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+
+    //
+    // Read user-specified global config.
+    //
+    if (Config != NULL && Config->DataPathProcList != NULL) {
+        Dpdk->Cpu = Config->DataPathProcList[0];
+    }
 
     FILE *File = fopen("dpdk.ini", "r");
     if (File == NULL) {
@@ -125,9 +133,7 @@ CxPlatDpdkReadConfig(
             Value[strlen(Value) - 1] = '\0';
         }
 
-        if (strcmp(Line, "CPU") == 0) {
-             Dpdk->Cpu = (uint16_t)strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "DeviceName") == 0) {
+        if (strcmp(Line, "DeviceName") == 0) {
              strcpy(Dpdk->Interface.DeviceName, Value);
         }
     }
@@ -137,10 +143,11 @@ CxPlatDpdkReadConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
-CxPlatDpRawGetDapathSize(
-    void
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
+    UNREFERENCED_PARAMETER(Config);
     return sizeof(DPDK_DATAPATH);
 }
 
@@ -148,7 +155,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
@@ -158,8 +166,7 @@ CxPlatDpRawInitialize(
     const uint32_t AdditionalBufferSize =
         sizeof(DPDK_RX_PACKET) + ClientRecvContextLength;
 
-    CxPlatDpdkReadConfig(Dpdk);
-    CxPlatDpRawGenerateCpuTable(Datapath);
+    CxPlatDpdkReadConfig(Dpdk, Config);
 
     BOOLEAN CleanUpThread = FALSE;
     CxPlatEventInitialize(&Dpdk->StartComplete, TRUE, FALSE);
@@ -555,6 +562,12 @@ CxPlatDpdkRx(
                 (CXPLAT_RECV_DATA*)&Packet,
                 ((uint8_t*)Buffer->buf_addr) + Buffer->data_off,
                 Buffer->pkt_len);
+            //
+            // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+            // mark it resolved. This allows stateless sends to be issued without performing
+            // a route lookup.
+            //
+            Packet.Route->State = RouteResolved;
         } else {
             QuicTraceEvent(
                 LibraryErrorStatus,
