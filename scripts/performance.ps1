@@ -437,6 +437,7 @@ function Invoke-Test {
         Stop-Job -Job $RemoteJob
         $RetVal = Receive-Job -Job $RemoteJob
         $RetVal = $RetVal -join "`n"
+        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
         Write-Error "Test Remote for $Test failed to start: $RetVal"
     }
 
@@ -473,6 +474,8 @@ function Invoke-Test {
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
+
+        Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
 
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null

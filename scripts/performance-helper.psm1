@@ -391,10 +391,33 @@ function Invoke-RemoteExe {
             }
         }
 
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
+}
+
+function Cancel-RemoteLogs {
+    param ($RemoteDirectory)
+    Invoke-TestCommand -Session $Session -ScriptBlock {
+        param ($Record, $RemoteDirectory)
+
+        $LogScript = Join-Path $RemoteDirectory log.ps1
+
+        if ($Record) {
+            & $LogScript -Cancel -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+        }
+    } -ArgumentList $Record, $RemoteDirectory
+}
+
+function Stop-RemoteLogs {
+    param ($RemoteDirectory)
+    Invoke-TestCommand -Session $Session -ScriptBlock {
+        param ($Record, $RemoteDirectory)
+
+        $LogScript = Join-Path $RemoteDirectory log.ps1
+
         if ($Record) {
             & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
+    } -ArgumentList $Record, $RemoteDirectory
 }
 
 function Get-RemoteLogDirectory {
