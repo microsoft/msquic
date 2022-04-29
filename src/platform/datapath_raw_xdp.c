@@ -1436,14 +1436,12 @@ CxPlatXdpTx(
         ProdCount++;
     }
 
-    if (ProdCount > 0) {
-        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
-        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
-            uint32_t OutFlags;
-            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
-            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            UNREFERENCED_PARAMETER(Status);
-        }
+    XskRingProducerSubmit(&Queue->TxRing, ProdCount);
+    if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
+        uint32_t OutFlags;
+        QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        UNREFERENCED_PARAMETER(Status);
     }
 
     uint32_t CompIndex;
