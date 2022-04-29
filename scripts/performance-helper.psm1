@@ -409,7 +409,7 @@ function Get-RemoteLogDirectory {
         #     Write-Error "Robocopy failed: $LASTEXITCODE"
         # } else {
         #     $global:LASTEXITCODE = 0
-        }
+        # }
         if ($Cleanup) {
             try {
                 Remove-Item -Path "$SmbDir/*" -Recurse -Force
