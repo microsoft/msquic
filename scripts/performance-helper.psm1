@@ -427,12 +427,12 @@ function Get-RemoteLogDirectory {
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         Write-Host $SmbDir
         Write-Host $Local
-        # robocopy $SmbDir $Local /e /IS /IT /IM /COMPRESS | Out-Null
-        # if ($LASTEXITCODE -ne 3) {
-        #     Write-Error "Robocopy failed: $LASTEXITCODE"
-        # } else {
-        #     $global:LASTEXITCODE = 0
-        # }
+        robocopy $SmbDir $Local /e /IS /IT /IM /COMPRESS | Out-Null
+        if ($LASTEXITCODE -ne 3) {
+            Write-Error "Robocopy failed: $LASTEXITCODE"
+        } else {
+            $global:LASTEXITCODE = 0
+        }
         if ($Cleanup) {
             try {
                 Remove-Item -Path "$SmbDir/*" -Recurse -Force

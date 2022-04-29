@@ -133,7 +133,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("QUIC", "TCPTLS")]
-    [string]$Protocol = "QUIC"
+    [string]$Protocol = "QUIC",
+
+    [Parameter(Mandatory = $false)]
+    [int]$ForceIterations = 0
 )
 
 Set-StrictMode -Version 'Latest'
@@ -445,8 +448,13 @@ function Invoke-Test {
 
     Start-Tracing -LocalDirectory $LocalDirectory
 
+    $NumIterations = $Test.Iterations
+    if ($ForceIterations -gt 0) {
+        $NumIterations = $ForceIterations
+    }
+
     try {
-        1..$Test.Iterations | ForEach-Object {
+        1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             Write-LogAndDebug $LocalResults
