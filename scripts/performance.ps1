@@ -238,6 +238,7 @@ Set-ScriptVariables -Local $Local `
                     -LocalArch $LocalArch `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
+                    -XDP $XDP `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
@@ -556,8 +557,6 @@ try {
             param ($RemoteDirectory)
             Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
         } -ArgumentList $RemoteDirectory
-
-        $Tests.Tests = $Tests.Tests | Where-Object { -not $_.TestName.Contains("Tcp") }
     }
 
     foreach ($Test in $Tests.Tests) {

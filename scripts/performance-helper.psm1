@@ -6,12 +6,13 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
     $script:RemoteTls = $RemoteTls
     $script:RemoteArch = $RemoteArch
+    $script:XDP = $XDP
     $script:Config = $Config
     $script:Publish = $Publish
     $script:Record = $Record
@@ -1149,6 +1150,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
+    [boolean]$XDP;
     [string[]]$Formats;
     [double]$RegressionThreshold;
 
@@ -1171,6 +1173,7 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.XDP = $script:XDP
     }
 
     TestRunDefinition (
@@ -1196,6 +1199,7 @@ class TestRunDefinition {
             $this.VariableName += ("_" + $Var.Name + "_" + $Var.Value)
         }
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $BaseArgs)
+        $this.XDP = $script:XDP
     }
 
     TestRunDefinition (
@@ -1215,6 +1219,7 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.XDP = $script:XDP
     }
 
     [string]ToString() {
@@ -1222,11 +1227,8 @@ class TestRunDefinition {
         if ($this.VariableName -eq "Default") {
             $VarVal = ""
         }
-        $Platform = $this.Local.Platform
-        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
-            $Platform = 'Winkernel'
-        }
-        $RetString = "$($this.TestName)_$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
+
+        $RetString = "$($this.TestName)_$($this.ToTestPlatformString())_$($this.VariableName)$VarVal"
         if ($this.Loopback) {
             $RetString += "_Loopback"
         }
@@ -1239,6 +1241,9 @@ class TestRunDefinition {
             $Platform = 'Winkernel'
         }
         $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
+        if ($this.XDP) {
+            $RetString += "_XDP"
+        }
         return $RetString
     }
 }
@@ -1504,6 +1509,9 @@ function Test-CanRunTest {
         return $false
     }
     if ($script:Kernel -and $Test.SkipKernel) {
+        return $false
+    }
+    if ($script:XDP -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     return $true
