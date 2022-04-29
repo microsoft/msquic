@@ -133,7 +133,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("QUIC", "TCPTLS")]
-    [string]$Protocol = "QUIC"
+    [string]$Protocol = "QUIC",
+
+    [Parameter(Mandatory = $false)]
+    [int]$ForceIterations = 0
 )
 
 Set-StrictMode -Version 'Latest'
@@ -437,6 +440,7 @@ function Invoke-Test {
         Stop-Job -Job $RemoteJob
         $RetVal = Receive-Job -Job $RemoteJob
         $RetVal = $RetVal -join "`n"
+        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
         Write-Error "Test Remote for $Test failed to start: $RetVal"
     }
 
@@ -444,8 +448,13 @@ function Invoke-Test {
 
     Start-Tracing -LocalDirectory $LocalDirectory
 
+    $NumIterations = $Test.Iterations
+    if ($ForceIterations -gt 0) {
+        $NumIterations = $ForceIterations
+    }
+
     try {
-        1..$Test.Iterations | ForEach-Object {
+        1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             Write-LogAndDebug $LocalResults
@@ -473,6 +482,8 @@ function Invoke-Test {
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
+
+        Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
 
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -538,6 +549,8 @@ try {
     Remove-PerfServices
 
     if ($IsWindows) {
+        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+
         try {
             $CopyToDirectory = "C:\RunningTests"
             Remove-Item -Path "$CopyToDirectory/*" -Recurse -Force
@@ -562,6 +575,9 @@ try {
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
+
+    Cancel-LocalTracing -LocalDirectory $LocalDirectory
+    Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
 
     Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
     if (!$Local) {
@@ -592,7 +608,6 @@ try {
     }
 
     Check-Regressions
-
 } finally {
     if ($XDP) {
         Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
