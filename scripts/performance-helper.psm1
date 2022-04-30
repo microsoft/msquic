@@ -1266,10 +1266,10 @@ class TestRunDefinition {
         if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
-        $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
-        if ($this.XDP) {
-            $RetString += "_XDP"
+        if ($script:XDP -and $this.Local.Platform -eq "Windows") {
+            $Platform = 'WinXDP'
         }
+        $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
         return $RetString
     }
 }
