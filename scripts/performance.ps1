@@ -241,6 +241,7 @@ Set-ScriptVariables -Local $Local `
                     -LocalArch $LocalArch `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
+                    -XDP $XDP `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
