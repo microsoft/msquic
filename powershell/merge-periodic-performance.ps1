@@ -170,7 +170,7 @@ if ($PublishResults) {
 
     # Set Git Config Info
     git config user.email "quicdev@microsoft.com"
-    git config user.name "QUIC Dev Bot"
+    git config user.name "QUIC Dev[bot]"
 
     $CommitHash = $CommitModel.CommitHash
 
