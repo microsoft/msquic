@@ -1403,8 +1403,8 @@ QuicBindingDropBlockedSourcePorts(
         500,    // IKE
         389,    // CLDAP
         161,    // SNMP
+        138,    // NETBIOS Datagram Service
         137,    // NETBIOS Name Service
-        128,    // NETBIOS Datagram Service
         123,    // NTP
         111,    // Portmap
         53,     // DNS
