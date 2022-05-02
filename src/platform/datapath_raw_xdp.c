@@ -391,7 +391,7 @@ CxPlatXdpReadConfig(
     Xdp->RxRingSize = 128;
     Xdp->TxBufferCount = 4096;
     Xdp->TxRingSize = 128;
-    Xdp->TxAlwaysPoke = TRUE;
+    Xdp->TxAlwaysPoke = FALSE;
 
     //
     // Read config from config file.
@@ -621,14 +621,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        uint32_t Flags = 0;     // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags, NULL);
+        uint32_t Flags = XSK_BIND_RX;
+        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->RxXsk, 0, NULL);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -718,14 +728,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Flags = 0; // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags, NULL);
+        Flags = XSK_BIND_TX; // TODO: support native/generic forced flags.
+        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->TxXsk, 0, NULL);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -1454,9 +1474,8 @@ CxPlatXdpTx(
         ProdCount++;
     }
 
-    uint32_t TxIndexQuery;
     if (ProdCount > 0 ||
-        (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndexQuery) != Queue->TxRing.size)) {
+        (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.size)) {
         XskRingProducerSubmit(&Queue->TxRing, ProdCount);
         if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
             uint32_t OutFlags;
