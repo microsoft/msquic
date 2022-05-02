@@ -10,6 +10,7 @@ var testTypes = [
 // The different platform types and their properties
 var platformTypes = [
     { name:"winKernelSchannel", friendly:"Windows Kernel", color:"#11a718" },
+    { name:"winXDPSchannel", friendly:"Windows User Schannel (XDP)", color:"#858796" },
     { name:"winUserSchannel", friendly:"Windows User Schannel", color:"#0062ff" },
     { name:"winUserOpenSsl", friendly:"Windows User OpenSSL", color:"#ff3c00" },
     { name:"linuxOpenSsl", friendly:"Linux OpenSSL", color:"#17a2b8" }
@@ -32,6 +33,13 @@ var dataView = [
     { name:"winKernelSchannelRpsLatencyMultiConn", unit:"μs", div:1, raw:dataRpsLatency_WinKernel_x64_Schannel.filter(d=>d.c==40), lvformat:latestValueLatencyFormartter},
     { name:"winKernelSchannelRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_WinKernel_x64_Schannel, lvformat:latestValueLatencyFormartter},
     { name:"winKernelSchannelHps", unit:"Hz", div:1, raw:dataHps_WinKernel_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winXDPSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_WinXDP_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winXDPSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_WinXDP_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winXDPSchannelRps", unit:"KHz", div:1000, raw:dataRps_WinXDP_x64_Schannel, lvformat:latestValueFormartter},
+    { name:"winXDPSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_WinXDP_x64_Schannel.filter(d=>d.c==1), lvformat:latestValueLatencyFormartter},
+    { name:"winXDPSchannelRpsLatencyMultiConn", unit:"μs", div:1, raw:dataRpsLatency_WinXDP_x64_Schannel.filter(d=>d.c==40), lvformat:latestValueLatencyFormartter},
+    { name:"winXDPSchannelRpsLatencyLatest", unit:"μs", div:1, raw:dataRpsLatencyLatest_WinXDP_x64_Schannel, lvformat:latestValueLatencyFormartter},
+    { name:"winXDPSchannelHps", unit:"Hz", div:1, raw:dataHps_WinXDP_x64_Schannel, lvformat:latestValueFormartter},
     { name:"winUserSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Schannel, lvformat:latestValueFormartter},
     { name:"winUserSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Schannel, lvformat:latestValueFormartter},
     { name:"winUserSchannelRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Schannel, lvformat:latestValueFormartter},

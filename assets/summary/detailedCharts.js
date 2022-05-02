@@ -127,7 +127,7 @@ function createChart(test) {
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div
 
-    chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
+    let chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
         options: {
             maintainAspectRatio: false,
