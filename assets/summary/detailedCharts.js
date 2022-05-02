@@ -84,6 +84,7 @@ function onPlatformToggled(event) {
     var chart = event.srcElement.chart
     for (const val of chart.data.datasets) {
         if (val.platform === event.srcElement.platform) {
+            console.log("toggled");
             val.hiddenPlatform = !val.hiddenPlatform
             val.hidden = val.hiddenPlatform | val.hiddenType
         }
@@ -104,10 +105,12 @@ function onTypeToggled(event) {
 
 function addPlatformToggle(test, platform, chart) {
     var elem = document.getElementById(platform.name + test + "Toggle")
+    console.log(platform.name + test + "Toggle");
     if (elem) {
         elem.onclick = onPlatformToggled
         elem.chart = chart
         elem.platform = platform.name
+        console.log(elem.platform);
     }
 }
 
@@ -127,7 +130,7 @@ function createChart(test) {
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div
 
-    chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
+    let chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
         options: {
             maintainAspectRatio: false,
