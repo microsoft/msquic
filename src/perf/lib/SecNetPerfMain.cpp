@@ -248,7 +248,7 @@ QuicMainStart(
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         std::vector<uint16_t> ProcList;
-        if (strtoul(CpuStr, (char**)&CpuStr, 10) == -1) {
+        if (strtoul(CpuStr, nullptr, 10) == -1) {
             // Use all procs for raw datapath.
             for (uint16_t i = 0; i < CxPlatProcActiveCount(); ++i) {
                 ProcList.push_back(i);
@@ -259,12 +259,13 @@ QuicMainStart(
                 ProcList.push_back((uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10));
             } while (*CpuStr);
         }
+
         if (QUIC_FAILED(
             Status =
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-                ProcList.size() * sizeof(uint16_t),
+                (uint32_t)ProcList.size() * sizeof(uint16_t),
                 ProcList.data()))) {
             WriteOutput("MsQuic Failed To Set DataPath Procs %d\n", Status);
             return Status;
