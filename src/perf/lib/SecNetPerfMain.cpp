@@ -250,7 +250,7 @@ QuicMainStart(
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         std::vector<uint16_t> ProcList;
-        if (strtoul(CpuStr, nullptr, 10) == -1) {
+        if (strtol(CpuStr, nullptr, 10) == -1) {
             // Use all procs for raw datapath.
             for (uint16_t i = 0; i < CxPlatProcActiveCount(); ++i) {
                 ProcList.push_back(i);
