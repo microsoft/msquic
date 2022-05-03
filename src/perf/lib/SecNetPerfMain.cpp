@@ -16,7 +16,9 @@ Abstract:
 #include "HpsClient.h"
 #include "Tcp.h"
 
+#ifndef _KERNEL_MODE
 #include <vector>
+#endif
 
 #ifdef QUIC_CLOG
 #include "SecNetPerfMain.cpp.clog.h"
