@@ -273,7 +273,8 @@ CxPlatTlsCertificateVerifyCallback(
             CertificateVerified = X509_verify_cert(x509_ctx);
 
             if (IsDeferredValidationOrClientAuth &&
-                CertificateVerified <= 0) {
+                CertificateVerified <= 0 &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
                 ValidationResult =
                     (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
             }
