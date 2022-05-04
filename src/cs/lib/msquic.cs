@@ -32,12 +32,12 @@ namespace Microsoft.Quic
             MsQuicClose(ApiTable);
         }
 
-        public static void ThrowIfFailure(int status)
+        public static void ThrowIfFailure(int status, string? message = null)
         {
             if (StatusFailed(status))
             {
                 // TODO make custom exception, and maybe throw helpers
-                throw new MsQuicException(status);
+                throw new MsQuicException(status, message);
             }
         }
 
