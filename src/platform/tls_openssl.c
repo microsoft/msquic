@@ -230,8 +230,9 @@ CxPlatTlsCertificateVerifyCallback(
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
         TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
-    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
-        IsDeferredValidationOrClientAuth) {
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
+        IsDeferredValidationOrClientAuth) &&
+        !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
         if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
             if (Cert == NULL) {
                 QuicTraceEvent(
@@ -273,8 +274,7 @@ CxPlatTlsCertificateVerifyCallback(
             CertificateVerified = X509_verify_cert(x509_ctx);
 
             if (IsDeferredValidationOrClientAuth &&
-                CertificateVerified <= 0 &&
-                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                CertificateVerified <= 0) {
                 ValidationResult =
                     (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
             }
