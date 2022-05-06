@@ -13,7 +13,7 @@ Generally, for any existing TCP based deployments that are adding QUIC support, 
 - Current QUIC based protocols primarily use port 443 on the server, but not necessarily exclusively.
   - HTTP and SMB use this port, but other protocols (e.g. DNS over QUIC) likely will not.
 - QUIC is versioned and extensible, and thus is expected to be very dynamic on the network.
-  - Network devices must not assume anything about the structure of a QUIC packet beyond what is stated in the [Invariants draft](https://tools.ietf.org/html/draft-ietf-quic-invariants).
+  - Network devices must not assume anything about the structure of a QUIC packet beyond what is stated in the [Invariants RFC](https://datatracker.ietf.org/doc/html/rfc8999).
 - QUIC is completely encrypted end to end.
   - Most information that might have been viewable on a TCP connection is now only visible to the endpoints.
 - A single UDP flow or tuple (address + port) does not necessarily map to a single connection.

@@ -83,7 +83,12 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace "  QUIC_LISTENER_EVENT_", "  " `
     -replace "  QUIC_CONNECTION_EVENT_", "  " `
     -replace "  QUIC_STREAM_EVENT_", "  " `
+    -replace "public", "internal" `
     | `
     Out-File $MsQuicGeneratedSource
+
+$Solution = Join-Path $RootDir src cs MsQuicNet.sln
+
+dotnet format $Solution
 
 $LASTEXITCODE = 0

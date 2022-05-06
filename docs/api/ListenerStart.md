@@ -52,7 +52,11 @@ ALPNs specified in `AlpnBuffers` must be less than 255 bytes in length.
 
 The server application may set any combination of local address and/or port number in the `QUIC_ADDR` pointed to by `LocalAddress`. If no port number is given, then the networking stack will choose an available port number, which can be queried by [GetParam](GetParam.md) with `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`.
 
-MsQuic listens on dual-mode wildcard sockets for each unique port number, and performs address filtering, if necessary, within the QUIC layer. If another application is already listening on the same UDP port as an MsQuic application, despite being a different address family, the MsQuic application will fail to use that port, and `ListenerStart` will fail.
+MsQuic listens on dual-mode wildcard sockets for each unique port number, and performs address filtering, if necessary, within the QUIC layer.
+
+Due to the use of per processor sockets for performance reasons, 2 distinct processes listening on the same port will not result in the 2nd instance failing to start. The behavior in this case is undefined, and different per platform, but will result in each app not getting the receives it expects. There is potential for a future workaround for this on Windows, but no currently known solution on Posix-based platforms. This quirk does not apply if a process using UDP without MsQuic is already bound to the port, as long as that process is not using per processor sockets.
+
+On Posix-based platforms, 2 distinct processes using wildcard port numbers can potentially receive the same port number, resulting in the above behavior. This behavior does not exist on Windows.
 
 # See Also
 

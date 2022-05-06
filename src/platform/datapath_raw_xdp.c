@@ -387,10 +387,10 @@ CxPlatXdpReadConfig(
     //
     // Default config.
     //
-    Xdp->RxBufferCount = 4096;
-    Xdp->RxRingSize = 128;
-    Xdp->TxBufferCount = 4096;
-    Xdp->TxRingSize = 128;
+    Xdp->RxBufferCount = 8192;
+    Xdp->RxRingSize = 256;
+    Xdp->TxBufferCount = 8192;
+    Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
 
     //
@@ -621,14 +621,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        uint32_t Flags = 0;     // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags, NULL);
+        uint32_t Flags = XSK_BIND_RX;
+        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->RxXsk, 0, NULL);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -718,14 +728,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Flags = 0; // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags, NULL);
+        Flags = XSK_BIND_TX; // TODO: support native/generic forced flags.
+        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->TxXsk, 0, NULL);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -1423,29 +1443,6 @@ CxPlatXdpTx(
         CxPlatLockRelease(&Queue->TxLock);
     }
 
-    uint32_t TxIndex;
-    uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
-    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
-        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
-        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
-        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
-
-        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
-        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
-        Buffer->length = Packet->Buffer.Length;
-        ProdCount++;
-    }
-
-    if (ProdCount > 0) {
-        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
-        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
-            uint32_t OutFlags;
-            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
-            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            UNREFERENCED_PARAMETER(Status);
-        }
-    }
-
     uint32_t CompIndex;
     uint32_t CompAvailable =
         XskRingConsumerReserve(&Queue->TxCompletionRing, MAXUINT32, &CompIndex);
@@ -1462,6 +1459,30 @@ CxPlatXdpTx(
         InterlockedPushListSList(
             &Queue->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
             CompCount);
+    }
+
+    uint32_t TxIndex;
+    uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
+    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
+        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+
+        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
+        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
+        Buffer->length = Packet->Buffer.Length;
+        ProdCount++;
+    }
+
+    if (ProdCount > 0 ||
+        (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.size)) {
+        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
+        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
+            uint32_t OutFlags;
+            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
+            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+            UNREFERENCED_PARAMETER(Status);
+        }
     }
 
     if (XskRingError(&Queue->TxRing) && !Queue->Error) {

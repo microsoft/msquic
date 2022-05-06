@@ -6,12 +6,13 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
     $script:RemoteTls = $RemoteTls
     $script:RemoteArch = $RemoteArch
+    $script:XDP = $XDP
     $script:Config = $Config
     $script:Publish = $Publish
     $script:Record = $Record
@@ -177,7 +178,6 @@ function Wait-ForRemote {
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To, [string]$SmbDir)
-    Remove-PerfServices
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         try {
             Remove-Item -Path "$SmbDir/*" -Recurse -Force
@@ -386,10 +386,31 @@ function Invoke-RemoteExe {
             }
         }
 
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
+}
+
+function Cancel-RemoteLogs {
+    param ($RemoteDirectory)
+    Invoke-TestCommand -Session $Session -ScriptBlock {
+        param ($RemoteDirectory)
+
+        $LogScript = Join-Path $RemoteDirectory log.ps1
+
+        & $LogScript -Cancel -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+    } -ArgumentList $RemoteDirectory
+}
+
+function Stop-RemoteLogs {
+    param ($RemoteDirectory)
+    Invoke-TestCommand -Session $Session -ScriptBlock {
+        param ($Record, $RemoteDirectory)
+
+        $LogScript = Join-Path $RemoteDirectory log.ps1
+
         if ($Record) {
             & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
+    } -ArgumentList $Record, $RemoteDirectory
 }
 
 function Get-RemoteLogDirectory {
@@ -454,6 +475,12 @@ function Start-Tracing {
         $LogScript = Join-Path $LocalDirectory log.ps1
         & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
     }
+}
+
+function Cancel-LocalTracing {
+    param($LocalDirectory)
+    $LogScript = Join-Path $LocalDirectory log.ps1
+    & $LogScript -Cancel -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
 }
 
 function Stop-Tracing {
@@ -1149,6 +1176,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
+    [boolean]$XDP;
     [string[]]$Formats;
     [double]$RegressionThreshold;
 
@@ -1171,6 +1199,7 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.XDP = $script:XDP
     }
 
     TestRunDefinition (
@@ -1196,6 +1225,7 @@ class TestRunDefinition {
             $this.VariableName += ("_" + $Var.Name + "_" + $Var.Value)
         }
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $BaseArgs)
+        $this.XDP = $script:XDP
     }
 
     TestRunDefinition (
@@ -1215,6 +1245,7 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.XDP = $script:XDP
     }
 
     [string]ToString() {
@@ -1222,11 +1253,8 @@ class TestRunDefinition {
         if ($this.VariableName -eq "Default") {
             $VarVal = ""
         }
-        $Platform = $this.Local.Platform
-        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
-            $Platform = 'Winkernel'
-        }
-        $RetString = "$($this.TestName)_$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
+
+        $RetString = "$($this.TestName)_$($this.ToTestPlatformString())_$($this.VariableName)$VarVal"
         if ($this.Loopback) {
             $RetString += "_Loopback"
         }
@@ -1237,6 +1265,9 @@ class TestRunDefinition {
         $Platform = $this.Local.Platform
         if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
+        }
+        if ($script:XDP -and $this.Local.Platform -eq "Windows") {
+            $Platform = 'WinXDP'
         }
         $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
         return $RetString
@@ -1504,6 +1535,9 @@ function Test-CanRunTest {
         return $false
     }
     if ($script:Kernel -and $Test.SkipKernel) {
+        return $false
+    }
+    if ($script:XDP -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     return $true
