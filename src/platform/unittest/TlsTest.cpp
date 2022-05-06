@@ -1401,7 +1401,7 @@ TEST_F(TlsTest, CustomCertificateValidationServerIndicateNoCert)
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, false);
 }
 
-TEST_F(TlsTest, CustomCertificateValidationServerIndicate)
+TEST_F(TlsTest, CustomClientCertificateValidationServerIndicate)
 {
     CxPlatSecConfig ClientConfig;
     ClientConfig.Load(ClientCertParams);
