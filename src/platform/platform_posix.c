@@ -40,9 +40,9 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
-uint32_t CxPlatProcessorCount;
+uint32_t CxPlatProcessorCount = 0;
 
-uint64_t CxPlatTotalMemory;
+uint64_t CxPlatTotalMemory = 0;
 
 #ifdef __clang__
 __attribute__((noinline, noreturn, optnone))

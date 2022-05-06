@@ -56,10 +56,10 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 
-uint64_t CxPlatPerfFreq;
-uint64_t CxPlatTotalMemory;
+uint64_t CxPlatPerfFreq = 0;
+uint64_t CxPlatTotalMemory = 0;
 CX_PLATFORM CxPlatform = { NULL };
-QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback = NULL;
 
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
