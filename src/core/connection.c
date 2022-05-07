@@ -5452,9 +5452,9 @@ QuicConnRecvDatagrams(
         }
 
 #ifdef QUIC_USE_RAW_DATAPATH
-        if (DatagramPath->Route.State == RouteResolved && !DatagramPath->Route.QueueUpdated) {
+        if (DatagramPath->Route.State == RouteResolved &&
+            DatagramPath->Route.Queue != Datagram->Route->Queue) {
             DatagramPath->Route.Queue = Datagram->Route->Queue;
-            DatagramPath->Route.QueueUpdated = TRUE;
         }
 #endif
 

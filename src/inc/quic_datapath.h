@@ -166,10 +166,6 @@ typedef struct CXPLAT_ROUTE {
     //
 
     CXPLAT_ROUTE_STATE State;
-    //
-    // Indicates the queue has been updated for this route.
-    //
-    uint8_t QueueUpdated : 1;
 #endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
