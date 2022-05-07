@@ -251,7 +251,7 @@ QuicMainStart(
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         std::vector<uint16_t> ProcList;
         if (strtol(CpuStr, nullptr, 10) == -1) {
-            // Use all procs for raw datapath except proc 0 so that the machine will be in usable state.
+            // Use all procs for raw datapath except proc 0 so that the machine will be in a usable state.
             for (uint16_t i = 1; i < CxPlatProcActiveCount(); ++i) {
                 ProcList.push_back(i);
             }
