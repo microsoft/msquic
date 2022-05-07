@@ -411,6 +411,11 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($XDP) {
+        $RemoteArguments += " -cpu:-1"
+        $LocalArguments += " -cpu:-1"
+    }
+
     if ($Kernel) {
         $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
         $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent

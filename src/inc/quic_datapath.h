@@ -161,7 +161,11 @@ typedef struct CXPLAT_ROUTE {
     uint8_t NextHopLinkLayerAddress[6];
     void* Queue;
 
-    CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
+    //
+    // QuicCopyRouteInfo copies memory up to this point (not including State).
+    //
+
+    CXPLAT_ROUTE_STATE State;
 #endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
@@ -703,6 +707,7 @@ CxPlatResolveRoute(
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
+
 #endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)

@@ -5451,6 +5451,13 @@ QuicConnRecvDatagrams(
             goto Drop;
         }
 
+#ifdef QUIC_USE_RAW_DATAPATH
+        if (DatagramPath->Route.State == RouteResolved &&
+            DatagramPath->Route.Queue != Datagram->Route->Queue) {
+            DatagramPath->Route.Queue = Datagram->Route->Queue;
+        }
+#endif
+
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
                 //
