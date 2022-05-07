@@ -378,6 +378,7 @@ CxPlatDataPathUninitialize(
 #define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
 #define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
 #define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
+#define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 
 //
 // Queries the currently supported features of the datapath.
