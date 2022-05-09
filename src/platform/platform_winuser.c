@@ -93,6 +93,7 @@ CxPlatProcessorInfoInit(
     uint32_t ProcessorsPerGroup = 0;
     uint32_t NumaNodeCount = 0;
 
+    CXPLAT_DBG_ASSERT(CxPlatProcessorInfo == NULL);
     CxPlatProcessorInfo =
         CXPLAT_ALLOC_NONPAGED(
             ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
@@ -158,6 +159,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
+    CXPLAT_DBG_ASSERT(CxPlatProcessorGroupOffsets == NULL);
     CxPlatProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
     if (CxPlatProcessorGroupOffsets == NULL) {
         QuicTraceEvent(
@@ -172,6 +174,7 @@ CxPlatProcessorInfoInit(
         CxPlatProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
+    CXPLAT_DBG_ASSERT(CxPlatNumaMasks == NULL);
     CxPlatNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
     if (CxPlatNumaMasks == NULL) {
         QuicTraceEvent(
