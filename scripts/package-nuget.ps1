@@ -23,6 +23,9 @@ param (
     [switch]$UWP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$XDP = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ReleaseBuild = $false
 )
 
@@ -81,11 +84,19 @@ if ((Test-Path $PackagingDir)) {
 # Arm is ignored, as there are no shipping arm devices
 $Architectures = "x64","x86","arm64"
 
+if ($XDP) {
+    # XDP only supports x64
+    $Architectures = "x64"
+}
+
 # Copy artifacts to correct folders
 $NativeDir = Join-Path $PackagingDir "build/native"
 
 foreach ($Arch in $Architectures) {
     $BuildPath = Join-Path $PlatformDir "$($Arch)_$($Config)_$($Tls)"
+    if ($XDP) {
+        $BuildPath += "_xdp"
+    }
     $LibPath = Join-Path $NativeDir "lib/$Arch"
     $BinPath = Join-Path $NativeDir "bin/$Arch"
 
