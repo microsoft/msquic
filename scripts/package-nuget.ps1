@@ -138,6 +138,8 @@ $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 
 if ($UWP) {
     $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
+} elseif ($XDP) {
+    $PackageName = "Microsoft.Native.Quic.MsQuic.XDP.$Tls"
 } else {
     $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"
 }
