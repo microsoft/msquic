@@ -632,7 +632,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status = XskActivate(Queue->RxXsk, 0, NULL);
+        Status = XskActivate(Queue->RxXsk, 0);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -739,7 +739,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status = XskActivate(Queue->TxXsk, 0, NULL);
+        Status = XskActivate(Queue->TxXsk, 0);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
