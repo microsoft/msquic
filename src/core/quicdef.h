@@ -265,13 +265,23 @@ CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be powe
 // QUIC_MIN_INITIAL_PACKET_LENGTH in an IPv6 datagram.
 //
 #define QUIC_DPLPMUTD_MIN_MTU                   (QUIC_MIN_INITIAL_PACKET_LENGTH + \
-                                                CXPLAT_MIN_IPV6_HEADER_SIZE     + \
+                                                CXPLAT_MIN_IPV6_HEADER_SIZE + \
                                                 CXPLAT_UDP_HEADER_SIZE)
+
+//
+// The minimum size of the initial packets we send. We pad a little more than
+// the spec-minimum to help with amplification limits for large server
+// certificates. This MUST BE greater than or equal to
+// QUIC_MIN_INITIAL_PACKET_LENGTH.
+//
+#define QUIC_INITIAL_PACKET_LENGTH              1240
 
 //
 // The minimum IP MTU DPLPMTUD will use by default.
 //
-#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           QUIC_DPLPMUTD_MIN_MTU
+#define QUIC_DPLPMUTD_DEFAULT_MIN_MTU           (QUIC_INITIAL_PACKET_LENGTH + \
+                                                CXPLAT_MIN_IPV6_HEADER_SIZE + \
+                                                CXPLAT_UDP_HEADER_SIZE)
 
 //
 // The maximum IP MTU DPLPMTUD will use by default.
