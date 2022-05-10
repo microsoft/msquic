@@ -1496,6 +1496,11 @@ QuicBindingDeliverDatagrams(
         // be created.
         //
 
+        if (!Binding->ServerOwned) {
+            QuicPacketLogDrop(Binding, Packet, "No matching client connection");
+            return FALSE;
+        }
+
         if (Binding->Exclusive) {
             QuicPacketLogDrop(Binding, Packet, "No connection on exclusive binding");
             return FALSE;
