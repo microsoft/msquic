@@ -2108,7 +2108,9 @@ CxPlatTlsWriteDataToSchannel(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
                         &CertValidationResult);
-                if (SecStatus != SEC_E_OK) {
+                if (SecStatus == SEC_E_NO_CREDENTIALS) {
+                    CertValidationResult.hrVerifyChainStatus = SecStatus;
+                } else if (SecStatus != SEC_E_OK) {
                     QuicTraceEvent(
                         TlsErrorStatus,
                         "[ tls][%p] ERROR, %u, %s.",
@@ -2162,7 +2164,9 @@ CxPlatTlsWriteDataToSchannel(
                     (PVOID)&PeerCert);
 #endif
             if (SecStatus != SEC_E_OK && RequirePeerCert &&
-                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                !(TlsContext->SecConfig->Flags &
+                    (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+                    QUIC_CREDENTIAL_FLAG_INDICATE_NULL_CLIENT_CERTIFICATE))) {
                 QuicTraceEvent(
                     TlsErrorStatus,
                     "[ tls][%p] ERROR, %u, %s.",

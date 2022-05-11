@@ -103,6 +103,11 @@ typedef struct CXPLAT_TLS {
     BOOLEAN IsServer;
 
     //
+    // Indicates if the peer sent a certificate.
+    //
+    BOOLEAN PeerCertReceived;
+
+    //
     // The TLS extension type for the QUIC transport parameters.
     //
     uint16_t QuicTpExtType;
@@ -229,6 +234,8 @@ CxPlatTlsCertificateVerifyCallback(
     BOOLEAN IsDeferredValidationOrClientAuth =
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
         TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
+
+    TlsContext->PeerCertReceived = (Cert != NULL);
 
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
         IsDeferredValidationOrClientAuth) &&
@@ -1464,7 +1471,8 @@ CxPlatTlsSecConfigCreate(
 
         if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             int VerifyMode = SSL_VERIFY_PEER;
-            if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+            if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                !(CredConfigFlags & QUIC_CREDENTIAL_FLAG_INDICATE_NULL_CLIENT_CERTIFICATE)) {
                 VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
                 SSL_CTX_set_verify_depth(
                     SecurityConfig->SSLCtx,
@@ -1963,6 +1971,16 @@ CxPlatTlsProcessData(
                     "Failed to find a matching ALPN");
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
+            }
+        } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_NULL_CLIENT_CERTIFICATE) &&
+            !TlsContext->PeerCertReceived) {
+            if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                TlsContext->Connection,
+                NULL,
+                NULL,
+                0,
+                0)) {
+                // TODO kill the handshake
             }
         }
 
