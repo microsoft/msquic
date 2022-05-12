@@ -177,68 +177,6 @@
                             </div>
                         </div>
 
-                        <!-- Windows User Schannel (XDP) Card -->
-                        <div class="col-xl-3 col-md-6 mb-3">
-                            <div class="card border-left-secondary shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                                Windows User Schannel (XDP) </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelUp" data="latestValue">?</div>
-                                                </div>
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelDown" data="latestValue">?</div>
-                                                </div>
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelRps"  data="latestValue">?</div>
-                                                </div>
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelHps" data="latestValue">?</div>
-                                                </div>
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (1 Conn)</div>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelRpsLatency" data="latestValue">?</div>
-                                                </div>
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col mr-1">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (40 Conn)</div>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelRpsLatencyMultiConn" data="latestValue">?</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Windows User Schannel Card -->
                         <div class="col-xl-3 col-md-6 mb-3">
                             <div class="card border-left-primary shadow h-100 py-2">
@@ -293,6 +231,130 @@
                                                 </div>
                                                 <div class="col-auto">
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winUserSchannelRpsLatencyMultiConn" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Windows User Schannel (SharedEC) Card -->
+                        <div class="col-xl-3 col-md-6 mb-3">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Windows User Schannel (SharedEC) </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winSharedECSchannelUp" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winSharedECSchannelDown" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winSharedECSchannelRps"  data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winSharedECSchannelHps" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (1 Conn)</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winSharedECSchannelRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (40 Conn)</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winSharedECSchannelRpsLatencyMultiConn" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Windows User Schannel (XDP) Card -->
+                        <div class="col-xl-3 col-md-6 mb-3">
+                            <div class="card border-left-secondary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                                Windows User Schannel (XDP) </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelUp" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelDown" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelRps"  data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelHps" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (1 Conn)</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (40 Conn)</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="winXDPSchannelRpsLatencyMultiConn" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -417,6 +479,68 @@
                                                 </div>
                                                 <div class="col-auto">
                                                     <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRpsLatencyMultiConn" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Linux OpenSSL Card (SharedEC) -->
+                        <div class="col-xl-3 col-md-6 mb-3">
+                            <div class="card border-left-dark shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
+                                                Linux OpenSSL (sharedEC)</div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxSharedECOpenSslUp" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxSharedECOpenSslDown" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxSharedECOpenSslRps" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxSharedECOpenSslHps" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (1 Conn)</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxSharedECOpenSslRpsLatency" data="latestValue">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Latency P90 (40 Conn)</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxSharedECOpenSslRpsLatencyMultiConn" data="latestValue">?</div>
                                                 </div>
                                             </div>
                                         </div>

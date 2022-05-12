@@ -4,39 +4,51 @@
 
 // Arrays of {c:N, m:"M", b:B, d:[D1, D2, ...]}
 var dataUp_WinKernel_x64_Schannel = UP_WINKERNEL_X64_SCHANNEL
+var dataUp_WinSharedEC_x64_Schannel = UP_WINSHAREDEC_X64_SCHANNEL
 var dataUp_WinXDP_x64_Schannel = UP_WINXDP_X64_SCHANNEL
 var dataUp_Windows_x64_Schannel = UP_WINDOWS_X64_SCHANNEL
 var dataUp_Windows_x64_Openssl = UP_WINDOWS_X64_OPENSSL
 var dataUp_Linux_x64_Openssl = UP_LINUX_X64_OPENSSL
+var dataUp_LinuxSharedEC_x64_Openssl = UP_LINUXSHAREDEC_X64_OPENSSL
 var dataDown_WinKernel_x64_Schannel = DOWN_WINKERNEL_X64_SCHANNEL
+var dataDown_WinSharedEC_x64_Schannel = DOWN_WINSHAREDEC_X64_SCHANNEL
 var dataDown_WinXDP_x64_Schannel = DOWN_WINXDP_X64_SCHANNEL
 var dataDown_Windows_x64_Schannel = DOWN_WINDOWS_X64_SCHANNEL
 var dataDown_Windows_x64_Openssl = DOWN_WINDOWS_X64_OPENSSL
 var dataDown_Linux_x64_Openssl = DOWN_LINUX_X64_OPENSSL
+var dataDown_LinuxSharedEC_x64_Openssl = DOWN_LINUXSHAREDEC_X64_OPENSSL
 var dataRps_WinKernel_x64_Schannel = RPS_WINKERNEL_X64_SCHANNEL
+var dataRps_WinSharedEC_x64_Schannel = RPS_WINSHAREDEC_X64_SCHANNEL
 var dataRps_WinXDP_x64_Schannel = RPS_WINXDP_X64_SCHANNEL
 var dataRps_Windows_x64_Schannel = RPS_WINDOWS_X64_SCHANNEL
 var dataRps_Windows_x64_Openssl = RPS_WINDOWS_X64_OPENSSL
 var dataRps_Linux_x64_Openssl = RPS_LINUX_X64_OPENSSL
+var dataRps_LinuxSharedEC_x64_Openssl = RPS_LINUXSHAREDEC_X64_OPENSSL
 var dataHps_WinKernel_x64_Schannel = HPS_WINKERNEL_X64_SCHANNEL
+var dataHps_WinSharedEC_x64_Schannel = HPS_WINSHAREDEC_X64_SCHANNEL
 var dataHps_WinXDP_x64_Schannel = HPS_WINXDP_X64_SCHANNEL
 var dataHps_Windows_x64_Schannel = HPS_WINDOWS_X64_SCHANNEL
 var dataHps_Windows_x64_Openssl = HPS_WINDOWS_X64_OPENSSL
 var dataHps_Linux_x64_Openssl = HPS_LINUX_X64_OPENSSL
+var dataHps_LinuxSharedEC_x64_Openssl = HPS_LINUXSHAREDEC_X64_OPENSSL
 
 // Arrays of {x:X, y:Y}
 var dataRpsLatency_WinKernel_x64_Schannel = RPS_LATENCY_WINKERNEL_X64_SCHANNEL
+var dataRpsLatency_WinSharedEC_x64_Schannel = RPS_LATENCY_WINSHAREDEC_X64_SCHANNEL
 var dataRpsLatency_WinXDP_x64_Schannel = RPS_LATENCY_WINXDP_X64_SCHANNEL
 var dataRpsLatency_Windows_x64_Schannel = RPS_LATENCY_WINDOWS_X64_SCHANNEL
 var dataRpsLatency_Windows_x64_OpenSsl = RPS_LATENCY_WINDOWS_X64_OPENSSL
 var dataRpsLatency_Linux_x64_OpenSsl = RPS_LATENCY_LINUX_X64_OPENSSL
+var dataRpsLatency_LinuxSharedEC_x64_OpenSsl = RPS_LATENCY_LINUXSHAREDEC_X64_OPENSSL
 
 // Arrays of {x:X, y:Y}
 var dataRpsLatencyLatest_WinKernel_x64_Schannel = RPS_LATENCY_LATEST_WINKERNEL_X64_SCHANNEL
+var dataRpsLatencyLatest_WinSharedEC_x64_Schannel = RPS_LATENCY_LATEST_WINSHAREDEC_X64_SCHANNEL
 var dataRpsLatencyLatest_WinXDP_x64_Schannel = RPS_LATENCY_LATEST_WINXDP_X64_SCHANNEL
 var dataRpsLatencyLatest_Windows_x64_Schannel = RPS_LATENCY_LATEST_WINDOWS_X64_SCHANNEL
 var dataRpsLatencyLatest_Windows_x64_OpenSsl = RPS_LATENCY_LATEST_WINDOWS_X64_OPENSSL
 var dataRpsLatencyLatest_Linux_x64_OpenSsl = RPS_LATENCY_LATEST_LINUX_X64_OPENSSL
+var dataRpsLatencyLatest_LinuxSharedEC_x64_OpenSsl = RPS_LATENCY_LATEST_LINUXSHAREDEC_X64_OPENSSL
 
 // Map of {N: {h:'H', t:T}}
 var recentCommits = RECENT_COMMITS
