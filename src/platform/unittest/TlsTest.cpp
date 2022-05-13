@@ -1777,6 +1777,21 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     DoHandshake(ServerContext, ClientContext);
 }
 
+TEST_F(TlsTest, ClientCertificateDeferValidationNoCert)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ServerContext.ExpectNullCertificate = TRUE;
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_NO_CERT;
+    DoHandshake(ServerContext, ClientContext);
+}
+
 TEST_F(TlsTest, CipherSuiteSuccess1)
 {
     //

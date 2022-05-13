@@ -2163,10 +2163,12 @@ CxPlatTlsWriteDataToSchannel(
                     SECPKG_ATTR_REMOTE_CERT_CONTEXT,
                     (PVOID)&PeerCert);
 #endif
-            if (SecStatus != SEC_E_OK && RequirePeerCert &&
-                !(TlsContext->SecConfig->Flags &
-                    (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
-                    QUIC_CREDENTIAL_FLAG_INDICATE_NULL_CLIENT_CERTIFICATE))) {
+            if (SecStatus == SEC_E_NO_CREDENTIALS && (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+                //
+                // Ignore this case.
+                //
+            } else if (SecStatus != SEC_E_OK && RequirePeerCert &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
                 QuicTraceEvent(
                     TlsErrorStatus,
                     "[ tls][%p] ERROR, %u, %s.",
