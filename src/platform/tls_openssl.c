@@ -1976,12 +1976,24 @@ CxPlatTlsProcessData(
             }
         } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
             !TlsContext->PeerCertReceived) {
+            QUIC_STATUS ValidationResult =
+                (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) ?
+                    QUIC_STATUS_CERT_NO_CERT :
+                    QUIC_STATUS_SUCCESS;
+
             if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                 TlsContext->Connection,
                 NULL,
                 NULL,
                 0,
-                QUIC_STATUS_CERT_NO_CERT)) {
+                ValidationResult)) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Indicate null certificate received failed");
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
