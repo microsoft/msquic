@@ -1984,11 +1984,11 @@ CxPlatTlsProcessData(
                     QUIC_STATUS_SUCCESS;
 
             if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                TlsContext->Connection,
-                NULL,
-                NULL,
-                0,
-                ValidationResult)) {
+                    TlsContext->Connection,
+                    NULL,
+                    NULL,
+                    0,
+                    ValidationResult)) {
                 QuicTraceEvent(
                     TlsError,
                     "[ tls][%p] ERROR, %s.",
