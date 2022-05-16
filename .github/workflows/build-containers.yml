@@ -8,6 +8,8 @@ on:
     - .github/workflows/build-containers.yml
     - src/core/*
     - src/platform/*
+    - src/bin/*
+    - src/inc/*
     - src/perf/*
     - src/tools/*
     - src/test/*
@@ -19,6 +21,8 @@ on:
     - .github/workflows/build-containers.yml
     - src/core/*
     - src/platform/*
+    - src/bin/*
+    - src/inc/*
     - src/perf/*
     - src/tools/*
     - src/test/*
@@ -44,6 +48,10 @@ jobs:
       with:
         fetch-depth: 2
         submodules: 'recursive'
+    - name: Setup .NET
+      uses: actions/setup-dotnet@c0d4ad69d8bd405d234f1c9166d383b7a4f69ed8
+      with:
+        dotnet-version: 6.0.x
     - run: |
         sudo sh scripts/install-powershell-docker.sh 18.04
     - name: Prepare Machine
