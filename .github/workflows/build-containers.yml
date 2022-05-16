@@ -39,13 +39,13 @@ jobs:
       image: wpilib/raspbian-cross-ubuntu:10-18.04
     name: Build Arm
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
-        with:
-          fetch-depth: 2
-          submodules: 'recursive'
-      - run: |
-         sudo sh scripts/install-powershell-docker.sh 18.04
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+      with:
+        fetch-depth: 2
+        submodules: 'recursive'
+    - run: |
+        sudo sh scripts/install-powershell-docker.sh 18.04
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild
