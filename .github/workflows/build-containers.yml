@@ -60,3 +60,6 @@ jobs:
     - name: Build Debug
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -DisableLogs -ToolchainFile cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
+    - name: Build Debug
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -DisableLogs -ToolchainFile cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
