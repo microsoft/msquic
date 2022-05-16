@@ -53,7 +53,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - run: |
-        sudo sh scripts/install-powershell-docker.sh 18.04
+        sudo sh scripts/install-powershell.sh 18.04
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild
