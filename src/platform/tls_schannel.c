@@ -2708,11 +2708,32 @@ CxPlatTlsParamSet(
         const void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: {
+        if (Buffer == NULL || BufferLength != sizeof(QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W *ContextAttribute =
+            (QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W*)Buffer;
+
+        Status =
+            SetCredentialsAttributesW(
+                TlsContext->SchannelContext
+                &SecConfig->CredentialHandle, // This is the cred handle! Not the SchannelContext! Move this to the Configuration SetParam?
+                SECPKG_ATTR_CLIENT_CERT_POLICY,
+                &ClientCertPolicy,
+                sizeof(ClientCertPolicy));
+        break;
+    }
+    default:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
