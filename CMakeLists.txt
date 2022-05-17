@@ -668,6 +668,9 @@ endif()
 if(QUIC_BUILD_PERF)
     add_subdirectory(src/perf/lib)
     add_subdirectory(src/perf/bin)
+    if (WIN32)
+        add_subdirectory(src/perf/svc)
+    endif()
 endif()
 
 # Test code
