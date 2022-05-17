@@ -1779,7 +1779,12 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
 
 TEST_F(TlsTest, ClientCertificateDeferValidationNoCert)
 {
-    CxPlatClientSecConfig ClientConfig;
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION
+#ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS
+        | QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS
+#endif
+        );
     CxPlatServerSecConfig ServerConfig(
         QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
         QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |

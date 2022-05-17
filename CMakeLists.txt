@@ -338,6 +338,8 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     message(STATUS "Disabling ChaCha20 support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CHACHA20_TESTS)
+    message(STATUS "Enabling anonymous client auth tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")

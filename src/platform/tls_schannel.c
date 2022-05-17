@@ -2097,30 +2097,6 @@ CxPlatTlsWriteDataToSchannel(
                 }
             }
             SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
-            if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
-                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
-                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
-                //
-                // Collect the client cert validation result
-                //
-                SecStatus =
-                    QueryContextAttributesW(
-                        &TlsContext->SchannelContext,
-                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
-                        &CertValidationResult);
-                if (SecStatus == SEC_E_NO_CREDENTIALS) {
-                    CertValidationResult.hrVerifyChainStatus = SecStatus;
-                } else if (SecStatus != SEC_E_OK) {
-                    QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "query cert validation result");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
-                }
-            }
 
             SecPkgContext_SessionInfo SessionInfo;
             SecStatus =
@@ -2163,10 +2139,36 @@ CxPlatTlsWriteDataToSchannel(
                     SECPKG_ATTR_REMOTE_CERT_CONTEXT,
                     (PVOID)&PeerCert);
 #endif
-            if (SecStatus == SEC_E_NO_CREDENTIALS && (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+            if (SecStatus == SEC_E_NO_CREDENTIALS &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
                 //
                 // Ignore this case.
                 //
+                CertValidationResult.hrVerifyChainStatus = SecStatus;
+            } else if (SecStatus == SEC_E_OK &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+                //
+                // Collect the client cert validation result
+                //
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                        &CertValidationResult);
+                if (SecStatus == SEC_E_NO_CREDENTIALS) {
+                    CertValidationResult.hrVerifyChainStatus = SecStatus;
+                } else if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "query cert validation result");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    break;
+                }
             } else if (SecStatus != SEC_E_OK && RequirePeerCert &&
                 !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
                 QuicTraceEvent(
