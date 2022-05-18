@@ -1380,6 +1380,52 @@ Exit:
     return Connection;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingDropBlockedSourcePorts(
+    _In_ QUIC_BINDING* Binding,
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    )
+{
+    const uint16_t SourcePort = QuicAddrGetPort(&Datagram->Route->RemoteAddress);
+
+    //
+    // These UDP source ports are recommended to be blocked by the QUIC WG. See
+    // draft-ietf-quic-applicability for more details on the set of ports that
+    // may cause issues.
+    //
+    // N.B - This list MUST be sorted in decreasing order.
+    //
+    const uint16_t BlockedPorts[] = {
+        11211,  // memcache
+        5353,   // mDNS
+        1900,   // SSDP
+        500,    // IKE
+        389,    // CLDAP
+        161,    // SNMP
+        138,    // NETBIOS Datagram Service
+        137,    // NETBIOS Name Service
+        123,    // NTP
+        111,    // Portmap
+        53,     // DNS
+        19,     // Chargen
+        17,     // Quote of the Day
+        0,      // Unusable
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(BlockedPorts) && SourcePort <= BlockedPorts[i]; ++i) {
+        if (BlockedPorts[i] == SourcePort) {
+            QuicPacketLogDrop(
+                Binding,
+                CxPlatDataPathRecvDataToRecvPacket(Datagram),
+                "Blocked source port");
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 //
 // Looks up or creates a connection to handle a chain of datagrams.
 // Returns TRUE if the datagrams were delivered, and FALSE if they should be
@@ -1450,8 +1496,17 @@ QuicBindingDeliverDatagrams(
         // be created.
         //
 
+        if (!Binding->ServerOwned) {
+            QuicPacketLogDrop(Binding, Packet, "No matching client connection");
+            return FALSE;
+        }
+
         if (Binding->Exclusive) {
             QuicPacketLogDrop(Binding, Packet, "No connection on exclusive binding");
+            return FALSE;
+        }
+
+        if (QuicBindingDropBlockedSourcePorts(Binding, DatagramChain)) {
             return FALSE;
         }
 

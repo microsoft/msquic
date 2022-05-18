@@ -118,6 +118,14 @@ TestListener::HandleListenerEvent(
             _strnicmp(
                 QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
                 Event->NEW_CONNECTION.Info->ServerName,
+                Event->NEW_CONNECTION.Info->ServerNameLength) != 0 &&
+            _strnicmp(
+                QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+                Event->NEW_CONNECTION.Info->ServerName,
+                Event->NEW_CONNECTION.Info->ServerNameLength) != 0 &&
+            _strnicmp(
+                QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
+                Event->NEW_CONNECTION.Info->ServerName,
                 Event->NEW_CONNECTION.Info->ServerNameLength) != 0) {
             break; // We don't fail the test, just reject the connection.
         }

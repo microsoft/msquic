@@ -1,245 +1,249 @@
+#pragma warning disable IDE0073
 //
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 //
+#pragma warning restore IDE0073
+
+#pragma warning disable CS0649
 
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
 {
-    public partial struct QUIC_HANDLE
+    internal partial struct QUIC_HANDLE
     {
     }
 
-    public enum QUIC_EXECUTION_PROFILE
+    internal enum QUIC_EXECUTION_PROFILE
     {
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
-        QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT,
-        QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER,
-        QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME,
+        LOW_LATENCY,
+        MAX_THROUGHPUT,
+        SCAVENGER,
+        REAL_TIME,
     }
 
-    public enum QUIC_LOAD_BALANCING_MODE
+    internal enum QUIC_LOAD_BALANCING_MODE
     {
-        QUIC_LOAD_BALANCING_DISABLED,
-        QUIC_LOAD_BALANCING_SERVER_ID_IP,
+        DISABLED,
+        SERVER_ID_IP,
     }
 
-    public enum QUIC_CREDENTIAL_TYPE
+    internal enum QUIC_CREDENTIAL_TYPE
     {
-        QUIC_CREDENTIAL_TYPE_NONE,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
-    }
-
-    [System.Flags]
-    public enum QUIC_CREDENTIAL_FLAGS
-    {
-        QUIC_CREDENTIAL_FLAG_NONE = 0x00000000,
-        QUIC_CREDENTIAL_FLAG_CLIENT = 0x00000001,
-        QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS = 0x00000002,
-        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION = 0x00000004,
-        QUIC_CREDENTIAL_FLAG_ENABLE_OCSP = 0x00000008,
-        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED = 0x00000010,
-        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION = 0x00000020,
-        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION = 0x00000040,
-        QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION = 0x00000080,
-        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT = 0x00000100,
-        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN = 0x00000200,
-        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x00000400,
-        QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK = 0x00000800,
-        QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE = 0x00001000,
-        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES = 0x00002000,
-        QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES = 0x00004000,
-        QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS = 0x00008000,
+        NONE,
+        CERTIFICATE_HASH,
+        CERTIFICATE_HASH_STORE,
+        CERTIFICATE_CONTEXT,
+        CERTIFICATE_FILE,
+        CERTIFICATE_FILE_PROTECTED,
+        CERTIFICATE_PKCS12,
     }
 
     [System.Flags]
-    public enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
+    internal enum QUIC_CREDENTIAL_FLAGS
     {
-        QUIC_ALLOWED_CIPHER_SUITE_NONE = 0x0,
-        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 = 0x1,
-        QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 = 0x2,
-        QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 = 0x4,
+        NONE = 0x00000000,
+        CLIENT = 0x00000001,
+        LOAD_ASYNCHRONOUS = 0x00000002,
+        NO_CERTIFICATE_VALIDATION = 0x00000004,
+        ENABLE_OCSP = 0x00000008,
+        INDICATE_CERTIFICATE_RECEIVED = 0x00000010,
+        DEFER_CERTIFICATE_VALIDATION = 0x00000020,
+        REQUIRE_CLIENT_AUTHENTICATION = 0x00000040,
+        USE_TLS_BUILTIN_CERTIFICATE_VALIDATION = 0x00000080,
+        REVOCATION_CHECK_END_CERT = 0x00000100,
+        REVOCATION_CHECK_CHAIN = 0x00000200,
+        REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x00000400,
+        IGNORE_NO_REVOCATION_CHECK = 0x00000800,
+        IGNORE_REVOCATION_OFFLINE = 0x00001000,
+        SET_ALLOWED_CIPHER_SUITES = 0x00002000,
+        USE_PORTABLE_CERTIFICATES = 0x00004000,
+        USE_SUPPLIED_CREDENTIALS = 0x00008000,
     }
 
     [System.Flags]
-    public enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
+    internal enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
     {
-        QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE = 0x0000,
-        QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE = 0x0001,
+        NONE = 0x0,
+        AES_128_GCM_SHA256 = 0x1,
+        AES_256_GCM_SHA384 = 0x2,
+        CHACHA20_POLY1305_SHA256 = 0x4,
     }
 
     [System.Flags]
-    public enum QUIC_CONNECTION_SHUTDOWN_FLAGS
+    internal enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
     {
-        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE = 0x0000,
-        QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT = 0x0001,
-    }
-
-    public enum QUIC_SERVER_RESUMPTION_LEVEL
-    {
-        QUIC_SERVER_NO_RESUME,
-        QUIC_SERVER_RESUME_ONLY,
-        QUIC_SERVER_RESUME_AND_ZERORTT,
+        NONE = 0x0000,
+        MACHINE_STORE = 0x0001,
     }
 
     [System.Flags]
-    public enum QUIC_SEND_RESUMPTION_FLAGS
+    internal enum QUIC_CONNECTION_SHUTDOWN_FLAGS
     {
-        QUIC_SEND_RESUMPTION_FLAG_NONE = 0x0000,
-        QUIC_SEND_RESUMPTION_FLAG_FINAL = 0x0001,
+        NONE = 0x0000,
+        SILENT = 0x0001,
     }
 
-    public enum QUIC_STREAM_SCHEDULING_SCHEME
+    internal enum QUIC_SERVER_RESUMPTION_LEVEL
     {
-        QUIC_STREAM_SCHEDULING_SCHEME_FIFO = 0x0000,
-        QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN = 0x0001,
-        QUIC_STREAM_SCHEDULING_SCHEME_COUNT,
-    }
-
-    [System.Flags]
-    public enum QUIC_STREAM_OPEN_FLAGS
-    {
-        QUIC_STREAM_OPEN_FLAG_NONE = 0x0000,
-        QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL = 0x0001,
-        QUIC_STREAM_OPEN_FLAG_0_RTT = 0x0002,
+        NO_RESUME,
+        RESUME_ONLY,
+        RESUME_AND_ZERORTT,
     }
 
     [System.Flags]
-    public enum QUIC_STREAM_START_FLAGS
+    internal enum QUIC_SEND_RESUMPTION_FLAGS
     {
-        QUIC_STREAM_START_FLAG_NONE = 0x0000,
-        QUIC_STREAM_START_FLAG_IMMEDIATE = 0x0001,
-        QUIC_STREAM_START_FLAG_FAIL_BLOCKED = 0x0002,
-        QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL = 0x0004,
-        QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,
+        NONE = 0x0000,
+        FINAL = 0x0001,
+    }
+
+    internal enum QUIC_STREAM_SCHEDULING_SCHEME
+    {
+        FIFO = 0x0000,
+        ROUND_ROBIN = 0x0001,
+        COUNT,
     }
 
     [System.Flags]
-    public enum QUIC_STREAM_SHUTDOWN_FLAGS
+    internal enum QUIC_STREAM_OPEN_FLAGS
     {
-        QUIC_STREAM_SHUTDOWN_FLAG_NONE = 0x0000,
-        QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL = 0x0001,
-        QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND = 0x0002,
-        QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE = 0x0004,
-        QUIC_STREAM_SHUTDOWN_FLAG_ABORT = 0x0006,
-        QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE = 0x0008,
-        QUIC_STREAM_SHUTDOWN_FLAG_INLINE = 0x0010,
+        NONE = 0x0000,
+        UNIDIRECTIONAL = 0x0001,
+        ZERO_RTT = 0x0002,
     }
 
     [System.Flags]
-    public enum QUIC_RECEIVE_FLAGS
+    internal enum QUIC_STREAM_START_FLAGS
     {
-        QUIC_RECEIVE_FLAG_NONE = 0x0000,
-        QUIC_RECEIVE_FLAG_0_RTT = 0x0001,
-        QUIC_RECEIVE_FLAG_FIN = 0x0002,
+        NONE = 0x0000,
+        IMMEDIATE = 0x0001,
+        FAIL_BLOCKED = 0x0002,
+        SHUTDOWN_ON_FAIL = 0x0004,
+        INDICATE_PEER_ACCEPT = 0x0008,
     }
 
     [System.Flags]
-    public enum QUIC_SEND_FLAGS
+    internal enum QUIC_STREAM_SHUTDOWN_FLAGS
     {
-        QUIC_SEND_FLAG_NONE = 0x0000,
-        QUIC_SEND_FLAG_ALLOW_0_RTT = 0x0001,
-        QUIC_SEND_FLAG_START = 0x0002,
-        QUIC_SEND_FLAG_FIN = 0x0004,
-        QUIC_SEND_FLAG_DGRAM_PRIORITY = 0x0008,
-        QUIC_SEND_FLAG_DELAY_SEND = 0x0010,
+        NONE = 0x0000,
+        GRACEFUL = 0x0001,
+        ABORT_SEND = 0x0002,
+        ABORT_RECEIVE = 0x0004,
+        ABORT = 0x0006,
+        IMMEDIATE = 0x0008,
+        INLINE = 0x0010,
     }
 
-    public enum QUIC_DATAGRAM_SEND_STATE
+    [System.Flags]
+    internal enum QUIC_RECEIVE_FLAGS
     {
-        QUIC_DATAGRAM_SEND_UNKNOWN,
-        QUIC_DATAGRAM_SEND_SENT,
-        QUIC_DATAGRAM_SEND_LOST_SUSPECT,
-        QUIC_DATAGRAM_SEND_LOST_DISCARDED,
-        QUIC_DATAGRAM_SEND_ACKNOWLEDGED,
-        QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS,
-        QUIC_DATAGRAM_SEND_CANCELED,
+        NONE = 0x0000,
+        ZERO_RTT = 0x0001,
+        FIN = 0x0002,
     }
 
-    public unsafe partial struct QUIC_REGISTRATION_CONFIG
+    [System.Flags]
+    internal enum QUIC_SEND_FLAGS
+    {
+        NONE = 0x0000,
+        ALLOW_0_RTT = 0x0001,
+        START = 0x0002,
+        FIN = 0x0004,
+        DGRAM_PRIORITY = 0x0008,
+        DELAY_SEND = 0x0010,
+    }
+
+    internal enum QUIC_DATAGRAM_SEND_STATE
+    {
+        UNKNOWN,
+        SENT,
+        LOST_SUSPECT,
+        LOST_DISCARDED,
+        ACKNOWLEDGED,
+        ACKNOWLEDGED_SPURIOUS,
+        CANCELED,
+    }
+
+    internal unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
         [NativeTypeName("const char *")]
-        public sbyte* AppName;
+        internal sbyte* AppName;
 
-        public QUIC_EXECUTION_PROFILE ExecutionProfile;
+        internal QUIC_EXECUTION_PROFILE ExecutionProfile;
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_HASH
+    internal unsafe partial struct QUIC_CERTIFICATE_HASH
     {
         [NativeTypeName("uint8_t [20]")]
-        public fixed byte ShaHash[20];
+        internal fixed byte ShaHash[20];
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_HASH_STORE
+    internal unsafe partial struct QUIC_CERTIFICATE_HASH_STORE
     {
-        public QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
+        internal QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
 
         [NativeTypeName("uint8_t [20]")]
-        public fixed byte ShaHash[20];
+        internal fixed byte ShaHash[20];
 
         [NativeTypeName("char [128]")]
-        public fixed sbyte StoreName[128];
+        internal fixed sbyte StoreName[128];
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_FILE
+    internal unsafe partial struct QUIC_CERTIFICATE_FILE
     {
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyFile;
+        internal sbyte* PrivateKeyFile;
 
         [NativeTypeName("const char *")]
-        public sbyte* CertificateFile;
+        internal sbyte* CertificateFile;
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_FILE_PROTECTED
+    internal unsafe partial struct QUIC_CERTIFICATE_FILE_PROTECTED
     {
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyFile;
+        internal sbyte* PrivateKeyFile;
 
         [NativeTypeName("const char *")]
-        public sbyte* CertificateFile;
+        internal sbyte* CertificateFile;
 
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyPassword;
+        internal sbyte* PrivateKeyPassword;
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_PKCS12
+    internal unsafe partial struct QUIC_CERTIFICATE_PKCS12
     {
         [NativeTypeName("const uint8_t *")]
-        public byte* Asn1Blob;
+        internal byte* Asn1Blob;
 
         [NativeTypeName("uint32_t")]
-        public uint Asn1BlobLength;
+        internal uint Asn1BlobLength;
 
         [NativeTypeName("const char *")]
-        public sbyte* PrivateKeyPassword;
+        internal sbyte* PrivateKeyPassword;
     }
 
-    public unsafe partial struct QUIC_CREDENTIAL_CONFIG
+    internal unsafe partial struct QUIC_CREDENTIAL_CONFIG
     {
-        public QUIC_CREDENTIAL_TYPE Type;
+        internal QUIC_CREDENTIAL_TYPE Type;
 
-        public QUIC_CREDENTIAL_FLAGS Flags;
+        internal QUIC_CREDENTIAL_FLAGS Flags;
 
         [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union)")]
-        public _Anonymous_e__Union Anonymous;
+        internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("const char *")]
-        public sbyte* Principal;
+        internal sbyte* Principal;
 
-        public void* Reserved;
+        internal void* Reserved;
 
         [NativeTypeName("QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
 
-        public QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
+        internal QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
 
-        public ref QUIC_CERTIFICATE_HASH* CertificateHash
+        internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
             get
             {
@@ -247,7 +251,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore
+        internal ref QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore
         {
             get
             {
@@ -255,7 +259,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref void* CertificateContext
+        internal ref void* CertificateContext
         {
             get
             {
@@ -263,7 +267,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref QUIC_CERTIFICATE_FILE* CertificateFile
+        internal ref QUIC_CERTIFICATE_FILE* CertificateFile
         {
             get
             {
@@ -271,7 +275,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected
+        internal ref QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected
         {
             get
             {
@@ -279,7 +283,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref QUIC_CERTIFICATE_PKCS12* CertificatePkcs12
+        internal ref QUIC_CERTIFICATE_PKCS12* CertificatePkcs12
         {
             get
             {
@@ -288,157 +292,157 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public unsafe partial struct _Anonymous_e__Union
+        internal unsafe partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_HASH* CertificateHash;
+            internal QUIC_CERTIFICATE_HASH* CertificateHash;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
+            internal QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
 
             [FieldOffset(0)]
             [NativeTypeName("QUIC_CERTIFICATE *")]
-            public void* CertificateContext;
+            internal void* CertificateContext;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_FILE* CertificateFile;
+            internal QUIC_CERTIFICATE_FILE* CertificateFile;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
+            internal QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
+            internal QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
         }
     }
 
-    public unsafe partial struct QUIC_TICKET_KEY_CONFIG
+    internal unsafe partial struct QUIC_TICKET_KEY_CONFIG
     {
         [NativeTypeName("uint8_t [16]")]
-        public fixed byte Id[16];
+        internal fixed byte Id[16];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte Material[64];
+        internal fixed byte Material[64];
 
         [NativeTypeName("uint8_t")]
-        public byte MaterialLength;
+        internal byte MaterialLength;
     }
 
-    public unsafe partial struct QUIC_BUFFER
+    internal unsafe partial struct QUIC_BUFFER
     {
         [NativeTypeName("uint32_t")]
-        public uint Length;
+        internal uint Length;
 
         [NativeTypeName("uint8_t *")]
-        public byte* Buffer;
+        internal byte* Buffer;
     }
 
-    public unsafe partial struct QUIC_NEW_CONNECTION_INFO
+    internal unsafe partial struct QUIC_NEW_CONNECTION_INFO
     {
         [NativeTypeName("uint32_t")]
-        public uint QuicVersion;
+        internal uint QuicVersion;
 
         [NativeTypeName("const QUIC_ADDR *")]
-        public QuicAddr* LocalAddress;
+        internal QuicAddr* LocalAddress;
 
         [NativeTypeName("const QUIC_ADDR *")]
-        public QuicAddr* RemoteAddress;
+        internal QuicAddr* RemoteAddress;
 
         [NativeTypeName("uint32_t")]
-        public uint CryptoBufferLength;
+        internal uint CryptoBufferLength;
 
         [NativeTypeName("uint16_t")]
-        public ushort ClientAlpnListLength;
+        internal ushort ClientAlpnListLength;
 
         [NativeTypeName("uint16_t")]
-        public ushort ServerNameLength;
+        internal ushort ServerNameLength;
 
         [NativeTypeName("uint8_t")]
-        public byte NegotiatedAlpnLength;
+        internal byte NegotiatedAlpnLength;
 
         [NativeTypeName("const uint8_t *")]
-        public byte* CryptoBuffer;
+        internal byte* CryptoBuffer;
 
         [NativeTypeName("const uint8_t *")]
-        public byte* ClientAlpnList;
+        internal byte* ClientAlpnList;
 
         [NativeTypeName("const uint8_t *")]
-        public byte* NegotiatedAlpn;
+        internal byte* NegotiatedAlpn;
 
         [NativeTypeName("const char *")]
-        public sbyte* ServerName;
+        internal sbyte* ServerName;
     }
 
-    public enum QUIC_TLS_PROTOCOL_VERSION
+    internal enum QUIC_TLS_PROTOCOL_VERSION
     {
-        QUIC_TLS_PROTOCOL_UNKNOWN = 0,
-        QUIC_TLS_PROTOCOL_1_3 = 0x3000,
+        UNKNOWN = 0,
+        TLS_1_3 = 0x3000,
     }
 
-    public enum QUIC_CIPHER_ALGORITHM
+    internal enum QUIC_CIPHER_ALGORITHM
     {
-        QUIC_CIPHER_ALGORITHM_NONE = 0,
-        QUIC_CIPHER_ALGORITHM_AES_128 = 0x660E,
-        QUIC_CIPHER_ALGORITHM_AES_256 = 0x6610,
-        QUIC_CIPHER_ALGORITHM_CHACHA20 = 0x6612,
+        NONE = 0,
+        AES_128 = 0x660E,
+        AES_256 = 0x6610,
+        CHACHA20 = 0x6612,
     }
 
-    public enum QUIC_HASH_ALGORITHM
+    internal enum QUIC_HASH_ALGORITHM
     {
-        QUIC_HASH_ALGORITHM_NONE = 0,
-        QUIC_HASH_ALGORITHM_SHA_256 = 0x800C,
-        QUIC_HASH_ALGORITHM_SHA_384 = 0x800D,
+        NONE = 0,
+        SHA_256 = 0x800C,
+        SHA_384 = 0x800D,
     }
 
-    public enum QUIC_KEY_EXCHANGE_ALGORITHM
+    internal enum QUIC_KEY_EXCHANGE_ALGORITHM
     {
-        QUIC_KEY_EXCHANGE_ALGORITHM_NONE = 0,
+        NONE = 0,
     }
 
-    public enum QUIC_CIPHER_SUITE
+    internal enum QUIC_CIPHER_SUITE
     {
-        QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256 = 0x1301,
-        QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384 = 0x1302,
-        QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256 = 0x1303,
+        TLS_AES_128_GCM_SHA256 = 0x1301,
+        TLS_AES_256_GCM_SHA384 = 0x1302,
+        TLS_CHACHA20_POLY1305_SHA256 = 0x1303,
     }
 
-    public enum QUIC_CONGESTION_CONTROL_ALGORITHM
+    internal enum QUIC_CONGESTION_CONTROL_ALGORITHM
     {
         QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC,
         QUIC_CONGESTION_CONTROL_ALGORITHM_BBR,
         QUIC_CONGESTION_CONTROL_ALGORITHM_MAX,
     }
 
-    public partial struct QUIC_HANDSHAKE_INFO
+    internal partial struct QUIC_HANDSHAKE_INFO
     {
-        public QUIC_TLS_PROTOCOL_VERSION TlsProtocolVersion;
+        internal QUIC_TLS_PROTOCOL_VERSION TlsProtocolVersion;
 
-        public QUIC_CIPHER_ALGORITHM CipherAlgorithm;
-
-        [NativeTypeName("int32_t")]
-        public int CipherStrength;
-
-        public QUIC_HASH_ALGORITHM Hash;
+        internal QUIC_CIPHER_ALGORITHM CipherAlgorithm;
 
         [NativeTypeName("int32_t")]
-        public int HashStrength;
+        internal int CipherStrength;
 
-        public QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
+        internal QUIC_HASH_ALGORITHM Hash;
 
         [NativeTypeName("int32_t")]
-        public int KeyExchangeStrength;
+        internal int HashStrength;
 
-        public QUIC_CIPHER_SUITE CipherSuite;
+        internal QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
+
+        [NativeTypeName("int32_t")]
+        internal int KeyExchangeStrength;
+
+        internal QUIC_CIPHER_SUITE CipherSuite;
     }
 
-    public partial struct QUIC_STATISTICS
+    internal partial struct QUIC_STATISTICS
     {
         [NativeTypeName("uint64_t")]
-        public ulong CorrelationId;
+        internal ulong CorrelationId;
 
-        public uint _bitfield;
+        internal uint _bitfield;
 
         [NativeTypeName("uint32_t : 1")]
-        public uint VersionNegotiation
+        internal uint VersionNegotiation
         {
             get
             {
@@ -452,7 +456,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint StatelessRetry
+        internal uint StatelessRetry
         {
             get
             {
@@ -466,7 +470,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint ResumptionAttempted
+        internal uint ResumptionAttempted
         {
             get
             {
@@ -480,7 +484,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint ResumptionSucceeded
+        internal uint ResumptionSucceeded
         {
             get
             {
@@ -494,126 +498,126 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t")]
-        public uint Rtt;
+        internal uint Rtt;
 
         [NativeTypeName("uint32_t")]
-        public uint MinRtt;
+        internal uint MinRtt;
 
         [NativeTypeName("uint32_t")]
-        public uint MaxRtt;
+        internal uint MaxRtt;
 
         [NativeTypeName("struct (anonymous struct)")]
-        public _Timing_e__Struct Timing;
+        internal _Timing_e__Struct Timing;
 
         [NativeTypeName("struct (anonymous struct)")]
-        public _Handshake_e__Struct Handshake;
+        internal _Handshake_e__Struct Handshake;
 
         [NativeTypeName("struct (anonymous struct)")]
-        public _Send_e__Struct Send;
+        internal _Send_e__Struct Send;
 
         [NativeTypeName("struct (anonymous struct)")]
-        public _Recv_e__Struct Recv;
+        internal _Recv_e__Struct Recv;
 
         [NativeTypeName("struct (anonymous struct)")]
-        public _Misc_e__Struct Misc;
+        internal _Misc_e__Struct Misc;
 
-        public partial struct _Timing_e__Struct
+        internal partial struct _Timing_e__Struct
         {
             [NativeTypeName("uint64_t")]
-            public ulong Start;
+            internal ulong Start;
 
             [NativeTypeName("uint64_t")]
-            public ulong InitialFlightEnd;
+            internal ulong InitialFlightEnd;
 
             [NativeTypeName("uint64_t")]
-            public ulong HandshakeFlightEnd;
+            internal ulong HandshakeFlightEnd;
         }
 
-        public partial struct _Handshake_e__Struct
+        internal partial struct _Handshake_e__Struct
         {
             [NativeTypeName("uint32_t")]
-            public uint ClientFlight1Bytes;
+            internal uint ClientFlight1Bytes;
 
             [NativeTypeName("uint32_t")]
-            public uint ServerFlight1Bytes;
+            internal uint ServerFlight1Bytes;
 
             [NativeTypeName("uint32_t")]
-            public uint ClientFlight2Bytes;
+            internal uint ClientFlight2Bytes;
         }
 
-        public partial struct _Send_e__Struct
+        internal partial struct _Send_e__Struct
         {
             [NativeTypeName("uint16_t")]
-            public ushort PathMtu;
+            internal ushort PathMtu;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalPackets;
+            internal ulong TotalPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong RetransmittablePackets;
+            internal ulong RetransmittablePackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong SuspectedLostPackets;
+            internal ulong SuspectedLostPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong SpuriousLostPackets;
+            internal ulong SpuriousLostPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalBytes;
+            internal ulong TotalBytes;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalStreamBytes;
+            internal ulong TotalStreamBytes;
 
             [NativeTypeName("uint32_t")]
-            public uint CongestionCount;
+            internal uint CongestionCount;
 
             [NativeTypeName("uint32_t")]
-            public uint PersistentCongestionCount;
+            internal uint PersistentCongestionCount;
         }
 
-        public partial struct _Recv_e__Struct
+        internal partial struct _Recv_e__Struct
         {
             [NativeTypeName("uint64_t")]
-            public ulong TotalPackets;
+            internal ulong TotalPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong ReorderedPackets;
+            internal ulong ReorderedPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong DroppedPackets;
+            internal ulong DroppedPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong DuplicatePackets;
+            internal ulong DuplicatePackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalBytes;
+            internal ulong TotalBytes;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalStreamBytes;
+            internal ulong TotalStreamBytes;
 
             [NativeTypeName("uint64_t")]
-            public ulong DecryptionFailures;
+            internal ulong DecryptionFailures;
 
             [NativeTypeName("uint64_t")]
-            public ulong ValidAckFrames;
+            internal ulong ValidAckFrames;
         }
 
-        public partial struct _Misc_e__Struct
+        internal partial struct _Misc_e__Struct
         {
             [NativeTypeName("uint32_t")]
-            public uint KeyUpdateCount;
+            internal uint KeyUpdateCount;
         }
     }
 
-    public partial struct QUIC_STATISTICS_V2
+    internal partial struct QUIC_STATISTICS_V2
     {
         [NativeTypeName("uint64_t")]
-        public ulong CorrelationId;
+        internal ulong CorrelationId;
 
-        public uint _bitfield;
+        internal uint _bitfield;
 
         [NativeTypeName("uint32_t : 1")]
-        public uint VersionNegotiation
+        internal uint VersionNegotiation
         {
             get
             {
@@ -627,7 +631,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint StatelessRetry
+        internal uint StatelessRetry
         {
             get
             {
@@ -641,7 +645,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint ResumptionAttempted
+        internal uint ResumptionAttempted
         {
             get
             {
@@ -655,7 +659,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint ResumptionSucceeded
+        internal uint ResumptionSucceeded
         {
             get
             {
@@ -669,171 +673,171 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t")]
-        public uint Rtt;
+        internal uint Rtt;
 
         [NativeTypeName("uint32_t")]
-        public uint MinRtt;
+        internal uint MinRtt;
 
         [NativeTypeName("uint32_t")]
-        public uint MaxRtt;
+        internal uint MaxRtt;
 
         [NativeTypeName("uint64_t")]
-        public ulong TimingStart;
+        internal ulong TimingStart;
 
         [NativeTypeName("uint64_t")]
-        public ulong TimingInitialFlightEnd;
+        internal ulong TimingInitialFlightEnd;
 
         [NativeTypeName("uint64_t")]
-        public ulong TimingHandshakeFlightEnd;
+        internal ulong TimingHandshakeFlightEnd;
 
         [NativeTypeName("uint32_t")]
-        public uint HandshakeClientFlight1Bytes;
+        internal uint HandshakeClientFlight1Bytes;
 
         [NativeTypeName("uint32_t")]
-        public uint HandshakeServerFlight1Bytes;
+        internal uint HandshakeServerFlight1Bytes;
 
         [NativeTypeName("uint32_t")]
-        public uint HandshakeClientFlight2Bytes;
+        internal uint HandshakeClientFlight2Bytes;
 
         [NativeTypeName("uint16_t")]
-        public ushort SendPathMtu;
+        internal ushort SendPathMtu;
 
         [NativeTypeName("uint64_t")]
-        public ulong SendTotalPackets;
+        internal ulong SendTotalPackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong SendRetransmittablePackets;
+        internal ulong SendRetransmittablePackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong SendSuspectedLostPackets;
+        internal ulong SendSuspectedLostPackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong SendSpuriousLostPackets;
+        internal ulong SendSpuriousLostPackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong SendTotalBytes;
+        internal ulong SendTotalBytes;
 
         [NativeTypeName("uint64_t")]
-        public ulong SendTotalStreamBytes;
+        internal ulong SendTotalStreamBytes;
 
         [NativeTypeName("uint32_t")]
-        public uint SendCongestionCount;
+        internal uint SendCongestionCount;
 
         [NativeTypeName("uint32_t")]
-        public uint SendPersistentCongestionCount;
+        internal uint SendPersistentCongestionCount;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvTotalPackets;
+        internal ulong RecvTotalPackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvReorderedPackets;
+        internal ulong RecvReorderedPackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvDroppedPackets;
+        internal ulong RecvDroppedPackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvDuplicatePackets;
+        internal ulong RecvDuplicatePackets;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvTotalBytes;
+        internal ulong RecvTotalBytes;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvTotalStreamBytes;
+        internal ulong RecvTotalStreamBytes;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvDecryptionFailures;
+        internal ulong RecvDecryptionFailures;
 
         [NativeTypeName("uint64_t")]
-        public ulong RecvValidAckFrames;
+        internal ulong RecvValidAckFrames;
 
         [NativeTypeName("uint32_t")]
-        public uint KeyUpdateCount;
+        internal uint KeyUpdateCount;
 
         [NativeTypeName("uint32_t")]
-        public uint SendCongestionWindow;
+        internal uint SendCongestionWindow;
     }
 
-    public partial struct QUIC_LISTENER_STATISTICS
+    internal partial struct QUIC_LISTENER_STATISTICS
     {
         [NativeTypeName("uint64_t")]
-        public ulong TotalAcceptedConnections;
+        internal ulong TotalAcceptedConnections;
 
         [NativeTypeName("uint64_t")]
-        public ulong TotalRejectedConnections;
+        internal ulong TotalRejectedConnections;
 
         [NativeTypeName("uint64_t")]
-        public ulong BindingRecvDroppedPackets;
+        internal ulong BindingRecvDroppedPackets;
     }
 
-    public enum QUIC_PERFORMANCE_COUNTERS
+    internal enum QUIC_PERFORMANCE_COUNTERS
     {
-        QUIC_PERF_COUNTER_CONN_CREATED,
-        QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL,
-        QUIC_PERF_COUNTER_CONN_APP_REJECT,
-        QUIC_PERF_COUNTER_CONN_RESUMED,
-        QUIC_PERF_COUNTER_CONN_ACTIVE,
-        QUIC_PERF_COUNTER_CONN_CONNECTED,
-        QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS,
-        QUIC_PERF_COUNTER_CONN_NO_ALPN,
-        QUIC_PERF_COUNTER_STRM_ACTIVE,
-        QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST,
-        QUIC_PERF_COUNTER_PKTS_DROPPED,
-        QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL,
-        QUIC_PERF_COUNTER_UDP_RECV,
-        QUIC_PERF_COUNTER_UDP_SEND,
-        QUIC_PERF_COUNTER_UDP_RECV_BYTES,
-        QUIC_PERF_COUNTER_UDP_SEND_BYTES,
-        QUIC_PERF_COUNTER_UDP_RECV_EVENTS,
-        QUIC_PERF_COUNTER_UDP_SEND_CALLS,
-        QUIC_PERF_COUNTER_APP_SEND_BYTES,
-        QUIC_PERF_COUNTER_APP_RECV_BYTES,
-        QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH,
-        QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH,
-        QUIC_PERF_COUNTER_CONN_OPER_QUEUED,
-        QUIC_PERF_COUNTER_CONN_OPER_COMPLETED,
-        QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH,
-        QUIC_PERF_COUNTER_WORK_OPER_QUEUED,
-        QUIC_PERF_COUNTER_WORK_OPER_COMPLETED,
-        QUIC_PERF_COUNTER_PATH_VALIDATED,
-        QUIC_PERF_COUNTER_PATH_FAILURE,
-        QUIC_PERF_COUNTER_SEND_STATELESS_RESET,
-        QUIC_PERF_COUNTER_SEND_STATELESS_RETRY,
-        QUIC_PERF_COUNTER_MAX,
+        CONN_CREATED,
+        CONN_HANDSHAKE_FAIL,
+        CONN_APP_REJECT,
+        CONN_RESUMED,
+        CONN_ACTIVE,
+        CONN_CONNECTED,
+        CONN_PROTOCOL_ERRORS,
+        CONN_NO_ALPN,
+        STRM_ACTIVE,
+        PKTS_SUSPECTED_LOST,
+        PKTS_DROPPED,
+        PKTS_DECRYPTION_FAIL,
+        UDP_RECV,
+        UDP_SEND,
+        UDP_RECV_BYTES,
+        UDP_SEND_BYTES,
+        UDP_RECV_EVENTS,
+        UDP_SEND_CALLS,
+        APP_SEND_BYTES,
+        APP_RECV_BYTES,
+        CONN_QUEUE_DEPTH,
+        CONN_OPER_QUEUE_DEPTH,
+        CONN_OPER_QUEUED,
+        CONN_OPER_COMPLETED,
+        WORK_OPER_QUEUE_DEPTH,
+        WORK_OPER_QUEUED,
+        WORK_OPER_COMPLETED,
+        PATH_VALIDATED,
+        PATH_FAILURE,
+        SEND_STATELESS_RESET,
+        SEND_STATELESS_RETRY,
+        MAX,
     }
 
-    public unsafe partial struct QUIC_VERSION_SETTINGS
+    internal unsafe partial struct QUIC_VERSION_SETTINGS
     {
         [NativeTypeName("uint32_t *")]
-        public uint* AcceptableVersions;
+        internal uint* AcceptableVersions;
 
         [NativeTypeName("uint32_t *")]
-        public uint* OfferedVersions;
+        internal uint* OfferedVersions;
 
         [NativeTypeName("uint32_t *")]
-        public uint* FullyDeployedVersions;
+        internal uint* FullyDeployedVersions;
 
         [NativeTypeName("uint32_t")]
-        public uint AcceptableVersionsLength;
+        internal uint AcceptableVersionsLength;
 
         [NativeTypeName("uint32_t")]
-        public uint OfferedVersionsLength;
+        internal uint OfferedVersionsLength;
 
         [NativeTypeName("uint32_t")]
-        public uint FullyDeployedVersionsLength;
+        internal uint FullyDeployedVersionsLength;
     }
 
-    public partial struct QUIC_GLOBAL_SETTINGS
+    internal partial struct QUIC_GLOBAL_SETTINGS
     {
         [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union)")]
-        public _Anonymous_e__Union Anonymous;
+        internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
-        public ushort RetryMemoryLimit;
+        internal ushort RetryMemoryLimit;
 
         [NativeTypeName("uint16_t")]
-        public ushort LoadBalancingMode;
+        internal ushort LoadBalancingMode;
 
-        public ref ulong IsSetFlags
+        internal ref ulong IsSetFlags
         {
             get
             {
@@ -841,7 +845,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._IsSet_e__Struct IsSet
+        internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
@@ -850,22 +854,22 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("uint64_t")]
-            public ulong IsSetFlags;
+            internal ulong IsSetFlags;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _IsSet_e__Struct IsSet;
+            internal _IsSet_e__Struct IsSet;
 
-            public partial struct _IsSet_e__Struct
+            internal partial struct _IsSet_e__Struct
             {
-                public ulong _bitfield;
+                internal ulong _bitfield;
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong RetryMemoryLimit
+                internal ulong RetryMemoryLimit
                 {
                     get
                     {
@@ -879,7 +883,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong LoadBalancingMode
+                internal ulong LoadBalancingMode
                 {
                     get
                     {
@@ -893,7 +897,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 62")]
-                public ulong RESERVED
+                internal ulong RESERVED
                 {
                     get
                     {
@@ -909,87 +913,87 @@ namespace Microsoft.Quic
         }
     }
 
-    public partial struct QUIC_SETTINGS
+    internal partial struct QUIC_SETTINGS
     {
         [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
-        public _Anonymous_e__Union Anonymous;
+        internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint64_t")]
-        public ulong MaxBytesPerKey;
+        internal ulong MaxBytesPerKey;
 
         [NativeTypeName("uint64_t")]
-        public ulong HandshakeIdleTimeoutMs;
+        internal ulong HandshakeIdleTimeoutMs;
 
         [NativeTypeName("uint64_t")]
-        public ulong IdleTimeoutMs;
+        internal ulong IdleTimeoutMs;
 
         [NativeTypeName("uint64_t")]
-        public ulong MtuDiscoverySearchCompleteTimeoutUs;
+        internal ulong MtuDiscoverySearchCompleteTimeoutUs;
 
         [NativeTypeName("uint32_t")]
-        public uint TlsClientMaxSendBuffer;
+        internal uint TlsClientMaxSendBuffer;
 
         [NativeTypeName("uint32_t")]
-        public uint TlsServerMaxSendBuffer;
+        internal uint TlsServerMaxSendBuffer;
 
         [NativeTypeName("uint32_t")]
-        public uint StreamRecvWindowDefault;
+        internal uint StreamRecvWindowDefault;
 
         [NativeTypeName("uint32_t")]
-        public uint StreamRecvBufferDefault;
+        internal uint StreamRecvBufferDefault;
 
         [NativeTypeName("uint32_t")]
-        public uint ConnFlowControlWindow;
+        internal uint ConnFlowControlWindow;
 
         [NativeTypeName("uint32_t")]
-        public uint MaxWorkerQueueDelayUs;
+        internal uint MaxWorkerQueueDelayUs;
 
         [NativeTypeName("uint32_t")]
-        public uint MaxStatelessOperations;
+        internal uint MaxStatelessOperations;
 
         [NativeTypeName("uint32_t")]
-        public uint InitialWindowPackets;
+        internal uint InitialWindowPackets;
 
         [NativeTypeName("uint32_t")]
-        public uint SendIdleTimeoutMs;
+        internal uint SendIdleTimeoutMs;
 
         [NativeTypeName("uint32_t")]
-        public uint InitialRttMs;
+        internal uint InitialRttMs;
 
         [NativeTypeName("uint32_t")]
-        public uint MaxAckDelayMs;
+        internal uint MaxAckDelayMs;
 
         [NativeTypeName("uint32_t")]
-        public uint DisconnectTimeoutMs;
+        internal uint DisconnectTimeoutMs;
 
         [NativeTypeName("uint32_t")]
-        public uint KeepAliveIntervalMs;
+        internal uint KeepAliveIntervalMs;
 
         [NativeTypeName("uint16_t")]
-        public ushort CongestionControlAlgorithm;
+        internal ushort CongestionControlAlgorithm;
 
         [NativeTypeName("uint16_t")]
-        public ushort PeerBidiStreamCount;
+        internal ushort PeerBidiStreamCount;
 
         [NativeTypeName("uint16_t")]
-        public ushort PeerUnidiStreamCount;
+        internal ushort PeerUnidiStreamCount;
 
         [NativeTypeName("uint16_t")]
-        public ushort MaxBindingStatelessOperations;
+        internal ushort MaxBindingStatelessOperations;
 
         [NativeTypeName("uint16_t")]
-        public ushort StatelessOperationExpirationMs;
+        internal ushort StatelessOperationExpirationMs;
 
         [NativeTypeName("uint16_t")]
-        public ushort MinimumMtu;
+        internal ushort MinimumMtu;
 
         [NativeTypeName("uint16_t")]
-        public ushort MaximumMtu;
+        internal ushort MaximumMtu;
 
-        public byte _bitfield;
+        internal byte _bitfield;
 
         [NativeTypeName("uint8_t : 1")]
-        public byte SendBufferingEnabled
+        internal byte SendBufferingEnabled
         {
             get
             {
@@ -1003,7 +1007,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 1")]
-        public byte PacingEnabled
+        internal byte PacingEnabled
         {
             get
             {
@@ -1017,7 +1021,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 1")]
-        public byte MigrationEnabled
+        internal byte MigrationEnabled
         {
             get
             {
@@ -1031,7 +1035,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 1")]
-        public byte DatagramReceiveEnabled
+        internal byte DatagramReceiveEnabled
         {
             get
             {
@@ -1045,7 +1049,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 2")]
-        public byte ServerResumptionLevel
+        internal byte ServerResumptionLevel
         {
             get
             {
@@ -1059,7 +1063,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 2")]
-        public byte RESERVED
+        internal byte RESERVED
         {
             get
             {
@@ -1073,12 +1077,12 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t")]
-        public byte MaxOperationsPerDrain;
+        internal byte MaxOperationsPerDrain;
 
         [NativeTypeName("uint8_t")]
-        public byte MtuDiscoveryMissingProbeCount;
+        internal byte MtuDiscoveryMissingProbeCount;
 
-        public ref ulong IsSetFlags
+        internal ref ulong IsSetFlags
         {
             get
             {
@@ -1086,7 +1090,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._IsSet_e__Struct IsSet
+        internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
@@ -1095,22 +1099,22 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("uint64_t")]
-            public ulong IsSetFlags;
+            internal ulong IsSetFlags;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _IsSet_e__Struct IsSet;
+            internal _IsSet_e__Struct IsSet;
 
-            public partial struct _IsSet_e__Struct
+            internal partial struct _IsSet_e__Struct
             {
-                public ulong _bitfield;
+                internal ulong _bitfield;
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxBytesPerKey
+                internal ulong MaxBytesPerKey
                 {
                     get
                     {
@@ -1124,7 +1128,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong HandshakeIdleTimeoutMs
+                internal ulong HandshakeIdleTimeoutMs
                 {
                     get
                     {
@@ -1138,7 +1142,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong IdleTimeoutMs
+                internal ulong IdleTimeoutMs
                 {
                     get
                     {
@@ -1152,7 +1156,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MtuDiscoverySearchCompleteTimeoutUs
+                internal ulong MtuDiscoverySearchCompleteTimeoutUs
                 {
                     get
                     {
@@ -1166,7 +1170,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong TlsClientMaxSendBuffer
+                internal ulong TlsClientMaxSendBuffer
                 {
                     get
                     {
@@ -1180,7 +1184,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong TlsServerMaxSendBuffer
+                internal ulong TlsServerMaxSendBuffer
                 {
                     get
                     {
@@ -1194,7 +1198,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong StreamRecvWindowDefault
+                internal ulong StreamRecvWindowDefault
                 {
                     get
                     {
@@ -1208,7 +1212,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong StreamRecvBufferDefault
+                internal ulong StreamRecvBufferDefault
                 {
                     get
                     {
@@ -1222,7 +1226,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong ConnFlowControlWindow
+                internal ulong ConnFlowControlWindow
                 {
                     get
                     {
@@ -1236,7 +1240,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxWorkerQueueDelayUs
+                internal ulong MaxWorkerQueueDelayUs
                 {
                     get
                     {
@@ -1250,7 +1254,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxStatelessOperations
+                internal ulong MaxStatelessOperations
                 {
                     get
                     {
@@ -1264,7 +1268,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong InitialWindowPackets
+                internal ulong InitialWindowPackets
                 {
                     get
                     {
@@ -1278,7 +1282,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong SendIdleTimeoutMs
+                internal ulong SendIdleTimeoutMs
                 {
                     get
                     {
@@ -1292,7 +1296,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong InitialRttMs
+                internal ulong InitialRttMs
                 {
                     get
                     {
@@ -1306,7 +1310,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxAckDelayMs
+                internal ulong MaxAckDelayMs
                 {
                     get
                     {
@@ -1320,7 +1324,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong DisconnectTimeoutMs
+                internal ulong DisconnectTimeoutMs
                 {
                     get
                     {
@@ -1334,7 +1338,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong KeepAliveIntervalMs
+                internal ulong KeepAliveIntervalMs
                 {
                     get
                     {
@@ -1348,7 +1352,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong CongestionControlAlgorithm
+                internal ulong CongestionControlAlgorithm
                 {
                     get
                     {
@@ -1362,7 +1366,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong PeerBidiStreamCount
+                internal ulong PeerBidiStreamCount
                 {
                     get
                     {
@@ -1376,7 +1380,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong PeerUnidiStreamCount
+                internal ulong PeerUnidiStreamCount
                 {
                     get
                     {
@@ -1390,7 +1394,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxBindingStatelessOperations
+                internal ulong MaxBindingStatelessOperations
                 {
                     get
                     {
@@ -1404,7 +1408,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong StatelessOperationExpirationMs
+                internal ulong StatelessOperationExpirationMs
                 {
                     get
                     {
@@ -1418,7 +1422,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MinimumMtu
+                internal ulong MinimumMtu
                 {
                     get
                     {
@@ -1432,7 +1436,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaximumMtu
+                internal ulong MaximumMtu
                 {
                     get
                     {
@@ -1446,7 +1450,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong SendBufferingEnabled
+                internal ulong SendBufferingEnabled
                 {
                     get
                     {
@@ -1460,7 +1464,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong PacingEnabled
+                internal ulong PacingEnabled
                 {
                     get
                     {
@@ -1474,7 +1478,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MigrationEnabled
+                internal ulong MigrationEnabled
                 {
                     get
                     {
@@ -1488,7 +1492,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong DatagramReceiveEnabled
+                internal ulong DatagramReceiveEnabled
                 {
                     get
                     {
@@ -1502,7 +1506,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong ServerResumptionLevel
+                internal ulong ServerResumptionLevel
                 {
                     get
                     {
@@ -1516,7 +1520,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxOperationsPerDrain
+                internal ulong MaxOperationsPerDrain
                 {
                     get
                     {
@@ -1530,7 +1534,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MtuDiscoveryMissingProbeCount
+                internal ulong MtuDiscoveryMissingProbeCount
                 {
                     get
                     {
@@ -1544,7 +1548,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 33")]
-                public ulong RESERVED
+                internal ulong RESERVED
                 {
                     get
                     {
@@ -1560,38 +1564,38 @@ namespace Microsoft.Quic
         }
     }
 
-    public unsafe partial struct QUIC_TLS_SECRETS
+    internal unsafe partial struct QUIC_TLS_SECRETS
     {
         [NativeTypeName("uint8_t")]
-        public byte SecretLength;
+        internal byte SecretLength;
 
         [NativeTypeName("struct (anonymous struct)")]
-        public _IsSet_e__Struct IsSet;
+        internal _IsSet_e__Struct IsSet;
 
         [NativeTypeName("uint8_t [32]")]
-        public fixed byte ClientRandom[32];
+        internal fixed byte ClientRandom[32];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte ClientEarlyTrafficSecret[64];
+        internal fixed byte ClientEarlyTrafficSecret[64];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte ClientHandshakeTrafficSecret[64];
+        internal fixed byte ClientHandshakeTrafficSecret[64];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte ServerHandshakeTrafficSecret[64];
+        internal fixed byte ServerHandshakeTrafficSecret[64];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte ClientTrafficSecret0[64];
+        internal fixed byte ClientTrafficSecret0[64];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte ServerTrafficSecret0[64];
+        internal fixed byte ServerTrafficSecret0[64];
 
-        public partial struct _IsSet_e__Struct
+        internal partial struct _IsSet_e__Struct
         {
-            public byte _bitfield;
+            internal byte _bitfield;
 
             [NativeTypeName("uint8_t : 1")]
-            public byte ClientRandom
+            internal byte ClientRandom
             {
                 get
                 {
@@ -1605,7 +1609,7 @@ namespace Microsoft.Quic
             }
 
             [NativeTypeName("uint8_t : 1")]
-            public byte ClientEarlyTrafficSecret
+            internal byte ClientEarlyTrafficSecret
             {
                 get
                 {
@@ -1619,7 +1623,7 @@ namespace Microsoft.Quic
             }
 
             [NativeTypeName("uint8_t : 1")]
-            public byte ClientHandshakeTrafficSecret
+            internal byte ClientHandshakeTrafficSecret
             {
                 get
                 {
@@ -1633,7 +1637,7 @@ namespace Microsoft.Quic
             }
 
             [NativeTypeName("uint8_t : 1")]
-            public byte ServerHandshakeTrafficSecret
+            internal byte ServerHandshakeTrafficSecret
             {
                 get
                 {
@@ -1647,7 +1651,7 @@ namespace Microsoft.Quic
             }
 
             [NativeTypeName("uint8_t : 1")]
-            public byte ClientTrafficSecret0
+            internal byte ClientTrafficSecret0
             {
                 get
                 {
@@ -1661,7 +1665,7 @@ namespace Microsoft.Quic
             }
 
             [NativeTypeName("uint8_t : 1")]
-            public byte ServerTrafficSecret0
+            internal byte ServerTrafficSecret0
             {
                 get
                 {
@@ -1676,28 +1680,28 @@ namespace Microsoft.Quic
         }
     }
 
-    public unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
+    internal unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
-        public uint Attribute;
+        internal uint Attribute;
 
-        public void* Buffer;
+        internal void* Buffer;
     }
 
-    public enum QUIC_LISTENER_EVENT_TYPE
+    internal enum QUIC_LISTENER_EVENT_TYPE
     {
-        QUIC_LISTENER_EVENT_NEW_CONNECTION = 0,
-        QUIC_LISTENER_EVENT_STOP_COMPLETE = 1,
+        NEW_CONNECTION = 0,
+        STOP_COMPLETE = 1,
     }
 
-    public partial struct QUIC_LISTENER_EVENT
+    internal partial struct QUIC_LISTENER_EVENT
     {
-        public QUIC_LISTENER_EVENT_TYPE Type;
+        internal QUIC_LISTENER_EVENT_TYPE Type;
 
         [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union)")]
-        public _Anonymous_e__Union Anonymous;
+        internal _Anonymous_e__Union Anonymous;
 
-        public ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
+        internal ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
         {
             get
             {
@@ -1705,7 +1709,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._STOP_COMPLETE_e__Struct STOP_COMPLETE
+        internal ref _Anonymous_e__Union._STOP_COMPLETE_e__Struct STOP_COMPLETE
         {
             get
             {
@@ -1714,31 +1718,31 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _NEW_CONNECTION_e__Struct NEW_CONNECTION;
+            internal _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _STOP_COMPLETE_e__Struct STOP_COMPLETE;
+            internal _STOP_COMPLETE_e__Struct STOP_COMPLETE;
 
-            public unsafe partial struct _NEW_CONNECTION_e__Struct
+            internal unsafe partial struct _NEW_CONNECTION_e__Struct
             {
                 [NativeTypeName("const QUIC_NEW_CONNECTION_INFO *")]
-                public QUIC_NEW_CONNECTION_INFO* Info;
+                internal QUIC_NEW_CONNECTION_INFO* Info;
 
                 [NativeTypeName("HQUIC")]
-                public QUIC_HANDLE* Connection;
+                internal QUIC_HANDLE* Connection;
             }
 
-            public partial struct _STOP_COMPLETE_e__Struct
+            internal partial struct _STOP_COMPLETE_e__Struct
             {
-                public byte _bitfield;
+                internal byte _bitfield;
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte AppCloseInProgress
+                internal byte AppCloseInProgress
                 {
                     get
                     {
@@ -1752,7 +1756,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("BOOLEAN : 7")]
-                public byte RESERVED
+                internal byte RESERVED
                 {
                     get
                     {
@@ -1768,34 +1772,34 @@ namespace Microsoft.Quic
         }
     }
 
-    public enum QUIC_CONNECTION_EVENT_TYPE
+    internal enum QUIC_CONNECTION_EVENT_TYPE
     {
-        QUIC_CONNECTION_EVENT_CONNECTED = 0,
-        QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT = 1,
-        QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER = 2,
-        QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE = 3,
-        QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED = 4,
-        QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED = 5,
-        QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED = 6,
-        QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE = 7,
-        QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS = 8,
-        QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED = 9,
-        QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED = 10,
-        QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED = 11,
-        QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED = 12,
-        QUIC_CONNECTION_EVENT_RESUMED = 13,
-        QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED = 14,
-        QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED = 15,
+        CONNECTED = 0,
+        SHUTDOWN_INITIATED_BY_TRANSPORT = 1,
+        SHUTDOWN_INITIATED_BY_PEER = 2,
+        SHUTDOWN_COMPLETE = 3,
+        LOCAL_ADDRESS_CHANGED = 4,
+        PEER_ADDRESS_CHANGED = 5,
+        PEER_STREAM_STARTED = 6,
+        STREAMS_AVAILABLE = 7,
+        PEER_NEEDS_STREAMS = 8,
+        IDEAL_PROCESSOR_CHANGED = 9,
+        DATAGRAM_STATE_CHANGED = 10,
+        DATAGRAM_RECEIVED = 11,
+        DATAGRAM_SEND_STATE_CHANGED = 12,
+        RESUMED = 13,
+        RESUMPTION_TICKET_RECEIVED = 14,
+        PEER_CERTIFICATE_RECEIVED = 15,
     }
 
-    public partial struct QUIC_CONNECTION_EVENT
+    internal partial struct QUIC_CONNECTION_EVENT
     {
-        public QUIC_CONNECTION_EVENT_TYPE Type;
+        internal QUIC_CONNECTION_EVENT_TYPE Type;
 
         [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union)")]
-        public _Anonymous_e__Union Anonymous;
+        internal _Anonymous_e__Union Anonymous;
 
-        public ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
+        internal ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
         {
             get
             {
@@ -1803,7 +1807,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT
+        internal ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT
         {
             get
             {
@@ -1811,7 +1815,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER
+        internal ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER
         {
             get
             {
@@ -1819,7 +1823,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
+        internal ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
         {
             get
             {
@@ -1827,7 +1831,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED
+        internal ref _Anonymous_e__Union._LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED
         {
             get
             {
@@ -1835,7 +1839,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED
+        internal ref _Anonymous_e__Union._PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED
         {
             get
             {
@@ -1843,7 +1847,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED
+        internal ref _Anonymous_e__Union._PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED
         {
             get
             {
@@ -1851,7 +1855,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE
+        internal ref _Anonymous_e__Union._STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE
         {
             get
             {
@@ -1859,7 +1863,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED
+        internal ref _Anonymous_e__Union._IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED
         {
             get
             {
@@ -1867,7 +1871,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED
+        internal ref _Anonymous_e__Union._DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED
         {
             get
             {
@@ -1875,7 +1879,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED
+        internal ref _Anonymous_e__Union._DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED
         {
             get
             {
@@ -1883,7 +1887,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED
+        internal ref _Anonymous_e__Union._DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED
         {
             get
             {
@@ -1891,7 +1895,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._RESUMED_e__Struct RESUMED
+        internal ref _Anonymous_e__Union._RESUMED_e__Struct RESUMED
         {
             get
             {
@@ -1899,7 +1903,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED
+        internal ref _Anonymous_e__Union._RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED
         {
             get
             {
@@ -1907,7 +1911,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED
+        internal ref _Anonymous_e__Union._PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED
         {
             get
             {
@@ -1916,98 +1920,98 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _CONNECTED_e__Struct CONNECTED;
+            internal _CONNECTED_e__Struct CONNECTED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
+            internal _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
+            internal _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
+            internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
+            internal _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
+            internal _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
+            internal _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
+            internal _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
+            internal _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
+            internal _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
+            internal _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
+            internal _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _RESUMED_e__Struct RESUMED;
+            internal _RESUMED_e__Struct RESUMED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
+            internal _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
+            internal _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
 
-            public unsafe partial struct _CONNECTED_e__Struct
+            internal unsafe partial struct _CONNECTED_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte SessionResumed;
+                internal byte SessionResumed;
 
                 [NativeTypeName("uint8_t")]
-                public byte NegotiatedAlpnLength;
+                internal byte NegotiatedAlpnLength;
 
                 [NativeTypeName("const uint8_t *")]
-                public byte* NegotiatedAlpn;
+                internal byte* NegotiatedAlpn;
             }
 
-            public partial struct _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct
+            internal partial struct _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct
             {
                 [NativeTypeName("HRESULT")]
-                public int Status;
+                internal int Status;
             }
 
-            public partial struct _SHUTDOWN_INITIATED_BY_PEER_e__Struct
+            internal partial struct _SHUTDOWN_INITIATED_BY_PEER_e__Struct
             {
                 [NativeTypeName("QUIC_UINT62")]
-                public ulong ErrorCode;
+                internal ulong ErrorCode;
             }
 
-            public partial struct _SHUTDOWN_COMPLETE_e__Struct
+            internal partial struct _SHUTDOWN_COMPLETE_e__Struct
             {
-                public byte _bitfield;
+                internal byte _bitfield;
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte HandshakeCompleted
+                internal byte HandshakeCompleted
                 {
                     get
                     {
@@ -2021,7 +2025,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte PeerAcknowledgedShutdown
+                internal byte PeerAcknowledgedShutdown
                 {
                     get
                     {
@@ -2035,7 +2039,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte AppCloseInProgress
+                internal byte AppCloseInProgress
                 {
                     get
                     {
@@ -2049,122 +2053,122 @@ namespace Microsoft.Quic
                 }
             }
 
-            public unsafe partial struct _LOCAL_ADDRESS_CHANGED_e__Struct
+            internal unsafe partial struct _LOCAL_ADDRESS_CHANGED_e__Struct
             {
                 [NativeTypeName("const QUIC_ADDR *")]
-                public QuicAddr* Address;
+                internal QuicAddr* Address;
             }
 
-            public unsafe partial struct _PEER_ADDRESS_CHANGED_e__Struct
+            internal unsafe partial struct _PEER_ADDRESS_CHANGED_e__Struct
             {
                 [NativeTypeName("const QUIC_ADDR *")]
-                public QuicAddr* Address;
+                internal QuicAddr* Address;
             }
 
-            public unsafe partial struct _PEER_STREAM_STARTED_e__Struct
+            internal unsafe partial struct _PEER_STREAM_STARTED_e__Struct
             {
                 [NativeTypeName("HQUIC")]
-                public QUIC_HANDLE* Stream;
+                internal QUIC_HANDLE* Stream;
 
-                public QUIC_STREAM_OPEN_FLAGS Flags;
+                internal QUIC_STREAM_OPEN_FLAGS Flags;
             }
 
-            public partial struct _STREAMS_AVAILABLE_e__Struct
+            internal partial struct _STREAMS_AVAILABLE_e__Struct
             {
                 [NativeTypeName("uint16_t")]
-                public ushort BidirectionalCount;
+                internal ushort BidirectionalCount;
 
                 [NativeTypeName("uint16_t")]
-                public ushort UnidirectionalCount;
+                internal ushort UnidirectionalCount;
             }
 
-            public partial struct _IDEAL_PROCESSOR_CHANGED_e__Struct
+            internal partial struct _IDEAL_PROCESSOR_CHANGED_e__Struct
             {
                 [NativeTypeName("uint16_t")]
-                public ushort IdealProcessor;
+                internal ushort IdealProcessor;
             }
 
-            public partial struct _DATAGRAM_STATE_CHANGED_e__Struct
+            internal partial struct _DATAGRAM_STATE_CHANGED_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte SendEnabled;
+                internal byte SendEnabled;
 
                 [NativeTypeName("uint16_t")]
-                public ushort MaxSendLength;
+                internal ushort MaxSendLength;
             }
 
-            public unsafe partial struct _DATAGRAM_RECEIVED_e__Struct
+            internal unsafe partial struct _DATAGRAM_RECEIVED_e__Struct
             {
                 [NativeTypeName("const QUIC_BUFFER *")]
-                public QUIC_BUFFER* Buffer;
+                internal QUIC_BUFFER* Buffer;
 
-                public QUIC_RECEIVE_FLAGS Flags;
+                internal QUIC_RECEIVE_FLAGS Flags;
             }
 
-            public unsafe partial struct _DATAGRAM_SEND_STATE_CHANGED_e__Struct
+            internal unsafe partial struct _DATAGRAM_SEND_STATE_CHANGED_e__Struct
             {
-                public void* ClientContext;
+                internal void* ClientContext;
 
-                public QUIC_DATAGRAM_SEND_STATE State;
+                internal QUIC_DATAGRAM_SEND_STATE State;
             }
 
-            public unsafe partial struct _RESUMED_e__Struct
+            internal unsafe partial struct _RESUMED_e__Struct
             {
                 [NativeTypeName("uint16_t")]
-                public ushort ResumptionStateLength;
+                internal ushort ResumptionStateLength;
 
                 [NativeTypeName("const uint8_t *")]
-                public byte* ResumptionState;
+                internal byte* ResumptionState;
             }
 
-            public unsafe partial struct _RESUMPTION_TICKET_RECEIVED_e__Struct
+            internal unsafe partial struct _RESUMPTION_TICKET_RECEIVED_e__Struct
             {
                 [NativeTypeName("uint32_t")]
-                public uint ResumptionTicketLength;
+                internal uint ResumptionTicketLength;
 
                 [NativeTypeName("const uint8_t *")]
-                public byte* ResumptionTicket;
+                internal byte* ResumptionTicket;
             }
 
-            public unsafe partial struct _PEER_CERTIFICATE_RECEIVED_e__Struct
+            internal unsafe partial struct _PEER_CERTIFICATE_RECEIVED_e__Struct
             {
                 [NativeTypeName("QUIC_CERTIFICATE *")]
-                public void* Certificate;
+                internal void* Certificate;
 
                 [NativeTypeName("uint32_t")]
-                public uint DeferredErrorFlags;
+                internal uint DeferredErrorFlags;
 
                 [NativeTypeName("HRESULT")]
-                public int DeferredStatus;
+                internal int DeferredStatus;
 
                 [NativeTypeName("QUIC_CERTIFICATE_CHAIN *")]
-                public void* Chain;
+                internal void* Chain;
             }
         }
     }
 
-    public enum QUIC_STREAM_EVENT_TYPE
+    internal enum QUIC_STREAM_EVENT_TYPE
     {
-        QUIC_STREAM_EVENT_START_COMPLETE = 0,
-        QUIC_STREAM_EVENT_RECEIVE = 1,
-        QUIC_STREAM_EVENT_SEND_COMPLETE = 2,
-        QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN = 3,
-        QUIC_STREAM_EVENT_PEER_SEND_ABORTED = 4,
-        QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED = 5,
-        QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE = 6,
-        QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE = 7,
-        QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = 8,
-        QUIC_STREAM_EVENT_PEER_ACCEPTED = 9,
+        START_COMPLETE = 0,
+        RECEIVE = 1,
+        SEND_COMPLETE = 2,
+        PEER_SEND_SHUTDOWN = 3,
+        PEER_SEND_ABORTED = 4,
+        PEER_RECEIVE_ABORTED = 5,
+        SEND_SHUTDOWN_COMPLETE = 6,
+        SHUTDOWN_COMPLETE = 7,
+        IDEAL_SEND_BUFFER_SIZE = 8,
+        PEER_ACCEPTED = 9,
     }
 
-    public partial struct QUIC_STREAM_EVENT
+    internal partial struct QUIC_STREAM_EVENT
     {
-        public QUIC_STREAM_EVENT_TYPE Type;
+        internal QUIC_STREAM_EVENT_TYPE Type;
 
         [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union)")]
-        public _Anonymous_e__Union Anonymous;
+        internal _Anonymous_e__Union Anonymous;
 
-        public ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
+        internal ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
         {
             get
             {
@@ -2172,7 +2176,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._RECEIVE_e__Struct RECEIVE
+        internal ref _Anonymous_e__Union._RECEIVE_e__Struct RECEIVE
         {
             get
             {
@@ -2180,7 +2184,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._SEND_COMPLETE_e__Struct SEND_COMPLETE
+        internal ref _Anonymous_e__Union._SEND_COMPLETE_e__Struct SEND_COMPLETE
         {
             get
             {
@@ -2188,7 +2192,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED
+        internal ref _Anonymous_e__Union._PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED
         {
             get
             {
@@ -2196,7 +2200,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED
+        internal ref _Anonymous_e__Union._PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED
         {
             get
             {
@@ -2204,7 +2208,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE
+        internal ref _Anonymous_e__Union._SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE
         {
             get
             {
@@ -2212,7 +2216,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
+        internal ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
         {
             get
             {
@@ -2220,7 +2224,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE
+        internal ref _Anonymous_e__Union._IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE
         {
             get
             {
@@ -2229,52 +2233,52 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _START_COMPLETE_e__Struct START_COMPLETE;
+            internal _START_COMPLETE_e__Struct START_COMPLETE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _RECEIVE_e__Struct RECEIVE;
+            internal _RECEIVE_e__Struct RECEIVE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _SEND_COMPLETE_e__Struct SEND_COMPLETE;
+            internal _SEND_COMPLETE_e__Struct SEND_COMPLETE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
+            internal _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
+            internal _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
+            internal _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
+            internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
-            public _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
+            internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
 
-            public partial struct _START_COMPLETE_e__Struct
+            internal partial struct _START_COMPLETE_e__Struct
             {
                 [NativeTypeName("HRESULT")]
-                public int Status;
+                internal int Status;
 
                 [NativeTypeName("QUIC_UINT62")]
-                public ulong ID;
+                internal ulong ID;
 
-                public byte _bitfield;
+                internal byte _bitfield;
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte PeerAccepted
+                internal byte PeerAccepted
                 {
                     get
                     {
@@ -2288,7 +2292,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("BOOLEAN : 7")]
-                public byte RESERVED
+                internal byte RESERVED
                 {
                     get
                     {
@@ -2302,58 +2306,58 @@ namespace Microsoft.Quic
                 }
             }
 
-            public unsafe partial struct _RECEIVE_e__Struct
+            internal unsafe partial struct _RECEIVE_e__Struct
             {
                 [NativeTypeName("uint64_t")]
-                public ulong AbsoluteOffset;
+                internal ulong AbsoluteOffset;
 
                 [NativeTypeName("uint64_t")]
-                public ulong TotalBufferLength;
+                internal ulong TotalBufferLength;
 
                 [NativeTypeName("const QUIC_BUFFER *")]
-                public QUIC_BUFFER* Buffers;
+                internal QUIC_BUFFER* Buffers;
 
                 [NativeTypeName("uint32_t")]
-                public uint BufferCount;
+                internal uint BufferCount;
 
-                public QUIC_RECEIVE_FLAGS Flags;
+                internal QUIC_RECEIVE_FLAGS Flags;
             }
 
-            public unsafe partial struct _SEND_COMPLETE_e__Struct
+            internal unsafe partial struct _SEND_COMPLETE_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte Canceled;
+                internal byte Canceled;
 
-                public void* ClientContext;
+                internal void* ClientContext;
             }
 
-            public partial struct _PEER_SEND_ABORTED_e__Struct
+            internal partial struct _PEER_SEND_ABORTED_e__Struct
             {
                 [NativeTypeName("QUIC_UINT62")]
-                public ulong ErrorCode;
+                internal ulong ErrorCode;
             }
 
-            public partial struct _PEER_RECEIVE_ABORTED_e__Struct
+            internal partial struct _PEER_RECEIVE_ABORTED_e__Struct
             {
                 [NativeTypeName("QUIC_UINT62")]
-                public ulong ErrorCode;
+                internal ulong ErrorCode;
             }
 
-            public partial struct _SEND_SHUTDOWN_COMPLETE_e__Struct
+            internal partial struct _SEND_SHUTDOWN_COMPLETE_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte Graceful;
+                internal byte Graceful;
             }
 
-            public partial struct _SHUTDOWN_COMPLETE_e__Struct
+            internal partial struct _SHUTDOWN_COMPLETE_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte ConnectionShutdown;
+                internal byte ConnectionShutdown;
 
-                public byte _bitfield;
+                internal byte _bitfield;
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte AppCloseInProgress
+                internal byte AppCloseInProgress
                 {
                     get
                     {
@@ -2367,7 +2371,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("BOOLEAN : 7")]
-                public byte RESERVED
+                internal byte RESERVED
                 {
                     get
                     {
@@ -2381,294 +2385,294 @@ namespace Microsoft.Quic
                 }
             }
 
-            public partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct
+            internal partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct
             {
                 [NativeTypeName("uint64_t")]
-                public ulong ByteCount;
+                internal ulong ByteCount;
             }
         }
     }
 
-    public unsafe partial struct QUIC_API_TABLE
+    internal unsafe partial struct QUIC_API_TABLE
     {
         [NativeTypeName("QUIC_SET_CONTEXT_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void> SetContext;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void> SetContext;
 
         [NativeTypeName("QUIC_GET_CONTEXT_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*> GetContext;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*> GetContext;
 
         [NativeTypeName("QUIC_SET_CALLBACK_HANDLER_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void*, void> SetCallbackHandler;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void*, void> SetCallbackHandler;
 
         [NativeTypeName("QUIC_SET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint, void*, int> SetParam;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint, void*, int> SetParam;
 
         [NativeTypeName("QUIC_GET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint*, void*, int> GetParam;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint*, void*, int> GetParam;
 
         [NativeTypeName("QUIC_REGISTRATION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_REGISTRATION_CONFIG*, QUIC_HANDLE**, int> RegistrationOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_REGISTRATION_CONFIG*, QUIC_HANDLE**, int> RegistrationOpen;
 
         [NativeTypeName("QUIC_REGISTRATION_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> RegistrationClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> RegistrationClose;
 
         [NativeTypeName("QUIC_REGISTRATION_SHUTDOWN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> RegistrationShutdown;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> RegistrationShutdown;
 
         [NativeTypeName("QUIC_CONFIGURATION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SETTINGS*, uint, void*, QUIC_HANDLE**, int> ConfigurationOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SETTINGS*, uint, void*, QUIC_HANDLE**, int> ConfigurationOpen;
 
         [NativeTypeName("QUIC_CONFIGURATION_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConfigurationClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConfigurationClose;
 
         [NativeTypeName("QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CREDENTIAL_CONFIG*, int> ConfigurationLoadCredential;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CREDENTIAL_CONFIG*, int> ConfigurationLoadCredential;
 
         [NativeTypeName("QUIC_LISTENER_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_LISTENER_EVENT*, int>, void*, QUIC_HANDLE**, int> ListenerOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_LISTENER_EVENT*, int>, void*, QUIC_HANDLE**, int> ListenerOpen;
 
         [NativeTypeName("QUIC_LISTENER_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerClose;
 
         [NativeTypeName("QUIC_LISTENER_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QuicAddr*, int> ListenerStart;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QuicAddr*, int> ListenerStart;
 
         [NativeTypeName("QUIC_LISTENER_STOP_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerStop;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerStop;
 
         [NativeTypeName("QUIC_CONNECTION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpen;
 
         [NativeTypeName("QUIC_CONNECTION_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConnectionClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConnectionClose;
 
         [NativeTypeName("QUIC_CONNECTION_SHUTDOWN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> ConnectionShutdown;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> ConnectionShutdown;
 
         [NativeTypeName("QUIC_CONNECTION_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, ushort, sbyte*, ushort, int> ConnectionStart;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, ushort, sbyte*, ushort, int> ConnectionStart;
 
         [NativeTypeName("QUIC_CONNECTION_SET_CONFIGURATION_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, int> ConnectionSetConfiguration;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, int> ConnectionSetConfiguration;
 
         [NativeTypeName("QUIC_CONNECTION_SEND_RESUMPTION_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_SEND_RESUMPTION_FLAGS, ushort, byte*, int> ConnectionSendResumptionTicket;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_SEND_RESUMPTION_FLAGS, ushort, byte*, int> ConnectionSendResumptionTicket;
 
         [NativeTypeName("QUIC_STREAM_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>, void*, QUIC_HANDLE**, int> StreamOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>, void*, QUIC_HANDLE**, int> StreamOpen;
 
         [NativeTypeName("QUIC_STREAM_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> StreamClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> StreamClose;
 
         [NativeTypeName("QUIC_STREAM_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_START_FLAGS, int> StreamStart;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_START_FLAGS, int> StreamStart;
 
         [NativeTypeName("QUIC_STREAM_SHUTDOWN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_SHUTDOWN_FLAGS, ulong, int> StreamShutdown;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_SHUTDOWN_FLAGS, ulong, int> StreamShutdown;
 
         [NativeTypeName("QUIC_STREAM_SEND_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> StreamSend;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> StreamSend;
 
         [NativeTypeName("QUIC_STREAM_RECEIVE_COMPLETE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, ulong, void> StreamReceiveComplete;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, ulong, void> StreamReceiveComplete;
 
         [NativeTypeName("QUIC_STREAM_RECEIVE_SET_ENABLED_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> StreamReceiveSetEnabled;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> StreamReceiveSetEnabled;
 
         [NativeTypeName("QUIC_DATAGRAM_SEND_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
     }
 
-    public static unsafe partial class MsQuic
+    internal static unsafe partial class MsQuic
     {
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int MsQuicOpenVersion([NativeTypeName("uint32_t")] uint Version, [NativeTypeName("const void **")] void** QuicApi);
+        internal static extern int MsQuicOpenVersion([NativeTypeName("uint32_t")] uint Version, [NativeTypeName("const void **")] void** QuicApi);
 
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void MsQuicClose([NativeTypeName("const void *")] void* QuicApi);
+        internal static extern void MsQuicClose([NativeTypeName("const void *")] void* QuicApi);
 
         [NativeTypeName("#define QUIC_MAX_ALPN_LENGTH 255")]
-        public const int QUIC_MAX_ALPN_LENGTH = 255;
+        internal const uint QUIC_MAX_ALPN_LENGTH = 255;
 
         [NativeTypeName("#define QUIC_MAX_SNI_LENGTH 65535")]
-        public const int QUIC_MAX_SNI_LENGTH = 65535;
+        internal const uint QUIC_MAX_SNI_LENGTH = 65535;
 
         [NativeTypeName("#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH 1000")]
-        public const int QUIC_MAX_RESUMPTION_APP_DATA_LENGTH = 1000;
+        internal const uint QUIC_MAX_RESUMPTION_APP_DATA_LENGTH = 1000;
 
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
-        public const int QUIC_MAX_TICKET_KEY_COUNT = 16;
+        internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;
 
         [NativeTypeName("#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64")]
-        public const int QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
+        internal const uint QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_GLOBAL 0x01000000")]
-        public const int QUIC_PARAM_PREFIX_GLOBAL = 0x01000000;
+        internal const uint QUIC_PARAM_PREFIX_GLOBAL = 0x01000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_REGISTRATION 0x02000000")]
-        public const int QUIC_PARAM_PREFIX_REGISTRATION = 0x02000000;
+        internal const uint QUIC_PARAM_PREFIX_REGISTRATION = 0x02000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_CONFIGURATION 0x03000000")]
-        public const int QUIC_PARAM_PREFIX_CONFIGURATION = 0x03000000;
+        internal const uint QUIC_PARAM_PREFIX_CONFIGURATION = 0x03000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_LISTENER 0x04000000")]
-        public const int QUIC_PARAM_PREFIX_LISTENER = 0x04000000;
+        internal const uint QUIC_PARAM_PREFIX_LISTENER = 0x04000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_CONNECTION 0x05000000")]
-        public const int QUIC_PARAM_PREFIX_CONNECTION = 0x05000000;
+        internal const uint QUIC_PARAM_PREFIX_CONNECTION = 0x05000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_TLS 0x06000000")]
-        public const int QUIC_PARAM_PREFIX_TLS = 0x06000000;
+        internal const uint QUIC_PARAM_PREFIX_TLS = 0x06000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_TLS_SCHANNEL 0x07000000")]
-        public const int QUIC_PARAM_PREFIX_TLS_SCHANNEL = 0x07000000;
+        internal const uint QUIC_PARAM_PREFIX_TLS_SCHANNEL = 0x07000000;
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_STREAM 0x08000000")]
-        public const int QUIC_PARAM_PREFIX_STREAM = 0x08000000;
+        internal const uint QUIC_PARAM_PREFIX_STREAM = 0x08000000;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x01000000")]
-        public const int QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x01000000;
+        internal const uint QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x01000000;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 0x01000001")]
-        public const int QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x01000001;
+        internal const uint QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x01000001;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 0x01000002")]
-        public const int QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x01000002;
+        internal const uint QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x01000002;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 0x01000003")]
-        public const int QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x01000003;
+        internal const uint QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x01000003;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_LIBRARY_VERSION 0x01000004")]
-        public const int QUIC_PARAM_GLOBAL_LIBRARY_VERSION = 0x01000004;
+        internal const uint QUIC_PARAM_GLOBAL_LIBRARY_VERSION = 0x01000004;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 0x01000005")]
-        public const int QUIC_PARAM_GLOBAL_SETTINGS = 0x01000005;
+        internal const uint QUIC_PARAM_GLOBAL_SETTINGS = 0x01000005;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS 0x01000006")]
-        public const int QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS = 0x01000006;
+        internal const uint QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS = 0x01000006;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION_SETTINGS 0x01000007")]
-        public const int QUIC_PARAM_GLOBAL_VERSION_SETTINGS = 0x01000007;
+        internal const uint QUIC_PARAM_GLOBAL_VERSION_SETTINGS = 0x01000007;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH 0x01000008")]
-        public const int QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH = 0x01000008;
+        internal const uint QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH = 0x01000008;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS 0x01000009")]
-        public const int QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS = 0x01000009;
+        internal const uint QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS = 0x01000009;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
-        public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
+        internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 0x03000001")]
-        public const int QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0x03000001;
+        internal const uint QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0x03000001;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS 0x03000002")]
-        public const int QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS = 0x03000002;
+        internal const uint QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS = 0x03000002;
 
         [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x04000000")]
-        public const int QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x04000000;
+        internal const uint QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x04000000;
 
         [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x04000001")]
-        public const int QUIC_PARAM_LISTENER_STATS = 0x04000001;
+        internal const uint QUIC_PARAM_LISTENER_STATS = 0x04000001;
 
         [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
-        public const int QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
+        internal const uint QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x05000000")]
-        public const int QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;
+        internal const uint QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 0x05000001")]
-        public const int QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x05000001;
+        internal const uint QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x05000001;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 0x05000002")]
-        public const int QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x05000002;
+        internal const uint QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x05000002;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 0x05000003")]
-        public const int QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x05000003;
+        internal const uint QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x05000003;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 0x05000004")]
-        public const int QUIC_PARAM_CONN_SETTINGS = 0x05000004;
+        internal const uint QUIC_PARAM_CONN_SETTINGS = 0x05000004;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 0x05000005")]
-        public const int QUIC_PARAM_CONN_STATISTICS = 0x05000005;
+        internal const uint QUIC_PARAM_CONN_STATISTICS = 0x05000005;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 0x05000006")]
-        public const int QUIC_PARAM_CONN_STATISTICS_PLAT = 0x05000006;
+        internal const uint QUIC_PARAM_CONN_STATISTICS_PLAT = 0x05000006;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 0x05000007")]
-        public const int QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x05000007;
+        internal const uint QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x05000007;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 0x05000008")]
-        public const int QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x05000008;
+        internal const uint QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x05000008;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 0x05000009")]
-        public const int QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x05000009;
+        internal const uint QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x05000009;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 0x0500000A")]
-        public const int QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x0500000A;
+        internal const uint QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x0500000A;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 0x0500000B")]
-        public const int QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x0500000B;
+        internal const uint QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x0500000B;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 0x0500000C")]
-        public const int QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x0500000C;
+        internal const uint QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x0500000C;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 0x0500000D")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x0500000D;
+        internal const uint QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x0500000D;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 0x0500000E")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x0500000E;
+        internal const uint QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x0500000E;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION 0x0500000F")]
-        public const int QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION = 0x0500000F;
+        internal const uint QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION = 0x0500000F;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 0x05000010")]
-        public const int QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x05000010;
+        internal const uint QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x05000010;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x05000011")]
-        public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x05000011;
+        internal const uint QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x05000011;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_INTERFACE 0x05000012")]
-        public const int QUIC_PARAM_CONN_LOCAL_INTERFACE = 0x05000012;
+        internal const uint QUIC_PARAM_CONN_LOCAL_INTERFACE = 0x05000012;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_TLS_SECRETS 0x05000013")]
-        public const int QUIC_PARAM_CONN_TLS_SECRETS = 0x05000013;
+        internal const uint QUIC_PARAM_CONN_TLS_SECRETS = 0x05000013;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_VERSION_SETTINGS 0x05000014")]
-        public const int QUIC_PARAM_CONN_VERSION_SETTINGS = 0x05000014;
+        internal const uint QUIC_PARAM_CONN_VERSION_SETTINGS = 0x05000014;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_CIBIR_ID 0x05000015")]
-        public const int QUIC_PARAM_CONN_CIBIR_ID = 0x05000015;
+        internal const uint QUIC_PARAM_CONN_CIBIR_ID = 0x05000015;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2 0x05000016")]
-        public const int QUIC_PARAM_CONN_STATISTICS_V2 = 0x05000016;
+        internal const uint QUIC_PARAM_CONN_STATISTICS_V2 = 0x05000016;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT 0x05000017")]
-        public const int QUIC_PARAM_CONN_STATISTICS_V2_PLAT = 0x05000017;
+        internal const uint QUIC_PARAM_CONN_STATISTICS_V2_PLAT = 0x05000017;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
-        public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
+        internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 0x06000001")]
-        public const int QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x06000001;
+        internal const uint QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x06000001;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x07000000")]
-        public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x07000000;
+        internal const uint QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x07000000;
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x08000000")]
-        public const int QUIC_PARAM_STREAM_ID = 0x08000000;
+        internal const uint QUIC_PARAM_STREAM_ID = 0x08000000;
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 0x08000001")]
-        public const int QUIC_PARAM_STREAM_0RTT_LENGTH = 0x08000001;
+        internal const uint QUIC_PARAM_STREAM_0RTT_LENGTH = 0x08000001;
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 0x08000002")]
-        public const int QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x08000002;
+        internal const uint QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x08000002;
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
-        public const int QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
+        internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
-        public const int QUIC_API_VERSION_2 = 2;
+        internal const uint QUIC_API_VERSION_2 = 2;
     }
 }

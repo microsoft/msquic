@@ -1129,7 +1129,7 @@ CxPlatSocketContextStartReceive(
     struct kevent Event = {0};
     EV_SET(
         &Event, SocketContext->SocketFd,
-        EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
+        EVFILT_READ, EV_ADD | EV_ENABLE,
         0,
         0,
         (void*)SocketContext);
@@ -1369,7 +1369,10 @@ CxPlatSocketContextProcessEvents(
     }
 
     if (Event->filter == EVFILT_READ) {
-        while (TRUE) {
+        //
+        // Read up to 4 receives before moving to another event.
+        //
+        for (int i = 0; i < 4; i++) {
             CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
 
             ssize_t Ret =

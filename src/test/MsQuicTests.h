@@ -264,6 +264,11 @@ QuicTestConnectExpiredClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
 
+void
+QuicTestClientBlockedSourcePort(
+    _In_ int Family
+    );
+
 //
 // Post Handshake Tests
 //
@@ -485,6 +490,13 @@ QuicTestDatagramNegotiation(
 void
 QuicTestDatagramSend(
     _In_ int Family
+    );
+
+//
+// Storage tests
+//
+void
+QuicTestStorage(
     );
 
 //
@@ -1004,4 +1016,11 @@ typedef struct {
 #define IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS \
     QUIC_CTL_CODE(87, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 87
+#define IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT \
+    QUIC_CTL_CODE(88, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STORAGE \
+    QUIC_CTL_CODE(89, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 89

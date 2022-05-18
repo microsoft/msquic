@@ -3772,6 +3772,7 @@ QuicConnRecvHeader(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "OrigDestCID",
                         sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
+                    QuicPacketLogDrop(Connection, Packet, "OrigDestCID from Retry OOM");
                     return FALSE;
                 }
 
@@ -3799,6 +3800,7 @@ QuicConnRecvHeader(
                     "Allocation of '%s' failed. (%llu bytes)",
                     "OrigDestCID",
                     sizeof(QUIC_CID) + Packet->DestCidLen);
+                QuicPacketLogDrop(Connection, Packet, "OrigDestCID OOM");
                 return FALSE;
             }
 
@@ -4449,6 +4451,7 @@ QuicConnRecvFrames(
             if (QUIC_SUCCEEDED(Status)) {
                 AckEliciting = TRUE;
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
+                QuicPacketLogDrop(Connection, Packet, "Crypto frame process OOM");
                 return FALSE;
             } else {
                 if (Status == QUIC_STATUS_VER_NEG_ERROR) {
@@ -4589,6 +4592,7 @@ QuicConnRecvFrames(
                         &UpdatedFlowControl);
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_LOOKUP);
                 if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
+                    QuicPacketLogDrop(Connection, Packet, "Stream frame process OOM");
                     return FALSE;
                 }
 
@@ -5364,7 +5368,6 @@ QuicConnRecvDatagramBatch(
             }
 
         } else {
-            Connection->Stats.Recv.DroppedPackets++;
             if (Connection->State.CompatibleVerNegotiationAttempted &&
                 !Connection->State.CompatibleVerNegotiationCompleted) {
                 //
@@ -5448,6 +5451,13 @@ QuicConnRecvDatagrams(
             goto Drop;
         }
 
+#ifdef QUIC_USE_RAW_DATAPATH
+        if (DatagramPath->Route.State == RouteResolved &&
+            DatagramPath->Route.Queue != Datagram->Route->Queue) {
+            DatagramPath->Route.Queue = Datagram->Route->Queue;
+        }
+#endif
+
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
                 //
@@ -5500,11 +5510,8 @@ QuicConnRecvDatagrams(
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
                 if (Packet->ReleaseDeferred) {
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
-                } else {
-                    Connection->Stats.Recv.DroppedPackets++;
-                    if (!Packet->IsShortHeader && Packet->ValidatedHeaderVer) {
-                        goto NextPacket;
-                    }
+                } else if (!Packet->IsShortHeader && Packet->ValidatedHeaderVer) {
+                    goto NextPacket;
                 }
                 break;
             }
@@ -5820,13 +5827,10 @@ QuicConnProcessRouteCompletion(
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, PathId, &PathIndex);
     if (Path != NULL) {
         if (Succeeded) {
-            QuicTraceLogConnInfo(
-                SuccessfulRouteResolution,
-                Connection,
-                "Processing successful route completion Path[%hhu]",
-                PathId);
             CxPlatResolveRouteComplete(Connection, &Path->Route, PhysicalAddress, PathId);
-            QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            if (!QuicSendFlush(&Connection->Send)) {
+                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+            }
         } else {
             //
             // Kill the path that failed route resolution and make the next path active if possible.
@@ -5835,12 +5839,16 @@ QuicConnProcessRouteCompletion(
                 QuicTraceLogConnInfo(
                     FailedRouteResolution,
                     Connection,
-                    "Processing failed route completion Path[%hhu]",
+                    "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
-                QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+                QuicPathRemove(Connection, 1);
+                if (!QuicSendFlush(&Connection->Send)) {
+                    QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
+                }
+            } else {
+                QuicPathRemove(Connection, PathIndex);
             }
-            QuicPathRemove(Connection, PathIndex);
         }
     }
 

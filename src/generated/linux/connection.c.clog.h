@@ -697,32 +697,12 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SuccessfulRouteResolution
-// [conn][%p] Processing successful route completion Path[%hhu]
-// QuicTraceLogConnInfo(
-                SuccessfulRouteResolution,
-                Connection,
-                "Processing successful route completion Path[%hhu]",
-                PathId);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = PathId = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_SuccessfulRouteResolution
-#define _clog_4_ARGS_TRACE_SuccessfulRouteResolution(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, SuccessfulRouteResolution , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for FailedRouteResolution
-// [conn][%p] Processing failed route completion Path[%hhu]
+// [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
 // QuicTraceLogConnInfo(
                     FailedRouteResolution,
                     Connection,
-                    "Processing failed route completion Path[%hhu]",
+                    "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = PathId = arg3

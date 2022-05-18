@@ -388,6 +388,7 @@ QuicTestConnectAndPing(
 
     if (ClientZeroRtt) {
         QuicTestPrimeResumption(
+            QuicAddrFamily,
             Registration,
             ServerConfiguration,
             ClientConfiguration,
@@ -463,7 +464,7 @@ QuicTestConnectAndPing(
                         Connections.get()[i]->Start(
                             ClientConfiguration,
                             QuicAddrFamily,
-                            ClientZeroRtt ? QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily) : nullptr,
+                            ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
                     if (i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);

@@ -10,7 +10,10 @@
 #include "msquic.h"
 #include "quic_tls.h"
 #ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #endif
 #include <fcntl.h>
 
@@ -215,6 +218,7 @@ protected:
 
         BOOLEAN OnPeerCertReceivedResult {TRUE};
         BOOLEAN OnSessionTicketReceivedResult {TRUE};
+        BOOLEAN ExpectNullCertificate {FALSE};
 
         QUIC_BUFFER ReceivedSessionTicket {0, nullptr};
 
@@ -538,7 +542,12 @@ protected:
                 std::cout << "Incorrect validation Status: " << DeferredStatus << "\n";
                 return FALSE;
             }
-            if (!Certificate || !Chain) {
+            if (Context->ExpectNullCertificate) {
+                if (Certificate || Chain) {
+                    std::cout << "Expecting no certificate and no certificate chain\n";
+                    return FALSE;
+                }
+            } else if (!Certificate || !Chain) {
                 std::cout << "Expecting valid certificate and certificate chain\n";
                 return FALSE;
             }
@@ -1380,11 +1389,26 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
     }
 }
 
-TEST_F(TlsTest, CustomCertificateValidationServerIndicate)
+TEST_F(TlsTest, CustomCertificateValidationServerIndicateNoCert)
 {
     CxPlatSecConfig ClientConfig;
     ClientConfig.Load(ClientCertParams);
     CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ServerContext.ExpectNullCertificate = TRUE;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, false);
+}
+
+TEST_F(TlsTest, CustomClientCertificateValidationServerIndicate)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(ClientCertParams);
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION);
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);

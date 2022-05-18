@@ -155,6 +155,11 @@ CxPlatStorageOpen(
             KEY_READ | KEY_NOTIFY,
             &Storage->RegKey));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RegOpenKeyExA failed");
         goto Exit;
     }
 
@@ -167,6 +172,11 @@ CxPlatStorageOpen(
             Storage->NotifyEvent,
             TRUE));
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RegNotifyChangeKeyValue failed");
         goto Exit;
     }
 

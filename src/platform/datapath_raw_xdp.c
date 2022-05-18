@@ -63,7 +63,7 @@ typedef struct XDP_QUEUE {
 
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
-    uint8_t QueueCount;
+    uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
@@ -139,7 +139,7 @@ CxPlatDataPathRecvDataToRecvPacket(
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
     _In_ uint32_t InterfaceIndex,
-    _Out_ uint8_t* Count
+    _Out_ uint16_t* Count
     )
 {
     HRESULT hRes;
@@ -147,7 +147,7 @@ CxPlatGetInterfaceRssQueueCount(
     IEnumWbemClassObject *pEnum = NULL;
     IWbemServices *pSvc = NULL;
     DWORD ret = 0;
-    uint8_t cnt = 0;
+    uint16_t cnt = 0;
     NET_LUID if_luid = { 0 };
     WCHAR if_alias[256 + 1] = { 0 };
 
@@ -299,9 +299,10 @@ CxPlatGetInterfaceRssQueueCount(
         } else {
             long lLower, lUpper;
             SAFEARRAY *pSafeArray = vtProp.parray;
-            UINT8 *rssIndicesBitset = NULL;
-            DWORD rssIndicesBitsetBytes;
+            UINT8 *rssTable = NULL;
+            DWORD rssTableSize;
             DWORD numberOfProcs;
+            DWORD numberOfProcGroups;
 
             SafeArrayGetLBound(pSafeArray, 1, &lLower);
             SafeArrayGetUBound(pSafeArray, 1, &lUpper);
@@ -309,11 +310,12 @@ CxPlatGetInterfaceRssQueueCount(
             IUnknown** rawArray;
             SafeArrayAccessData(pSafeArray, (void**)&rawArray);
 
-            // Set up the RSS bitset according to number of processors
+            // Set up the RSS table according to number of procs and proc groups.
             numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
-            rssIndicesBitsetBytes = (numberOfProcs / 8) + 1;
-            rssIndicesBitset = malloc(rssIndicesBitsetBytes);
-            memset(rssIndicesBitset, 0, rssIndicesBitsetBytes);
+            numberOfProcGroups = GetActiveProcessorGroupCount();
+            rssTableSize = numberOfProcs * numberOfProcGroups;
+            rssTable = malloc(rssTableSize);
+            memset(rssTable, 0, rssTableSize);
 
             for (long i = lLower; i <= lUpper; i++)
             {
@@ -326,33 +328,31 @@ CxPlatGetInterfaceRssQueueCount(
                         "[ lib] ERROR, %u, %s.",
                         hRes,
                         "QueryInterface");
-                    //AF_XDP_LOG(ERR, "QueryInterface failed\n");
-                    free(rssIndicesBitset);
+                    free(rssTable);
+                    hRes = QUIC_STATUS_OUT_OF_MEMORY;
                     goto Cleanup;
                 }
 
                 hr = obj->lpVtbl->Get(obj, L"ProcessorNumber", 0, &vtProp, 0, 0);
-                UINT32 index = vtProp.iVal / (sizeof(rssIndicesBitset[0])*8);
-                UINT32 offset = vtProp.iVal % (sizeof(rssIndicesBitset[0])*8);
-                rssIndicesBitset[index] |= 1 << offset;
-
+                UINT32 procNum = vtProp.iVal;
                 VariantClear(&vtProp);
+                hr = obj->lpVtbl->Get(obj, L"ProcessorGroup", 0, &vtProp, 0, 0);
+                UINT32 groupNum = vtProp.iVal;
+                VariantClear(&vtProp);
+                CXPLAT_DBG_ASSERT(groupNum < numberOfProcGroups);
+                CXPLAT_DBG_ASSERT(procNum < numberOfProcs);
+                *(rssTable + groupNum * numberOfProcs + procNum) = 1;
                 obj->lpVtbl->Release(obj);
             }
 
             SafeArrayUnaccessData(pSafeArray);
 
-            for (DWORD i = 0; i < numberOfProcs/(sizeof(rssIndicesBitset[0])*8) + 1; i++) {
-                for (SIZE_T j = 0; j < sizeof(rssIndicesBitset[0])*8; j++) {
-                    if (rssIndicesBitset[i] & (1 << j)) {
-                        //AF_XDP_LOG(INFO, "detected active RSS queue %u on proc index %llu\n", cnt, (i*8 + j));
-                        cnt++;
-                        CXPLAT_FRE_ASSERT(cnt != 0);
-                    }
-                }
+            // Count unique RSS procs by counting ones in rssTable.
+            for (DWORD i = 0; i < rssTableSize; ++i) {
+                cnt += rssTable[i];
             }
 
-            free(rssIndicesBitset);
+            free(rssTable);
         }
 
         VariantClear(&vtProp);
@@ -387,10 +387,10 @@ CxPlatXdpReadConfig(
     //
     // Default config.
     //
-    Xdp->RxBufferCount = 4096;
-    Xdp->RxRingSize = 128;
-    Xdp->TxBufferCount = 4096;
-    Xdp->TxRingSize = 128;
+    Xdp->RxBufferCount = 8192;
+    Xdp->RxRingSize = 256;
+    Xdp->TxBufferCount = 8192;
+    Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
 
     //
@@ -522,6 +522,16 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
+    if (Interface->QueueCount == 0) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatGetInterfaceRssQueueCount");
+        goto Error;
+    }
+
     Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
     if (Interface->Queues == NULL) {
         QuicTraceEvent(
@@ -611,14 +621,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        uint32_t Flags = 0;     // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags, NULL);
+        uint32_t Flags = XSK_BIND_RX;
+        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->RxXsk, 0);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -708,14 +728,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Flags = 0; // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags, NULL);
+        Flags = XSK_BIND_TX; // TODO: support native/generic forced flags.
+        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->TxXsk, 0);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -1032,7 +1062,9 @@ CxPlatDpRawInitialize(
                     continue;
                 }
 #if DEBUG
-                printf("Bound XDP to interface %u (%wS)\n", Adapter->IfIndex, Adapter->Description);
+                printf(
+                    "Bound XDP to interface %u (%wS) with %u RSS procs \n",
+                    Adapter->IfIndex, Adapter->Description, Interface->QueueCount);
 #endif
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
@@ -1411,29 +1443,6 @@ CxPlatXdpTx(
         CxPlatLockRelease(&Queue->TxLock);
     }
 
-    uint32_t TxIndex;
-    uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
-    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
-        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
-        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
-        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
-
-        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
-        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
-        Buffer->length = Packet->Buffer.Length;
-        ProdCount++;
-    }
-
-    if (ProdCount > 0) {
-        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
-        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
-            uint32_t OutFlags;
-            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
-            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            UNREFERENCED_PARAMETER(Status);
-        }
-    }
-
     uint32_t CompIndex;
     uint32_t CompAvailable =
         XskRingConsumerReserve(&Queue->TxCompletionRing, MAXUINT32, &CompIndex);
@@ -1450,6 +1459,30 @@ CxPlatXdpTx(
         InterlockedPushListSList(
             &Queue->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
             CompCount);
+    }
+
+    uint32_t TxIndex;
+    uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
+    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
+        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+
+        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
+        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
+        Buffer->length = Packet->Buffer.Length;
+        ProdCount++;
+    }
+
+    if (ProdCount > 0 ||
+        (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.size)) {
+        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
+        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
+            uint32_t OutFlags;
+            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
+            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+            UNREFERENCED_PARAMETER(Status);
+        }
     }
 
     if (XskRingError(&Queue->TxRing) && !Queue->Error) {

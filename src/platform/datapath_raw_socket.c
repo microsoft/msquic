@@ -332,6 +332,8 @@ CxPlatResolveRoute(
 
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
+    Route->State = RouteResolving;
+
     //
     // Find the best next hop IP address.
     //
@@ -359,7 +361,7 @@ CxPlatResolveRoute(
         //
         // We can't handle local address change here easily due to lack of full migration support.
         //
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status = ERROR_INVALID_STATE;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -385,7 +387,7 @@ CxPlatResolveRoute(
     }
 
     if (Route->Queue == NULL) {
-        Status = QUIC_STATUS_NOT_FOUND;
+        Status = ERROR_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
@@ -463,7 +465,6 @@ CxPlatResolveRoute(
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
-        Route->State = RouteResolving;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
@@ -478,8 +479,8 @@ Done:
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    if (Status > 0) {
-        return SUCCESS_HRESULT_FROM_WIN32(Status);
+    if (Status == ERROR_IO_PENDING) {
+        return QUIC_STATUS_PENDING;
     } else {
         return HRESULT_FROM_WIN32(Status);
     }
@@ -622,7 +623,7 @@ CxPlatDpRawParseIPv4(
         uint16_t IPTotalLength;
         IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
 
-        if (Length != IPTotalLength) {
+        if (Length < IPTotalLength) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
@@ -673,7 +674,7 @@ CxPlatDpRawParseIPv6(
     if (IP->NextHeader == IPPROTO_UDP) {
         uint16_t IPPayloadLength;
         IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
-        if (IPPayloadLength != Length - sizeof(IPV6_HEADER)) {
+        if (IPPayloadLength + sizeof(IPV6_HEADER) > Length) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",

@@ -221,9 +221,9 @@ static X509Certificate2 CreatePkcs12FromPem(string certPem, string keyPem)
 
 ## Using a self-signed certificate for HTTP/3
 
-Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to white list its fingerprint (or that of any certificate in the chain) via the `--ignore-certificate-errors-spki-list` switch.
+Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to whitelist its SHA-256 hash via the [serverCertificateHashes](https://w3c.github.io/webtransport/#dom-webtransportoptions-servercertificatehashes) option and follow stricter [requirements](https://w3c.github.io/webtransport/#custom-certificate-requirements).
 
-See [Chromium network switches](https://source.chromium.org/chromium/chromium/src/+/main:services/network/public/cpp/network_switches.cc;l=36;drc=f8c933c2bd17344ce7ac61be2ac7725ed840b19f)
+See [FlyByWireless.CustomCertificate.Generate()](https://github.com/wegylexy/webtransport/blob/c55d9cc5a11f3a8b8dfd2a12c8d02ad462dc693d/Server/CustomCertificate.cs#L8-L33) on how to generate such a certificate.
 
 ## Collecting a Packet Capture
 
