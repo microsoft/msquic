@@ -478,7 +478,7 @@ BbrCongestionControlLogOutFlowStatus(
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
             Bbr->CongestionWindow,
-            0, /* not supported for BBR */
+            0,
             Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
             Connection->SendBuffer.IdealBytes,
             Connection->SendBuffer.PostedBytes,
@@ -606,8 +606,7 @@ BOOLEAN
 BbrCongestionControlUpdateRoundTripCounter(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t LargestPacketNumberAcked,
-    _In_ uint64_t LargestPacketNumberSent,
-    _In_ uint64_t TimeNow
+    _In_ uint64_t LargestPacketNumberSent
     )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
@@ -1028,7 +1027,7 @@ BbrCongestionControlOnDataAcknowledged(
     }
 
     BOOLEAN NewRoundTrip = BbrCongestionControlUpdateRoundTripCounter(
-        Cc, AckEvent->LargestPacketNumberAcked, AckEvent->LargestPacketNumberSent, AckEvent->TimeNow);
+        Cc, AckEvent->LargestPacketNumberAcked, AckEvent->LargestPacketNumberSent);
 
     BOOLEAN LastAckedPacketAppLimited = AckEvent->AckedPackets == NULL ? FALSE : AckEvent->IsLargestAckedPacketAppLimited;
 

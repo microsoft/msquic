@@ -63,7 +63,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
             Bbr->CongestionWindow,
-            0, /* not supported for BBR */
+            0,
             Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
             Connection->SendBuffer.IdealBytes,
             Connection->SendBuffer.PostedBytes,
@@ -74,8 +74,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
 // arg5 = arg5 = Bbr->BytesInFlightMax = arg5
 // arg6 = arg6 = Bbr->CongestionWindow = arg6
 // arg7 = arg7 = 0 = arg7
-// arg8 = arg8 = /* not supported for BBR */
-            Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
+// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
 // arg9 = arg9 = Connection->SendBuffer.IdealBytes = arg9
 // arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
 // arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
