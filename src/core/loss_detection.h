@@ -40,6 +40,18 @@ typedef struct QUIC_LOSS_DETECTION {
 
     uint32_t TimeOfLastPacketSent;
 
+    uint32_t LastAckedTime;
+
+    uint32_t LastAckedPacketSentTime;
+
+    uint32_t AdjustedLastAckedTime;
+
+    uint64_t TotalBytesSent;
+
+    uint64_t TotalBytesAcked;
+
+    uint64_t TotalBytesSentAtLastAck;
+
     //
     // Lost packets. The purpose of this list is to remember packets a little
     // while after we decide they are lost, in case we were wrong and the ACK

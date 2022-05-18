@@ -573,8 +573,8 @@ CubicCongestionControlOnDataLost(
             LossEvent->PersistentCongestion);
     }
 
-    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
-    Cubic->BytesInFlight -= LossEvent->NumRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumLostRetransmittableBytes);
+    Cubic->BytesInFlight -= LossEvent->NumLostRetransmittableBytes;
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
@@ -667,6 +667,25 @@ CubicCongestionControlGetCongestionWindow(
     return Cc->Cubic.CongestionWindow;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CubicCongestionControlIsAppLimited(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    UNREFERENCED_PARAMETER(Cc);
+    return FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlSetAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    UNREFERENCED_PARAMETER(Cc);
+}
+
 static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .Name = "Cubic",
     .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
@@ -681,6 +700,8 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
     .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
+    .QuicCongestionControlIsAppLimited = CubicCongestionControlIsAppLimited,
+    .QuicCongestionControlSetAppLimited = CubicCongestionControlSetAppLimited,
     .QuicCongestionControlGetCongestionWindow = CubicCongestionControlGetCongestionWindow,
 };
 

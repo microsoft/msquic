@@ -408,6 +408,7 @@ namespace Microsoft.Quic
     internal enum QUIC_CONGESTION_CONTROL_ALGORITHM
     {
         CUBIC,
+        BBR,
         MAX,
     }
 

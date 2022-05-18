@@ -19,7 +19,17 @@ Abstract:
 
 class ThroughputClient : public PerfBase {
 public:
-    ThroughputClient() : Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
+    ThroughputClient(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) :
+        Configuration {
+            Registration,
+            MsQuicAlpn(PERF_ALPN),
+            MsQuicSettings()
+                .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT)
+                .SetCongestionControlAlgorithm(Cc),
+            MsQuicCredentialConfig(
+                QUIC_CREDENTIAL_FLAG_CLIENT |
+                QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)},
+        Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
         CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
         CxPlatLockInitialize(&TcpLock);
     }
