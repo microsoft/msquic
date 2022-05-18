@@ -22,14 +22,18 @@ struct RpsWorkerContext;
 class RpsClient;
 
 struct StreamContext {
+    CXPLAT_LIST_ENTRY Link; // For Connection's started streams queue
+    HQUIC Handle {nullptr};
     StreamContext(
         _In_ RpsConnectionContext* Connection,
         _In_ uint64_t StartTime)
         : Connection{Connection}, StartTime{StartTime} { }
+    ~StreamContext() noexcept { if (Handle) { MsQuic->StreamClose(Handle); } }
     RpsConnectionContext* Connection;
     uint64_t StartTime;
+    void ExecuteStreamSend();
 #if DEBUG
-    uint8_t Padding[12];
+    uint8_t Padding[12]; // TODO: Should this change?
 #endif
 };
 
@@ -61,15 +65,20 @@ struct RpsWorkerContext {
     CXPLAT_EVENT WakeEvent;
     bool ThreadStarted {false};
     uint32_t RequestCount {0};
+    CXPLAT_LIST_ENTRY Streams; // Started streams for WaitForStartBeforeSend case
+    CXPLAT_LOCK StreamsLock;
     RpsWorkerContext() {
         CxPlatLockInitialize(&Lock);
+        CxPlatLockInitialize(&StreamsLock);
         CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
         CxPlatListInitializeHead(&Connections);
+        CxPlatListInitializeHead(&Streams);
     }
     ~RpsWorkerContext() {
         WaitForWorker();
         CxPlatEventUninitialize(WakeEvent);
         CxPlatLockUninitialize(&Lock);
+        CxPlatLockUninitialize(&StreamsLock);
     }
     void WaitForWorker() {
         if (ThreadStarted) {
@@ -113,7 +122,26 @@ struct RpsWorkerContext {
             QueueConnection(Connection);
         }
     }
+    StreamContext* DequeueStream() {
+        StreamContext* Stream = nullptr;
+        CxPlatLockAcquire(&StreamsLock);
+        if (!CxPlatListIsEmpty(&Streams)) {
+            Stream =
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&Streams),
+                    StreamContext,
+                    Link);
+        }
+        CxPlatLockRelease(&StreamsLock);
+        return Stream;
+    }
+    void EnqueueStream(StreamContext* Stream) {
+        CxPlatLockAcquire(&StreamsLock);
+        CxPlatListInsertTail(&Streams, &Stream->Link);
+        CxPlatLockRelease(&StreamsLock);
+    }
     void QueueSendRequest();
+    void QueueExecuteStreamSend(StreamContext* StrmContext);
 };
 
 class RpsClient : public PerfBase {
@@ -207,4 +235,5 @@ public:
     UniquePtr<RpsConnectionContext[]> Connections {nullptr};
     bool Running {true};
     bool AffinitizeWorkers {false};
+    bool WaitForStartBeforeSend {false};
 };
