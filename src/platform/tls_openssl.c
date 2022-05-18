@@ -100,7 +100,12 @@ typedef struct CXPLAT_TLS {
     // Indicates if this context belongs to server side or client side
     // connection.
     //
-    BOOLEAN IsServer;
+    BOOLEAN IsServer : 1;
+
+    //
+    // Indicates if the peer sent a certificate.
+    //
+    BOOLEAN PeerCertReceived : 1;
 
     //
     // The TLS extension type for the QUIC transport parameters.
@@ -229,6 +234,8 @@ CxPlatTlsCertificateVerifyCallback(
     BOOLEAN IsDeferredValidationOrClientAuth =
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
         TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
+
+    TlsContext->PeerCertReceived = (Cert != NULL);
 
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
         IsDeferredValidationOrClientAuth) &&
@@ -1435,7 +1442,7 @@ CxPlatTlsSecConfigCreate(
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-        if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+        if (!(CredConfigFlags & (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION))) {
             SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
         }
 
@@ -1465,10 +1472,13 @@ CxPlatTlsSecConfigCreate(
         if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             int VerifyMode = SSL_VERIFY_PEER;
             if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
-                VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
                 SSL_CTX_set_verify_depth(
                     SecurityConfig->SSLCtx,
                     CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+            }
+            if (!(CredConfigFlags & (QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+                QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION))) {
+                VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
             }
             SSL_CTX_set_verify(
                 SecurityConfig->SSLCtx,
@@ -1961,6 +1971,29 @@ CxPlatTlsProcessData(
                     OpenSslNoMatchingAlpn,
                     TlsContext->Connection,
                     "Failed to find a matching ALPN");
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+        } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+            !TlsContext->PeerCertReceived) {
+            QUIC_STATUS ValidationResult =
+                (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) ?
+                    QUIC_STATUS_CERT_NO_CERT :
+                    QUIC_STATUS_SUCCESS;
+
+            if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                    TlsContext->Connection,
+                    NULL,
+                    NULL,
+                    0,
+                    ValidationResult)) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Indicate null certificate received failed");
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
