@@ -486,7 +486,7 @@ const uint32_t ParamCounts[] = {
     QUIC_PARAM_CONN_STATISTICS_V2_PLAT + 1,
     QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
 #ifdef WIN32 // Schannel specific TLS parameters
-    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W + 2,
+    QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN + 1,
 #else
     0,
 #endif
