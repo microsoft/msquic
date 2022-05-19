@@ -2761,6 +2761,31 @@ CxPlatTlsParamGet(
             break;
         }
 
+        case QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W: {
+            if (*BufferLength < sizeof(QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W)) {
+                *BufferLength = sizeof(QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W *ContextAttribute =
+                (QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W*)Buffer;
+
+            Status =
+                SecStatusToQuicStatus(
+                QueryContextAttributesExW(
+                    &TlsContext->SchannelContext,
+                    ContextAttribute->Attribute,
+                    ContextAttribute->Buffer,
+                    ContextAttribute->BufferLength));
+            break;
+        }
+
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
             if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
                 *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
