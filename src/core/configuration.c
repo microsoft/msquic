@@ -559,6 +559,15 @@ QuicConfigurationParamSet(
 
         return QUIC_STATUS_SUCCESS;
 
+    case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W:
+
+        return
+            CxPlatSecConfigParamSet(
+                Configuration->SecurityConfig,
+                Param,
+                BufferLength,
+                Buffer);
+
     default:
         break;
     }

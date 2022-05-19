@@ -2090,8 +2090,8 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatTlsParamSet(
-    _In_ CXPLAT_TLS* TlsContext,
+CxPlatSecConfigParamSet(
+    _In_ CXPLAT_SEC_CONFIG* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -2099,6 +2099,40 @@ CxPlatTlsParamSet(
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamGet(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_updates_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(SecConfig);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsParamSet(
+    _In_ CXPLAT_TLS* SecConfig,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(SecConfig);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
