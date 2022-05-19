@@ -1687,6 +1687,17 @@ namespace Microsoft.Quic
         internal void* Buffer;
     }
 
+    internal unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W
+    {
+        [NativeTypeName("unsigned long")]
+        internal uint Attribute;
+
+        [NativeTypeName("unsigned long")]
+        internal uint BufferLength;
+
+        internal void* Buffer;
+    }
+
     internal enum QUIC_LISTENER_EVENT_TYPE
     {
         NEW_CONNECTION = 0,
@@ -2658,6 +2669,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x07000000")]
         internal const uint QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x07000000;
+
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W 0x07000001")]
+        internal const uint QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W = 0x07000001;
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x08000000")]
         internal const uint QUIC_PARAM_STREAM_ID = 0x08000000;
