@@ -559,6 +559,7 @@ QuicConfigurationParamSet(
 
         return QUIC_STATUS_SUCCESS;
 
+#ifdef WIN32
     case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W:
 
         return
@@ -567,6 +568,7 @@ QuicConfigurationParamSet(
                 Param,
                 BufferLength,
                 Buffer);
+#endif
 
     default:
         break;
