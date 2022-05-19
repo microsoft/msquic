@@ -456,6 +456,7 @@ RpsConnectionContext::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         Worker->Client->StreamContextAllocator.Free(StrmContext);
+        MsQuic->StreamClose(StreamHandle);
         Worker->QueueSendRequest();
         break;
     default:
@@ -480,33 +481,30 @@ RpsConnectionContext::SendRequest(bool DelaySend) {
     uint64_t StartTime = CxPlatTimeUs64();
     StreamContext* StrmContext = Worker->Client->StreamContextAllocator.Alloc(this, StartTime);
 
-    QUIC_STATUS Status =
+    HQUIC Stream = nullptr;
+    if (QUIC_SUCCEEDED(
         MsQuic->StreamOpen(
             Handle,
             QUIC_STREAM_OPEN_FLAG_NONE,
             Handler,
             StrmContext,
-            &StrmContext->Handle);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed StreamOpen 0x%x\n", Status);
-        Worker->Client->StreamContextAllocator.Free(StrmContext);
-        return;
-    }
-    InterlockedIncrement64((int64_t*)&Worker->Client->StartedRequests);
-
-    QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
-    if (DelaySend) {
-        Flags |= QUIC_SEND_FLAG_DELAY_SEND;
-    }
-    Status =
-        MsQuic->StreamSend(
-            StrmContext->Handle,
-            Worker->Client->RequestBuffer,
-            1,
-            Flags,
-            nullptr);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed StreamSend 0x%x\n", Status);
+            &Stream))) {
+        InterlockedIncrement64((int64_t*)&Worker->Client->StartedRequests);
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
+        if (DelaySend) {
+            Flags |= QUIC_SEND_FLAG_DELAY_SEND;
+        }
+        if (QUIC_FAILED(
+            MsQuic->StreamSend(
+                Stream,
+                Worker->Client->RequestBuffer,
+                1,
+                Flags,
+                nullptr))) {
+            MsQuic->StreamClose(Stream);
+            Worker->Client->StreamContextAllocator.Free(StrmContext);
+        }
+    } else {
         Worker->Client->StreamContextAllocator.Free(StrmContext);
     }
 }

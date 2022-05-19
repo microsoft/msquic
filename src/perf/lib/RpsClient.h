@@ -22,16 +22,14 @@ struct RpsWorkerContext;
 class RpsClient;
 
 struct StreamContext {
-    HQUIC Handle {nullptr};
     StreamContext(
         _In_ RpsConnectionContext* Connection,
         _In_ uint64_t StartTime)
         : Connection{Connection}, StartTime{StartTime} { }
-    ~StreamContext() noexcept { if (Handle) { MsQuic->StreamClose(Handle); } }
     RpsConnectionContext* Connection;
     uint64_t StartTime;
 #if DEBUG
-    uint8_t Padding[12]; // TODO: Should this change?
+    uint8_t Padding[12];
 #endif
 };
 
