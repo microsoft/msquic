@@ -37,7 +37,6 @@ PrintHelp(
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
         "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:0)\n"
-        "  -waitforstart:<0/1>         Whether to wait for start complete event before sending data. (def:0)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -117,11 +116,6 @@ RpsClient::Init(
         Configuration.SetSettings(settings);
     }
 
-    uint32_t WaitForStart;
-    if (TryGetValue(argc, argv, "waitforstart", &WaitForStart)) {
-        WaitForStartBeforeSend = WaitForStart != 0;
-    }
-
     WorkerCount = CxPlatProcActiveCount();
     if (WorkerCount > PERF_MAX_THREAD_COUNT) {
         WorkerCount = PERF_MAX_THREAD_COUNT;
@@ -168,15 +162,6 @@ CXPLAT_THREAD_CALLBACK(RpsWorkerThread, Context)
     auto Worker = (RpsWorkerContext*)Context;
 
     while (Worker->Client->Running) {
-        if (Worker->Client->WaitForStartBeforeSend) {
-            while (true) { // Process started streams
-                auto Stream = Worker->DequeueStream();
-                if (!Stream) {
-                    break; // All processed
-                }
-                Stream->ExecuteStreamSend();
-            }
-        }
         while (Worker->RequestCount != 0) {
             InterlockedDecrement((long*)&Worker->RequestCount);
             auto Connection = Worker->GetConnection();
@@ -473,16 +458,6 @@ RpsConnectionContext::StreamCallback(
         Worker->Client->StreamContextAllocator.Free(StrmContext);
         Worker->QueueSendRequest();
         break;
-    case QUIC_STREAM_EVENT_START_COMPLETE:
-        if (Worker->Client->WaitForStartBeforeSend && Event->START_COMPLETE.PeerAccepted) {
-            Worker->QueueExecuteStreamSend(StrmContext);
-        }
-        break;
-    case QUIC_STREAM_EVENT_PEER_ACCEPTED:
-        if (Worker->Client->WaitForStartBeforeSend) {
-            Worker->QueueExecuteStreamSend(StrmContext);
-        }
-        break;
     default:
         break;
     }
@@ -519,35 +494,20 @@ RpsConnectionContext::SendRequest(bool DelaySend) {
     }
     InterlockedIncrement64((int64_t*)&Worker->Client->StartedRequests);
 
-    if (Worker->Client->WaitForStartBeforeSend)
-    {
-        Status =
-            MsQuic->StreamStart(
-                StrmContext->Handle,
-                QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Failed StreamStart 0x%x\n", Status);
-            Worker->Client->StreamContextAllocator.Free(StrmContext);
-            return;
-        }
+    QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
+    if (DelaySend) {
+        Flags |= QUIC_SEND_FLAG_DELAY_SEND;
     }
-    else
-    {
-        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
-        if (DelaySend) {
-            Flags |= QUIC_SEND_FLAG_DELAY_SEND;
-        }
-        Status =
-            MsQuic->StreamSend(
-                StrmContext->Handle,
-                Worker->Client->RequestBuffer,
-                1,
-                Flags,
-                nullptr);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Failed StreamSend 0x%x\n", Status);
-            Worker->Client->StreamContextAllocator.Free(StrmContext);
-        }
+    Status =
+        MsQuic->StreamSend(
+            StrmContext->Handle,
+            Worker->Client->RequestBuffer,
+            1,
+            Flags,
+            nullptr);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Failed StreamSend 0x%x\n", Status);
+        Worker->Client->StreamContextAllocator.Free(StrmContext);
     }
 }
 
@@ -560,31 +520,5 @@ RpsWorkerContext::QueueSendRequest() {
         } else {
             GetConnection()->SendRequest(false); // Inline if thread isn't running
         }
-    }
-}
-
-void
-RpsWorkerContext::QueueExecuteStreamSend(StreamContext* StrmContext) {
-    if (Client->Running && !Client->SendInline) {
-        if (ThreadStarted) {
-            EnqueueStream(StrmContext);
-            CxPlatEventSet(WakeEvent);
-        } else {
-            StrmContext->ExecuteStreamSend(); // Inline if thread isn't running
-        }
-    }
-}
-
-void
-StreamContext::ExecuteStreamSend() {
-    QUIC_STATUS Status = MsQuic->StreamSend(
-        Handle,
-        Connection->Worker->Client->RequestBuffer,
-        1,
-        QUIC_SEND_FLAG_FIN,
-        nullptr);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed StreamSend 0x%x in [strm][%p]\n", Status, Handle);
-        Connection->Worker->Client->StreamContextAllocator.Free(this);
     }
 }
