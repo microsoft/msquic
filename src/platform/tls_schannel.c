@@ -2726,7 +2726,7 @@ CxPlatSecConfigParamSet(
             break;
         }
 
-        if (!SecIsValidHandle(&SecConfig->CredentialHandle)) {
+        if (SecConfig == NULL || !SecIsValidHandle(&SecConfig->CredentialHandle)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
