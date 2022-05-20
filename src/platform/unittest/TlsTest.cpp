@@ -1803,6 +1803,23 @@ TEST_F(TlsTest, ClientCertificateDeferValidationNoCertSchannel)
     ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_NO_CERT;
     DoHandshake(ServerContext, ClientContext);
 }
+
+TEST_F(TlsTest, ClientCertificateNoValidationNoCertSchannel)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION
+        | QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS);
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ServerContext.ExpectNullCertificate = TRUE;
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_SUCCESS;
+    DoHandshake(ServerContext, ClientContext);
+}
 #endif
 
 TEST_F(TlsTest, ClientCertificateDeferValidationNoCert)
@@ -1833,9 +1850,7 @@ TEST_F(TlsTest, ClientCertificateDeferValidationNoCert)
 
 TEST_F(TlsTest, ClientCertificateNoValidationNoCert)
 {
-    CxPlatClientSecConfig ClientConfig(
-        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION
-        | QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS);
+    CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig(
         QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
@@ -1845,7 +1860,18 @@ TEST_F(TlsTest, ClientCertificateNoValidationNoCert)
     ServerContext.InitializeServer(ServerConfig);
     ServerContext.ExpectNullCertificate = TRUE;
     ServerContext.ExpectedValidationStatus = QUIC_STATUS_SUCCESS;
-    DoHandshake(ServerContext, ClientContext);
+    DoHandshake(
+        ServerContext,
+        ClientContext,
+        1200,
+        false,
+        false,
+#ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS
+        true
+#else
+        false
+#endif
+        );
 }
 
 TEST_F(TlsTest, CipherSuiteSuccess1)
