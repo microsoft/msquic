@@ -943,7 +943,8 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (IsClient) {
-        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION)) {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) ||
+            (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER)) {
             return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
         }
     } else {
@@ -1052,11 +1053,20 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
         Credentials->dwFlags |= SCH_CRED_IGNORE_REVOCATION_OFFLINE;
     }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CHAIN_CACHE_ONLY_URL_RETRIEVAL) {
+        Credentials->dwFlags |= SCH_CRED_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
+        CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL ;
+    }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
-        Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
+        if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER)) {
+            Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
+        }
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
         if (TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) {
             Credentials->dwFlags |= SCH_CRED_DISABLE_RECONNECTS;
