@@ -422,6 +422,32 @@ CxPlatTlsProcessData(
     );
 
 //
+// Sets a Security Configuration parameter.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamSet(
+    _In_ CXPLAT_SEC_CONFIG* TlsContext,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    );
+
+//
+// Gets a Security Configuration parameter.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamGet(
+    _In_ CXPLAT_SEC_CONFIG* TlsContext,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_updates_bytes_opt_(*BufferLength)
+        void* Buffer
+    );
+
+//
 // Sets a TLS parameter.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

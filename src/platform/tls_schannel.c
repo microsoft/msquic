@@ -2708,6 +2708,67 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+CxPlatSecConfigParamSet(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W: {
+        if (Buffer == NULL ||
+            BufferLength != sizeof(QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (SecConfig == NULL || !SecIsValidHandle(&SecConfig->CredentialHandle)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W *CredentialAttribute =
+            (QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W*)Buffer;
+
+        Status =
+            SecStatusToQuicStatus(
+            SetCredentialsAttributesW(
+                &SecConfig->CredentialHandle,
+                CredentialAttribute->Attribute,
+                CredentialAttribute->Buffer,
+                CredentialAttribute->BufferLength));
+        break;
+    }
+    default:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamGet(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_updates_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(SecConfig);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 CxPlatTlsParamSet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,

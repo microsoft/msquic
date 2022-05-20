@@ -1679,6 +1679,17 @@ namespace Microsoft.Quic
         }
     }
 
+    internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
+    {
+        [NativeTypeName("unsigned long")]
+        internal uint Attribute;
+
+        [NativeTypeName("unsigned long")]
+        internal uint BufferLength;
+
+        internal void* Buffer;
+    }
+
     internal unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -2579,6 +2590,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS 0x03000002")]
         internal const uint QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS = 0x03000002;
+
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W 0x03000003")]
+        internal const uint QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W = 0x03000003;
 
         [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x04000000")]
         internal const uint QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x04000000;
