@@ -2790,17 +2790,19 @@ CxPlatTlsParamGet(
             if (*BufferLength < sizeof(void*)) {
                 *BufferLength = sizeof(void*);
                 Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
             }
 
             if (Buffer == NULL) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
             }
 
             Status =
                 SecStatusToQuicStatus(
                 QuerySecurityContextToken(
                     &TlsContext->SchannelContext,
-                    &Buffer));
+                    Buffer));
             break;
 
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
