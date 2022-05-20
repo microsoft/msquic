@@ -621,7 +621,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        uint32_t Flags = XSK_BIND_RX;
+        uint32_t Flags = XSK_BIND_FLAG_RX;
         Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -728,7 +728,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Flags = XSK_BIND_TX; // TODO: support native/generic forced flags.
+        Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
         Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -1478,8 +1478,8 @@ CxPlatXdpTx(
         (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.size)) {
         XskRingProducerSubmit(&Queue->TxRing, ProdCount);
         if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
-            uint32_t OutFlags;
-            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
+            XSK_NOTIFY_RESULT_FLAGS OutFlags;
+            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
             CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
             UNREFERENCED_PARAMETER(Status);
         }

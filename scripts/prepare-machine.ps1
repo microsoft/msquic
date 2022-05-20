@@ -189,7 +189,7 @@ function Install-Xdp-Sdk {
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp-v0.16.2.0+75cdc3a3-263834.zip" -OutFile $ZipPath
+        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp-devkit-x64-0.16.3-prerelease+592e2e60.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         New-Item -Path "$ArtifactsPath\bin\xdp" -ItemType Directory -Force
         Copy-Item -Path "$XdpPath\symbols\*" -Destination "$ArtifactsPath\bin\xdp" -Force
