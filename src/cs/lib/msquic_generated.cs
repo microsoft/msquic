@@ -2687,6 +2687,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W 0x07000001")]
         internal const uint QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W = 0x07000001;
 
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN 0x07000002")]
+        internal const uint QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN = 0x07000002;
+
         [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x08000000")]
         internal const uint QUIC_PARAM_STREAM_ID = 0x08000000;
 

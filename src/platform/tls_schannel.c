@@ -2847,6 +2847,25 @@ CxPlatTlsParamGet(
             break;
         }
 
+        case QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN:
+            if (*BufferLength < sizeof(void*)) {
+                *BufferLength = sizeof(void*);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            Status =
+                SecStatusToQuicStatus(
+                QuerySecurityContextToken(
+                    &TlsContext->SchannelContext,
+                    Buffer));
+            break;
+
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
             if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
                 *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
