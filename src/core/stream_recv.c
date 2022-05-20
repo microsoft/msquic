@@ -133,7 +133,7 @@ QuicStreamRecvQueueFlush(
 
     if (Stream->Flags.ReceiveEnabled &&
         Stream->Flags.ReceiveDataPending &&
-        !Stream->Flags.ReceiveCallPending &&
+        (!Stream->Flags.ReceiveCallPending || Stream->Flags.ReceiveAlwaysEnabled) &&
         !Stream->Flags.ReceiveFlushQueued) {
 
         QuicTraceLogStreamVerbose(
@@ -763,7 +763,7 @@ QuicStreamRecvFlush(
     }
 
     CXPLAT_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
-    CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending || Stream->Flags.ReceiveAlwaysEnabled);
 
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
