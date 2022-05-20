@@ -279,7 +279,8 @@ CxPlatTlsCertificateVerifyCallback(
                     (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
             }
         }
-    } else if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+    } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+               (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
         //
         // We need to get certificates provided by peer if we going to pass them via Callbacks.CertificateReceived.
         // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has 
