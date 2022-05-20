@@ -1090,6 +1090,14 @@ CxPlatDpRawInitialize(
 
     Xdp->Running = TRUE;
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+        if (Xdp->Workers->Queues == NULL) {
+            //
+            // Becasue queues are assigned in a round-robin manner, subsequent workers will not
+            // have a queue assigned. Stop the loop and update worker count.
+            //
+            Xdp->WorkerCount = i - 1;
+            break;
+        }
         Xdp->Workers[i].Xdp = Xdp;
         Xdp->Workers[i].ProcIndex = ProcList[i];
         CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
