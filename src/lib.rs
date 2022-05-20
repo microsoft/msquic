@@ -227,6 +227,7 @@ pub type ReceiveFlags = u32;
 pub const RECEIVE_FLAG_NONE: ReceiveFlags = 0;
 pub const RECEIVE_FLAG_0_RTT: ReceiveFlags = 1;
 pub const RECEIVE_FLAG_FIN: ReceiveFlags = 2;
+pub const RECEIVE_FLAG_CONTINUE: ReceiveFlags = 4;
 
 /// Controls stream and datagram send behavior.
 pub type SendFlags = u32;
@@ -718,6 +719,7 @@ pub const PARAM_STREAM_ID: u32 = 0x08000000;
 pub const PARAM_STREAM_0RTT_LENGTH: u32 = 0x08000001;
 pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 0x08000002;
 pub const PARAM_STREAM_PRIORITY: u32 = 0x08000003;
+pub const PARAM_STREAM_ALWAYS_RECEIVE: u32 = 0x08000004;
 
 pub type ListenerEventType = u32;
 pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;

@@ -142,6 +142,7 @@ namespace Microsoft.Quic
         NONE = 0x0000,
         ZERO_RTT = 0x0001,
         FIN = 0x0002,
+        CONTINUE = 0x0004,
     }
 
     [System.Flags]
@@ -2684,6 +2685,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
         internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_ALWAYS_RECEIVE 0x08000004")]
+        internal const uint QUIC_PARAM_STREAM_ALWAYS_RECEIVE = 0x08000004;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;
