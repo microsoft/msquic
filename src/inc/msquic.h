@@ -720,14 +720,13 @@ void
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS       0x03000002  // QUIC_VERSION_SETTINGS
 #endif
-#ifdef WIN32 // Schannel-specific Configuration parameters
+// Schannel-specific Configuration parameter
 typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
     unsigned long Attribute;
     unsigned long BufferLength;
     void* Buffer;
 } QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W;
 #define QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W  0x03000003  // QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
-#endif
 
 //
 // Parameters for Listener.

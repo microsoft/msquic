@@ -481,11 +481,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 const uint32_t ParamCounts[] = {
     QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH + 1,
     0,
-#ifdef WIN32 // Schannel specific Configuration parameters
     QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W + 1,
-#else
-    QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS + 1,
-#endif
     QUIC_PARAM_LISTENER_CIBIR_ID + 1,
     QUIC_PARAM_CONN_STATISTICS_V2_PLAT + 1,
     QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,

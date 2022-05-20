@@ -2726,6 +2726,11 @@ CxPlatSecConfigParamSet(
             break;
         }
 
+        if (!SecIsValidHandle(&SecConfig->CredentialHandle)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
         QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W *CredentialAttribute =
             (QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W*)Buffer;
 
