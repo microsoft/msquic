@@ -606,6 +606,19 @@ QuicStreamParamSet(
         break;
     }
 
+    case QUIC_PARAM_STREAM_ALWAYS_RECEIVE: {
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Stream->Flags.ReceiveAlwaysEnabled = *(BOOLEAN*)Buffer; // TODO - Dynamic changes?
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

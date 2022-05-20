@@ -191,6 +191,7 @@ typedef enum QUIC_RECEIVE_FLAGS {
     QUIC_RECEIVE_FLAG_NONE                  = 0x0000,
     QUIC_RECEIVE_FLAG_0_RTT                 = 0x0001,   // Data was encrypted with 0-RTT key.
     QUIC_RECEIVE_FLAG_FIN                   = 0x0002,   // FIN was included with this data.
+    QUIC_RECEIVE_FLAG_CONTINUE              = 0x0004,   // New data was received.
 } QUIC_RECEIVE_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_RECEIVE_FLAGS)
@@ -789,6 +790,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+#define QUIC_PARAM_STREAM_ALWAYS_RECEIVE                0x08000004  // BOOLEAN
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

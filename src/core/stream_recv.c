@@ -831,8 +831,11 @@ QuicStreamRecvFlush(
             Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = NULL;
         }
 
-        Stream->Flags.ReceiveEnabled = FALSE;
+        Stream->Flags.ReceiveEnabled = Stream->Flags.ReceiveAlwaysEnabled;
         Stream->Flags.ReceiveCallPending = TRUE;
+        if (Stream->RecvPendingLength != 0) {
+            Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_CONTINUE;
+        }
         Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
 
         QuicTraceEvent(
@@ -854,7 +857,8 @@ QuicStreamRecvFlush(
         }
 
         if (Status == QUIC_STATUS_PENDING) {
-            if (Stream->Flags.ReceiveCallPending) {
+            if (Stream->Flags.ReceiveCallPending &&
+                !Stream->Flags.ReceiveAlwaysEnabled) {
                 //
                 // If the pending call wasn't completed inline, then receive
                 // callbacks MUST be disabled still.
