@@ -720,6 +720,12 @@ CxPlatTlsSetClientCertPolicy(
     if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
         ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
     }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
+    }
 
     SecStatus =
         SetCredentialsAttributesW(
@@ -1053,12 +1059,11 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
         Credentials->dwFlags |= SCH_CRED_IGNORE_REVOCATION_OFFLINE;
     }
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CHAIN_CACHE_ONLY_URL_RETRIEVAL) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
         Credentials->dwFlags |= SCH_CRED_CACHE_ONLY_URL_RETRIEVAL;
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
-        CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL ;
     }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;

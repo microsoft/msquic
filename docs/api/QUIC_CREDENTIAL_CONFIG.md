@@ -144,7 +144,7 @@ Tells the TLS layer (currently only supported by Schannel) to only use the suppl
 
 Tells the TLS layer (only supported by Schannel server) to use the system credential mapper to map the client-supplied credentials to a user account on the system.
 
-`QUIC_CREDENTIAL_FLAG_CHAIN_CACHE_ONLY_URL_RETRIEVAL`
+`QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL`
 
 Only use certificates already cached when doing URL retrieval to build a certificate chain. Only valid on Windows.
 
