@@ -1995,6 +1995,7 @@ CxPlatTlsProcessData(
                     TlsContext->Connection,
                     "Indicate null certificate received failed");
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                TlsContext->State->AlertCode = CXPLAT_TLS_ALERT_CODE_REQUIRED_CERTIFICATE;
                 goto Exit;
             }
         }
