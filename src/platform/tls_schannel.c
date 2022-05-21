@@ -109,11 +109,15 @@ typedef struct _SecPkgCred_ClientCertPolicy
     LPWSTR  pwszSslCtlIdentifier;
 } SecPkgCred_ClientCertPolicy, *PSecPkgCred_ClientCertPolicy;
 
+// CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL - don't hit the wire to get URL based objects
+#define CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL            0x00000004
+
 // CERT_CHAIN_CACHE_END_CERT can be used here as well
 // Revocation flags are in the high nibble
 #define CERT_CHAIN_REVOCATION_CHECK_END_CERT           0x10000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN              0x20000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x40000000
+#define CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY         0x80000000
 
 #define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
 
