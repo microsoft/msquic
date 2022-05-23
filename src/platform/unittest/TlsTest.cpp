@@ -2048,16 +2048,21 @@ ValidateSecConfigStatusSchannel(
 TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 {
     for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS,
+        QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER,
 #ifndef _WIN32
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK, QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE,
+        QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY,
 #ifndef __APPLE__
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN,
 #endif
 #endif
         }) {
 
-        if (TestFlag != QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+        if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER) {
+            //
+            // Client-compatible flags
+            //
             QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -2079,6 +2084,9 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
         }
 
         if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            //
+            // Server-compatible flags
+            //
             SelfSignedCertParams->Flags = TestFlag;
             CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
             QUIC_STATUS Status =

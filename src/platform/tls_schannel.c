@@ -109,11 +109,15 @@ typedef struct _SecPkgCred_ClientCertPolicy
     LPWSTR  pwszSslCtlIdentifier;
 } SecPkgCred_ClientCertPolicy, *PSecPkgCred_ClientCertPolicy;
 
+// CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL - don't hit the wire to get URL based objects
+#define CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL            0x00000004
+
 // CERT_CHAIN_CACHE_END_CERT can be used here as well
 // Revocation flags are in the high nibble
 #define CERT_CHAIN_REVOCATION_CHECK_END_CERT           0x10000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN              0x20000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x40000000
+#define CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY         0x80000000
 
 #define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
 
@@ -720,6 +724,12 @@ CxPlatTlsSetClientCertPolicy(
     if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
         ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
     }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
+    }
 
     SecStatus =
         SetCredentialsAttributesW(
@@ -943,7 +953,8 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (IsClient) {
-        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION)) {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) ||
+            (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER)) {
             return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
         }
     } else {
@@ -1052,11 +1063,19 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
         Credentials->dwFlags |= SCH_CRED_IGNORE_REVOCATION_OFFLINE;
     }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
+        Credentials->dwFlags |= SCH_CRED_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
+    }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
-        Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
+        if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER)) {
+            Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
+        }
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
         if (TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) {
             Credentials->dwFlags |= SCH_CRED_DISABLE_RECONNECTS;
