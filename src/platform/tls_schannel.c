@@ -1869,20 +1869,20 @@ CxPlatTlsWriteDataToSchannel(
         OutSecBufferDesc.cBuffers++;
     }
 
-    ULONG ContextReq =
-        ISC_REQ_SEQUENCE_DETECT |
-        ISC_REQ_CONFIDENTIALITY |
-        ISC_RET_EXTENDED_ERROR |
-        ISC_REQ_STREAM;
+    CXPLAT_STATIC_ASSERT(ISC_REQ_SEQUENCE_DETECT == ASC_REQ_SEQUENCE_DETECT, "These are assumed to match");
+    CXPLAT_STATIC_ASSERT(ISC_REQ_CONFIDENTIALITY == ASC_REQ_CONFIDENTIALITY, "These are assumed to match");
+    ULONG ContextReq = ISC_REQ_SEQUENCE_DETECT | ISC_REQ_CONFIDENTIALITY;
     if (TlsContext->IsServer) {
-        ContextReq |= ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
+        ContextReq |= ASC_REQ_EXTENDED_ERROR | ASC_REQ_STREAM |
+            ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             ContextReq |= ASC_REQ_MUTUAL_AUTH;
         }
-    }
-    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
-        CXPLAT_DBG_ASSERT(!TlsContext->IsServer); // Previously validated, but let's just make sure.
-        ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
+    } else {
+        ContextReq |= ISC_REQ_EXTENDED_ERROR | ISC_REQ_STREAM;
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
+        }
     }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
