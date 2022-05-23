@@ -286,6 +286,17 @@ CxPlatTlsCertificateVerifyCallback(
                     (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
             }
         }
+    } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+               (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
+        //
+        // We need to get certificates provided by peer if we going to pass them via Callbacks.CertificateReceived.
+        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has 
+        // no certificates attached to it and that impacts validation of custom certificate chains.
+        //
+        // OpenSSL 3 has X509_build_chain() to build just the chain.
+        // We may do something similar here for OpenSsl 1.1
+        //
+        X509_verify_cert(x509_ctx);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
@@ -2000,6 +2011,7 @@ CxPlatTlsProcessData(
                     TlsContext->Connection,
                     "Indicate null certificate received failed");
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                TlsContext->State->AlertCode = CXPLAT_TLS_ALERT_CODE_REQUIRED_CERTIFICATE;
                 goto Exit;
             }
         }
