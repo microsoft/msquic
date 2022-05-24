@@ -5,4 +5,6 @@
 //
 #pragma warning restore IDE0073
 
-#pragma warning disable CS0649
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("MsQuicTool")]

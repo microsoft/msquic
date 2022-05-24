@@ -3030,8 +3030,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnPeerCertReceived(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_CERTIFICATE* Certificate,
-    _In_ QUIC_CERTIFICATE_CHAIN* Chain,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
+    _In_opt_ QUIC_CERTIFICATE_CHAIN* Chain,
     _In_ uint32_t DeferredErrorFlags,
     _In_ QUIC_STATUS DeferredStatus
     )
@@ -5450,6 +5450,13 @@ QuicConnRecvDatagrams(
             QuicPacketLogDrop(Connection, Packet, "Max paths already tracked");
             goto Drop;
         }
+
+#ifdef QUIC_USE_RAW_DATAPATH
+        if (DatagramPath->Route.State == RouteResolved &&
+            DatagramPath->Route.Queue != Datagram->Route->Queue) {
+            DatagramPath->Route.Queue = Datagram->Route->Queue;
+        }
+#endif
 
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {

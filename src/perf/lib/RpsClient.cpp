@@ -36,6 +36,7 @@ PrintHelp(
         "  -response:<####>            The length of request payloads. (def:%u)\n"
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
         "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
+        "  -sendbuf:<0/1>              Whether to use send buffering. (def:0)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -105,6 +106,14 @@ RpsClient::Init(
     uint32_t Affinitize;
     if (TryGetValue(argc, argv, "affinitize", &Affinitize)) {
         AffinitizeWorkers = Affinitize != 0;
+    }
+
+    uint32_t SendBuf;
+    if (TryGetValue(argc, argv, "sendbuf", &SendBuf)) {
+        MsQuicSettings settings;
+        Configuration.GetSettings(settings);
+        settings.SetSendBufferingEnabled(SendBuf != 0);
+        Configuration.SetSettings(settings);
     }
 
     WorkerCount = CxPlatProcActiveCount();

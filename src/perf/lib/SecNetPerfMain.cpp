@@ -16,6 +16,10 @@ Abstract:
 #include "HpsClient.h"
 #include "Tcp.h"
 
+#ifndef _KERNEL_MODE
+#include <vector>
+#endif
+
 #ifdef QUIC_CLOG
 #include "SecNetPerfMain.cpp.clog.h"
 #endif
@@ -245,19 +249,26 @@ QuicMainStart(
 #ifndef _KERNEL_MODE
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
-        uint16_t ProcList[64];
-        uint32_t ProcCount = 0;
-        do {
-            if (*CpuStr == ',') CpuStr++;
-            ProcList[ProcCount++] = (uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10);
-        } while (*CpuStr && ProcCount < ARRAYSIZE(ProcList));
+        std::vector<uint16_t> ProcList;
+        if (strtol(CpuStr, nullptr, 10) == -1) {
+            // Use all procs for raw datapath except proc 0 so that the machine will be in a usable state.
+            for (uint16_t i = 1; i < CxPlatProcActiveCount(); ++i) {
+                ProcList.push_back(i);
+            }
+        } else {
+            do {
+                if (*CpuStr == ',') CpuStr++;
+                ProcList.push_back((uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10));
+            } while (*CpuStr);
+        }
+
         if (QUIC_FAILED(
             Status =
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-                ProcCount * sizeof(uint16_t),
-                ProcList))) {
+                (uint32_t)ProcList.size() * sizeof(uint16_t),
+                ProcList.data()))) {
             WriteOutput("MsQuic Failed To Set DataPath Procs %d\n", Status);
             return Status;
         }

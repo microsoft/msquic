@@ -30,6 +30,7 @@ Abstract:
 #define RULE_TAG      'UpdX' // XdpU
 #define RX_BUFFER_TAG 'RpdX' // XdpR
 #define TX_BUFFER_TAG 'TpdX' // XdpT
+#define PORT_SET_TAG  'PpdX' // XdpP
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
 
@@ -387,10 +388,10 @@ CxPlatXdpReadConfig(
     //
     // Default config.
     //
-    Xdp->RxBufferCount = 4096;
-    Xdp->RxRingSize = 128;
-    Xdp->TxBufferCount = 4096;
-    Xdp->TxRingSize = 128;
+    Xdp->RxBufferCount = 8192;
+    Xdp->RxRingSize = 256;
+    Xdp->TxBufferCount = 8192;
+    Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
 
     //
@@ -491,6 +492,11 @@ CxPlatDpRawInterfaceUninitialize(
     }
 
     if (Interface->Rules != NULL) {
+        for (uint8_t i = 0; i < Interface->RuleCount; ++i) {
+            if (Interface->Rules[i].Pattern.IpPortSet.PortSet.PortSet) {
+                CxPlatFree(Interface->Rules[i].Pattern.IpPortSet.PortSet.PortSet, PORT_SET_TAG);
+            }
+        }
         CxPlatFree(Interface->Rules, RULE_TAG);
     }
 
@@ -621,14 +627,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        uint32_t Flags = 0;     // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags, NULL);
+        uint32_t Flags = XSK_BIND_FLAG_RX;
+        Status = XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->RxXsk, 0);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -718,14 +734,24 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Flags = 0; // TODO: support native/generic forced flags.
-        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags, NULL);
+        Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
+        Status = XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XskBind");
+            goto Error;
+        }
+
+        Status = XskActivate(Queue->TxXsk, 0);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate");
             goto Error;
         }
 
@@ -1070,6 +1096,14 @@ CxPlatDpRawInitialize(
 
     Xdp->Running = TRUE;
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+        if (Xdp->Workers->Queues == NULL) {
+            //
+            // Becasue queues are assigned in a round-robin manner, subsequent workers will not
+            // have a queue assigned. Stop the loop and update worker count.
+            //
+            Xdp->WorkerCount = i;
+            break;
+        }
         Xdp->Workers[i].Xdp = Xdp;
         Xdp->Workers[i].ProcIndex = ProcList[i];
         CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
@@ -1108,6 +1142,26 @@ CxPlatDpRawUninitialize(
         CxPlatDpRawInterfaceUninitialize(Interface);
         CxPlatFree(Interface, IF_TAG);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+CxPlatDpRawSetPortBit(
+    _Inout_ uint8_t *BitMap,
+    _In_ uint16_t Port
+    )
+{
+    BitMap[Port >> 3] |= (1 << (Port & 0x7));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+CxPlatDpRawClearPortBit(
+    _Inout_ uint8_t *BitMap,
+    _In_ uint16_t Port
+    )
+{
+    BitMap[Port >> 3] &= (uint8_t)~(1 << (Port & 0x7));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1176,35 +1230,66 @@ CxPlatDpRawPlumbRulesOnSocket(
 
     } else {
 
-        XDP_RULE Rule = {
-            .Pattern.Tuple.SourcePort = Socket->RemoteAddress.Ipv4.sin_port,
-            .Pattern.Tuple.DestinationPort = Socket->LocalAddress.Ipv4.sin_port,
-            .Action = XDP_PROGRAM_ACTION_REDIRECT,
-            .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-            .Redirect.Target = NULL,
-        };
-
-        if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
-            Rule.Match = XDP_MATCH_IPV4_UDP_TUPLE;
-            Rule.Pattern.Tuple.SourceAddress.Ipv4 = Socket->RemoteAddress.Ipv4.sin_addr;
-            Rule.Pattern.Tuple.DestinationAddress.Ipv4 = Socket->LocalAddress.Ipv4.sin_addr;
-        } else {
-            Rule.Match = XDP_MATCH_IPV6_UDP_TUPLE;
-            Rule.Pattern.Tuple.SourceAddress.Ipv6 = Socket->RemoteAddress.Ipv6.sin6_addr;
-            Rule.Pattern.Tuple.DestinationAddress.Ipv6 = Socket->LocalAddress.Ipv6.sin6_addr;
-        }
-
         //
         // TODO - Optimization: apply only to the correct interface.
         //
 
         CXPLAT_LIST_ENTRY* Entry;
+        XDP_MATCH_TYPE MatchType =
+            QUIC_ADDRESS_FAMILY_INET ? XDP_MATCH_IPV4_UDP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
+        uint8_t* IpAddress =
+            QUIC_ADDRESS_FAMILY_INET ?
+                (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr : (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
+        size_t IpAddressSize = QUIC_ADDRESS_FAMILY_INET ? sizeof(IN_ADDR) : sizeof(IN6_ADDR);
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+            XDP_RULE* Rule = NULL;
+            CxPlatLockAcquire(&Interface->RuleLock);
+            for (uint8_t i = 0; i < Interface->RuleCount; ++i) {
+                if (Interface->Rules[i].Match == MatchType &&
+                    memcmp(
+                        &Interface->Rules[i].Pattern.IpPortSet.Address,
+                        IpAddress,
+                        IpAddressSize) == 0) {
+                    Rule = &Interface->Rules[i];
+                    break;
+                }
+            }
             if (IsCreated) {
-                CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
+                if (Rule) {
+                    CxPlatDpRawSetPortBit(
+                        Rule->Pattern.IpPortSet.PortSet.PortSet, Socket->LocalAddress.Ipv4.sin_port);
+                    CxPlatLockRelease(&Interface->RuleLock);
+                } else {
+                    CxPlatLockRelease(&Interface->RuleLock);
+                    XDP_RULE NewRule = {
+                        .Match = MatchType,
+                        .Pattern.IpPortSet.PortSet.PortSet = CxPlatAlloc(XDP_PORT_SET_BUFFER_SIZE, PORT_SET_TAG),
+                        .Action = XDP_PROGRAM_ACTION_REDIRECT,
+                        .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+                        .Redirect.Target = NULL,
+                    };
+                    if (NewRule.Pattern.IpPortSet.PortSet.PortSet) {
+                        CxPlatZeroMemory(NewRule.Pattern.IpPortSet.PortSet.PortSet, XDP_PORT_SET_BUFFER_SIZE);
+                    } else {
+                        QuicTraceEvent(
+                            AllocFailure,
+                            "Allocation of '%s' failed. (%llu bytes)",
+                            "PortSet",
+                            XDP_PORT_SET_BUFFER_SIZE);
+                        return;
+                    }
+                    CxPlatDpRawSetPortBit(
+                        NewRule.Pattern.IpPortSet.PortSet.PortSet, Socket->LocalAddress.Ipv4.sin_port);
+                    memcpy(
+                        &NewRule.Pattern.IpPortSet.Address, IpAddress, IpAddressSize);
+                    CxPlatDpRawInterfaceAddRules(Interface, &NewRule, 1);
+                }
             } else {
-                CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
+                CXPLAT_DBG_ASSERT(Rule);
+                CxPlatDpRawClearPortBit(
+                    Rule->Pattern.IpPortSet.PortSet.PortSet, Socket->LocalAddress.Ipv4.sin_port);
+                CxPlatLockRelease(&Interface->RuleLock);
             }
         }
     }
@@ -1423,29 +1508,6 @@ CxPlatXdpTx(
         CxPlatLockRelease(&Queue->TxLock);
     }
 
-    uint32_t TxIndex;
-    uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
-    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
-        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
-        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
-        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
-
-        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
-        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
-        Buffer->length = Packet->Buffer.Length;
-        ProdCount++;
-    }
-
-    if (ProdCount > 0) {
-        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
-        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
-            uint32_t OutFlags;
-            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_POKE_TX, 0, &OutFlags);
-            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            UNREFERENCED_PARAMETER(Status);
-        }
-    }
-
     uint32_t CompIndex;
     uint32_t CompAvailable =
         XskRingConsumerReserve(&Queue->TxCompletionRing, MAXUINT32, &CompIndex);
@@ -1462,6 +1524,30 @@ CxPlatXdpTx(
         InterlockedPushListSList(
             &Queue->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
             CompCount);
+    }
+
+    uint32_t TxIndex;
+    uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
+    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
+        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+
+        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
+        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
+        Buffer->length = Packet->Buffer.Length;
+        ProdCount++;
+    }
+
+    if (ProdCount > 0 ||
+        (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.size)) {
+        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
+        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
+            XSK_NOTIFY_RESULT_FLAGS OutFlags;
+            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
+            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+            UNREFERENCED_PARAMETER(Status);
+        }
     }
 
     if (XskRingError(&Queue->TxRing) && !Queue->Error) {

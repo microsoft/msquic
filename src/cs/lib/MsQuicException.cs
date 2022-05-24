@@ -1,12 +1,21 @@
-﻿using System;
+﻿#pragma warning disable IDE0073
+//
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+//
+#pragma warning restore IDE0073
+
+using System;
+using System.Net.Sockets;
 
 namespace Microsoft.Quic
 {
-    public class QuicException : Exception
+    internal sealed class MsQuicException : Exception
     {
         public int Status { get; }
 
-        public QuicException(int status) : base(GetErrorCodeForStatus(status))
+        public MsQuicException(int status, string? message = null, Exception? innerException = null)
+            : base($"{(message ?? nameof(MsQuicException))}: {GetErrorCodeForStatus(status)}", innerException)
         {
             Status = status;
         }
@@ -45,6 +54,14 @@ namespace Microsoft.Quic
             else if (status == MsQuic.QUIC_STATUS_CERT_EXPIRED) return "QUIC_STATUS_CERT_EXPIRED";
             else if (status == MsQuic.QUIC_STATUS_CERT_UNTRUSTED_ROOT) return "QUIC_STATUS_CERT_UNTRUSTED_ROOT";
             else return "Unknown status";
+        }
+
+        public static int MapMsQuicStatusToHResult(int status)
+        {
+            if (status == MsQuic.QUIC_STATUS_CONNECTION_REFUSED) return (int)SocketError.ConnectionRefused;  // 0x8007274D - WSAECONNREFUSED
+            else if (status == MsQuic.QUIC_STATUS_CONNECTION_TIMEOUT) return (int)SocketError.TimedOut;      // 0x8007274C - WSAETIMEDOUT
+            else if (status == MsQuic.QUIC_STATUS_UNREACHABLE) return (int)SocketError.HostUnreachable;
+            else return 0;
         }
     }
 }

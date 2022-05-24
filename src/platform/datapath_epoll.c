@@ -1431,7 +1431,7 @@ CxPlatSocketContextStartReceive(
     }
 
     struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN | EPOLLET,
+        .events = EPOLLIN,
         .data = {
             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
@@ -1644,7 +1644,7 @@ CxPlatSocketContextSendComplete(
     CXPLAT_SEND_DATA* SendData = NULL;
 
     struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN | EPOLLET,
+        .events = EPOLLIN,
         .data = {
             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
@@ -1771,7 +1771,10 @@ CxPlatSocketContextProcessEvents(
     }
 
     if (EPOLLIN & Events) {
-        while (TRUE) {
+        //
+        // Read up to 4 receives before moving to another event.
+        //
+        for (int i = 0; i < 4; i++) {
 
             for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
                 CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
@@ -2611,7 +2614,7 @@ CxPlatSocketSendInternal(
                 }
                 SendPending = TRUE;
                 struct epoll_event SockFdEpEvt = {
-                    .events = EPOLLIN | EPOLLOUT | EPOLLET,
+                    .events = EPOLLIN | EPOLLOUT,
                     .data = {
                         .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
                     }

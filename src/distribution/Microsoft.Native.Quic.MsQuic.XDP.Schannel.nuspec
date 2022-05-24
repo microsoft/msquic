@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.Native.Quic.MsQuic.XDP.Schannel</id>
+    <version>0.0.0</version>
+    <title>MsQuic XDP (Schannel)</title>
+    <authors>Microsoft</authors>
+    <license type="expression">MIT</license>
+    <icon>pkgicon.png</icon>
+    <projectUrl>https://github.com/microsoft/msquic</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <description>MsQuic native library for x64, x86 and arm64 using schannel for TLS and XDP datapath</description>
+    <repository type="git" url="$RepoRemote$" commit="$CommitHash$" />
+    <tags>native quic msquic schannel xdp</tags>
+  </metadata>
+</package>
