@@ -884,6 +884,10 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Family));
         break;
 
+    case IOCTL_QUIC_RUN_VALIDATE_SET_PARAM:
+        QuicTestCtlRun(QuicTestSetParam());
+        break;
+
     case IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS:
         QuicTestCtlRun(QuicTestGetPerfCounters());
         break;

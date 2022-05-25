@@ -36,6 +36,7 @@ void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
+void QuicTestSetParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
@@ -842,6 +843,9 @@ typedef struct {
 #define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY \
     QUIC_CTL_CODE(49, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
+
+#define IOCTL_QUIC_RUN_VALIDATE_SET_PARAM \
+    QUIC_CTL_CODE(50, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
     int Family;

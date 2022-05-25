@@ -179,6 +179,15 @@ TEST(ParameterValidation, ValidateRegistration) {
     }
 }
 
+TEST(ParameterValidation, ValidateSetParam) {
+    TestLogger Logger("QuicTestGetPerfCounters");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_SET_PARAM));
+    } else {
+        QuicTestSetParam();
+    }
+}
+
 TEST(ParameterValidation, ValidateGetPerfCounters) {
     TestLogger Logger("QuicTestGetPerfCounters");
     if (TestingKernelMode) {

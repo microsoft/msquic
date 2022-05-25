@@ -1735,6 +1735,65 @@ public:
     }
 };
 
+void QuicTestSetParam()
+{
+    //
+    // Null hundle
+    //
+    {
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                0,
+                nullptr));
+    }
+
+    //
+    // global setting with handle
+    //
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+        MsQuicAlpn Alpn("MsQuicTest");
+        ConfigurationScope Configuration;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                Alpn,
+                Alpn.Length(),
+                nullptr,
+                0,
+                nullptr,
+                &Configuration.Handle));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Configuration.Handle,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                0,
+                nullptr));
+    }
+
+    //
+    // uninitialized handle
+    //
+    {
+        HQUIC Listener = nullptr;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Listener,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                0,
+                nullptr));
+
+    }
+}
+
 void
 QuicTestGetPerfCounters()
 {
