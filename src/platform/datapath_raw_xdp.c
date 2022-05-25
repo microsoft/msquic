@@ -1235,12 +1235,18 @@ CxPlatDpRawPlumbRulesOnSocket(
         //
 
         CXPLAT_LIST_ENTRY* Entry;
-        XDP_MATCH_TYPE MatchType =
-            QUIC_ADDRESS_FAMILY_INET ? XDP_MATCH_IPV4_UDP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
-        uint8_t* IpAddress =
-            QUIC_ADDRESS_FAMILY_INET ?
-                (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr : (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-        size_t IpAddressSize = QUIC_ADDRESS_FAMILY_INET ? sizeof(IN_ADDR) : sizeof(IN6_ADDR);
+        XDP_MATCH_TYPE MatchType;
+        uint8_t* IpAddress;
+        size_t IpAddressSize;
+        if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
+            MatchType = XDP_MATCH_IPV4_UDP_PORT_SET;
+            IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr;
+            IpAddressSize = sizeof(IN_ADDR);
+        } else {
+            MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
+            IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
+            IpAddressSize = sizeof(IN6_ADDR);     
+        }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             XDP_RULE* Rule = NULL;
