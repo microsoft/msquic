@@ -37,6 +37,7 @@ typedef struct XDP_INTERFACE XDP_INTERFACE;
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
     struct XDP_QUEUE* Next;
+    uint32_t Index;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
     XSK_RING RxFillRing;
@@ -553,7 +554,7 @@ CxPlatDpRawInterfaceInitialize(
 
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
-
+        Queue->Index = i;
         Queue->Interface = Interface;
         InitializeSListHead(&Queue->RxPool);
         InitializeSListHead(&Queue->TxPool);
@@ -1235,12 +1236,18 @@ CxPlatDpRawPlumbRulesOnSocket(
         //
 
         CXPLAT_LIST_ENTRY* Entry;
-        XDP_MATCH_TYPE MatchType =
-            QUIC_ADDRESS_FAMILY_INET ? XDP_MATCH_IPV4_UDP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
-        uint8_t* IpAddress =
-            QUIC_ADDRESS_FAMILY_INET ?
-                (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr : (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-        size_t IpAddressSize = QUIC_ADDRESS_FAMILY_INET ? sizeof(IN_ADDR) : sizeof(IN6_ADDR);
+        XDP_MATCH_TYPE MatchType;
+        uint8_t* IpAddress;
+        size_t IpAddressSize;
+        if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
+            MatchType = XDP_MATCH_IPV4_UDP_PORT_SET;
+            IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr;
+            IpAddressSize = sizeof(IN_ADDR);
+        } else {
+            MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
+            IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
+            IpAddressSize = sizeof(IN6_ADDR);     
+        }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
             XDP_RULE* Rule = NULL;
@@ -1329,7 +1336,17 @@ CxPlatXdpRx(
     uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
-
+    if (XskRingAffinityChanged(&Queue->RxRing)) {
+        PROCESSOR_NUMBER ProcNumber;
+        uint32_t ProcNumberSize = sizeof(ProcNumber);
+        QUIC_STATUS Status =
+            XskGetSockopt(
+                Queue->RxXsk, XSK_SOCKOPT_RX_PROCESSOR_AFFINITY, &ProcNumber, &ProcNumberSize);
+        printf("queue %p ProcNumber.group = %lu, ProcNumber.index = %lu\n", Queue, ProcNumber.Group, ProcNumber.Number);
+        if (!QUIC_SUCCEEDED(Status)) {
+            printf("XskGetSockopt falied\n");
+        }
+    }
     for (uint32_t i = 0; i < BuffersCount; i++) {
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
         XDP_RX_PACKET* Packet =
