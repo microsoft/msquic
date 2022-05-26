@@ -884,10 +884,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Family));
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_SET_PARAM:
-        QuicTestCtlRun(QuicTestSetParam());
-        break;
-
     case IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS:
         QuicTestCtlRun(QuicTestGetPerfCounters());
         break;
@@ -1207,6 +1203,40 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_STORAGE:
         QuicTestCtlRun(QuicTestStorage());
         break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_SET_PARAM:
+        QuicTestCtlRun(QuicTestGlobalSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_COMMON_SET_PARAM:
+        QuicTestCtlRun(QuicTestCommonSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_SET_PARAM:
+        QuicTestCtlRun(QuicTestRegistrationSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_SET_PARAM:
+        QuicTestCtlRun(QuicTestConfigurationSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_LISTENER_SET_PARAM:
+        QuicTestCtlRun(QuicTestListenerSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_SET_PARAM:
+        QuicTestCtlRun(QuicTestConnectionSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_SET_PARAM:
+        QuicTestCtlRun(QuicTestTlsSetParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM:
+        QuicTestCtlRun(QuicTestSteamSetParam());
+        break;
+
+
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

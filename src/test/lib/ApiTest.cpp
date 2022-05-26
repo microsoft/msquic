@@ -1735,25 +1735,13 @@ public:
     }
 };
 
-void QuicTestSetParam()
+void QuicTestGlobalSetParam()
 {
     //
-    // Null hundle
+    // global with handle
     //
     {
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_CONFIGURATION_SETTINGS,
-                0,
-                nullptr));
-    }
-
-    //
-    // global setting with handle
-    //
-    {
+        TestScopeLogger logScope("Global with handle");
         MsQuicRegistration Registration;
         TEST_TRUE(Registration.IsValid());
         MsQuicAlpn Alpn("MsQuicTest");
@@ -1779,19 +1767,156 @@ void QuicTestSetParam()
     }
 
     //
-    // uninitialized handle
+    // QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT
     //
     {
-        HQUIC Listener = nullptr;
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT");
+        {
+            TestScopeLogger logScope("Buffer length is not size of the variable");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                    0,
+                    nullptr));
+        }
+
+        {
+            uint16_t Percent = 26;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                    sizeof(Percent),
+                    &Percent));
+        }
+        // what happen if percent is more than 100?
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS is get only");
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
-                Listener,
+                nullptr,
+                QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS,
+                0,
+                nullptr));
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_PERF_COUNTERS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_PERF_COUNTERS");
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_LIBRARY_VERSION
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LIBRARY_VERSION");
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_SETTINGS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_SETTINGS");
+    }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_GLOBAL_VERSION_SETTINGS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_VERSION_SETTINGS");
+    }
+#endif
+
+    //
+    // QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH");
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+    }
+}
+
+void QuicTestCommonSetParam()
+{
+    // Common
+    //
+    // Null hundle
+    //
+    {
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 0,
                 nullptr));
-
     }
+
+    //
+    // Unexpected Type
+    //
+    {
+    }
+}
+
+void QuicTestRegistrationSetParam()
+{
+}
+
+void QuicTestConfigurationSetParam()
+{
+    //
+    // Null hundle
+    //
+    {
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                0,
+                nullptr));
+    }
+}
+
+void QuicTestListenerSetParam()
+{
+}
+
+void QuicTestConnectionSetParam()
+{
+}
+
+void QuicTestTlsSetParam()
+{
+}
+
+void QuicTestStreamSetParam()
+{
 }
 
 void
