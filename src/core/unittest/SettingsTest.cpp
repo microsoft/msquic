@@ -229,7 +229,9 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsGet)
 TEST(SettingsTest, SettingsSizesGet)
 {
     uint8_t Buffer[sizeof(QUIC_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
@@ -279,7 +281,9 @@ TEST(SettingsTest, SettingsSizesGet)
 TEST(SettingsTest, SettingsSizesSet)
 {
     uint8_t Buffer[sizeof(QUIC_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
@@ -325,7 +329,9 @@ TEST(SettingsTest, SettingsSizesSet)
 TEST(SettingsTest, GlobalSettingsSizesGet)
 {
     uint8_t Buffer[sizeof(QUIC_GLOBAL_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
@@ -375,7 +381,9 @@ TEST(SettingsTest, GlobalSettingsSizesGet)
 TEST(SettingsTest, GlobalSettingsSizesSet)
 {
     uint8_t Buffer[sizeof(QUIC_GLOBAL_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 

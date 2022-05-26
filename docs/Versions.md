@@ -12,7 +12,8 @@ An application may decide that it needs a specific feature only availble in one 
 
 The first version in the list of `FullyDeployedVersions` will always be the initial version MsQuic starts the connection with.
 
-**NOTE: A client may only set a version that MsQuic supports. Any other value will cause [`SetParam`](api/SetParam.md) to fail.**
+> **Warning**
+> A client may only set a version that MsQuic supports. Any other value will cause [`SetParam`](api/SetParam.md) to fail.
 
 Use the following code snippet to change the default initial version, and only support a single QUIC version. It must be used before [`ConnectionStart`](api/ConnectionStart.md) is called:
 ```c

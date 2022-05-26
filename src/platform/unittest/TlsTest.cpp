@@ -641,7 +641,8 @@ protected:
         TlsContext& ClientContext,
         uint32_t FragmentSize = DefaultFragmentSize,
         bool SendResumptionTicket = false,
-        bool ServerResultError = false
+        bool ServerResultError = false,
+        bool ClientResultError = false
         )
     {
         //std::cout << "==DoHandshake==" << std::endl;
@@ -653,11 +654,19 @@ protected:
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
-        Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
-        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
-        ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize, ClientResultError);
+        if (ClientResultError) {
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+            //
+            // Bail, since there's no point in doing the server side.
+            //
+            return;
+        } else {
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+            ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+            ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        }
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, ServerResultError);
         if (ServerResultError) {
@@ -1777,6 +1786,94 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     DoHandshake(ServerContext, ClientContext);
 }
 
+#ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS
+TEST_F(TlsTest, ClientCertificateDeferValidationNoCertSchannel)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION
+        | QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS);
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ServerContext.ExpectNullCertificate = TRUE;
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_NO_CERT;
+    DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, ClientCertificateNoValidationNoCertSchannel)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION
+        | QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS);
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ServerContext.ExpectNullCertificate = TRUE;
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_SUCCESS;
+    DoHandshake(ServerContext, ClientContext);
+}
+#endif
+
+TEST_F(TlsTest, ClientCertificateDeferValidationNoCert)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ServerContext.ExpectNullCertificate = TRUE;
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_NO_CERT;
+    DoHandshake(
+        ServerContext,
+        ClientContext,
+        1200,
+        false,
+        false,
+#ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS
+        true
+#else
+        false
+#endif
+        );
+}
+
+TEST_F(TlsTest, ClientCertificateNoValidationNoCert)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ServerContext.ExpectNullCertificate = TRUE;
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_SUCCESS;
+    DoHandshake(
+        ServerContext,
+        ClientContext,
+        1200,
+        false,
+        false,
+#ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS
+        true
+#else
+        false
+#endif
+        );
+}
+
 TEST_F(TlsTest, CipherSuiteSuccess1)
 {
     //
@@ -1951,16 +2048,21 @@ ValidateSecConfigStatusSchannel(
 TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 {
     for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS,
+        QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER,
 #ifndef _WIN32
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK, QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE,
+        QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY,
 #ifndef __APPLE__
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN,
 #endif
 #endif
         }) {
 
-        if (TestFlag != QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+        if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER) {
+            //
+            // Client-compatible flags
+            //
             QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 TestFlag | QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -1982,6 +2084,9 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
         }
 
         if (TestFlag != QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            //
+            // Server-compatible flags
+            //
             SelfSignedCertParams->Flags = TestFlag;
             CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
             QUIC_STATUS Status =

@@ -81,6 +81,7 @@ struct ServerAcceptContext {
     TestConnection** NewConnection;
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     QUIC_STATUS ExpectedClientCertValidationResult{QUIC_STATUS_SUCCESS};
+    QUIC_STATUS PeerCertEventReturnStatus{false};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);

@@ -140,6 +140,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 
 #define QUIC_STATUS_CERT_EXPIRED            QUIC_STATUS_CERT_ERROR(1)       // 0xBEBC401
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     QUIC_STATUS_CERT_ERROR(2)       // 0xBEBC402
+#define QUIC_STATUS_CERT_NO_CERT            QUIC_STATUS_CERT_ERROR(3)       // 0xBEBC403
 
 typedef unsigned char BOOLEAN;
 typedef struct in_addr IN_ADDR;
