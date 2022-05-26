@@ -803,13 +803,32 @@ TEST_F(TlsTest, Handshake)
 TEST_F(TlsTest, HandshakeCertFromFile)
 {
     ASSERT_NE(nullptr, CertParamsFromFile);
+
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QUIC_CERTIFICATE_PKCS12 Certificiate;
+    char Principal[100];
+    Principal[0] = '\0';
+
+    ASSERT_TRUE(
+        CxPlatGetTestCertificate(
+            CXPLAT_TEST_CERT_VALID_SERVER,
+            CXPLAT_SELF_SIGN_CERT_USER,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
+            &CredConfig,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            &Certificiate,
+            Principal));
     CxPlatSecConfig ClientConfig;
-    ClientConfig.Load(CertParamsFromFile);
     CxPlatServerSecConfig ServerConfig;
+    ServerConfig.Load(&CredConfig);
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
+    CxPlatFreeTestCert(&CredConfig);
 }
 #endif // QUIC_DISABLE_PFX_TESTS
 

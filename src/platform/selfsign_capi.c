@@ -1062,6 +1062,16 @@ CxPlatGetSelfSignedCert(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return != QUIC_STATUS_SUCCESS)
+HRESULT
+CxPlatGetTestPkcs12Cert(
+    _In_ PCCERT_CONTEXT CertContext,
+    _Inout_ QUIC_CERTIFICATE_PKCS12* Pkcs12
+) {
+
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
 CxPlatGetTestCertificate(
@@ -1091,7 +1101,6 @@ CxPlatGetTestCertificate(
 {
     UNREFERENCED_PARAMETER(CertFile);
     UNREFERENCED_PARAMETER(CertFileProtected);
-    UNREFERENCED_PARAMETER(Pkcs12);
     BOOLEAN Success = FALSE;
     PCCERT_CONTEXT Cert = NULL;
     const wchar_t* FriendlyName = NULL;
@@ -1161,6 +1170,16 @@ CxPlatGetTestCertificate(
             "[ lib] ERROR, %u, %s.",
             (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
             "NULL Principal passed to CxPlatGetTestCertificate");
+            return FALSE;
+        }
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
+        if (Pkcs12 == NULL) {
+            QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            (unsigned int)QUIC_STATUS_INVALID_PARAMETER,
+            "NULL Pkcs12 passed to CxPlatGetTestCertificate");
             return FALSE;
         }
         break;
@@ -1244,6 +1263,14 @@ CxPlatGetTestCertificate(
     case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
         Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
         Params->CertificateContext = (QUIC_CERTIFICATE*)Cert;
+        Cert = NULL;
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12:
+        QUIC_PORTABLE_CERTIFICATE PortableCert;
+        CxPlatGetPortableCertificate(Cert, &PortableCert);
+        Params->CertificatePkcs12 = Pkcs12;
+        // Use password as storage
+
         Cert = NULL;
         break;
     }
