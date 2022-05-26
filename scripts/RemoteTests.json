@@ -50,6 +50,7 @@
             },
             "Variables": [
             ],
+            "AllowFailure": true,
             "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
@@ -129,6 +130,7 @@
             },
             "Variables": [
             ],
+            "AllowFailure": true,
             "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,

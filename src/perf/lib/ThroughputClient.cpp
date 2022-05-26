@@ -614,7 +614,7 @@ ThroughputClient::OnTcpConnectionComplete(
     if (Connection) {
         Connection->Close();
     }
-    CxPlatEventSet(*StopEvent);
+    //CxPlatEventSet(*StopEvent);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

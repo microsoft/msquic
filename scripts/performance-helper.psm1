@@ -605,12 +605,16 @@ function Get-MedianTestResults($FullResults) {
     }
 }
 
-function Get-TestResult($Results, $Matcher) {
+function Get-TestResult($Results, $Matcher, $AllowFailure = $false) {
     $Found = $Results -match $Matcher
     if ($Found) {
         return $Matches
     } else {
-        Write-Error "Error Processing Results:`n`n$Results"
+        if($AllowFailure) {
+            return "0.0";
+        } else {
+            Write-Error "Error Processing Results:`n`n$Results"
+        }
     }
 }
 
@@ -1177,6 +1181,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
+    [boolean]$AllowFailure;
     [boolean]$SharedEC;
     [boolean]$XDP;
     [string[]]$Formats;
@@ -1203,6 +1208,7 @@ class TestRunDefinition {
         $this.RegressionThreshold = $existingDef.RegressionThreshold
         $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
+        $this.AllowFailure = $existingDef.AllowFailure
     }
 
     TestRunDefinition (
@@ -1217,6 +1223,8 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.AllowFailure =
+        $existingDef.AllowFailure
         $this.VariableValue = ""
         $this.VariableName = ""
 
@@ -1251,6 +1259,7 @@ class TestRunDefinition {
         $this.RegressionThreshold = $existingDef.RegressionThreshold
         $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
+        $this.AllowFailure = $existingDef.AllowFailure
     }
 
     [string]ToString() {
@@ -1479,6 +1488,7 @@ class ExecutableSpec {
 class TestDefinition {
     [string]$TestName;
     [boolean]$SkipKernel;
+    [boolean]$AllowFailure;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
     [int]$Iterations;
