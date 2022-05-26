@@ -50,12 +50,12 @@
             },
             "Variables": [
             ],
-            "AllowFailure": true,
             "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
+            "FailureDefault": "Result: 0 bytes @ 0 kbps (0.0 ms).",
             "Formats": ["{0} kbps"],
             "RegressionThreshold": "-50.0"
         },
@@ -130,12 +130,13 @@
             },
             "Variables": [
             ],
-            "AllowFailure": true,
+
             "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
+            "FailureDefault": "Result: 0 bytes @ 0 kbps (0.0 ms).",
             "Formats": ["{0} kbps"],
             "RegressionThreshold": "-50.0"
         },

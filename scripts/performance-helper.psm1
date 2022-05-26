@@ -605,15 +605,16 @@ function Get-MedianTestResults($FullResults) {
     }
 }
 
-function Get-TestResult($Results, $Matcher, $AllowFailure = $false) {
+function Get-TestResult($Results, $Matcher, $FailureDefault) {
     $Found = $Results -match $Matcher
     if ($Found) {
         return $Matches
     } else {
-        if($AllowFailure) {
-            return "0.0";
-        } else {
+        if([string]::IsNullOrWhiteSpace($FailureDefault)) {
             Write-Error "Error Processing Results:`n`n$Results"
+        } else {
+            $Found = $FailureDefault -match $Matcher
+            return $Matches
         }
     }
 }
@@ -1181,7 +1182,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
-    [boolean]$AllowFailure;
+    [string]$FailureDefault;
     [boolean]$SharedEC;
     [boolean]$XDP;
     [string[]]$Formats;
@@ -1208,7 +1209,7 @@ class TestRunDefinition {
         $this.RegressionThreshold = $existingDef.RegressionThreshold
         $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
-        $this.AllowFailure = $existingDef.AllowFailure
+        $this.FailureDefault = $existingDef.FailureDefault
     }
 
     TestRunDefinition (
@@ -1223,8 +1224,7 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
-        $this.AllowFailure =
-        $existingDef.AllowFailure
+        $this.FailureDefault = $existingDef.FailureDefault
         $this.VariableValue = ""
         $this.VariableName = ""
 
@@ -1259,7 +1259,7 @@ class TestRunDefinition {
         $this.RegressionThreshold = $existingDef.RegressionThreshold
         $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
-        $this.AllowFailure = $existingDef.AllowFailure
+        $this.FailureDefault = $existingDef.FailureDefault
     }
 
     [string]ToString() {
@@ -1488,7 +1488,7 @@ class ExecutableSpec {
 class TestDefinition {
     [string]$TestName;
     [boolean]$SkipKernel;
-    [boolean]$AllowFailure;
+    [string]$FailureDefault;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
     [int]$Iterations;
