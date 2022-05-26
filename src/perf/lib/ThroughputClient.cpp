@@ -76,10 +76,6 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "download", &DownloadLength);
     TryGetValue(argc, argv, "stats", &PrintStats);
 
-    if (UseTcp) {
-        Port = 9233;
-    }
-
     if (UploadLength && DownloadLength) {
         WriteOutput("Must specify only one of '-upload' or '-download' argument!\n");
         return QUIC_STATUS_INVALID_PARAMETER;
