@@ -10,6 +10,12 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+#if NETSTANDARD
+using OperatingSystem = Microsoft.Quic.Polyfill.OperatingSystem;
+#else
+using OperatingSystem = System.OperatingSystem;
+#endif
+
 namespace Microsoft.Quic
 {
     internal unsafe partial struct QUIC_BUFFER
