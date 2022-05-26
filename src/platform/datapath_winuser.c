@@ -740,6 +740,12 @@ Error:
     return Status;
 }
 
+//
+// To determine the OS version, we are going to use RtlGetVersion API
+// since GetVersion call can be shimmed on Win8.1+.
+//
+typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -916,6 +922,31 @@ CxPlatDataPathInitialize(
         CxPlatEventInitialize(&Datapath->Processors[i].CompletionEvent, TRUE, FALSE);
         CxPlatWorkerRegisterDataPath(i, &Datapath->Processors[i]);
     }
+
+    //
+    // Check for port reservation support.
+    //
+
+#ifndef QUIC_UWP_BUILD
+    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
+    if (NtDllHandle) {
+        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
+        if (VersionFunc) {
+            RTL_OSVERSIONINFOW VersionInfo = {0};
+            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
+            if ((*VersionFunc)(&VersionInfo) == 0) {
+                //
+                // Only RS5 and newer can use the port reservation feature safely.
+                //
+                if (VersionInfo.dwBuildNumber >= 17763) {
+                    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS;
+                }
+            }
+        }
+
+        FreeLibrary(NtDllHandle);
+    }
+#endif
 
     *NewDataPath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
@@ -1350,6 +1381,7 @@ CxPlatSocketCreateUdp(
     int Option;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    INET_PORT_RESERVATION_INSTANCE PortReservation;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1724,6 +1756,68 @@ QUIC_DISABLED_BY_FUZZER_START;
                     Socket,
                     WsaError,
                     "Set IP_UNICAST_IF");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+        }
+
+        if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS &&
+            Config->LocalAddress &&
+            Config->LocalAddress->Ipv4.sin_port != 0) {
+            if (i == 0) {
+                //
+                // Create a port reservation for the local port.
+                //
+                INET_PORT_RANGE PortRange;
+                PortRange.StartPort = Config->LocalAddress->Ipv4.sin_port;
+                PortRange.NumberOfPorts = 1;
+
+                Result =
+                    WSAIoctl(
+                        SocketProc->Socket,
+                        SIO_ACQUIRE_PORT_RESERVATION,
+                        &PortRange,
+                        sizeof(PortRange),
+                        &PortReservation,
+                        sizeof(PortReservation),
+                        &BytesReturned,
+                        NULL,
+                        NULL);
+                if (Result == SOCKET_ERROR) {
+                    int WsaError = WSAGetLastError();
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        Socket,
+                        WsaError,
+                        "SIO_ACQUIRE_PORT_RESERVATION");
+                    Status = HRESULT_FROM_WIN32(WsaError);
+                    goto Error;
+                }
+            }
+
+            //
+            // Associate the port reservation with the socket.
+            //
+            Result =
+                WSAIoctl(
+                    SocketProc->Socket,
+                    SIO_ASSOCIATE_PORT_RESERVATION,
+                    &PortReservation.Token,
+                    sizeof(PortReservation.Token),
+                    NULL,
+                    0,
+                    &BytesReturned,
+                    NULL,
+                    NULL);
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "SIO_ASSOCIATE_PORT_RESERVATION");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -2563,6 +2657,11 @@ CxPlatDataPathSocketContextShutdown(
     }
 
     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
+
+    QuicTraceLogVerbose(
+        DatapathSocketContextComplete,
+        "[data][%p] Socket context shutdown",
+        SocketProc);
 
     if (InterlockedDecrement16(
             &SocketProc->Parent->ProcsOutstanding) == 0) {
@@ -4018,10 +4117,18 @@ CxPlatDataPathRunEC(
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
         CxPlatEventSet(DatapathProc->CompletionEvent);
+        QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            DatapathProc);
         return;
     }
 
     if (SocketProc == NULL || Overlapped == NULL) {
+        QuicTraceLogVerbose(
+            DatapathWakeupForECTimeout,
+            "[data][%p] Datapath wakeup for EC wake or timeout",
+            DatapathProc);
         return; // Wake for execution contexts.
     }
 

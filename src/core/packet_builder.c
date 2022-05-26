@@ -68,7 +68,6 @@ QuicPacketBuilderValidate(
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length != 0);
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length <= UINT16_MAX);
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
-        CXPLAT_DBG_ASSERT(Builder->Datagram->Length > (uint32_t)Builder->DatagramLength);
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart);
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->HeaderLength);
@@ -948,9 +947,9 @@ Exit:
         if (Builder->Datagram != NULL) {
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
-            Builder->DatagramLength = 0;
             ++Builder->TotalCountDatagrams;
             Builder->TotalDatagramsLength += Builder->DatagramLength;
+            Builder->DatagramLength = 0;
         }
 
         if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendData)) {

@@ -221,9 +221,9 @@ static X509Certificate2 CreatePkcs12FromPem(string certPem, string keyPem)
 
 ## Using a self-signed certificate for HTTP/3
 
-Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to white list its fingerprint (or that of any certificate in the chain) via the `--ignore-certificate-errors-spki-list` switch.
+Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to whitelist its SHA-256 hash via the [serverCertificateHashes](https://w3c.github.io/webtransport/#dom-webtransportoptions-servercertificatehashes) option and follow stricter [requirements](https://w3c.github.io/webtransport/#custom-certificate-requirements).
 
-See [Chromium network switches](https://source.chromium.org/chromium/chromium/src/+/main:services/network/public/cpp/network_switches.cc;l=36;drc=f8c933c2bd17344ce7ac61be2ac7725ed840b19f)
+See [FlyByWireless.CustomCertificate.Generate()](https://github.com/wegylexy/webtransport/blob/c55d9cc5a11f3a8b8dfd2a12c8d02ad462dc693d/Server/CustomCertificate.cs#L8-L33) on how to generate such a certificate.
 
 ## Collecting a Packet Capture
 
@@ -248,7 +248,8 @@ Network Adapters:
    80 00-15-5D-AD-8B-40 433db3ea-0acd-457a-9c86-55bb7fa27391
 ```
 
-> **Note** - If you don't do this and use it to filter to a specific component, you will get a packet capture at **every** layer, which will include many duplicates of each packet.
+> **Note**
+> If you don't do this and use it to filter to a specific component, you will get a packet capture at **every** layer, which will include many duplicates of each packet.
 
 Once you find the interface you want, take note of the `Id`. For instance, in the example above, I want to use the Ethernet adapter, so I need `9`.
 
@@ -265,7 +266,8 @@ pktmon etl2pcap pktmon.etl
 
 This produced `pktmon.pcapng` in your current directory that can then be opened by [Wireshark](https://www.wireshark.org/). If you want to be able to decrypt the QUIC packets, you will need to get/export the TLS secrets from your code (todo: add link/instructions).
 
-> **Note** - If you don't specify the component in the `filter` step, you can specify it at the `etl2pcap` step: `pktmon etl2pcap pktmon.etl -c 9` and it will produce the same final output `pcapng` file.
+> **Note**
+> If you don't specify the component in the `filter` step, you can specify it at the `etl2pcap` step: `pktmon etl2pcap pktmon.etl -c 9` and it will produce the same final output `pcapng` file.
 
 # Trouble Shooting a Performance Issue
 

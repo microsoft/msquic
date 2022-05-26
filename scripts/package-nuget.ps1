@@ -23,6 +23,9 @@ param (
     [switch]$UWP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$XDP = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ReleaseBuild = $false
 )
 
@@ -81,11 +84,19 @@ if ((Test-Path $PackagingDir)) {
 # Arm is ignored, as there are no shipping arm devices
 $Architectures = "x64","x86","arm64"
 
+if ($XDP) {
+    # XDP only supports x64
+    $Architectures = "x64"
+}
+
 # Copy artifacts to correct folders
 $NativeDir = Join-Path $PackagingDir "build/native"
 
 foreach ($Arch in $Architectures) {
     $BuildPath = Join-Path $PlatformDir "$($Arch)_$($Config)_$($Tls)"
+    if ($XDP) {
+        $BuildPath += "_xdp"
+    }
     $LibPath = Join-Path $NativeDir "lib/$Arch"
     $BinPath = Join-Path $NativeDir "bin/$Arch"
 
@@ -127,6 +138,9 @@ $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 
 if ($UWP) {
     $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
+} elseif ($XDP) {
+    Copy-Item -Path (Join-Path $PSScriptRoot xdp-devkit.json) -Destination (Join-Path $PackagingDir xdp-devkit-temp.json)
+    $PackageName = "Microsoft.Native.Quic.MsQuic.XDP.$Tls"
 } else {
     $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"
 }

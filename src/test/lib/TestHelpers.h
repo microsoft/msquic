@@ -33,6 +33,7 @@ QuicAddrSetToDuoNic(
         // 192.168.1.11
         ((uint32_t*)&(Addr->Ipv4.sin_addr))[0] = 184658112;
     } else {
+        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET6);
         // fc00::1:11
         ((uint16_t*)&(Addr->Ipv6.sin6_addr))[0] = 252;
         ((uint16_t*)&(Addr->Ipv6.sin6_addr))[1] = 0;
@@ -80,6 +81,7 @@ struct ServerAcceptContext {
     TestConnection** NewConnection;
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     QUIC_STATUS ExpectedClientCertValidationResult{QUIC_STATUS_SUCCESS};
+    QUIC_STATUS PeerCertEventReturnStatus{false};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
@@ -132,6 +134,7 @@ InterlockedSubtract64(
 //
 void
 QuicTestPrimeResumption(
+    _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _In_ MsQuicRegistration& Registration,
     _In_ MsQuicConfiguration& ServerConfiguration,
     _In_ MsQuicConfiguration& ClientConfiguration,

@@ -4,7 +4,7 @@
 [submodule "submodules/openssl"]
 	path = submodules/openssl
 	url = https://github.com/quictls/openssl.git
-	branch = OpenSSL_1_1_1n+quic
+	branch = OpenSSL_1_1_1o+quic
 [submodule "submodules/clog"]
 	path = submodules/clog
 	url = https://github.com/microsoft/CLOG.git

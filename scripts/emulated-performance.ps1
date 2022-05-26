@@ -409,7 +409,7 @@ if ($MergeDataFiles) {
 
         # Commit the output file.
         git config user.email "quicdev@microsoft.com"
-        git config user.name "QUIC Dev Bot"
+        git config user.name "QUIC Dev[bot]"
         git add .
         git status
         git commit -m "Commit WAN Perf Results for $CurCommitHash"

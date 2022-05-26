@@ -173,6 +173,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextComplete
+// [data][%p] Socket context shutdown
+// QuicTraceLogVerbose(
+        DatapathSocketContextComplete,
+        "[data][%p] Socket context shutdown",
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathShutDownComplete
 // [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
@@ -240,6 +259,44 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathWakeupForShutdown
+// [data][%p] Datapath wakeup for shutdown
+// QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForShutdown,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathWakeupForECTimeout
+// [data][%p] Datapath wakeup for EC wake or timeout
+// QuicTraceLogVerbose(
+            DatapathWakeupForECTimeout,
+            "[data][%p] Datapath wakeup for EC wake or timeout",
+            DatapathProc);
+// arg2 = arg2 = DatapathProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForECTimeout,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
 

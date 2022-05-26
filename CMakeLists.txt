@@ -104,6 +104,14 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
+if (QUIC_UWP_BUILD OR QUIC_GAMECORE_BUILD)
+    message(STATUS "UWP And GameCore builds disable all executables, and force shared CRT")
+    set(QUIC_BUILD_TOOLS OFF)
+    set(QUIC_BUILD_TEST OFF)
+    set(QUIC_BUILD_PERF OFF)
+    set(QUIC_STATIC_LINK_CRT OFF)
+endif()
+
 if (NOT QUIC_BUILD_SHARED)
     cmake_minimum_required(VERSION 3.20)
 endif()
@@ -330,6 +338,8 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     message(STATUS "Disabling ChaCha20 support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CHACHA20_TESTS)
+    message(STATUS "Enabling anonymous client auth tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
@@ -463,8 +473,22 @@ if(WIN32)
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
 
+    # Find the right PGO file.
+    if(QUIC_SHARED_EC)
+        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.sharedec.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+    if(NOT EXISTS "${QUIC_PGO_FILE}")
+        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+    if(NOT EXISTS "${QUIC_PGO_FILE}")
+        set(QUIC_PGO_NAME "msquic.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+    message(STATUS "Using PGO file ${QUIC_PGO_NAME}")
+
     # Configure PGO linker flags.
-    set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/msquic.pgd")
     if(QUIC_PGO)
         # Configured for training mode. Use the previous PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")

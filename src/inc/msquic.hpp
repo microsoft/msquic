@@ -588,6 +588,18 @@ public:
                 QSettings);
     }
 
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings& Settings) noexcept {
+        QUIC_SETTINGS* QSettings = &Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                &Size,
+                QSettings);
+    }
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS
     SetVersionSettings(
@@ -693,6 +705,17 @@ struct MsQuicListener {
                 Value);
     }
 #endif
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_LISTENER_STATISTICS& Statistics) const noexcept {
+        uint32_t Size = sizeof(Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_STATS,
+                &Size,
+                &Statistics);
+    }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }

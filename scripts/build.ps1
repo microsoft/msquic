@@ -325,7 +325,7 @@ function CMake-Generate {
             $Arguments += " -G $Generator"
         }
     } else {
-        $Arguments += " $Generator"
+        $Arguments += "-G $Generator"
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
@@ -359,14 +359,16 @@ function CMake-Generate {
     if ($CodeCheck) {
         $Arguments += " -DQUIC_CODE_CHECK=on"
     }
-    if (!$DisableTools) {
-        $Arguments += " -DQUIC_BUILD_TOOLS=on"
-    }
-    if (!$DisableTest) {
-        $Arguments += " -DQUIC_BUILD_TEST=on"
-    }
-    if (!$DisablePerf) {
-        $Arguments += " -DQUIC_BUILD_PERF=on"
+    if ($Platform -ne "uwp" -and $Platform -ne "gamecore_console") {
+        if (!$DisableTools) {
+            $Arguments += " -DQUIC_BUILD_TOOLS=on"
+        }
+        if (!$DisableTest) {
+            $Arguments += " -DQUIC_BUILD_TEST=on"
+        }
+        if (!$DisablePerf) {
+            $Arguments += " -DQUIC_BUILD_PERF=on"
+        }
     }
     if (!$IsWindows) {
         $ConfigToBuild = $Config;
@@ -382,11 +384,10 @@ function CMake-Generate {
         $Arguments += " -DQUIC_PGO=on"
     }
     if ($Platform -eq "uwp") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on"
     }
-    # On gamecore, only the main binary can be built.
     if ($Platform -eq "gamecore_console") {
-        $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on"
     }
     if ($ToolchainFile -ne "") {
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""

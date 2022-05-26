@@ -63,6 +63,11 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_LIST_ENTRY Interfaces;
 
+    //
+    // Rundown for waiting on binding cleanup.
+    //
+    CXPLAT_RUNDOWN_REF SocketsRundown;
+
 } CXPLAT_DATAPATH;
 
 #define ETH_MAC_ADDR_LEN 6

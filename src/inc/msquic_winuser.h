@@ -23,7 +23,10 @@ Environment:
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <windows.h>
+#pragma warning(pop)
 #include <winsock2.h>
 #include <ws2ipdef.h>
 #pragma warning(push)
@@ -121,6 +124,7 @@ Environment:
 
 #define QUIC_STATUS_CERT_EXPIRED            CERT_E_EXPIRED
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     CERT_E_UNTRUSTEDROOT
+#define QUIC_STATUS_CERT_NO_CERT            SEC_E_NO_CREDENTIALS
 
 //
 // Swaps byte orders between host and network endianness.

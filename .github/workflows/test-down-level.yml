@@ -10,6 +10,12 @@ on:
     - main
     - release/*
 
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: testdownlevel-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 permissions: read-all
 
 jobs:
@@ -17,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.1']
+        release: ['2.0.2']
         os: [ubuntu-latest, windows-latest]
         arch: [x64]
         tls: [schannel, openssl]
@@ -30,7 +36,7 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab
+      uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -53,7 +59,7 @@ jobs:
       run: |
         chmod +x artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
         $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}"
-        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*
+        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
       run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*

@@ -16,7 +16,10 @@ Abstract:
 #include "selfsign_capi.c.clog.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #include "msquic.h"
 
 #define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
@@ -1029,7 +1032,7 @@ Done:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-const QUIC_CREDENTIAL_CONFIG*
+QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
     _In_ BOOLEAN IsClient

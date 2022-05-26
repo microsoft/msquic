@@ -83,6 +83,9 @@ param (
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UninstallXdp,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallClog2Text,
 
     [Parameter(Mandatory = $false)]
@@ -103,7 +106,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
 }
 
-if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest) {
+if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
     # everything is available.
@@ -149,7 +152,7 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $ArtifactsPath = Join-Path $RootDir "artifacts"
-if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath }
+if (!(Test-Path $ArtifactsPath)) { mkdir $ArtifactsPath | Out-Null }
 
 # Directory for the corenet CI install.
 $CoreNetCiPath = Join-Path $ArtifactsPath "corenet-ci-main"
@@ -175,20 +178,28 @@ function Download-CoreNet-Deps {
 function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if ($Force) { rm -Force -Recurse $XdpPath -ErrorAction Ignore }
+    if ($Force) {
+        try {
+            # Make sure an old driver isn't installed.
+            netcfg.exe -u ms_xdp
+            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+        } catch {}
+        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
+    }
     if (!(Test-Path $XdpPath)) {
         Write-Host "Downloading XDP"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri "https://lolafiles.blob.core.windows.net/nibanks/xdp-latest.zip" -OutFile $ZipPath
+        Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp-devkit.json") | ConvertFrom-Json).Path -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
+        New-Item -Path "$ArtifactsPath\bin\xdp" -ItemType Directory -Force
+        Copy-Item -Path "$XdpPath\symbols\*" -Destination "$ArtifactsPath\bin\xdp" -Force
+        Copy-Item -Path "$XdpPath\bin\*" -Destination "$ArtifactsPath\bin\xdp" -Force
         Remove-Item -Path $ZipPath
     }
 }
 
 # Installs the XDP driver (for testing).
-# NB: XDP can be uninstalled with:
-# netcfg.exe -u ms_xdp
-# pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+# NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
@@ -197,11 +208,25 @@ function Install-Xdp-Driver {
     }
 
     Write-Host "Installing XDP certificate"
-    CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
-    CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+    try {
+        CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
+    } catch { }
 
     Write-Host "Installing XDP driver"
     netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+}
+
+# Completely removes the XDP driver and SDK.
+function Uninstall-Xdp {
+    if (!$IsWindows) { return } # Windows only
+    $XdpPath = Join-Path $ArtifactsPath "xdp"
+    if (!(Test-Path $XdpPath)) { return; }
+
+    Write-Host "Uninstalling XDP"
+    try { netcfg.exe -u ms_xdp } catch {}
+    try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
+    rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
@@ -468,6 +493,7 @@ if ($InitSubmodules) {
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
+if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
