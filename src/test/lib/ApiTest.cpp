@@ -1738,63 +1738,6 @@ public:
 void QuicTestGlobalSetParam()
 {
     //
-    // global with handle
-    //
-    {
-        TestScopeLogger logScope("Global with handle");
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
-        MsQuicAlpn Alpn("MsQuicTest");
-        ConfigurationScope Configuration;
-
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->ConfigurationOpen(
-                Registration,
-                Alpn,
-                Alpn.Length(),
-                nullptr,
-                0,
-                nullptr,
-                &Configuration.Handle));
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Configuration.Handle,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                0,
-                nullptr));
-    }
-
-    //
-    // QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT
-    //
-    {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT");
-        {
-            TestScopeLogger logScope("Buffer length is not size of the variable");
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-                    0,
-                    nullptr));
-        }
-
-        {
-            uint16_t Percent = 26;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-                    sizeof(Percent),
-                    &Percent));
-        }
-        // what happen if percent is more than 100?
-    }
-
-    //
     // QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS
     //
     {
@@ -1809,60 +1752,57 @@ void QuicTestGlobalSetParam()
     }
 
     //
-    // QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE
-    //
-    {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
-    }
-
-    //
     // QUIC_PARAM_GLOBAL_PERF_COUNTERS
     //
     {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_PERF_COUNTERS");
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_PERF_COUNTERS is get only");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+                0,
+                nullptr));
     }
 
     //
     // QUIC_PARAM_GLOBAL_LIBRARY_VERSION
     //
     {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LIBRARY_VERSION");
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LIBRARY_VERSION is get only");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_LIBRARY_VERSION,
+                0,
+                nullptr));
     }
 
-    //
-    // QUIC_PARAM_GLOBAL_SETTINGS
-    //
-    {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_SETTINGS");
-    }
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_VERSION_SETTINGS
     //
     {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_VERSION_SETTINGS");
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_VERSION_SETTINGS is covered by QuicTestVersionSettings");
     }
-#endif
 
     //
     // QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH
     //
     {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH");
-    }
-
-    //
-    // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
-    //
-    {
-        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+        TestScopeLogger logScope("QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH is get only");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_LIBRARY_VERSION,
+                0,
+                nullptr));
     }
 }
 
 void QuicTestCommonSetParam()
 {
-    // Common
     //
     // Null hundle
     //
@@ -1874,41 +1814,234 @@ void QuicTestCommonSetParam()
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 0,
                 nullptr));
-    }
-
-    //
-    // Unexpected Type
-    //
-    {
     }
 }
 
 void QuicTestRegistrationSetParam()
 {
+    //
+    // No parameter for Registration as of now
+    //
 }
 
 void QuicTestConfigurationSetParam()
 {
     //
-    // Null hundle
+    // QUIC_PARAM_CONFIGURATION_TICKET_KEYS
     //
     {
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_CONFIGURATION_SETTINGS,
-                0,
-                nullptr));
+        TestScopeLogger logScope("QUIC_PARAM_CONFIGURATION_TICKET_KEYS is covered by QuicTestValidateConfiguration");
+    }
+
+    //
+    // QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS is covered by QuicTestVersionSettings");
     }
 }
 
 void QuicTestListenerSetParam()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+    TEST_TRUE(Listener.IsValid());
+
+    //
+    // QUIC_PARAM_LISTENER_LOCAL_ADDRESS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_LISTENER_LOCAL_ADDRESS is get only");
+        QUIC_ADDR dummy = {0};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Listener.SetParam(
+                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_LISTENER_STATS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_LISTENER_STATS is get only");
+        QUIC_LISTENER_STATISTICS dummy = {0};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Listener.SetParam(
+                QUIC_PARAM_LISTENER_STATS,
+                sizeof(dummy),
+                &dummy));
+    }
 }
 
 void QuicTestConnectionSetParam()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    //
+    // QUIC_PARAM_CONN_QUIC_VERSION
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_QUIC_VERSION is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint32_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_QUIC_VERSION,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_IDEAL_PROCESSOR
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_IDEAL_PROCESSOR is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_IDEAL_PROCESSOR,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_STATISTICS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_STATISTICS is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_STATISTICS_PLAT
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_STATISTICS_PLAT is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS_PLAT,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_MAX_STREAM_IDS
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_MAX_STREAM_IDS is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_MAX_STREAM_IDS,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_STATISTICS_V2
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_STATISTICS_V2 is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS_V2,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_CONN_STATISTICS_V2_PLAT
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_CONN_STATISTICS_V2_PLAT is get only");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
+                sizeof(dummy),
+                &dummy));
+    }
 }
 
 void QuicTestTlsSetParam()
@@ -1917,6 +2050,56 @@ void QuicTestTlsSetParam()
 
 void QuicTestStreamSetParam()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    TestScopeLogger logScope("QUIC_PARAM_CONN_QUIC_VERSION is get only");
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    //
+    // QUIC_PARAM_STREAM_ID
+    //
+    {
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        QUIC_UINT62 dummy = 123;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Stream.Handle,
+                QUIC_PARAM_STREAM_ID,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_STREAM_0RTT_LENGTH
+    //
+    {
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        uint64_t dummy = 123;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Stream.Handle,
+                QUIC_PARAM_STREAM_0RTT_LENGTH,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE
+    //
+    {
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        uint64_t dummy = 123;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Stream.Handle,
+                QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
+                sizeof(dummy),
+                &dummy));
+    }
 }
 
 void

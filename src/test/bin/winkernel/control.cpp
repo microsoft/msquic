@@ -1236,8 +1236,6 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestSteamSetParam());
         break;
 
-
-
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
