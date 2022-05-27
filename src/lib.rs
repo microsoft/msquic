@@ -126,6 +126,11 @@ impl Status {
     }
 }
 
+/// The different possible TLS providers used by MsQuic.
+pub type TlsProvider = u32;
+pub const TLS_PROVIDER_SCHANNEL: TlsProvider = 0;
+pub const TLS_PROVIDER_OPENSSL : TlsProvider = 1;
+
 /// Configures how to process a registration's workload.
 pub type ExecutionProfile = u32;
 pub const EXECUTION_PROFILE_LOW_LATENCY: ExecutionProfile = 0;
@@ -669,6 +674,8 @@ pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000005;
 pub const PARAM_GLOBAL_GLOBAL_SETTINGS: u32 = 0x01000006;
 pub const PARAM_GLOBAL_VERSION_SETTINGS: u32 = 0x01000007;
 pub const PARAM_GLOBAL_LIBRARY_GIT_HASH: u32 = 0x01000008;
+pub const PARAM_GLOBAL_DATAPATH_PROCESSORS: u32 = 0x01000009;
+pub const PARAM_GLOBAL_TLS_PROVIDER: u32 = 0x0100000A;
 
 pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
 pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;

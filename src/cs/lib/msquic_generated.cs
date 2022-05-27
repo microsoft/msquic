@@ -22,6 +22,12 @@ namespace Microsoft.Quic
     {
     }
 
+    internal enum QUIC_TLS_PROVIDER
+    {
+        SCHANNEL = 0x0000,
+        OPENSSL = 0x0001,
+    }
+
     internal enum QUIC_EXECUTION_PROFILE
     {
         LOW_LATENCY,
@@ -2591,6 +2597,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS 0x01000009")]
         internal const uint QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS = 0x01000009;
+
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_TLS_PROVIDER 0x0100000A")]
+        internal const uint QUIC_PARAM_GLOBAL_TLS_PROVIDER = 0x0100000A;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
