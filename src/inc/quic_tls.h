@@ -342,6 +342,15 @@ void
 typedef CXPLAT_SEC_CONFIG_CREATE_COMPLETE *CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
 
 //
+// Returns the type of TLS provider in use.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    );
+
+//
 // Creates a new TLS security configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

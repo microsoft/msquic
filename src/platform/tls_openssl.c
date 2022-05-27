@@ -290,7 +290,7 @@ CxPlatTlsCertificateVerifyCallback(
                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
         //
         // We need to get certificates provided by peer if we going to pass them via Callbacks.CertificateReceived.
-        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has 
+        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has
         // no certificates attached to it and that impacts validation of custom certificate chains.
         //
         // OpenSSL 3 has X509_build_chain() to build just the chain.
@@ -926,6 +926,15 @@ CXPLAT_STATIC_ASSERT(
 CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    )
+{
+    return QUIC_TLS_PROVIDER_OPENSSL;
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

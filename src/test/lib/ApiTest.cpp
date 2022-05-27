@@ -23,6 +23,24 @@ void QuicTestValidateApi()
         MsQuicOpen2(nullptr));
 
     MsQuicClose(nullptr);
+
+    // TODO - Move these into GetParam/SetParam tests
+    QUIC_TLS_PROVIDER TlsProvider;
+    uint32_t BufferLength = sizeof(TlsProvider);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_TLS_PROVIDER,
+            &BufferLength,
+            &TlsProvider));
+
+    TEST_EQUAL(
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_TLS_PROVIDER,
+            BufferLength,
+            &TlsProvider),
+        QUIC_STATUS_INVALID_PARAMETER);
 }
 
 void QuicTestValidateRegistration()
