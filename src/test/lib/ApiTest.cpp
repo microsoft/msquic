@@ -1803,18 +1803,6 @@ void QuicTestGlobalSetParam()
 
 void QuicTestCommonSetParam()
 {
-    //
-    // Null hundle
-    //
-    {
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_CONFIGURATION_SETTINGS,
-                0,
-                nullptr));
-    }
 }
 
 void QuicTestRegistrationSetParam()
