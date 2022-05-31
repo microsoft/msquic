@@ -2046,6 +2046,51 @@ void QuicTestConnectionSetParam()
 
 void QuicTestTlsSetParam()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            Connection.Handle,
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
+            "localhost",
+            4433));
+
+    //
+    // QUIC_PARAM_TLS_HANDSHAKE_INFO
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_TLS_HANDSHAKE_INFO is get only");
+        QUIC_HANDSHAKE_INFO dummy = {};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_NOT_SUPPORTED,
+            Connection.SetParam(
+                QUIC_PARAM_TLS_HANDSHAKE_INFO,
+                sizeof(dummy),
+                &dummy));
+    }
+
+    //
+    // QUIC_PARAM_TLS_NEGOTIATED_ALPN
+    //
+    {
+        TestScopeLogger logScope("QUIC_PARAM_TLS_NEGOTIATED_ALPN is get only");
+
+        uint8_t dummy[] = "MsQuicTest";
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_NOT_SUPPORTED,
+            Connection.SetParam(
+                QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+                sizeof(dummy),
+                &dummy));
+    }
 }
 
 void QuicTestStreamSetParam()
