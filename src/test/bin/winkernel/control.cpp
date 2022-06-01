@@ -461,6 +461,14 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1233,7 +1241,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM:
-        QuicTestCtlRun(QuicTestSteamSetParam());
+        QuicTestCtlRun(QuicTestStreamSetParam());
         break;
 
     default:
