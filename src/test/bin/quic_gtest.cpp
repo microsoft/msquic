@@ -179,6 +179,78 @@ TEST(ParameterValidation, ValidateRegistration) {
     }
 }
 
+TEST(ParameterValidation, ValidateGlobalSetParam) {
+    TestLogger Logger("QuicTestValidateGlobalSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GLOBAL_SET_PARAM));
+    } else {
+        QuicTestGlobalSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateCommonSetParam) {
+    TestLogger Logger("QuicTestValidateCommonSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_COMMON_SET_PARAM));
+    } else {
+        QuicTestCommonSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateRegistrationSetParam) {
+    TestLogger Logger("QuicTestValidateRegistrationSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_SET_PARAM));
+    } else {
+        QuicTestRegistrationSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateConfigurationSetParam) {
+    TestLogger Logger("QuicTestValidateConfigurationSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_SET_PARAM));
+    } else {
+        QuicTestConfigurationSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateListenerSetParam) {
+    TestLogger Logger("QuicTestValidateListenerSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_LISTENER_SET_PARAM));
+    } else {
+        QuicTestListenerSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateConnectionSetParam) {
+    TestLogger Logger("QuicTestValidateConnectionSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_SET_PARAM));
+    } else {
+        QuicTestConnectionSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateTlsSetParam) {
+    TestLogger Logger("QuicTestValidateTlsSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_SET_PARAM));
+    } else {
+        QuicTestTlsSetParam();
+    }
+}
+
+TEST(ParameterValidation, ValidateStreamSetParam) {
+    TestLogger Logger("QuicTestValidateStreamSetParam");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM));
+    } else {
+        QuicTestStreamSetParam();
+    }
+}
+
 TEST(ParameterValidation, ValidateGetPerfCounters) {
     TestLogger Logger("QuicTestGetPerfCounters");
     if (TestingKernelMode) {
