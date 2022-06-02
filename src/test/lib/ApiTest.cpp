@@ -1826,8 +1826,20 @@ void QuicTestCommonSetParam()
 void QuicTestRegistrationSetParam()
 {
     //
-    // No parameter for Registration as of now
+    // No parameter for Registration
     //
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+        uint32_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Registration.Handle,
+                QUIC_PARAM_PREFIX_REGISTRATION,
+                sizeof(Dummy),
+                &Dummy));
+    }
 }
 
 void QuicTestConfigurationSetParam()
