@@ -1821,6 +1821,56 @@ void QuicTestGlobalSetParam()
 
 void QuicTestCommonSetParam()
 {
+    //
+    // Null hundle
+    //
+    {
+        TestScopeLogger LogScope("Null handle with non-global param");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                0, // Any param other than GLOBAL
+                0,
+                nullptr));
+    }
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    //
+    // Global param with handle
+    //
+    {
+        TestScopeLogger LogScope("Global with handle");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Registration.Handle,
+                QUIC_PARAM_PREFIX_GLOBAL,
+                0,
+                nullptr));
+    }
+
+    //
+    // Invalid handle type
+    //
+    {
+        TestScopeLogger LogScope("Invalid handle type");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        auto OriginalType = ((uint8_t*)Connection.Handle)[0];
+        ((uint8_t*)Connection.Handle)[0] = 128; // Invalid
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Connection.Handle,
+                0,
+                0,
+                nullptr));
+        ((uint8_t*)Connection.Handle)[0] = OriginalType;
+    }
 }
 
 void QuicTestRegistrationSetParam()
