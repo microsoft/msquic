@@ -1753,8 +1753,207 @@ public:
     }
 };
 
+void SettingApplyTests(HQUIC Handle, uint32_t Param) {
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.MaxAckDelayMs = UINT32_MAX;
+        Settings.IsSet.MaxAckDelayMs = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.DisconnectTimeoutMs = UINT32_MAX;
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.IdleTimeoutMs = UINT64_MAX;
+        Settings.IsSet.IdleTimeoutMs = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.HandshakeIdleTimeoutMs = UINT64_MAX;
+        Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.StreamRecvBufferDefault = 0;
+        Settings.IsSet.StreamRecvBufferDefault = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.MaxBytesPerKey = UINT64_MAX;
+        Settings.IsSet.MaxBytesPerKey = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.ServerResumptionLevel = 3; // bit length 2
+        Settings.IsSet.ServerResumptionLevel = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    //
+    // MinimumMtu is bigger than MaximumMtu
+    //
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.MinimumMtu = 1400;
+        Settings.IsSet.MinimumMtu = TRUE;
+        Settings.MaximumMtu = 1300;
+        Settings.IsSet.MaximumMtu = TRUE;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    //
+    // Good
+    //
+    {
+        QUIC_SETTINGS Settings{0};
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+}
+
+void QuicTestStatefulGlobalSetParam()
+{
+    TestScopeLogger LogScope("QuicTestStatefulGlobalSetParam");
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    //
+    // Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)
+    //
+    {
+        TestScopeLogger LogScope("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
+        MsQuicAlpn Alpn("MsQuicTest");
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
+        TEST_TRUE(ClientConfiguration.IsValid());
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionStart(
+                Connection.Handle,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
+                "localhost",
+                4433));
+        CxPlatSleep(1000); // bit slow to set MsQuicLib.InUse = TRUE
+
+        uint16_t mode = QUIC_LOAD_BALANCING_DISABLED;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+                sizeof(mode),
+                &mode));
+    }
+
+    //
+    // Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL
+    //
+    {
+        TestScopeLogger LogScope("Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL");
+        uint16_t data[4] = {};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                sizeof(data),
+                &data));
+    }
+}
+
 void QuicTestGlobalSetParam()
 {
+    //
+    // QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT");
+        uint16_t Percent = 26;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                sizeof(Percent),
+                &Percent));
+    }
+
     //
     // QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS
     //
@@ -1767,6 +1966,40 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS,
                 0,
                 nullptr));
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
+        //
+        // Invalid mode
+        //
+        {
+            TestScopeLogger LogScope("Invalid mode");
+            uint16_t mode = (QUIC_LOAD_BALANCING_MODE)128;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+                    sizeof(mode),
+                    &mode));
+        }
+
+        //
+        // Good setting
+        //
+        {
+            uint16_t mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+                    sizeof(mode),
+                    &mode));
+        }
     }
 
     //
@@ -1798,6 +2031,73 @@ void QuicTestGlobalSetParam()
     }
 
     //
+    // QUIC_PARAM_GLOBAL_SETTINGS
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_SETTINGS");
+        //
+        // QuicSettingsSettingsToInternal fail
+        //
+        {
+            TestScopeLogger LogScope("QuicSettingsSettingsToInternal fail");
+            QUIC_SETTINGS Settings{0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_SETTINGS,
+                    sizeof(QUIC_SETTINGS)-8,
+                    &Settings));
+        }
+
+        //
+        // QuicSettingApply fail
+        //
+        {
+            TestScopeLogger LogScope("QuicSettingApply fail");
+            SettingApplyTests(nullptr, QUIC_PARAM_GLOBAL_SETTINGS);
+        }
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
+        //
+        // QuicSettingsGlobalSettingsToInternal fail
+        //
+        {
+            TestScopeLogger LogScope("QuicSettingsSettingsToInternal fail");
+            QUIC_GLOBAL_SETTINGS Settings{0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                    sizeof(QUIC_GLOBAL_SETTINGS) - 8,
+                    &Settings));
+        }
+
+        //
+        // QuicSettingApply fail
+        //
+        {
+            TestScopeLogger LogScope("QuicSettingApply fail");
+            QUIC_GLOBAL_SETTINGS Settings{0};
+            Settings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP + 10;
+            Settings.IsSet.LoadBalancingMode = TRUE;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                    sizeof(QUIC_GLOBAL_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    //
     // QUIC_PARAM_GLOBAL_VERSION_SETTINGS
     //
     {
@@ -1817,6 +2117,147 @@ void QuicTestGlobalSetParam()
                 0,
                 nullptr));
     }
+
+    //
+    // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+        //
+        // BufferLength is not divisible by sizeof(uint16_t)
+        //
+        {
+            TestScopeLogger LogScope("BufferLength is not divisible by sizeof(uint16_t)");
+            uint16_t data[4];
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    sizeof(data) + 1,
+                    &data));
+        }
+
+        //
+        // one of data is bigger than the number of its' platform cpus
+        //
+        {
+            TestScopeLogger LogScope("one of data is bigger than the number of its' platform cpus");
+            uint16_t data[4] = {};
+            data[0] = UINT16_MAX;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    sizeof(data),
+                    &data));
+        }
+
+        //
+        // Good without data
+        //
+        {
+            TestScopeLogger LogScope("Good without data");
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    0,
+                    nullptr));
+        }
+
+        //
+        // Good with data
+        //
+        {
+            TestScopeLogger LogScope("Good with data");
+            uint16_t data[4] = {};
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    sizeof(data),
+                    &data));
+        }
+    }
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    //
+    // QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS");
+        QUIC_TEST_DATAPATH_HOOKS hook = {};
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                sizeof(&hook),
+                &hook));
+    }
+#endif
+
+#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+    int32_t value = 123;
+    //
+    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR");
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                sizeof(value),
+                &value));
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE");
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
+                sizeof(value),
+                &value));
+    }
+#endif
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED");
+        BOOLEAN flag = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+                sizeof(flag),
+                &flag));
+    }
+#endif
+
+    //
+    // Invalid parameter
+    //
+    {
+        TestScopeLogger LogScope("Invalid parameter for Global SetParam");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_PREFIX_GLOBAL | 0x00234567,
+                0,
+                nullptr));
+    }
+
+    QuicTestStatefulGlobalSetParam();
 }
 
 void QuicTestCommonSetParam()
