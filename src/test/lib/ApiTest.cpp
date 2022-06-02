@@ -2103,7 +2103,6 @@ void QuicTestStreamSetParam()
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
-    TestScopeLogger LogScope("QUIC_PARAM_CONN_QUIC_VERSION is get only");
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
@@ -2111,6 +2110,7 @@ void QuicTestStreamSetParam()
     // QUIC_PARAM_STREAM_ID
     //
     {
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_ID is get only");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         QUIC_UINT62 Dummy = 123;
         TEST_QUIC_STATUS(
@@ -2126,6 +2126,7 @@ void QuicTestStreamSetParam()
     // QUIC_PARAM_STREAM_0RTT_LENGTH
     //
     {
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_0RTT_LENGTH is get only");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         uint64_t Dummy = 123;
         TEST_QUIC_STATUS(
@@ -2141,6 +2142,7 @@ void QuicTestStreamSetParam()
     // QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE
     //
     {
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE is get only");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         uint64_t Dummy = 123;
         TEST_QUIC_STATUS(
@@ -2150,6 +2152,24 @@ void QuicTestStreamSetParam()
                 QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
                 sizeof(Dummy),
                 &Dummy));
+    }
+
+    //
+    // QUIC_PARAM_STREAM_PRIORITY
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_PRIORITY");
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE); // IMMEDIATE to set Stream->SendFlags != 0
+        CxPlatSleep(100);
+
+        uint16_t Priority = 123;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Stream.Handle,
+                QUIC_PARAM_STREAM_PRIORITY,
+                sizeof(Priority),
+                &Priority));
     }
 }
 
