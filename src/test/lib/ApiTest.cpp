@@ -2146,10 +2146,10 @@ void QuicTestGlobalSetParam()
         }
 
         //
-        // one of data is bigger than the number of its' platform cpus
+        // one of data is bigger than the number of its platform cpus
         //
         {
-            TestScopeLogger LogScope("one of data is bigger than the number of its' platform cpus");
+            TestScopeLogger LogScope("one of data is bigger than the number of its platform cpus");
             uint16_t Data[4] = {};
             Data[0] = UINT16_MAX;
             TEST_QUIC_STATUS(
@@ -2189,7 +2189,6 @@ void QuicTestGlobalSetParam()
         }
     }
 
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
     // QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS
     //
@@ -2203,7 +2202,6 @@ void QuicTestGlobalSetParam()
                 sizeof(&Hook),
                 &Hook));
     }
-#endif
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
     int32_t Value = 123;
