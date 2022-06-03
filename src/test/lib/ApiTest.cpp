@@ -1897,6 +1897,7 @@ void QuicTestStatefulGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
         MsQuicAlpn Alpn("MsQuicTest");
         MsQuicCredentialConfig ClientCredConfig;
         MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
@@ -1912,7 +1913,7 @@ void QuicTestStatefulGlobalSetParam()
                 4433));
         CxPlatSleep(1000); // bit slow to set MsQuicLib.InUse = TRUE
 
-        uint16_t Mode = QUIC_LOAD_BALANCING_DISABLED;
+        uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
             MsQuic->SetParam(
@@ -1927,6 +1928,7 @@ void QuicTestStatefulGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
         uint16_t Data[4] = {};
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
@@ -1945,6 +1947,7 @@ void QuicTestGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT);
         uint16_t Percent = 26;
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
@@ -1973,6 +1976,7 @@ void QuicTestGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
         //
         // Invalid mode
         //
@@ -2035,6 +2039,7 @@ void QuicTestGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_SETTINGS");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         //
         // QuicSettingsSettingsToInternal fail
         //
@@ -2064,6 +2069,7 @@ void QuicTestGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS);
         //
         // QuicSettingsGlobalSettingsToInternal fail
         //
@@ -2123,6 +2129,7 @@ void QuicTestGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
         //
         // BufferLength is not divisible by sizeof(uint16_t)
         //
@@ -2233,6 +2240,7 @@ void QuicTestGlobalSetParam()
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED);
         BOOLEAN Flag = TRUE;
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(

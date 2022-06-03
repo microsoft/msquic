@@ -113,6 +113,49 @@ struct ClearGlobalVersionListScope {
 };
 
 //
+// Global parameter setting might affect other tests' behavior.
+// This sets back the original value
+//
+struct GlobalSettingScope {
+    uint32_t Parameter;
+    uint32_t BufferLength;
+    void* OriginalValue;
+    GlobalSettingScope(uint32_t Parameter) : Parameter(Parameter), BufferLength(0), OriginalValue(nullptr) {
+         // can be both too samll or success
+        auto Status = MsQuic->GetParam(
+                nullptr,
+                Parameter,
+                &BufferLength,
+                nullptr);
+        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
+            (Parameter == QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS && Status == QUIC_STATUS_SUCCESS));
+
+        OriginalValue = malloc(BufferLength);
+        if (OriginalValue == nullptr) {
+            TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+        }
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                Parameter,
+                &BufferLength,
+                OriginalValue));
+    }
+
+    ~GlobalSettingScope() {
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                Parameter,
+                BufferLength,
+                OriginalValue));
+        if (OriginalValue != nullptr) {
+            free(OriginalValue);
+        }
+    }
+};
+
+//
 // No 64-bit version for this existed globally. This defines an interlocked
 // helper for subtracting 64-bit numbers.
 //
