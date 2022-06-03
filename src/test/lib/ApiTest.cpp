@@ -1754,102 +1754,128 @@ public:
 };
 
 void SettingApplyTests(HQUIC Handle, uint32_t Param) {
+    struct TestSpec {
+        uint64_t Value;
+        QUIC_STATUS Status;
+    };
+
     {
+        struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_TP_MAX_ACK_DELAY_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.MaxAckDelayMs = UINT32_MAX;
         Settings.IsSet.MaxAckDelayMs = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.MaxAckDelayMs = (uint32_t)Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     {
+        struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_MAX_DISCONNECT_TIMEOUT,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.DisconnectTimeoutMs = UINT32_MAX;
         Settings.IsSet.DisconnectTimeoutMs = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.DisconnectTimeoutMs = (uint32_t)Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     {
+        struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_VAR_INT_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.IdleTimeoutMs = UINT64_MAX;
         Settings.IsSet.IdleTimeoutMs = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.IdleTimeoutMs = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     {
+        struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_VAR_INT_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.HandshakeIdleTimeoutMs = UINT64_MAX;
         Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.HandshakeIdleTimeoutMs = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     {
+        struct TestSpec Spec[] = {{0, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.StreamRecvBufferDefault = 0;
         Settings.IsSet.StreamRecvBufferDefault = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.StreamRecvBufferDefault = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     {
+        struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_DEFAULT_MAX_BYTES_PER_KEY,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.MaxBytesPerKey = UINT64_MAX;
         Settings.IsSet.MaxBytesPerKey = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.MaxBytesPerKey = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     {
+        struct TestSpec Spec[] = {{3, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_SERVER_RESUME_AND_ZERORTT,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
-        Settings.ServerResumptionLevel = 3; // bit length 2
         Settings.IsSet.ServerResumptionLevel = TRUE;
-
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings));
+        for (auto &Data: Spec) {
+            Settings.ServerResumptionLevel = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
     }
 
     //
@@ -1857,13 +1883,23 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     //
     {
         QUIC_SETTINGS Settings{0};
-        Settings.MinimumMtu = 1400;
         Settings.IsSet.MinimumMtu = TRUE;
-        Settings.MaximumMtu = 1300;
         Settings.IsSet.MaximumMtu = TRUE;
+        Settings.MinimumMtu = 1400;
+        Settings.MaximumMtu = 1300;
 
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+
+        Settings.MinimumMtu = 1300;
+        Settings.MaximumMtu = 1400;
+
+        TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Handle,
                 Param,
@@ -1911,7 +1947,7 @@ void QuicTestStatefulGlobalSetParam()
                 QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 4433));
-        CxPlatSleep(1000); // bit slow to set MsQuicLib.InUse = TRUE
+        CxPlatSleep(100); // bit slow to set MsQuicLib.InUse = TRUE
 
         uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
         TEST_QUIC_STATUS(

@@ -490,6 +490,10 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT   QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC
 
+#define QUIC_TP_MAX_ACK_DELAY_DEFAULT                       25 // ms
+#define QUIC_TP_MAX_ACK_DELAY_MAX                           ((1 << 14) - 1)
+#define QUIC_TP_MIN_ACK_DELAY_MAX                           ((1 << 24) - 1)
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

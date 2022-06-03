@@ -118,9 +118,9 @@ struct ClearGlobalVersionListScope {
 //
 struct GlobalSettingScope {
     uint32_t Parameter;
-    uint32_t BufferLength;
-    void* OriginalValue;
-    GlobalSettingScope(uint32_t Parameter) : Parameter(Parameter), BufferLength(0), OriginalValue(nullptr) {
+    uint32_t BufferLength {0};
+    void* OriginalValue {nullptr};
+    GlobalSettingScope(uint32_t Parameter) : Parameter(Parameter) {
          // can be both too samll or success
         auto Status = MsQuic->GetParam(
                 nullptr,
@@ -130,7 +130,7 @@ struct GlobalSettingScope {
         TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
             (Parameter == QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS && Status == QUIC_STATUS_SUCCESS));
 
-        OriginalValue = malloc(BufferLength);
+        OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
         if (OriginalValue == nullptr) {
             TEST_FAILURE("Out of memory for testing SetParam for global parameter");
         }
@@ -150,7 +150,7 @@ struct GlobalSettingScope {
                 BufferLength,
                 OriginalValue));
         if (OriginalValue != nullptr) {
-            free(OriginalValue);
+            CXPLAT_FREE(OriginalValue, QUIC_POOL_TEST);
         }
     }
 };
