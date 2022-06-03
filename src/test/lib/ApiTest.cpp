@@ -1760,7 +1760,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     };
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_TP_MAX_ACK_DELAY_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
@@ -1778,7 +1777,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     }
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_MAX_DISCONNECT_TIMEOUT,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
@@ -1796,7 +1794,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     }
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_VAR_INT_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
@@ -1814,7 +1811,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     }
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_VAR_INT_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
@@ -1832,7 +1828,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     }
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{0, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
@@ -1850,7 +1845,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     }
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_DEFAULT_MAX_BYTES_PER_KEY,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
@@ -1868,7 +1862,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
     }
 
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         struct TestSpec Spec[] = {{3, QUIC_STATUS_INVALID_PARAMETER},
                                   {QUIC_SERVER_RESUME_AND_ZERORTT,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
