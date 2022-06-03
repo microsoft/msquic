@@ -6546,11 +6546,8 @@ QuicConnParamSet(
     return Status;
 }
 
-#define STATISTICS_SIZE_THRU_FIELD(Field) \
-    (FIELD_OFFSET(QUIC_STATISTICS_V2, Field) + sizeof(((QUIC_STATISTICS_V2*)0)->Field))
-
 #define STATISTICS_HAS_FIELD(Size, Field) \
-    (Size >= STATISTICS_SIZE_THRU_FIELD(Field))
+    (Size >= QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, Field))
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static
@@ -6563,7 +6560,7 @@ QuicConnGetV2Statistics(
         QUIC_STATISTICS_V2* Stats
     )
 {
-    const uint32_t MinimumStatsSize = (uint32_t)STATISTICS_SIZE_THRU_FIELD(KeyUpdateCount);
+    const uint32_t MinimumStatsSize = QUIC_STATISTICS_V2_SIZE_1;
 
     if (*StatsLength == 0) {
         *StatsLength = sizeof(QUIC_STATISTICS_V2);
