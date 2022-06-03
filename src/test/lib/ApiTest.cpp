@@ -2361,11 +2361,98 @@ void QuicTestRegistrationSetParam()
 
 void QuicTestConfigurationSetParam()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    MsQuicAlpn Alpn("MsQuicTest");
+    //MsQuicConfiguration Configuration(Registration, Alpn);
+
+    //
+    // QUIC_PARAM_CONFIGURATION_SETTINGS
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_SETTINGS");
+        //
+        // QuicSettingsSettingsToInternal fail
+        //
+        {
+            TestScopeLogger LogScope("QuicSettingsSettingsToInternal fail");
+            MsQuicConfiguration Configuration(Registration, Alpn);
+            QUIC_SETTINGS Settings{0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_CONFIGURATION_SETTINGS,
+                    sizeof(QUIC_SETTINGS)-8,
+                    &Settings));
+        }
+
+        //
+        // QuicSettingApply fail
+        //
+        {
+            TestScopeLogger LogScope("QuicSettingApply fail");
+            MsQuicConfiguration Configuration(Registration, Alpn);
+            SettingApplyTests(Configuration.Handle, QUIC_PARAM_CONFIGURATION_SETTINGS);
+        }
+    }
+
     //
     // QUIC_PARAM_CONFIGURATION_TICKET_KEYS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_TICKET_KEYS is covered by QuicTestValidateConfiguration");
+        TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_TICKET_KEYS");
+        //
+        // Set before MsQuic->ConfigurationLoadCredential which is Configuration->SecurityConfig == NULL
+        //
+        {
+            TestScopeLogger LogScope("Set before MsQuic->ConfigurationLoadCredential which is Configuration->SecurityConfig == NULL");
+            MsQuicConfiguration Configuration(Registration, Alpn);
+            QUIC_TICKET_KEY_CONFIG Config{0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    Configuration,
+                    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                    sizeof(Config),
+                    &Config));
+        }
+
+        //
+        // SetParam for client is not supported
+        //
+        {
+            TestScopeLogger LogScope("SetParam for client is not supported");
+            MsQuicConfiguration Configuration(Registration, Alpn);
+            QUIC_CREDENTIAL_CONFIG CredConfig = {};
+            CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
+            Configuration.LoadCredential(&CredConfig);
+            QUIC_TICKET_KEY_CONFIG Config = {};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_NOT_SUPPORTED,
+                MsQuic->SetParam(
+                    Configuration,
+                    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                    sizeof(Config),
+                    &Config));
+        }
+
+        //
+        // Good with self-signed key
+        //
+        {
+            TestScopeLogger LogScope("Good with self-signed key");
+            MsQuicConfiguration Configuration(Registration, Alpn);
+            QUIC_CREDENTIAL_CONFIG* CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);;
+            Configuration.LoadCredential(CredConfig);
+            QUIC_TICKET_KEY_CONFIG Config{0};
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Configuration,
+                    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                    sizeof(Config),
+                    &Config));
+        }
     }
 
     //
@@ -2374,6 +2461,23 @@ void QuicTestConfigurationSetParam()
     {
         TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS is covered by QuicTestVersionSettings");
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED");
+        MsQuicConfiguration Configuration(Registration, Alpn);
+        BOOLEAN flag = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Configuration,
+                QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
+                sizeof(flag),
+                &flag));
+    }
+#endif
 }
 
 // Used by Listener and Connection
