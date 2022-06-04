@@ -47,7 +47,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     //
     // Serializes access to the execution contexts.
     //
-    CXPLAT_DISPATCH_LOCK ECLock;
+    CXPLAT_LOCK ECLock;
 
     //
     // The set of actively registered execution contexts.
