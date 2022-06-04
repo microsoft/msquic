@@ -1683,12 +1683,16 @@ CxPlatTlsIndicateCertificateReceived(
     } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CHAIN) {
 #ifndef _KERNEL_MODE
         CXPLAT_DBG_ASSERT(FALSE);
+        Certificate = NULL;
+        CertificateChain = NULL;
 #endif
         Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Chain;
         CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCertBlob->Chain;
     } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CONTEXT) {
 #ifdef _KERNEL_MODE
         CXPLAT_DBG_ASSERT(FALSE);
+        Certificate = NULL;
+        CertificateChain = NULL;
 #else
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
             QUIC_STATUS Status =
