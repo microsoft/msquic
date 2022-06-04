@@ -2535,12 +2535,6 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;
 
-        [NativeTypeName("#define QUIC_STATISTICS_V2_SIZE_1 QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)")]
-        internal static readonly ulong QUIC_STATISTICS_V2_SIZE_1 = unchecked((ulong)(((int)(Marshal.OffsetOf<QUIC_STATISTICS_V2>("KeyUpdateCount"))) + 4));
-
-        [NativeTypeName("#define QUIC_STATISTICS_V2_SIZE_2 QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendCongestionWindow)")]
-        internal static readonly ulong QUIC_STATISTICS_V2_SIZE_2 = unchecked((ulong)(((int)(Marshal.OffsetOf<QUIC_STATISTICS_V2>("SendCongestionWindow"))) + 4));
-
         [NativeTypeName("#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64")]
         internal const uint QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
 
