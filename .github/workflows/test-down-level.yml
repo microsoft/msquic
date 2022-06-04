@@ -1,0 +1,65 @@
+name: Test Down Level
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: testdownlevel-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  test-down-level:
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ['2.0.2']
+        os: [ubuntu-latest, windows-latest]
+        arch: [x64]
+        tls: [schannel, openssl]
+        exclude:
+        - os: ubuntu-latest
+          tls: schannel
+        - os: windows-latest
+          tls: openssl
+    runs-on: ${{ matrix.os }}
+    name: Test
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
+      with:
+        egress-policy: audit
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -DisableTest
+      shell: pwsh
+    - name: Build Release
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
+    - name: Download Tests
+      shell: pwsh
+      run: |
+        $osName = "${{runner.os}}".ToLower()
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_${{runner.os}}_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.arch}}_Release_${{matrix.tls}}
+    - name: Run Tests (Linux)
+      if: runner.os == 'Linux'
+      shell: pwsh
+      run: |
+        chmod +x artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
+        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}"
+        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*
+    - name: Run Tests (Windows)
+      if: runner.os == 'Windows'
+      run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*

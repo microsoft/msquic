@@ -21,7 +21,10 @@ Environment:
 #include "certificates_capi.c.clog.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #include "msquic.h"
 
 #define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
@@ -80,6 +83,12 @@ CxPlatCertVerifyRawCertificate(
     }
     if (CredFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
         CertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
+    }
+    if (CredFlags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
+        CertFlags |= CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (CredFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        CertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
     }
 
     Result =

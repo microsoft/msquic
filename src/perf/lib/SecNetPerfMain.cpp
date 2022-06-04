@@ -16,6 +16,10 @@ Abstract:
 #include "HpsClient.h"
 #include "Tcp.h"
 
+#ifndef _KERNEL_MODE
+#include <vector>
+#endif
+
 #ifdef QUIC_CLOG
 #include "SecNetPerfMain.cpp.clog.h"
 #endif
@@ -28,6 +32,10 @@ PerfBase* TestToRun;
 
 #include "quic_datapath.h"
 
+const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
+    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
+CXPLAT_THREAD ControlThreadHandle;
 CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
@@ -87,9 +95,57 @@ PrintHelp(
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
+#ifndef _KERNEL_MODE
+        "Both:\n"
+        "  -cpu:<cpu_index>            Specify the processor(s) for the datapath to use.\n"
+        "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
+#endif // _KERNEL_MODE
         "\n"
         );
 }
+
+#ifdef QUIC_USE_RAW_DATAPATH
+CXPLAT_THREAD_CALLBACK(ControlThread, Context)
+{
+    WSADATA WsaData;
+    WSAStartup(MAKEWORD(2, 2), &WsaData);
+
+    CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
+    SOCKADDR_STORAGE Addr = {0};
+    uint8_t RecvBuf[sizeof(SecNetPerfShutdownGuid)] = {0};
+
+    IN4ADDR_SETANY((SOCKADDR_IN*)&Addr);
+    SS_PORT(&Addr) = htons(9999);
+    SOCKET Listener = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (bind(Listener, (SOCKADDR*)&Addr, sizeof(Addr)) == SOCKET_ERROR) {
+        printf("control listener failed to bind with error %d\n", WSAGetLastError());
+        goto Done;
+    }
+
+    while (true) {
+        int BytesRcvd =
+            recvfrom(
+                Listener, (char*)RecvBuf, sizeof(RecvBuf), 0, NULL, NULL);
+        if (BytesRcvd == SOCKET_ERROR) {
+            int Error = WSAGetLastError();
+            if (Error == WSAEMSGSIZE) {
+                continue;
+            }
+            printf("recvfrom failed with error %d\n", Error);
+            goto Done;
+        }
+
+        if (BytesRcvd == sizeof(RecvBuf) &&
+            memcmp(RecvBuf, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid)) == 0) {
+            break;
+        }
+    }
+Done:
+    CxPlatEventSet(*Event);
+    closesocket(Listener);
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+}
+#endif
 
 QUIC_STATUS
 QuicMainStart(
@@ -122,13 +178,28 @@ QuicMainStart(
 
     QUIC_STATUS Status;
 
-#ifndef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_DATAPATH
+    if (ServerMode) {
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            CXPLAT_THREAD_FLAG_NONE,
+            0,
+            "ControlThread",
+            ControlThread,
+            StopEvent
+        };
+
+        Status = CxPlatThreadCreate(&ThreadConfig, &ControlThreadHandle);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+    }
+#else
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         DatapathReceive,
         DatapathUnreachable
     };
 
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
@@ -174,6 +245,35 @@ QuicMainStart(
         WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
+
+#ifndef _KERNEL_MODE
+    const char* CpuStr;
+    if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
+        std::vector<uint16_t> ProcList;
+        if (strtol(CpuStr, nullptr, 10) == -1) {
+            // Use all procs for raw datapath except proc 0 so that the machine will be in a usable state.
+            for (uint16_t i = 1; i < CxPlatProcActiveCount(); ++i) {
+                ProcList.push_back(i);
+            }
+        } else {
+            do {
+                if (*CpuStr == ',') CpuStr++;
+                ProcList.push_back((uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10));
+            } while (*CpuStr);
+        }
+
+        if (QUIC_FAILED(
+            Status =
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                (uint32_t)ProcList.size() * sizeof(uint16_t),
+                ProcList.data()))) {
+            WriteOutput("MsQuic Failed To Set DataPath Procs %d\n", Status);
+            return Status;
+        }
+    }
+#endif // _KERNEL_MODE
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
@@ -239,10 +339,18 @@ QuicMainFree(
         CxPlatSocketDelete(Binding);
         Binding = nullptr;
     }
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    if (ControlThreadHandle) {
+        CxPlatThreadWait(&ControlThreadHandle);
+        CxPlatThreadDelete(&ControlThreadHandle);
+    }
+#else
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
+#endif
 
     delete Watchdog;
     Watchdog = nullptr;
@@ -274,10 +382,6 @@ QuicMainGetExtraData(
 
     return TestToRun->GetExtraData(Data, Length);
 }
-
-const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
-    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
-    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
 
 void
 DatapathReceive(

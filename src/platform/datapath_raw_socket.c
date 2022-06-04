@@ -92,14 +92,14 @@ CxPlatGetSocket(
     return Socket;
 }
 
-BOOLEAN
+QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result;
-    BOOLEAN Success = FALSE;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     QUIC_ADDR MappedAddress = {0};
@@ -115,13 +115,14 @@ CxPlatTryAddSocket(
             SOCK_DGRAM,
             IPPROTO_UDP);
     if (Socket->AuxSocket == INVALID_SOCKET) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "socket");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
@@ -134,13 +135,14 @@ CxPlatTryAddSocket(
             (char*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "Set IPV6_V6ONLY");
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
@@ -154,13 +156,14 @@ CxPlatTryAddSocket(
                 (char*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
-            int Error = SocketError();
+            int WsaError = SocketError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
-                Error,
+                WsaError,
                 "Set SO_REUSEADDR");
+            Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
     }
@@ -180,14 +183,15 @@ CxPlatTryAddSocket(
             (struct sockaddr*)&MappedAddress,
             sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "bind");
         CxPlatRwLockReleaseExclusive(&Pool->Lock);
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
@@ -207,14 +211,15 @@ CxPlatTryAddSocket(
                 (struct sockaddr*)&MappedAddress,
                 sizeof(MappedAddress));
         if (Result == SOCKET_ERROR) {
-            int Error = SocketError();
+            int WsaError = SocketError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
-                Error,
+                WsaError,
                 "connect failed");
             CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
     }
@@ -226,30 +231,30 @@ CxPlatTryAddSocket(
             (struct sockaddr*)&Socket->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
-        int Error = SocketError();
+        int WsaError = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
-            Error,
+            WsaError,
             "getsockname");
         CxPlatRwLockReleaseExclusive(&Pool->Lock);
+        Status = HRESULT_FROM_WIN32(WsaError);
         goto Error;
     }
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-    Success = TRUE;
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
         if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
-            Success = FALSE;
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
         }
         Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
     }
-    if (Success) {
+    if (QUIC_SUCCEEDED(Status)) {
         CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
     }
 
@@ -257,11 +262,11 @@ CxPlatTryAddSocket(
 
 Error:
 
-    if (!Success && Socket->AuxSocket != INVALID_SOCKET) {
+    if (QUIC_FAILED(Status) && Socket->AuxSocket != INVALID_SOCKET) {
         closesocket(Socket->AuxSocket);
     }
 
-    return Success;
+    return Status;
 }
 
 void
@@ -327,6 +332,8 @@ CxPlatResolveRoute(
 
     CXPLAT_DBG_ASSERT(!QuicAddrIsWildCard(&Route->RemoteAddress));
 
+    Route->State = RouteResolving;
+
     //
     // Find the best next hop IP address.
     //
@@ -354,7 +361,7 @@ CxPlatResolveRoute(
         //
         // We can't handle local address change here easily due to lack of full migration support.
         //
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status = ERROR_INVALID_STATE;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -380,7 +387,7 @@ CxPlatResolveRoute(
     }
 
     if (Route->Queue == NULL) {
-        Status = QUIC_STATUS_NOT_FOUND;
+        Status = ERROR_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
@@ -458,7 +465,6 @@ CxPlatResolveRoute(
         Operation->Context = Context;
         Operation->Callback = Callback;
         Operation->PathId = PathId;
-        Route->State = RouteResolving;
         CxPlatDispatchLockAcquire(&Worker->Lock);
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
@@ -473,8 +479,8 @@ Done:
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    if (Status > 0) {
-        return SUCCESS_HRESULT_FROM_WIN32(Status);
+    if (Status == ERROR_IO_PENDING) {
+        return QUIC_STATUS_PENDING;
     } else {
         return HRESULT_FROM_WIN32(Status);
     }
@@ -499,7 +505,13 @@ typedef struct ETHERNET_HEADER {
 
 typedef struct IPV4_HEADER {
     uint8_t VersionAndHeaderLength;
-    uint8_t TypeOfServiceAndEcnField;
+    union {
+        uint8_t TypeOfServiceAndEcnField;
+        struct {
+            uint8_t EcnField : 2;
+            uint8_t TypeOfService : 6;
+        };
+    };
     uint16_t TotalLength;
     uint16_t Identification;
     uint16_t FlagsAndFragmentOffset;
@@ -574,10 +586,6 @@ CxPlatDpRawParseUdp(
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = Length;
-
-    //const uint32_t Hash = CxPlatHashSimple(sizeof(*Packet->Route), (uint8_t*)Packet->Route);
-    const uint32_t Hash = Udp->SourcePort + Udp->DestinationPort;
-    Packet->PartitionIndex = Datapath->CpuTable[Hash % Datapath->CpuTableSize];
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -615,7 +623,7 @@ CxPlatDpRawParseIPv4(
         uint16_t IPTotalLength;
         IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
 
-        if (Length != IPTotalLength) {
+        if (Length < IPTotalLength) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
@@ -625,6 +633,7 @@ CxPlatDpRawParseIPv4(
             return;
         }
 
+        Packet->TypeOfService = IP->EcnField;
         Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
         CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
         Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
@@ -665,7 +674,7 @@ CxPlatDpRawParseIPv6(
     if (IP->NextHeader == IPPROTO_UDP) {
         uint16_t IPPayloadLength;
         IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
-        if (IPPayloadLength != Length - sizeof(IPV6_HEADER)) {
+        if (IPPayloadLength + sizeof(IPV6_HEADER) > Length) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
@@ -675,6 +684,22 @@ CxPlatDpRawParseIPv6(
             return;
         }
 
+        //
+        // IPv6 Version, Traffic Class, ECN Field and Flow Label fields in host
+        // byte order.
+        //
+        union {
+            struct {
+                uint32_t Flow : 20;
+                uint32_t EcnField : 2;
+                uint32_t Class : 6;
+                uint32_t Version : 4; // Most significant bits.
+            };
+            uint32_t Value;
+        } VersionClassEcnFlow;
+        VersionClassEcnFlow.Value = CxPlatByteSwapUint32(IP->VersionClassEcnFlow);
+
+        Packet->TypeOfService = (uint8_t)VersionClassEcnFlow.EcnField;
         Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
         CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
         Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
@@ -733,6 +758,9 @@ CxPlatDpRawParseEthernet(
             "not a unicast packet");
         return;
     }
+
+    CxPlatCopyMemory(&Packet->Route->LocalLinkLayerAddress, Ethernet->Destination, sizeof(Ethernet->Destination));
+    CxPlatCopyMemory(&Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 
     uint16_t EthernetType = Ethernet->Type;
     if (EthernetType == ETHERNET_TYPE_IPV4) {
@@ -833,6 +861,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum
     )
@@ -860,7 +889,8 @@ CxPlatFramingWriteHeaders(
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPV4_HEADER* IPv4 = (IPV4_HEADER*)(((uint8_t*)UDP) - sizeof(IPV4_HEADER));
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
-        IPv4->TypeOfServiceAndEcnField = 0;
+        IPv4->TypeOfService = 0;
+        IPv4->EcnField = ECN;
         IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
@@ -897,7 +927,7 @@ CxPlatFramingWriteHeaders(
 
         VersionClassEcnFlow.Version = IPV6_VERSION;
         VersionClassEcnFlow.Class = 0;
-        VersionClassEcnFlow.EcnField = 0; // Not ECN capable currently.
+        VersionClassEcnFlow.EcnField = ECN;
         VersionClassEcnFlow.Flow = (uint32_t)(uintptr_t)Socket;
 
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);

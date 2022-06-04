@@ -2,7 +2,8 @@
 
 MsQuic uses [profile-guided optimizations](https://docs.microsoft.com/en-us/cpp/build/profile-guided-optimizations) (PGO) to generate optimized builds of the MsQuic library. PGO lets you optimize the whole library by using data from a previous run of the library.
 
-> **Note** - This document is Windows specific.
+> **Note**
+> This document is Windows specific.
 
 # Build
 

@@ -88,7 +88,7 @@ extern "C" {
 // described in Section 4.8 of [QUIC-TLS].
 //
 #define QUIC_ERROR_CRYPTO_ERROR(TlsAlertCode)   ((QUIC_VAR_INT)(0x100 | (TlsAlertCode)))
-#define IS_QUIC_CRYPTO_ERROR(QuicCryptoError)   ((QuicCryptoError & 0x100) == 0x100)
+#define IS_QUIC_CRYPTO_ERROR(QuicCryptoError)   ((QuicCryptoError & 0xFF00) == 0x100)
 
 #define QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE         QUIC_ERROR_CRYPTO_ERROR(40)  // TLS error code for 'handshake_failure'
 #define QUIC_ERROR_CRYPTO_USER_CANCELED             QUIC_ERROR_CRYPTO_ERROR(90)  // TLS error code for 'user_canceled'

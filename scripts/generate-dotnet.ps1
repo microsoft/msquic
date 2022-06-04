@@ -52,7 +52,43 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace '\(anonymous struct.+\)\"', "(anonymous struct)`"" `
     -replace '\(anonymous union.+\)\"', "(anonymous union)`"" `
     -replace "public enum .*?_FLAGS","[System.Flags]`n    `$0" `
+    -replace "const int", "const uint" `
+    -replace "  QUIC_EXECUTION_PROFILE_TYPE_", "  " `
+    -replace "  QUIC_EXECUTION_PROFILE_", "  " `
+    -replace "  QUIC_LOAD_BALANCING_", "  " `
+    -replace "  QUIC_CREDENTIAL_TYPE_", "  " `
+    -replace "  QUIC_CREDENTIAL_FLAG_", "  " `
+    -replace "  QUIC_ALLOWED_CIPHER_SUITE_", "  " `
+    -replace "  QUIC_CERTIFICATE_HASH_STORE_FLAG_", "  " `
+    -replace "  QUIC_CONNECTION_SHUTDOWN_FLAG_", "  " `
+    -replace "  QUIC_SERVER_", "  " `
+    -replace "  QUIC_SEND_RESUMPTION_FLAG_", "  " `
+    -replace "  QUIC_STREAM_SCHEDULING_SCHEME_", "  " `
+    -replace "QUIC_STREAM_OPEN_FLAG_0_RTT", "ZERO_RTT" `
+    -replace "  QUIC_STREAM_OPEN_FLAG_", "  " `
+    -replace "  QUIC_STREAM_START_FLAG_", "  " `
+    -replace "  QUIC_STREAM_SHUTDOWN_FLAG_", "  " `
+    -replace "QUIC_RECEIVE_FLAG_0_RTT", "ZERO_RTT" `
+    -replace "  QUIC_RECEIVE_FLAG_", "  " `
+    -replace "  QUIC_SEND_FLAG_", "  " `
+    -replace "  QUIC_DATAGRAM_SEND_", "  " `
+    -replace "QUIC_TLS_PROTOCOL_1_3", "TLS_1_3" `
+    -replace "  QUIC_TLS_PROTOCOL_", "  " `
+    -replace "  QUIC_CIPHER_ALGORITHM_", "  " `
+    -replace "  QUIC_HASH_ALGORITHM_", "  " `
+    -replace "  QUIC_KEY_EXCHANGE_ALGORITHM_", "  " `
+    -replace "  QUIC_CIPHER_SUITE_", "  " `
+    -replace "  QUIC_CONGESTION_CONTROL_ALGORITHM_", "  " `
+    -replace "  QUIC_PERF_COUNTER_", "  " `
+    -replace "  QUIC_LISTENER_EVENT_", "  " `
+    -replace "  QUIC_CONNECTION_EVENT_", "  " `
+    -replace "  QUIC_STREAM_EVENT_", "  " `
+    -replace "public", "internal" `
     | `
     Out-File $MsQuicGeneratedSource
+
+$Solution = Join-Path $RootDir src cs MsQuicNet.sln
+
+dotnet format $Solution
 
 $LASTEXITCODE = 0

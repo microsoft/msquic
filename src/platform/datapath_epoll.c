@@ -625,10 +625,12 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(Config);
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -1429,7 +1431,7 @@ CxPlatSocketContextStartReceive(
     }
 
     struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN | EPOLLET,
+        .events = EPOLLIN,
         .data = {
             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
@@ -1642,7 +1644,7 @@ CxPlatSocketContextSendComplete(
     CXPLAT_SEND_DATA* SendData = NULL;
 
     struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN | EPOLLET,
+        .events = EPOLLIN,
         .data = {
             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
@@ -1769,7 +1771,10 @@ CxPlatSocketContextProcessEvents(
     }
 
     if (EPOLLIN & Events) {
-        while (TRUE) {
+        //
+        // Read up to 4 receives before moving to another event.
+        //
+        for (int i = 0; i < 4; i++) {
 
             for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
                 CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
@@ -2378,16 +2383,22 @@ CxPlatSendDataFreeBuffer(
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendData->Owner;
+#ifdef DEBUG
     uint8_t* TailBuffer = SendData->Buffers[SendData->BufferCount - 1].Buffer;
+#endif
 
     if (SendData->SegmentSize == 0) {
+#ifdef DEBUG
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
+#endif
 
         CxPlatPoolFree(&DatapathProc->SendBufferPool, Buffer->Buffer);
         --SendData->BufferCount;
     } else {
+#ifdef DEBUG
         TailBuffer += SendData->Buffers[SendData->BufferCount - 1].Length;
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
+#endif
 
         if (SendData->Buffers[SendData->BufferCount - 1].Length == 0) {
             CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Buffer->Buffer);
@@ -2603,7 +2614,7 @@ CxPlatSocketSendInternal(
                 }
                 SendPending = TRUE;
                 struct epoll_event SockFdEpEvt = {
-                    .events = EPOLLIN | EPOLLOUT | EPOLLET,
+                    .events = EPOLLIN | EPOLLOUT,
                     .data = {
                         .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
                     }

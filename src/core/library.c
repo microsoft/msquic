@@ -55,6 +55,7 @@ MsQuicLibraryLoad(
         MsQuicLib.Version[1] = VER_MINOR;
         MsQuicLib.Version[2] = VER_PATCH;
         MsQuicLib.Version[3] = VER_BUILD_ID;
+        MsQuicLib.GitHash = VER_GIT_HASH_STR;
     }
 }
 
@@ -475,6 +476,11 @@ MsQuicLibraryUninitialize(
     if (MsQuicLib.Datapath != NULL) {
         CxPlatDataPathUninitialize(MsQuicLib.Datapath);
         MsQuicLib.Datapath = NULL;
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+            MsQuicLib.DataPathProcList = NULL;
+            MsQuicLib.DataPathProcListLength = 0;
+        }
     }
 
     //
@@ -727,8 +733,8 @@ QuicLibrarySetGlobalParam(
         const void* Buffer
     )
 {
-    QUIC_STATUS Status;
-    QUIC_SETTINGS_INTERNAL InternalSettings;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_SETTINGS_INTERNAL InternalSettings = {0};
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -804,7 +810,6 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -838,7 +843,6 @@ QuicLibrarySetGlobalParam(
 
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
-                TRUE,
                 TRUE,
                 TRUE,
                 &InternalSettings)) {
@@ -876,11 +880,12 @@ QuicLibrarySetGlobalParam(
                 &MsQuicLib.Settings,
                 TRUE,
                 TRUE,
-                TRUE,
                 &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        QuicSettingsCleanup(&InternalSettings);
 
         if (QUIC_SUCCEEDED(Status)) {
             MsQuicLibraryOnSettingsChanged(TRUE);
@@ -888,6 +893,76 @@ QuicLibrarySetGlobalParam(
 
         break;
 
+    case QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS: {
+        if (BufferLength == 0) {
+            if (MsQuicLib.DataPathProcList != NULL) {
+                CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+                MsQuicLib.DataPathProcList = NULL;
+                MsQuicLib.DataPathProcListLength = 0;
+            }
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        }
+
+        if (Buffer == NULL || BufferLength < sizeof(uint16_t) || BufferLength % sizeof(uint16_t) != 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.Datapath != NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change raw datapath procs after datapath initialization");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        uint32_t DataPathProcListLength = BufferLength / sizeof(uint16_t);
+        uint16_t* Cpus = (uint16_t*)Buffer;
+        for (uint32_t i = 0; i < DataPathProcListLength; ++i) {
+            if (*(Cpus + i) >= CxPlatProcActiveCount()) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+        }
+
+        if (Status == QUIC_STATUS_INVALID_PARAMETER) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to set invalid raw datapath procs");
+            break;
+        }
+
+        uint16_t* DataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
+        if (DataPathProcList == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Raw datapath procs",
+                BufferLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            break;
+        }
+
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+            MsQuicLib.DataPathProcList = NULL;
+            MsQuicLib.DataPathProcListLength = 0;
+        }
+
+        CxPlatCopyMemory(DataPathProcList, Buffer, BufferLength);
+        MsQuicLib.DataPathProcList = DataPathProcList;
+        MsQuicLib.DataPathProcListLength = DataPathProcListLength;
+
+        QuicTraceLogInfo(
+            LibraryDataPathProcsSet,
+            "[ lib] Setting datapath procs");
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
@@ -939,6 +1014,20 @@ QuicLibrarySetGlobalParam(
     }
 #endif
 
+    case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
+
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        MsQuicLib.Settings.VersionNegotiationExtEnabled = *(BOOLEAN*)Buffer;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -957,6 +1046,7 @@ QuicLibraryGetGlobalParam(
     )
 {
     QUIC_STATUS Status;
+    uint32_t GitHashLength;
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -1077,6 +1167,70 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(MsQuicLib.Version);
         CxPlatCopyMemory(Buffer, MsQuicLib.Version, sizeof(MsQuicLib.Version));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH:
+
+        GitHashLength = (uint32_t)strlen(MsQuicLib.GitHash) + 1;
+
+        if (*BufferLength < GitHashLength) {
+            *BufferLength = GitHashLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = GitHashLength;
+        CxPlatCopyMemory(Buffer, MsQuicLib.GitHash, GitHashLength);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS:
+        if (*BufferLength == 0 && MsQuicLib.DataPathProcListLength == 0) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        }
+
+        if (*BufferLength < sizeof(uint16_t) * MsQuicLib.DataPathProcListLength) {
+            *BufferLength = sizeof(uint16_t) * MsQuicLib.DataPathProcListLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint16_t) * MsQuicLib.DataPathProcListLength;
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CxPlatCopyMemory(Buffer, MsQuicLib.DataPathProcList, *BufferLength);
+        }
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = MsQuicLib.Settings.VersionNegotiationExtEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

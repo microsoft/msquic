@@ -1,17 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use libc::c_void;
-#[allow(unused_imports)]
-use c_types::AF_UNSPEC;
 #[allow(unused_imports)]
 use c_types::AF_INET;
 #[allow(unused_imports)]
 use c_types::AF_INET6;
+#[allow(unused_imports)]
+use c_types::AF_UNSPEC;
+use libc::c_void;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
+use std::fmt;
 use std::option::Option;
 use std::ptr;
+#[macro_use]
+extern crate bitfield;
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -163,6 +166,7 @@ pub const CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK: CredentialFlags = 2048;
 pub const CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE: CredentialFlags = 4096;
 pub const CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES: CredentialFlags = 8192;
 pub const CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES: CredentialFlags = 16384;
+pub const CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS: CredentialFlags = 32768;
 
 /// Set of allowed TLS cipher suites.
 pub type AllowedCipherSuiteFlags = u32;
@@ -399,42 +403,61 @@ pub struct HandshakeInfo {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct QuicStatisticsTiming {
     pub start: u64,
-    pub initial_flight_end: u64,
-    pub handshake_flight_end: u64,
+    /// Processed all peer's Initial packets
+    pub start_flight_end: u64,
+    /// Processed all peer's Handshake packets
+    pub handshake_fligh_end: u64,
 }
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct QuicStatisticsHandshake {
-    pub client_flight1_bytes: u32,
-    pub server_flight1_bytes: u32,
-    pub client_flight2_bytes: u32,
+    /// Sum of TLS payloads
+    pub client_flight_1_bytes: u32,
+    /// Sum of TLS payloads
+    pub server_flight_1_bytes: u32,
+    /// Sum of TLS payloads
+    pub client_flight_2_bytes: u32,
 }
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct QuicStatisticsSend {
+    /// Current path MTU.
     pub path_mtu: u16,
+    /// QUIC packets; could be coalesced into fewer UDP datagrams.
     pub total_packets: u64,
     pub retransmittable_packets: u64,
     pub suspected_lost_packets: u64,
+    /// Actual lost is (suspected_lost_packets - spurious_lost_packets)
     pub spurious_lost_packets: u64,
+    /// Sum of UDP payloads
     pub total_bytes: u64,
+    /// Sum of stream payloads
     pub total_stream_bytes: u64,
+    /// Number of congestion events
     pub congestion_count: u32,
+    /// Number of persistent congestion events
     pub persistent_congestion_count: u32,
 }
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct QuicStatisticsRecv {
+    /// QUIC packets; could be coalesced into fewer UDP datagrams.
     pub total_packets: u64,
+    /// Packets where packet number is less than highest seen.
     pub reordered_packets: u64,
+    /// Includes DuplicatePackets.
     pub dropped_packets: u64,
     pub duplicate_packets: u64,
+    /// Sum of UDP payloads
     pub total_bytes: u64,
+    /// Sum of stream payloads
     pub total_stream_bytes: u64,
+    /// Count of packet decryption failures.
     pub decryption_failures: u64,
+    /// Count of receive ACK frames.
     pub valid_ack_frames: u64,
 }
 
@@ -444,15 +467,37 @@ pub struct QuicStatisticsMisc {
     pub key_update_count: u32,
 }
 
+bitfield! {
+    #[repr(C)]
+    #[derive(Serialize, Deserialize, Clone, Copy)]
+    pub struct QuicStatisticsBitfields(u32);
+    // The fields default to u32
+    version_negotiation, _: 1, 0;
+    stateless_retry, _: 1, 1;
+    resumption_attempted, _: 1, 2;
+    resumption_succeeded, _: 1, 3;
+}
+
+/// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
+/// This is implemented manually because the derived implementation by the bitfield macro
+/// has been observed to cause panic.
+impl fmt::Debug for QuicStatisticsBitfields {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{:#06x}", &self.0))
+    }
+}
+
+/// A helper struct for accessing connection statistics
 #[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 pub struct QuicStatistics {
-    pub correlation_id: u64,
-    pub _bitfield_align_1: [u8; 0],
-    //pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
-    pub _bitfield_1: u8,
+    correlation_id: u64,
+    pub flags: QuicStatisticsBitfields,
+    /// In microseconds
     pub rtt: u32,
+    /// In microseconds
     pub min_rtt: u32,
+    /// In microseconds
     pub max_rtt: u32,
     pub timing: QuicStatisticsTiming,
     pub handshake: QuicStatisticsHandshake,
@@ -461,25 +506,76 @@ pub struct QuicStatistics {
     pub misc: QuicStatisticsMisc,
 }
 
-/*#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_LISTENER_STATISTICS__bindgen_ty_1__bindgen_ty_1 {
-    pub DroppedPackets: u64,
+/// A helper struct for accessing connection statistics
+#[repr(C)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct QuicStatisticsV2 {
+    correlation_id: u64,
+    pub flags: QuicStatisticsBitfields,
+    /// In microseconds
+    pub rtt: u32,
+    /// In microseconds
+    pub min_rtt: u32,
+    /// In microseconds
+    pub max_rtt: u32,
+
+    pub timing_start: u64,
+    /// Processed all peer's Initial packets
+    pub timing_start_flight_end: u64,
+    /// Processed all peer's Handshake packets
+    pub timing_handshake_fligh_end: u64,
+
+    /// Sum of TLS payloads
+    pub handshake_client_flight_1_bytes: u32,
+    /// Sum of TLS payloads
+    pub handshake_server_flight_1_bytes: u32,
+    /// Sum of TLS payloads
+    pub handshake_client_flight_2_bytes: u32,
+
+    /// Current path MTU.
+    pub send_path_mtu: u16,
+    /// QUIC packets; could be coalesced into fewer UDP datagrams.
+    pub send_total_packets: u64,
+    pub send_retransmittable_packets: u64,
+    pub send_suspected_lost_packets: u64,
+    /// Actual lost is (suspected_lost_packets - spurious_lost_packets)
+    pub send_spurious_lost_packets: u64,
+    /// Sum of UDP payloads
+    pub send_total_bytes: u64,
+    /// Sum of stream payloads
+    pub send_total_stream_bytes: u64,
+    /// Number of congestion events
+    pub send_congestion_count: u32,
+    /// Number of persistent congestion events
+    pub send_persistent_congestion_count: u32,
+
+    /// QUIC packets; could be coalesced into fewer UDP datagrams.
+    pub recv_total_packets: u64,
+    /// Packets where packet number is less than highest seen.
+    pub recv_reordered_packets: u64,
+    /// Includes DuplicatePackets.
+    pub recv_dropped_packets: u64,
+    pub recv_duplicate_packets: u64,
+    /// Sum of UDP payloads
+    pub recv_total_bytes: u64,
+    /// Sum of stream payloads
+    pub recv_total_stream_bytes: u64,
+    /// Count of packet decryption failures.
+    pub recv_decryption_failures: u64,
+    /// Count of receive ACK frames.
+    pub recv_valid_ack_frames: u64,
+
+    pub key_update_count: u32,
 }
 
+/// A helper struct for accessing listener statistics.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct QUIC_LISTENER_STATISTICS__bindgen_ty_1 {
-    pub Recv: QUIC_LISTENER_STATISTICS__bindgen_ty_1__bindgen_ty_1,
+pub struct QuicListenerStatistics {
+    pub total_accepted_connections: u64,
+    pub total_rejected_connections: u64,
+    pub binding: u64,
 }
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_LISTENER_STATISTICS {
-    pub TotalAcceptedConnections: u64,
-    pub TotalRejectedConnections: u64,
-    pub Binding: QUIC_LISTENER_STATISTICS__bindgen_ty_1,
-}*/
 
 /// A helper struct for accessing performance counters.
 pub struct QuicPerformance {
@@ -515,6 +611,21 @@ pub const PERF_COUNTER_WORK_OPER_QUEUE_DEPTH: PerformanceCounter = 24;
 pub const PERF_COUNTER_WORK_OPER_QUEUED: PerformanceCounter = 25;
 pub const PERF_COUNTER_WORK_OPER_COMPLETED: PerformanceCounter = 26;
 pub const PERF_COUNTER_MAX: PerformanceCounter = 27;
+
+pub const QUIC_TLS_SECRETS_MAX_SECRET_LEN: usize = 64;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct QuicTlsSecrets {
+    pub secret_length: u8,
+    pub flags: u8,
+    pub client_random: [u8; 32],
+    pub client_early_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub client_handshake_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub server_handshake_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub client_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+    pub server_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
+}
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -553,14 +664,19 @@ pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
 pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 0x01000001;
 pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 0x01000002;
 pub const PARAM_GLOBAL_PERF_COUNTERS: u32 = 0x01000003;
-pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000004;
-pub const PARAM_GLOBAL_VERSION: u32 = 0x01000005;
+pub const PARAM_GLOBAL_VERSION: u32 = 0x01000004;
+pub const PARAM_GLOBAL_SETTINGS: u32 = 0x01000005;
+pub const PARAM_GLOBAL_GLOBAL_SETTINGS: u32 = 0x01000006;
+pub const PARAM_GLOBAL_VERSION_SETTINGS: u32 = 0x01000007;
+pub const PARAM_GLOBAL_LIBRARY_GIT_HASH: u32 = 0x01000008;
 
 pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
 pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
+pub const PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 0x03000002;
 
 pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 0x04000000;
 pub const PARAM_LISTENER_STATS: u32 = 0x04000001;
+pub const PARAM_LISTENER_CIBIR_ID: u32 = 0x04000002;
 
 pub const PARAM_CONN_QUIC_VERSION: u32 = 0x05000000;
 pub const PARAM_CONN_LOCAL_ADDRESS: u32 = 0x05000001;
@@ -583,7 +699,7 @@ pub const PARAM_CONN_PEER_CERTIFICATE_VALID: u32 = 0x05000011;
 pub const PARAM_CONN_LOCAL_INTERFACE: u32 = 0x05000012;
 pub const PARAM_CONN_TLS_SECRETS: u32 = 0x05000013;
 pub const PARAM_CONN_VERSION_SETTINGS: u32 = 0x05000014;
-pub const PARAM_CONN_CIBIR_ID: u32 = 0x05000015;
+pub const PARAM_CONN_INITIAL_DCID_PREFIX: u32 = 0x05000015;
 pub const PARAM_CONN_STATISTICS_V2: u32 = 0x05000016;
 pub const PARAM_CONN_STATISTICS_V2_PLAT: u32 = 0x05000017;
 
@@ -748,16 +864,64 @@ pub struct StreamEventReceive {
 }
 
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventSendComplete {
+    pub canceled: bool,
+    pub client_context: *const c_void,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventPeerSendAborted {
+    pub error_code: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventPeerReceiveAborted {
+    pub error_code: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventSendShutdownComplete {
+    pub graceful: bool,
+}
+
+
+bitfield! {
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct StreamEventShutdownCompleteBitfields(u8);
+    // The fields default to u8
+    app_close_in_progress, _: 1, 0;
+    _reserved, _: 7, 1;
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct StreamEventShutdownComplete {
+    connection_shutdown: bool,
+    flags: StreamEventShutdownCompleteBitfields
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamEventIdealSendBufferSize {
+    pub byte_count: u64,
+}
+
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub union StreamEventPayload {
     pub start_complete: StreamEventStartComplete,
     pub receive: StreamEventReceive,
-    //pub send_complete: StreamEventSendComplete,
-    //pub peer_send_aborted: StreamEventPeerSendAborted,
-    //pub peer_receive_aborted: StreamEventPeerReceiveAborted,
-    //pub send_shutdown_complete: StreamEventSendShutdownComplete,
-    //pub shutdown_complete: StreamEventShutdownComplete,
-    //pub ideal_send_buffer_size: StreamEventIdealSendBufferSize,
+    pub send_complete: StreamEventSendComplete,
+    pub peer_send_aborted: StreamEventPeerSendAborted,
+    pub peer_receive_aborted: StreamEventPeerReceiveAborted,
+    pub send_shutdown_complete: StreamEventSendShutdownComplete,
+    pub shutdown_complete: StreamEventShutdownComplete,
+    pub ideal_send_buffer_size: StreamEventIdealSendBufferSize,
 }
 
 #[repr(C)]
@@ -775,12 +939,8 @@ struct ApiTable {
     get_context: extern "C" fn(handle: Handle) -> *mut c_void,
     set_callback_handler:
         extern "C" fn(handle: Handle, handler: *const c_void, context: *const c_void),
-    set_param: extern "C" fn(
-        handle: Handle,
-        param: u32,
-        buffer_length: u32,
-        buffer: *const c_void,
-    ) -> u32,
+    set_param:
+        extern "C" fn(handle: Handle, param: u32, buffer_length: u32, buffer: *const c_void) -> u32,
     get_param: extern "C" fn(
         handle: Handle,
         param: u32,
@@ -1214,6 +1374,10 @@ impl Connection {
         }
     }
 
+    pub fn set_param(&self, param: u32, buffer_length: u32, buffer: *const c_void) -> u32 {
+        unsafe { ((*self.table).set_param)(self.handle, param, buffer_length, buffer) }
+    }
+
     pub fn stream_close(&self, stream: Handle) {
         unsafe {
             ((*self.table).stream_close)(stream);
@@ -1234,6 +1398,22 @@ impl Connection {
         };
 
         unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) }
+    }
+
+    pub fn get_stats_v2(&self) -> QuicStatisticsV2 {
+        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatisticsV2>()] =
+            [0; std::mem::size_of::<QuicStatisticsV2>()];
+        let stat_size_mut = std::mem::size_of::<QuicStatisticsV2>();
+        unsafe {
+            ((*self.table).get_param)(
+                self.handle,
+                PARAM_CONN_STATISTICS_V2,
+                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
+                stat_buffer.as_mut_ptr() as *const c_void,
+            )
+        };
+
+        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) }
     }
 
     pub fn set_configuration(&self, configuration: &Configuration) {
@@ -1306,6 +1486,12 @@ impl Listener {
         if Status::failed(status) {
             panic!("ListenerStart failed, {:x}!\n", status);
         }
+    }
+}
+
+impl Drop for Listener {
+    fn drop(&mut self) {
+        unsafe { ((*self.table).listener_close)(self.handle) };
     }
 }
 

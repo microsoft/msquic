@@ -1,14 +1,13 @@
+#pragma warning disable IDE0073
 //
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 //
-
-
-using System.Runtime.InteropServices;
+#pragma warning restore IDE0073
 
 namespace Microsoft.Quic
 {
-    public static unsafe partial class MsQuic_Linux
+    internal static unsafe partial class MsQuic_Linux
     {
         [NativeTypeName("#define QUIC_STATUS_SUCCESS ((QUIC_STATUS)0)")]
         public const int QUIC_STATUS_SUCCESS = ((int)(0));

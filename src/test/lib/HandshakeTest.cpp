@@ -36,6 +36,7 @@ void QuicTestUninitialize()
 
 void
 QuicTestPrimeResumption(
+    _In_ QUIC_ADDRESS_FAMILY QuicAddrFamily,
     _In_ MsQuicRegistration& Registration,
     _In_ MsQuicConfiguration& ServerConfiguration,
     _In_ MsQuicConfiguration& ClientConfiguration,
@@ -73,11 +74,18 @@ QuicTestPrimeResumption(
     {
         TestConnection Client(Registration);
         TEST_TRUE(Client.IsValid());
+
+        if (UseDuoNic) {
+            QuicAddr RemoteAddr{QuicAddrFamily, ServerLocalAddr.GetPort()};
+            QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+            TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+        }
+
         TEST_QUIC_SUCCEEDED(
             Client.Start(
                 ClientConfiguration,
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                 ServerLocalAddr.GetPort()));
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
@@ -119,6 +127,10 @@ ListenerAcceptConnection(
         (*AcceptContext->NewConnection)->SetExpectedClientCertValidationResult(
             AcceptContext->ExpectedClientCertValidationResult);
     }
+    if (AcceptContext->PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {
+        (*AcceptContext->NewConnection)->SetPeerCertEventReturnStatus(
+            AcceptContext->PeerCertEventReturnStatus);
+    }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
@@ -135,6 +147,7 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage
     )
 {
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -177,6 +190,7 @@ QuicTestConnect(
     QUIC_BUFFER* ResumptionTicket = nullptr;
     if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
         QuicTestPrimeResumption(
+            QuicAddrFamily,
             Registration,
             ServerConfiguration,
             ClientConfiguration,
@@ -189,8 +203,6 @@ QuicTestConnect(
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
     RandomLossHelper LossHelper(RandomLossPercentage);
-
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     {
         if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
@@ -233,6 +245,12 @@ QuicTestConnect(
                     if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
                         Client.SetExpectedResumed(true);
                     }
+                }
+
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
                 }
 
                 TEST_QUIC_SUCCEEDED(
@@ -363,7 +381,7 @@ QuicTestNatPortRebind(
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.Connected);
@@ -412,7 +430,7 @@ QuicTestNatAddrRebind(
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.Connected);
@@ -476,7 +494,7 @@ QuicTestPathValidationTimeout(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -556,7 +574,7 @@ QuicTestChangeMaxStreamID(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -644,7 +662,7 @@ QuicTestConnectAndIdle(
                     Client.Start(
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_UNSPEC,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -746,7 +764,7 @@ QuicTestCustomCertificateValidation(
                     Client.Start(
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_UNSPEC,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -803,7 +821,7 @@ QuicTestConnectUnreachable(
             Client.Start(
                 ClientConfiguration,
                 QuicAddrFamily,
-                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                 TestUdpPortBase - 1));
         if (!Client.WaitForConnectionComplete()) {
             return;
@@ -835,9 +853,15 @@ QuicTestConnectInvalidAddress(
         TEST_TRUE(Client.IsValid());
 
         QuicAddr LocalAddr{QUIC_ADDRESS_FAMILY_INET, true};
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&LocalAddr.SockAddr);
+        }
         LocalAddr.SetPort(TestUdpPortBase - 2);
 
         QuicAddr RemoteAddr{QUIC_ADDRESS_FAMILY_INET6, true};
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+        }
         RemoteAddr.SetPort(TestUdpPortBase - 1);
 
         TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(LocalAddr));
@@ -848,7 +872,7 @@ QuicTestConnectInvalidAddress(
             Client.Start(
                 ClientConfiguration,
                 QUIC_ADDRESS_FAMILY_INET6,
-                QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
+                QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
                 TestUdpPortBase - 1));
         if (!Client.WaitForConnectionComplete()) {
             return;
@@ -859,757 +883,802 @@ QuicTestConnectInvalidAddress(
     }
 }
 
-// void
-// QuicTestVersionNegotiation(
-//     _In_ int Family
-//     )
-// {
-//     const uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
-//     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicSettings Settings;
-//     Settings.SetIdleTimeoutMs(3000);
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings VersionSettings;
-//     VersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr;
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-
-//                 TEST_TRUE(Client.GetIsConnected());
-//                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
-//                 TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
-//             }
-//         }
-//     }
-// }
-
-// struct ClearForcedRetryScope {
-//     ~ClearForcedRetryScope() {
-//         uint16_t value = 65;
-
-//         TEST_QUIC_SUCCEEDED(
-//             MsQuic->SetParam(
-//                 NULL,
-//                 QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-//                 sizeof(value),
-//                 &value));
-//     }
-// };
-
-// void
-// QuicTestVersionNegotiationRetry(
-//     _In_ int Family
-//     )
-// {
-//     const uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
-//     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-//     const uint16_t RetryMemoryLimit = 0;
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-//             sizeof(RetryMemoryLimit),
-//             &RetryMemoryLimit));
-
-//     ClearForcedRetryScope ClearForcedRetry;
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicSettings Settings;
-//     Settings.SetIdleTimeoutMs(3000);
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings VersionSettings;
-//     VersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr;
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-
-//                 TEST_TRUE(Client.GetIsConnected());
-//                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
-//                 TEST_TRUE(Client.GetStatistics().StatelessRetry);
-//                 TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
-//             }
-//         }
-//     }
-// }
-
-// void
-// QuicTestCompatibleVersionNegotiation(
-//     _In_ int Family,
-//     _In_ bool DisableVNEClient,
-//     _In_ bool DisableVNEServer
-//     )
-// {
-//     const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-//     const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
-//     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-//     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-//     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
-//     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
-
-//     ClearGlobalVersionListScope ClearVersionsScope;
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ClientVersionSettings;
-//     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-//     ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
-
-//     MsQuicSettings ServerSettings;
-//     ServerSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ServerVersionsSettings;
-//     ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-//     ServerVersionsSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//             sizeof(ServerVersionsSettings),
-//             &ServerVersionsSettings));
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr(QuicAddrFamily);
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Client.GetIsConnected());
-
-//                 TEST_NOT_EQUAL(nullptr, Server);
-//                 if (!Server->WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Server->GetIsConnected());
-
-//                 if (DisableVNEClient || DisableVNEServer) {
-//                     TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
-//                     TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
-//                 } else {
-//                     TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
-//                     TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
-//                 }
-//                 TEST_FALSE(Client.GetStatistics().VersionNegotiation);
-//             }
-//         }
-//     }
-// }
-
-// void
-// QuicTestCompatibleVersionNegotiationRetry(
-//     _In_ int Family
-//     )
-// {
-//     const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-//     const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
-//     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-//     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-//     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
-//     const uint16_t RetryMemoryLimit = 0;
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ClientVersionSettings;
-//     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-//     ClientVersionSettings.SetVersionNegotiationExtEnabled(true);
-
-//     MsQuicSettings ServerSettings;
-//     ServerSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ServerVersionsSettings;
-//     ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-//     ServerVersionsSettings.SetVersionNegotiationExtEnabled(true);
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-//             sizeof(RetryMemoryLimit),
-//             &RetryMemoryLimit));
-//     ClearForcedRetryScope ClearForcedRetry;
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//             sizeof(ServerVersionsSettings),
-//             &ServerVersionsSettings));
-//     ClearGlobalVersionListScope ClearVersionsScope;
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr(QuicAddrFamily);
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Client.GetIsConnected());
-
-//                 TEST_NOT_EQUAL(nullptr, Server);
-//                 if (!Server->WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Server->GetIsConnected());
-
-
-//                 TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
-//                 TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
-//                 TEST_FALSE(Client.GetStatistics().VersionNegotiation);
-//                 TEST_TRUE(Client.GetStatistics().StatelessRetry);
-//             }
-//         }
-//     }
-// }
-
-// void
-// QuicTestCompatibleVersionNegotiationDefaultServer(
-//     _In_ int Family,
-//     _In_ bool DisableVNEClient,
-//     _In_ bool DisableVNEServer
-//     )
-// {
-//     const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-//     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-//     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
-//     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ClientVersionSettings;
-//     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-//     ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
-
-//     MsQuicSettings ServerSettings;
-//     ServerSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ServerVersionsSettings;
-//     ServerVersionsSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
-
-//     //
-//     // Enable the VNE for server at the global level.
-//     //
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//             sizeof(ServerVersionsSettings),
-//             &ServerVersionsSettings));
-//     ClearGlobalVersionListScope ClearVersionsScope;
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr(QuicAddrFamily);
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Client.GetIsConnected());
-
-//                 TEST_NOT_EQUAL(nullptr, Server);
-//                 if (!Server->WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Server->GetIsConnected());
-
-//                 if (DisableVNEClient || DisableVNEServer) {
-//                     TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
-//                     TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
-//                 } else {
-//                     TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
-//                     TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
-//                 }
-//                 TEST_FALSE(Client.GetStatistics().VersionNegotiation);
-//             }
-//         }
-//     }
-// }
-
-// void
-// QuicTestCompatibleVersionNegotiationDefaultClient(
-//     _In_ int Family,
-//     _In_ bool DisableVNEClient,
-//     _In_ bool DisableVNEServer
-//     )
-// {
-//     const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-//     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-//     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_MS_H;
-//     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ClientVersionSettings;
-//     ClientVersionSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
-
-//     MsQuicSettings ServerSettings;
-//     ServerSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ServerVersionsSettings;
-//     ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-//     ServerVersionsSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//             sizeof(ServerVersionsSettings),
-//             &ServerVersionsSettings));
-//     ClearGlobalVersionListScope ClearVersionsScope;
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr(QuicAddrFamily);
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Client.GetIsConnected());
-
-//                 TEST_NOT_EQUAL(nullptr, Server);
-//                 if (!Server->WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Server->GetIsConnected());
-
-//                 if (DisableVNEClient || DisableVNEServer) {
-//                     TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
-//                     TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
-//                 } else {
-//                     TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
-//                     TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
-//                 }
-//                 TEST_FALSE(Client.GetStatistics().VersionNegotiation);
-//             }
-//         }
-//     }
-// }
-
-// void
-// QuicTestIncompatibleVersionNegotiation(
-//     _In_ int Family
-//     )
-// {
-//     const uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H };
-//     const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
-//     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-//     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-//     const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
-
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ClientVersionSettings;
-//     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-
-//     MsQuicSettings ServerSettings;
-//     ServerSettings.SetIdleTimeoutMs(3000);
-
-//     MsQuicVersionSettings ServerVersionsSettings;
-//     ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//             sizeof(ServerVersionsSettings),
-//             &ServerVersionsSettings));
-//     ClearGlobalVersionListScope ClearVersionsScope;
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr(QuicAddrFamily);
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-
-//                 if (!Client.WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Client.GetIsConnected());
-
-//                 TEST_NOT_EQUAL(nullptr, Server);
-//                 if (!Server->WaitForConnectionComplete()) {
-//                     return;
-//                 }
-//                 TEST_TRUE(Server->GetIsConnected());
-
-//                 TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
-//                 TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
-//                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
-//             }
-//         }
-//     }
-// }
-
-// void
-// RunFailedVersionNegotiation(
-//     _In_reads_bytes_(ClientVersionsLength * sizeof(uint32_t))
-//         const uint32_t* ClientVersions,
-//     _In_reads_bytes_(ServerVersionsLength * sizeof(uint32_t))
-//          const uint32_t* ServerVersions,
-//     _In_ const uint32_t ClientVersionsLength,
-//     _In_ const uint32_t ServerVersionsLength,
-//     _In_ QUIC_STATUS ExpectedConnectionError,
-//     _In_ int Family
-//     )
-// {
-//     MsQuicSettings ClientSettings;
-//     ClientSettings.SetIdleTimeoutMs(2000);
-//     ClientSettings.SetDisconnectTimeoutMs(1000);
-
-//     MsQuicVersionSettings ClientVersionSettings;
-//     ClientVersionSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-
-//     MsQuicSettings ServerSettings;
-//     ServerSettings.SetIdleTimeoutMs(2000);
-//     ServerSettings.SetDisconnectTimeoutMs(1000);
-
-//     MsQuicVersionSettings ServerVersionsSettings;
-//     ServerVersionsSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-
-//     TEST_QUIC_SUCCEEDED(
-//         MsQuic->SetParam(
-//             NULL,
-//             QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-//             sizeof(ServerVersionsSettings),
-//             &ServerVersionsSettings));
-//     ClearGlobalVersionListScope ClearVersionsScope;
-
-//     MsQuicRegistration Registration;
-//     TEST_TRUE(Registration.IsValid());
-
-//     MsQuicAlpn Alpn("MsQuicTest");
-
-//     MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
-//     TEST_TRUE(ServerConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ServerConfiguration.SetVersionSettings(ServerVersionsSettings));
-
-//     MsQuicCredentialConfig ClientCredConfig;
-//     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
-//     TEST_TRUE(ClientConfiguration.IsValid());
-//     TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
-
-//     {
-//         TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-//         TEST_TRUE(Listener.IsValid());
-
-//         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-//         QuicAddr ServerLocalAddr(QuicAddrFamily);
-//         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-//         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-//         {
-//             UniquePtr<TestConnection> Server;
-//             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-//             Listener.Context = &ServerAcceptCtx;
-
-//             {
-//                 TestConnection Client(Registration);
-//                 TEST_TRUE(Client.IsValid());
-//                 Client.SetExpectedTransportCloseStatus(ExpectedConnectionError);
-
-//                 TEST_QUIC_SUCCEEDED(
-//                     Client.Start(
-//                         ClientConfiguration,
-//                         QuicAddrFamily,
-//                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-//                         ServerLocalAddr.GetPort()));
-
-//                 if (!Client.WaitForShutdownComplete()) {
-//                     return;
-//                 }
-//                 TEST_FALSE(Client.GetIsConnected());
-
-//                 TEST_EQUAL(nullptr, Server);
-
-//                 TEST_EQUAL(Client.GetQuicVersion(), ClientVersions[0]);
-//                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
-//                 TEST_EQUAL(Client.GetTransportCloseStatus(), ExpectedConnectionError);
-//             }
-//         }
-//     }
-// }
-
-// void
-// QuicTestFailedVersionNegotiation(
-//     _In_ int Family
-//     )
-// {
-//     const uint32_t NoCommonClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
-//     const uint32_t NoCommonServerVersions[] = { QUIC_VERSION_1_MS_H };
-
-//     RunFailedVersionNegotiation(
-//         NoCommonClientVersions,
-//         NoCommonServerVersions,
-//         ARRAYSIZE(NoCommonClientVersions),
-//         ARRAYSIZE(NoCommonServerVersions),
-//         QUIC_STATUS_VER_NEG_ERROR,
-//         Family);
-
-//     const uint32_t OriginalInVNClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
-//     const uint32_t OriginalInVNServerVersions[] = { 0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a };
-
-//     RunFailedVersionNegotiation(
-//         OriginalInVNClientVersions,
-//         OriginalInVNServerVersions,
-//         ARRAYSIZE(OriginalInVNClientVersions),
-//         ARRAYSIZE(OriginalInVNServerVersions),
-//         QUIC_STATUS_CONNECTION_TIMEOUT,
-//         Family);
-// }
+void
+QuicTestVersionNegotiation(
+    _In_ int Family
+    )
+{
+    const uint32_t ClientVersions[] = { 168430090ul, LATEST_SUPPORTED_VERSION }; // Random reserved version to force VN.
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings VersionSettings;
+    VersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
+
+    ClearGlobalVersionListScope ClearVersionsScope;
+    BOOLEAN Enabled = TRUE;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Enabled),
+            &Enabled));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+
+                TEST_TRUE(Client.GetIsConnected());
+                TEST_TRUE(Client.GetStatistics().VersionNegotiation);
+                TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
+            }
+        }
+    }
+}
+
+struct ClearForcedRetryScope {
+    ~ClearForcedRetryScope() {
+        uint16_t value = 65;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                sizeof(value),
+                &value));
+    }
+};
+
+void
+QuicTestVersionNegotiationRetry(
+    _In_ int Family
+    )
+{
+    const uint32_t ClientVersions[] = { 168430090ul, LATEST_SUPPORTED_VERSION }; // Random reserved version to force VN.
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
+    const uint16_t RetryMemoryLimit = 0;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            sizeof(RetryMemoryLimit),
+            &RetryMemoryLimit));
+
+    ClearForcedRetryScope ClearForcedRetry;
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings VersionSettings;
+    VersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
+
+    ClearGlobalVersionListScope ClearVersionsScope;
+    BOOLEAN Enabled = TRUE;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Enabled),
+            &Enabled));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+
+                TEST_TRUE(Client.GetIsConnected());
+                TEST_TRUE(Client.GetStatistics().VersionNegotiation);
+                TEST_TRUE(Client.GetStatistics().StatelessRetry);
+                TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
+            }
+        }
+    }
+}
+
+void
+QuicTestCompatibleVersionNegotiation(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    )
+{
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
+    const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
+
+    ClearGlobalVersionListScope ClearVersionsScope;
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
+
+    BOOLEAN Value = !DisableVNEServer;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Value),
+            &Value));
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionNegotiationExtEnabled(!DisableVNEClient));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                if (DisableVNEClient || DisableVNEServer) {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
+                } else {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                }
+                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
+            }
+        }
+    }
+}
+
+void
+QuicTestCompatibleVersionNegotiationRetry(
+    _In_ int Family
+    )
+{
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
+    const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
+    const uint16_t RetryMemoryLimit = 0;
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            sizeof(RetryMemoryLimit),
+            &RetryMemoryLimit));
+    ClearForcedRetryScope ClearForcedRetry;
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
+    BOOLEAN Value = TRUE;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Value),
+            &Value));
+    ClearGlobalVersionListScope ClearVersionsScope;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
+                TEST_TRUE(Client.GetStatistics().StatelessRetry);
+            }
+        }
+    }
+}
+
+void
+QuicTestCompatibleVersionNegotiationDefaultServer(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    )
+{
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_2_H };
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetIdleTimeoutMs(3000);
+
+    //
+    // Enable the VNE for server at the global level.
+    //
+    BOOLEAN Value = !DisableVNEServer;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Value),
+            &Value));
+    ClearGlobalVersionListScope ClearVersionsScope;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionNegotiationExtEnabled(!DisableVNEClient));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                if (DisableVNEClient || DisableVNEServer) {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
+                } else {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                }
+                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
+            }
+        }
+    }
+}
+
+void
+QuicTestCompatibleVersionNegotiationDefaultClient(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    )
+{
+    const uint32_t ServerVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_2_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
+
+    BOOLEAN Value = !DisableVNEServer;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Value),
+            &Value));
+    ClearGlobalVersionListScope ClearVersionsScope;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionNegotiationExtEnabled(!DisableVNEClient));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                if (DisableVNEClient || DisableVNEServer) {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
+                } else {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                }
+                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
+            }
+        }
+    }
+}
+
+void
+QuicTestIncompatibleVersionNegotiation(
+    _In_ int Family
+    )
+{
+    const uint32_t ClientVersions[] = { QUIC_VERSION_2_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_1_H };
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
+    const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
+    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_H;
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            sizeof(ServerVersionsSettings),
+            &ServerVersionsSettings));
+    ClearGlobalVersionListScope ClearVersionsScope;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
+                TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
+                TEST_TRUE(Client.GetStatistics().VersionNegotiation);
+            }
+        }
+    }
+}
+
+void
+RunFailedVersionNegotiation(
+    _In_reads_bytes_(ClientVersionsLength * sizeof(uint32_t))
+        const uint32_t* ClientVersions,
+    _In_reads_bytes_(ServerVersionsLength * sizeof(uint32_t))
+         const uint32_t* ServerVersions,
+    _In_ const uint32_t ClientVersionsLength,
+    _In_ const uint32_t ServerVersionsLength,
+    _In_ QUIC_STATUS ExpectedClientError,
+    _In_ QUIC_STATUS ExpectedServerError,
+    _In_ uint32_t ExpectedClientVersion,
+    _In_ int Family
+    )
+{
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(2000);
+    ClientSettings.SetDisconnectTimeoutMs(1000);
+
+    MsQuicVersionSettings ClientVersionSettings;
+    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetIdleTimeoutMs(2000);
+    ServerSettings.SetDisconnectTimeoutMs(1000);
+
+    MsQuicVersionSettings ServerVersionsSettings;
+    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+
+    if (ServerVersions != NULL) {
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(ServerVersionsSettings),
+                &ServerVersionsSettings));
+    } else {
+        BOOLEAN Disabled = FALSE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+                sizeof(Disabled),
+                &Disabled));
+    }
+    ClearGlobalVersionListScope ClearVersionsScope;
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(ClientVersionSettings));
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+            if (QUIC_FAILED(ExpectedServerError)) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = ExpectedServerError;
+            }
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+                Client.SetExpectedTransportCloseStatus(ExpectedClientError);
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                Client.WaitForShutdownComplete();
+                TEST_FALSE(Client.GetIsConnected());
+
+                if (QUIC_FAILED(ExpectedServerError)) {
+                    TEST_NOT_EQUAL(nullptr, Server);
+                } else {
+                    TEST_EQUAL(nullptr, Server);
+                }
+
+                TEST_EQUAL(Client.GetQuicVersion(), ExpectedClientVersion);
+                TEST_TRUE(Client.GetStatistics().VersionNegotiation);
+                TEST_EQUAL(Client.GetTransportCloseStatus(), ExpectedClientError);
+            }
+        }
+    }
+}
+
+void
+QuicTestFailedVersionNegotiation(
+    _In_ int Family
+    )
+{
+    const uint32_t NoCommonClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
+    const uint32_t NoCommonServerVersions[] = { QUIC_VERSION_1_MS_H };
+
+    RunFailedVersionNegotiation(
+        NoCommonClientVersions,
+        NoCommonServerVersions,
+        ARRAYSIZE(NoCommonClientVersions),
+        ARRAYSIZE(NoCommonServerVersions),
+        QUIC_STATUS_VER_NEG_ERROR,
+        QUIC_STATUS_SUCCESS,
+        QUIC_VERSION_DRAFT_29_H,
+        Family);
+
+    const uint32_t ClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
+
+    RunFailedVersionNegotiation(
+        ClientVersions,
+        NULL,
+        ARRAYSIZE(ClientVersions),
+        0,
+        QUIC_STATUS_VER_NEG_ERROR,
+        QUIC_STATUS_VER_NEG_ERROR,
+        QUIC_VERSION_1_H,
+        Family);
+}
 
 void
 QuicTestConnectBadAlpn(
@@ -1654,7 +1723,7 @@ QuicTestConnectBadAlpn(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -1707,6 +1776,9 @@ QuicTestConnectBadSni(
                 TEST_TRUE(Client.IsValid());
 
                 QuicAddr RemoteAddr(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6, true);
+                if (UseDuoNic) {
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                }
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_REFUSED);
@@ -1787,7 +1859,7 @@ QuicTestConnectServerRejected(
                 Client.Start(
                     ClientConfiguration,
                     QuicAddrFamily,
-                    QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                    QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                     ServerLocalAddr.GetPort()));
             if (!Client.WaitForShutdownComplete()) {
                 return;
@@ -1841,7 +1913,7 @@ QuicTestKeyUpdateRandomLoss(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -1970,7 +2042,7 @@ QuicTestKeyUpdate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -2000,10 +2072,15 @@ QuicTestKeyUpdate(
                     // Send some data to perform the key update.
                     // TODO: Update this to send stream data, like QuicConnectAndPing does.
                     //
-                    TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101+i)));
-                    TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());
-                    CxPlatSleep(100);
-                    TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
+                    uint16_t PeerCount, Expected = 101+i, Tries = 0;
+                    TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(Expected));
+                    TEST_EQUAL(Expected, Client.GetPeerBidiStreamCount());
+
+                    do {
+                        CxPlatSleep(100);
+                        PeerCount =  Server->GetLocalBidiStreamCount();
+                    } while (PeerCount != Expected && Tries++ < 10);
+                    TEST_EQUAL(Expected, PeerCount);
 
                     //
                     // Force a client key update to occur again to check for double update
@@ -2013,10 +2090,16 @@ QuicTestKeyUpdate(
                         TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
                     }
 
-                    TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
-                    TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
-                    CxPlatSleep(100);
-                    TEST_EQUAL((uint16_t)(100+i), Client.GetLocalBidiStreamCount());
+                    Expected = 100+i;
+                    TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(Expected));
+                    TEST_EQUAL(Expected, Server->GetPeerBidiStreamCount());
+
+                    Tries = 0;
+                    do {
+                        CxPlatSleep(100);
+                        PeerCount =  Client.GetLocalBidiStreamCount();
+                    } while (PeerCount != Expected && Tries++ < 10);
+                    TEST_EQUAL(Expected, PeerCount);
                 }
 
                 CxPlatSleep(100);
@@ -2102,7 +2185,7 @@ QuicTestCidUpdate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -2200,6 +2283,8 @@ QuicTestConnectClientCertificate(
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
             if (!UseClientCertificate) {
+                ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_NO_CERT;
+                ServerAcceptCtx.PeerCertEventReturnStatus = QUIC_STATUS_CONNECTION_REFUSED;
                 ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
             }
             Listener.Context = &ServerAcceptCtx;
@@ -2215,7 +2300,7 @@ QuicTestConnectClientCertificate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -2312,7 +2397,7 @@ QuicTestValidAlpnLengths(
                         Client.Start(
                             ClientConfiguration,
                             QuicAddrFamily,
-                            QUIC_LOCALHOST_FOR_AF(
+                            QUIC_TEST_LOOPBACK_FOR_AF(
                                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                             ServerLocalAddr.GetPort()));
 
@@ -2378,7 +2463,7 @@ QuicTestConnectExpiredServerCertificate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -2441,7 +2526,7 @@ QuicTestConnectValidServerCertificate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -2504,7 +2589,7 @@ QuicTestConnectValidClientCertificate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -2567,7 +2652,7 @@ QuicTestConnectExpiredClientCertificate(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(
+                        QUIC_TEST_LOOPBACK_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
@@ -2614,10 +2699,18 @@ struct LoadBalancedServer {
         CxPlatZeroMemory(Listeners, sizeof(MsQuicAutoAcceptListener*) * ListenerCount);
         MsQuicSettings Settings;
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
-        QuicAddrSetToLoopback(&PublicAddress.SockAddr);
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&PublicAddress.SockAddr);
+        } else {
+            QuicAddrSetToLoopback(&PublicAddress.SockAddr);
+        }
         for (uint32_t i = 0; i < ListenerCount; ++i) {
             PrivateAddresses[i] = QuicAddr(QuicAddrFamily);
-            QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
+            if (UseDuoNic) {
+                QuicAddrSetToDuoNic(&PrivateAddresses[i].SockAddr);
+            } else {
+                QuicAddrSetToLoopback(&PrivateAddresses[i].SockAddr);
+            }
             Configurations[i] = new(std::nothrow) MsQuicConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
             TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(InitStatus = Configurations[i]->SetTicketKey(&KeyConfig));
@@ -2677,14 +2770,16 @@ QuicTestLoadBalancedHandshake(
             TryingResumption = true;
         }
         TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(ConnLocalAddr));
-        TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, Listeners.PublicAddress));
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, Listeners.PublicAddress.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(Listeners.PublicAddress.GetFamily()), Listeners.PublicAddress.GetPort()));
         TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
         if (!Connection.HandshakeComplete) {
-            //
-            // Sometimes the local port might be used already. Just ignore this
-            // failure and continue on.
-            //
+#ifdef WSAEACCES
+            TEST_TRUE(
+                Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE ||
+                Connection.TransportShutdownStatus == HRESULT_FROM_WIN32(WSAEACCES));
+#else
             TEST_TRUE(Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE);
+#endif
 
         } else {
             if (SchannelMode) {
@@ -2751,7 +2846,7 @@ QuicTestClientSharedLocalPort(
     MsQuicConnection Connection1(Registration);
     TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection1.SetShareUdpBinding());
-    TEST_QUIC_SUCCEEDED(Connection1.StartLocalhost(ClientConfiguration, Server1LocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection1.Start(ClientConfiguration, Server1LocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(Server1LocalAddr.GetFamily()), Server1LocalAddr.GetPort()));
     TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection1.HandshakeComplete);
     QuicAddr Client1LocalAddr;
@@ -2761,7 +2856,7 @@ QuicTestClientSharedLocalPort(
     TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection2.SetShareUdpBinding());
     TEST_QUIC_SUCCEEDED(Connection2.SetLocalAddr(Client1LocalAddr));
-    TEST_QUIC_SUCCEEDED(Connection2.StartLocalhost(ClientConfiguration, Server1LocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection2.Start(ClientConfiguration, Server1LocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(Server1LocalAddr.GetFamily()), Server1LocalAddr.GetPort()));
     TEST_TRUE(Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection2.HandshakeComplete);
 }
@@ -2828,14 +2923,14 @@ QuicTestInterfaceBinding(
     MsQuicConnection Connection1(Registration);
     TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection1.SetLocalInterface(LoopbackInterfaceIndex));
-    TEST_QUIC_SUCCEEDED(Connection1.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection1.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection1.HandshakeComplete);
 
     MsQuicConnection Connection2(Registration);
     TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection2.SetLocalInterface(OtherInterfaceIndex));
-    TEST_QUIC_SUCCEEDED(Connection2.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection2.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
@@ -2878,7 +2973,128 @@ QuicTestCibirExtension(
     if (!ShouldConnnect) {
         // TODO - Set expected transport error
     }
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
-    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_EQUAL(Connection.HandshakeComplete, ShouldConnnect);
+}
+
+void
+QuicTestResumptionAcrossVersions()
+{
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    uint32_t FirstClientVersions[] = {QUIC_VERSION_1_H};
+    uint32_t SecondClientVersions[] = {QUIC_VERSION_2_H};
+    MsQuicVersionSettings VersionSettings{};
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    VersionSettings.SetAllVersionLists(FirstClientVersions, ARRAYSIZE(FirstClientVersions));
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
+    QUIC_BUFFER* ResumptionTicket = nullptr;
+
+    QuicTestPrimeResumption(QuicAddrFamily, Registration, ServerConfiguration, ClientConfiguration, &ResumptionTicket);
+    if (ResumptionTicket == nullptr) {
+        return;
+    }
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                VersionSettings.SetAllVersionLists(SecondClientVersions, ARRAYSIZE(SecondClientVersions));
+                TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
+                TEST_QUIC_SUCCEEDED(Client.SetResumptionTicket(ResumptionTicket));
+                CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+                Client.SetExpectedResumed(false);
+
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(&ServerLocalAddr.SockAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+                TEST_FALSE(Client.GetResumed());
+                TEST_FALSE(Server->GetResumed());
+            }
+        }
+    }
+}
+
+void
+QuicTestClientBlockedSourcePort(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetDisconnectTimeoutMs(500);
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    const QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Client(Registration);
+    TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(QuicAddr(QuicAddrFamily, (uint16_t)11211 /* memcache port */)));
+    TEST_QUIC_SUCCEEDED(Client.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Client.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(!Client.HandshakeComplete);
+    TEST_EQUAL(Client.TransportShutdownStatus, QUIC_STATUS_CONNECTION_TIMEOUT);
+
+    QUIC_LISTENER_STATISTICS ListenerStats {0};
+    TEST_QUIC_SUCCEEDED(Listener.GetStatistics(ListenerStats));
+    TEST_TRUE(ListenerStats.BindingRecvDroppedPackets > 0);
 }

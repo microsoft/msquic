@@ -161,7 +161,11 @@ typedef struct CXPLAT_ROUTE {
     uint8_t NextHopLinkLayerAddress[6];
     void* Queue;
 
-    CXPLAT_ROUTE_STATE State; // Keep this as the last property in the struct.
+    //
+    // QuicCopyRouteInfo copies memory up to this point (not including State).
+    //
+
+    CXPLAT_ROUTE_STATE State;
 #endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
@@ -343,6 +347,11 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+typedef struct CXPLAT_DATAPATH_CONFIG {
+    const uint16_t* DataPathProcList; // Processor index candidates
+    uint32_t DataPathProcListLength;
+} CXPLAT_DATAPATH_CONFIG;
+
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -352,6 +361,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -368,6 +378,7 @@ CxPlatDataPathUninitialize(
 #define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
 #define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
 #define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
+#define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 
 //
 // Queries the currently supported features of the datapath.
@@ -675,10 +686,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 (CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
-    _In_ void* Context,
+    _Inout_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
-        uint8_t* PhysicalAddress,
+        const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );
@@ -697,6 +708,7 @@ CxPlatResolveRoute(
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
+
 #endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)

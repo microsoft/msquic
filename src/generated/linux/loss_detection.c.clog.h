@@ -339,10 +339,10 @@ tracepoint(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnLossDetectionTimerSet
-// [conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)
+// [conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)
 // QuicTraceEvent(
             ConnLossDetectionTimerSet,
-            "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
+            "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
             Connection,
             TimeoutType,
             Delay,

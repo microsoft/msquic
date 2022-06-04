@@ -117,6 +117,11 @@ typedef struct QUIC_LIBRARY {
     uint32_t Version[4];
 
     //
+    // Binary Git Hash
+    //
+    const char* GitHash;
+
+    //
     // Configurable (app & registry) settings.
     //
     QUIC_SETTINGS_INTERNAL Settings;
@@ -199,6 +204,12 @@ typedef struct QUIC_LIBRARY {
     // Handle to global persistent storage (registry).
     //
     CXPLAT_STORAGE* Storage;
+
+    //
+    // Processor candidates for raw datapath threads.
+    //
+    uint16_t* DataPathProcList;
+    uint32_t DataPathProcListLength;
 
     //
     // Datapath instance for the library.

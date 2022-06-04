@@ -104,6 +104,7 @@ QuicCryptoInitialize(
     _Inout_ QUIC_CRYPTO* Crypto
     )
 {
+    CXPLAT_DBG_ASSERT(Crypto->Initialized == FALSE);
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint16_t SendBufferLength =
@@ -116,10 +117,10 @@ QuicCryptoInitialize(
     uint8_t HandshakeCidLength;
     BOOLEAN RecvBufferInitialized = FALSE;
 
-    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
-            Salt = QuicSupportedVersionList[i].Salt;
+            VersionInfo = &QuicSupportedVersionList[i];
             break;
         }
     }
@@ -184,7 +185,8 @@ QuicCryptoInitialize(
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            Salt,
+            &VersionInfo->HkdfLabels,
+            VersionInfo->Salt,
             HandshakeCidLength,
             HandshakeCid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
@@ -305,6 +307,14 @@ QuicCryptoInitializeTls(
     }
     TlsConfig.TlsSecrets = Connection->TlsSecrets;
 
+    TlsConfig.HkdfLabels = &QuicSupportedVersionList[0].HkdfLabels; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            TlsConfig.HkdfLabels = &QuicSupportedVersionList[i].HkdfLabels;
+            break;
+        }
+    }
+
     TlsConfig.TPType =
         Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 ?
             TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS :
@@ -381,12 +391,27 @@ QuicCryptoOnVersionChange(
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;
 
-    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    if (!Crypto->Initialized) {
+        //
+        // Crypto is not initialized yet, so no need to set keys.
+        //
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
-            Salt = QuicSupportedVersionList[i].Salt;
+            VersionInfo = &QuicSupportedVersionList[i];
             break;
         }
+    }
+
+    if (Crypto->TLS) {
+        //
+        // If TLS has been initialized, then it needs to have HKDF
+        // labels updated.
+        //
+        CxPlatTlsUpdateHkdfLabels(Crypto->TLS, &VersionInfo->HkdfLabels);
     }
 
     if (QuicConnIsServer(Connection)) {
@@ -423,7 +448,8 @@ QuicCryptoOnVersionChange(
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            Salt,
+            &VersionInfo->HkdfLabels,
+            VersionInfo->Salt,
             HandshakeCidLength,
             HandshakeCid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
@@ -435,6 +461,7 @@ QuicCryptoOnVersionChange(
             Connection,
             Status,
             "Creating initial keys");
+        QuicConnFatalError(Connection, Status, "New version key OOM");
         goto Exit;
     }
     CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
@@ -753,34 +780,66 @@ QuicCryptoWriteCryptoFrames(
 
         uint32_t EncryptLevelStart;
         uint32_t PacketTypeRight;
-        switch (Builder->PacketType) {
-        case QUIC_INITIAL:
-            EncryptLevelStart = 0;
-            if (Crypto->TlsState.BufferOffsetHandshake != 0) {
-                PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
-            } else {
+        if (QuicCryptoGetConnection(Crypto)->Stats.QuicVersion == QUIC_VERSION_2) {
+            switch (Builder->PacketType) {
+            case QUIC_INITIAL_V2:
+                EncryptLevelStart = 0;
+                if (Crypto->TlsState.BufferOffsetHandshake != 0) {
+                    PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
+                } else {
+                    PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                }
+                break;
+            case QUIC_0_RTT_PROTECTED_V2:
+                CXPLAT_FRE_ASSERT(FALSE);
+                EncryptLevelStart = 0;
+                PacketTypeRight = 0; // To get build to stop complaining.
+                break;
+            case QUIC_HANDSHAKE_V2:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
+                EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;
+                PacketTypeRight =
+                    Crypto->TlsState.BufferOffset1Rtt == 0 ?
+                        Crypto->TlsState.BufferTotalLength : Crypto->TlsState.BufferOffset1Rtt;
+                break;
+            default:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffset1Rtt != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffset1Rtt);
+                EncryptLevelStart = Crypto->TlsState.BufferOffset1Rtt;
                 PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                break;
             }
-            break;
-        case QUIC_0_RTT_PROTECTED:
-            CXPLAT_FRE_ASSERT(FALSE);
-            EncryptLevelStart = 0;
-            PacketTypeRight = 0; // To get build to stop complaining.
-            break;
-        case QUIC_HANDSHAKE:
-            CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
-            CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
-            EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;
-            PacketTypeRight =
-                Crypto->TlsState.BufferOffset1Rtt == 0 ?
-                    Crypto->TlsState.BufferTotalLength : Crypto->TlsState.BufferOffset1Rtt;
-            break;
-        default:
-            CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffset1Rtt != 0);
-            CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffset1Rtt);
-            EncryptLevelStart = Crypto->TlsState.BufferOffset1Rtt;
-            PacketTypeRight = Crypto->TlsState.BufferTotalLength;
-            break;
+        } else {
+            switch (Builder->PacketType) {
+            case QUIC_INITIAL_V1:
+                EncryptLevelStart = 0;
+                if (Crypto->TlsState.BufferOffsetHandshake != 0) {
+                    PacketTypeRight = Crypto->TlsState.BufferOffsetHandshake;
+                } else {
+                    PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                }
+                break;
+            case QUIC_0_RTT_PROTECTED_V1:
+                CXPLAT_FRE_ASSERT(FALSE);
+                EncryptLevelStart = 0;
+                PacketTypeRight = 0; // To get build to stop complaining.
+                break;
+            case QUIC_HANDSHAKE_V1:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffsetHandshake != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffsetHandshake);
+                EncryptLevelStart = Crypto->TlsState.BufferOffsetHandshake;
+                PacketTypeRight =
+                    Crypto->TlsState.BufferOffset1Rtt == 0 ?
+                        Crypto->TlsState.BufferTotalLength : Crypto->TlsState.BufferOffset1Rtt;
+                break;
+            default:
+                CXPLAT_DBG_ASSERT(Crypto->TlsState.BufferOffset1Rtt != 0);
+                CXPLAT_DBG_ASSERT(Left >= Crypto->TlsState.BufferOffset1Rtt);
+                EncryptLevelStart = Crypto->TlsState.BufferOffset1Rtt;
+                PacketTypeRight = Crypto->TlsState.BufferTotalLength;
+                break;
+            }
         }
 
         if (Right > PacketTypeRight) {
@@ -873,12 +932,24 @@ QuicCryptoWriteFrames(
         return TRUE;
     }
 
-    if (Builder->PacketType !=
-        QuicEncryptLevelToPacketType(QuicCryptoGetNextEncryptLevel(Crypto))) {
+    if ((Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType !=
+            QuicEncryptLevelToPacketTypeV1(QuicCryptoGetNextEncryptLevel(Crypto))) ||
+        (Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType !=
+            QuicEncryptLevelToPacketTypeV2(QuicCryptoGetNextEncryptLevel(Crypto)))) {
         //
         // Nothing to send in this packet / encryption level, just continue on.
         //
         return TRUE;
+    }
+
+    if (QuicConnIsClient(Connection) &&
+        Builder->Key == Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]) {
+        CXPLAT_DBG_ASSERT(Builder->Key);
+        //
+        // Per spec, client MUST discard Initial keys when it starts
+        // encrypting packets with handshake keys.
+        //
+        QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
     }
 
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
@@ -1284,7 +1355,9 @@ QuicConnReceiveTP(
         return FALSE;
     }
 
-    (void)QuicConnProcessPeerTransportParameters(Connection, FALSE);
+    if (QUIC_FAILED(QuicConnProcessPeerTransportParameters(Connection, FALSE))) {
+        return FALSE;
+    }
 
     return TRUE;
 }
@@ -1343,14 +1416,6 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.WriteKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKeys[Crypto->TlsState.WriteKey] != NULL);
-        if (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_HANDSHAKE &&
-            QuicConnIsClient(Connection)) {
-            //
-            // Per spec, client MUST discard Initial keys when it starts
-            // encrypting packets with handshake keys.
-            //
-            QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_INITIAL);
-        }
         if (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT) {
             if (QuicConnIsClient(Connection)) {
                 //
@@ -1834,6 +1899,14 @@ QuicCryptoGenerateNewKeys(
     QUIC_PACKET_KEY** NewReadKey = &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_NEW];
     QUIC_PACKET_KEY** NewWriteKey = &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_NEW];
 
+    const QUIC_VERSION_INFO* VersionInfo = &QuicSupportedVersionList[0]; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            VersionInfo = &QuicSupportedVersionList[i];
+            break;
+        }
+    }
+
     //
     // Detect torn key updates; either both keys exist, or they don't.
     //
@@ -1845,6 +1918,7 @@ QuicCryptoGenerateNewKeys(
         //
         Status =
             QuicPacketKeyUpdate(
+                &VersionInfo->HkdfLabels,
                 Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],
                 NewReadKey);
         if (QUIC_FAILED(Status)) {
@@ -1859,6 +1933,7 @@ QuicCryptoGenerateNewKeys(
 
         Status =
             QuicPacketKeyUpdate(
+                &VersionInfo->HkdfLabels,
                 Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT],
                 NewWriteKey);
         if (QUIC_FAILED(Status)) {
@@ -2143,7 +2218,7 @@ QuicCryptoDecodeServerTicket(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
-            "Resumption Ticket for unsupported QUIC version");
+            "Resumption Ticket for different QUIC version");
         goto Error;
     }
     Offset += sizeof(QuicVersion);

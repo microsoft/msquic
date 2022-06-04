@@ -22,6 +22,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 6. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
 7. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
 8. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
+9. [I need to get a packet capture](#collecting-a-packet-capture).
 
 ## Understanding Error Codes
 
@@ -220,9 +221,53 @@ static X509Certificate2 CreatePkcs12FromPem(string certPem, string keyPem)
 
 ## Using a self-signed certificate for HTTP/3
 
-Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to white list its fingerprint (or that of any certificate in the chain) via the `--ignore-certificate-errors-spki-list` switch.
+Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to whitelist its SHA-256 hash via the [serverCertificateHashes](https://w3c.github.io/webtransport/#dom-webtransportoptions-servercertificatehashes) option and follow stricter [requirements](https://w3c.github.io/webtransport/#custom-certificate-requirements).
 
-See [Chromium network switches](https://source.chromium.org/chromium/chromium/src/+/main:services/network/public/cpp/network_switches.cc;l=36;drc=f8c933c2bd17344ce7ac61be2ac7725ed840b19f)
+See [FlyByWireless.CustomCertificate.Generate()](https://github.com/wegylexy/webtransport/blob/c55d9cc5a11f3a8b8dfd2a12c8d02ad462dc693d/Server/CustomCertificate.cs#L8-L33) on how to generate such a certificate.
+
+## Collecting a Packet Capture
+
+### Linux Packet Capture
+
+> TODO
+
+### Window Packet Capture
+
+On Windows, [Packet Monitor](https://docs.microsoft.com/en-us/windows-server/networking/technologies/pktmon/pktmon?msclkid=79c406dcab7711ec976873fd5c4a48bf) (`pktmon`) is the best way to collect a packet capture.
+
+The (optional) first step is usually to find the interface you want to collect the capture on. Do this by first running `pktmon list`:
+
+```
+> pktmon list
+
+Network Adapters:
+   Id MAC Address       Name
+   -- -----------       ----
+    9 40-8D-5C-B5-46-51 Intel(R) Ethernet Connection (2) I219-V #2
+  104 00-15-5D-D1-5A-30 433db3ea-0acd-457a-9c86-55bb7fa27391
+   80 00-15-5D-AD-8B-40 433db3ea-0acd-457a-9c86-55bb7fa27391
+```
+
+> **Note**
+> If you don't do this and use it to filter to a specific component, you will get a packet capture at **every** layer, which will include many duplicates of each packet.
+
+Once you find the interface you want, take note of the `Id`. For instance, in the example above, I want to use the Ethernet adapter, so I need `9`.
+
+Then, to collect the capture for your scenario (example below uses port `443`), run the following:
+
+```
+pktmon filter remove
+pktmon filter add -c 9 -t UDP -p 443
+pktmon start --capture --pkt-size 0
+<run scenario>
+pktmon stop
+pktmon etl2pcap pktmon.etl
+```
+
+This produced `pktmon.pcapng` in your current directory that can then be opened by [Wireshark](https://www.wireshark.org/). If you want to be able to decrypt the QUIC packets, you will need to get/export the TLS secrets from your code (todo: add link/instructions).
+
+> **Note**
+> If you don't specify the component in the `filter` step, you can specify it at the `etl2pcap` step: `pktmon etl2pcap pktmon.etl -c 9` and it will produce the same final output `pcapng` file.
 
 # Trouble Shooting a Performance Issue
 
@@ -282,8 +327,33 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 > TODO
 
 ## Why is Performance bad across all my Connections?
+1. [UDP receive offload is not working.](#diagnosing-udp-receive-offload-issues-windows-only)
 
-1. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
+2. [The work load isn't spreading evenly across cores.](#diagnosing-rss-issues)
+
+### Diagnosing Software UDP Receive Offload Issues
+
+> **Important** - The following is specific to Windows OS.
+
+Software UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can follow this [guide](https://github.com/microsoft/msquic/blob/main/docs/Diagnostics.md#trace-collection) and use `Full.Verbose` profile to collect TCPIP traces. In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coalesced from 5 UDP packets each with 1000 byte payload.
+```
+[6]0000.0000::2022/03/23-20:27:14.275850900 [Microsoft-Windows-TCPIP]UDP: endpoint 0xFFFFA4033FC652C0: URO SCU received. SegCount = 5, SegSize = 1000, DataLength = 5000.
+```
+If you are not seeing the above event at all, there are several things that can break URO functionality.
+
+- URO can be administratively turned off system-wise from a netsh knob. Check by running `netsh int udp show global`. If `Receive Offload State` is displayed as `disabled`, then URO has been administratively disabled.
+
+- Take a look at the IP interface rundown traces. Software RSC/URO applicable must be `TRUE` for URO to work. If it is `FALSE`, it means the underlying miniport driver is using NDIS 5 or the interface medium is not compatible (e.g. KDNic).
+```
+[2]0E64.0E3C::2022/03/22-17:42:50.604598400 [Microsoft-Windows-TCPIP]Framing: interface rundown: Interface = 8, Luid = 0x6008000000000, Address family = 2(IPV4), Compartment = 1, Isolation mode = 0(None), Isolation ID = 0, DL address = 0x00155D563406, Interface type = 6, Physical medium type = 19(NdisPhysicalMediumOther), SW RSC/URO applicable = 0(FALSE), SW RSC enabled = 0(FALSE), Alias = Ethernet (Kernel Debugger).
+```
+- We also have a rundown trace for URO global disabled mask. The mask must be zero for URO to work. It's common that the mask is 2, which means some incompatible WFP callouts have disabled URO. If you are seeing the mask being 2 on a freshly installed machine, try disabling real-time protection from defender settings.
+```
+[2]0E64.0E3C::2022/03/22-17:42:50.604752100 [Microsoft-Windows-TCPIP]TCP software RSC global disabled mask = 0, UDP software URO global disabled mask = 0.
+```
+- UDP packets by design will not be coalesced if they carry different PTP timestamps. PTP timestamp is a feature for accurately synchronizing time supported by some NICs and it should be off by default. You can turn off PTP timestamps in NIC properties.
+
+![](images/ptp-timestamp-config.png)
 
 ### Diagnosing RSS Issues
 

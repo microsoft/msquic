@@ -23,7 +23,15 @@ Term | Definition
 
 ## Object Model
 
-![API Objects](images/api_objects.png)
+```mermaid
+  graph LR;
+      App-->API;
+      API-->Registration;
+      Registration-->Configuration;
+      Registration-->Listener;
+      Registration-->Connection;
+      Connection-->Stream;
+```
 
 The API supports both server and client applications. All functionality is exposed primarily via a set of different objects:
 
@@ -106,7 +114,7 @@ If the server accepts the connection, it now has ownership of the connection obj
 
 For an accepted connection to actually continue with its handshake, the server must call [ConnectionSetConfiguration](api/ConnectionSetConfiguration.md) to configure the necessary security (TLS) parameters. This may be called either on the callback (before it returns) or later on a different thread.
 
-When the server wishes to stop accepting new connections and stop further callbacks to the registered handler, it can call [ListenerStop](api/ListenerStop.md). This call will block while any existing callbacks complete, and when it returns no future callbacks will occur. Therefore, the server **must not** call this on any other library callbacks. The server may call [ListenerStart](api/ListenerStart.md) again on the listener to start listening for incoming connections again.
+When the server wishes to stop accepting new connections and stop further callbacks to the registered handler, it can call [ListenerStop](api/ListenerStop.md). This call is asynchronous, and may be called from any thread. The `QUIC_LISTENER_EVENT_STOP_COMPLETE` event will be delivered when the listener is stopped. The server may call [ListenerStart](api/ListenerStart.md) again on the listener to start listening for incoming connections again.
 
 To clean up the listener object, the server calls [ListenerClose](api/ListenerClose.md). If the listener was not previously stopped, this function implicitly calls [ListenerStop](api/ListenerStop.md), so all the same restrictions to that call apply.
 

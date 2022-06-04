@@ -114,8 +114,6 @@ QuicSendCanSendFlagsNow(
     return TRUE;
 }
 
-#pragma warning(push)
-#pragma warning(disable:6001) // SAL thinks Connection could be uninitialized?
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
@@ -124,34 +122,6 @@ QuicSendQueueFlush(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-
-#ifdef QUIC_USE_RAW_DATAPATH
-    QUIC_PATH* Path = &Connection->Paths[0];
-    QUIC_STATUS Status;
-
-    CXPLAT_DBG_ASSERT(Path->IsActive);
-
-    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
-        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
-        Status =
-            CxPlatResolveRoute(
-                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
-        if (Status == QUIC_STATUS_SUCCESS) {
-            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
-        } else {
-            //
-            // Route resolution failed or pended. We need to pause sending.
-            //
-            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
-            return;
-        }
-    } else if (Path->Route.State == RouteResolving) {
-        //
-        // Can't send now. Once route resolution completes, we will resume sending.
-        //
-        return;
-    }
-#endif
 
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
@@ -166,7 +136,6 @@ QuicSendQueueFlush(
         }
     }
 }
-#pragma warning(pop)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -518,7 +487,10 @@ QuicSendWriteFrames(
     // specific frames.
     //
 
-    if (Builder->PacketType != QUIC_0_RTT_PROTECTED &&
+    uint8_t ZeroRttPacketType =
+        Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+            QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
+    if (Builder->PacketType != ZeroRttPacketType &&
         QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
         if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, Builder)) {
             RanOutOfRoom = TRUE;
@@ -1087,6 +1059,8 @@ typedef enum QUIC_SEND_RESULT {
 
 } QUIC_SEND_RESULT;
 
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL is confused by the QuicConnAddRef followed by QuicConnRelease.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendFlush(
@@ -1094,14 +1068,41 @@ QuicSendFlush(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    QUIC_PATH* Path = &Connection->Paths[0];
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    //
+    // Make sure the route is resolved before sending packets.
+    //
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        QUIC_STATUS Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+        } else {
+            //
+            // Route resolution failed or pended. We need to pause sending.
+            //
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return TRUE;
+        }
+    } else if (Path->Route.State == RouteResolving) {
+        //
+        // Can't send now. Once route resolution completes, we will resume sending.
+        //
+        return TRUE;
+    }
+#endif
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
-    QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->DestCid == NULL) {
         return TRUE;
     }
@@ -1252,8 +1253,11 @@ QuicSendFlush(
             // Write any ACK frames if we have them.
             //
             QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
+            uint8_t ZeroRttPacketType =
+                Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+                    QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
             WrotePacketFrames =
-                Builder.PacketType != QUIC_0_RTT_PROTECTED &&
+                Builder.PacketType != ZeroRttPacketType &&
                 QuicAckTrackerHasPacketsToAck(&Packets->AckTracker) &&
                 QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder);
 
@@ -1366,6 +1370,7 @@ QuicSendFlush(
 
     return Result != QUIC_SEND_INCOMPLETE;
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

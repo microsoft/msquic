@@ -51,7 +51,7 @@ namespace MsQuicTool
                 settings.PeerUnidiStreamCount = 3;
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationOpen(registration, &buffer, 1, &settings, (uint)sizeof(QUIC_SETTINGS), null, &configuration));
                 QUIC_CREDENTIAL_CONFIG config = new();
-                config.Flags = QUIC_CREDENTIAL_FLAGS.QUIC_CREDENTIAL_FLAG_CLIENT;
+                config.Flags = QUIC_CREDENTIAL_FLAGS.CLIENT;
                 MsQuic.ThrowIfFailure(ApiTable->ConfigurationLoadCredential(configuration, &config));
                 MsQuic.ThrowIfFailure(ApiTable->ConnectionOpen(registration, &NativeCallback, ApiTable, &connection));
                 sbyte* google = stackalloc sbyte[50];
@@ -64,7 +64,7 @@ namespace MsQuicTool
             {
                 if (connection != null)
                 {
-                    ApiTable->ConnectionShutdown(connection, QUIC_CONNECTION_SHUTDOWN_FLAGS.QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+                    ApiTable->ConnectionShutdown(connection, QUIC_CONNECTION_SHUTDOWN_FLAGS.NONE, 0);
                     ApiTable->ConnectionClose(connection);
                 }
                 if (configuration != null)
@@ -83,24 +83,25 @@ namespace MsQuicTool
         private static unsafe int NativeCallback(QUIC_HANDLE* handle, void* context, QUIC_CONNECTION_EVENT* evnt)
         {
             Console.WriteLine(evnt->Type);
-            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_CONNECTED)
+            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.CONNECTED)
             {
                 QUIC_API_TABLE* ApiTable = (QUIC_API_TABLE*)context;
                 void* buf = stackalloc byte[128];
                 uint len = 128;
-                if (MsQuic.StatusSucceeded(ApiTable->GetParam(handle, MsQuic.QUIC_PARAM_CONN_REMOTE_ADDRESS, &len, buf))) {
+                if (MsQuic.StatusSucceeded(ApiTable->GetParam(handle, MsQuic.QUIC_PARAM_CONN_REMOTE_ADDRESS, &len, buf)))
+                {
                     QuicAddr* addr = (QuicAddr*)(buf);
                     Console.WriteLine($"Connected Family: {addr->Family}");
                 }
             }
-            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED)
+            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.PEER_STREAM_STARTED)
             {
                 Console.WriteLine("Aborting Stream");
                 return MsQuic.QUIC_STATUS_ABORTED;
             }
-            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT)
+            if (evnt->Type == QUIC_CONNECTION_EVENT_TYPE.SHUTDOWN_INITIATED_BY_TRANSPORT)
             {
-                Console.WriteLine($"{evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status.ToString("X8")}: {QuicException.GetErrorCodeForStatus(evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status)}");
+                Console.WriteLine($"{evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status.ToString("X8")}: {MsQuicException.GetErrorCodeForStatus(evnt->SHUTDOWN_INITIATED_BY_TRANSPORT.Status)}");
             }
             return MsQuic.QUIC_STATUS_SUCCESS;
         }

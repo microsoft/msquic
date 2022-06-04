@@ -18,13 +18,15 @@ extern "C" {
 //
 // This list is the versions that the server advertises support for.
 //
-extern const uint32_t DefaultSupportedVersionsList[3];
+extern const uint32_t DefaultSupportedVersionsList[4];
 
 typedef struct QUIC_VERSION_INFORMATION_V1 {
     uint32_t ChosenVersion;
     uint32_t OtherVersionsCount;
     const uint32_t* OtherVersions;
 } QUIC_VERSION_INFORMATION_V1;
+
+#define MIN_VERSION_INFO_LENGTH sizeof(uint32_t)
 
 BOOLEAN
 QuicVersionNegotiationExtIsVersionServerSupported(
@@ -52,9 +54,9 @@ QuicVersionNegotiationExtIsVersionCompatible(
 QUIC_STATUS
 QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     _In_ uint32_t OriginalVersion,
-    _In_reads_bytes_(DesiredVersionsLength * sizeof(uint32_t))
-        const uint32_t* const DesiredVersions,
-    _In_ uint32_t DesiredVersionsLength,
+    _In_reads_bytes_(FullyDeployedVersionsLength * sizeof(uint32_t))
+        const uint32_t* const FullyDeployedVersions,
+    _In_ uint32_t FullyDeployedVersionsLength,
     _Out_writes_bytes_(*BufferLength) uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength
     );

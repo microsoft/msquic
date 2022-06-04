@@ -17,7 +17,7 @@ Abstract:
 #define PERF_DEFAULT_DISCONNECT_TIMEOUT     (10 * 1000)
 #define PERF_DEFAULT_IDLE_TIMEOUT           (30 * 1000)
 #define PERF_DEFAULT_CONN_FLOW_CONTROL      0x8000000
-#define PERF_DEFAULT_STREAM_COUNT           100
+#define PERF_DEFAULT_STREAM_COUNT           10000
 #define PERF_MAX_THREAD_COUNT               128
 
 #define PERF_DEFAULT_SEND_BUFFER_SIZE       0x20000
@@ -26,7 +26,7 @@ Abstract:
 #define TPUT_DEFAULT_IDLE_TIMEOUT           (1 * 1000)
 
 #define RPS_MAX_CLIENT_PORT_COUNT           256
-#define RPS_MAX_REQUESTS_PER_SECOND         1500000 // 1.5 million RPS max as a guess
+#define RPS_MAX_REQUESTS_PER_SECOND         2000000 // 1.5 million RPS max as a guess
 #define RPS_DEFAULT_RUN_TIME                (10 * 1000)
 #define RPS_DEFAULT_CONNECTION_COUNT        1000
 #define RPS_DEFAULT_REQUEST_LENGTH          0

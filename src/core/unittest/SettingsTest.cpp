@@ -229,7 +229,9 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsGet)
 TEST(SettingsTest, SettingsSizesGet)
 {
     uint8_t Buffer[sizeof(QUIC_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
@@ -279,7 +281,9 @@ TEST(SettingsTest, SettingsSizesGet)
 TEST(SettingsTest, SettingsSizesSet)
 {
     uint8_t Buffer[sizeof(QUIC_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
@@ -325,7 +329,9 @@ TEST(SettingsTest, SettingsSizesSet)
 TEST(SettingsTest, GlobalSettingsSizesGet)
 {
     uint8_t Buffer[sizeof(QUIC_GLOBAL_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
@@ -375,7 +381,9 @@ TEST(SettingsTest, GlobalSettingsSizesGet)
 TEST(SettingsTest, GlobalSettingsSizesSet)
 {
     uint8_t Buffer[sizeof(QUIC_GLOBAL_SETTINGS) * 2];
+    CxPlatZeroMemory(Buffer, ARRAYSIZE(Buffer));
     QUIC_SETTINGS_INTERNAL InternalSettings;
+    CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
     uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
@@ -416,4 +424,75 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
                 reinterpret_cast<QUIC_GLOBAL_SETTINGS*>(Buffer),
                 &InternalSettings));
     }
+}
+
+TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
+{
+    uint16_t SetCpus[] = {0, 1};
+    uint32_t SetCpusSize = ARRAYSIZE(SetCpus);
+    if (CxPlatProcActiveCount() < 2) {
+        SetCpusSize = CxPlatProcActiveCount();
+    }
+    uint32_t BufferLength = SetCpusSize * sizeof(uint16_t);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            BufferLength,
+            SetCpus));
+    BufferLength = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        QuicLibraryGetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            &BufferLength,
+            NULL));
+    ASSERT_EQ(SetCpusSize, BufferLength / sizeof(uint16_t));
+    uint16_t GetCpus[ARRAYSIZE(SetCpus)] = {0};
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibraryGetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            &BufferLength,
+            GetCpus));
+    ASSERT_EQ(0, memcmp(GetCpus, SetCpus, SetCpusSize * sizeof(uint16_t)));
+    //
+    // Passing a NULL buffer should clear the proc list.
+    //
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            0,
+            NULL));
+    BufferLength = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibraryGetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            &BufferLength,
+            NULL));
+    ASSERT_EQ((uint32_t)0, BufferLength);
+    //
+    // Passing an invalid processor number.
+    //
+    SetCpus[0] = (uint16_t)CxPlatProcActiveCount();
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            sizeof(SetCpus),
+            SetCpus));
+}
+
+TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
+{
+    uint32_t SetCpus[] = {1, 2, 3, 4, 5};
+    MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend datapath has been initialized
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_STATE,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            sizeof(SetCpus),
+            SetCpus));
 }
