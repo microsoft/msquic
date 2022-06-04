@@ -77,6 +77,17 @@ CxPlatGetPortableCertificate(
     );
 
 //
+// Gets a portable certificate and chain in PKCS7 format from
+// a serialized certificate store.
+//
+_Success_(return != 0)
+QUIC_STATUS
+CxPlatGetPortableCertificateFromSerialized(
+    _In_ QUIC_CERTIFICATE* SerializedCertificate,
+    _Out_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
+    );
+
+//
 // Frees a portable certificate and chain returned from CxPlatGetPortableCertificate
 //
 void
