@@ -133,7 +133,7 @@ CxPlatWorkersInit(
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
         CxPlatWorkers[i].Running = TRUE;
-        CxPlatDispatchLockInitialize(&CxPlatWorkers[i].ECLock);
+        CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
         CxPlatEventInitialize(&CxPlatWorkers[i].WakeEvent, FALSE, FALSE);
         ThreadConfig.IdealProcessor = (uint16_t)i;
         ThreadConfig.Context = &CxPlatWorkers[i];
@@ -150,10 +150,10 @@ Error:
 
     for (uint32_t i = 0; i < CxPlatWorkerCount && CxPlatWorkers[i].Running; ++i) {
         CxPlatWorkers[i].Running = FALSE;
-        CxPlatDispatchLockUninitialize(&CxPlatWorkers[i].ECLock);
         CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+        CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
         CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
     }
 
@@ -174,6 +174,7 @@ CxPlatWorkersUninit(
         CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+        CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
         CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
     }
 
@@ -195,10 +196,10 @@ CxPlatAddExecutionContext(
 {
     CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
     Context->CxPlatContext = Worker;
-    CxPlatDispatchLockAcquire(&Worker->ECLock);
+    CxPlatLockAcquire(&Worker->ECLock);
     Context->Entry.Next = Worker->ExecutionContexts;
     Worker->ExecutionContexts = &Context->Entry;
-    CxPlatDispatchLockRelease(&Worker->ECLock);
+    CxPlatLockRelease(&Worker->ECLock);
 }
 
 void
@@ -220,10 +221,10 @@ CxPlatRunExecutionContexts(
     CXPLAT_SLIST_ENTRY** EC;
     CXPLAT_SLIST_ENTRY* ListHead;
 
-    CxPlatDispatchLockAcquire(&Worker->ECLock);
+    CxPlatLockAcquire(&Worker->ECLock);
     ListHead = Worker->ExecutionContexts;
     Worker->ExecutionContexts = NULL;
-    CxPlatDispatchLockRelease(&Worker->ECLock);
+    CxPlatLockRelease(&Worker->ECLock);
 
     EC = &ListHead;
     while (*EC != NULL) {
@@ -245,10 +246,10 @@ CxPlatRunExecutionContexts(
     }
 
     if (ListHead) {
-        CxPlatDispatchLockAcquire(&Worker->ECLock);
+        CxPlatLockAcquire(&Worker->ECLock);
         *EC = Worker->ExecutionContexts;
         Worker->ExecutionContexts = ListHead;
-        CxPlatDispatchLockRelease(&Worker->ECLock); 
+        CxPlatLockRelease(&Worker->ECLock);
     }
 }
 

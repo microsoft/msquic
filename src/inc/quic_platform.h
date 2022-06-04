@@ -445,10 +445,12 @@ BOOLEAN
 
 typedef struct CXPLAT_EXECUTION_CONTEXT {
 
-    CXPLAT_SLIST_ENTRY Entry;
     void* Context;
     void* CxPlatContext;
     CXPLAT_EXECUTION_FN Callback;
+
+    DECLSPEC_CACHEALIGN
+    CXPLAT_SLIST_ENTRY Entry;
     uint64_t NextTimeUs;
     BOOLEAN Ready;
 
