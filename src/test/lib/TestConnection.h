@@ -67,7 +67,8 @@ class TestConnection
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedTransportCloseStatus;
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
-    QUIC_STATUS ExpectedClientCertValidationResult;
+    QUIC_STATUS ExpectedClientCertValidationResult[2];
+    uint32_t ExpectedClientCertValidationResultCount;
     bool ExpectedCustomValidationResult;
     QUIC_STATUS PeerCertEventReturnStatus;
 
@@ -208,8 +209,13 @@ public:
     void SetExpectedCustomValidationResult(bool AcceptCert) { CustomValidationResultSet = true; ExpectedCustomValidationResult = AcceptCert; }
     void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
 
-    QUIC_STATUS GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
-    void SetExpectedClientCertValidationResult(QUIC_STATUS Status) { ExpectedClientCertValidationResult = Status; }
+    const QUIC_STATUS* GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
+    void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {
+        CXPLAT_FRE_ASSERTMSG(
+            ExpectedClientCertValidationResultCount < ARRAYSIZE(ExpectedClientCertValidationResult),
+            "Only two expected values supported.");
+        ExpectedClientCertValidationResult[ExpectedClientCertValidationResultCount++] = Status;
+    }
 
     void SetPeerCertEventReturnStatus(QUIC_STATUS Value) { PeerCertEventReturnStatus = Value; }
 

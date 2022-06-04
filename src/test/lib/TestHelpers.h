@@ -80,7 +80,8 @@ struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
-    QUIC_STATUS ExpectedClientCertValidationResult{QUIC_STATUS_SUCCESS};
+    QUIC_STATUS ExpectedClientCertValidationResult[2]{};
+    uint32_t ExpectedClientCertValidationResultCount{0};
     QUIC_STATUS PeerCertEventReturnStatus{false};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
@@ -88,6 +89,12 @@ struct ServerAcceptContext {
     }
     ~ServerAcceptContext() {
         CxPlatEventUninitialize(NewConnectionReady);
+    }
+    void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {
+        CXPLAT_FRE_ASSERTMSG(
+            ExpectedClientCertValidationResultCount < ARRAYSIZE(ExpectedClientCertValidationResult),
+            "Only two expected values supported.");
+        ExpectedClientCertValidationResult[ExpectedClientCertValidationResultCount++] = Status;
     }
 };
 
