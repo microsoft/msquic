@@ -110,7 +110,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0                        | QUIC_SETTINGS                          | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
 | `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1                     | QUIC_TICKET_KEY_CONFIG[]               | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
 | `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2                | QUIC_VERSIONS_SETTINGS                 | Both      | Change version settings for all connections on the configuration.                                                 |
-| `QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W`<br> 3 | QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W   | Set-only  | Set Schannel attributes on the credential handle. Schannel-only. Only valid once the credential has been loaded.  |
+| `QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W`<br> 3 | QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W   | Set-only  | Calls `SetCredentialsAttributesW` with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.  |
 
 ### Listener Parameters
 
@@ -168,8 +168,8 @@ These parameters are access by calling [GetParam](./api/GetParam.md) or [SetPara
 
 | Setting                                                | Type                                 | Get/Set   | Description                                                                                                                                                   |
 |--------------------------------------------------------|--------------------------------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W`<br> 0    | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W    | Get-only  | Calls `QueryContextAttributeW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up.   |
-| `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W`<br> 1 | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W | Get-only  | Calls `QueryContextAttributeExW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up. |
+| `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W`<br> 0    | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W    | Get-only  | Calls `QueryContextAttributesW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up.   |
+| `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W`<br> 1 | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W | Get-only  | Calls `QueryContextAttributesExW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up. |
 | `QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN`<br> 2 | HANDLE                               | Get-only  | Calls `QuerySecurityContextToken` on the Schannel handle. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up.            |
 
 ### Stream Parameters
