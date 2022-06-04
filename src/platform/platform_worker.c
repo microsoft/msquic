@@ -133,7 +133,9 @@ CxPlatWorkersInit(
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
         CxPlatWorkers[i].Running = TRUE;
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
+#endif // QUIC_USE_EXECUTION_CONTEXTS
         CxPlatEventInitialize(&CxPlatWorkers[i].WakeEvent, FALSE, FALSE);
         ThreadConfig.IdealProcessor = (uint16_t)i;
         ThreadConfig.Context = &CxPlatWorkers[i];
@@ -153,7 +155,9 @@ Error:
         CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
+#endif // QUIC_USE_EXECUTION_CONTEXTS
         CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
     }
 
@@ -174,7 +178,9 @@ CxPlatWorkersUninit(
         CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
+#endif // QUIC_USE_EXECUTION_CONTEXTS
         CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
     }
 

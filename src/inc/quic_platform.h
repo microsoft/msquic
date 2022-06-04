@@ -449,7 +449,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     void* CxPlatContext;
     CXPLAT_EXECUTION_FN Callback;
 
-    DECLSPEC_CACHEALIGN
+    QUIC_CACHEALIGN
     CXPLAT_SLIST_ENTRY Entry;
     uint64_t NextTimeUs;
     BOOLEAN Ready;
