@@ -224,15 +224,9 @@ CxPlatRunExecutionContexts(
 {
     Worker->ECsReady = FALSE;
     Worker->ECsReadyTime = UINT64_MAX;
-    CXPLAT_SLIST_ENTRY** EC;
-    CXPLAT_SLIST_ENTRY* ListHead;
 
     CxPlatLockAcquire(&Worker->ECLock);
-    ListHead = Worker->ExecutionContexts;
-    Worker->ExecutionContexts = NULL;
-    CxPlatLockRelease(&Worker->ECLock);
-
-    EC = &ListHead;
+    CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
     while (*EC != NULL) {
         CXPLAT_EXECUTION_CONTEXT* Context =
             CXPLAT_CONTAINING_RECORD(*EC, CXPLAT_EXECUTION_CONTEXT, Entry);
@@ -250,13 +244,7 @@ CxPlatRunExecutionContexts(
         }
         EC = &Context->Entry.Next;
     }
-
-    if (ListHead) {
-        CxPlatLockAcquire(&Worker->ECLock);
-        *EC = Worker->ExecutionContexts;
-        Worker->ExecutionContexts = ListHead;
-        CxPlatLockRelease(&Worker->ECLock);
-    }
+    CxPlatLockRelease(&Worker->ECLock);
 }
 
 #endif
