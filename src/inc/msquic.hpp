@@ -312,11 +312,11 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
-class MsQuicRegistration {
+struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
-public:
+
     operator HQUIC () const noexcept { return Handle; }
     MsQuicRegistration(
         _In_ bool AutoCleanUp = false
@@ -469,11 +469,11 @@ public:
     }
 };
 
-class MsQuicConfiguration {
+struct MsQuicConfiguration {
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
-public:
     operator HQUIC () const noexcept { return Handle; }
+
     MsQuicConfiguration(
         _In_ const MsQuicRegistration& Reg,
         _In_ const MsQuicAlpn& Alpns

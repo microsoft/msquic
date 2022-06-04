@@ -919,6 +919,15 @@ CxPlatTlsAchWorker(
 
 #endif
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    )
+{
+    return QUIC_TLS_PROVIDER_SCHANNEL;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -2952,10 +2961,6 @@ CxPlatTlsParamGet(
             break;
         }
 
-        default:
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            break;
-
         case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
             if (Buffer == NULL) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -2999,6 +3004,10 @@ CxPlatTlsParamGet(
             CxPlatCopyMemory(Buffer, NegotiatedAlpn.ProtocolId, NegotiatedAlpn.ProtocolIdSize);
             break;
         }
+
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
     }
 
     return Status;

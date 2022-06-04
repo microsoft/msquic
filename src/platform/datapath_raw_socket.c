@@ -381,6 +381,8 @@ CxPlatResolveRoute(
     for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
         CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
+            CXPLAT_DBG_ASSERT(sizeof(Interface->PhysicalAddress) == sizeof(Route->LocalLinkLayerAddress));
+            CxPlatCopyMemory(&Route->LocalLinkLayerAddress, Interface->PhysicalAddress, sizeof(Route->LocalLinkLayerAddress));
             CxPlatDpRawAssignQueue(Interface, Route);
             break;
         }
@@ -395,24 +397,6 @@ CxPlatResolveRoute(
             "no matching interface/queue");
         goto Done;
     }
-
-    //
-    // Look up the source interface link-layer address.
-    //
-    MIB_IF_ROW2 IfRow = {0};
-    IfRow.InterfaceLuid = IpforwardRow.InterfaceLuid;
-    Status = GetIfEntry2(&IfRow);
-    if (Status != ERROR_SUCCESS) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Status,
-            "GetIfEntry2");
-        goto Done;
-    }
-    CXPLAT_DBG_ASSERT(IfRow.PhysicalAddressLength == sizeof(Route->LocalLinkLayerAddress));
-    CxPlatCopyMemory(&Route->LocalLinkLayerAddress, IfRow.PhysicalAddress, sizeof(Route->LocalLinkLayerAddress));
 
     //
     // Map the next hop IP address to a link-layer address.
