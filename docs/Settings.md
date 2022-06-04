@@ -89,8 +89,8 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS`<br> 6         | QUIC_GLOBAL_SETTINGS    | Both      | Globally change global only settings.                                                                 |
 | `QUIC_PARAM_GLOBAL_VERSION_SETTINGS`<br> 7        | QUIC_VERSIONS_SETTINGS  | Both      | Globally change version settings for all subsequent connections.                                      |
 | `QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH`<br> 8        | char[64]                | Get-only  | Git hash used to build MsQuic (null terminated string)                                                |
-| `QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS`<br> 9      | uint16_t[]              | Both      | Globally change the list of CPUs that datapath can use. Must be set before opening registration.  |
-| `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10      | QUIC_TLS_PROVIDER | Get-Only | The TLS provider being used by MsQuic for the TLS handshake. |
+| `QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS`<br> 9     | uint16_t[]              | Both      | Globally change the list of CPUs that datapath can use. Must be set before opening registration.      |
+| `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 
 
 ### Registration Parameters
@@ -105,11 +105,12 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONFIGURATION_*` and a Configuration object handle.
 
-| Setting                                            | Type                      | Get/Set   | Description                                                                                                       |
-|----------------------------------------------------|---------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
-| `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0          | QUIC_SETTINGS             | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
-| `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1       | QUIC_TICKET_KEY_CONFIG[]  | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
-| `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2  | QUIC_VERSIONS_SETTINGS    | Both      | Change version settings for all connections on the configuration.                                                 |
+| Setting                                                          | Type                                   | Get/Set   | Description                                                                                                       |
+|------------------------------------------------------------------|----------------------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
+| `QUIC_PARAM_CONFIGURATION_SETTINGS`<br> 0                        | QUIC_SETTINGS                          | Both      | Settings to use for all connections sharing this Configuration. See [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).      |
+| `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1                     | QUIC_TICKET_KEY_CONFIG[]               | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
+| `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2                | QUIC_VERSIONS_SETTINGS                 | Both      | Change version settings for all connections on the configuration.                                                 |
+| `QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W`<br> 3 | QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W   | Set-only  | Calls `SetCredentialsAttributesW` with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.  |
 
 ### Listener Parameters
 
@@ -147,7 +148,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
 | `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18          | uint32_t                      | Set-only  | The local interface index to bind to.                                                     |
 | `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19              | QUIC_TLS_SECRETS              | Set-only  | The TLS secrets struct to be populated by MsQuic.                                         |
-| `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both      | The desired QUIC versions for the connection.                                                 |
+| `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both      | The desired QUIC versions for the connection.                                             |
 | `QUIC_PARAM_CONN_CIBIR_ID`<br> 21                 | uint8_t[]                     | Set-only  | The CIBIR well-known identifier.                                                          |
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5             | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6        | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
@@ -160,6 +161,16 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 |-------------------------------------------|---------------------------|-----------|---------------------------------------------------------------------------------------------------------------------------|
 | `QUIC_PARAM_TLS_HANDSHAKE_INFO`<br> 0     | QUIC_HANDSHAKE_INFO       | Get-only  | Called in the `QUIC_CONNECTION_EVENT_CONNECTED` event to get the cryptographic parameters negotiated in the handshake.    |
 | `QUIC_PARAM_TLS_NEGOTIATED_ALPN`<br> 1    | uint8_t[] (max 255 bytes) | Get-only  | Called in the `QUIC_CONNECTION_EVENT_CONNECTED` event to get the negotiated ALPN.                                         |
+
+### Schannel-only TLS Parameters
+
+These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_TLS_SCHANNEL_*` and a Connection object handle.
+
+| Setting                                                | Type                                 | Get/Set   | Description                                                                                                                                                   |
+|--------------------------------------------------------|--------------------------------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W`<br> 0    | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W    | Get-only  | Calls `QueryContextAttributesW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up.   |
+| `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W`<br> 1 | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W | Get-only  | Calls `QueryContextAttributesExW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up. |
+| `QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN`<br> 2 | HANDLE                               | Get-only  | Calls `QuerySecurityContextToken` on the Schannel handle. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up.            |
 
 ### Stream Parameters
 
