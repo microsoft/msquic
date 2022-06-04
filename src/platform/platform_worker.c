@@ -190,10 +190,6 @@ CxPlatWorkersUninit(
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
 
-//
-// TODO - Add synchronization around ExecutionContexts
-//
-
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
