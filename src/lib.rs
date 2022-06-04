@@ -172,6 +172,9 @@ pub const CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE: CredentialFlags = 4096;
 pub const CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES: CredentialFlags = 8192;
 pub const CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES: CredentialFlags = 16384;
 pub const CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS: CredentialFlags = 32768;
+pub const CREDENTIAL_FLAG_USE_SYSTEM_MAPPER: CredentialFlags = 65536;
+pub const CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL: CredentialFlags = 131072;
+pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY: CredentialFlags = 262144;
 
 /// Set of allowed TLS cipher suites.
 pub type AllowedCipherSuiteFlags = u32;
@@ -681,6 +684,15 @@ pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
 pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
 pub const PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 0x03000002;
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SchannelCredentialAttributeW {
+    pub attribute: u32,
+    pub buffer_length: u32,
+    pub buffer: *mut c_void,
+}
+pub const PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W: u32 = 0x03000003;
+
 pub const PARAM_LISTENER_LOCAL_ADDRESS: u32 = 0x04000000;
 pub const PARAM_LISTENER_STATS: u32 = 0x04000001;
 pub const PARAM_LISTENER_CIBIR_ID: u32 = 0x04000002;
@@ -720,6 +732,16 @@ pub struct SchannelContextAttributeW {
     pub buffer: *mut c_void,
 }
 pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 0x07000000;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SchannelContextAttributeExW {
+    pub attribute: u32,
+    pub buffer_length: u32,
+    pub buffer: *mut c_void,
+}
+pub const PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W: u32 = 0x07000001;
+pub const PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN: u32 = 0x07000002;
 
 pub const PARAM_STREAM_ID: u32 = 0x08000000;
 pub const PARAM_STREAM_0RTT_LENGTH: u32 = 0x08000001;
