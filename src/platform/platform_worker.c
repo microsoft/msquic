@@ -45,6 +45,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
 
     //
+    // Serializes access to the execution contexts.
+    //
+    CXPLAT_DISPATCH_LOCK ECLock;
+
+    //
     // The set of actively registered execution contexts.
     //
     CXPLAT_SLIST_ENTRY* ExecutionContexts;
@@ -128,6 +133,7 @@ CxPlatWorkersInit(
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
         CxPlatWorkers[i].Running = TRUE;
+        CxPlatDispatchLockInitialize(&CxPlatWorkers[i].ECLock);
         CxPlatEventInitialize(&CxPlatWorkers[i].WakeEvent, FALSE, FALSE);
         ThreadConfig.IdealProcessor = (uint16_t)i;
         ThreadConfig.Context = &CxPlatWorkers[i];
@@ -144,6 +150,7 @@ Error:
 
     for (uint32_t i = 0; i < CxPlatWorkerCount && CxPlatWorkers[i].Running; ++i) {
         CxPlatWorkers[i].Running = FALSE;
+        CxPlatDispatchLockUninitialize(&CxPlatWorkers[i].ECLock);
         CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
@@ -188,8 +195,10 @@ CxPlatAddExecutionContext(
 {
     CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
     Context->CxPlatContext = Worker;
+    CxPlatDispatchLockAcquire(&Worker->ECLock);
     Context->Entry.Next = Worker->ExecutionContexts;
     Worker->ExecutionContexts = &Context->Entry;
+    CxPlatDispatchLockRelease(&Worker->ECLock);
 }
 
 void
@@ -208,12 +217,15 @@ CxPlatRunExecutionContexts(
 {
     Worker->ECsReady = FALSE;
     Worker->ECsReadyTime = UINT64_MAX;
+    CXPLAT_SLIST_ENTRY** EC;
+    CXPLAT_SLIST_ENTRY* ListHead;
 
-    if (Worker->ExecutionContexts == NULL) {
-        return;
-    }
+    CxPlatDispatchLockAcquire(&Worker->ECLock);
+    ListHead = Worker->ExecutionContexts;
+    Worker->ExecutionContexts = NULL;
+    CxPlatDispatchLockRelease(&Worker->ECLock);
 
-    CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
+    EC = &ListHead;
     while (*EC != NULL) {
         CXPLAT_EXECUTION_CONTEXT* Context =
             CXPLAT_CONTAINING_RECORD(*EC, CXPLAT_EXECUTION_CONTEXT, Entry);
@@ -230,6 +242,13 @@ CxPlatRunExecutionContexts(
             Worker->ECsReadyTime = Context->NextTimeUs;
         }
         EC = &Context->Entry.Next;
+    }
+
+    if (ListHead) {
+        CxPlatDispatchLockAcquire(&Worker->ECLock);
+        *EC = Worker->ExecutionContexts;
+        Worker->ExecutionContexts = ListHead;
+        CxPlatDispatchLockRelease(&Worker->ECLock); 
     }
 }
 
