@@ -2469,13 +2469,13 @@ void QuicTestConfigurationSetParam()
     {
         TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED");
         MsQuicConfiguration Configuration(Registration, Alpn);
-        BOOLEAN flag = TRUE;
+        BOOLEAN Flag = TRUE;
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Configuration,
                 QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
-                sizeof(flag),
-                &flag));
+                sizeof(Flag),
+                &Flag));
     }
 #endif
 }
