@@ -1293,7 +1293,7 @@ CxPlatDpRawPlumbRulesOnSocket(
                 }
             } else {
                 //
-                // Due to memory allocation falures, we might not have this rule programmed on the interface.
+                // Due to memory allocation failures, we might not have this rule programmed on the interface.
                 //
                 if (Rule) {
                     CxPlatDpRawClearPortBit(
