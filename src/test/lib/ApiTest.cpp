@@ -2252,7 +2252,7 @@ void QuicTestTlsSetParam()
     }
 }
 
-void QuicTestStreamSetParam()
+void QuicTestStreamParam()
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -2263,48 +2263,175 @@ void QuicTestStreamSetParam()
     // QUIC_PARAM_STREAM_ID
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_STREAM_ID is get only");
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_ID");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         QUIC_UINT62 Dummy = 123;
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Stream.Handle,
-                QUIC_PARAM_STREAM_ID,
-                sizeof(Dummy),
-                &Dummy));
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope("SetParam is not allowed");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_ID,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_ID,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(Dummy));
+
+            QUIC_UINT62 StreamId = 65535;
+            //
+            // Before Stream.Start()
+            //
+            {
+                TestScopeLogger LogScope("Before Stream.Start()");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    MsQuic->GetParam(
+                        Stream.Handle,
+                        QUIC_PARAM_STREAM_ID,
+                        &Length,
+                        &StreamId));
+                TEST_EQUAL(StreamId, 65535);
+            }
+
+            //
+            // Good
+            //
+            {
+                Stream.Start();
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->GetParam(
+                        Stream.Handle,
+                        QUIC_PARAM_STREAM_ID,
+                        &Length,
+                        &StreamId));
+                TEST_EQUAL(StreamId, 0); // (client) streamId start from 0
+            }
+        }
     }
 
     //
     // QUIC_PARAM_STREAM_0RTT_LENGTH
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_STREAM_0RTT_LENGTH is get only");
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_0RTT_LENGTH");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         uint64_t Dummy = 123;
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Stream.Handle,
-                QUIC_PARAM_STREAM_0RTT_LENGTH,
-                sizeof(Dummy),
-                &Dummy));
+        {
+            TestScopeLogger LogScope("SetParam is not allowed");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_0RTT_LENGTH,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_0RTT_LENGTH,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(uint64_t));
+
+            uint64_t ZeroRTTLength = 65535;
+            //
+            // Before Stream.Shutdown()
+            //
+            {
+                TestScopeLogger LogScope("Before Stream.Shutdown()");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    MsQuic->GetParam(
+                        Stream.Handle,
+                        QUIC_PARAM_STREAM_0RTT_LENGTH,
+                        &Length,
+                        &ZeroRTTLength));
+                TEST_EQUAL(ZeroRTTLength, 65535);
+            }
+
+            //
+            // Good
+            //
+            {
+                Stream.Start();
+                Stream.Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | (QUIC_STREAM_SHUTDOWN_FLAGS) QUIC_STREAM_SHUTDOWN_SILENT);
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->GetParam(
+                        Stream.Handle,
+                        QUIC_PARAM_STREAM_0RTT_LENGTH,
+                        &Length,
+                        &ZeroRTTLength));
+                TEST_EQUAL(ZeroRTTLength, 0);
+            }
+        }
     }
 
     //
     // QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE is get only");
+        TestScopeLogger LogScope("QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         uint64_t Dummy = 123;
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                Stream.Handle,
-                QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
-                sizeof(Dummy),
-                &Dummy));
+        {
+            TestScopeLogger LogScope("SetParam is not allowed");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        {
+            TestScopeLogger LogScope("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(uint64_t));
+
+            uint64_t IdealSendBufferSize = 65535;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
+                    &Length,
+                    &IdealSendBufferSize));
+            TEST_EQUAL(IdealSendBufferSize, QUIC_DEFAULT_IDEAL_SEND_BUFFER_SIZE);
+        }
     }
 
     //
@@ -2314,14 +2441,44 @@ void QuicTestStreamSetParam()
         TestScopeLogger LogScope("QUIC_PARAM_STREAM_PRIORITY");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE); // IMMEDIATE to set Stream->SendFlags != 0
+        uint16_t Expected = 123;
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope("SetParam");
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_PRIORITY,
+                    sizeof(Expected),
+                    &Expected));
+        }
 
-        uint16_t Priority = 123;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                Stream.Handle,
-                QUIC_PARAM_STREAM_PRIORITY,
-                sizeof(Priority),
-                &Priority));
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_PRIORITY,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(uint16_t));
+
+            uint16_t Priority = 256;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_PRIORITY,
+                    &Length,
+                    &Priority));
+            TEST_EQUAL(Priority, Expected);
+        }
     }
 }
 

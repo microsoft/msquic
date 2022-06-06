@@ -43,7 +43,7 @@ void QuicTestConfigurationSetParam();
 void QuicTestListenerSetParam();
 void QuicTestConnectionSetParam();
 void QuicTestTlsSetParam();
-void QuicTestStreamSetParam();
+void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
@@ -1052,7 +1052,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALIDATE_TLS_SET_PARAM \
     QUIC_CTL_CODE(96, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM \
+#define IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM \
     QUIC_CTL_CODE(97, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 97

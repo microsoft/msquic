@@ -242,12 +242,12 @@ TEST(ParameterValidation, ValidateTlsSetParam) {
     }
 }
 
-TEST(ParameterValidation, ValidateStreamSetParam) {
-    TestLogger Logger("QuicTestValidateStreamSetParam");
+TEST(ParameterValidation, ValidateStreamParam) {
+    TestLogger Logger("QuicTestValidateStreamParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM));
     } else {
-        QuicTestStreamSetParam();
+        QuicTestStreamParam();
     }
 }
 

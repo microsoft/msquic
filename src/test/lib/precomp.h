@@ -21,6 +21,7 @@
 #include "msquicp.h"
 #include "quic_versions.h"
 #include "quic_trace.h"
+#include "quic_defines.h"
 
 #ifdef _KERNEL_MODE
 #ifdef PAGEDX
