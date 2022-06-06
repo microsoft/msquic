@@ -914,6 +914,7 @@ CxPlatSocketConfigureRss(
 
     struct sock_filter BpfCode[] = {
         {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU},
+        {BPF_ALU | BPF_ADD, 0, 0, 3},
         {BPF_ALU | BPF_MOD, 0, 0, SocketCount},
         {BPF_RET | BPF_A, 0, 0, 0}
     };
