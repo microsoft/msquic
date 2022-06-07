@@ -1292,9 +1292,13 @@ CxPlatDpRawPlumbRulesOnSocket(
                     CxPlatDpRawInterfaceAddRules(Interface, &NewRule, 1);
                 }
             } else {
-                CXPLAT_DBG_ASSERT(Rule);
-                CxPlatDpRawClearPortBit(
-                    Rule->Pattern.IpPortSet.PortSet.PortSet, Socket->LocalAddress.Ipv4.sin_port);
+                //
+                // Due to memory allocation failures, we might not have this rule programmed on the interface.
+                //
+                if (Rule) {
+                    CxPlatDpRawClearPortBit(
+                        Rule->Pattern.IpPortSet.PortSet.PortSet, Socket->LocalAddress.Ipv4.sin_port);
+                }
                 CxPlatLockRelease(&Interface->RuleLock);
             }
         }
