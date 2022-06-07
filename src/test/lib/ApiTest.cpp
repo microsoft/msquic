@@ -1900,6 +1900,7 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
 
     //
     // Buffer starts from non-zero is not supported
+    // NOTE: This can be removed once this case is supported
     //
     {
         TestScopeLogger LogScope0("Buffer starts from non-zero is not supported");
