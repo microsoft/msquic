@@ -115,7 +115,7 @@ CxPlatDataPathInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
     BOOLEAN DpRawInitialized = FALSE;
-    BOOLEAN SocketPoolInitialized = FALSE;
+    BOOLEAN SockPoolInitialized = FALSE;
     CXPLAT_FRE_ASSERT(DatapathSize > sizeof(CXPLAT_DATAPATH));
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
@@ -154,7 +154,7 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    SocketPoolInitialized = TRUE;
+    SockPoolInitialized = TRUE;
 
     Status = CxPlatDpRawInitialize(*NewDataPath, ClientRecvContextLength, Config);
     if (QUIC_FAILED(Status)) {
@@ -176,7 +176,7 @@ Error:
                 CxPlatDpRawUninitialize(*NewDataPath);
             }
 
-            if (SocketPoolInitialized) {
+            if (SockPoolInitialized) {
                 CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
             }
 
