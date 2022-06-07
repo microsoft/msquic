@@ -160,6 +160,8 @@ CxPlatDataPathInitialize(
 
     Status = CxPlatDataPathRouteWorkerInitialize(*NewDataPath);
     if (QUIC_FAILED(Status)) {
+        CxPlatDpRawUninitialize(*NewDataPath);
+        CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
         goto Error;
     }
 
