@@ -2370,12 +2370,12 @@ void QuicTestConfigurationSetParam()
     // QUIC_PARAM_CONFIGURATION_SETTINGS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_SETTINGS");
+        TestScopeLogger LogScope0("QUIC_PARAM_CONFIGURATION_SETTINGS");
         //
         // QuicSettingsSettingsToInternal fail
         //
         {
-            TestScopeLogger LogScope("QuicSettingsSettingsToInternal fail");
+            TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
             MsQuicConfiguration Configuration(Registration, Alpn);
             QUIC_SETTINGS Settings{0};
             TEST_QUIC_STATUS(
@@ -2391,7 +2391,7 @@ void QuicTestConfigurationSetParam()
         // QuicSettingApply fail
         //
         {
-            TestScopeLogger LogScope("QuicSettingApply fail");
+            TestScopeLogger LogScope1("QuicSettingApply fail");
             MsQuicConfiguration Configuration(Registration, Alpn);
             SettingApplyTests(Configuration.Handle, QUIC_PARAM_CONFIGURATION_SETTINGS);
         }
@@ -2401,12 +2401,12 @@ void QuicTestConfigurationSetParam()
     // QUIC_PARAM_CONFIGURATION_TICKET_KEYS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_CONFIGURATION_TICKET_KEYS");
+        TestScopeLogger LogScope0("QUIC_PARAM_CONFIGURATION_TICKET_KEYS");
         //
         // Set before MsQuic->ConfigurationLoadCredential which is Configuration->SecurityConfig == NULL
         //
         {
-            TestScopeLogger LogScope("Set before MsQuic->ConfigurationLoadCredential which is Configuration->SecurityConfig == NULL");
+            TestScopeLogger LogScope1("Set before MsQuic->ConfigurationLoadCredential which is Configuration->SecurityConfig == NULL");
             MsQuicConfiguration Configuration(Registration, Alpn);
             QUIC_TICKET_KEY_CONFIG Config{0};
             TEST_QUIC_STATUS(
@@ -2422,7 +2422,7 @@ void QuicTestConfigurationSetParam()
         // SetParam for client is not supported
         //
         {
-            TestScopeLogger LogScope("SetParam for client is not supported");
+            TestScopeLogger LogScope1("SetParam for client is not supported");
             MsQuicConfiguration Configuration(Registration, Alpn);
             QUIC_CREDENTIAL_CONFIG CredConfig = {};
             CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
@@ -2441,17 +2441,7 @@ void QuicTestConfigurationSetParam()
         // Good with self-signed key
         //
         {
-            TestScopeLogger LogScope("Good with self-signed key");
-            MsQuicConfiguration Configuration(Registration, Alpn);
-            QUIC_CREDENTIAL_CONFIG* CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);;
-            Configuration.LoadCredential(CredConfig);
-            QUIC_TICKET_KEY_CONFIG Config{0};
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Configuration,
-                    QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
-                    sizeof(Config),
-                    &Config));
+            TestScopeLogger LogScope1("Good tests are covered by QuicTestValidateConfiguration");
         }
     }
 
