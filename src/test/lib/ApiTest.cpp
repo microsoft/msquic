@@ -2229,6 +2229,7 @@ void QuicTestGlobalSetParam()
         }
     }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
     // QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS
     //
@@ -2242,6 +2243,7 @@ void QuicTestGlobalSetParam()
                 sizeof(&Hooks),
                 &Hooks));
     }
+#endif
 
     //
     // QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR
