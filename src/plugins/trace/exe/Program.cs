@@ -251,7 +251,7 @@ namespace QuicTrace
             public ulong TotalTime { get { return Times.Aggregate((temp, x) => temp + x); } }
 
             //
-            // An estimate of the network cost from (Client.FirstSend-Client.FirstRecv)-(Server.FirstRecv-Server.FirstSend)
+            // An estimate of the network cost from (Client.FirstRecv-Client.FirstSend)-(Server.FirstSend-Server.FirstRecv)
             //
             public ulong ClientNetworkTime
             {
@@ -921,7 +921,7 @@ namespace QuicTrace
                 {
                     VerboseMode = true;
                 }
-                else
+                elseIdl
                 {
                     break;
                 }
