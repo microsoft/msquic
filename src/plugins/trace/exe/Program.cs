@@ -921,7 +921,7 @@ namespace QuicTrace
                 {
                     VerboseMode = true;
                 }
-                elseIdl
+                else
                 {
                     break;
                 }
