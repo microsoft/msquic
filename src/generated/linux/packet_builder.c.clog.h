@@ -166,6 +166,24 @@ tracepoint(CLOG_PACKET_BUILDER_C, PacketEncrypt , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketFinalize
+// [pack][%llu] Finalizing
+// QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
+// arg2 = arg2 = Builder->Metadata->PacketId = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PacketFinalize
+#define _clog_3_ARGS_TRACE_PacketFinalize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PACKET_BUILDER_C, PacketFinalize , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnErrorStatus
 // [conn][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -181,24 +199,6 @@ tracepoint(CLOG_PACKET_BUILDER_C, PacketEncrypt , arg2);\
 #ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 #define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_PACKET_BUILDER_C, ConnErrorStatus , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PacketFinalize
-// [pack][%llu] Finalizing
-// QuicTraceEvent(
-        PacketFinalize,
-        "[pack][%llu] Finalizing",
-        Builder->Metadata->PacketId);
-// arg2 = arg2 = Builder->Metadata->PacketId = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_PacketFinalize
-#define _clog_3_ARGS_TRACE_PacketFinalize(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_PACKET_BUILDER_C, PacketFinalize , arg2);\
 
 #endif
 
