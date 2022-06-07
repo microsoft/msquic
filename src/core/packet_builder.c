@@ -809,6 +809,11 @@ QuicPacketBuilderFinalize(
             goto Exit;
         }
 
+        QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
+
         if (Connection->State.HeaderProtectionEnabled) {
 
             uint8_t* PnStart = Payload - Builder->PacketNumberLength;
@@ -895,6 +900,13 @@ QuicPacketBuilderFinalize(
             CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
             CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
         }
+
+    } else {
+
+        QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
     }
 
     //
@@ -905,10 +917,6 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
-    QuicTraceEvent(
-        PacketFinalize,
-        "[pack][%llu] Finalizing",
-        Builder->Metadata->PacketId);
 
     QuicTraceEvent(
         ConnPacketSent,
