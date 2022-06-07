@@ -1853,12 +1853,12 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
     // buffer length test
     //
     {
-        TestScopeLogger LogScope("Buffer length test");
+        TestScopeLogger LogScope0("Buffer length test");
         //
         // Buffer is bigger than QUIC_MAX_CIBIR_LENGTH + 1
         //
         {
-            TestScopeLogger LogScope("Buffer is bigger than QUIC_MAX_CIBIR_LENGTH + 1");
+            TestScopeLogger LogScope1("Buffer is bigger than QUIC_MAX_CIBIR_LENGTH + 1");
             uint8_t Cibir[128] = {0};
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -1873,7 +1873,7 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
         // BufferLength == 1
         //
         {
-            TestScopeLogger LogScope("BufferLength == 1");
+            TestScopeLogger LogScope1("BufferLength == 1");
             uint8_t Cibir[1] = {0};
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -1888,7 +1888,7 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
         // Good without value, length 0
         //
         {
-            TestScopeLogger LogScope("no value, Bufferlength == 0");
+            TestScopeLogger LogScope1("no value, Bufferlength == 0");
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Handle,
@@ -1902,7 +1902,7 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
     // Buffer starts from non-zero is not supported
     //
     {
-        TestScopeLogger LogScope("Buffer starts from non-zero is not supported");
+        TestScopeLogger LogScope0("Buffer starts from non-zero is not supported");
         uint8_t Cibir[6] = {128};
         TEST_QUIC_STATUS(
             QUIC_STATUS_NOT_SUPPORTED,
