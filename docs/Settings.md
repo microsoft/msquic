@@ -70,11 +70,11 @@ A [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct is used to configure settings o
 
 For more details see [QUIC_SETTINGS](./api/QUIC_SETTINGS.md).
 
-## API Object Parameters
+# API Object Parameters
 
 MsQuic API Objects have a number of settings, or parameters, which can be queried via [GetParam](api/GetParam.md), or can be set/modifed via [SetParam](api/SetParam.md).
 
-### Global Parameters
+## Global Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_GLOBAL_*` and a `NULL` object handle.
 
@@ -92,16 +92,14 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS`<br> 9     | uint16_t[]              | Both      | Globally change the list of CPUs that datapath can use. Must be set before opening registration.      |
 | `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 
-
-### Registration Parameters
+## Registration Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_REGISTRATION_*` and a Registration object handle.
 
 | Setting                                           | Type          | Get/Set   | Description                                                                                           |
 |---------------------------------------------------|---------------|-----------|-------------------------------------------------------------------------------------------------------|
 
-
-### Configuration Parameters
+## Configuration Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONFIGURATION_*` and a Configuration object handle.
 
@@ -112,7 +110,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2                | QUIC_VERSIONS_SETTINGS                 | Both      | Change version settings for all connections on the configuration.                                                 |
 | `QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W`<br> 3 | QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W   | Set-only  | Calls `SetCredentialsAttributesW` with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.  |
 
-### Listener Parameters
+## Listener Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_LISTENER_*` and a Listener object handle.
 
@@ -122,7 +120,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
 | `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
 
-### Connection Parameters
+## Connection Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_CONNECTION_*` and a Connection object handle.
 
@@ -153,7 +151,15 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5             | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6        | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 
-### TLS Parameters
+### QUIC_PARAM_CONN_STATISTICS_V2
+
+Querying the `QUIC_STATISTICS_V2` struct via `QUIC_PARAM_CONN_STATISTICS_V2` or `QUIC_PARAM_CONN_STATISTICS_V2_PLAT` should be aware of possible changes in the size of the struct, depending on the version of MsQuic the app using at runtime, not just what it was compiled against.
+
+The minimum size of the struct will always be `QUIC_STATISTICS_V2_SIZE_1`. Future version of MsQuic will append new fields to the end of the struct, so the maximum possible size will increase.
+
+When an app queries for the statistics, it must always supply an input buffer of length at least `QUIC_STATISTICS_V2_SIZE_1`, but `sizeof(QUIC_STATISTICS_V2)` will always work as well. MsQuic will support older callers that supply at least that buffer size, even if the maximum size of the struct has grown in a future version of MsQuic. MsQuic will only write the fields that can completely fit in the buffer supplied by the app.
+
+## TLS Parameters
 
 These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_TLS_*` and a Connection object handle.
 
@@ -162,7 +168,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_TLS_HANDSHAKE_INFO`<br> 0     | QUIC_HANDSHAKE_INFO       | Get-only  | Called in the `QUIC_CONNECTION_EVENT_CONNECTED` event to get the cryptographic parameters negotiated in the handshake.    |
 | `QUIC_PARAM_TLS_NEGOTIATED_ALPN`<br> 1    | uint8_t[] (max 255 bytes) | Get-only  | Called in the `QUIC_CONNECTION_EVENT_CONNECTED` event to get the negotiated ALPN.                                         |
 
-### Schannel-only TLS Parameters
+## Schannel-only TLS Parameters
 
 These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_TLS_SCHANNEL_*` and a Connection object handle.
 
@@ -172,7 +178,7 @@ These parameters are access by calling [GetParam](./api/GetParam.md) or [SetPara
 | `QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W`<br> 1 | QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W | Get-only  | Calls `QueryContextAttributesExW` for the given attribute and buffer. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up. |
 | `QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN`<br> 2 | HANDLE                               | Get-only  | Calls `QuerySecurityContextToken` on the Schannel handle. Only valid until the `QUIC_CONNECTION_EVENT_CONNECTED` event, or when TLS is cleaned up.            |
 
-### Stream Parameters
+## Stream Parameters
 
 These parameters are access by calling [GetParam](./api/GetParam.md) or [SetParam](./api/SetParam.md) with `QUIC_PARAM_STREAM_*` and a Stream object handle.
 

@@ -435,6 +435,11 @@ typedef struct QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+//
+// N.B. Consumers of this struct depend on it being the same for 32-bit and
+// 64-bit systems. DO NOT include any fields that have different sizes on those
+// platforms, such as size_t or pointers.
+//
 typedef struct QUIC_STATISTICS_V2 {
 
     uint64_t CorrelationId;
@@ -480,6 +485,12 @@ typedef struct QUIC_STATISTICS_V2 {
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
+
+#define QUIC_STRUCT_SIZE_THRU_FIELD(Struct, Field) \
+    (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
+
+#define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)
+#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendCongestionWindow)
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
