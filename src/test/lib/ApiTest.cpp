@@ -1833,7 +1833,7 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
         QUIC_SETTINGS Settings{0};
         Settings.IsSet.StreamRecvBufferDefault = TRUE;
         for (auto &Data: Spec) {
-            Settings.StreamRecvBufferDefault = Data.Value;
+            Settings.StreamRecvBufferDefault = (uint32_t)Data.Value;
             TEST_QUIC_STATUS(
                 Data.Status,
                 MsQuic->SetParam(
@@ -1924,7 +1924,7 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param) {
 
 void QuicTestStatefulGlobalSetParam()
 {
-    TestScopeLogger LogScope("QuicTestStatefulGlobalSetParam");
+    TestScopeLogger LogScope0("QuicTestStatefulGlobalSetParam");
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -1932,7 +1932,7 @@ void QuicTestStatefulGlobalSetParam()
     // Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)
     //
     {
-        TestScopeLogger LogScope("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
+        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
         GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
         MsQuicAlpn Alpn("MsQuicTest");
         MsQuicCredentialConfig ClientCredConfig;
@@ -1963,7 +1963,7 @@ void QuicTestStatefulGlobalSetParam()
     // Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL
     //
     {
-        TestScopeLogger LogScope("Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL");
+        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL");
         GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
         uint16_t Data[4] = {};
         TEST_QUIC_STATUS(
@@ -2011,13 +2011,13 @@ void QuicTestGlobalSetParam()
     // QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
         GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
         //
         // Invalid mode
         //
         {
-            TestScopeLogger LogScope("Invalid mode");
+            TestScopeLogger LogScope1("Invalid mode");
             uint16_t Mode = (QUIC_LOAD_BALANCING_MODE)128;
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -2074,13 +2074,13 @@ void QuicTestGlobalSetParam()
     // QUIC_PARAM_GLOBAL_SETTINGS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_SETTINGS");
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_SETTINGS");
         GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         //
         // QuicSettingsSettingsToInternal fail
         //
         {
-            TestScopeLogger LogScope("QuicSettingsSettingsToInternal fail");
+            TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
             QUIC_SETTINGS Settings{0};
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -2095,7 +2095,7 @@ void QuicTestGlobalSetParam()
         // QuicSettingApply fail
         //
         {
-            TestScopeLogger LogScope("QuicSettingApply fail");
+            TestScopeLogger LogScope1("QuicSettingApply fail");
             SettingApplyTests(nullptr, QUIC_PARAM_GLOBAL_SETTINGS);
         }
     }
@@ -2104,13 +2104,13 @@ void QuicTestGlobalSetParam()
     // QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
         GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS);
         //
         // QuicSettingsGlobalSettingsToInternal fail
         //
         {
-            TestScopeLogger LogScope("QuicSettingsSettingsToInternal fail");
+            TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
             QUIC_GLOBAL_SETTINGS Settings{0};
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -2125,7 +2125,7 @@ void QuicTestGlobalSetParam()
         // QuicSettingApply fail
         //
         {
-            TestScopeLogger LogScope("QuicSettingApply fail");
+            TestScopeLogger LogScope1("QuicSettingApply fail");
             QUIC_GLOBAL_SETTINGS Settings{0};
             Settings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP + 10;
             Settings.IsSet.LoadBalancingMode = TRUE;
@@ -2164,13 +2164,13 @@ void QuicTestGlobalSetParam()
     // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
         GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
         //
         // BufferLength is not divisible by sizeof(uint16_t)
         //
         {
-            TestScopeLogger LogScope("BufferLength is not divisible by sizeof(uint16_t)");
+            TestScopeLogger LogScope1("BufferLength is not divisible by sizeof(uint16_t)");
             uint16_t Data[4];
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -2185,7 +2185,7 @@ void QuicTestGlobalSetParam()
         // one of data is bigger than the number of its platform cpus
         //
         {
-            TestScopeLogger LogScope("one of data is bigger than the number of its platform cpus");
+            TestScopeLogger LogScope1("one of data is bigger than the number of its platform cpus");
             uint16_t Data[4] = {};
             Data[0] = UINT16_MAX;
             TEST_QUIC_STATUS(
@@ -2201,7 +2201,7 @@ void QuicTestGlobalSetParam()
         // Good without data
         //
         {
-            TestScopeLogger LogScope("Good without data");
+            TestScopeLogger LogScope1("Good without data");
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
@@ -2214,7 +2214,7 @@ void QuicTestGlobalSetParam()
         // Good with data
         //
         {
-            TestScopeLogger LogScope("Good with data");
+            TestScopeLogger LogScope1("Good with data");
             uint16_t Data[4] = {};
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
@@ -2225,48 +2225,28 @@ void QuicTestGlobalSetParam()
         }
     }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
     // QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS
     //
     {
         TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS");
-        QUIC_TEST_DATAPATH_HOOKS Hook = {};
+        QUIC_TEST_DATAPATH_HOOKS Hooks[2] = {};
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(&Hook),
-                &Hook));
-    }
-
-#ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
-    int32_t Value = 123;
-    //
-    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR
-    //
-    {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR");
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
-                sizeof(Value),
-                &Value));
-    }
-
-    //
-    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE
-    //
-    {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE");
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE,
-                sizeof(Value),
-                &Value));
+                sizeof(&Hooks),
+                &Hooks));
     }
 #endif
+
+    //
+    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR
+    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE
+    // These two cause hang test with `./test.ps1 -IsolationMode Batch`
+    // Remove tests as these doesn't have GetParam and are for local debugging purpose
+    //
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
