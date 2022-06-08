@@ -1447,6 +1447,10 @@ CxPlatTlsSecConfigSetTicketKeys(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
     SecPkgCred_SessionTicketKey Key[QUIC_MAX_TICKET_KEY_COUNT];
     for (uint8_t i = 0; i < KeyCount; ++i) {
         if (KeyConfig[i].MaterialLength > sizeof(Key[i].KeyingMaterial)) {
