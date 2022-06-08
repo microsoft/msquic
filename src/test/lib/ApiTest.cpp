@@ -2161,7 +2161,6 @@ void QuicTestStreamSetParam()
         TestScopeLogger LogScope("QUIC_PARAM_STREAM_PRIORITY");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE); // IMMEDIATE to set Stream->SendFlags != 0
-        CxPlatSleep(100);
 
         uint16_t Priority = 123;
         TEST_QUIC_SUCCEEDED(
