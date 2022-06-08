@@ -83,7 +83,10 @@ MsQuic->StreamSend(
     AppSendContext);
 ```
 
-This example opens a new unidirectional stream, and queues a send that starts the stream, sends some app data and gracefully closes the stream. **Note** for the sake of brevity, error handling and clean up has been omitted.
+> **Note**
+> For the sake of brevity, error handling and clean up has been omitted.
+
+This example opens a new unidirectional stream, and queues a send that starts the stream, sends some app data and gracefully closes the stream.
 
 In some scenarios, the app may know that additional data (possibly on a different stream) will soon be queued after the current call to `StreamSend`. In these cases it may be helpful for the app to pass the `QUIC_SEND_FLAG_DELAY_SEND` flag to hint that MsQuic should wait for more data before flushing the connection-wide send queue. **Note** that anything else on the connection *might* still end up triggering the send to flush. The app may call `StreamSend` (on any stream) with a null/empty buffer with `QUIC_SEND_FLAG_DELAY_SEND` **unset** to force a flush.
 

@@ -70,6 +70,11 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 //
 #define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000
 
+typedef enum QUIC_TLS_PROVIDER {
+    QUIC_TLS_PROVIDER_SCHANNEL                  = 0x0000,
+    QUIC_TLS_PROVIDER_OPENSSL                   = 0x0001,
+} QUIC_TLS_PROVIDER;
+
 typedef enum QUIC_EXECUTION_PROFILE {
     QUIC_EXECUTION_PROFILE_LOW_LATENCY,         // Default
     QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT,
@@ -99,8 +104,8 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION              = 0x00000004,
     QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                            = 0x00000008, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED          = 0x00000010,
-    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION           = 0x00000020, // Schannel only currently
-    QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION          = 0x00000040, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION           = 0x00000020,
+    QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION          = 0x00000040,
     QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION = 0x00000080, // OpenSSL only currently
     QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT              = 0x00000100, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN                 = 0x00000200, // Schannel only currently
@@ -109,7 +114,10 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE              = 0x00001000, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES              = 0x00002000,
     QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES              = 0x00004000,
-    QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS               = 0x00008000, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS               = 0x00008000, // Schannel only
+    QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER                      = 0x00010000, // Schannel only
+    QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL               = 0x00020000, // Windows only currently
+    QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY            = 0x00040000, // Windows only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -427,6 +435,11 @@ typedef struct QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+//
+// N.B. Consumers of this struct depend on it being the same for 32-bit and
+// 64-bit systems. DO NOT include any fields that have different sizes on those
+// platforms, such as size_t or pointers.
+//
 typedef struct QUIC_STATISTICS_V2 {
 
     uint64_t CorrelationId;
@@ -472,6 +485,12 @@ typedef struct QUIC_STATISTICS_V2 {
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
+
+#define QUIC_STRUCT_SIZE_THRU_FIELD(Struct, Field) \
+    (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
+
+#define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)
+#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendCongestionWindow)
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
@@ -707,6 +726,7 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH              0x01000008  // char[64]
 #define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS           0x01000009  // uint16_t[]
+#define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 
 //
 // Parameters for Registration.
@@ -720,6 +740,13 @@ void
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS       0x03000002  // QUIC_VERSION_SETTINGS
 #endif
+// Schannel-specific Configuration parameter
+typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
+    unsigned long Attribute;
+    unsigned long BufferLength;
+    void* Buffer;
+} QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W;
+#define QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W  0x03000003  // QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
 
 //
 // Parameters for Listener.
@@ -774,6 +801,13 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
     void* Buffer;
 } QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W;
 #define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W     0x07000000  // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
+typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
+    unsigned long Attribute;
+    unsigned long BufferLength;
+    void* Buffer;
+} QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W;
+#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W  0x07000001  // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W
+#define QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN  0x07000002  // HANDLE
 #endif
 
 //

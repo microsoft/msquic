@@ -69,6 +69,7 @@ class TestConnection
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
     QUIC_STATUS ExpectedClientCertValidationResult;
     bool ExpectedCustomValidationResult;
+    QUIC_STATUS PeerCertEventReturnStatus;
 
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
@@ -209,6 +210,8 @@ public:
 
     QUIC_STATUS GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
     void SetExpectedClientCertValidationResult(QUIC_STATUS Status) { ExpectedClientCertValidationResult = Status; }
+
+    void SetPeerCertEventReturnStatus(QUIC_STATUS Value) { PeerCertEventReturnStatus = Value; }
 
     uint32_t GetDatagramsSent() const { return DatagramsSent; }
     uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }

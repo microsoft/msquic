@@ -127,6 +127,10 @@ ListenerAcceptConnection(
         (*AcceptContext->NewConnection)->SetExpectedClientCertValidationResult(
             AcceptContext->ExpectedClientCertValidationResult);
     }
+    if (AcceptContext->PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {
+        (*AcceptContext->NewConnection)->SetPeerCertEventReturnStatus(
+            AcceptContext->PeerCertEventReturnStatus);
+    }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
@@ -2279,6 +2283,8 @@ QuicTestConnectClientCertificate(
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
             if (!UseClientCertificate) {
+                ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_NO_CERT;
+                ServerAcceptCtx.PeerCertEventReturnStatus = QUIC_STATUS_CONNECTION_REFUSED;
                 ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
             }
             Listener.Context = &ServerAcceptCtx;

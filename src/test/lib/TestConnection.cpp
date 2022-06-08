@@ -25,6 +25,7 @@ TestConnection::TestConnection(
     CustomValidationResultSet(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
+    PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -53,6 +54,7 @@ TestConnection::TestConnection(
     CustomValidationResultSet(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
+    PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -862,6 +864,9 @@ TestConnection::HandleConnectionEvent(
                 "Unexpected Certificate Validation Status, expected=0x%x, actual=0x%x",
                 ExpectedClientCertValidationResult,
                 Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+        }
+        if (PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {
+            return PeerCertEventReturnStatus;
         }
         break;
 
