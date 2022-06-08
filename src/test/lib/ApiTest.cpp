@@ -1909,6 +1909,87 @@ void QuicTestConfigurationSetParam()
     }
 }
 
+// Used by Listener and Connection
+void CibirIDTests(HQUIC Handle, uint32_t Param) {
+    //
+    // buffer length test
+    //
+    {
+        TestScopeLogger LogScope0("Buffer length test");
+        //
+        // Buffer is bigger than QUIC_MAX_CIBIR_LENGTH + 1
+        //
+        {
+            TestScopeLogger LogScope1("Buffer is bigger than QUIC_MAX_CIBIR_LENGTH + 1");
+            uint8_t Cibir[128] = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(Cibir),
+                    &Cibir));
+        }
+
+        //
+        // BufferLength == 1
+        //
+        {
+            TestScopeLogger LogScope1("BufferLength == 1");
+            uint8_t Cibir[1] = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(Cibir),
+                    &Cibir));
+        }
+
+        //
+        // Good without value, length 0
+        //
+        {
+            TestScopeLogger LogScope1("no value, Bufferlength == 0");
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    0,
+                    nullptr));
+        }
+    }
+
+    //
+    // Buffer starts from non-zero is not supported
+    // NOTE: This can be removed once this case is supported
+    //
+    {
+        TestScopeLogger LogScope0("Buffer starts from non-zero is not supported");
+        uint8_t Cibir[6] = {128};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_NOT_SUPPORTED,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(Cibir),
+                &Cibir));
+    }
+
+    //
+    // Good setting
+    //
+    {
+        uint8_t Cibir[6] = {0};
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(Cibir),
+                &Cibir));
+    }
+}
+
 void QuicTestListenerSetParam()
 {
     MsQuicRegistration Registration;
@@ -1944,6 +2025,16 @@ void QuicTestListenerSetParam()
                 sizeof(Dummy),
                 &Dummy));
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_LISTENER_CIBIR_ID
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_LISTENER_CIBIR_ID");
+        CibirIDTests(Listener.Handle, QUIC_PARAM_LISTENER_CIBIR_ID);
+    }
+#endif
 }
 
 void QuicTestConnectionSetParam()
