@@ -2104,65 +2104,65 @@ void QuicTestGlobalSetParam()
         }
     }
 
-    //
-    // QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS);
-        //
-        // QuicSettingsGlobalSettingsToInternal fail
-        //
-        {
-            TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
-            QUIC_GLOBAL_SETTINGS Settings{0};
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
-                    sizeof(QUIC_GLOBAL_SETTINGS) - 8,
-                    &Settings));
-        }
+    // //
+    // // QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS
+    // //
+    // {
+    //     TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
+    //     GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS);
+    //     //
+    //     // QuicSettingsGlobalSettingsToInternal fail
+    //     //
+    //     {
+    //         TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
+    //         QUIC_GLOBAL_SETTINGS Settings{0};
+    //         TEST_QUIC_STATUS(
+    //             QUIC_STATUS_INVALID_PARAMETER,
+    //             MsQuic->SetParam(
+    //                 nullptr,
+    //                 QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+    //                 sizeof(QUIC_GLOBAL_SETTINGS) - 8,
+    //                 &Settings));
+    //     }
 
-        //
-        // QuicSettingApply fail
-        //
-        {
-            TestScopeLogger LogScope1("QuicSettingApply fail");
-            QUIC_GLOBAL_SETTINGS Settings{0};
-            Settings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP + 10;
-            Settings.IsSet.LoadBalancingMode = TRUE;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
-                    sizeof(QUIC_GLOBAL_SETTINGS),
-                    &Settings));
-        }
-    }
+    //     //
+    //     // QuicSettingApply fail
+    //     //
+    //     {
+    //         TestScopeLogger LogScope1("QuicSettingApply fail");
+    //         QUIC_GLOBAL_SETTINGS Settings{0};
+    //         Settings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP + 10;
+    //         Settings.IsSet.LoadBalancingMode = TRUE;
+    //         TEST_QUIC_STATUS(
+    //             QUIC_STATUS_INVALID_PARAMETER,
+    //             MsQuic->SetParam(
+    //                 nullptr,
+    //                 QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+    //                 sizeof(QUIC_GLOBAL_SETTINGS),
+    //                 &Settings));
+    //     }
+    // }
 
-    //
-    // QUIC_PARAM_GLOBAL_VERSION_SETTINGS
-    //
-    {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_VERSION_SETTINGS is covered by QuicTestVersionSettings");
-    }
+    // //
+    // // QUIC_PARAM_GLOBAL_VERSION_SETTINGS
+    // //
+    // {
+    //     TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_VERSION_SETTINGS is covered by QuicTestVersionSettings");
+    // }
 
-    //
-    // QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH
-    //
-    {
-        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH is get only");
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH,
-                0,
-                nullptr));
-    }
+    // //
+    // // QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH
+    // //
+    // {
+    //     TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH is get only");
+    //     TEST_QUIC_STATUS(
+    //         QUIC_STATUS_INVALID_PARAMETER,
+    //         MsQuic->SetParam(
+    //             nullptr,
+    //             QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH,
+    //             0,
+    //             nullptr));
+    // }
 
     //
     // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
