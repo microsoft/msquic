@@ -625,6 +625,11 @@ QuicStreamRecv(
     }
     }
 
+    QuicTraceEvent(
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+
     return Status;
 }
 

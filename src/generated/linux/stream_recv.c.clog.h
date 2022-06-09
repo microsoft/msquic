@@ -476,6 +476,24 @@ tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrame , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamReceiveFrameComplete
+// [strm][%p] Done processing frame
+// QuicTraceEvent(
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+// arg2 = arg2 = Stream = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReceiveFrameComplete
+#define _clog_3_ARGS_TRACE_StreamReceiveFrameComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrameComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamAppReceive
 // [strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]
 // QuicTraceEvent(

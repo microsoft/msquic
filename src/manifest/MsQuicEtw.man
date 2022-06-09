@@ -3081,6 +3081,15 @@
               template="tid_STREAM_RECV"
               value="6161"
               />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamReceiveFrameComplete)"
+              opcode="Stream"
+              symbol="QuicStreamReceiveFrameComplete"
+              template="tid_STREAM"
+              value="6162"
+              />
           <!-- 7168 - 8191 | Binding Events -->
           <event
               keywords="ut:Binding ut:LowVolume"
@@ -3617,6 +3626,10 @@
         <string
             id="Etw.StreamReceiveFrame"
             value="[strm][%1] Processing frame in packet %2"
+            />
+        <string
+            id="Etw.StreamReceiveFrameComplete"
+            value="[strm][%1] Done processing frame"
             />
         <string
             id="Etw.StreamAppReceive"
