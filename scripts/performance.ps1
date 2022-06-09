@@ -174,6 +174,11 @@ if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
     $Remote = "quic-server"
 }
 
+if ($PGO) {
+    # PGO makes things slower, so increase the timeout accordingly.
+    $Timeout = $Timeout * 5
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
