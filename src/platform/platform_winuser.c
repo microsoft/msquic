@@ -19,16 +19,16 @@ Environment:
 #include "platform_winuser.c.clog.h"
 #endif
 
-uint64_t CxPlatPerfFreq = 0;
-uint64_t CxPlatTotalMemory = 0;
+uint64_t CxPlatPerfFreq;
+uint64_t CxPlatTotalMemory;
 CX_PLATFORM CxPlatform = { NULL };
-CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo = NULL;
-uint64_t* CxPlatNumaMasks = NULL;
-uint32_t* CxPlatProcessorGroupOffsets = NULL;
+CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+uint64_t* CxPlatNumaMasks;
+uint32_t* CxPlatProcessorGroupOffsets;
 #ifdef TIMERR_NOERROR
-TIMECAPS CxPlatTimerCapabilities = { 0, 0 };
+TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
-QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback = NULL;
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
