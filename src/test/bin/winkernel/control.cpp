@@ -1240,8 +1240,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestTlsSetParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM:
-        QuicTestCtlRun(QuicTestStreamSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
+        QuicTestCtlRun(QuicTestStreamParam());
         break;
 
     default:
