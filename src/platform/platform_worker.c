@@ -50,6 +50,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_LOCK ECLock;
 
     //
+    // Execution contexts that are waiting to be added to CXPLAT_WORKER::ExecutionContexts.
+    //
+    CXPLAT_SLIST_ENTRY* PendingECs;
+
+    //
     // The set of actively registered execution contexts.
     //
     CXPLAT_SLIST_ENTRY* ExecutionContexts;
@@ -199,8 +204,8 @@ CxPlatAddExecutionContext(
     CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
     Context->CxPlatContext = Worker;
     CxPlatLockAcquire(&Worker->ECLock);
-    Context->Entry.Next = Worker->ExecutionContexts;
-    Worker->ExecutionContexts = &Context->Entry;
+    Context->Entry.Next = Worker->PendingECs;
+    Worker->PendingECs = &Context->Entry;
     CxPlatLockRelease(&Worker->ECLock);
 }
 
@@ -221,7 +226,23 @@ CxPlatRunExecutionContexts(
     Worker->ECsReady = FALSE;
     Worker->ECsReadyTime = UINT64_MAX;
 
-    CxPlatLockAcquire(&Worker->ECLock);
+    if (QuicReadPtrNoFence(&Worker->PendingECs)) {
+        CXPLAT_SLIST_ENTRY** Tail = NULL;
+        CXPLAT_SLIST_ENTRY* Head = NULL;
+        CxPlatLockAcquire(&Worker->ECLock);
+        Head = Worker->PendingECs;
+        Worker->PendingECs = NULL;
+        CxPlatLockRelease(&Worker->ECLock);
+
+        Tail = &Head;
+        while (*Tail) {
+            Tail = &(*Tail)->Next;
+        }
+
+        *Tail = Worker->ExecutionContexts;
+        Worker->ExecutionContexts = Head;
+    }
+
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
     while (*EC != NULL) {
         CXPLAT_EXECUTION_CONTEXT* Context =
@@ -240,7 +261,6 @@ CxPlatRunExecutionContexts(
         }
         EC = &Context->Entry.Next;
     }
-    CxPlatLockRelease(&Worker->ECLock);
 }
 
 #endif
