@@ -207,7 +207,6 @@ CxPlatAddExecutionContext(
     Context->Entry.Next = Worker->PendingECs;
     Worker->PendingECs = &Context->Entry;
     CxPlatLockRelease(&Worker->ECLock);
-    CxPlatWakeExecutionContext(Context);
 }
 
 void
