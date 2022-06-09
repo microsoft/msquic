@@ -207,6 +207,7 @@ CxPlatAddExecutionContext(
     Context->Entry.Next = Worker->PendingECs;
     Worker->PendingECs = &Context->Entry;
     CxPlatLockRelease(&Worker->ECLock);
+    CxPlatWakeExecutionContext(Context);
 }
 
 void
@@ -226,6 +227,23 @@ CxPlatRunExecutionContexts(
     Worker->ECsReady = FALSE;
     Worker->ECsReadyTime = UINT64_MAX;
 
+    if (ReadPointerNoFence(&Worker->PendingECs)) {
+        CXPLAT_SLIST_ENTRY** Tail = NULL;
+        CXPLAT_SLIST_ENTRY* Head = NULL;
+        CxPlatLockAcquire(&Worker->ECLock);
+        Head = Worker->PendingECs;
+        Worker->PendingECs = NULL;
+        CxPlatLockRelease(&Worker->ECLock);
+
+        Tail = &Head;
+        while (*Tail) {
+            Tail = &(*Tail)->Next;
+        }
+
+        *Tail = Worker->ExecutionContexts;
+        Worker->ExecutionContexts = Head;
+    }
+
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
     while (*EC != NULL) {
         CXPLAT_EXECUTION_CONTEXT* Context =
@@ -243,21 +261,6 @@ CxPlatRunExecutionContexts(
             Worker->ECsReadyTime = Context->NextTimeUs;
         }
         EC = &Context->Entry.Next;
-    }
-
-    if (ReadPointerNoFence(&Worker->PendingECs)) {
-        CxPlatLockAcquire(&Worker->ECLock);
-        if (Worker->ExecutionContexts) {
-            //
-            // The while loop above guarantees that EC either points to the address of
-            // Worker->ExecutionContexts or the address of the tail of Worker->ExecutionContexts.
-            //
-            *EC = Worker->PendingECs;
-        } else {
-            Worker->ExecutionContexts = Worker->PendingECs;
-        }
-        Worker->PendingECs = NULL;
-        CxPlatLockRelease(&Worker->ECLock);
     }
 }
 
