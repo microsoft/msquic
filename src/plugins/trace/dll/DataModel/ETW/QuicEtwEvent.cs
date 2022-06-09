@@ -251,6 +251,8 @@ namespace QuicTrace.DataModel.ETW
                     return new QuicStreamAppReceiveCompleteEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
                 case QuicEventId.StreamAppSend:
                     return new QuicStreamAppSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+                case QuicEventId.StreamReceiveFrameComplete:
+                    return new QuicStreamReceiveFrameCompleteEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
 
                 case (QuicEventId)9216: // Temporary, while there are still builds out there generating this old event
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), new System.Net.IPEndPoint(0,0));

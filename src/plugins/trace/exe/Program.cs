@@ -213,6 +213,11 @@ namespace QuicTrace
             public ulong LastStateChangeTime = 0;
 
             //
+            // The application is actively handling a receive.
+            //
+            public bool InAppRecv = false;
+
+            //
             // Triggers a state change and updates variables accordingly.
             //
             public void UpdateToState(RequestState state, ulong time, bool ignorePrevious = false)
@@ -696,11 +701,27 @@ namespace QuicTrace
                             Stream.Timings.UpdateToState(RequestState.Read, (ulong)evt.TimeStamp.ToNanoseconds);
                             break;
                         }
+                        case QuicEventId.StreamReceiveFrameComplete:
+                        {
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            if (Stream.Timings.InAppRecv)
+                            {
+                                Stream.Timings.UpdateToState(RequestState.AppRecv, (ulong)evt.TimeStamp.ToNanoseconds);
+                            }
+                            else
+                            {
+                                Stream.Timings.UpdateToState(RequestState.IdleRecv, (ulong)evt.TimeStamp.ToNanoseconds); // TODO - ProcessRecv instead?
+                            }
+                            break;
+                        }
                         case QuicEventId.StreamAppReceive:
                         {
                             var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
                             if (Stream == null || Stream.Timings.EncounteredError) break;
 
+                            Stream.Timings.InAppRecv = true;
                             Stream.Timings.UpdateToState(RequestState.AppRecv, (ulong)evt.TimeStamp.ToNanoseconds);
                             break;
                         }
@@ -708,7 +729,8 @@ namespace QuicTrace
                         {
                             var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
                             if (Stream == null || Stream.Timings.EncounteredError) break;
-
+                            
+                            Stream.Timings.InAppRecv = false;
                             if (Stream.Timings.State == RequestState.AppRecv)
                             {
                                 Stream.Timings.UpdateToState(RequestState.IdleRecv, (ulong)evt.TimeStamp.ToNanoseconds);

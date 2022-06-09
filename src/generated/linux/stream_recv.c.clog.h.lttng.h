@@ -495,6 +495,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrame,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamReceiveFrameComplete
+// [strm][%p] Done processing frame
+// QuicTraceEvent(
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+// arg2 = arg2 = Stream = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrameComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamAppReceive
 // [strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]
 // QuicTraceEvent(

@@ -9961,6 +9961,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "StreamReceiveFrameComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Done processing frame",
+      "UniqueId": "StreamReceiveFrameComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "StreamRecvState": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Recv State: %hhu",
@@ -14532,6 +14544,11 @@
         "UniquenessHash": "aaf00b3c-6719-7619-1362-6058d0d3be90",
         "TraceID": "StreamReceiveFrame",
         "EncodingString": "[strm][%p] Processing frame in packet %llu"
+      },
+      {
+        "UniquenessHash": "414a54bf-d265-ac2f-1931-2c3fef3bc18c",
+        "TraceID": "StreamReceiveFrameComplete",
+        "EncodingString": "[strm][%p] Done processing frame"
       },
       {
         "UniquenessHash": "89b5a6dc-7445-0b70-6a73-ff28d3f78246",
