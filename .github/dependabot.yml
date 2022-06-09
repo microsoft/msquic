@@ -14,7 +14,7 @@ updates:
       interval: "weekly"
       day: "saturday"
 
-  - package-ecosystem: "Cargo"
+  - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
