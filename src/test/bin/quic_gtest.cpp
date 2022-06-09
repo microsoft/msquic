@@ -233,12 +233,12 @@ TEST(ParameterValidation, ValidateConnectionParam) {
     }
 }
 
-TEST(ParameterValidation, ValidateTlsSetParam) {
-    TestLogger Logger("QuicTestValidateTlsSetParam");
+TEST(ParameterValidation, ValidateTlsParam) {
+    TestLogger Logger("QuicTestValidateTlsParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM));
     } else {
-        QuicTestTlsSetParam();
+        QuicTestTlsParam();
     }
 }
 
