@@ -226,7 +226,7 @@ CxPlatRunExecutionContexts(
     Worker->ECsReady = FALSE;
     Worker->ECsReadyTime = UINT64_MAX;
 
-    if (ReadPointerNoFence(&Worker->PendingECs)) {
+    if (QuicReadPtrNoFence(&Worker->PendingECs)) {
         CXPLAT_SLIST_ENTRY** Tail = NULL;
         CXPLAT_SLIST_ENTRY* Head = NULL;
         CxPlatLockAcquire(&Worker->ECLock);
