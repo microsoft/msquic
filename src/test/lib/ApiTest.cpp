@@ -2359,7 +2359,7 @@ void QuicTestRegistrationSetParam()
     }
 }
 
-void QuicTestConfigurationSetParam()
+void QuicTestConfigurationParam()
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
