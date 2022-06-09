@@ -195,9 +195,6 @@ typedef enum QUIC_STREAM_SHUTDOWN_FLAGS {
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_SHUTDOWN_FLAGS)
 
-#define QUIC_STREAM_SHUTDOWN_SILENT         0x8000  // Used in conjunction with the abort flags.
-                                                    // Doesn't send anything out on the network.
-
 typedef enum QUIC_RECEIVE_FLAGS {
     QUIC_RECEIVE_FLAG_NONE                  = 0x0000,
     QUIC_RECEIVE_FLAG_0_RTT                 = 0x0001,   // Data was encrypted with 0-RTT key.

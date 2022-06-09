@@ -2381,7 +2381,10 @@ void QuicTestStreamParam()
             //
             {
                 Stream.Start();
-                Stream.Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | (QUIC_STREAM_SHUTDOWN_FLAGS) QUIC_STREAM_SHUTDOWN_SILENT);
+
+                Stream.Shutdown(0,
+                    QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND |
+                    (QUIC_STREAM_SHUTDOWN_FLAGS) 0x8000); // QUIC_STREAM_SHUTDOWN_SILENT
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->GetParam(
                         Stream.Handle,

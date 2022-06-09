@@ -36,6 +36,9 @@ typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 #define STREAM_ID_IS_BI_DIR(ID)         ((ID & 2) == 0)
 #define STREAM_ID_IS_UNI_DIR(ID)        ((ID & 2) == 2)
 
+#define QUIC_STREAM_SHUTDOWN_SILENT         0x8000  // Used in conjunction with the abort flags.
+                                                    // Doesn't send anything out on the network.
+
 #define QUIC_STREAM_EVENT_RECEIVE_TLS_INIT     0xff    // Private event for server receive ClientHello.
 
 //
