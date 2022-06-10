@@ -24,8 +24,8 @@ TestConnection::TestConnection(
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     CustomValidationResultSet(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
-    PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
+    ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
+    ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -53,8 +53,8 @@ TestConnection::TestConnection(
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     CustomValidationResultSet(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
-    PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
+    ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
+    ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -859,10 +859,32 @@ TestConnection::HandleConnectionEvent(
         if (CustomValidationResultSet && !ExpectedCustomValidationResult) {
             return QUIC_STATUS_INTERNAL_ERROR;
         }
-        if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != ExpectedClientCertValidationResult) {
+        if (ExpectedClientCertValidationResultCount > 0) {
+            bool Match = false;
+            for (unsigned idx = 0; idx < ExpectedClientCertValidationResultCount; idx++) {
+                if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus == ExpectedClientCertValidationResult[idx]) {
+                    Match = true;
+                    break;
+                }
+            }
+            if (!Match) {
+                if (ExpectedClientCertValidationResultCount == 1) {
+                    TEST_FAILURE(
+                        "Unexpected Certificate Validation Status, expected=0x%x, actual=0x%x",
+                        ExpectedClientCertValidationResult[0],
+                        Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+                } else if (ExpectedClientCertValidationResultCount == 2) {
+                    TEST_FAILURE(
+                        "Unexpected Certificate Validation Status, expected=0x%x or 0x%x, actual=0x%x",
+                        ExpectedClientCertValidationResult[0],
+                        ExpectedClientCertValidationResult[1],
+                        Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+                }
+            }
+        } else if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != QUIC_STATUS_SUCCESS) {
             TEST_FAILURE(
                 "Unexpected Certificate Validation Status, expected=0x%x, actual=0x%x",
-                ExpectedClientCertValidationResult,
+                QUIC_STATUS_SUCCESS,
                 Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
         }
         if (PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {

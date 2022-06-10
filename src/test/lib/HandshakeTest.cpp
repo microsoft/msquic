@@ -123,9 +123,11 @@ ListenerAcceptConnection(
         (*AcceptContext->NewConnection)->SetExpectedTransportCloseStatus(
             AcceptContext->ExpectedTransportCloseStatus);
     }
-    if (AcceptContext->ExpectedClientCertValidationResult != QUIC_STATUS_SUCCESS) {
-        (*AcceptContext->NewConnection)->SetExpectedClientCertValidationResult(
-            AcceptContext->ExpectedClientCertValidationResult);
+    if (AcceptContext->ExpectedClientCertValidationResultCount > 0) {
+        for (unsigned i = 0; i < AcceptContext->ExpectedClientCertValidationResultCount; i++) {
+            (*AcceptContext->NewConnection)->AddExpectedClientCertValidationResult(
+                AcceptContext->ExpectedClientCertValidationResult[i]);
+        }
     }
     if (AcceptContext->PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {
         (*AcceptContext->NewConnection)->SetPeerCertEventReturnStatus(
@@ -2281,9 +2283,9 @@ QuicTestConnectClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_UNTRUSTED_ROOT);
             if (!UseClientCertificate) {
-                ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_NO_CERT;
+                ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_NO_CERT);
                 ServerAcceptCtx.PeerCertEventReturnStatus = QUIC_STATUS_CONNECTION_REFUSED;
                 ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
             }
@@ -2578,7 +2580,7 @@ QuicTestConnectValidClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_SUCCESS;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS);
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2641,7 +2643,7 @@ QuicTestConnectExpiredClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_EXPIRED;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_EXPIRED);
             Listener.Context = &ServerAcceptCtx;
 
             {
