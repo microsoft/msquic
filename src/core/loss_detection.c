@@ -473,7 +473,7 @@ QuicLossDetectionOnPacketSent(
                           NULL;
 
     BOOLEAN LossBufferEmpty = Stream &&
-                              !QuicStreamCanSendNow(Stream, FALSE)) &&
+                              !QuicStreamCanSendNow(Stream, FALSE) &&
                               !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto);
 
     if (SendPostedBytes < Path->Mtu && LossBufferEmpty && QuicCongestionControlCanSend(&Connection->CongestionControl)) {
