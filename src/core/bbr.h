@@ -82,8 +82,6 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     //
     BOOLEAN BtlbwFound : 1;
 
-    BOOLEAN AppLimitedSinceProbeRtt : 1;
-
     //
     // TRUE when exiting quiescence
     //
@@ -115,7 +113,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     BOOLEAN EarliestTimeToExitProbeRttValid : 1;
     
     //
-    // The size of the initial congestion window in packets.
+    // The size of the initial congestion window in packets
     //
     uint32_t InitialCongestionWindowPackets;
 

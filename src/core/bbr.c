@@ -433,9 +433,6 @@ QuicConnLogBbr(
     QUIC_CONGESTION_CONTROL* Cc = &Connection->CongestionControl;
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
-    UNREFERENCED_PARAMETER(Cc);
-    UNREFERENCED_PARAMETER(Bbr);
-
     QuicTraceEvent(
             ConnBbr,
             "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
