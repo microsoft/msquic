@@ -466,7 +466,11 @@ QuicLossDetectionOnPacketSent(
     SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
 
     uint64_t SendPostedBytes = Connection->SendBuffer.PostedBytes;
-    BOOLEAN LossBufferEmpty = !LossDetection->LostPackets &&
+
+    CXPLAT_LIST_ENTRY* Entry = Connection->Send.SendStreams.Flink;
+    QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+
+    BOOLEAN LossBufferEmpty = !QuicStreamCanSendNow(Stream, FALSE) &&
                               !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto);
 
     if (SendPostedBytes < Path->Mtu && LossBufferEmpty && QuicCongestionControlCanSend(&Connection->CongestionControl)) {

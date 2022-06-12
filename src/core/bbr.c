@@ -874,11 +874,11 @@ BbrCongestionControlDetectBottleneckBandwidth(
         return;
     }
 
-    uint64_t BandwidthTarget = (uint64_t)(Bbr->PreviousStartupBandwidth * kExpectedStartupGrowth / BBR_UNIT);
+    uint64_t BandwidthTarget = (uint64_t)(Bbr->LastEstimatedStartupBandwidth * kExpectedStartupGrowth / BBR_UNIT);
     uint64_t RealBandwidth = BbrCongestionControlGetBandwidth(Cc);
 
     if (RealBandwidth >= BandwidthTarget) {
-        Bbr->PreviousStartupBandwidth = RealBandwidth;
+        Bbr->LastEstimatedStartupBandwidth = RealBandwidth;
         Bbr->SlowStartupRoundCounter = 0;
         return;
     }
@@ -903,8 +903,6 @@ BbrCongestionControlTransitToProbeRtt(
     Bbr->ProbeRttRoundValid = FALSE;
 
     BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthSampler, LargestPacketNumberSent);
-
-    Bbr->AppLimitedSinceProbeRtt = FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1020,10 +1018,7 @@ BbrCongestionControlOnDataAcknowledged(
     Bbr->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
     if (AckEvent->MinRttSampleValid) {
-        BOOLEAN Updated = BbrRttSamplerNewRttSample(&Bbr->MinRttSampler, AckEvent->MinRttSample, AckEvent->TimeNow);
-        if (Updated) {
-            Bbr->AppLimitedSinceProbeRtt = FALSE;
-        }
+        BbrRttSamplerNewRttSample(&Bbr->MinRttSampler, AckEvent->MinRttSample, AckEvent->TimeNow);
     }
 
     BOOLEAN NewRoundTrip = BbrCongestionControlUpdateRoundTripCounter(
@@ -1168,7 +1163,6 @@ BbrCongestionControlSetAppLimited(
         return;
     }
 
-    Bbr->AppLimitedSinceProbeRtt = TRUE;
     BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthSampler, LargestSentPacketNumber);
 }
 
@@ -1204,9 +1198,8 @@ BbrCongestionControlReset(
 
     Bbr->PacingCycleIndex = 0;
     Bbr->AggregatedAckBytes = 0;
-    Bbr->AppLimitedSinceProbeRtt = FALSE;
     Bbr->ExitingQuiescene = FALSE;
-    Bbr->PreviousStartupBandwidth = 0;
+    Bbr->LastEstimatedStartupBandwidth = 0;
 
     Bbr->AckAggregationStartTimeValid = FALSE;
     Bbr->AckAggregationStartTime = CxPlatTimeUs64();
@@ -1292,9 +1285,8 @@ BbrCongestionControlInitialize(
 
     Bbr->PacingCycleIndex = 0;
     Bbr->AggregatedAckBytes = 0;
-    Bbr->AppLimitedSinceProbeRtt = FALSE;
     Bbr->ExitingQuiescene = FALSE;
-    Bbr->PreviousStartupBandwidth = 0;
+    Bbr->LastEstimatedStartupBandwidth = 0;
     Bbr->CycleStart = 0;
 
     Bbr->AckAggregationStartTimeValid = FALSE;
