@@ -1915,7 +1915,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, BOOLEAN AllowMtuChange = TR
     // Good
     //
     {
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
         QUIC_SETTINGS Settings{0};
 
         TEST_QUIC_SUCCEEDED(
@@ -2828,23 +2827,6 @@ void QuicTestConnectionParam()
             }
 
             //
-            // Invalid address format
-            //
-            {
-                TestScopeLogger LogScope2("Invalid address format");
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                QUIC_ADDR Dummy = {};
-                Dummy.Ip.sa_family = 128;
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                        sizeof(Dummy),
-                        &Dummy));
-            }
-
-            //
             // Good before ConnectioStart
             //
             {
@@ -3305,7 +3287,7 @@ void QuicTestConnectionParam()
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             // There is no stream yet
             // 4 is defined in stream.h as NUMBER_OF_STREAM_TYPES
-            uint64_t NumberOfStreamTypes = 4;
+            uint8_t NumberOfStreamTypes = 4;
             uint64_t IDs[4] = {0, 1, 2, 3}; // Refer quicStreamSetGetMaxStreamIDs()
             SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_MAX_STREAM_IDS, sizeof(uint64_t) * NumberOfStreamTypes, IDs);
         }
