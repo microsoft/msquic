@@ -56,7 +56,7 @@ typedef struct WINDOWED_FILTER {
 
 } WINDOWED_FILTER;
 
-typedef struct BBR_BANDWIDTH_SAMPLER {
+typedef struct BBR_BANDWIDTH_FILTER {
 
     //
     // TRUE if bandwidth is limited by the application
@@ -73,7 +73,7 @@ typedef struct BBR_BANDWIDTH_SAMPLER {
     //
     WINDOWED_FILTER WindowedFilter;
 
-} BBR_BANDWIDTH_SAMPLER;
+} BBR_BANDWIDTH_FILTER;
 
 typedef struct QUIC_CONGESTION_CONTROL_BBR {
 
@@ -241,7 +241,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     //
     // BBR estimates maximum bandwidth by the maximum recent bandwidth samples
     //
-    BBR_BANDWIDTH_SAMPLER BandwidthSampler;
+    BBR_BANDWIDTH_FILTER BandwidthFilter;
 
 } QUIC_CONGESTION_CONTROL_BBR;
 

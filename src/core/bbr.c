@@ -262,7 +262,7 @@ BbrRttSamplerNewRttSample(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrBandwidthSamplerOnAppLimited(
-    _In_ BBR_BANDWIDTH_SAMPLER* b,
+    _In_ BBR_BANDWIDTH_FILTER* b,
     _In_ uint64_t LargestSentPacketNumber
     )
 {
@@ -273,7 +273,7 @@ BbrBandwidthSamplerOnAppLimited(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrBandwidthSamplerOnPacketAcked(
-    _In_ BBR_BANDWIDTH_SAMPLER* b,
+    _In_ BBR_BANDWIDTH_FILTER* b,
     _In_ const QUIC_ACK_EVENT* AckEvent,
     _In_ uint64_t RttCounter
     )
@@ -347,7 +347,7 @@ BbrCongestionControlGetBandwidth(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return WindowedFilterGetBest(&Cc->Bbr.BandwidthSampler.WindowedFilter);
+    return WindowedFilterGetBest(&Cc->Bbr.BandwidthFilter.WindowedFilter);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -421,7 +421,7 @@ BbrCongestionControlIsAppLimited(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return Cc->Bbr.BandwidthSampler.AppLimited;
+    return Cc->Bbr.BandwidthFilter.AppLimited;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -655,7 +655,7 @@ BbrCongestionControlHandleAckInProbeRtt(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
-    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthSampler, LargestSentPacketNumber);
+    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
 
     if (!Bbr->EarliestTimeToExitProbeRttValid &&
         Bbr->BytesInFlight < BbrCongestionControlGetCongestionWindow(Cc) + Connection->Paths[0].Mtu) {
@@ -899,7 +899,7 @@ BbrCongestionControlTransitToProbeRtt(
     Bbr->EarliestTimeToExitProbeRttValid = FALSE;
     Bbr->ProbeRttRoundValid = FALSE;
 
-    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthSampler, LargestPacketNumberSent);
+    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthFilter, LargestPacketNumberSent);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1023,7 +1023,7 @@ BbrCongestionControlOnDataAcknowledged(
 
     BOOLEAN LastAckedPacketAppLimited = AckEvent->AckedPackets == NULL ? FALSE : AckEvent->IsLargestAckedPacketAppLimited;
 
-    BbrBandwidthSamplerOnPacketAcked(&Bbr->BandwidthSampler, AckEvent, Bbr->RoundTripCounter);
+    BbrBandwidthSamplerOnPacketAcked(&Bbr->BandwidthFilter, AckEvent, Bbr->RoundTripCounter);
 
     if (Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY) {
         CXPLAT_DBG_ASSERT(Bbr->EndOfRecoveryValid);
@@ -1160,7 +1160,7 @@ BbrCongestionControlSetAppLimited(
         return;
     }
 
-    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthSampler, LargestSentPacketNumber);
+    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1218,7 +1218,7 @@ BbrCongestionControlReset(
 
     Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0);
 
-    Bbr->BandwidthSampler = (BBR_BANDWIDTH_SAMPLER) {
+    Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
         .WindowedFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0),
         .AppLimited = FALSE,
         .AppLimitedExitTarget = 0,
@@ -1305,7 +1305,7 @@ BbrCongestionControlInitialize(
 
     Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0);
 
-    Bbr->BandwidthSampler = (BBR_BANDWIDTH_SAMPLER) {
+    Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
         .WindowedFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0),
         .AppLimited = FALSE,
         .AppLimitedExitTarget = 0,

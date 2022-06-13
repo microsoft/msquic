@@ -468,7 +468,7 @@ QuicLossDetectionOnPacketSent(
     uint64_t SendPostedBytes = Connection->SendBuffer.PostedBytes;
 
     CXPLAT_LIST_ENTRY* Entry = Connection->Send.SendStreams.Flink;
-    QUIC_STREAM* Stream = (Entry == &(Connection->Send.SendStreams)) ?
+    QUIC_STREAM* Stream = (Entry != &(Connection->Send.SendStreams)) ?
                           CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink) :
                           NULL;
 
