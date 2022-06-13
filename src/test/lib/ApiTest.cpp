@@ -1753,8 +1753,255 @@ public:
     }
 };
 
+void SettingApplyTests(HQUIC Handle, uint32_t Param) {
+    struct TestSpec {
+        uint64_t Value;
+        QUIC_STATUS Status;
+    };
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_TP_MAX_ACK_DELAY_MAX,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.MaxAckDelayMs = TRUE;
+        for (auto &Data: Spec) {
+            Settings.MaxAckDelayMs = (uint32_t)Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_MAX_DISCONNECT_TIMEOUT,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        for (auto &Data: Spec) {
+            Settings.DisconnectTimeoutMs = (uint32_t)Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_VAR_INT_MAX,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.IdleTimeoutMs = TRUE;
+        for (auto &Data: Spec) {
+            Settings.IdleTimeoutMs = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_VAR_INT_MAX,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
+        for (auto &Data: Spec) {
+            Settings.HandshakeIdleTimeoutMs = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{0, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.StreamRecvBufferDefault = TRUE;
+        for (auto &Data: Spec) {
+            Settings.StreamRecvBufferDefault = (uint32_t)Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{UINT64_MAX, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_DEFAULT_MAX_BYTES_PER_KEY,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.MaxBytesPerKey = TRUE;
+        for (auto &Data: Spec) {
+            Settings.MaxBytesPerKey = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        struct TestSpec Spec[] = {{3, QUIC_STATUS_INVALID_PARAMETER},
+                                  {QUIC_SERVER_RESUME_AND_ZERORTT,  QUIC_STATUS_SUCCESS}};
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.ServerResumptionLevel = TRUE;
+        for (auto &Data: Spec) {
+            Settings.ServerResumptionLevel = Data.Value;
+            TEST_QUIC_STATUS(
+                Data.Status,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    //
+    // MinimumMtu is bigger than MaximumMtu
+    //
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.MinimumMtu = TRUE;
+        Settings.IsSet.MaximumMtu = TRUE;
+        Settings.MinimumMtu = 1400;
+        Settings.MaximumMtu = 1300;
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+
+        Settings.MinimumMtu = 1300;
+        Settings.MaximumMtu = 1400;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+
+    //
+    // Good
+    //
+    {
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        QUIC_SETTINGS Settings{0};
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
+}
+
+void QuicTestStatefulGlobalSetParam()
+{
+    TestScopeLogger LogScope0("QuicTestStatefulGlobalSetParam");
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    //
+    // Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)
+    //
+    {
+        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
+        MsQuicAlpn Alpn("MsQuicTest");
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
+        TEST_TRUE(ClientConfiguration.IsValid());
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionStart(
+                Connection.Handle,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
+                "localhost",
+                4433));
+        CxPlatSleep(100); // bit slow to set MsQuicLib.InUse = TRUE
+
+        uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+                sizeof(Mode),
+                &Mode));
+    }
+
+    //
+    // Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL
+    //
+    {
+        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
+        uint16_t Data[4] = {};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                sizeof(Data),
+                &Data));
+    }
+}
+
 void QuicTestGlobalSetParam()
 {
+    //
+    // QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT);
+        uint16_t Percent = 26;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                sizeof(Percent),
+                &Percent));
+    }
+
     //
     // QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS
     //
@@ -1767,6 +2014,41 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS,
                 0,
                 nullptr));
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
+        //
+        // Invalid mode
+        //
+        {
+            TestScopeLogger LogScope1("Invalid mode");
+            uint16_t Mode = (QUIC_LOAD_BALANCING_MODE)128;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+                    sizeof(Mode),
+                    &Mode));
+        }
+
+        //
+        // Good setting
+        //
+        {
+            uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+                    sizeof(Mode),
+                    &Mode));
+        }
     }
 
     //
@@ -1798,6 +2080,77 @@ void QuicTestGlobalSetParam()
     }
 
     //
+    // QUIC_PARAM_GLOBAL_SETTINGS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_SETTINGS");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_SETTINGS);
+        //
+        // QuicSettingsSettingsToInternal fail
+        //
+        {
+            TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
+            QUIC_SETTINGS Settings{0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_SETTINGS,
+                    sizeof(QUIC_SETTINGS)-8,
+                    &Settings));
+        }
+
+        //
+        // QuicSettingApply fail
+        //
+        {
+            TestScopeLogger LogScope1("QuicSettingApply fail");
+            // TODO: this test set affects other tests' behavior and hangs in Kernel mode test.
+            //       temporally disable
+            // SettingApplyTests(nullptr, QUIC_PARAM_GLOBAL_SETTINGS);
+        }
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS);
+        //
+        // QuicSettingsGlobalSettingsToInternal fail
+        //
+        {
+            TestScopeLogger LogScope1("QuicSettingsSettingsToInternal fail");
+            QUIC_GLOBAL_SETTINGS Settings{0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                    sizeof(QUIC_GLOBAL_SETTINGS) - 8,
+                    &Settings));
+        }
+
+        //
+        // QuicSettingApply fail
+        //
+        {
+            TestScopeLogger LogScope1("QuicSettingApply fail");
+            QUIC_GLOBAL_SETTINGS Settings{0};
+            Settings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP + 10;
+            Settings.IsSet.LoadBalancingMode = TRUE;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                    sizeof(QUIC_GLOBAL_SETTINGS),
+                    &Settings));
+        }
+    }
+
+    //
     // QUIC_PARAM_GLOBAL_VERSION_SETTINGS
     //
     {
@@ -1813,10 +2166,131 @@ void QuicTestGlobalSetParam()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_LIBRARY_VERSION,
+                QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH,
                 0,
                 nullptr));
     }
+
+    //
+    // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
+        //
+        // BufferLength is not divisible by sizeof(uint16_t)
+        //
+        {
+            TestScopeLogger LogScope1("BufferLength is not divisible by sizeof(uint16_t)");
+            uint16_t Data[4];
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    sizeof(Data) + 1,
+                    &Data));
+        }
+
+        //
+        // one of data is bigger than the number of its platform cpus
+        //
+        {
+            TestScopeLogger LogScope1("one of data is bigger than the number of its platform cpus");
+            uint16_t Data[4] = {};
+            Data[0] = UINT16_MAX;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    sizeof(Data),
+                    &Data));
+        }
+
+        //
+        // Good without data
+        //
+        {
+            TestScopeLogger LogScope1("Good without data");
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    0,
+                    nullptr));
+        }
+
+        //
+        // Good with data
+        //
+        {
+            TestScopeLogger LogScope1("Good with data");
+            uint16_t Data[4] = {};
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                    sizeof(Data),
+                    &Data));
+        }
+    }
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    //
+    // QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS");
+        QUIC_TEST_DATAPATH_HOOKS Hooks[2] = {};
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                sizeof(&Hooks),
+                &Hooks));
+    }
+#endif
+
+    //
+    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR
+    // QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE
+    // These two cause hang test with `./test.ps1 -IsolationMode Batch`
+    // Remove tests as these doesn't have GetParam and are for local debugging purpose
+    //
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED);
+        BOOLEAN Flag = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+                sizeof(Flag),
+                &Flag));
+    }
+#endif
+
+    //
+    // Invalid parameter
+    //
+    {
+        TestScopeLogger LogScope("Invalid parameter for Global SetParam");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_PREFIX_GLOBAL | 0x00234567,
+                0,
+                nullptr));
+    }
+
+    QuicTestStatefulGlobalSetParam();
 }
 
 void QuicTestCommonSetParam()

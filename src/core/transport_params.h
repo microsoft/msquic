@@ -13,50 +13,6 @@ Abstract:
 extern "C" {
 #endif
 
-#define QUIC_TP_FLAG_INITIAL_MAX_DATA                       0x00000001
-#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL       0x00000002
-#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE      0x00000004
-#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI              0x00000008
-#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI                 0x00000010
-#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI                  0x00000020
-#define QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE                   0x00000040
-#define QUIC_TP_FLAG_ACK_DELAY_EXPONENT                     0x00000080
-#define QUIC_TP_FLAG_STATELESS_RESET_TOKEN                  0x00000100
-#define QUIC_TP_FLAG_PREFERRED_ADDRESS                      0x00000200
-#define QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION               0x00000400
-#define QUIC_TP_FLAG_IDLE_TIMEOUT                           0x00000800
-#define QUIC_TP_FLAG_MAX_ACK_DELAY                          0x00001000
-#define QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID     0x00002000
-#define QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT             0x00004000
-#define QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE                0x00008000
-#define QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID           0x00010000
-#define QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID             0x00020000
-#define QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION                0x00040000
-#define QUIC_TP_FLAG_VERSION_NEGOTIATION                    0x00080000
-#define QUIC_TP_FLAG_MIN_ACK_DELAY                          0x00100000
-#define QUIC_TP_FLAG_CIBIR_ENCODING                         0x00200000
-
-#define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
-#define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
-#define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MAX                    65527
-
-#define QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT                  3
-#define QUIC_TP_ACK_DELAY_EXPONENT_MAX                      20
-
-#define QUIC_TP_MAX_ACK_DELAY_DEFAULT                       25 // ms
-#define QUIC_TP_MAX_ACK_DELAY_MAX                           ((1 << 14) - 1)
-#define QUIC_TP_MIN_ACK_DELAY_MAX                           ((1 << 24) - 1)
-
-#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT          2
-#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN              2
-
-//
-// Max allowed value of a MAX_STREAMS frame or transport parameter.
-// Any larger value would allow a max stream ID that cannot be expressed
-// as a variable-length integer.
-//
-#define QUIC_TP_MAX_STREAMS_MAX                             ((1ULL << 60) - 1)
-
 //
 // The configuration parameters that QUIC exchanges in the TLS handshake.
 //
