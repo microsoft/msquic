@@ -1234,7 +1234,7 @@ typedef struct QUIC_STREAM_EVENT {
             /* inout */ uint64_t TotalBufferLength;
             _Field_size_(BufferCount)
             /* in */    const QUIC_BUFFER* Buffers;
-            _Field_range_(1, UINT32_MAX)
+            _Field_range_(0, UINT32_MAX)
             /* in */    uint32_t BufferCount;
             /* in */    QUIC_RECEIVE_FLAGS Flags;
         } RECEIVE;
