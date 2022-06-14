@@ -2464,40 +2464,113 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
     }
 }
 
-void QuicTestListenerSetParam()
+void QuicTestListenerParam()
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest");
-    MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
-    TEST_TRUE(Listener.IsValid());
+    QUIC_ADDR ExpectedAddress;
+    QuicAddrFromString("123.45.67.89", 4433, &ExpectedAddress);
 
     //
     // QUIC_PARAM_LISTENER_LOCAL_ADDRESS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_LISTENER_LOCAL_ADDRESS is get only");
-        QUIC_ADDR Dummy = {0};
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            Listener.SetParam(
-                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-                sizeof(Dummy),
-                &Dummy));
+        TestScopeLogger LogScope0("QUIC_PARAM_LISTENER_LOCAL_ADDRESS");
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            QUIC_ADDR Dummy = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                Listener.SetParam(
+                    QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            TEST_TRUE(Listener.IsValid());
+
+            TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ExpectedAddress));
+
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                Listener.GetParam(
+                    QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(QUIC_ADDR))
+
+            QUIC_ADDR Address = {0};
+            TEST_QUIC_SUCCEEDED(
+                Listener.GetParam(
+                    QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                    &Length,
+                    &Address));
+            TEST_EQUAL(memcmp((void*)&Address, (void*)&ExpectedAddress, sizeof(QUIC_ADDR)), 0);
+        }
     }
 
     //
     // QUIC_PARAM_LISTENER_STATS
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_LISTENER_STATS is get only");
-        QUIC_LISTENER_STATISTICS Dummy = {0};
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            Listener.SetParam(
-                QUIC_PARAM_LISTENER_STATS,
-                sizeof(Dummy),
-                &Dummy));
+        TestScopeLogger LogScope0("QUIC_PARAM_LISTENER_STATS");
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            QUIC_LISTENER_STATISTICS Dummy = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                Listener.SetParam(
+                    QUIC_PARAM_LISTENER_STATS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            TEST_TRUE(Listener.IsValid());
+
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                Listener.GetParam(
+                    QUIC_PARAM_LISTENER_STATS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(QUIC_LISTENER_STATISTICS))
+
+            QUIC_LISTENER_STATISTICS Stats = {65535, 65535, 65535};
+            TEST_QUIC_SUCCEEDED(
+                Listener.GetParam(
+                    QUIC_PARAM_LISTENER_STATS,
+                    &Length,
+                    &Stats));
+            TEST_EQUAL(Stats.TotalAcceptedConnections, 0);
+            TEST_EQUAL(Stats.TotalRejectedConnections, 0);
+            TEST_EQUAL(Stats.BindingRecvDroppedPackets, 0);
+            // TODO: Stateful test after accept/rejecting connection
+        }
     }
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -2505,8 +2578,33 @@ void QuicTestListenerSetParam()
     // QUIC_PARAM_LISTENER_CIBIR_ID
     //
     {
-        TestScopeLogger LogScope("QUIC_PARAM_LISTENER_CIBIR_ID");
-        CibirIDTests(Listener.Handle, QUIC_PARAM_LISTENER_CIBIR_ID);
+        TestScopeLogger LogScope0("QUIC_PARAM_LISTENER_CIBIR_ID");
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam");
+            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            CibirIDTests(Listener.Handle, QUIC_PARAM_LISTENER_CIBIR_ID);
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            uint32_t Length = 65535;
+            TEST_QUIC_SUCCEEDED(
+                Listener.GetParam(
+                    QUIC_PARAM_LISTENER_CIBIR_ID,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, 0);
+            // TODO: Stateful test once Listener->CibrId is filled
+        }
     }
 #endif
 }

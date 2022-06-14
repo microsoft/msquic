@@ -215,12 +215,12 @@ TEST(ParameterValidation, ValidateConfigurationSetParam) {
     }
 }
 
-TEST(ParameterValidation, ValidateListenerSetParam) {
-    TestLogger Logger("QuicTestValidateListenerSetParam");
+TEST(ParameterValidation, ValidateListenerParam) {
+    TestLogger Logger("QuicTestValidateListenerParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_LISTENER_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM));
     } else {
-        QuicTestListenerSetParam();
+        QuicTestListenerParam();
     }
 }
 
