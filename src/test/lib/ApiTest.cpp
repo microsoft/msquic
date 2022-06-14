@@ -2067,7 +2067,7 @@ void QuicTestGlobalSetParam()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH,
+                QUIC_PARAM_GLOBAL_LIBRARY_VERSION,
                 0,
                 nullptr));
     }
