@@ -229,10 +229,14 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.StreamCreated:
                 case QuicEventId.StreamRundown:
                     return new QuicStreamCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadPointer(), data.ReadULong(), data.ReadByte());
-                case QuicEventId.StreamOutFlowBlocked:
-                    return new QuicStreamOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
                 case QuicEventId.StreamDestroyed:
                     return new QuicStreamDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+                case QuicEventId.StreamOutFlowBlocked:
+                    return new QuicStreamOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
+                case QuicEventId.StreamSendState:
+                    return new QuicStreamSendStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
+                case QuicEventId.StreamRecvState:
+                    return new QuicStreamRecvStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
                 case QuicEventId.StreamError:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicStreamErrorEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadString());
