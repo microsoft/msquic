@@ -2286,7 +2286,7 @@ void QuicTestGlobalSetParam()
     QuicTestStatefulGlobalSetParam();
 }
 
-void QuicTestCommonSetParam()
+void QuicTestCommonParam()
 {
     //
     // Null hundle
@@ -2300,6 +2300,14 @@ void QuicTestCommonSetParam()
                 0, // Any param other than GLOBAL
                 0,
                 nullptr));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                nullptr,
+                0,
+                nullptr,
+                nullptr));
     }
 
     MsQuicRegistration Registration;
@@ -2309,13 +2317,21 @@ void QuicTestCommonSetParam()
     // Global param with handle
     //
     {
-        TestScopeLogger LogScope("Global with handle");
+        TestScopeLogger LogScope("Global param with handle");
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 Registration.Handle,
                 QUIC_PARAM_PREFIX_GLOBAL,
                 0,
+                nullptr));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                Registration.Handle,
+                QUIC_PARAM_PREFIX_GLOBAL,
+                nullptr,
                 nullptr));
     }
 
@@ -2336,18 +2352,28 @@ void QuicTestCommonSetParam()
                 0,
                 0,
                 nullptr));
+
+        uint32_t DummyLength = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                Connection.Handle,
+                0,
+                &DummyLength,
+                nullptr));
+
         ((uint8_t*)Connection.Handle)[0] = OriginalType;
     }
 }
 
-void QuicTestRegistrationSetParam()
+void QuicTestRegistrationParam()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
     //
     // No parameter for Registration
     //
     {
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
         uint32_t Dummy = 0;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
@@ -2356,6 +2382,20 @@ void QuicTestRegistrationSetParam()
                 QUIC_PARAM_PREFIX_REGISTRATION,
                 sizeof(Dummy),
                 &Dummy));
+    }
+
+    {
+        uint32_t Length = 65535;
+        uint32_t Buffer = 65535;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                Registration.Handle,
+                QUIC_PARAM_PREFIX_REGISTRATION,
+                &Length,
+                &Buffer));
+        TEST_EQUAL(Length, 65535);
+        TEST_EQUAL(Buffer, 65535);
     }
 }
 

@@ -188,21 +188,21 @@ TEST(ParameterValidation, ValidateGlobalSetParam) {
     }
 }
 
-TEST(ParameterValidation, ValidateCommonSetParam) {
-    TestLogger Logger("QuicTestValidateCommonSetParam");
+TEST(ParameterValidation, ValidateCommonParam) {
+    TestLogger Logger("QuicTestValidateCommonParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_COMMON_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM));
     } else {
-        QuicTestCommonSetParam();
+        QuicTestCommonParam();
     }
 }
 
-TEST(ParameterValidation, ValidateRegistrationSetParam) {
-    TestLogger Logger("QuicTestValidateRegistrationSetParam");
+TEST(ParameterValidation, ValidateRegistrationParam) {
+    TestLogger Logger("QuicTestValidateRegistrationParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM));
     } else {
-        QuicTestRegistrationSetParam();
+        QuicTestRegistrationParam();
     }
 }
 

@@ -1216,12 +1216,12 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestGlobalSetParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_COMMON_SET_PARAM:
-        QuicTestCtlRun(QuicTestCommonSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM:
+        QuicTestCtlRun(QuicTestCommonParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_SET_PARAM:
-        QuicTestCtlRun(QuicTestRegistrationSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM:
+        QuicTestCtlRun(QuicTestRegistrationParam());
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM:
