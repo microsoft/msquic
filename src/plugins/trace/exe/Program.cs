@@ -903,7 +903,7 @@ namespace QuicTrace
                 }
                 foreach (var state in RequestStates)
                 {
-                    Console.Write(",{0}", serverLayerTimes[(int)state].ElementAt(i).TimesUs.ElementAt((int)state));
+                    Console.Write(",{0}", serverLayerTimes[(int)state].ElementAt(i).Peer!.TimesUs.ElementAt((int)state));
                 }
                 Console.WriteLine();
             }
