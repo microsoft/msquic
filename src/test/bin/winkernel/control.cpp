@@ -1224,8 +1224,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestRegistrationParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_SET_PARAM:
-        QuicTestCtlRun(QuicTestConfigurationSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM:
+        QuicTestCtlRun(QuicTestConfigurationParam());
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM:

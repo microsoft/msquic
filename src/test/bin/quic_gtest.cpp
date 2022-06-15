@@ -206,12 +206,12 @@ TEST(ParameterValidation, ValidateRegistrationParam) {
     }
 }
 
-TEST(ParameterValidation, ValidateConfigurationSetParam) {
-    TestLogger Logger("QuicTestValidateConfigurationSetParam");
+TEST(ParameterValidation, ValidateConfigurationParam) {
+    TestLogger Logger("QuicTestValidateConfigurationParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM));
     } else {
-        QuicTestConfigurationSetParam();
+        QuicTestConfigurationParam();
     }
 }
 
