@@ -173,7 +173,7 @@ namespace QuicTrace
 
         public enum RequestState
         {
-            Idle,
+            Alloc,
             QueueSend,
             ProcessSend,
             Frame,
@@ -188,25 +188,47 @@ namespace QuicTrace
             AppRecv,
             IdleRecv,
             IdleBoth,
-            COUNT
+            CleanUp
         };
+
+        public static RequestState[] RequestStates => (RequestState[])Enum.GetValues(typeof(RequestState));
 
         internal class RequestTiming
         {
             //
-            // The time spent in each RequestState (in nanoseconds).
+            // Indicates if this timings is for the client or server side.
             //
-            public ulong[] Times = new ulong[(int)RequestState.COUNT];
+            public bool IsServer = false;
 
             //
-            // Returns time spent in microseconds
+            // The application is actively handling a receive.
             //
-            public IEnumerable<double> TimesUs { get { return Times.Select(t => t / 1000.0); } }
+            public bool InAppRecv = false;
+
+            //
+            // The send direction of the stream has been shutdown.
+            //
+            public bool SendShutdown = false;
+
+            //
+            // The receive direction of the stream has been shutdown.
+            //
+            public bool RecvShutdown = false;
+
+            //
+            // Indicates if an error or unexpected state occurred while processing this request.
+            //
+            public bool EncounteredError = false;
+
+            //
+            // The stream identifier for this request.
+            //
+            public ulong StreamID = ulong.MaxValue;
 
             //
             // The current state of the request.
             //
-            public RequestState State = RequestState.Idle;
+            public RequestState State = RequestState.Alloc;
 
             //
             // The last time State was updated.
@@ -214,9 +236,39 @@ namespace QuicTrace
             public ulong LastStateChangeTime = 0;
 
             //
-            // The application is actively handling a receive.
+            // Time of the first packet being received.
             //
-            public bool InAppRecv = false;
+            public ulong FirstPacketRecv = 0;
+
+            //
+            // Time of the first packet being sent.
+            //
+            public ulong FirstPacketSend = 0;
+
+            //
+            // The time spent in each RequestState (in nanoseconds).
+            //
+            public ulong[] Times = new ulong[RequestStates.Length];
+
+            //
+            // Returns time spent in microseconds
+            //
+            public IEnumerable<double> TimesUs { get { return Times.Select(t => t / 1000.0); } }
+
+            //
+            // Set of all the individual state changes.
+            //
+            public List<(RequestState, ulong)> StateChanges = new List<(RequestState, ulong)>();
+
+            //
+            // The connection used for this request.
+            //
+            public QuicRequestConn? Connection = null;
+
+            //
+            // The corresponding peer's timings.
+            //
+            public RequestTiming? Peer = null;
 
             //
             // Triggers a state change and updates variables accordingly.
@@ -231,9 +283,25 @@ namespace QuicTrace
                         Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, state);
                         EncounteredError = true;
                     }
+                    else if (State == RequestState.Alloc && state == RequestState.QueueRecv)
+                    {
+                        State = state;
+                        LastStateChangeTime = time;
+                    }
                     return;
                 }
-                Times[(int)State] += (time - LastStateChangeTime);
+                if (state == RequestState.Frame && (State == RequestState.IdleSent || State == RequestState.IdleBoth))
+                {
+                    State = RequestState.ProcessSend; // Wasn't actually idle, but processing
+                }
+                if ((state == RequestState.Decrypt || state == RequestState.AppRecv) && (State == RequestState.IdleRecv || State == RequestState.IdleBoth))
+                {
+                    State = RequestState.ProcessRecv; // Wasn't actually idle, but processing
+                }
+                var deltaT = time - LastStateChangeTime;
+                Times[(int)State] += deltaT;
+                StateChanges.Add((State, deltaT));
+
                 LastStateChangeTime = time;
                 State = state;
             }
@@ -247,11 +315,21 @@ namespace QuicTrace
                     EncounteredError = true;
                     return;
                 }
-                Times[(int)State] += (time - LastStateChangeTime);
+                var deltaT = time - LastStateChangeTime;
+                Times[(int)State] += deltaT;
+                StateChanges.Add((State, deltaT));
+
                 LastStateChangeTime = time;
                 if (FirstPacketRecv != 0 && FirstPacketSend != 0)
                 {
-                    State = RequestState.IdleBoth;
+                    if (SendShutdown && RecvShutdown)
+                    {
+                        State = RequestState.CleanUp;
+                    }
+                    else
+                    {
+                        State = RequestState.IdleBoth;
+                    }
                 }
                 else if (FirstPacketRecv != 0)
                 {
@@ -263,7 +341,7 @@ namespace QuicTrace
                 }
                 else
                 {
-                    State = RequestState.Idle;
+                    State = RequestState.Alloc;
                 }
             }
 
@@ -276,7 +354,9 @@ namespace QuicTrace
                     EncounteredError = true;
                     return;
                 }
-                Times[(int)State] += (time - LastStateChangeTime);
+                var deltaT = time - LastStateChangeTime;
+                Times[(int)State] += deltaT;
+                StateChanges.Add((State, deltaT));
                 LastStateChangeTime = time;
             }
 
@@ -301,57 +381,6 @@ namespace QuicTrace
                 }
             }
             public ulong ServerResponseTime { get { return FirstPacketSend - FirstPacketRecv; } }
-
-            //
-            // The connection used for this request.
-            //
-            public QuicRequestConn? Connection = null;
-
-            //
-            // The corresponding peer's timings.
-            //
-            public RequestTiming? Peer = null;
-
-            //
-            // The stream identifier for this request.
-            //
-            public ulong StreamID = ulong.MaxValue;
-
-            //
-            // Indicates if this timings is for the client or server side.
-            //
-            public bool IsServer = false;
-
-            public ulong FirstPacketRecv = 0;
-            public ulong FirstPacketSend = 0;
-
-            //
-            // Indicates if an error or unexpected state occurred while processing this request.
-            //
-            public bool EncounteredError = false;
-
-            //
-            // Writes the header for the CSV data.
-            //
-            public static void WriteCsvHeader(bool withTotal = true)
-            {
-                if (withTotal) Console.Write("Total");
-                foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
-                {
-                    if (state == RequestState.COUNT) break;
-                    Console.Write(",{0}", state);
-                }
-            }
-
-            //
-            // Writes all the times in comma seperated vector format.
-            //
-            public void WriteCsv(bool newLine = true)
-            {
-                Console.Write("{0},", TotalTime/1000.0);
-                Console.Write(String.Join(",", TimesUs));
-                if (newLine) Console.WriteLine();
-            }
         }
 
         internal class QuicRequestConn : IQuicObject
@@ -396,8 +425,6 @@ namespace QuicTrace
             public ulong Pointer { get; }
 
             public uint ProcessId { get; }
-
-            public ulong BatchSent = 0;
 
             public List<QuicPacket> Packets = new List<QuicPacket> { };
 
@@ -555,6 +582,39 @@ namespace QuicTrace
                             Stream.Timings.IsServer = (evt as QuicStreamCreatedEvent)!.IsLocalOwned == 0;
                             break;
                         }
+                        case QuicEventId.StreamSendState:
+                        {
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            var sendState = (evt as QuicStreamSendStateEvent)!.SendState;
+                            if (sendState == QuicSendState.Disabled || sendState == QuicSendState.FinAcked || sendState == QuicSendState.ResetAcked)
+                            {
+                                Stream.Timings.SendShutdown = true;
+                                if (Stream.Timings.RecvShutdown && Stream.Timings.State == RequestState.IdleBoth)
+                                {
+                                    Stream.Timings.UpdateToIdle((ulong)evt.TimeStamp.ToNanoseconds);
+                                }
+                            }
+                            break;
+                        }
+                        case QuicEventId.StreamRecvState:
+                        {
+                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            if (Stream == null || Stream.Timings.EncounteredError) break;
+
+                            var recvState = (evt as QuicStreamRecvStateEvent)!.ReceiveState;
+                            if (recvState == QuicReceiveState.Disabled || recvState == QuicReceiveState.Fin || recvState == QuicReceiveState.Reset)
+                            {
+                                Stream.Timings.RecvShutdown = true;
+                                if (Stream.Timings.SendShutdown && Stream.Timings.State == RequestState.IdleBoth)
+                                {
+                                    Stream.Timings.UpdateToIdle((ulong)evt.TimeStamp.ToNanoseconds);
+                                }
+                            }
+
+                            break;
+                        }
                         case QuicEventId.StreamAppSend:
                         {
                             var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
@@ -614,7 +674,7 @@ namespace QuicTrace
                         }
                         case QuicEventId.PacketFinalize:
                         {
-                            var Packet = PacketSet.FindActive(new QuicObjectKey(evt));
+                            var Packet = PacketSet.RemoveActiveObject(new QuicObjectKey(evt));
                             if (Packet == null) break;
                             Packet.PacketFinalize = (ulong)evt.TimeStamp.ToNanoseconds;
 
@@ -632,9 +692,8 @@ namespace QuicTrace
                         }
                         case QuicEventId.PacketBatchSent:
                         {
-                            var Batch = PacketBatchSet.FindActive(new QuicObjectKey(evt));
+                            var Batch = PacketBatchSet.RemoveActiveObject(new QuicObjectKey(evt));
                             if (Batch == null) break;
-                            Batch.BatchSent = (ulong)evt.TimeStamp.ToNanoseconds;
 
                             foreach (var Packet in Batch.Packets)
                             {
@@ -681,15 +740,7 @@ namespace QuicTrace
 
                             if (OldRecvPacket != Stream.RecvPacket)
                             {
-                                if (Stream.Timings.State == RequestState.Idle)
-                                {
-                                    Stream.Timings.State = RequestState.QueueRecv;
-                                    Stream.Timings.LastStateChangeTime = Stream.RecvPacket.PacketReceive;
-                                }
-                                else
-                                {
-                                    Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive, true);
-                                }
+                                Stream.Timings.UpdateToState(RequestState.QueueRecv, Stream.RecvPacket.PacketReceive, true);
                                 Stream.Timings.UpdateToState(RequestState.ProcessRecv, Stream.Timings.Connection!.LastScheduleTime, true);
                                 Stream.Timings.UpdateToState(RequestState.Decrypt, Stream.RecvPacket.PacketDecrypt);
                             }
@@ -708,7 +759,7 @@ namespace QuicTrace
                             }
                             else
                             {
-                                Stream.Timings.UpdateToIdle((ulong)evt.TimeStamp.ToNanoseconds); // TODO - ProcessRecv instead?
+                                Stream.Timings.UpdateToIdle((ulong)evt.TimeStamp.ToNanoseconds);
                             }
                             break;
                         }
@@ -735,7 +786,7 @@ namespace QuicTrace
                         }
                         case QuicEventId.StreamDestroyed:
                         {
-                            var Stream = StreamSet.FindActive(new QuicObjectKey(evt));
+                            var Stream = StreamSet.RemoveActiveObject(new QuicObjectKey(evt));
                             if (Stream == null || Stream.Timings.StreamID == ulong.MaxValue || Stream.Timings.EncounteredError) break;
 
                             Stream.Timings.FinalizeState((ulong)evt.TimeStamp.ToNanoseconds);
@@ -775,12 +826,10 @@ namespace QuicTrace
             {
                 if (timing.Connection!.Peer == null)
                 {
-                    //Console.WriteLine("WARNING: Missing connection peer!");
                     MissingPeer++;
                 }
                 else if(!ServerDict.TryGetValue(( timing.Connection!.Peer.Pointer, timing.StreamID ), out var peer))
                 {
-                    //Console.WriteLine("WARNING: Cannot find matching peer timings!");
                     MissingPeerTimings++;
                 }
                 else
@@ -799,58 +848,86 @@ namespace QuicTrace
             Console.WriteLine("{0} complete, matching requests found.", clientRequestCount);
             Console.WriteLine();
 
-            if (VerboseMode)
-            {
-                RequestTiming.WriteCsvHeader();
-                RequestTiming.WriteCsvHeader(false);
-                Console.WriteLine();
-                foreach (var timing in sortedRequests)
-                {
-                    timing.WriteCsv(false);
-                    Console.Write(",");
-                    Console.WriteLine(String.Join(",", timing.Peer!.TimesUs));
-                }
-                Console.WriteLine();
-            }
-
-            Console.Write("Percentile,ID,");
-            RequestTiming.WriteCsvHeader();
-            Console.Write(",Network,PeerResponse,");
-            RequestTiming.WriteCsvHeader(false);
-            Console.WriteLine();
             var Percentiles = new List<double>() { 0, 50, 90, 99, 99.9, 99.99, 99.999 };
+
+            //
+            // Percentile based on client request total time breakdown.
+            //
+            Console.WriteLine("Percentile,ID,Total,Net/2,Server,{0},{0}", string.Join(",", RequestStates));
             foreach (var percentile in Percentiles)
             {
                 var t = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
-                Console.Write("{0}th,{1},", percentile, t.StreamID);
-                t.WriteCsv(false);
-                Console.Write(",{0},{1},", t.ClientNetworkTime/1000.0, t.Peer!.ServerResponseTime/1000.0);
-                Console.WriteLine(String.Join(",", t.Peer.TimesUs));
+                Console.WriteLine(
+                    "{0}th,{1},{2},{3},{4},{5},{6}",
+                    percentile,                         // Percentile
+                    t.StreamID,                         // ID
+                    t.TotalTime / 1000.0,               // Total
+                    t.ClientNetworkTime / 2000.0,       // (Net/2)
+                    t.Peer!.ServerResponseTime / 1000.0,// Server
+                    string.Join(",", t.TimesUs),
+                    string.Join(",", t.Peer.TimesUs));
             }
             Console.WriteLine();
 
-            var layerTimes = new List<IOrderedEnumerable<RequestTiming>>();
-            foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
+            //
+            // Full state changes for each percentile request above.
+            //
+            Console.WriteLine("Percentile,States");
+            foreach (var percentile in Percentiles)
             {
-                if (state == RequestState.COUNT) break;
-                layerTimes.Add(CompleteClientRequests.OrderBy(t => t.Times[(int)state]));
+                var t = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
+                Console.WriteLine("{0}th (Client),{1}", percentile, string.Join(",", t.StateChanges));
+                Console.WriteLine("{0}th (Server),{1}", percentile, string.Join(",", t.Peer!.StateChanges));
+            }
+            Console.WriteLine();
+
+            //
+            // Percentile based on individual layer breakdown.
+            //
+            var clientLayerTimes = new List<IOrderedEnumerable<RequestTiming>>();
+            var serverLayerTimes = new List<IOrderedEnumerable<RequestTiming>>();
+            foreach (var state in RequestStates)
+            {
+                clientLayerTimes.Add(CompleteClientRequests.OrderBy(t => t.Times[(int)state]));
+                serverLayerTimes.Add(CompleteClientRequests.OrderBy(t => t.Peer!.Times[(int)state]));
             }
 
-            Console.Write("Percentile");
-            RequestTiming.WriteCsvHeader(false);
-            Console.WriteLine();
+            Console.WriteLine("Percentile,{0},{0}", string.Join(",", RequestStates));
             foreach (var percentile in Percentiles)
             {
                 var i = (int)((clientRequestCount * percentile) / 100);
                 Console.Write("{0}th", percentile);
-                foreach (var state in Enum.GetValues(typeof(RequestState)).Cast<RequestState>())
+                foreach (var state in RequestStates)
                 {
-                    if (state == RequestState.COUNT) break;
-                    Console.Write(",{0}", layerTimes[(int)state].ElementAt(i).TimesUs.ElementAt((int)state));
+                    Console.Write(",{0}", clientLayerTimes[(int)state].ElementAt(i).TimesUs.ElementAt((int)state));
+                }
+                foreach (var state in RequestStates)
+                {
+                    Console.Write(",{0}", serverLayerTimes[(int)state].ElementAt(i).TimesUs.ElementAt((int)state));
                 }
                 Console.WriteLine();
             }
             Console.WriteLine();
+
+            //
+            // Full breakdown of every request.
+            //
+            if (VerboseMode)
+            {
+                Console.WriteLine("ID,Total,Net/2,Server,{0},{0}", string.Join(",", RequestStates));
+                foreach (var t in sortedRequests)
+                {
+                    Console.WriteLine(
+                        "{0},{1},{2},{3},{4},{5}",
+                        t.StreamID,                         // ID
+                        t.TotalTime / 1000.0,               // Total
+                        t.ClientNetworkTime / 2000.0,       // (Net/2)
+                        t.Peer!.ServerResponseTime / 1000.0,// Server
+                        string.Join(",", t.TimesUs),
+                        string.Join(",", t.Peer.TimesUs));
+                }
+                Console.WriteLine();
+            }
         }
 
         static void RunCommand(QuicState[] quicStates, string[] args)

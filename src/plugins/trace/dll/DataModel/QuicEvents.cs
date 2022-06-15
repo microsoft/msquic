@@ -158,6 +158,26 @@ namespace QuicTrace.DataModel
         Max
     }
 
+    public enum QuicSendState
+    {
+        Disabled,
+        Started,
+        Reset,
+        ResetAcked,
+        Fin,
+        FinAcked
+    }
+
+    public enum QuicReceiveState
+    {
+        Disabled,
+        Started,
+        Paused,
+        Stopped,
+        Reset,
+        Fin
+    }
+
     #region Global Events
 
     public class QuicDataPathInitializedEvent : QuicEvent
@@ -914,6 +934,32 @@ namespace QuicTrace.DataModel
             base(QuicEventId.StreamOutFlowBlocked, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
             ReasonFlags = reasonFlags;
+        }
+    }
+
+    public class QuicStreamSendStateEvent : QuicEvent
+    {
+        public byte State { get; }
+
+        public QuicSendState SendState { get { return (QuicSendState)State; } }
+
+        internal QuicStreamSendStateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, byte state) :
+            base(QuicEventId.StreamSendState, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            State = state;
+        }
+    }
+
+    public class QuicStreamRecvStateEvent : QuicEvent
+    {
+        public byte State { get; }
+
+        public QuicReceiveState ReceiveState { get { return (QuicReceiveState)State; } }
+
+        internal QuicStreamRecvStateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, byte state) :
+            base(QuicEventId.StreamRecvState, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            State = state;
         }
     }
 
