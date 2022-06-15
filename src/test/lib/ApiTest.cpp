@@ -1978,7 +1978,7 @@ void QuicTestStatefulGlobalSetParam()
     }
 }
 
-void QuicTestGlobalSetParam()
+void QuicTestGlobalParam()
 {
     //
     // QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT
@@ -1993,6 +1993,8 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                 sizeof(Percent),
                 &Percent));
+
+        SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(Percent), &Percent);
     }
 
     //
@@ -2007,6 +2009,9 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS,
                 0,
                 nullptr));
+
+        // how to resolve dependency?
+        // SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS, sizeof(QUIC_VERSION_INFO[4]), (void*)QuicSupportedVersionList);
     }
 
     //
@@ -2030,17 +2035,21 @@ void QuicTestGlobalSetParam()
                     &Mode));
         }
 
+        uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
         //
         // Good setting
         //
         {
-            uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
                     sizeof(Mode),
                     &Mode));
+        }
+
+        {
+            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(Mode), &Mode);
         }
     }
 
@@ -2056,6 +2065,31 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_PERF_COUNTERS,
                 0,
                 nullptr));
+
+        {
+            {
+                int64_t Buffer[QUIC_PERF_COUNTER_MAX] = {};
+                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), &Buffer);
+            }
+
+            //
+            // truncated length case
+            //
+            {
+                int64_t ActualBuffer[QUIC_PERF_COUNTER_MAX/2] = {1,2,3}; // 15
+                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
+                uint32_t Length = sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX/2) + 4; // truncated 124 -> 120
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+                        &Length,
+                        ActualBuffer));
+                TEST_EQUAL(Length, sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX / 2));
+                TEST_EQUAL(memcmp(ActualBuffer, ExpectedBuffer, Length), 0);
+            }
+        }
     }
 
     //
@@ -2070,6 +2104,12 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_LIBRARY_VERSION,
                 0,
                 nullptr));
+
+        {
+            // wanted to set {VER_MAJOR, VER_MINOR, VER_PATCH, VER_BUILD_ID};
+            uint32_t ExpectedVersion[4] = {2,1,0,0};
+            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_LIBRARY_VERSION, sizeof(ExpectedVersion), ExpectedVersion);
+        }
     }
 
     //
@@ -2101,6 +2141,27 @@ void QuicTestGlobalSetParam()
             // TODO: this test set affects other tests' behavior and hangs in Kernel mode test.
             //       temporally disable
             // SettingApplyTests(nullptr, QUIC_PARAM_GLOBAL_SETTINGS);
+        }
+
+        // TODO Get
+        {
+            // uint32_t Length = 0;
+            // TEST_QUIC_STATUS(
+            //     QUIC_STATUS_BUFFER_TOO_SMALL,
+            //     MsQuic->GetParam(
+            //         Configuration.Handle,
+            //         QUIC_PARAM_CONFIGURATION_SETTINGS,
+            //         &Length,
+            //         nullptr));
+            // TEST_EQUAL(Length, sizeof(QUIC_SETTINGS));
+
+            // QUIC_SETTINGS Settings{0};
+            // TEST_QUIC_SUCCEEDED(
+            //     MsQuic->GetParam(
+            //         Configuration.Handle,
+            //         QUIC_PARAM_CONFIGURATION_SETTINGS,
+            //         &Length,
+            //         &Settings));
         }
     }
 
@@ -2141,6 +2202,31 @@ void QuicTestGlobalSetParam()
                     sizeof(QUIC_GLOBAL_SETTINGS),
                     &Settings));
         }
+
+        //
+        // GetParam
+        //
+        {
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(QUIC_GLOBAL_SETTINGS));
+
+            QUIC_GLOBAL_SETTINGS Settings{0};
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                    &Length,
+                    &Settings));
+            TEST_EQUAL(Settings.LoadBalancingMode, QUIC_DEFAULT_LOAD_BALANCING_MODE);
+            TEST_EQUAL(Settings.RetryMemoryLimit, QUIC_DEFAULT_RETRY_MEMORY_FRACTION);
+        }
     }
 
     //
@@ -2162,6 +2248,13 @@ void QuicTestGlobalSetParam()
                 QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH,
                 0,
                 nullptr));
+
+        {
+            // Hash length is 40 http://git-scm.com/book/en/v2/Git-Tools-Revision-Selection#Short-SHA-1
+            // Test might not have simple way to fetch git hash at runtime
+            // or use VER_GIT_HASH_STR, but need to resolve include dependency
+            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH, 41, nullptr);
+        }
     }
 
     //

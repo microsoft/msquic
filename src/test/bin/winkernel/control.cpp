@@ -1212,8 +1212,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStorage());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_SET_PARAM:
-        QuicTestCtlRun(QuicTestGlobalSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM:
+        QuicTestCtlRun(QuicTestGlobalParam());
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM:

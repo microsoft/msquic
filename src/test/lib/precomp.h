@@ -23,6 +23,8 @@
 #include "quic_trace.h"
 #include "quic_var_int.h"
 #include "../core/quicdef.h"
+//#include "msquic.ver"
+//#include "../core/packet.h"
 
 #ifdef _KERNEL_MODE
 #ifdef PAGEDX
