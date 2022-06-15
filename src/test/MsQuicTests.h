@@ -37,8 +37,8 @@ void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGlobalSetParam();
-void QuicTestCommonSetParam();
-void QuicTestRegistrationSetParam();
+void QuicTestCommonParam();
+void QuicTestRegistrationParam();
 void QuicTestConfigurationSetParam();
 void QuicTestListenerParam();
 void QuicTestConnectionSetParam();
@@ -1034,10 +1034,10 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALIDATE_GLOBAL_SET_PARAM \
     QUIC_CTL_CODE(90, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_VALIDATE_COMMON_SET_PARAM \
+#define IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM \
     QUIC_CTL_CODE(91, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_SET_PARAM \
+#define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM \
     QUIC_CTL_CODE(92, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_SET_PARAM \
