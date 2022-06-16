@@ -1753,7 +1753,7 @@ public:
     }
 };
 
-void SettingApplyTests(HQUIC Handle, uint32_t Param, BOOLEAN AllowMtuChange = TRUE) {
+void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuChange = true) {
     struct TestSpec {
         uint64_t Value;
         QUIC_STATUS Status;
@@ -1761,9 +1761,7 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, BOOLEAN AllowMtuChange = TR
 
     {
         struct TestSpec Spec[] = {{UINT32_MAX, QUIC_STATUS_INVALID_PARAMETER},
-                                  //enabled once _global is done
-                                  //{QUIC_TP_MAX_ACK_DELAY_MAX,  QUIC_STATUS_SUCCESS}
-                                  };
+                                  {QUIC_TP_MAX_ACK_DELAY_MAX,  QUIC_STATUS_SUCCESS}};
         QUIC_SETTINGS Settings{0};
         Settings.IsSet.MaxAckDelayMs = TRUE;
         for (auto &Data: Spec) {
