@@ -119,39 +119,6 @@ struct ClearGlobalVersionListScope {
     }
 };
 
-inline
-void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData) {
-    uint32_t Length = 0;
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_BUFFER_TOO_SMALL,
-        MsQuic->GetParam(
-                Handle,
-                Param,
-                &Length,
-                nullptr));
-    TEST_EQUAL(ExpectedLength, Length);
-
-    void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
-    if (Value == nullptr) {
-        TEST_FAILURE("Out of memory for testing SetParam for global parameter");
-    }
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            Handle,
-            Param,
-            &Length,
-            Value));
-
-    // if SetParam is not allowed and have random value
-    if (ExpectedData) {
-        TEST_EQUAL(memcmp(Value, ExpectedData, ExpectedLength), 0);
-    }
-
-    if (Value != nullptr) {
-        CXPLAT_FREE(Value, QUIC_POOL_TEST);
-    }
-}
-
 //
 // Simulating Connection's status to be QUIC_CONN_BAD_START_STATE
 // ConnectionStart -> ConnectionShutdown
@@ -171,6 +138,10 @@ void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration
         QUIC_CONNECTION_SHUTDOWN_FLAG_NONE);
 }
 
+#ifndef _KERNEL_MODE
+#include <iostream>
+#endif
+
 //
 // almost all Parameter for GetParam is
 // 1. call with only BufferLength pointer
@@ -187,8 +158,10 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
                 Param,
                 &Length,
                 nullptr));
+    TEST_EQUAL(ExpectedLength, Length);
 
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
+    CxPlatZeroMemory(Value, Length);
     if (Value == nullptr) {
         TEST_FAILURE("Out of memory for testing SetParam for global parameter");
     }
