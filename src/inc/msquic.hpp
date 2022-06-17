@@ -791,9 +791,7 @@ struct MsQuicConnection {
     }
 
     ~MsQuicConnection() noexcept {
-        if (Handle) {
-            MsQuic->ConnectionClose(Handle);
-        }
+        Close();
         delete[] ResumptionTicket;
     }
 
@@ -803,6 +801,15 @@ struct MsQuicConnection {
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
         ) noexcept {
         MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+        if (Handle) {
+            MsQuic->ConnectionClose(Handle);
+            Handle = nullptr;
+        }
     }
 
     QUIC_STATUS
