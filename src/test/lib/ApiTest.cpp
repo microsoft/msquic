@@ -3291,97 +3291,97 @@ void QuicTestConnectionParam()
         }
     }
 
-//     //
-//     // QUIC_PARAM_CONN_CLOSE_REASON_PHRASE
-//     //
-//     {
-//         TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_REASON_PHRASE");
-//         MsQuicConnection Connection(Registration); // shared with Set/GetParam
-//         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-//         char MainReason[] = "This is main reason";
-//         {
-//             TestScopeLogger LogScope1("SetParam");
-//             //
-//             // BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH
-//             //
-//             {
-//                 TestScopeLogger LogScope2("BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH");
-//                 MsQuicConnection ConnInval(Registration);
-//                 TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-//                 char Reason[2048] = {};
-//                 TEST_QUIC_STATUS(
-//                     QUIC_STATUS_INVALID_PARAMETER,
-//                     ConnInval.SetParam(
-//                         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-//                         sizeof(Reason),
-//                         &Reason));
-//             }
+    //
+    // QUIC_PARAM_CONN_CLOSE_REASON_PHRASE
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_REASON_PHRASE");
+        MsQuicConnection Connection(Registration); // shared with Set/GetParam
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        char MainReason[] = "This is main reason";
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH
+            //
+            {
+                TestScopeLogger LogScope2("BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH");
+                MsQuicConnection ConnInval(Registration);
+                TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+                char Reason[2048] = {};
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    ConnInval.SetParam(
+                        QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+                        sizeof(Reason),
+                        &Reason));
+            }
 
-//             //
-//             // Non null termination
-//             //
-//             {
-//                 TestScopeLogger LogScope2("Non null termination");
-//                 MsQuicConnection ConnInval(Registration);
-//                 TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-//                 char Reason[] = "This is reason";
-//                 Reason[sizeof(Reason)-1] = 'X';
-//                 TEST_QUIC_STATUS(
-//                     QUIC_STATUS_INVALID_PARAMETER,
-//                     ConnInval.SetParam(
-//                         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-//                         sizeof(Reason),
-//                         &Reason));
-//             }
+            //
+            // Non null termination
+            //
+            {
+                TestScopeLogger LogScope2("Non null termination");
+                MsQuicConnection ConnInval(Registration);
+                TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+                char Reason[] = "This is reason";
+                Reason[sizeof(Reason)-1] = 'X';
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    ConnInval.SetParam(
+                        QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+                        sizeof(Reason),
+                        &Reason));
+            }
 
-//             //
-//             // Good, set twice to call update part
-//             //
-//             {
-//                 TestScopeLogger LogScope2("Good, set twice to call update part");
-//                 char ReasonDummy[] = "This is reason";
-//                 TEST_QUIC_SUCCEEDED(
-//                     Connection.SetParam(
-//                         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-//                         sizeof(ReasonDummy),
-//                         &ReasonDummy));
+            //
+            // Good, set twice to call update part
+            //
+            {
+                TestScopeLogger LogScope2("Good, set twice to call update part");
+                char ReasonDummy[] = "This is reason";
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+                        sizeof(ReasonDummy),
+                        &ReasonDummy));
 
-//                 TEST_QUIC_SUCCEEDED(
-//                     Connection.SetParam(
-//                         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-//                         sizeof(MainReason),
-//                         &MainReason));
-//             }
-//         }
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+                        sizeof(MainReason),
+                        &MainReason));
+            }
+        }
 
-//         //
-//         // GetParam
-//         //
-//         {
-//             //
-//             // if (Connection->CloseReasonPhrase == NULL)
-//             //
-//             {
-//                 TestScopeLogger LogScope2("if (Connection->CloseReasonPhrase == NULL)");
-//                 MsQuicConnection ConnInval(Registration);
-//                 TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-//                 uint32_t Length = 0;
-//                 TEST_QUIC_STATUS(
-//                     QUIC_STATUS_NOT_FOUND,
-//                     ConnInval.GetParam(
-//                         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-//                         &Length,
-//                         nullptr));
-//             }
+        //
+        // GetParam
+        //
+        {
+            //
+            // if (Connection->CloseReasonPhrase == NULL)
+            //
+            {
+                TestScopeLogger LogScope2("if (Connection->CloseReasonPhrase == NULL)");
+                MsQuicConnection ConnInval(Registration);
+                TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+                uint32_t Length = 0;
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_NOT_FOUND,
+                    ConnInval.GetParam(
+                        QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+                        &Length,
+                        nullptr));
+            }
 
-//             //
-//             // Good
-//             //
-//             {
-//                 SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, sizeof(MainReason), MainReason);
-//             }
-//         }
-//     }
+            //
+            // Good
+            //
+            {
+                SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, sizeof(MainReason), MainReason);
+            }
+        }
+    }
 
 //     //
 //     // QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME
@@ -3555,40 +3555,40 @@ void QuicTestConnectionParam()
 //     }
 // #endif
 
-//     //
-//     // QUIC_PARAM_CONN_RESUMPTION_TICKET
-//     //
-//     {
-//         TestScopeLogger LogScope("QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp");
-//     }
+    //
+    // QUIC_PARAM_CONN_RESUMPTION_TICKET
+    //
+    {
+        TestScopeLogger LogScope("QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp");
+    }
 
-//     //
-//     // QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID
-//     //
-//     {
-//         TestScopeLogger LogScope0("QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID");
-//         {
-//             TestScopeLogger LogScope1("SetParam");
-//             MsQuicConnection Connection(Registration);
-//             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    //
+    // QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-//             //
-//             // Good with True/False
-//             //
-//             for (uint8_t i = 0; i < 2; i++) {
-//                 BOOLEAN Result = FALSE + i;
-//                 TEST_QUIC_SUCCEEDED(
-//                     Connection.SetParam(
-//                         QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
-//                         sizeof(Result),
-//                         &Result));
-//             }
-//         }
+            //
+            // Good with True/False
+            //
+            for (uint8_t i = 0; i < 2; i++) {
+                BOOLEAN Result = FALSE + i;
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
+                        sizeof(Result),
+                        &Result));
+            }
+        }
 
-//         {
-//             TestScopeLogger LogScope1("GetParam is not allowed");
-//         }
-//     }
+        {
+            TestScopeLogger LogScope1("GetParam is not allowed");
+        }
+    }
 
 //     //
 //     // QUIC_PARAM_CONN_LOCAL_INTERFACE
@@ -3632,49 +3632,49 @@ void QuicTestConnectionParam()
 //         }
 //     }
 
-//     //
-//     // QUIC_PARAM_CONN_TLS_SECRETS
-//     //
-//     {
-//         TestScopeLogger LogScope0("QUIC_PARAM_CONN_TLS_SECRETS");
-//         {
-//             TestScopeLogger LogScope1("SetParam");
-//             QUIC_TLS_SECRETS Secrets = {};
-//             //
-//             // QUIC_CONN_BAD_START_STATE
-//             //
-//             {
-//                 TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
-//                 MsQuicConnection Connection(Registration);
-//                 TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-//                 SimulateConnBadStartState(Connection, ClientConfiguration);
+    //
+    // QUIC_PARAM_CONN_TLS_SECRETS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_CONN_TLS_SECRETS");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            QUIC_TLS_SECRETS Secrets = {};
+            //
+            // QUIC_CONN_BAD_START_STATE
+            //
+            {
+                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                SimulateConnBadStartState(Connection, ClientConfiguration);
 
-//                 TEST_QUIC_STATUS(
-//                     QUIC_STATUS_INVALID_STATE,
-//                     Connection.SetParam(
-//                         QUIC_PARAM_CONN_TLS_SECRETS,
-//                         sizeof(Secrets),
-//                         &Secrets));
-//             }
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_TLS_SECRETS,
+                        sizeof(Secrets),
+                        &Secrets));
+            }
 
-//             //
-//             // Good
-//             //
-//             {
-//                 MsQuicConnection Connection(Registration);
-//                 TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-//                 TEST_QUIC_SUCCEEDED(
-//                     Connection.SetParam(
-//                         QUIC_PARAM_CONN_TLS_SECRETS,
-//                         sizeof(Secrets),
-//                         &Secrets));
-//             }
-//         }
+            //
+            // Good
+            //
+            {
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_TLS_SECRETS,
+                        sizeof(Secrets),
+                        &Secrets));
+            }
+        }
 
-//         {
-//             TestScopeLogger LogScope1("GetParam is not allowed");
-//         }
-//     }
+        {
+            TestScopeLogger LogScope1("GetParam is not allowed");
+        }
+    }
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
