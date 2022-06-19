@@ -81,8 +81,8 @@ QuicLossDetectionInitializeInternalState(
     LossDetection->TotalBytesSent = 0;
     LossDetection->TotalBytesAcked = 0;
     LossDetection->TotalBytesSentAtLastAck = 0;
-    LossDetection->LastAckedTime = 0;
-    LossDetection->LastAckedPacketSentTime = 0;
+    LossDetection->TimeOfLastPacketAcked = 0;
+    LossDetection->TimeOfLastAckedPacketSent = 0;
     LossDetection->AdjustedLastAckedTime = 0;
     LossDetection->ProbeCount = 0;
 }
@@ -482,14 +482,14 @@ QuicLossDetectionOnPacketSent(
 
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 
-    SentPacket->TotalBytesSentThen = LossDetection->TotalBytesSent;
+    SentPacket->TotalBytesSent = LossDetection->TotalBytesSent;
 
     SentPacket->Flags.HasLastAckedPacketInfo = FALSE;
-    if (LossDetection->LastAckedTime) {
+    if (LossDetection->TimeOfLastPacketAcked) {
         SentPacket->Flags.HasLastAckedPacketInfo = TRUE;
 
-        SentPacket->LastAckedPacketInfo.SentTime = LossDetection->LastAckedPacketSentTime;
-        SentPacket->LastAckedPacketInfo.AckTime = LossDetection->LastAckedTime;
+        SentPacket->LastAckedPacketInfo.SentTime = LossDetection->TimeOfLastAckedPacketSent;
+        SentPacket->LastAckedPacketInfo.AckTime = LossDetection->TimeOfLastPacketAcked;
         SentPacket->LastAckedPacketInfo.AdjustedAckTime = LossDetection->AdjustedLastAckedTime;
         SentPacket->LastAckedPacketInfo.TotalBytesSent = LossDetection->TotalBytesSentAtLastAck;
         SentPacket->LastAckedPacketInfo.TotalBytesAcked = LossDetection->TotalBytesAcked;
@@ -666,9 +666,9 @@ QuicLossDetectionOnPacketAcknowledged(
 
     if (!IsImplicit) {
         LossDetection->TotalBytesAcked += Packet->PacketLength;
-        LossDetection->TotalBytesSentAtLastAck = Packet->TotalBytesSentThen;
-        LossDetection->LastAckedTime = AckTime;
-        LossDetection->LastAckedPacketSentTime = Packet->SentTime;
+        LossDetection->TotalBytesSentAtLastAck = Packet->TotalBytesSent;
+        LossDetection->TimeOfLastPacketAcked = AckTime;
+        LossDetection->TimeOfLastAckedPacketSent = Packet->SentTime;
         LossDetection->AdjustedLastAckedTime = AckTime - (uint32_t)AckDelay;
     }
 }

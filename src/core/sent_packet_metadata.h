@@ -96,17 +96,36 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
 } QUIC_SEND_PACKET_FLAGS;
 
+//
+// Packet info of last acked packet
+//
 typedef struct LAST_ACKED_PACKET_INFO {
 
+    //
+    // Total bytes sent
+    //
     uint64_t TotalBytesSent;
 
+    //
+    // Total bytes acked
+    //
     uint64_t TotalBytesAcked;
 
+    //
+    // Packet sent time
+    //
     uint32_t SentTime;
 
+    //
+    // Packet acked time
+    //
+    uint32_t AckTime;
+
+    //
+    // Packet acked time minus ack delay
+    //
     uint32_t AdjustedAckTime;
 
-    uint32_t AckTime;
 
 } LAST_ACKED_PACKET_INFO;
 
@@ -119,14 +138,10 @@ typedef struct QUIC_SENT_PACKET_METADATA {
 
     uint64_t PacketId;
     uint64_t PacketNumber;
-
+    uint64_t TotalBytesSent;
     uint32_t SentTime; // In microseconds
-
     uint16_t PacketLength;
-
     uint8_t PathId;
-
-    uint64_t TotalBytesSentThen;
 
     LAST_ACKED_PACKET_INFO LastAckedPacketInfo;
 

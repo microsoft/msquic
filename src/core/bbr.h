@@ -7,7 +7,7 @@
 
 #pragma once
 
-typedef struct BBR_RTT_SAMPLER {
+typedef struct BBR_RTT_STATS {
 
     //
     // TRUE if current RTT sample is expired
@@ -28,7 +28,7 @@ typedef struct BBR_RTT_SAMPLER {
 
     uint64_t MinRttTimestamp; // microseconds
 
-} BBR_RTT_SAMPLER;
+} BBR_RTT_STATS;
 
 typedef struct WINDOWED_FILTER {
 
@@ -171,7 +171,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     uint8_t SlowStartupRoundCounter;
 
     //
-    // Current cycle index in kPacingGainCycles
+    // Current cycle index in kPacingGain
     //
     uint32_t PacingCycleIndex;
 
@@ -234,12 +234,12 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     WINDOWED_FILTER MaxAckHeightFilter;
 
     //
-    // BBR estimates minimum RTT by the minimum recent RTT samples
+    // BBR estimates minimum RTT by the minimum recent RTT
     //
-    BBR_RTT_SAMPLER MinRttSampler;
+    BBR_RTT_STATS MinRttStats;
 
     //
-    // BBR estimates maximum bandwidth by the maximum recent bandwidth samples
+    // BBR estimates maximum bandwidth by the maximum recent bandwidth
     //
     BBR_BANDWIDTH_FILTER BandwidthFilter;
 

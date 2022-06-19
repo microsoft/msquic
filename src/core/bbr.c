@@ -22,9 +22,7 @@ typedef enum BBR_STATE {
 
     BBR_STATE_PROBE_BW,
 
-    BBR_STATE_PROBE_RTT,
-
-    BBR_STATE_COUNT
+    BBR_STATE_PROBE_RTT
 
 } BBR_STATE;
 
@@ -38,84 +36,79 @@ typedef enum RECOVERY_STATE {
 
 } RECOVERY_STATE;
 
-const uint64_t kLowPacingRateForSendQuantumBytesPerSecond = 1200ULL * 1000;
+//
+// Bandwidth is measured as (bytes / BW_UNIT) per second
+//
+#define BW_UNIT 8 // 1 << 3
 
-const uint64_t kHighPacingRateForSendQuantumBytesPerSecond = 24ULL * 1000 * 1000;
+//
+// Gain is measured as (1 / GAIN_UNIT)
+//
+#define GAIN_UNIT 256 // 1 << 8
+
+//
+// The length of the gain cycle
+//
+#define GAIN_CYCLE_LENGTH 8
 
 const uint64_t kQuantaFactor = 3;
 
-const uint32_t kMinCwndInMssForBbr = 4;
+const uint32_t kMinCwndInMss = 4;
 
-const uint32_t kDefaultRecoveryCwndInMssForBbr = 2000;
+const uint32_t kDefaultRecoveryCwndInMss = 2000;
 
 const uint64_t kMicroSecsInSec = 1000000;
 
 const uint64_t kMilliSecsInSec = 1000;
 
-//
-// Bandwidth is measured as (bytes/BW_UNIT) per second
-//
-#define BW_UNIT 8 // 1 << 3
+const uint64_t kLowPacingRateThresholdBytesPerSecond = 1200ULL * 1000;
 
-#define BBR_UNIT 256 // 1 << 8
+const uint64_t kHighPacingRateThresholdBytesPerSecond = 24ULL * 1000 * 1000;
 
-//
-// Cwnd and pacing gain during STARSTUP
-//
-const uint32_t kStartupGain = BBR_UNIT * 2885 / 1000 + 1; // 2/ln(2)
+const uint32_t kHighGain = GAIN_UNIT * 2885 / 1000 + 1; // 2/ln(2)
 
-const uint32_t kDrainGain = BBR_UNIT * 1000 / 2885; // 1/kStartupGain
+const uint32_t kDrainGain = GAIN_UNIT * 1000 / 2885; // 1/kHighGain
 
 //
 // Cwnd gain during ProbeBw
 //
-const uint32_t kProbeBwGain = BBR_UNIT * 2;
+const uint32_t kCwndGain = GAIN_UNIT * 2;
 
 //
 // The expected of bandwidth growth in each round trip time during STARTUP
 //
-const uint32_t kExpectedStartupGrowth = BBR_UNIT * 5 / 4;
+const uint32_t kStartupGrowthTarget = GAIN_UNIT * 5 / 4;
 
 //
 // How many rounds of rtt to stay in STARTUP when the bandwidth isn't growing as
-// fast as kExpectedStartupGrowth
+// fast as kStartupGrowthTarget
 //
 const uint8_t kStartupSlowGrowRoundLimit = 3;
 
 //
-// Number of pacing cycles
+// The cycle of gains used during the PROBE_BW stage
 //
-#define kNumOfCycles 8
-
-//
-// Pacing cycles
-//
-const uint32_t kPacingGainCycles[kNumOfCycles] = {
-    BBR_UNIT * 5 / 4,
-    BBR_UNIT * 3 / 4,
-    BBR_UNIT, BBR_UNIT, BBR_UNIT,
-    BBR_UNIT, BBR_UNIT, BBR_UNIT
+const uint32_t kPacingGain[GAIN_CYCLE_LENGTH] = {
+    GAIN_UNIT * 5 / 4,
+    GAIN_UNIT * 3 / 4,
+    GAIN_UNIT, GAIN_UNIT, GAIN_UNIT,
+    GAIN_UNIT, GAIN_UNIT, GAIN_UNIT
 };
 
 //
-// During ProbeRtt, we need to stay in low inflight condition for at least kProbeRttDuration.
+// During ProbeRtt, we need to stay in low inflight condition for at least kProbeRttTimeInUs
 //
-const uint32_t kProbeRttDuration = 200 * 1000;
+const uint32_t kProbeRttTimeInUs = 200 * 1000;
 
 //
-// Bandwidth WindowFilter length, in unit of RTT.
+// Bandwidth WindowFilter length, in unit of RTT
 //
-const uint32_t kBandwidthWindowLength = kNumOfCycles + 2;
+const uint32_t kBandwidthWindowLength = GAIN_CYCLE_LENGTH + 2;
 
 //
-// RTT Sampler default expiration
+// RTT Stats default expiration
 //
-const uint32_t kDefaultRttSamplerExpirationInSecond = 10;
-
-//
-// 64K, used in sendQuantum calculation:
-//
-const uint64_t k64K = 64 * 1024;
+const uint32_t kRttStatsExpirationInSecond = 10;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 WINDOWED_FILTER
@@ -221,12 +214,12 @@ WindowedFilterUpdate(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BBR_RTT_SAMPLER
-NewBbrRttSampler(
+BBR_RTT_STATS
+NewBbrRttStats(
     _In_ uint64_t Expiration
     )
 {
-    BBR_RTT_SAMPLER sampler = {
+    BBR_RTT_STATS stats = {
         .RttSampleExpired = TRUE,
         .MinRttTimestampValid = FALSE,
         .Expiration = Expiration,
@@ -234,25 +227,25 @@ NewBbrRttSampler(
         .MinRttTimestamp = 0
     };
 
-    return sampler;
+    return stats;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-BbrRttSamplerNewRttSample(
-    _In_ BBR_RTT_SAMPLER* Sampler,
+BbrRttStatsUpdate(
+    _In_ BBR_RTT_STATS* Stats,
     _In_ uint32_t RttSample,
     _In_ uint64_t SampledTime
     )
 {
-    Sampler->RttSampleExpired = Sampler->MinRttTimestampValid ?
-       CxPlatTimeAtOrBefore64(Sampler->MinRttTimestamp + Sampler->Expiration, SampledTime) :
+    Stats->RttSampleExpired = Stats->MinRttTimestampValid ?
+       CxPlatTimeAtOrBefore64(Stats->MinRttTimestamp + Stats->Expiration, SampledTime) :
        FALSE;
 
-    if (Sampler->RttSampleExpired || Sampler->MinRtt > RttSample) {
-        Sampler->MinRtt = RttSample;
-        Sampler->MinRttTimestamp = SampledTime;
-        Sampler->MinRttTimestampValid = TRUE;
+    if (Stats->RttSampleExpired || Stats->MinRtt > RttSample) {
+        Stats->MinRtt = RttSample;
+        Stats->MinRttTimestamp = SampledTime;
+        Stats->MinRttTimestampValid = TRUE;
         return TRUE;
     }
 
@@ -261,7 +254,7 @@ BbrRttSamplerNewRttSample(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-BbrBandwidthSamplerOnAppLimited(
+BbrBandwidthFilterOnAppLimited(
     _In_ BBR_BANDWIDTH_FILTER* b,
     _In_ uint64_t LargestSentPacketNumber
     )
@@ -272,7 +265,7 @@ BbrBandwidthSamplerOnAppLimited(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-BbrBandwidthSamplerOnPacketAcked(
+BbrBandwidthFilterOnPacketAcked(
     _In_ BBR_BANDWIDTH_FILTER* b,
     _In_ const QUIC_ACK_EVENT* AckEvent,
     _In_ uint64_t RttCounter
@@ -298,11 +291,11 @@ BbrBandwidthSamplerOnPacketAcked(
         uint32_t AckDuration = 0;
 
         if (AckedPacket->Flags.HasLastAckedPacketInfo) {
-            CXPLAT_DBG_ASSERT(AckedPacket->TotalBytesSentThen >= AckedPacket->LastAckedPacketInfo.TotalBytesSent);
+            CXPLAT_DBG_ASSERT(AckedPacket->TotalBytesSent >= AckedPacket->LastAckedPacketInfo.TotalBytesSent);
             CXPLAT_DBG_ASSERT(CxPlatTimeAtOrBefore32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
 
             SendRate = (kMicroSecsInSec * BW_UNIT *
-                (AckedPacket->TotalBytesSentThen - AckedPacket->LastAckedPacketInfo.TotalBytesSent) /
+                (AckedPacket->TotalBytesSent - AckedPacket->LastAckedPacketInfo.TotalBytesSent) /
                 CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
 
             if (!CxPlatTimeAtOrBefore32(
@@ -338,7 +331,7 @@ BbrCongestionControlGetMinRtt(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return Cc->Bbr.MinRttSampler.MinRtt;
+    return Cc->Bbr.MinRttStats.MinRtt;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -351,6 +344,16 @@ BbrCongestionControlGetBandwidth(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+BbrCongestionControlInRecovery(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+)
+{
+    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
+    return Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 BbrCongestionControlGetCongestionWindow(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -359,31 +362,18 @@ BbrCongestionControlGetCongestionWindow(
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
     if (Bbr->BbrState == BBR_STATE_PROBE_RTT) {
-        return Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
+        return kMinCwndInMss * DatagramPayloadLength;
     }
 
-    if (Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY) {
+    if (BbrCongestionControlInRecovery(Cc)) {
         return CXPLAT_MIN(Bbr->CongestionWindow, Bbr->RecoveryWindow);
     }
 
     return Bbr->CongestionWindow;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t PickRandomCycle(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-
-    uint32_t RandomValue = 0;
-    CxPlatRandom(sizeof(uint32_t), &RandomValue);
-
-    Bbr->PacingCycleIndex = (RandomValue % (kNumOfCycles - 1) + 2) % kNumOfCycles;
-    CXPLAT_DBG_ASSERT(Bbr->PacingCycleIndex != 1);
-
-    return Bbr->PacingCycleIndex;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -396,9 +386,14 @@ BbrCongestionControlTransitToProbeBw(
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
 
     Bbr->BbrState = BBR_STATE_PROBE_BW;
-    Bbr->CwndGain = kProbeBwGain;
+    Bbr->CwndGain = kCwndGain;
 
-    Bbr->PacingGain = kPacingGainCycles[PickRandomCycle(Cc)];
+    uint32_t RandomValue = 0;
+    CxPlatRandom(sizeof(uint32_t), &RandomValue);
+    Bbr->PacingCycleIndex = (RandomValue % (GAIN_CYCLE_LENGTH - 1) + 2) % GAIN_CYCLE_LENGTH;
+    CXPLAT_DBG_ASSERT(Bbr->PacingCycleIndex != 1);
+    Bbr->PacingGain = kPacingGain[Bbr->PacingCycleIndex];
+
     Bbr->CycleStart = CongestionEventTime;
 }
 
@@ -411,8 +406,8 @@ BbrCongestionControlTransitToStartup(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     Bbr->BbrState = BBR_STATE_STARTUP;
-    Bbr->PacingGain = kStartupGain;
-    Bbr->CwndGain = kStartupGain;
+    Bbr->PacingGain = kHighGain;
+    Bbr->CwndGain = kHighGain;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -558,11 +553,6 @@ BbrCongestionControlOnDataSent(
         QuicSendBufferConnectionAdjust(QuicCongestionControlGetConnection(Cc));
     }
 
-    if (!Bbr->AckAggregationStartTimeValid) {
-        Bbr->AckAggregationStartTime = CxPlatTimeUs64();
-        Bbr->AckAggregationStartTimeValid = TRUE;
-    }
-
     if (Bbr->Exemptions > 0) {
         --Bbr->Exemptions;
     }
@@ -619,13 +609,16 @@ BbrCongestionControlUpdateRoundTripCounter(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-BbrCongestionControlUpdateRecoveryWindowWithAck(
+BbrCongestionControlUpdateRecoveryWindow(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t BytesAcked
     )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
 
     CXPLAT_DBG_ASSERT(Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY);
 
@@ -638,10 +631,11 @@ BbrCongestionControlUpdateRecoveryWindowWithAck(
     RecoveryWindow = CXPLAT_MAX(
         RecoveryWindow, Bbr->BytesInFlight + BytesAcked);
 
+
     Bbr->RecoveryWindow = BbrCongestionControlBoundedCongestionWindow(
         RecoveryWindow,
-        Connection->Paths[0].Mtu,
-        kMinCwndInMssForBbr);
+        DatagramPayloadLength,
+        kMinCwndInMss);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -655,12 +649,15 @@ BbrCongestionControlHandleAckInProbeRtt(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
-    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
 
     if (!Bbr->EarliestTimeToExitProbeRttValid &&
-        Bbr->BytesInFlight < BbrCongestionControlGetCongestionWindow(Cc) + Connection->Paths[0].Mtu) {
+        Bbr->BytesInFlight < BbrCongestionControlGetCongestionWindow(Cc) + DatagramPayloadLength) {
 
-        Bbr->EarliestTimeToExitProbeRtt = AckTime + kProbeRttDuration;
+        Bbr->EarliestTimeToExitProbeRtt = AckTime + kProbeRttTimeInUs;
         Bbr->EarliestTimeToExitProbeRttValid = TRUE;
 
         Bbr->ProbeRttRoundValid = FALSE;
@@ -676,8 +673,8 @@ BbrCongestionControlHandleAckInProbeRtt(
         }
 
         if (Bbr->ProbeRttRoundValid && CxPlatTimeAtOrBefore64(Bbr->EarliestTimeToExitProbeRtt, AckTime)) {
-            Bbr->MinRttSampler.MinRttTimestamp = AckTime;
-            Bbr->MinRttSampler.MinRttTimestampValid = TRUE;
+            Bbr->MinRttStats.MinRttTimestamp = AckTime;
+            Bbr->MinRttStats.MinRttTimestampValid = TRUE;
 
             if (Bbr->BtlbwFound) {
                 BbrCongestionControlTransitToProbeBw(Cc, AckTime);
@@ -699,6 +696,8 @@ BbrCongestionControlUpdateAckAggregation(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     if (!Bbr->AckAggregationStartTimeValid) {
+        Bbr->AckAggregationStartTime = AckEvent->TimeNow;
+        Bbr->AckAggregationStartTimeValid = TRUE;
         return 0;
     }
 
@@ -708,12 +707,12 @@ BbrCongestionControlUpdateAckAggregation(
                                 BW_UNIT;
 
     //
-    // Ack aggregation starts when we witness ack arrival rate being less than estimated bandwidth
+    // Reset current ack aggregation status when we witness ack arrival rate being less or equal than estimated bandwidth
     //
     if (Bbr->AggregatedAckBytes <= ExpectedAckBytes) {
         Bbr->AggregatedAckBytes = AckEvent->NumRetransmittableBytes;
-        Bbr->AckAggregationStartTimeValid = TRUE;
         Bbr->AckAggregationStartTime = AckEvent->TimeNow;
+        Bbr->AckAggregationStartTimeValid = TRUE;
 
         return 0;
     }
@@ -728,7 +727,7 @@ BbrCongestionControlUpdateAckAggregation(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-BbrCongestionControlCalculateTargetCwnd(
+BbrCongestionControlGetTargetCwnd(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t Gain
     )
@@ -739,11 +738,11 @@ BbrCongestionControlCalculateTargetCwnd(
     uint64_t MinRttEst = BbrCongestionControlGetMinRtt(Cc);
 
     if (!BandwidthEst || MinRttEst == UINT32_MAX) {
-        return (uint64_t)(Gain) * Bbr->InitialCongestionWindow / BBR_UNIT;
+        return (uint64_t)(Gain) * Bbr->InitialCongestionWindow / GAIN_UNIT;
     }
 
     uint64_t Bdp = BandwidthEst * MinRttEst / kMicroSecsInSec / BW_UNIT;
-    uint64_t TargetCwnd = (Bdp * Gain / BBR_UNIT) + (kQuantaFactor * Bbr->SendQuantum);
+    uint64_t TargetCwnd = (Bdp * Gain / GAIN_UNIT) + (kQuantaFactor * Bbr->SendQuantum);
     return (uint32_t)TargetCwnd;
 }
 
@@ -788,10 +787,10 @@ BbrCongestionControlGetSendAllowance(
         //
         if (Bbr->BbrState == BBR_STATE_STARTUP) {
             SendAllowance = (uint32_t)CXPLAT_MAX(
-                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / BBR_UNIT,
-                CongestionWindow * Bbr->PacingGain / BBR_UNIT - Bbr->BytesInFlight);
+                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT,
+                CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
         } else {
-            SendAllowance = (uint32_t)(BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / BBR_UNIT);
+            SendAllowance = (uint32_t)(BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT);
         }
 
         if (SendAllowance > CongestionWindow - Bbr->BytesInFlight) {
@@ -819,19 +818,19 @@ BbrCongestionControlHandleAckInProbeBw(
     BOOLEAN ShouldAdvancePacingGainCycle =
         CxPlatTimeDiff64(AckTime, Bbr->CycleStart) > BbrCongestionControlGetMinRtt(Cc);
 
-    if (Bbr->PacingGain > BBR_UNIT && !HasLoss &&
-        PrevInflightBytes < BbrCongestionControlCalculateTargetCwnd(Cc, Bbr->PacingGain)) {
+    if (Bbr->PacingGain > GAIN_UNIT && !HasLoss &&
+        PrevInflightBytes < BbrCongestionControlGetTargetCwnd(Cc, Bbr->PacingGain)) {
         //
-        // pacingGain_ > BBR_UNIT means BBR is probeing bandwidth. So we should let inflight bytes reach the target.
+        // pacingGain > GAIN_UNIT means BBR is probeing bandwidth. So we should let inflight bytes reach the target.
         //
         ShouldAdvancePacingGainCycle = FALSE;
     }
 
-    if (Bbr->PacingGain < BBR_UNIT) {
-        uint64_t TargetCwnd = BbrCongestionControlCalculateTargetCwnd(Cc, BBR_UNIT);
+    if (Bbr->PacingGain < GAIN_UNIT) {
+        uint64_t TargetCwnd = BbrCongestionControlGetTargetCwnd(Cc, GAIN_UNIT);
         if (Bbr->BytesInFlight <= TargetCwnd) {
             //
-            // pacingGain_ < BBR_UNIT means BBR is draining the network queue. If inflight bytes is below
+            // pacingGain < GAIN_UNIT means BBR is draining the network queue. If inflight bytes is below
             // the target, then it's done.
             //
             ShouldAdvancePacingGainCycle = TRUE;
@@ -839,9 +838,9 @@ BbrCongestionControlHandleAckInProbeBw(
     }
 
     if (ShouldAdvancePacingGainCycle) {
-        Bbr->PacingCycleIndex = (Bbr->PacingCycleIndex + 1) % kNumOfCycles;
+        Bbr->PacingCycleIndex = (Bbr->PacingCycleIndex + 1) % GAIN_CYCLE_LENGTH;
         Bbr->CycleStart = AckTime;
-        Bbr->PacingGain = kPacingGainCycles[Bbr->PacingCycleIndex];
+        Bbr->PacingGain = kPacingGain[Bbr->PacingCycleIndex];
     }
 }
 
@@ -871,7 +870,7 @@ BbrCongestionControlDetectBottleneckBandwidth(
         return;
     }
 
-    uint64_t BandwidthTarget = (uint64_t)(Bbr->LastEstimatedStartupBandwidth * kExpectedStartupGrowth / BBR_UNIT);
+    uint64_t BandwidthTarget = (uint64_t)(Bbr->LastEstimatedStartupBandwidth * kStartupGrowthTarget / GAIN_UNIT);
     uint64_t RealBandwidth = BbrCongestionControlGetBandwidth(Cc);
 
     if (RealBandwidth >= BandwidthTarget) {
@@ -895,11 +894,11 @@ BbrCongestionControlTransitToProbeRtt(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     Bbr->BbrState = BBR_STATE_PROBE_RTT;
-    Bbr->PacingGain = BBR_UNIT;
+    Bbr->PacingGain = GAIN_UNIT;
     Bbr->EarliestTimeToExitProbeRttValid = FALSE;
     Bbr->ProbeRttRoundValid = FALSE;
 
-    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthFilter, LargestPacketNumberSent);
+    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestPacketNumberSent);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -912,7 +911,7 @@ BbrCongestionControlTransitToDrain(
 
     Bbr->BbrState = BBR_STATE_DRAIN;
     Bbr->PacingGain = kDrainGain;
-    Bbr->CwndGain = kStartupGain;
+    Bbr->CwndGain = kHighGain;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -922,7 +921,7 @@ BbrCongestionControlShouldExitDrain(
     )
 {
     return Cc->Bbr.BbrState == BBR_STATE_DRAIN &&
-           Cc->Bbr.BytesInFlight <= BbrCongestionControlCalculateTargetCwnd(Cc, BBR_UNIT);
+           Cc->Bbr.BytesInFlight <= BbrCongestionControlGetTargetCwnd(Cc, GAIN_UNIT);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -934,12 +933,37 @@ BbrCongestionControlShouldProbeRtt(
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
     if (Bbr->BbrState != BBR_STATE_PROBE_RTT
         && !Bbr->ExitingQuiescene
-        && Bbr->MinRttSampler.RttSampleExpired) {
+        && Bbr->MinRttStats.RttSampleExpired) {
 
         return TRUE;
 
     }
     return FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+BbrCongestionControlSetSendQuantum(
+    _In_ QUIC_CONGESTION_CONTROL* Cc
+)
+{
+    QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+
+    uint64_t Bandwidth = BbrCongestionControlGetBandwidth(Cc);
+
+    uint64_t PacingRate = Bandwidth * Bbr->PacingGain / GAIN_UNIT;
+
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
+    if (PacingRate < kLowPacingRateThresholdBytesPerSecond * BW_UNIT) {
+        Bbr->SendQuantum = (uint64_t)DatagramPayloadLength;
+    } else if (PacingRate < kHighPacingRateThresholdBytesPerSecond * BW_UNIT) {
+        Bbr->SendQuantum = (uint64_t)DatagramPayloadLength * 2;
+    } else {
+        Bbr->SendQuantum = CXPLAT_MIN(PacingRate * kMilliSecsInSec / BW_UNIT, 64 * 1024 /* 64k */);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -957,19 +981,12 @@ BbrCongestionControlUpdateCongestionWindow(
         return;
     }
 
-    uint64_t Bandwidth = BbrCongestionControlGetBandwidth(Cc);
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
 
-    uint64_t PacingRate = Bandwidth * Bbr->PacingGain / BBR_UNIT;
+    BbrCongestionControlSetSendQuantum(Cc);
 
-    if (PacingRate < kLowPacingRateForSendQuantumBytesPerSecond * BW_UNIT) {
-        Bbr->SendQuantum = Connection->Paths[0].Mtu;
-    } else if (PacingRate < kHighPacingRateForSendQuantumBytesPerSecond * BW_UNIT) {
-        Bbr->SendQuantum = Connection->Paths[0].Mtu * 2;
-    } else {
-        Bbr->SendQuantum = CXPLAT_MIN(PacingRate * kMilliSecsInSec / BW_UNIT, k64K);
-    }
-
-    uint64_t TargetCwnd = BbrCongestionControlCalculateTargetCwnd(Cc, Bbr->CwndGain);
+    uint64_t TargetCwnd = BbrCongestionControlGetTargetCwnd(Cc, Bbr->CwndGain);
     if (Bbr->BtlbwFound) {
         TargetCwnd += WindowedFilterGetBest(&Bbr->MaxAckHeightFilter);
     }
@@ -984,8 +1001,8 @@ BbrCongestionControlUpdateCongestionWindow(
 
     Bbr->CongestionWindow = BbrCongestionControlBoundedCongestionWindow(
         CongestionWindow,
-        Connection->Paths[0].Mtu,
-        kMinCwndInMssForBbr);
+        DatagramPayloadLength,
+        kMinCwndInMss);
 
     QuicConnLogBbr(QuicCongestionControlGetConnection(Cc));
 }
@@ -1015,7 +1032,7 @@ BbrCongestionControlOnDataAcknowledged(
     Bbr->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
     if (AckEvent->MinRttSampleValid) {
-        BbrRttSamplerNewRttSample(&Bbr->MinRttSampler, AckEvent->MinRttSample, AckEvent->TimeNow);
+        BbrRttStatsUpdate(&Bbr->MinRttStats, AckEvent->MinRttSample, AckEvent->TimeNow);
     }
 
     BOOLEAN NewRoundTrip = BbrCongestionControlUpdateRoundTripCounter(
@@ -1023,9 +1040,9 @@ BbrCongestionControlOnDataAcknowledged(
 
     BOOLEAN LastAckedPacketAppLimited = AckEvent->AckedPackets == NULL ? FALSE : AckEvent->IsLargestAckedPacketAppLimited;
 
-    BbrBandwidthSamplerOnPacketAcked(&Bbr->BandwidthFilter, AckEvent, Bbr->RoundTripCounter);
+    BbrBandwidthFilterOnPacketAcked(&Bbr->BandwidthFilter, AckEvent, Bbr->RoundTripCounter);
 
-    if (Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY) {
+    if (BbrCongestionControlInRecovery(Cc)) {
         CXPLAT_DBG_ASSERT(Bbr->EndOfRecoveryValid);
         if (NewRoundTrip && Bbr->RecoveryState != RECOVERY_STATE_GROWTH) {
             Bbr->RecoveryState = RECOVERY_STATE_GROWTH;
@@ -1037,7 +1054,7 @@ BbrCongestionControlOnDataAcknowledged(
                 "[conn][%p] Recovery complete",
                 Connection);
         } else {
-            BbrCongestionControlUpdateRecoveryWindowWithAck(Cc, AckEvent->NumRetransmittableBytes);
+            BbrCongestionControlUpdateRecoveryWindow(Cc, AckEvent->NumRetransmittableBytes);
         }
     }
 
@@ -1086,6 +1103,9 @@ BbrCongestionControlOnDataLost(
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
     QuicTraceEvent(
         ConnCongestion,
         "[conn][%p] Congestion event",
@@ -1104,20 +1124,20 @@ BbrCongestionControlOnDataLost(
     
     uint32_t RecoveryWindow = Bbr->RecoveryWindow;
 
-    if (Bbr->RecoveryState == RECOVERY_STATE_NOT_RECOVERY) {
+    if (!BbrCongestionControlInRecovery(Cc)) {
         Bbr->RecoveryState = RECOVERY_STATE_CONSERVATIVE;
         RecoveryWindow = Bbr->BytesInFlight + LossEvent->NumAckedRetransmittableBytes;
         RecoveryWindow = BbrCongestionControlBoundedCongestionWindow(
             RecoveryWindow,
-            Connection->Paths[0].Mtu,
-            kMinCwndInMssForBbr);
+            DatagramPayloadLength,
+            kMinCwndInMss);
 
         Bbr->EndOfRoundTripValid = TRUE;
         Bbr->EndOfRoundTrip = LossEvent->LargestPacketNumberSent;
     }
 
     if (LossEvent->PersistentCongestion) {
-        Bbr->RecoveryWindow = Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
+        Bbr->RecoveryWindow = kMinCwndInMss * DatagramPayloadLength;
 
         QuicTraceEvent(
             ConnPersistentCongestion,
@@ -1126,9 +1146,9 @@ BbrCongestionControlOnDataLost(
         Connection->Stats.Send.PersistentCongestionCount++;
     } else {
         Bbr->RecoveryWindow =
-            RecoveryWindow > LossEvent->NumLostRetransmittableBytes + Connection->Paths[0].Mtu * kMinCwndInMssForBbr
+            RecoveryWindow > LossEvent->NumLostRetransmittableBytes + kMinCwndInMss * DatagramPayloadLength
             ? RecoveryWindow - LossEvent->NumLostRetransmittableBytes
-            : Connection->Paths[0].Mtu * kMinCwndInMssForBbr;
+            : kMinCwndInMss * DatagramPayloadLength;
     }
 
     BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
@@ -1160,7 +1180,7 @@ BbrCongestionControlSetAppLimited(
         return;
     }
 
-    BbrBandwidthSamplerOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1174,9 +1194,12 @@ BbrCongestionControlReset(
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
-    Bbr->CongestionWindow = Connection->Paths[0].Mtu * Bbr->InitialCongestionWindowPackets;
-    Bbr->InitialCongestionWindow = Connection->Paths[0].Mtu * Bbr->InitialCongestionWindowPackets;
-    Bbr->RecoveryWindow = Connection->Paths[0].Mtu * kDefaultRecoveryCwndInMssForBbr;
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
+    Bbr->CongestionWindow = Bbr->InitialCongestionWindowPackets * DatagramPayloadLength;
+    Bbr->InitialCongestionWindow = Bbr->InitialCongestionWindowPackets * DatagramPayloadLength;
+    Bbr->RecoveryWindow = kDefaultRecoveryCwndInMss * DatagramPayloadLength;
     Bbr->BytesInFlightMax = Bbr->CongestionWindow / 2;
 
     if (FullReset) {
@@ -1187,8 +1210,8 @@ BbrCongestionControlReset(
     Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
     Bbr->BbrState = BBR_STATE_STARTUP;
     Bbr->RoundTripCounter = 0;
-    Bbr->CwndGain = kStartupGain;
-    Bbr->PacingGain = kStartupGain;
+    Bbr->CwndGain = kHighGain;
+    Bbr->PacingGain = kHighGain;
     Bbr->BtlbwFound = FALSE;
     Bbr->SendQuantum = 0;
     Bbr->SlowStartupRoundCounter = 0 ;
@@ -1214,7 +1237,7 @@ BbrCongestionControlReset(
     Bbr->EarliestTimeToExitProbeRttValid = FALSE;
     Bbr->EarliestTimeToExitProbeRtt = CxPlatTimeUs64();
 
-    Bbr->MinRttSampler = NewBbrRttSampler(kDefaultRttSamplerExpirationInSecond * kMicroSecsInSec);
+    Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
     Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0);
 
@@ -1261,11 +1284,14 @@ BbrCongestionControlInitialize(
 
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
+    const uint16_t DatagramPayloadLength =
+        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
     Bbr->InitialCongestionWindowPackets = Settings->InitialWindowPackets;
 
-    Bbr->CongestionWindow = Connection->Paths[0].Mtu * Bbr->InitialCongestionWindowPackets;
-    Bbr->InitialCongestionWindow = Connection->Paths[0].Mtu * Bbr->InitialCongestionWindowPackets;
-    Bbr->RecoveryWindow = Connection->Paths[0].Mtu * kDefaultRecoveryCwndInMssForBbr;
+    Bbr->CongestionWindow = Bbr->InitialCongestionWindowPackets * DatagramPayloadLength;
+    Bbr->InitialCongestionWindow = Bbr->InitialCongestionWindowPackets * DatagramPayloadLength;
+    Bbr->RecoveryWindow = kDefaultRecoveryCwndInMss * DatagramPayloadLength;
     Bbr->BytesInFlightMax = Bbr->CongestionWindow / 2;
 
     Bbr->BytesInFlight = 0;
@@ -1274,8 +1300,8 @@ BbrCongestionControlInitialize(
     Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
     Bbr->BbrState = BBR_STATE_STARTUP;
     Bbr->RoundTripCounter = 0;
-    Bbr->CwndGain = kStartupGain;
-    Bbr->PacingGain = kStartupGain;
+    Bbr->CwndGain = kHighGain;
+    Bbr->PacingGain = kHighGain;
     Bbr->BtlbwFound = FALSE;
     Bbr->SendQuantum = 0;
     Bbr->SlowStartupRoundCounter = 0 ;
@@ -1301,7 +1327,7 @@ BbrCongestionControlInitialize(
     Bbr->EarliestTimeToExitProbeRttValid = FALSE;
     Bbr->EarliestTimeToExitProbeRtt = 0;
 
-    Bbr->MinRttSampler = NewBbrRttSampler(kDefaultRttSamplerExpirationInSecond * kMicroSecsInSec);
+    Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
     Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0);
 
