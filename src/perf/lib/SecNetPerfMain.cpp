@@ -275,19 +275,19 @@ QuicMainStart(
         }
 }
 
-    QUIC_CONGESTION_CONTROL_ALGORITHM Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+#endif // _KERNEL_MODE
 
+    QUIC_CONGESTION_CONTROL_ALGORITHM Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
     const char* CcName = GetValue(argc, argv, "cc");
     if (CcName != nullptr) {
-        if (strcmp(CcName, "cubic") == 0) {
+        if (IsValue(CcName, "cubic")) {
             Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
-        } else if (strcmp(CcName, "bbr") == 0) {
+        } else if (IsValue(CcName, "bbr")) {
             Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
         } else {
             WriteOutput("Failed to parse congestion control algorithm[%s], use cubic as default\n", CcName);
         }
     }
-#endif // _KERNEL_MODE
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig, Cc);

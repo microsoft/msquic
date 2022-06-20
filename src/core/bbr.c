@@ -286,17 +286,22 @@ BbrBandwidthFilterOnPacketAcked(
             continue;
         }
 
-        uint64_t SendRate = 0;
-        uint64_t AckRate = 0;
+        uint64_t SendRate = UINT64_MAX;
+        uint64_t AckRate = UINT64_MAX;
         uint32_t AckDuration = 0;
+        uint32_t SendDuration = 0;
 
         if (AckedPacket->Flags.HasLastAckedPacketInfo) {
             CXPLAT_DBG_ASSERT(AckedPacket->TotalBytesSent >= AckedPacket->LastAckedPacketInfo.TotalBytesSent);
             CXPLAT_DBG_ASSERT(CxPlatTimeAtOrBefore32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
+            
+            SendDuration = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
 
-            SendRate = (kMicroSecsInSec * BW_UNIT *
-                (AckedPacket->TotalBytesSent - AckedPacket->LastAckedPacketInfo.TotalBytesSent) /
-                CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
+            if (SendDuration) {
+                SendRate = (kMicroSecsInSec * BW_UNIT *
+                    (AckedPacket->TotalBytesSent - AckedPacket->LastAckedPacketInfo.TotalBytesSent) /
+                    SendDuration);
+            }
 
             if (!CxPlatTimeAtOrBefore32(
                     AckEvent->AdjustedAckTime,
@@ -307,13 +312,19 @@ BbrBandwidthFilterOnPacketAcked(
             }
 
             CXPLAT_DBG_ASSERT(AckEvent->TotalBytesAcked >= AckedPacket->LastAckedPacketInfo.TotalBytesAcked);
-            AckRate = (kMicroSecsInSec * BW_UNIT *
-                       (AckEvent->TotalBytesAcked - AckedPacket->LastAckedPacketInfo.TotalBytesAcked) /
-                       AckDuration);
+            if (AckDuration) {
+                AckRate = (kMicroSecsInSec * BW_UNIT *
+                           (AckEvent->TotalBytesAcked - AckedPacket->LastAckedPacketInfo.TotalBytesAcked) /
+                           AckDuration);
+            }
         } else if (CxPlatTimeAtOrBefore32(AckedPacket->SentTime, (uint32_t)TimeNow)) {
             SendRate = (kMicroSecsInSec * BW_UNIT *
                         AckEvent->TotalBytesAcked /
                         CxPlatTimeDiff32(AckedPacket->SentTime, (uint32_t)TimeNow));
+        }
+        
+        if (SendRate == UINT64_MAX && AckRate == UINT64_MAX) {
+            continue;
         }
 
         uint64_t MeasuredBw = CXPLAT_MIN(SendRate, AckRate);
