@@ -120,6 +120,63 @@ struct ClearGlobalVersionListScope {
 };
 
 //
+// Simulating Connection's status to be QUIC_CONN_BAD_START_STATE
+// ConnectionStart -> ConnectionShutdown
+//
+inline
+void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration& Configuration) {
+    TEST_QUIC_SUCCEEDED(
+        Connection.Start(
+            Configuration,
+            QUIC_ADDRESS_FAMILY_INET,
+            "localhost",
+            4433));
+    CxPlatSleep(100);
+
+    Connection.Shutdown(
+        QUIC_TEST_NO_ERROR,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE);
+}
+
+//
+// almost all Parameter for GetParam is
+// 1. call with only BufferLength pointer
+// 2. return QUIC_STATUS_BUFFER_TOO_SMALL by filling value in BufferLength
+// 3. call again to get actual value in Buffer
+//
+inline
+void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData) {
+    uint32_t Length = 0;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        MsQuic->GetParam(
+                Handle,
+                Param,
+                &Length,
+                nullptr));
+
+    void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
+    if (Value == nullptr) {
+        TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+    }
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            Handle,
+            Param,
+            &Length,
+            Value));
+
+    // if SetParam is not allowed and have random value
+    if (ExpectedData) {
+        TEST_EQUAL(memcmp(Value, ExpectedData, ExpectedLength), 0);
+    }
+
+    if (Value != nullptr) {
+        CXPLAT_FREE(Value, QUIC_POOL_TEST);
+    }
+}
+
+//
 // Global parameter setting might affect other tests' behavior.
 // This sets back the original value
 //

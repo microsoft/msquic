@@ -224,12 +224,12 @@ TEST(ParameterValidation, ValidateListenerParam) {
     }
 }
 
-TEST(ParameterValidation, ValidateConnectionSetParam) {
-    TestLogger Logger("QuicTestValidateConnectionSetParam");
+TEST(ParameterValidation, ValidateConnectionParam) {
+    TestLogger Logger("QuicTestValidateConnectionParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM));
     } else {
-        QuicTestConnectionSetParam();
+        QuicTestConnectionParam();
     }
 }
 
