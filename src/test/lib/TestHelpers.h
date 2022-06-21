@@ -154,6 +154,7 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
                 Param,
                 &Length,
                 nullptr));
+    TEST_EQUAL(ExpectedLength, Length);
 
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
     if (Value == nullptr) {

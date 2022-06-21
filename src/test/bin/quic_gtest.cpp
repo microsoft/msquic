@@ -179,12 +179,12 @@ TEST(ParameterValidation, ValidateRegistration) {
     }
 }
 
-TEST(ParameterValidation, ValidateGlobalSetParam) {
-    TestLogger Logger("QuicTestValidateGlobalSetParam");
+TEST(ParameterValidation, ValidateGlobalParam) {
+    TestLogger Logger("QuicTestValidateGlobalParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GLOBAL_SET_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM));
     } else {
-        QuicTestGlobalSetParam();
+        QuicTestGlobalParam();
     }
 }
 
