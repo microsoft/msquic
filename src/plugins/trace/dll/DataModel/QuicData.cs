@@ -22,7 +22,8 @@ namespace QuicTrace.DataModel
         ConnectionTput = 0x0080,
         Stream = 0x0100,
         StreamFlowBlocked = 0x0200,
-        Datapath = 0x0400
+        Datapath = 0x0400,
+        Packet = 0x0800
     };
 
     public readonly struct QuicActivityData
