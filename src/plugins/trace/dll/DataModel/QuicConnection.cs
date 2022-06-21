@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 //
 
+using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Performance.SDK;
 
@@ -28,6 +29,8 @@ namespace QuicTrace.DataModel
 
         public QuicConnectionState State { get; private set; }
 
+        public QuicScheduleState SchedulingState { get; internal set; } = QuicScheduleState.Idle;
+
         public bool? IsServer { get; private set; }
 
         public bool? IsHandshakeComplete { get; private set; }
@@ -50,9 +53,15 @@ namespace QuicTrace.DataModel
 
         public QuicWorker? Worker { get; private set; }
 
+        public QuicConnection? Peer { get; set; }
+
         public List<QuicStream> Streams { get; } = new List<QuicStream>();
 
         public List<QuicEvent> Events { get; } = new List<QuicEvent>();
+
+        public List<byte[]> SourceCIDs { get; } = new List<byte[]>();
+
+        public List<byte[]> DestinationCIDs { get; } = new List<byte[]>();
 
         public IReadOnlyList<QuicScheduleData> GetScheduleEvents()
         {
@@ -360,6 +369,7 @@ namespace QuicTrace.DataModel
                         {
                             Worker?.AddSchedulingCpuTime(_evt!.ScheduleState, _evt.TimeStamp - LastScheduleStateTimeStamp);
                         }
+                        SchedulingState = _evt.ScheduleState;
                         LastScheduleStateTimeStamp = _evt.TimeStamp;
                         break;
                     }
@@ -427,6 +437,12 @@ namespace QuicTrace.DataModel
                         TrySetWorker(evt, state);
                         break;
                     }
+                case QuicEventId.ConnSourceCidAdded:
+                    SourceCIDs.Add((evt as QuicConnectionSourceCidAddedEvent)!.CID);
+                    break;
+                case QuicEventId.ConnDestCidAdded:
+                    DestinationCIDs.Add((evt as QuicConnectionDestinationCidAddedEvent)!.CID);
+                    break;
                 case QuicEventId.ConnStats:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
