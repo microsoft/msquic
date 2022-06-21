@@ -319,8 +319,8 @@ namespace QuicTrace
             {
                 var s = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
                 var t = s.Timings;
-                Console.WriteLine("{0}th (Client),{1}", percentile, string.Join(",", t.StateChanges));
-                Console.WriteLine("{0}th (Server),{1}", percentile, string.Join(",", t.Peer!.StateChanges));
+                Console.WriteLine("{0}th (Client),{1}", percentile, string.Join(",", t.StateChangeDeltas));
+                Console.WriteLine("{0}th (Server),{1}", percentile, string.Join(",", t.Peer!.StateChangeDeltas));
             }
             Console.WriteLine();
 

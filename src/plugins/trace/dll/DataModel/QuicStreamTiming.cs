@@ -71,6 +71,11 @@ namespace QuicTrace.DataModel
         public QuicStreamState State { get; set; } = QuicStreamState.Alloc;
 
         //
+        // The first time State was updated.
+        //
+        public Timestamp InitialStateTime { get; internal set; }
+
+        //
         // The last time State was updated.
         //
         public Timestamp LastStateChangeTime { get; internal set; }
@@ -111,6 +116,9 @@ namespace QuicTrace.DataModel
         //
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "<Pending>")]
         public List<(QuicStreamState, Timestamp)> StateChanges = new List<(QuicStreamState, Timestamp)>();
+
+        public IEnumerable<(QuicStreamState, ulong)> StateChangeDeltas =>
+            StateChanges.Select(s => (s.Item1, (ulong)(s.Item2 - InitialStateTime).ToNanoseconds));
 
         //
         // The corresponding peer's timings.
@@ -155,6 +163,7 @@ namespace QuicTrace.DataModel
                 else if (State == QuicStreamState.Alloc && state == QuicStreamState.QueueRecv)
                 {
                     State = state;
+                    InitialStateTime = time;
                     LastStateChangeTime = time;
                 }
                 return;

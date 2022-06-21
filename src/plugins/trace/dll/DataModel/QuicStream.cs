@@ -84,6 +84,7 @@ namespace QuicTrace.DataModel
             if (InitialTimeStamp == Timestamp.MaxValue)
             {
                 InitialTimeStamp = evt.TimeStamp;
+                Timings.InitialStateTime = evt.TimeStamp;
                 Timings.LastStateChangeTime = evt.TimeStamp;
             }
 
