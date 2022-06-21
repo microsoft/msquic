@@ -24,7 +24,7 @@ namespace QuicTrace.DataModel
 
         public uint ProcessId { get; }
 
-        public ulong StreamId { get; private set; }
+        public ulong StreamId { get; private set; } = ulong.MaxValue;
 
         public Timestamp InitialTimeStamp { get; private set; }
 
@@ -191,6 +191,15 @@ namespace QuicTrace.DataModel
                                 Timings.UpdateToState(QuicStreamState.ProcessRecv, Connection.LastScheduleStateTimeStamp, true);
                             }
                             Timings.UpdateToState(QuicStreamState.Decrypt, Timings.RecvPacket.PacketDecrypt);
+
+                            if (Timings.RecvPacket.PacketDecryptComplete == Timestamp.Zero)
+                            {
+                                Timings.RecvPacket.PacketDecryptComplete = evt.TimeStamp;
+                            }
+                            else
+                            {
+                                Timings.UpdateToState(QuicStreamState.ProcessRecv, Timings.RecvPacket.PacketDecryptComplete);
+                            }
                         }
 
                         Timings.UpdateToState(QuicStreamState.Read, evt.TimeStamp);
