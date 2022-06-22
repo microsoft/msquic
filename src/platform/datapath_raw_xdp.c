@@ -33,6 +33,7 @@ Abstract:
 #define PORT_SET_TAG  'PpdX' // XdpP
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
+typedef struct QUIC_CACHEALIGN XDP_WORKER XDP_WORKER;
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
@@ -47,6 +48,7 @@ typedef struct XDP_QUEUE {
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
     BOOL Error;
+    XDP_WORKER* XdpWorker;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
     CXPLAT_SLIST_ENTRY WorkerRxPool;
@@ -85,6 +87,7 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     }
     *Tail = Queue;
     Queue->Next = NULL;
+    Queue->XdpWorker = Worker;
 }
 
 typedef struct XDP_DATAPATH {
@@ -1486,19 +1489,6 @@ CxPlatDpRawTxFree(
     InterlockedPushEntrySList(&Packet->Queue->TxPool, (PSLIST_ENTRY)Packet);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData
-    )
-{
-    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-
-    CxPlatLockAcquire(&Packet->Queue->TxLock);
-    CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
-    CxPlatLockRelease(&Packet->Queue->TxLock);
-}
-
 static
 void
 CxPlatXdpTx(
@@ -1567,6 +1557,25 @@ CxPlatXdpTx(
         XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
         printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
         Queue->Error = TRUE;
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxEnqueue(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t IdealProcessor
+    )
+{
+    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    CXPLAT_DBG_ASSERT(IdealProcessor == CxPlatProcCurrentNumber());
+    if (Packet->Queue->XdpWorker->ProcIndex == IdealProcessor) {
+        CxPlatListInsertTail(&Packet->Queue->WorkerTxQueue, &Packet->Link);
+        CxPlatXdpTx(Packet->Queue->XdpWorker->Xdp, Packet->Queue);
+    } else {
+        CxPlatLockAcquire(&Packet->Queue->TxLock);
+        CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
+        CxPlatLockRelease(&Packet->Queue->TxLock);
     }
 }
 
