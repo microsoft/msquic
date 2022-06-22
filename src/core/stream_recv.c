@@ -123,7 +123,8 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvQueueFlush(
-    _In_ QUIC_STREAM* Stream
+    _In_ QUIC_STREAM* Stream,
+    _In_ BOOLEAN AllowInlineFlush
     )
 {
     //
@@ -136,23 +137,27 @@ QuicStreamRecvQueueFlush(
         !Stream->Flags.ReceiveCallPending &&
         !Stream->Flags.ReceiveFlushQueued) {
 
-        QuicTraceLogStreamVerbose(
-            QueueRecvFlush,
-            Stream,
-            "Queuing recv flush");
-
-        QUIC_OPERATION* Oper;
-        if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
-            Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
-            QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
-            QuicConnQueueOper(Stream->Connection, Oper);
-            Stream->Flags.ReceiveFlushQueued = TRUE;
+        if (AllowInlineFlush) {
+            QuicStreamRecvFlush(Stream);
         } else {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Stream Recv operation",
-                0);
+            QuicTraceLogStreamVerbose(
+                QueueRecvFlush,
+                Stream,
+                "Queuing recv flush");
+
+            QUIC_OPERATION* Oper;
+            if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
+                Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
+                QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+                QuicConnQueueOper(Stream->Connection, Oper);
+                Stream->Flags.ReceiveFlushQueued = TRUE;
+            } else {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Flush Stream Recv operation",
+                    0);
+            }
         }
     }
 }
@@ -464,7 +469,9 @@ QuicStreamProcessStreamFrame(
 
     if (ReadyToDeliver) {
         Stream->Flags.ReceiveDataPending = TRUE;
-        QuicStreamRecvQueueFlush(Stream);
+        QuicStreamRecvQueueFlush(
+            Stream,
+            Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength);
     }
 
     QuicTraceLogStreamVerbose(
@@ -917,6 +924,16 @@ QuicStreamReceiveCompletePending(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamReceiveCompleteInline(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLength
+    )
+{
+    QuicStreamReceiveComplete(Stream, BufferLength);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicStreamReceiveComplete(
     _In_ QUIC_STREAM* Stream,
@@ -1056,7 +1073,7 @@ QuicStreamRecvSetEnabledState(
                 "[strm][%p] Recv State: %hhu",
                 Stream,
                 QuicStreamRecvGetState(Stream));
-            QuicStreamRecvQueueFlush(Stream);
+            QuicStreamRecvQueueFlush(Stream, TRUE);
         }
     }
 

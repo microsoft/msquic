@@ -1264,6 +1264,25 @@ MsQuicStreamReceiveComplete(
             (uint32_t)QUIC_STATUS_INVALID_STATE);
         goto Exit;
     }
+    
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+        CXPLAT_PASSIVE_CODE();
+
+        //
+        // Execute this blocking API call inline if called on the worker thread.
+        //
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        QuicStreamReceiveCompleteInline(Stream, BufferLength);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+
+        goto Error;
+    }
 
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
     if (Oper == NULL) {

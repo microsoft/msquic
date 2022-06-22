@@ -859,6 +859,16 @@ QuicStreamReceiveCompletePending(
     );
 
 //
+// Completes a receive call inline from a callback.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamReceiveCompleteInline(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLength
+    );
+
+//
 // Processes a received frame for the given stream.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
