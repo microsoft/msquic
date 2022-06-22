@@ -655,7 +655,7 @@ CxPlatSocketSend(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum);
-    CxPlatDpRawTxEnqueue(SendData, IdealProcessor);
+    CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
 

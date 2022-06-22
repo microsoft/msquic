@@ -37,6 +37,7 @@ typedef struct QUIC_CACHEALIGN XDP_WORKER XDP_WORKER;
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
+    const XDP_WORKER* Worker;
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
@@ -48,7 +49,6 @@ typedef struct XDP_QUEUE {
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
     BOOL Error;
-    XDP_WORKER* XdpWorker;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
     CXPLAT_SLIST_ENTRY WorkerRxPool;
@@ -87,7 +87,7 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     }
     *Tail = Queue;
     Queue->Next = NULL;
-    Queue->XdpWorker = Worker;
+    Queue->Worker = Worker;
 }
 
 typedef struct XDP_DATAPATH {
@@ -1563,16 +1563,14 @@ CxPlatXdpTx(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
     XDP_QUEUE* Queue = Packet->Queue;
-    CXPLAT_DBG_ASSERT(IdealProcessor == CxPlatProcCurrentNumber());
-    if (Queue->XdpWorker->ProcIndex == IdealProcessor) {
+    if (Queue->Worker->ProcIndex == CxPlatProcCurrentNumber()) {
         CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
-        CxPlatXdpTx(Queue->XdpWorker->Xdp, Queue);
+        CxPlatXdpTx(Queue->Worker->Xdp, Queue);
     } else {
         CxPlatLockAcquire(&Packet->Queue->TxLock);
         CxPlatListInsertTail(&Queue->TxQueue, &Packet->Link);
