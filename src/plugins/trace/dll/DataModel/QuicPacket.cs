@@ -29,6 +29,7 @@ namespace QuicTrace.DataModel
         public Timestamp PacketCreate { get; internal set; }
         public Timestamp PacketReceive { get; internal set; }
         public Timestamp PacketDecrypt { get; internal set; }
+        public Timestamp PacketDecryptComplete { get; internal set; }
 
         internal QuicPacket(ulong packetID, uint processId)
         {
