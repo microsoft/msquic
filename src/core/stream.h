@@ -150,10 +150,6 @@ typedef union QUIC_STREAM_FLAGS {
     };
 } QUIC_STREAM_FLAGS;
 
-CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_STREAM_FLAGS) == sizeof(QUIC_STREAM_FLAGS::AllFlags),
-    "QUIC_STREAM_FLAGS AllFlags size is mismatched.");
-
 typedef enum QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_DISABLED,
     QUIC_STREAM_SEND_STARTED,
