@@ -1568,13 +1568,36 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    XDP_QUEUE* Queue = Packet->Queue;
     CXPLAT_DBG_ASSERT(IdealProcessor == CxPlatProcCurrentNumber());
-    if (Packet->Queue->XdpWorker->ProcIndex == IdealProcessor) {
-        CxPlatListInsertTail(&Packet->Queue->WorkerTxQueue, &Packet->Link);
-        CxPlatXdpTx(Packet->Queue->XdpWorker->Xdp, Packet->Queue);
+    if (Queue->XdpWorker->ProcIndex == IdealProcessor) {
+        CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
+        uint32_t ProdCount = 0;
+        uint32_t TxIndex;
+        uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
+        while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
+            XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+            CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
+            XDP_TX_PACKET* TxPacket = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+
+            Buffer->address = (uint8_t*)TxPacket - Queue->TxBuffers;
+            XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
+            Buffer->length = TxPacket->Buffer.Length;
+            ProdCount++;
+        }
+
+        if (ProdCount > 0) {
+            XskRingProducerSubmit(&Queue->TxRing, ProdCount);
+            if (XskRingProducerNeedPoke(&Queue->TxRing)) {
+                XSK_NOTIFY_RESULT_FLAGS OutFlags;
+                QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
+                CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+                UNREFERENCED_PARAMETER(Status);
+            }
+        }
     } else {
         CxPlatLockAcquire(&Packet->Queue->TxLock);
-        CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
+        CxPlatListInsertTail(&Queue->TxQueue, &Packet->Link);
         CxPlatLockRelease(&Packet->Queue->TxLock);
     }
 }
