@@ -138,9 +138,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, TreatFinAsReset,
 // Decoder Ring for QueueRecvFlush
 // [strm][%p] Queuing recv flush
 // QuicTraceLogStreamVerbose(
-            QueueRecvFlush,
-            Stream,
-            "Queuing recv flush");
+                QueueRecvFlush,
+                Stream,
+                "Queuing recv flush");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
@@ -429,10 +429,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Stream Recv operation",
-                0);
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Flush Stream Recv operation",
+                    0);
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
 // arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
