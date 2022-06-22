@@ -134,12 +134,12 @@ QuicStreamRecvQueueFlush(
 
     if (Stream->Flags.ReceiveEnabled &&
         Stream->Flags.ReceiveDataPending &&
-        !Stream->Flags.ReceiveCallPending &&
-        !Stream->Flags.ReceiveFlushQueued) {
+        !Stream->Flags.ReceiveCallPending) {
 
         if (AllowInlineFlush) {
             QuicStreamRecvFlush(Stream);
-        } else {
+
+        } else if (!Stream->Flags.ReceiveFlushQueued) {
             QuicTraceLogStreamVerbose(
                 QueueRecvFlush,
                 Stream,
@@ -766,6 +766,14 @@ QuicStreamRecvFlush(
     )
 {
     Stream->Flags.ReceiveFlushQueued = FALSE;
+
+    if (!Stream->Flags.ReceiveDataPending) {
+        //
+        // Means flush was executed inline already.
+        //
+        return;
+    }
+
     if (!Stream->Flags.ReceiveEnabled) {
         QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
@@ -774,7 +782,6 @@ QuicStreamRecvFlush(
         return;
     }
 
-    CXPLAT_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
     CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
 
     BOOLEAN FlushRecv = TRUE;
@@ -845,6 +852,7 @@ QuicStreamRecvFlush(
 
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallPending = TRUE;
+        Stream->Flags.ReceiveCallActive = TRUE;
         Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
         Stream->RecvInlineCompletionLength = UINT64_MAX;
 
@@ -857,6 +865,8 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags);
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
+
+        Stream->Flags.ReceiveCallActive = FALSE;
 
         if (Stream->Flags.SentStopSending || Stream->Flags.RemoteCloseFin) {
             //
@@ -939,6 +949,7 @@ QuicStreamReceiveCompleteInline(
         BufferLength <= Stream->RecvPendingLength,
         "App overflowed read buffer!");
 
+    CXPLAT_DBG_ASSERT(Stream->RecvInlineCompletionLength == UINT64_MAX); // Indicates double call.
     Stream->RecvInlineCompletionLength = BufferLength;
 }
 

@@ -1264,8 +1264,9 @@ MsQuicStreamReceiveComplete(
             (uint32_t)QUIC_STATUS_INVALID_STATE);
         goto Exit;
     }
-    
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
+        Stream->Flags.ReceiveCallActive) {
 
         CXPLAT_PASSIVE_CODE();
 
