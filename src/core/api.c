@@ -1281,7 +1281,7 @@ MsQuicStreamReceiveComplete(
             Connection->State.InlineApiExecution = FALSE;
         }
 
-        goto Error;
+        goto Exit;
     }
 
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
