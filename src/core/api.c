@@ -1269,9 +1269,6 @@ MsQuicStreamReceiveComplete(
 
         CXPLAT_PASSIVE_CODE();
 
-        //
-        // Execute this blocking API call inline if called on the worker thread.
-        //
         BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
         if (!AlreadyInline) {
             Connection->State.InlineApiExecution = TRUE;
