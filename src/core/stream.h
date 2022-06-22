@@ -150,6 +150,10 @@ typedef union QUIC_STREAM_FLAGS {
     };
 } QUIC_STREAM_FLAGS;
 
+CXPLAT_STATIC_ASSERT(
+    sizeof(QUIC_STREAM_FLAGS) == sizeof(QUIC_STREAM_FLAGS::AllFlags),
+    "QUIC_STREAM_FLAGS AllFlags size is mismatched.");
+
 typedef enum QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_DISABLED,
     QUIC_STREAM_SEND_STARTED,
@@ -390,6 +394,12 @@ typedef struct QUIC_STREAM {
     // The length of the pending receive call to the app.
     //
     uint64_t RecvPendingLength;
+
+    //
+    // The length of any inline receive complete call by the app. UINT64_MAX
+    // indicates that no inline call was made.
+    //
+    uint64_t RecvInlineCompletionLength;
 
     //
     // The error code for why the receive path was shutdown.

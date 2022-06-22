@@ -846,6 +846,7 @@ QuicStreamRecvFlush(
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallPending = TRUE;
         Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
+        Stream->RecvInlineCompletionLength = UINT64_MAX;
 
         QuicTraceEvent(
             StreamAppReceive,
@@ -865,8 +866,19 @@ QuicStreamRecvFlush(
             break;
         }
 
+        //
+        // Should be impossible to have already completed inline.
+        //
+        CXPLAT_DBG_ASSERT(Stream->Flags.ReceiveCallPending);
+
         if (Status == QUIC_STATUS_PENDING) {
-            if (Stream->Flags.ReceiveCallPending) {
+            if (Stream->RecvInlineCompletionLength != UINT64_MAX) {
+                //
+                // The app called StreamReceiveComplete inline to the callback
+                // so treat that as a synchronous completion.
+                //
+                Event.RECEIVE.TotalBufferLength = Stream->RecvInlineCompletionLength;
+            } else {
                 //
                 // If the pending call wasn't completed inline, then receive
                 // callbacks MUST be disabled still.
@@ -877,11 +889,10 @@ QuicStreamRecvFlush(
                     Stream->Connection->Registration->AppName,
                     0, 0);
                 Stream->Flags.ReceiveEnabled = FALSE;
+                break;
             }
-            break;
-        }
 
-        if (Status == QUIC_STATUS_CONTINUE) {
+        } else if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
             //
             // The app has explicitly indicated it wants to continue to
@@ -900,12 +911,6 @@ QuicStreamRecvFlush(
                 Stream->Connection->Registration->AppName,
                 Status, 0);
         }
-
-        CXPLAT_TEL_ASSERTMSG_ARGS(
-            Stream->Flags.ReceiveCallPending,
-            "App completed async recv without pending it",
-            Stream->Connection->Registration->AppName,
-            0, 0);
 
         FlushRecv = QuicStreamReceiveComplete(Stream, Event.RECEIVE.TotalBufferLength);
     }
@@ -930,7 +935,11 @@ QuicStreamReceiveCompleteInline(
     _In_ uint64_t BufferLength
     )
 {
-    QuicStreamReceiveComplete(Stream, BufferLength);
+    CXPLAT_FRE_ASSERTMSG(
+        BufferLength <= Stream->RecvPendingLength,
+        "App overflowed read buffer!");
+
+    Stream->RecvInlineCompletionLength = BufferLength;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
