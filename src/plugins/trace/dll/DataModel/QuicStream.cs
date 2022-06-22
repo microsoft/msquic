@@ -148,7 +148,7 @@ namespace QuicTrace.DataModel
                 case QuicEventId.StreamWriteFrames:
                     {
                         var OldSendPacket = Timings.SendPacket;
-                        Timings.SendPacket = state.PacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
+                        Timings.SendPacket = state.SendPacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
                         if (Timings.SendPacket == null)
                         {
                             Timings.EncounteredError = true;
@@ -157,12 +157,26 @@ namespace QuicTrace.DataModel
 
                         if (Timings.SendPacket != OldSendPacket)
                         {
-                            Timings.SendPacket.Streams.Add(this);
                             if (Connection != null)
                             {
                                 Timings.UpdateToState(QuicStreamState.ProcessSend, Connection.LastScheduleStateTimeStamp, true);
                             }
                             Timings.UpdateToState(QuicStreamState.Frame, Timings.SendPacket.PacketCreate);
+
+                            if (Timings.SendPacket.PacketFirstWrite == Timestamp.Zero)
+                            {
+                                Timings.SendPacket.PacketFirstWrite = evt.TimeStamp;
+                            }
+                            else
+                            {
+                                foreach (var Stream in Timings.SendPacket.Streams)
+                                {
+                                    Stream.Timings.UpdateToState(QuicStreamState.WriteOther, evt.TimeStamp);
+                                }
+                                Timings.UpdateToState(QuicStreamState.WriteOther, Timings.SendPacket.PacketFirstWrite);
+                            }
+
+                            Timings.SendPacket.Streams.Add(this);
                         }
 
                         Timings.UpdateToState(QuicStreamState.Write, evt.TimeStamp);
@@ -171,7 +185,7 @@ namespace QuicTrace.DataModel
                 case QuicEventId.StreamReceiveFrame:
                     {
                         var OldRecvPacket = Timings.RecvPacket;
-                        Timings.RecvPacket = state.PacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
+                        Timings.RecvPacket = state.ReceivePacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
                         if (Timings.RecvPacket == null || Timings.RecvPacket.PacketDecrypt == Timestamp.Zero)
                         {
                             Timings.EncounteredError = true;
@@ -198,7 +212,7 @@ namespace QuicTrace.DataModel
                             }
                             else
                             {
-                                Timings.UpdateToState(QuicStreamState.ProcessRecv, Timings.RecvPacket.PacketDecryptComplete);
+                                Timings.UpdateToState(QuicStreamState.ReadOther, Timings.RecvPacket.PacketDecryptComplete);
                             }
                         }
 
@@ -206,7 +220,14 @@ namespace QuicTrace.DataModel
                     }
                     break;
                 case QuicEventId.StreamAppSend:
-                    Timings.UpdateToState(QuicStreamState.QueueSend, evt.TimeStamp);
+                    if (Connection?.SchedulingState == QuicScheduleState.Processing)
+                    {
+                        Timings.UpdateToState(QuicStreamState.ProcessSend, evt.TimeStamp);
+                    }
+                    else
+                    {
+                        Timings.UpdateToState(QuicStreamState.QueueSend, evt.TimeStamp);
+                    }
                     break;
                 case QuicEventId.StreamReceiveFrameComplete:
                     if (Timings.InAppRecv)
