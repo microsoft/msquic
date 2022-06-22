@@ -3078,7 +3078,7 @@
               message="$(string.Etw.StreamAppSend)"
               opcode="Stream"
               symbol="QuicStreamAppSend"
-              template="tid_STREAM_RECV"
+              template="tid_STREAM_SEND_STATE"
               value="6161"
               />
           <event

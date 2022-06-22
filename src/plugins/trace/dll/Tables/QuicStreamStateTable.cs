@@ -101,7 +101,7 @@ namespace QuicTrace.Tables
                 return;
             }
 
-            var data = streams.Take(100)
+            var data = streams.Take(1000)
                 .Where(s => s.StreamId != ulong.MaxValue)
                 .SelectMany(
                     s => s.Timings.StateChangeDeltas

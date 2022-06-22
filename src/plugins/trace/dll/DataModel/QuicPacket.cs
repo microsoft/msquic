@@ -8,9 +8,9 @@ using Microsoft.Performance.SDK;
 
 namespace QuicTrace.DataModel
 {
-    public sealed class QuicPacket : IQuicObject
+    public sealed class QuicSendPacket : IQuicObject
     {
-        public static QuicPacket New(ulong pointer, uint processId) => new QuicPacket(pointer, processId);
+        public static QuicSendPacket New(ulong pointer, uint processId) => new QuicSendPacket(pointer, processId);
 
         public static ushort CreateEventId => (ushort)QuicEventId.PacketCreated;
 
@@ -27,11 +27,9 @@ namespace QuicTrace.DataModel
         internal List<QuicStream> Streams = new List<QuicStream> { };
 
         public Timestamp PacketCreate { get; internal set; }
-        public Timestamp PacketReceive { get; internal set; }
-        public Timestamp PacketDecrypt { get; internal set; }
-        public Timestamp PacketDecryptComplete { get; internal set; }
+        public Timestamp PacketFirstWrite { get; internal set; }
 
-        internal QuicPacket(ulong packetID, uint processId)
+        internal QuicSendPacket(ulong packetID, uint processId)
         {
             Id = packetID;
             Pointer = packetID;
@@ -43,19 +41,16 @@ namespace QuicTrace.DataModel
             switch (evt.EventId)
             {
                 case QuicEventId.PacketCreated:
-                    PacketCreate = evt.TimeStamp;
-                    Batch = state.PacketBatchSet.FindOrCreateActive(evt);
-                    Batch.Packets.Add(this);
-                    break;
+                    {
+                        var _evt = evt as QuicPacketCreatedEvent;
+                        PacketCreate = evt.TimeStamp;
+                        Batch = state.PacketBatchSet.FindOrCreateActive(new QuicObjectKey(evt.PointerSize, _evt!.BatchID, evt.ProcessId));
+                        Batch.Packets.Add(this);
+                        break;
+                    }
                 case QuicEventId.PacketEncrypt:
                     foreach (var Stream in Streams)
                     {
-                        if (Stream.Timings.State != QuicStreamState.Write)
-                        {
-                            Stream.Timings.EncounteredError = true;
-                            continue;
-                        }
-
                         Stream.Timings.UpdateToState(QuicStreamState.Encrypt, evt.TimeStamp);
                     }
                     break;
@@ -71,6 +66,41 @@ namespace QuicTrace.DataModel
                         Stream.Timings.UpdateToState(QuicStreamState.Send, evt.TimeStamp);
                     }
                     break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    public sealed class QuicReceivePacket : IQuicObject
+    {
+        public static QuicReceivePacket New(ulong pointer, uint processId) => new QuicReceivePacket(pointer, processId);
+
+        public static ushort CreateEventId => (ushort)QuicEventId.PacketReceive;
+
+        public static ushort DestroyedEventId => (ushort)QuicEventId.PacketFinalize; // Not actually
+
+        public ulong Id { get; }
+
+        public ulong Pointer { get; }
+
+        public uint ProcessId { get; }
+
+        public Timestamp PacketReceive { get; internal set; }
+        public Timestamp PacketDecrypt { get; internal set; }
+        public Timestamp PacketDecryptComplete { get; internal set; }
+
+        internal QuicReceivePacket(ulong packetID, uint processId)
+        {
+            Id = packetID;
+            Pointer = packetID;
+            ProcessId = processId;
+        }
+
+        internal void AddEvent(QuicEvent evt, QuicState state)
+        {
+            switch (evt.EventId)
+            {
                 case QuicEventId.PacketReceive:
                     PacketReceive = evt.TimeStamp;
                     break;
@@ -97,7 +127,7 @@ namespace QuicTrace.DataModel
 
         public uint ProcessId { get; }
 
-        internal List<QuicPacket> Packets = new List<QuicPacket> { };
+        internal List<QuicSendPacket> Packets = new List<QuicSendPacket> { };
 
         internal QuicPacketBatch(ulong batchID, uint processId)
         {
@@ -115,10 +145,7 @@ namespace QuicTrace.DataModel
                     {
                         foreach (var Stream in Packet.Streams)
                         {
-                            if (Stream.Timings.State == QuicStreamState.Send)
-                            {
-                                Stream.Timings.UpdateToIdle(evt.TimeStamp);
-                            }
+                            Stream.Timings.UpdateToIdle(evt.TimeStamp);
                         }
                     }
                     break;
