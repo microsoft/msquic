@@ -46,7 +46,6 @@ typedef struct XDP_QUEUE {
     HANDLE TxXsk;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
-    uint8_t Index;
     BOOL Error;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
@@ -560,7 +559,6 @@ CxPlatDpRawInterfaceInitialize(
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
         Queue->Interface = Interface;
-        Queue->Index = i;
         InitializeSListHead(&Queue->RxPool);
         InitializeSListHead(&Queue->TxPool);
 #ifndef QUIC_USE_EXECUTION_CONTEXTS
@@ -1337,7 +1335,8 @@ static
 void
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
-    _In_ XDP_QUEUE* Queue
+    _In_ XDP_QUEUE* Queue,
+    _In_ uint16_t ProcIndex
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -1356,7 +1355,7 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = Queue->Index;
+        Packet->PartitionIndex = ProcIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -1613,7 +1612,7 @@ CxPlatDataPathRunEC(
 
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        CxPlatXdpRx(Xdp, Queue);
+        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
