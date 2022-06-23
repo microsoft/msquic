@@ -106,7 +106,7 @@ typedef struct QUIC_SEND_REQUEST {
 // Note - Keep quictypes.h's copy up to date.
 //
 typedef union QUIC_STREAM_FLAGS {
-    uint32_t AllFlags;
+    uint64_t AllFlags;
     struct {
         BOOLEAN Allocated               : 1;    // Allocated by Connection. Used for Debugging.
         BOOLEAN Initialized             : 1;    // Initialized successfully. Used for Debugging.
@@ -138,6 +138,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
+        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
 
         BOOLEAN HandleSendShutdown      : 1;    // Send shutdown complete callback delivered.
@@ -149,6 +150,10 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
     };
 } QUIC_STREAM_FLAGS;
+
+CXPLAT_STATIC_ASSERT(
+    sizeof(QUIC_STREAM_FLAGS) == sizeof(uint64_t),
+    "QUIC_STREAM_FLAGS AllFlags size is mismatched.");
 
 typedef enum QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_DISABLED,
@@ -390,6 +395,12 @@ typedef struct QUIC_STREAM {
     // The length of the pending receive call to the app.
     //
     uint64_t RecvPendingLength;
+
+    //
+    // The length of any inline receive complete call by the app. UINT64_MAX
+    // indicates that no inline call was made.
+    //
+    uint64_t RecvInlineCompletionLength;
 
     //
     // The error code for why the receive path was shutdown.
@@ -854,6 +865,16 @@ QuicStreamRecvShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLength
+    );
+
+//
+// Completes a receive call inline from a callback.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamReceiveCompleteInline(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLength
     );

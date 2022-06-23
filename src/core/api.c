@@ -1265,6 +1265,23 @@ MsQuicStreamReceiveComplete(
         goto Exit;
     }
 
+    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
+        Stream->Flags.ReceiveCallActive) {
+
+        CXPLAT_PASSIVE_CODE();
+
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        QuicStreamReceiveCompleteInline(Stream, BufferLength);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+
+        goto Exit;
+    }
+
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
     if (Oper == NULL) {
         QuicTraceEvent(

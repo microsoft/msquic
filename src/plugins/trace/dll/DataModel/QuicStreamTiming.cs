@@ -17,6 +17,7 @@ namespace QuicTrace.DataModel
         ProcessSend,
         Frame,
         Write,
+        WriteOther,
         Encrypt,
         Send,
         IdleSent,
@@ -24,6 +25,7 @@ namespace QuicTrace.DataModel
         ProcessRecv,
         Decrypt,
         Read,
+        ReadOther,
         AppRecv,
         IdleRecv,
         IdleBoth,
@@ -93,18 +95,18 @@ namespace QuicTrace.DataModel
         //
         // Currently processing send packet.
         //
-        internal QuicPacket? SendPacket;
+        internal QuicSendPacket? SendPacket;
 
         //
         // Currently processing receive packet.
         //
-        internal QuicPacket? RecvPacket;
+        internal QuicReceivePacket? RecvPacket;
 
         //
         // The time spent in each RequestState (in nanoseconds).
         //
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "<Pending>")]
-        public ulong[] Times = new ulong[QuicStreamTiming.States.Length];
+        public ulong[] Times = new ulong[States.Length];
 
         //
         // Returns time spent in microseconds
@@ -117,8 +119,21 @@ namespace QuicTrace.DataModel
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "<Pending>")]
         public List<(QuicStreamState, Timestamp)> StateChanges = new List<(QuicStreamState, Timestamp)>();
 
-        public IEnumerable<(QuicStreamState, ulong)> StateChangeDeltas =>
-            StateChanges.Select(s => (s.Item1, (ulong)(s.Item2 - InitialStateTime).ToNanoseconds));
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "<Pending>")]
+        public (QuicStreamState, Timestamp, TimestampDelta)[] StateChangeDeltas
+        {
+            get
+            {
+                var previousTime = InitialStateTime;
+                var states = new List<(QuicStreamState, Timestamp, TimestampDelta)>(StateChanges.Count);
+                foreach (var item in StateChanges)
+                {
+                    states.Add((item.Item1, previousTime, item.Item2 - previousTime));
+                    previousTime = item.Item2;
+                }
+                return states.ToArray();
+            }
+        }
 
         //
         // The corresponding peer's timings.
@@ -153,6 +168,7 @@ namespace QuicTrace.DataModel
         internal void UpdateToState(QuicStreamState state, Timestamp time, bool ignorePrevious = false)
         {
             if (EncounteredError) return;
+            if (State == state) return;
             if (time < LastStateChangeTime)
             {
                 if (!ignorePrevious)
