@@ -95,6 +95,10 @@ typedef struct CXPLAT_SEND_DATA {
     //
     CXPLAT_ECN_TYPE ECN;
     BOOLEAN InlineHint;
+    //
+    // Processor that the packet is created on.
+    //
+    uint16_t ProcIndex;
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA;

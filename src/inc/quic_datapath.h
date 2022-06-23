@@ -718,6 +718,17 @@ CxPlatSendDataSetInlineHint(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
+//
+// Save the processor index to be used later when queuing TX to datapath as an
+// optimization.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSendDataProcIndex(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t ProcIndex
+    );
+
 #endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)

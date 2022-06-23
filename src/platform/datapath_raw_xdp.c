@@ -1568,7 +1568,7 @@ CxPlatDpRawTxEnqueue(
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
     XDP_QUEUE* Queue = Packet->Queue;
-    if (Queue->Worker->ProcIndex == CxPlatProcCurrentNumber()) {
+    if (Queue->Worker->ProcIndex == SendData->ProcIndex) {
         CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
         if (SendData->InlineHint) {
             CxPlatXdpTx(Queue->Worker->Xdp, Queue);
