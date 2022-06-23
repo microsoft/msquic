@@ -1020,7 +1020,8 @@ QuicPacketBuilderSendBatch(
         Builder->SendData,
         Builder->TotalDatagramsLength,
         Builder->TotalCountDatagrams,
-        Builder->Connection->Worker->IdealProcessor);
+        Builder->Connection->Worker->IdealProcessor,
+        Builder->InlineHint);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

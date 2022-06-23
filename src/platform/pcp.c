@@ -427,7 +427,8 @@ CxPlatPcpSendMapRequestInternal(
             Socket,
             &Route,
             SendData,
-            (uint16_t)CxPlatProcCurrentNumber());
+            (uint16_t)CxPlatProcCurrentNumber(),
+            FALSE);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -532,7 +533,8 @@ CxPlatPcpSendPeerRequestInternal(
             Socket,
             &Route,
             SendData,
-            (uint16_t)CxPlatProcCurrentNumber());
+            (uint16_t)CxPlatProcCurrentNumber(),
+            FALSE);
     if (QUIC_FAILED(Status)) {
         return Status;
     }

@@ -2237,10 +2237,12 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t IdealProcessor,
+    _In_ BOOLEAN InlineHint
     )
 {
     UNREFERENCED_PARAMETER(IdealProcessor);
+    UNREFERENCED_PARAMETER(InlineHint);
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             Socket,

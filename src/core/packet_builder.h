@@ -31,6 +31,11 @@ typedef struct QUIC_PACKET_BUILDER {
     CXPLAT_SEND_DATA* SendData;
 
     //
+    // If set, datapath should send the packet inline if possible.
+    //
+    BOOLEAN InlineHint;
+
+    //
     // Represents a single UDP payload. Can contain multiple coalesced QUIC
     // packets.
     //

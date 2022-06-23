@@ -302,7 +302,8 @@ protected:
                         Socket,
                         RecvData->Route,
                         ServerSendData,
-                        0));
+                        0,
+                        FALSE));
 
             } else if (RecvData->Route->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
                 CxPlatEventSet(RecvContext->ClientCompletion);
@@ -612,7 +613,8 @@ struct CxPlatSocket {
                 Socket,
                 &_Route,
                 SendData,
-                PartitionId);
+                PartitionId,
+                FALSE);
     }
     QUIC_STATUS
     Send(
@@ -1062,7 +1064,7 @@ TEST_P(DataPathTest, TcpDataServer)
         CxPlatSocketSend(
             ListenerContext.Server,
             &Route,
-            SendData, 0));
+            SendData, 0, FALSE));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 }
 #endif // WIN32

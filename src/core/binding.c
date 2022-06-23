@@ -1068,7 +1068,8 @@ QuicBindingProcessStatelessOperation(
         SendData,
         SendDatagram->Length,
         1,
-        RecvDatagram->PartitionIndex % MsQuicLib.PartitionCount);
+        RecvDatagram->PartitionIndex % MsQuicLib.PartitionCount,
+        FALSE);
     SendData = NULL;
 
 Exit:
@@ -1786,7 +1787,8 @@ QuicBindingSend(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend,
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t IdealProcessor,
+    _In_ BOOLEAN InlineHint
     )
 {
     QUIC_STATUS Status;
@@ -1816,7 +1818,8 @@ QuicBindingSend(
                     Binding->Socket,
                     &RouteCopy,
                     SendData,
-                    IdealProcessor);
+                    IdealProcessor,
+                    InlineHint);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1832,7 +1835,8 @@ QuicBindingSend(
                 Binding->Socket,
                 Route,
                 SendData,
-                IdealProcessor);
+                IdealProcessor,
+                InlineHint);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,
