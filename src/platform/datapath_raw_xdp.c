@@ -46,6 +46,7 @@ typedef struct XDP_QUEUE {
     HANDLE TxXsk;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
+    uint8_t Index;
     BOOL Error;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
@@ -56,10 +57,12 @@ typedef struct XDP_QUEUE {
     DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
     DECLSPEC_CACHEALIGN SLIST_HEADER TxPool;
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
     // Move TX queue to its own cache line.
     DECLSPEC_CACHEALIGN
     CXPLAT_LOCK TxLock;
     CXPLAT_LIST_ENTRY TxQueue;
+#endif
 } XDP_QUEUE;
 
 typedef struct XDP_INTERFACE {
@@ -484,7 +487,9 @@ CxPlatDpRawInterfaceUninitialize(
             CxPlatFree(Queue->RxBuffers, RX_BUFFER_TAG);
         }
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockUninitialize(&Queue->TxLock);
+#endif
     }
 
     if (Interface->Queues != NULL) {
@@ -555,10 +560,13 @@ CxPlatDpRawInterfaceInitialize(
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
         Queue->Interface = Interface;
+        Queue->Index = i;
         InitializeSListHead(&Queue->RxPool);
         InitializeSListHead(&Queue->TxPool);
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
+#endif
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
 
         //
@@ -1245,7 +1253,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         } else {
             MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-            IpAddressSize = sizeof(IN6_ADDR);     
+            IpAddressSize = sizeof(IN6_ADDR);
         }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
@@ -1329,8 +1337,7 @@ static
 void
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
-    _In_ XDP_QUEUE* Queue,
-    _In_ uint16_t ProcIndex
+    _In_ XDP_QUEUE* Queue
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -1349,7 +1356,7 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = ProcIndex;
+        Packet->PartitionIndex = Queue->QueueIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -1494,9 +1501,13 @@ CxPlatDpRawTxEnqueue(
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
 
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    CxPlatListInsertTail(&Packet->Queue->WorkerTxQueue, &Packet->Link);
+#else // Not Shared Execution Context
     CxPlatLockAcquire(&Packet->Queue->TxLock);
     CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
     CxPlatLockRelease(&Packet->Queue->TxLock);
+#endif
 }
 
 static
@@ -1511,12 +1522,14 @@ CxPlatXdpTx(
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
 
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
         ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
         CxPlatLockAcquire(&Queue->TxLock);
         CxPlatListMoveItems(&Queue->TxQueue, &Queue->WorkerTxQueue);
         CxPlatLockRelease(&Queue->TxLock);
     }
+#endif
 
     uint32_t CompIndex;
     uint32_t CompAvailable =
@@ -1600,7 +1613,7 @@ CxPlatDataPathRunEC(
 
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        CxPlatXdpRx(Xdp, Queue);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
