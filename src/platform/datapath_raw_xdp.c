@@ -49,12 +49,13 @@ typedef struct XDP_QUEUE {
     BOOL Error;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
-    CXPLAT_SLIST_ENTRY WorkerRxPool;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
     CXPLAT_SLIST_ENTRY RxPool;
     CXPLAT_SLIST_ENTRY TxPool;
 #else
+    CXPLAT_SLIST_ENTRY WorkerRxPool;
+
     // Move contended buffer pools to their own cache lines.
     // TODO: Use better (more scalable) buffer algorithms.
     DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
@@ -1352,92 +1353,89 @@ CxPlatXdpRx(
     _In_ uint16_t ProcIndex
     )
 {
-    //
-    // Drain anything that XDP has filled in the RX ring. Parse through each
-    // Ethernet frame, validating up to the UDP header. Build up a queue of
-    // valid datagrams that should be delivered in the receive callback.
-    //
+
+    CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
     uint32_t RxIndex;
-    const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
-    if (BuffersCount > 0) {
-        uint32_t i = 0;
-        uint32_t PacketCount = 0;
-        CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
-        do {
-            XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
-            XDP_RX_PACKET* Packet =
-                (XDP_RX_PACKET*)(Queue->RxBuffers + XskDescriptorGetAddress(Buffer->address));
-            uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
-
-            CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
-            Packet->Route = &Packet->RouteStorage;
-            Packet->RouteStorage.Queue = Queue;
-            //
-            // The route has been filled in with the packet's src/dst IP and ETH
-            // addresses, so mark it resolved. This allows stateless sends to be
-            // issued without performing a route lookup.
-            //
-            Packet->RouteStorage.State = RouteResolved;
-            Packet->PartitionIndex = ProcIndex;
-
-            CxPlatDpRawParseEthernet(
-                (CXPLAT_DATAPATH*)Xdp,
-                (CXPLAT_RECV_DATA*)Packet,
-                FrameBuffer,
-                (uint16_t)Buffer->length);
-
-            if (Packet->Buffer) {
-                Packet->Allocated = TRUE;
-                Packet->Queue = Queue;
-                Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
-            } else {
-                CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
-            }
-        } while (++i < BuffersCount);
-
-        XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
-
-        if (PacketCount > 0) {
-            CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
-        }
-    }
-
     uint32_t FillIndex;
-    uint32_t FillAvailable = XskRingProducerReserve(&Queue->RxFillRing, MAXUINT32, &FillIndex);
-    if (FillAvailable > 0) {
-        uint32_t ProdCount = 0;
-        do {
-            if (Queue->WorkerRxPool.Next == NULL) {
+    uint32_t ProdCount = 0;
+    uint32_t PacketCount = 0;
+    const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
+
+    for (uint32_t i = 0; i < BuffersCount; i++) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
+        XDP_RX_PACKET* Packet =
+            (XDP_RX_PACKET*)(Queue->RxBuffers + XskDescriptorGetAddress(Buffer->address));
+        uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
+
+        CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
+        Packet->Route = &Packet->RouteStorage;
+        Packet->RouteStorage.Queue = Queue;
+        //
+        // The route has been filled in with the packet's src/dst IP and ETH
+        // addresses, so mark it resolved. This allows stateless sends to be
+        // issued without performing a route lookup.
+        //
+        Packet->RouteStorage.State = RouteResolved;
+        Packet->PartitionIndex = ProcIndex;
+
+        CxPlatDpRawParseEthernet(
+            (CXPLAT_DATAPATH*)Xdp,
+            (CXPLAT_RECV_DATA*)Packet,
+            FrameBuffer,
+            (uint16_t)Buffer->length);
+
+        if (Packet->Buffer) {
+            Packet->Allocated = TRUE;
+            Packet->Queue = Queue;
+            Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
+        } else {
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
-                Queue->WorkerRxPool.Next = CxPlatListPopEntry(&Queue->RxPool);
+            CxPlatListPushEntry(&Queue->RxPool, (CXPLAT_SLIST_ENTRY*)Packet);
 #else
-                Queue->WorkerRxPool.Next = (CXPLAT_SLIST_ENTRY*)InterlockedFlushSList(&Queue->RxPool);
+            CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
 #endif
-            }
-
-            XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)CxPlatListPopEntry(&Queue->WorkerRxPool);
-            if (Packet == NULL) {
-                break;
-            }
-
-            uint64_t* FillDesc = XskRingGetElement(&Queue->RxFillRing, FillIndex++);
-            *FillDesc = (uint8_t*)Packet - Queue->RxBuffers;
-            ProdCount++;
-        } while (--FillAvailable > 0);
-
-        if (ProdCount > 0) {
-            XskRingProducerSubmit(&Queue->RxFillRing, ProdCount);
         }
     }
 
-    //
-    // Check for any RX ring errors indicated by XDP.
-    //
+    if (BuffersCount > 0) {
+        XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
+    }
+
+    uint32_t FillAvailable = XskRingProducerReserve(&Queue->RxFillRing, MAXUINT32, &FillIndex);
+    while (FillAvailable-- > 0) {
+
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)CxPlatListPopEntry(&Queue->RxPool);
+#else
+        if (Queue->WorkerRxPool.Next == NULL) {
+            Queue->WorkerRxPool.Next = (CXPLAT_SLIST_ENTRY*)InterlockedFlushSList(&Queue->RxPool);
+        }
+
+        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)CxPlatListPopEntry(&Queue->WorkerRxPool);
+#endif
+        if (Packet == NULL) {
+            break;
+        }
+
+        uint64_t* FillDesc = XskRingGetElement(&Queue->RxFillRing, FillIndex++);
+        *FillDesc = (uint8_t*)Packet - Queue->RxBuffers;
+        ProdCount++;
+    }
+
+    if (ProdCount > 0) {
+        XskRingProducerSubmit(&Queue->RxFillRing, ProdCount);
+    }
+
+    if (PacketCount > 0) {
+        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
+    }
+
     if (XskRingError(&Queue->RxRing) && !Queue->Error) {
 #if DEBUG
         XSK_ERROR ErrorStatus;
+        QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        QUIC_STATUS XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
+        XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
         printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
 #endif
         Queue->Error = TRUE;
@@ -1559,9 +1557,13 @@ CxPlatXdpTx(
     _In_ XDP_QUEUE* Queue
     )
 {
-    BOOLEAN StateChanged = FALSE;
+    uint32_t ProdCount = 0;
+    uint32_t CompCount = 0;
 
 #ifndef QUIC_USE_EXECUTION_CONTEXTS
+    SLIST_ENTRY* TxCompleteHead = NULL;
+    SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
+
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
         ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
         CxPlatLockAcquire(&Queue->TxLock);
@@ -1570,85 +1572,60 @@ CxPlatXdpTx(
     }
 #endif
 
-    //
-    // Drain anything that XDP has filled in the TX completion ring. Return the
-    // TX buffers back to the pool, and release the space back to XDP.
-    //
     uint32_t CompIndex;
     uint32_t CompAvailable =
         XskRingConsumerReserve(&Queue->TxCompletionRing, MAXUINT32, &CompIndex);
-    if (CompAvailable > 0) {
-        uint32_t CompCount = 0;
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
-        SLIST_ENTRY* TxCompleteHead = NULL;
-        SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
-#endif
-        do {
-            uint64_t* CompDesc = XskRingGetElement(&Queue->TxCompletionRing, CompIndex++);
-            XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)(Queue->TxBuffers + *CompDesc);
+    while (CompAvailable-- > 0) {
+        uint64_t* CompDesc = XskRingGetElement(&Queue->TxCompletionRing, CompIndex++);
+        XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)(Queue->TxBuffers + *CompDesc);
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
-            CxPlatListPushEntry(&Queue->TxPool, (CXPLAT_SLIST_ENTRY*)Packet);
+        CxPlatListPushEntry(&Queue->TxPool, (CXPLAT_SLIST_ENTRY*)Packet);
 #else
-            *TxCompleteTail = (PSLIST_ENTRY)Packet;
-            TxCompleteTail = &((PSLIST_ENTRY)Packet)->Next;
+        *TxCompleteTail = (PSLIST_ENTRY)Packet;
+        TxCompleteTail = &((PSLIST_ENTRY)Packet)->Next;
 #endif
-            CompCount++;
-        } while (--CompAvailable > 0);
-
-        if (CompCount > 0) {
-            XskRingConsumerRelease(&Queue->TxCompletionRing, CompCount);
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
-            InterlockedPushListSList(
-                &Queue->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
-                CompCount);
-#endif
-            StateChanged = TRUE;
-        }
+        CompCount++;
     }
 
-    //
-    // Fill the TX ring up with any queued TX buffers so that XDP may send them
-    // out.
-    //
+    if (CompCount > 0) {
+        XskRingConsumerRelease(&Queue->TxCompletionRing, CompCount);
+#ifndef QUIC_USE_EXECUTION_CONTEXTS
+        InterlockedPushListSList(
+            &Queue->TxPool, TxCompleteHead, CONTAINING_RECORD(TxCompleteTail, SLIST_ENTRY, Next),
+            CompCount);
+#endif
+    }
+
     uint32_t TxIndex;
     uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
-    if (TxAvailable > 0) {
-        uint32_t ProdCount = 0;
-        while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
-            XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
-            CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
-            XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
+    while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
+        XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
 
-            Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
-            XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
-            Buffer->length = Packet->Buffer.Length;
-            ProdCount++;
-        }
+        Buffer->address = (uint8_t*)Packet - Queue->TxBuffers;
+        XskDescriptorSetOffset(&Buffer->address, FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer));
+        Buffer->length = Packet->Buffer.Length;
+        ProdCount++;
+    }
 
-        if (ProdCount > 0) {
-            XskRingProducerSubmit(&Queue->TxRing, ProdCount);
-            StateChanged = TRUE;
+    if (ProdCount > 0 ||
+        (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.size)) {
+        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
+        if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
+            XSK_NOTIFY_RESULT_FLAGS OutFlags;
+            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
+            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+            UNREFERENCED_PARAMETER(Status);
         }
     }
 
-    //
-    // Inform XDP of any ring state changes so that it can respond accordingly.
-    //
-    if (StateChanged && (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing))) {
-        XSK_NOTIFY_RESULT_FLAGS OutFlags;
-        QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
-        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-        UNREFERENCED_PARAMETER(Status);
-    }
-
-    //
-    // Check for any TX ring errors indicated by XDP.
-    //
     if (XskRingError(&Queue->TxRing) && !Queue->Error) {
 #if DEBUG
         XSK_ERROR ErrorStatus;
+        QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        QUIC_STATUS XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
+        XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
         printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
 #endif
         Queue->Error = TRUE;
