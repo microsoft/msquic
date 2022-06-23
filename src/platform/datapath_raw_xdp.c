@@ -1560,6 +1560,7 @@ CxPlatXdpTx(
     )
 {
     BOOLEAN StateChanged = FALSE;
+    uint32_t TxIndex;
 
 #ifndef QUIC_USE_EXECUTION_CONTEXTS
     if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
@@ -1610,7 +1611,6 @@ CxPlatXdpTx(
     // Fill the TX ring up with any queued TX buffers so that XDP may send them
     // out.
     //
-    uint32_t TxIndex;
     uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
     if (TxAvailable > 0) {
         uint32_t ProdCount = 0;
