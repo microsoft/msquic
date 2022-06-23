@@ -755,6 +755,8 @@ QuicStreamWriteOneFrame(
         Frame.Fin = TRUE;
 #ifdef QUIC_USE_RAW_DATAPATH
         CxPlatSendDataSetInlineHint(Builder->SendData);
+#else
+        UNREFERENCED_PARAMETER(Builder);
 #endif
     } else if (Frame.Length == 0 &&
         !(Stream->SendFlags & QUIC_STREAM_SEND_FLAG_OPEN)) {
