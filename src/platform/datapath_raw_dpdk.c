@@ -658,11 +658,9 @@ CxPlatDpRawTxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN InlineHint
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    UNREFERENCED_PARAMETER(InlineHint);
     DPDK_TX_PACKET* Packet = (DPDK_TX_PACKET*)SendData;
     DPDK_INTERFACE* Interface = Packet->Interface;
     Packet->Mbuf->data_len = (uint16_t)Packet->Buffer.Length;

@@ -636,8 +636,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor,
-    _In_ BOOLEAN InlineHint
+    _In_ uint16_t IdealProcessor
     )
 {
     QuicTraceEvent(
@@ -656,7 +655,7 @@ CxPlatSocketSend(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum);
-    CxPlatDpRawTxEnqueue(SendData, InlineHint);
+    CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
 

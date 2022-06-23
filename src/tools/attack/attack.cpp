@@ -164,8 +164,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
             Binding,
             &Route,
             SendData,
-            (uint16_t)CxPlatProcCurrentNumber(),
-            FALSE)));
+            (uint16_t)CxPlatProcCurrentNumber())));
     }
 }
 
@@ -297,8 +296,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &Route,
             SendData,
-            (uint16_t)CxPlatProcCurrentNumber(),
-            FALSE)));
+            (uint16_t)CxPlatProcCurrentNumber())));
     }
 }
 

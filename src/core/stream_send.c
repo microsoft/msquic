@@ -707,8 +707,7 @@ QuicStreamWriteOneFrame(
     _Inout_ uint16_t* FramePayloadBytes,
     _Inout_ uint16_t* FrameBytes,
     _Out_writes_bytes_(*FrameBytes) uint8_t* Buffer,
-    _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata,
-    _Inout_ QUIC_PACKET_BUILDER* Builder
+    _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
     QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0, NULL };
@@ -753,7 +752,7 @@ QuicStreamWriteOneFrame(
     if ((Stream->SendFlags & QUIC_STREAM_SEND_FLAG_FIN) &&
         Frame.Offset + Frame.Length == Stream->QueuedSendOffset) {
         Frame.Fin = TRUE;
-        Builder->InlineHint = TRUE;
+
     } else if (Frame.Length == 0 &&
         !(Stream->SendFlags & QUIC_STREAM_SEND_FLAG_OPEN)) {
         //
@@ -820,8 +819,7 @@ QuicStreamWriteStreamFrames(
     _In_ BOOLEAN ExplicitDataLength,
     _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata,
     _Inout_ uint16_t* BufferLength,
-    _Out_writes_bytes_(*BufferLength) uint8_t* Buffer,
-    _Inout_ QUIC_PACKET_BUILDER* Builder
+    _Out_writes_bytes_(*BufferLength) uint8_t* Buffer
     )
 {
     QUIC_SEND* Send = &Stream->Connection->Send;
@@ -922,8 +920,7 @@ QuicStreamWriteStreamFrames(
             &FramePayloadBytes,
             &FrameBytes,
             Buffer + BytesWritten,
-            PacketMetadata,
-            Builder);
+            PacketMetadata);
 
         BOOLEAN ExitLoop = FALSE;
 
@@ -1105,8 +1102,7 @@ QuicStreamSendWrite(
             IsInitial,
             Builder->Metadata,
             &StreamFrameLength,
-            Builder->Datagram->Buffer + Builder->DatagramLength,
-            Builder);
+            Builder->Datagram->Buffer + Builder->DatagramLength);
 
         if (StreamFrameLength > 0) {
             CXPLAT_DBG_ASSERT(StreamFrameLength <= AvailableBufferLength - Builder->DatagramLength);

@@ -1563,17 +1563,14 @@ CxPlatXdpTx(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN InlineHint
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
     XDP_QUEUE* Queue = Packet->Queue;
     if (Queue->Worker->ProcIndex == CxPlatProcCurrentNumber()) {
         CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
-        if (InlineHint) {
-            CxPlatXdpTx(Queue->Worker->Xdp, Queue);
-        }
+        CxPlatXdpTx(Queue->Worker->Xdp, Queue);
     } else {
         CxPlatLockAcquire(&Packet->Queue->TxLock);
         CxPlatListInsertTail(&Queue->TxQueue, &Packet->Link);

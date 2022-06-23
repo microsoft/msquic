@@ -72,7 +72,7 @@ struct LbInterface {
             if (Send) {
                 auto Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
                 if (!Buffer) {
-                    (void)CxPlatSocketSend(Socket, &Route, Send, 0, FALSE);
+                    (void)CxPlatSocketSend(Socket, &Route, Send, 0);
                     Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH, &Route);
                     if (Send) {
                         Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
@@ -86,7 +86,7 @@ struct LbInterface {
             RecvDataChain = RecvDataChain->Next;
         }
         if (Send) {
-            (void)CxPlatSocketSend(Socket, &Route, Send, 0, FALSE);
+            (void)CxPlatSocketSend(Socket, &Route, Send, 0);
         }
     }
 };
