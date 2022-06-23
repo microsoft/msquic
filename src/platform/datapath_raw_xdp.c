@@ -1353,7 +1353,6 @@ CxPlatXdpRx(
     _In_ uint16_t ProcIndex
     )
 {
-
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
     uint32_t RxIndex;
     uint32_t FillIndex;
@@ -1370,12 +1369,6 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
-        //
-        // The route has been filled in with the packet's src/dst IP and ETH
-        // addresses, so mark it resolved. This allows stateless sends to be
-        // issued without performing a route lookup.
-        //
-        Packet->RouteStorage.State = RouteResolved;
         Packet->PartitionIndex = ProcIndex;
 
         CxPlatDpRawParseEthernet(
@@ -1383,6 +1376,13 @@ CxPlatXdpRx(
             (CXPLAT_RECV_DATA*)Packet,
             FrameBuffer,
             (uint16_t)Buffer->length);
+
+        //
+        // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+        // mark it resolved. This allows stateless sends to be issued without performing
+        // a route lookup.
+        //
+        Packet->Route->State = RouteResolved;
 
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
@@ -1451,8 +1451,8 @@ CxPlatDpRawRxFree(
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
     while (PacketChain) {
         const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
-        CxPlatListPushEntry(&Packet->Queue->RxPool, (CXPLAT_SLIST_ENTRY*)Packet);
         PacketChain = PacketChain->Next;
+        CxPlatListPushEntry(&Packet->Queue->RxPool, (CXPLAT_SLIST_ENTRY*)Packet);
     }
 #else
     uint32_t Count = 0;
