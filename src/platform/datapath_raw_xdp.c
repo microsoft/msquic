@@ -1487,7 +1487,7 @@ CxPlatDpRawRxFree(
     if (Count > 0) {
         InterlockedPushListSList(Pool, Head, CONTAINING_RECORD(Tail, SLIST_ENTRY, Next), Count);
     }
-`#endif
+#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
