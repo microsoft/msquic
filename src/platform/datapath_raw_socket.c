@@ -291,6 +291,18 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
+//
+// Set a hint flag to indicate that this packet *should* be sent immediately.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSendDataSetInlineHint(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    SendData->InlineHint = TRUE;
+}
+
 void
 CxPlatResolveRouteComplete(
     _In_ QUIC_CONNECTION* Connection,

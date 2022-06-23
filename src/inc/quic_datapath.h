@@ -709,6 +709,15 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
 
+//
+// Set a hint flag to indicate that this packet *should* be sent immediately.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSendDataSetInlineHint(
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+
 #endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)

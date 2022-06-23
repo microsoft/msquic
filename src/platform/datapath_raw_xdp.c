@@ -1570,7 +1570,9 @@ CxPlatDpRawTxEnqueue(
     XDP_QUEUE* Queue = Packet->Queue;
     if (Queue->Worker->ProcIndex == CxPlatProcCurrentNumber()) {
         CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
-        CxPlatXdpTx(Queue->Worker->Xdp, Queue);
+        if (SendData->InlineHint) {
+            CxPlatXdpTx(Queue->Worker->Xdp, Queue);
+        }
     } else {
         CxPlatLockAcquire(&Packet->Queue->TxLock);
         CxPlatListInsertTail(&Queue->TxQueue, &Packet->Link);

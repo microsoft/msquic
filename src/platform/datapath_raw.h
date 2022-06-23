@@ -94,7 +94,7 @@ typedef struct CXPLAT_SEND_DATA {
     // The type of ECN markings needed for send.
     //
     CXPLAT_ECN_TYPE ECN;
-
+    BOOLEAN InlineHint;
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA;
