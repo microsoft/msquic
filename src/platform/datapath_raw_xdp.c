@@ -1356,7 +1356,7 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = Queue->QueueIndex;
+        Packet->PartitionIndex = Queue->Index;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
