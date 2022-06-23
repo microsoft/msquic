@@ -1463,7 +1463,6 @@ CxPlatDpRawRxFree(
     while (PacketChain) {
         const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
-        // Packet->Allocated = FALSE; (other data paths don't clear this flag?)
 
         if (Pool != &Packet->Queue->RxPool) {
             if (Count > 0) {
