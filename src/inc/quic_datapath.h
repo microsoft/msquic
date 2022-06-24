@@ -731,8 +731,8 @@ CxPlatSendDataProcIndex(
 
 #else
 
-#define CxPlatSendDataSetInlineHint
-#define CxPlatSendDataProcIndex
+#define CxPlatSendDataSetInlineHint(SendData) UNREFERENCED_PARAMETER(SendData)
+#define CxPlatSendDataProcIndex(SendData, ProcIndex) UNREFERENCED_PARAMETER(SendData)
 
 #endif // QUIC_USE_RAW_DATAPATH
 
