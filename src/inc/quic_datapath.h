@@ -729,6 +729,11 @@ CxPlatSendDataProcIndex(
     _In_ uint16_t ProcIndex
     );
 
+#else
+
+#define CxPlatSendDataSetInlineHint
+#define CxPlatSendDataProcIndex
+
 #endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)
