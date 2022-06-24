@@ -38,11 +38,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_THREAD_ID ThreadId;
 
     //
-    // The ID of the processor the thread is configured to run on.
-    //
-    uint16_t Processor;
-
-    //
     // The datapath execution context running on this worker.
     //
     void* DatapathEC;
@@ -97,32 +92,13 @@ CxPlatWorkerWake(
     }
 }
 
-CXPLAT_WORKER*
-CxPlatGetWorkerForProcessor(
-    _In_ uint16_t IdealProcessor
-    )
-{
-    //
-    // Find the worker with the closest matching processor.
-    //
-    CXPLAT_WORKER* Worker;
-    CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0);
-    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        Worker = &CxPlatWorkers[i];
-        if (Worker->Processor <= IdealProcessor) {
-            break;
-        }
-    }
-    return Worker;
-}
-
 void
 CxPlatWorkerRegisterDataPath(
     _In_ uint16_t IdealProcessor,
     _In_ void* Context
     )
 {
-    CXPLAT_WORKER* Worker = CxPlatGetWorkerForProcessor(IdealProcessor);
+    CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
     CXPLAT_FRE_ASSERTMSG(Worker->DatapathEC == NULL, "Only one datapath allowed!");
     Worker->DatapathEC = Context;
     CxPlatEventSet(Worker->WakeEvent);
@@ -162,12 +138,11 @@ CxPlatWorkersInit(
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
         CxPlatWorkers[i].Running = TRUE;
-        CxPlatWorkers[i].Processor = (uint16_t)i;
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
 #endif // QUIC_USE_EXECUTION_CONTEXTS
         CxPlatEventInitialize(&CxPlatWorkers[i].WakeEvent, FALSE, FALSE);
-        ThreadConfig.IdealProcessor = CxPlatWorkers[i].Processor;
+        ThreadConfig.IdealProcessor = (uint16_t)i;
         ThreadConfig.Context = &CxPlatWorkers[i];
         if (QUIC_FAILED(
             CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
@@ -226,7 +201,7 @@ CxPlatAddExecutionContext(
     _In_ uint16_t IdealProcessor
     )
 {
-    CXPLAT_WORKER* Worker = CxPlatGetWorkerForProcessor(IdealProcessor);
+    CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
     Context->CxPlatContext = Worker;
     CxPlatLockAcquire(&Worker->ECLock);
     Context->Entry.Next = Worker->PendingECs;
