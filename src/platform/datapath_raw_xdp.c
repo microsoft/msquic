@@ -1556,7 +1556,6 @@ CxPlatXdpTx(
 static
 void
 CxPlatXdpFlushTxQueue(
-    _In_ const XDP_DATAPATH* Xdp,
     _In_ XDP_QUEUE* Queue
     )
 {
@@ -1634,7 +1633,7 @@ CxPlatDataPathRunEC(
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
         CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
-        CxPlatXdpFlushTxQueue(Xdp, Queue);
+        CxPlatXdpFlushTxQueue(Queue);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
