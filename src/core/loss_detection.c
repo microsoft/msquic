@@ -234,9 +234,6 @@ QuicLossDetectionComputeProbeTimeout(
         4 * Path->RttVariance +
         (uint32_t)MS_TO_US(Connection->PeerTransportParams.MaxAckDelay);
     Pto *= Count;
-    if (Pto < Connection->Settings.MaxWorkerQueueDelayUs) {
-        Pto = Connection->Settings.MaxWorkerQueueDelayUs;
-    }
     return Pto;
 }
 
