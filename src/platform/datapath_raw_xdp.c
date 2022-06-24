@@ -1332,54 +1332,57 @@ static
 void
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
-    _In_ XDP_QUEUE* Queue,
-    _In_ uint16_t ProcIndex
+    _In_ XDP_QUEUE* Queue
     )
 {
-    CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
-    uint32_t RxIndex;
+    const uint16_t ProcIndex = Queue->Worker->ProcIndex;
+
+    uint32_t BuffersCount;
+    uint32_t PacketCount = 0;
+    do {
+        uint32_t RxIndex;
+        CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
+        BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
+        for (uint32_t i = 0; i < BuffersCount; i++) {
+            XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
+            XDP_RX_PACKET* Packet =
+                (XDP_RX_PACKET*)(Queue->RxBuffers + XskDescriptorGetAddress(Buffer->address));
+            uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
+
+            CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
+            Packet->Route = &Packet->RouteStorage;
+            Packet->RouteStorage.Queue = Queue;
+            Packet->PartitionIndex = ProcIndex;
+
+            CxPlatDpRawParseEthernet(
+                (CXPLAT_DATAPATH*)Xdp,
+                (CXPLAT_RECV_DATA*)Packet,
+                FrameBuffer,
+                (uint16_t)Buffer->length);
+
+            //
+            // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+            // mark it resolved. This allows stateless sends to be issued without performing
+            // a route lookup.
+            //
+            Packet->Route->State = RouteResolved;
+
+            if (Packet->Buffer) {
+                Packet->Allocated = TRUE;
+                Packet->Queue = Queue;
+                Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
+            } else {
+                CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
+            }
+        }
+
+        if (BuffersCount > 0) {
+            XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
+        }
+    } while (BuffersCount == RX_BATCH_SIZE);
+
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
-    uint32_t PacketCount = 0;
-    const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
-
-    for (uint32_t i = 0; i < BuffersCount; i++) {
-        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
-        XDP_RX_PACKET* Packet =
-            (XDP_RX_PACKET*)(Queue->RxBuffers + XskDescriptorGetAddress(Buffer->address));
-        uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
-
-        CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
-        Packet->Route = &Packet->RouteStorage;
-        Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = ProcIndex;
-
-        CxPlatDpRawParseEthernet(
-            (CXPLAT_DATAPATH*)Xdp,
-            (CXPLAT_RECV_DATA*)Packet,
-            FrameBuffer,
-            (uint16_t)Buffer->length);
-
-        //
-        // The route has been filled in with the packet's src/dst IP and ETH addresses, so
-        // mark it resolved. This allows stateless sends to be issued without performing
-        // a route lookup.
-        //
-        Packet->Route->State = RouteResolved;
-
-        if (Packet->Buffer) {
-            Packet->Allocated = TRUE;
-            Packet->Queue = Queue;
-            Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
-        } else {
-            CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
-        }
-    }
-
-    if (BuffersCount > 0) {
-        XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
-    }
-
     uint32_t FillAvailable = XskRingProducerReserve(&Queue->RxFillRing, MAXUINT32, &FillIndex);
     while (FillAvailable-- > 0) {
         if (Queue->WorkerRxPool.Next == NULL) {
@@ -1405,11 +1408,12 @@ CxPlatXdpRx(
     }
 
     if (XskRingError(&Queue->RxRing) && !Queue->Error) {
+#if DEBUG
         XSK_ERROR ErrorStatus;
-        QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
+        QUIC_STATUS XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
         printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+#endif
         Queue->Error = TRUE;
     }
 }
@@ -1544,11 +1548,12 @@ CxPlatXdpTx(
     }
 
     if (XskRingError(&Queue->TxRing) && !Queue->Error) {
+#if DEBUG
         XSK_ERROR ErrorStatus;
-        QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
+        QUIC_STATUS XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
         printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+#endif
         Queue->Error = TRUE;
     }
 }
@@ -1632,7 +1637,7 @@ CxPlatDataPathRunEC(
 
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        CxPlatXdpRx(Xdp, Queue);
         CxPlatXdpFlushTxQueue(Queue);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
