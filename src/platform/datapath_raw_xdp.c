@@ -61,7 +61,7 @@ typedef struct XDP_QUEUE {
     // Move TX queue to its own cache line.
     DECLSPEC_CACHEALIGN
     CXPLAT_LOCK TxLock;
-    CXPLAT_LIST_ENTRY TxQueue;
+    CXPLAT_LIST_ENTRY TxQueue; // Packets from other threads
 } XDP_QUEUE;
 
 typedef struct XDP_INTERFACE {
@@ -1248,7 +1248,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         } else {
             MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-            IpAddressSize = sizeof(IN6_ADDR);     
+            IpAddressSize = sizeof(IN6_ADDR);
         }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
@@ -1501,13 +1501,6 @@ CxPlatXdpTx(
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
 
-    if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
-        ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
-        CxPlatLockAcquire(&Queue->TxLock);
-        CxPlatListMoveItems(&Queue->TxQueue, &Queue->WorkerTxQueue);
-        CxPlatLockRelease(&Queue->TxLock);
-    }
-
     uint32_t CompIndex;
     uint32_t CompAvailable =
         XskRingConsumerReserve(&Queue->TxCompletionRing, MAXUINT32, &CompIndex);
@@ -1560,6 +1553,26 @@ CxPlatXdpTx(
     }
 }
 
+static
+void
+CxPlatXdpFlushTxQueue(
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue
+    )
+{
+    //
+    // Move packets from the TX queue (i.e. packets from other threads) to the
+    // worker TX queue (used to actually send packets), but only if we don't
+    // already have anything in the worker TX queue (why?).
+    //
+    if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
+        ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
+        CxPlatLockAcquire(&Queue->TxLock);
+        CxPlatListMoveItems(&Queue->TxQueue, &Queue->WorkerTxQueue);
+        CxPlatLockRelease(&Queue->TxLock);
+    }
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
@@ -1569,11 +1582,21 @@ CxPlatDpRawTxEnqueue(
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
     XDP_QUEUE* Queue = Packet->Queue;
     if (Queue->Worker->ProcIndex == SendData->ProcIndex) {
+        //
+        // Because we're sharing the thread with the XDP worker, we can directly
+        // insert the packet into the worker TX queue. If the caller wants to
+        // immediately send the packets, we can do so as well.
+        //
         CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
         if (SendData->InlineHint) {
             CxPlatXdpTx(Queue->Worker->Xdp, Queue);
         }
+
     } else {
+        //
+        // The caller is on a different thread, so the best we can do is queue
+        // this packet to be drained by the worker thread.
+        //
         CxPlatLockAcquire(&Packet->Queue->TxLock);
         CxPlatListInsertTail(&Queue->TxQueue, &Packet->Link);
         CxPlatLockRelease(&Packet->Queue->TxLock);
@@ -1611,6 +1634,7 @@ CxPlatDataPathRunEC(
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
         CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        CxPlatXdpFlushTxQueue(Xdp, Queue);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
