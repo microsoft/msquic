@@ -1337,9 +1337,7 @@ CxPlatXdpRx(
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
     uint32_t RxIndex;
-    uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
-
     const uint16_t ProcIndex = Queue->Worker->ProcIndex;
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
