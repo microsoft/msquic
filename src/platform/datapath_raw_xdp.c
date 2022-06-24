@@ -21,7 +21,7 @@ Abstract:
 #include <xdpapi.h>
 #include <stdio.h>
 
-#define RX_BATCH_SIZE 16
+#define RX_BATCH_SIZE 48
 #define MAX_ETH_FRAME_SIZE 1514
 
 #define ADAPTER_TAG   'ApdX' // XdpA
@@ -1335,51 +1335,50 @@ CxPlatXdpRx(
     _In_ XDP_QUEUE* Queue
     )
 {
-    const uint16_t ProcIndex = Queue->Worker->ProcIndex;
-
-    uint32_t BuffersCount;
+    CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
+    uint32_t RxIndex;
+    uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
-    do {
-        uint32_t RxIndex;
-        CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
-        BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
-        for (uint32_t i = 0; i < BuffersCount; i++) {
-            XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
-            XDP_RX_PACKET* Packet =
-                (XDP_RX_PACKET*)(Queue->RxBuffers + XskDescriptorGetAddress(Buffer->address));
-            uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
 
-            CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
-            Packet->Route = &Packet->RouteStorage;
-            Packet->RouteStorage.Queue = Queue;
-            Packet->PartitionIndex = ProcIndex;
+    const uint16_t ProcIndex = Queue->Worker->ProcIndex;
+    const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
-            CxPlatDpRawParseEthernet(
-                (CXPLAT_DATAPATH*)Xdp,
-                (CXPLAT_RECV_DATA*)Packet,
-                FrameBuffer,
-                (uint16_t)Buffer->length);
+    for (uint32_t i = 0; i < BuffersCount; i++) {
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
+        XDP_RX_PACKET* Packet =
+            (XDP_RX_PACKET*)(Queue->RxBuffers + XskDescriptorGetAddress(Buffer->address));
+        uint8_t* FrameBuffer = (uint8_t*)Packet + XskDescriptorGetOffset(Buffer->address);
 
-            //
-            // The route has been filled in with the packet's src/dst IP and ETH addresses, so
-            // mark it resolved. This allows stateless sends to be issued without performing
-            // a route lookup.
-            //
-            Packet->Route->State = RouteResolved;
+        CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
+        Packet->Route = &Packet->RouteStorage;
+        Packet->RouteStorage.Queue = Queue;
+        Packet->PartitionIndex = ProcIndex;
 
-            if (Packet->Buffer) {
-                Packet->Allocated = TRUE;
-                Packet->Queue = Queue;
-                Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
-            } else {
-                CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
-            }
+        CxPlatDpRawParseEthernet(
+            (CXPLAT_DATAPATH*)Xdp,
+            (CXPLAT_RECV_DATA*)Packet,
+            FrameBuffer,
+            (uint16_t)Buffer->length);
+
+        //
+        // The route has been filled in with the packet's src/dst IP and ETH addresses, so
+        // mark it resolved. This allows stateless sends to be issued without performing
+        // a route lookup.
+        //
+        Packet->Route->State = RouteResolved;
+
+        if (Packet->Buffer) {
+            Packet->Allocated = TRUE;
+            Packet->Queue = Queue;
+            Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
+        } else {
+            CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
         }
+    }
 
-        if (BuffersCount > 0) {
-            XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
-        }
-    } while (BuffersCount == RX_BATCH_SIZE);
+    if (BuffersCount > 0) {
+        XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
+    }
 
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
