@@ -472,12 +472,11 @@ QuicLossDetectionOnPacketSent(
         (Entry != &(Connection->Send.SendStreams)) ?
           CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink) :
           NULL;
-
-    BOOLEAN LossBufferEmpty = Stream &&
-                              !QuicStreamCanSendNow(Stream, FALSE) &&
-                              !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto);
-
-    if (SendPostedBytes < Path->Mtu && LossBufferEmpty && QuicCongestionControlCanSend(&Connection->CongestionControl)) {
+    
+    if (SendPostedBytes < Path->Mtu &&
+        QuicCongestionControlCanSend(&Connection->CongestionControl) &&
+        !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto) &&
+        (Stream && QuicStreamAllowedByPeer(Stream)) && !QuicStreamCanSendNow(Stream, FALSE)) {
         QuicCongestionControlSetAppLimited(&Connection->CongestionControl);
     }
 
@@ -495,7 +494,6 @@ QuicLossDetectionOnPacketSent(
         SentPacket->LastAckedPacketInfo.TotalBytesSent = LossDetection->TotalBytesSentAtLastAck;
         SentPacket->LastAckedPacketInfo.TotalBytesAcked = LossDetection->TotalBytesAcked;
     }
-
 
     QuicLossValidate(LossDetection);
 }
@@ -1216,9 +1214,9 @@ QuicLossDetectionDiscardPackets(
             .HasLoss = FALSE,
             .AdjustedAckTime = 0,
             .AckedPackets = NULL,
-            .TotalBytesAcked = 0,
+            .NumTotalAckedRetransmittableBytes = 0,
             .IsLargestAckedPacketAppLimited = FALSE,
-            .MinRttSampleValid = 0
+            .MinRttSampleValid = FALSE
         };
 
         if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
@@ -1523,7 +1521,7 @@ QuicLossDetectionProcessAckBlocks(
             .HasLoss = (LossDetection->LostPackets != NULL),
             .AdjustedAckTime = (uint32_t)(TimeNow - AckDelay),
             .AckedPackets = AckedPackets,
-            .TotalBytesAcked = LossDetection->TotalBytesAcked,
+            .NumTotalAckedRetransmittableBytes = LossDetection->TotalBytesAcked,
             .IsLargestAckedPacketAppLimited = IsLargestAckedPacketAppLimited,
             .MinRttSampleValid = TRUE,
         };

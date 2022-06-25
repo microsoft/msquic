@@ -85,7 +85,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     //
     // TRUE when exiting quiescence
     //
-    BOOLEAN ExitingQuiescene : 1;
+    BOOLEAN ExitingQuiescence : 1;
 
     //
     // If TRUE, EndOfRecovery is valid

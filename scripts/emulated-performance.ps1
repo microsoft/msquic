@@ -53,7 +53,7 @@ be in the current directory.
     Doesn't include the Date/Time in the log directory path.
 
 .PARAMETER CongestionControl
-    The congestion control algoirthm used to test
+    The congestion control algorithm used to test
 
 #>
 
