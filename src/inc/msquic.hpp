@@ -618,12 +618,13 @@ struct MsQuicConfiguration {
     }
 
     QUIC_STATUS
-    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+    SetVersionNegotiationExtEnabled(_In_ const bool Value = true) noexcept {
+        BOOLEAN _Value = Value;
         return MsQuic->SetParam(
             Handle,
             QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
-            sizeof(Value),
-            &Value);
+            sizeof(_Value),
+            &_Value);
     }
 #endif
 };
