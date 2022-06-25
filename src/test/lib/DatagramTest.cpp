@@ -254,8 +254,7 @@ QuicTestDatagramSend(
                 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-                printf("Client.GetDatagramsLost() = %u\n", Client.GetDatagramsLost()); // just for tesing
-                TEST_EQUAL(3, Client.GetDatagramsLost());
+                TEST_EQUAL(1, Client.GetDatagramsLost());
 #endif
 
                 TEST_FALSE(Client.GetPeerClosed());
