@@ -903,8 +903,7 @@ QuicTestVersionNegotiation(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings VersionSettings;
-    VersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings VersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -1001,8 +1000,7 @@ QuicTestVersionNegotiationRetry(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings VersionSettings;
-    VersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings VersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -1077,14 +1075,12 @@ QuicTestCompatibleVersionNegotiation(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1178,14 +1174,12 @@ QuicTestCompatibleVersionNegotiationRetry(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1282,8 +1276,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
@@ -1380,8 +1373,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1474,14 +1466,12 @@ QuicTestIncompatibleVersionNegotiation(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1565,15 +1555,13 @@ RunFailedVersionNegotiation(
     ClientSettings.SetIdleTimeoutMs(2000);
     ClientSettings.SetDisconnectTimeoutMs(1000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(2000);
     ServerSettings.SetDisconnectTimeoutMs(1000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     if (ServerVersions != NULL) {
         TEST_QUIC_SUCCEEDED(

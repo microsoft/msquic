@@ -106,7 +106,7 @@ QuicVersionNegotiationExtIsVersionCompatible(
     )
 {
     if (Connection->Settings.IsSet.VersionSettings) {
-        uint32_t* CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
+        const uint32_t* CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
         uint32_t CompatibleVersionsLength = Connection->Settings.VersionSettings->FullyDeployedVersionsLength;
 
         for (uint32_t i = 0; i < CompatibleVersionsLength; ++i) {

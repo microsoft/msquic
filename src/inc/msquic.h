@@ -539,9 +539,9 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 typedef struct QUIC_VERSION_SETTINGS {
 
-    uint32_t* AcceptableVersions;
-    uint32_t* OfferedVersions;
-    uint32_t* FullyDeployedVersions;
+    const uint32_t* AcceptableVersions;
+    const uint32_t* OfferedVersions;
+    const uint32_t* FullyDeployedVersions;
     uint32_t AcceptableVersionsLength;
     uint32_t OfferedVersionsLength;
     uint32_t FullyDeployedVersionsLength;

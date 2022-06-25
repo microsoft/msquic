@@ -378,8 +378,12 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
+    MsQuicVersionSettings(const uint32_t* Versions, uint32_t Length) noexcept {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+    }
     MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
-        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
         AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
         return *this;
     }

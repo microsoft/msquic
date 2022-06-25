@@ -100,8 +100,7 @@ struct ServerAcceptContext {
 
 struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
-        MsQuicVersionSettings Settings;
-        Settings.SetAllVersionLists(nullptr, 0);
+        MsQuicVersionSettings Settings(nullptr, 0);
         BOOLEAN Default = FALSE;
 
         TEST_QUIC_SUCCEEDED(
