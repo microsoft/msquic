@@ -822,13 +822,13 @@ namespace Microsoft.Quic
 
     internal unsafe partial struct QUIC_VERSION_SETTINGS
     {
-        [NativeTypeName("uint32_t *")]
+        [NativeTypeName("const uint32_t *")]
         internal uint* AcceptableVersions;
 
-        [NativeTypeName("uint32_t *")]
+        [NativeTypeName("const uint32_t *")]
         internal uint* OfferedVersions;
 
-        [NativeTypeName("uint32_t *")]
+        [NativeTypeName("const uint32_t *")]
         internal uint* FullyDeployedVersions;
 
         [NativeTypeName("uint32_t")]

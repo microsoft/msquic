@@ -378,8 +378,12 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
+    MsQuicVersionSettings(const uint32_t* Versions, uint32_t Length) noexcept {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+    }
     MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
-        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
         AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
         return *this;
     }
@@ -614,12 +618,13 @@ struct MsQuicConfiguration {
     }
 
     QUIC_STATUS
-    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+    SetVersionNegotiationExtEnabled(_In_ const bool Value = true) noexcept {
+        BOOLEAN _Value = Value;
         return MsQuic->SetParam(
             Handle,
             QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
-            sizeof(Value),
-            &Value);
+            sizeof(_Value),
+            &_Value);
     }
 #endif
 };
