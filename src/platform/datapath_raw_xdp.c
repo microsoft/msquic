@@ -21,7 +21,7 @@ Abstract:
 #include <xdpapi.h>
 #include <stdio.h>
 
-#define RX_BATCH_SIZE 16
+#define RX_BATCH_SIZE 48
 #define MAX_ETH_FRAME_SIZE 1514
 
 #define ADAPTER_TAG   'ApdX' // XdpA
@@ -1245,7 +1245,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         } else {
             MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-            IpAddressSize = sizeof(IN6_ADDR);     
+            IpAddressSize = sizeof(IN6_ADDR);
         }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
