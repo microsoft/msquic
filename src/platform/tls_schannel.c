@@ -2828,6 +2828,12 @@ CxPlatTlsParamGet(
 {
     QUIC_STATUS Status;
 
+    // TODO:
+    // Need to check Connection->Crypto.TlsState.HandshakeComplete for
+    // QUIC_PARAM_TLS_HANDSHAKE_INFO and QUIC_PARAM_TLS_NEGOTIATED_ALPN
+    // It is difficult to access this flag because of dependency problem
+    // caused by including connection.h
+
     switch (Param) {
 
         case QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: {

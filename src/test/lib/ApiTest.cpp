@@ -4075,6 +4075,12 @@ void QuicTestConnectionParam()
     }
 }
 
+//
+// This test uses TEST_NOT_EQUAL(XXX, QUIC_STATUS_SUCCESS) to cover both
+// OpenSSL and Schannel which return different error code.
+// This need to be fixed in the future.
+// see src/platform/tsl_schannel.c about the TODO
+//
 void QuicTestTlsParam()
 {
     MsQuicRegistration Registration;
@@ -4133,12 +4139,13 @@ void QuicTestTlsParam()
             {
                 TestScopeLogger LogScope2("Before handshake");
                 QUIC_HANDSHAKE_INFO Info = {};
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
+
+                TEST_NOT_EQUAL(
                     Connection.GetParam(
                         QUIC_PARAM_TLS_HANDSHAKE_INFO,
                         &Length,
-                        &Info));
+                        &Info
+                ), QUIC_STATUS_SUCCESS);
             }
 
             {
@@ -4182,20 +4189,123 @@ void QuicTestTlsParam()
                         nullptr));
 
                 uint8_t Dummy[] = "MsQuicTest";
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
+                TEST_NOT_EQUAL(
                     Connection.GetParam(
                         QUIC_PARAM_TLS_NEGOTIATED_ALPN,
                         &Length,
-                        &Dummy));
+                        &Dummy),
+                    QUIC_STATUS_SUCCESS);
             }
 
             {
                 TestScopeLogger LogScope2("Successful case is covered by TlsTest.HandshakeParamNegotiatedAlpn");
             }
         }
-
     }
+
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    {
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W Data;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_NOT_SUPPORTED,
+                Connection.SetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W,
+                    sizeof(Data),
+                    &Data));
+        }
+
+        {
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W,
+                    &Length,
+                    nullptr));
+
+            QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W Data;
+            TEST_NOT_EQUAL(
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W,
+                    &Length,
+                    &Data),
+                QUIC_STATUS_SUCCESS);
+        }
+    }
+
+    {
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W Data;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_NOT_SUPPORTED,
+                Connection.SetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W,
+                    sizeof(Data),
+                    &Data));
+        }
+
+        {
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W,
+                    &Length,
+                    nullptr));
+
+            QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W Data;
+            TEST_NOT_EQUAL(
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W,
+                    &Length,
+                    &Data),
+                QUIC_STATUS_SUCCESS);
+        }
+    }
+
+    {
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            HANDLE DummyHandle;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_NOT_SUPPORTED,
+                Connection.SetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN,
+                    sizeof(DummyHandle),
+                    &DummyHandle));
+        }
+
+        {
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN,
+                    &Length,
+                    nullptr));
+
+            HANDLE Handle;
+            TEST_NOT_EQUAL(
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W,
+                    &Length,
+                    &Handle),
+                QUIC_STATUS_SUCCESS);
+        }
+    }
+#endif
 }
 
 void QuicTestStreamParam()
