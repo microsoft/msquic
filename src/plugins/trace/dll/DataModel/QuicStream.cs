@@ -186,7 +186,7 @@ namespace QuicTrace.DataModel
                     {
                         var OldRecvPacket = Timings.RecvPacket;
                         Timings.RecvPacket = state.ReceivePacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
-                        if (Timings.RecvPacket == null || Timings.RecvPacket.PacketDecrypt == Timestamp.Zero)
+                        if (Timings.RecvPacket == null)
                         {
                             Timings.EncounteredError = true;
                             break;
@@ -204,15 +204,17 @@ namespace QuicTrace.DataModel
                             {
                                 Timings.UpdateToState(QuicStreamState.ProcessRecv, Connection.LastScheduleStateTimeStamp, true);
                             }
-                            Timings.UpdateToState(QuicStreamState.Decrypt, Timings.RecvPacket.PacketDecrypt);
+                            if (Timings.RecvPacket.PacketDecrypt != Timestamp.Zero) {
+                                Timings.UpdateToState(QuicStreamState.Decrypt, Timings.RecvPacket.PacketDecrypt);
 
-                            if (Timings.RecvPacket.PacketDecryptComplete == Timestamp.Zero)
-                            {
-                                Timings.RecvPacket.PacketDecryptComplete = evt.TimeStamp;
-                            }
-                            else
-                            {
-                                Timings.UpdateToState(QuicStreamState.ReadOther, Timings.RecvPacket.PacketDecryptComplete);
+                                if (Timings.RecvPacket.PacketDecryptComplete == Timestamp.Zero)
+                                {
+                                    Timings.RecvPacket.PacketDecryptComplete = evt.TimeStamp;
+                                }
+                                else
+                                {
+                                    Timings.UpdateToState(QuicStreamState.ReadOther, Timings.RecvPacket.PacketDecryptComplete);
+                                }
                             }
                         }
 

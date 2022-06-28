@@ -165,10 +165,10 @@ namespace QuicTrace.DataModel
         //
         // Triggers a state change and updates variables accordingly.
         //
-        internal void UpdateToState(QuicStreamState state, Timestamp time, bool ignorePrevious = false)
+        internal void UpdateToState(QuicStreamState newState, Timestamp time, bool ignorePrevious = false)
         {
             if (EncounteredError) return;
-            if (State == state) return;
+            if (State == newState) return;
             if (time < LastStateChangeTime)
             {
                 if (!ignorePrevious)
@@ -176,19 +176,19 @@ namespace QuicTrace.DataModel
                     //Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, state);
                     EncounteredError = true;
                 }
-                else if (State == QuicStreamState.Alloc && state == QuicStreamState.QueueRecv)
+                else if (State == QuicStreamState.Alloc && newState == QuicStreamState.QueueRecv)
                 {
-                    State = state;
+                    State = newState;
                     InitialStateTime = time;
                     LastStateChangeTime = time;
                 }
                 return;
             }
-            if (state == QuicStreamState.Frame && (State == QuicStreamState.IdleSent || State == QuicStreamState.IdleBoth))
+            if (newState == QuicStreamState.Frame && (State == QuicStreamState.IdleSent || State == QuicStreamState.IdleBoth))
             {
                 State = QuicStreamState.ProcessSend; // Wasn't actually idle, but processing
             }
-            if ((state == QuicStreamState.Decrypt || state == QuicStreamState.AppRecv) && (State == QuicStreamState.IdleRecv || State == QuicStreamState.IdleBoth))
+            if ((newState == QuicStreamState.Decrypt || newState == QuicStreamState.AppRecv) && (State == QuicStreamState.IdleRecv || State == QuicStreamState.IdleBoth))
             {
                 State = QuicStreamState.ProcessRecv; // Wasn't actually idle, but processing
             }
@@ -197,7 +197,7 @@ namespace QuicTrace.DataModel
             StateChanges.Add((State, time));
 
             LastStateChangeTime = time;
-            State = state;
+            State = newState;
         }
 
         internal void UpdateToIdle(Timestamp time)
