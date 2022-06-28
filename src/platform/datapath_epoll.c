@@ -2504,22 +2504,44 @@ CxPlatSocketSendInternal(
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
         //
-        // Check to see if we need to pend.
+        // Pend the send
         //
+        SendPending = TRUE;
+        BOOLEAN WakeEpoll;
         CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
-        if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
-            CxPlatSocketContextPendSend(
-                SocketContext,
-                SendData,
-                LocalAddress,
-                RemoteAddress);
-            SendPending = TRUE;
-        }
+        WakeEpoll = CxPlatListIsEmpty(&SocketContext->PendingSendDataHead);
+        CxPlatSocketContextPendSend(
+            SocketContext,
+            SendData,
+            LocalAddress,
+            RemoteAddress);
         CxPlatLockRelease(&SocketContext->PendingSendDataLock);
-        if (SendPending) {
-            Status = QUIC_STATUS_PENDING;
-            goto Exit;
+
+        if (WakeEpoll) {
+            struct epoll_event SockFdEpEvt = {
+                .events = EPOLLIN | EPOLLOUT,
+                .data = {
+                    .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+                }
+            };
+
+            int Ret =
+                epoll_ctl(
+                    SocketContext->ProcContext->EpollFd,
+                    EPOLL_CTL_MOD,
+                    SocketContext->SocketFd,
+                    &SockFdEpEvt);
+            if (Ret != 0) {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    errno,
+                    "epoll_ctl failed");
+            }
         }
+
+        goto Exit;
     }
 
     //
