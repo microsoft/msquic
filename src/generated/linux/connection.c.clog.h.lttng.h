@@ -5,9 +5,9 @@
 // Decoder Ring for PacketRxStatelessReset
 // [S][RX][-] SR %s
 // QuicTraceLogVerbose(
-                        PacketRxStatelessReset,
-                        "[S][RX][-] SR %s",
-                        QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+                            PacketRxStatelessReset,
+                            "[S][RX][-] SR %s",
+                            QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
 // arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
@@ -612,9 +612,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CustomCertValidationPending,
 // Decoder Ring for RecvStatelessReset
 // [conn][%p] Received stateless reset
 // QuicTraceLogConnInfo(
-                        RecvStatelessReset,
-                        Connection,
-                        "Received stateless reset");
+                            RecvStatelessReset,
+                            Connection,
+                            "Received stateless reset");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvStatelessReset,
@@ -2244,9 +2244,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
 // Decoder Ring for PacketDecrypt
 // [pack][%llu] Decrypting
 // QuicTraceEvent(
-        PacketDecrypt,
-        "[pack][%llu] Decrypting",
-        Packet->PacketId);
+            PacketDecrypt,
+            "[pack][%llu] Decrypting",
+            Packet->PacketId);
 // arg2 = arg2 = Packet->PacketId = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketDecrypt,
