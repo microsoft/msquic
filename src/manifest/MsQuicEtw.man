@@ -3090,6 +3090,15 @@
               template="tid_STREAM"
               value="6162"
               />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppReceiveCompleteCall)"
+              opcode="Stream"
+              symbol="QuicStreamAppReceiveCompleteCall"
+              template="tid_STREAM_U64"
+              value="6163"
+              />
           <!-- 7168 - 8191 | Binding Events -->
           <event
               keywords="ut:Binding ut:LowVolume"
@@ -3638,6 +3647,10 @@
         <string
             id="Etw.StreamAppReceiveComplete"
             value="[strm][%1] Receive complete [%2 bytes]"
+            />
+        <string
+            id="Etw.StreamAppReceiveCompleteCall"
+            value="[strm][%1] Receive complete call [%2 bytes]"
             />
         <string
             id="Etw.StreamAppSend"

@@ -1265,6 +1265,12 @@ MsQuicStreamReceiveComplete(
         goto Exit;
     }
 
+    QuicTraceEvent(
+        StreamAppReceiveCompleteCall,
+        "[strm][%p] Receive complete call [%llu bytes]",
+        Stream,
+        BufferLength);
+
     if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
         Stream->Flags.ReceiveCallActive) {
 

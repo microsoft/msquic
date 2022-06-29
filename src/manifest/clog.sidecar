@@ -9853,6 +9853,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "StreamAppReceiveCompleteCall": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Receive complete call [%llu bytes]",
+      "UniqueId": "StreamAppReceiveCompleteCall",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "StreamAppSend": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
@@ -14514,6 +14530,11 @@
         "UniquenessHash": "92e805e6-d2f5-68d3-fdcd-f56c490ed368",
         "TraceID": "StreamAppReceiveComplete",
         "EncodingString": "[strm][%p] Receive complete [%llu bytes]"
+      },
+      {
+        "UniquenessHash": "036b2f93-3b66-c911-8be9-d0861f6fee19",
+        "TraceID": "StreamAppReceiveCompleteCall",
+        "EncodingString": "[strm][%p] Receive complete call [%llu bytes]"
       },
       {
         "UniquenessHash": "a35cb953-343e-6914-a737-cd53044edb92",
