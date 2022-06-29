@@ -806,9 +806,9 @@ struct MsQuicConnection {
     void
     Close(
     ) noexcept {
-        if (Handle) {
-            MsQuic->ConnectionClose(Handle);
-            Handle = nullptr;
+        auto HandleToClose = (HQUIC)InterlockedFetchAndClearPointer(Handle);
+        if (HandleToClose) {
+            MsQuic->ConnectionClose(HandleToClose);
         }
     }
 
