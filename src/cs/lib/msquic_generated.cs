@@ -2035,6 +2035,9 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("HRESULT")]
                 internal int Status;
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
             }
 
             internal partial struct _SHUTDOWN_INITIATED_BY_PEER_e__Struct
