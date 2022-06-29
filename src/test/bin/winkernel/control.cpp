@@ -1236,8 +1236,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestConnectionParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_TLS_SET_PARAM:
-        QuicTestCtlRun(QuicTestTlsSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM:
+        QuicTestCtlRun(QuicTestTlsParam());
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
