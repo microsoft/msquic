@@ -27,6 +27,7 @@ namespace QuicTrace.DataModel
         Read,
         ReadOther,
         AppRecv,
+        ProcessAppRecv,
         IdleRecv,
         IdleBoth,
         CleanUp
@@ -51,6 +52,11 @@ namespace QuicTrace.DataModel
         // The application is actively handling a receive.
         //
         public bool InAppRecv { get; internal set; }
+
+        //
+        // Time of StreamAppReceiveCompleteCall event being emitted.
+        //
+        public Timestamp AppRecvCompletion { get; internal set; }
 
         //
         // The send direction of the stream has been shutdown.
@@ -188,7 +194,8 @@ namespace QuicTrace.DataModel
             {
                 State = QuicStreamState.ProcessSend; // Wasn't actually idle, but processing
             }
-            if ((newState == QuicStreamState.Decrypt || newState == QuicStreamState.AppRecv) && (State == QuicStreamState.IdleRecv || State == QuicStreamState.IdleBoth))
+            if ((newState == QuicStreamState.Decrypt || newState == QuicStreamState.AppRecv) &&
+                (State == QuicStreamState.IdleRecv || State == QuicStreamState.IdleBoth))
             {
                 State = QuicStreamState.ProcessRecv; // Wasn't actually idle, but processing
             }

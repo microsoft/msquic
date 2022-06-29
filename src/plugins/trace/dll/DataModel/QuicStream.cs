@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 //
 
+using System;
 using System.Collections.Generic;
 using Microsoft.Performance.SDK;
 
@@ -249,8 +250,16 @@ namespace QuicTrace.DataModel
                     Timings.InAppRecv = false;
                     if (Timings.State == QuicStreamState.AppRecv)
                     {
+                        if (Timings.AppRecvCompletion != Timestamp.Zero)
+                        {
+                            Timings.UpdateToState(QuicStreamState.ProcessAppRecv, Timings.AppRecvCompletion);
+                        }
                         Timings.UpdateToIdle(evt.TimeStamp);
                     }
+                    Timings.AppRecvCompletion = Timestamp.Zero;
+                    break;
+                case QuicEventId.StreamAppReceiveCompleteCall:
+                    Timings.AppRecvCompletion = evt.TimeStamp;
                     break;
                 default:
                     break;
