@@ -245,6 +245,7 @@ namespace QuicTrace.DataModel
                 case QuicEventId.StreamAppReceive:
                     Timings.InAppRecv = true;
                     Timings.UpdateToState(QuicStreamState.AppRecv, evt.TimeStamp);
+                    Timings.AppRecvCompletion = Timestamp.Zero;
                     break;
                 case QuicEventId.StreamAppReceiveComplete:
                     Timings.InAppRecv = false;
