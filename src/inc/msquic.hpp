@@ -806,7 +806,7 @@ struct MsQuicConnection {
     void
     Close(
     ) noexcept {
-#if _WIN32
+#ifdef _WIN32
         auto HandleToClose = (HQUIC)InterlockedExchangePointer(Handle, NULL);
 #else
         auto HandleToClose = (HQUIC)__sync_fetch_and_and(Handle, 0);
