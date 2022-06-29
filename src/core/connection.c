@@ -1401,6 +1401,7 @@ QuicConnIndicateShutdownBegin(
     } else {
         Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT;
         Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status = Connection->CloseStatus;
+        Event.SHUTDOWN_INITIATED_BY_TRANSPORT.ErrorCode = Connection->CloseErrorCode;
         QuicTraceLogConnVerbose(
             IndicateShutdownByTransport,
             Connection,
