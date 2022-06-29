@@ -1167,7 +1167,11 @@ struct CloseFromCallbackContext {
             new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, nullptr);
         }
 
-        auto count = InterlockedIncrement16((volatile short*)&Ctx->CurrentCount);
+#ifdef _WIN32
+        auto count = (uint16_t)InterlockedIncrement16((volatile short*)&Ctx->CurrentCount);
+#else
+        auto count = (uint16_t)__sync_add_and_fetch((volatile short*)&Ctx->CurrentCount, 1);
+#endif
         if (Ctx->CloseCount == count-1) {
             Conn->Close();
         }
