@@ -1166,7 +1166,7 @@ struct CloseFromCallbackContext {
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
             new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, nullptr);
         }
-        // auto count = ++Ctx->CurrentCount;
+
         auto count = InterlockedIncrement16((volatile short*)&Ctx->CurrentCount);
         if (Ctx->CloseCount == count-1) {
             Conn->Close();
@@ -1198,7 +1198,7 @@ QuicTestConnectionCloseFromCallback() {
             MsQuicSettings()
                 .SetPeerUnidiStreamCount(10)
                 .SetPeerBidiStreamCount(10),
-        MsQuicCredentialConfig());
+            MsQuicCredentialConfig());
         TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
         MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, CloseFromCallbackContext::Callback, &Context);
