@@ -52,7 +52,7 @@ namespace QuicTrace.Tables
         private static readonly ColumnConfiguration timeColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{cae6253b-0ce6-466e-bd9f-f7dbf65bdef7}"), "Time"),
-                new UIHints { AggregationMode = AggregationMode.Max });
+                new UIHints { AggregationMode = AggregationMode.Max, SortOrder = SortOrder.Descending });
 
         private static readonly ColumnConfiguration durationColumnConfig =
             new ColumnConfiguration(
