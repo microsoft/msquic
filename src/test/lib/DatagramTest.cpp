@@ -246,16 +246,18 @@ QuicTestDatagramSend(
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+
+                Tries = 0;
+                while (Client.GetDatagramsLost() != 1 && ++Tries < 10) {
+                    CxPlatSleep(100);
+                }
+                TEST_EQUAL(1, Client.GetDatagramsLost());
 #endif
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
                 if (!Client.WaitForShutdownComplete()) {
                     return;
                 }
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-                TEST_EQUAL(1, Client.GetDatagramsLost());
-#endif
 
                 TEST_FALSE(Client.GetPeerClosed());
                 TEST_FALSE(Client.GetTransportClosed());
