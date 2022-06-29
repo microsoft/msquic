@@ -803,7 +803,8 @@ pub struct ConnectionEventConnected {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ConnectionEventConnectionShutdownByTransport {
-    pub status: u64,
+    pub status: u32,
+    pub error_code: u62,
 }
 
 #[repr(C)]

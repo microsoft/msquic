@@ -1051,6 +1051,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } CONNECTED;
         struct {
             QUIC_STATUS Status;
+            QUIC_UINT62 ErrorCode; // Wire format error code.
         } SHUTDOWN_INITIATED_BY_TRANSPORT;
         struct {
             QUIC_UINT62 ErrorCode;
