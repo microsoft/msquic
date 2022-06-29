@@ -244,13 +244,22 @@ namespace QuicTrace.DataModel
                 case QuicEventId.StreamAppReceive:
                     Timings.InAppRecv = true;
                     Timings.UpdateToState(QuicStreamState.AppRecv, evt.TimeStamp);
+                    Timings.AppRecvCompletion = Timestamp.Zero;
                     break;
                 case QuicEventId.StreamAppReceiveComplete:
                     Timings.InAppRecv = false;
                     if (Timings.State == QuicStreamState.AppRecv)
                     {
+                        if (Timings.AppRecvCompletion != Timestamp.Zero)
+                        {
+                            Timings.UpdateToState(QuicStreamState.ProcessAppRecv, Timings.AppRecvCompletion);
+                        }
                         Timings.UpdateToIdle(evt.TimeStamp);
                     }
+                    Timings.AppRecvCompletion = Timestamp.Zero;
+                    break;
+                case QuicEventId.StreamAppReceiveCompleteCall:
+                    Timings.AppRecvCompletion = evt.TimeStamp;
                     break;
                 default:
                     break;

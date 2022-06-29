@@ -1057,6 +1057,14 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicStreamAppReceiveCompleteCallEvent : QuicEvent
+    {
+        internal QuicStreamAppReceiveCompleteCallEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamAppReceiveCompleteCall, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
     #endregion
 
     #region Datapath Events
