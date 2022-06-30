@@ -83,6 +83,7 @@ void QuicTestStartListenerExplicit(_In_ int Family);
 void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
+void QuicTestConnectionCloseFromCallback();
 
 //
 // MTU tests
@@ -1055,4 +1056,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM \
     QUIC_CTL_CODE(97, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 97
+#define IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK \
+    QUIC_CTL_CODE(98, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 98

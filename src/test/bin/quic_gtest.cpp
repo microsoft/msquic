@@ -477,6 +477,15 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+TEST(Basic, ConnectionCloseFromCallback) {
+    TestLogger Logger("QuicTestConnectionCloseFromCallback");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK));
+    } else {
+        QuicTestConnectionCloseFromCallback();
+    }
+}
+
 TEST_P(WithBool, RejectConnection) {
     TestLoggerT<ParamType> Logger("QuicTestConnectionRejection", GetParam());
     if (TestingKernelMode) {

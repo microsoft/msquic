@@ -791,9 +791,7 @@ struct MsQuicConnection {
     }
 
     ~MsQuicConnection() noexcept {
-        if (Handle) {
-            MsQuic->ConnectionClose(Handle);
-        }
+        Close();
         delete[] ResumptionTicket;
     }
 
@@ -803,6 +801,19 @@ struct MsQuicConnection {
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
         ) noexcept {
         MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        auto HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->ConnectionClose(HandleToClose);
+        }
     }
 
     QUIC_STATUS

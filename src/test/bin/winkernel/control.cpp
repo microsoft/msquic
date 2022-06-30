@@ -469,6 +469,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1242,6 +1243,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
         QuicTestCtlRun(QuicTestStreamParam());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK:
+        QuicTestCtlRun(QuicTestConnectionCloseFromCallback());
         break;
 
     default:

@@ -1152,6 +1152,73 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+struct CloseFromCallbackContext {
+    uint16_t CloseCount;
+    volatile uint16_t CurrentCount;
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS Callback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto Ctx = (CloseFromCallbackContext*)Context;
+
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, nullptr);
+        }
+
+#ifdef _WIN32
+        auto count = (uint16_t)InterlockedIncrement16((volatile short*)&Ctx->CurrentCount);
+#else
+        auto count = (uint16_t)__sync_add_and_fetch((volatile short*)&Ctx->CurrentCount, 1);
+#endif
+        if (Ctx->CloseCount == count-1) {
+            Conn->Close();
+        }
+
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestConnectionCloseFromCallback() {
+    for (uint16_t i = 0; i < 20; i++) {
+        CxPlatWatchdog Watchdog(2000);
+
+        CloseFromCallbackContext Context {i, 0};
+
+        MsQuicRegistration Registration(true);
+        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest",
+            MsQuicSettings()
+                .SetPeerUnidiStreamCount(10)
+                .SetPeerBidiStreamCount(10)
+                .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT),
+            ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest",
+            MsQuicSettings()
+                .SetPeerUnidiStreamCount(10)
+                .SetPeerBidiStreamCount(10),
+            MsQuicCredentialConfig());
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, CloseFromCallbackContext::Callback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration,  CleanUpManual, CloseFromCallbackContext::Callback, &Context);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+        CxPlatSleep(50);
+    }
+}
+
 struct ShutdownStreamContext {
     QUIC_STATUS StartCompleteStatus { QUIC_STATUS_SUCCESS };
     bool ShutdownComplete { false };
