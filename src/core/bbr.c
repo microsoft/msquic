@@ -103,7 +103,7 @@ const uint32_t kProbeRttTimeInUs = 200 * 1000;
 //
 // Bandwidth WindowFilter length, in unit of RTT
 //
-const uint32_t kBandwidthWindowLength = GAIN_CYCLE_LENGTH + 2;
+const uint32_t kBandwidthFilterLength = 10;
 
 //
 // RTT Stats default expiration
@@ -288,34 +288,32 @@ BbrBandwidthFilterOnPacketAcked(
 
         uint64_t SendRate = UINT64_MAX;
         uint64_t AckRate = UINT64_MAX;
-        uint32_t AckDuration = 0;
-        uint32_t SendDuration = 0;
+        uint32_t AckElapsed = 0;
+        uint32_t SendElapsed = 0;
 
         if (AckedPacket->Flags.HasLastAckedPacketInfo) {
             CXPLAT_DBG_ASSERT(AckedPacket->TotalBytesSent >= AckedPacket->LastAckedPacketInfo.TotalBytesSent);
             CXPLAT_DBG_ASSERT(CxPlatTimeAtOrBefore32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
             
-            SendDuration = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
+            SendElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
 
-            if (SendDuration) {
+            if (SendElapsed) {
                 SendRate = (kMicroSecsInSec * BW_UNIT *
                     (AckedPacket->TotalBytesSent - AckedPacket->LastAckedPacketInfo.TotalBytesSent) /
-                    SendDuration);
+                    SendElapsed);
             }
 
-            if (!CxPlatTimeAtOrBefore32(
-                    AckEvent->AdjustedAckTime,
-                    AckedPacket->LastAckedPacketInfo.AdjustedAckTime)) {
-                AckDuration = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.AdjustedAckTime, AckEvent->AdjustedAckTime);
+            if (!CxPlatTimeAtOrBefore32(AckEvent->AdjustedAckTime, AckedPacket->LastAckedPacketInfo.AdjustedAckTime)) {
+                AckElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.AdjustedAckTime, AckEvent->AdjustedAckTime);
             } else {
-                AckDuration = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.AckTime, (uint32_t)TimeNow);
+                AckElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.AckTime, (uint32_t)TimeNow);
             }
 
             CXPLAT_DBG_ASSERT(AckEvent->NumTotalAckedRetransmittableBytes >= AckedPacket->LastAckedPacketInfo.TotalBytesAcked);
-            if (AckDuration) {
+            if (AckElapsed) {
                 AckRate = (kMicroSecsInSec * BW_UNIT *
                            (AckEvent->NumTotalAckedRetransmittableBytes - AckedPacket->LastAckedPacketInfo.TotalBytesAcked) /
-                           AckDuration);
+                           AckElapsed);
             }
         } else if (CxPlatTimeAtOrBefore32(AckedPacket->SentTime, (uint32_t)TimeNow)) {
             SendRate = (kMicroSecsInSec * BW_UNIT *
@@ -327,11 +325,11 @@ BbrBandwidthFilterOnPacketAcked(
             continue;
         }
 
-        uint64_t MeasuredBw = CXPLAT_MIN(SendRate, AckRate);
+        uint64_t DeliveryRate = CXPLAT_MIN(SendRate, AckRate);
 
-        if (MeasuredBw >= WindowedFilterGetBest(&b->WindowedFilter) ||
+        if (DeliveryRate >= WindowedFilterGetBest(&b->WindowedFilter) ||
                 !AckedPacket->Flags.IsAppLimited) {
-            WindowedFilterUpdate(&b->WindowedFilter, MeasuredBw, RttCounter);
+            WindowedFilterUpdate(&b->WindowedFilter, DeliveryRate, RttCounter);
         }
     }
 }
@@ -360,8 +358,7 @@ BbrCongestionControlInRecovery(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
 )
 {
-    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    return Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY;
+    return Cc->Bbr.RecoveryState != RECOVERY_STATE_NOT_RECOVERY;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -414,11 +411,9 @@ BbrCongestionControlTransitToStartup(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-
-    Bbr->BbrState = BBR_STATE_STARTUP;
-    Bbr->PacingGain = kHighGain;
-    Bbr->CwndGain = kHighGain;
+    Cc->Bbr.BbrState = BBR_STATE_STARTUP;
+    Cc->Bbr.PacingGain = kHighGain;
+    Cc->Bbr.CwndGain = kHighGain;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -459,9 +454,8 @@ BbrCongestionControlCanSend(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     uint32_t CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
-    return Bbr->BytesInFlight < CongestionWindow || Bbr->Exemptions > 0;
+    return Cc->Bbr.BytesInFlight < CongestionWindow || Cc->Bbr.Exemptions > 0;
 }
 
 void
@@ -887,11 +881,9 @@ BbrCongestionControlTransitToDrain(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-
-    Bbr->BbrState = BBR_STATE_DRAIN;
-    Bbr->PacingGain = kDrainGain;
-    Bbr->CwndGain = kHighGain;
+    Cc->Bbr.BbrState = BBR_STATE_DRAIN;
+    Cc->Bbr.PacingGain = kDrainGain;
+    Cc->Bbr.CwndGain = kHighGain;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1210,10 +1202,10 @@ BbrCongestionControlReset(
 
     Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
-    Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0);
+    Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0);
 
     Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
-        .WindowedFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0),
+        .WindowedFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0),
         .AppLimited = FALSE,
         .AppLimitedExitTarget = 0,
     };
@@ -1300,10 +1292,10 @@ BbrCongestionControlInitialize(
 
     Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
-    Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0);
+    Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0);
 
     Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
-        .WindowedFilter = NewWindowedFilter(kBandwidthWindowLength, 0, 0),
+        .WindowedFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0),
         .AppLimited = FALSE,
         .AppLimitedExitTarget = 0,
     };

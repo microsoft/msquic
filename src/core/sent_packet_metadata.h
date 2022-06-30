@@ -107,7 +107,7 @@ typedef struct LAST_ACKED_PACKET_INFO {
     uint64_t TotalBytesSent;
 
     //
-    // Total bytes sent when the last acked packet was acked
+    // Total bytes acked when the last acked packet was acked
     // (including the last acked packet)
     //
     uint64_t TotalBytesAcked;
