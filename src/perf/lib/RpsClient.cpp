@@ -331,7 +331,7 @@ RpsClient::Start(
             return Status;
         }
 
-        if (i < RPS_MAX_CLIENT_PORT_COUNT) {
+        if (!SpecificLocalAddresses && i < RPS_MAX_CLIENT_PORT_COUNT) {
             uint32_t AddrLen = sizeof(QUIC_ADDR);
             Status =
                 MsQuic->GetParam(
