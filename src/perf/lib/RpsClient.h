@@ -120,6 +120,7 @@ class RpsClient : public PerfBase {
 public:
 
     RpsClient() {
+        CxPlatZeroMemory(LocalAddresses, sizeof(LocalAddresses));
         for (uint32_t i = 0; i < PERF_MAX_THREAD_COUNT; ++i) {
             Workers[i].Client = this;
         }
@@ -171,6 +172,7 @@ public:
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint32_t WorkerCount;
+    QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
@@ -194,6 +196,7 @@ public:
     QuicBufferScopeQuicAlloc RequestBuffer;
     CXPLAT_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];
+    uint32_t LocalAddressCount {RPS_MAX_CLIENT_PORT_COUNT};
     uint32_t ActiveConnections {0};
     CxPlatEvent AllConnected {true};
     uint64_t StartedRequests {0};
@@ -207,4 +210,5 @@ public:
     UniquePtr<RpsConnectionContext[]> Connections {nullptr};
     bool Running {true};
     bool AffinitizeWorkers {false};
+    bool SpecificLocalAddresses {false};
 };
