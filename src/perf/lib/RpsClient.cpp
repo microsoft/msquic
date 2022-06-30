@@ -24,7 +24,7 @@ PrintHelp(
         "RPS Client options:\n"
         "\n"
         "  -target:<####>              The target server to connect to.\n"
-        "  -bind:<addr>                Local IP address(es) to bind to.\n"
+        "  -bind:<addr>                Local IP address(es)/port(s) to bind to.\n"
         "  -addrs:<####>               The number of local addresses to use (def:%u).\n"
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
