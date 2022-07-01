@@ -463,8 +463,6 @@ QuicLossDetectionOnPacketSent(
             &Connection->CongestionControl, SentPacket->PacketLength);
     }
 
-    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
-
     uint64_t SendPostedBytes = Connection->SendBuffer.PostedBytes;
 
     CXPLAT_LIST_ENTRY* Entry = Connection->Send.SendStreams.Flink;
@@ -479,6 +477,8 @@ QuicLossDetectionOnPacketSent(
         (Stream && QuicStreamAllowedByPeer(Stream)) && !QuicStreamCanSendNow(Stream, FALSE)) {
         QuicCongestionControlSetAppLimited(&Connection->CongestionControl);
     }
+
+    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
 
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 

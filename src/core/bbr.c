@@ -850,15 +850,6 @@ BbrCongestionControlHandleAckInProbeBw(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-BbrCongestionControlDetectShouldExitStartup(
-    _In_ QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    return Cc->Bbr.BbrState == BBR_STATE_STARTUP && Cc->Bbr.BtlbwFound;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrCongestionControlTransitToProbeRtt(
     _In_ QUIC_CONGESTION_CONTROL* Cc,

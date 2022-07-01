@@ -88,6 +88,10 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     BOOLEAN IsMtuProbe              : 1;
     BOOLEAN KeyPhase                : 1;
     BOOLEAN SuspectedLost           : 1;
+
+    //
+    // TRUE if the packet is sent while the transmission rate is limited by application
+    //
     BOOLEAN IsAppLimited            : 1;
     BOOLEAN HasLastAckedPacketInfo  : 1;
 #if DEBUG
