@@ -116,15 +116,18 @@ typedef struct LAST_ACKED_PACKET_INFO {
     //
     uint64_t TotalBytesAcked;
 
+    //
+    // SentTime of last acked packet
+    //
     uint32_t SentTime;
 
     //
-    // Packet acked time
+    // AckTime of last acked packet
     //
     uint32_t AckTime;
 
     //
-    // Packet acked time minus ack delay
+    // Packet acked time minus ack delay of last acked packet
     //
     uint32_t AdjustedAckTime;
 
