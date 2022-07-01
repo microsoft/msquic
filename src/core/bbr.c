@@ -1068,13 +1068,13 @@ BbrCongestionControlOnDataLost(
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
     
-    CXPLAT_DBG_ASSERT(LossEvent->NumLostRetransmittableBytes > 0);
+    CXPLAT_DBG_ASSERT(LossEvent->NumRetransmittableBytes > 0);
 
     Bbr->EndOfRecoveryValid = TRUE;
     Bbr->EndOfRecovery = LossEvent->LargestPacketNumberSent;
 
-    CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumLostRetransmittableBytes);
-    Bbr->BytesInFlight -= LossEvent->NumLostRetransmittableBytes;
+    CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumRetransmittableBytes);
+    Bbr->BytesInFlight -= LossEvent->NumRetransmittableBytes;
     
     uint32_t RecoveryWindow = Bbr->RecoveryWindow;
 
@@ -1100,8 +1100,8 @@ BbrCongestionControlOnDataLost(
         Connection->Stats.Send.PersistentCongestionCount++;
     } else {
         Bbr->RecoveryWindow =
-            RecoveryWindow > LossEvent->NumLostRetransmittableBytes + kMinCwndInMss * DatagramPayloadLength
-            ? RecoveryWindow - LossEvent->NumLostRetransmittableBytes
+            RecoveryWindow > LossEvent->NumRetransmittableBytes + kMinCwndInMss * DatagramPayloadLength
+            ? RecoveryWindow - LossEvent->NumRetransmittableBytes
             : kMinCwndInMss * DatagramPayloadLength;
     }
 
