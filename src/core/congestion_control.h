@@ -51,7 +51,7 @@ typedef struct QUIC_LOSS_EVENT {
     uint64_t LargestPacketNumberSent;
 
     uint32_t NumRetransmittableBytes;
- 
+
     BOOLEAN PersistentCongestion : 1;
 
 } QUIC_LOSS_EVENT;
