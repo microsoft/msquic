@@ -104,7 +104,7 @@ impl Addr {
 pub struct Status {}
 
 impl Status {
-    /// Determines if a MsQuic status is considered a succes, which includes
+    /// Determines if a MsQuic status is considered a success, which includes
     /// both "no error" and "pending" status codes.
     #[cfg(target_os = "windows")]
     pub fn succeeded(status: u32) -> bool {
