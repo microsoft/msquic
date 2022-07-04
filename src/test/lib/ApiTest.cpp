@@ -1152,18 +1152,11 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-
 struct CloseFromCallbackContext {
     uint16_t CloseCount;
     volatile uint16_t CurrentCount;
-    // assuming server/client have 1 connection
-    MsQuicStream* ServerStreams[10] = {};
-    uint8_t NumServerStream {0};
-    MsQuicStream* ClientStreams[10] = {};
-    uint8_t NumClientStream {0};
-
-    uint8_t LRawBuffer[100];
-    QUIC_BUFFER LBuffer { sizeof(LRawBuffer), LRawBuffer };
+    uint8_t RawBuffer[100];
+    QUIC_BUFFER BufferToSend { sizeof(RawBuffer), RawBuffer };
 
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
 
@@ -1182,16 +1175,15 @@ struct CloseFromCallbackContext {
         }
         if (IsServer) {
             if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                Conn->SendResumptionTicket();
+
                 QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-                MsQuicStream* Stream = new MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, StreamCallback, Context);
-                Ctx->ServerStreams[Ctx->NumServerStream++] = Stream; // to delete if connection is deleted earlier
-                Stream->Start(QUIC_STREAM_START_FLAG_NONE);
-                Stream->Send(&Ctx->LBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN);
-
-                if (QUIC_FAILED(Status = MsQuic->ConnectionSendResumptionTicket(Conn->Handle, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL))) {
-                    TEST_FAILURE("Failed to send ResumptionTicket %d", Status);
-                    return Status;
+                MsQuicStream* Stream = new(std::nothrow) MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, StreamCallback, Context);
+                if (QUIC_FAILED(Status = Stream->Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
+                    Stream->Close();
+                }
+                if (QUIC_FAILED(Status = Stream->Send(&Ctx->BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN))) {
+                    Stream->Close();
                 }
             }
         }
@@ -1202,11 +1194,6 @@ struct CloseFromCallbackContext {
         auto count = (uint16_t)__sync_add_and_fetch((volatile short*)&Ctx->CurrentCount, 1);
 #endif
         if (Ctx->CloseCount == count-1) {
-            MsQuicStream** Streams = IsServer ? Ctx->ServerStreams : Ctx->ClientStreams;
-            uint8_t NumStream = IsServer ? Ctx->NumServerStream : Ctx->NumClientStream;
-            for (int i = 0; i < NumStream; i++) {
-                Streams[i]->Close();
-            }
             Conn->Close();
         }
 
@@ -1258,10 +1245,8 @@ QuicTestConnectionCloseFromCallback() {
 
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, CloseFromCallbackContext::StreamCallback, &Context);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_NONE));
-        uint8_t RawBuffer[100];
-        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
-        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Context.BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
 
         CxPlatSleep(50);
     }
