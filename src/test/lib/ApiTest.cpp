@@ -1152,13 +1152,16 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-#include "unordered_map"
-#include "unordered_set"
 
 struct CloseFromCallbackContext {
     uint16_t CloseCount;
     volatile uint16_t CurrentCount;
-    std::unordered_map<MsQuicConnection*, std::unordered_set<MsQuicStream*>> Conn2Streams;
+    // assuming server/client have 1 connection
+    MsQuicStream* ServerStreams[10] = {};
+    uint8_t NumServerStream {0};
+    MsQuicStream* ClientStreams[10] = {};
+    uint8_t NumClientStream {0};
+
     uint8_t LRawBuffer[100];
     QUIC_BUFFER LBuffer { sizeof(LRawBuffer), LRawBuffer };
 
@@ -1174,6 +1177,7 @@ struct CloseFromCallbackContext {
         auto Ctx = (CloseFromCallbackContext*)Context;
 
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            // This stream send shutdown by receiving FIN
             new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
         }
         if (IsServer) {
@@ -1181,7 +1185,7 @@ struct CloseFromCallbackContext {
                 QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
                 MsQuicStream* Stream = new MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, StreamCallback, Context);
-                Ctx->Conn2Streams[Conn].insert(Stream); // to delete if connection is deleted earlier
+                Ctx->ServerStreams[Ctx->NumServerStream++] = Stream; // to delete if connection is deleted earlier
                 Stream->Start(QUIC_STREAM_START_FLAG_NONE);
                 Stream->Send(&Ctx->LBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN);
 
@@ -1198,8 +1202,10 @@ struct CloseFromCallbackContext {
         auto count = (uint16_t)__sync_add_and_fetch((volatile short*)&Ctx->CurrentCount, 1);
 #endif
         if (Ctx->CloseCount == count-1) {
-            for (auto Stream: Ctx->Conn2Streams[Conn]) {
-                Stream->Close();
+            MsQuicStream** Streams = IsServer ? Ctx->ServerStreams : Ctx->ClientStreams;
+            uint8_t NumStream = IsServer ? Ctx->NumServerStream : Ctx->NumClientStream;
+            for (int i = 0; i < NumStream; i++) {
+                Streams[i]->Close();
             }
             Conn->Close();
         }
