@@ -1098,7 +1098,6 @@ QuicSendFlush(
         return TRUE;
     }
 #endif
-
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
@@ -1118,6 +1117,23 @@ QuicSendFlush(
 
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
+    }
+
+    uint64_t TimeNow = CxPlatTimeUs64();
+    if(Send->LastFlushTimeValid &&
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= Connection->Settings.IdleSrcCidChangeMs) {
+            QUIC_CID* DestCid = &Path->DestCid->CID;
+            QUIC_CID_HASH_ENTRY* SourceCid = QuicCidNewSource(Connection, DestCid->Length, DestCid->Data);
+            if(SourceCid == NULL) {
+                //TODO: Out of memory, but what to do ? just log and return or continue to flush it as-is.
+
+            }
+
+            /*QuicTraceEvent(ConnSourceCidChanged,
+                "[conn][%p] (SeqNum=%llu) Updated Source CID due to Idle: %!CID!",
+                Connection,
+                SourceCid->CID.SequenceNumber,
+                CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));*/
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;

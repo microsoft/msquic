@@ -129,6 +129,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.CongestionControlAlgorithm) {
         Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
+    if(!Settings->IsSet.IdleSrcCidChangeMs) {
+        Settings->IdleSrcCidChangeMs = QUIC_DEFAULT_SEND_IDLE_CHANGE_SRC_CID_MS;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
