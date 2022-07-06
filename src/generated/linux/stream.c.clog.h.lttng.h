@@ -95,22 +95,30 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStartComplete,
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamShutdownComplete
-// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]
+// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByPeer=%hhu, ConnectionErrorCode=0x%llx]
 // QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
-            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByPeer=%hhu, ConnectionErrorCode=0x%llx]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdownByPeer,
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Event.SHUTDOWN_COMPLETE.ConnectionShutdown = arg3
+// arg4 = arg4 = Event.SHUTDOWN_COMPLETE.ConnectionShutdownByPeer = arg4
+// arg5 = arg5 = Event.SHUTDOWN_COMPLETE.ConnectionErrorCode = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3,
+        unsigned char, arg4,
+        unsigned long long, arg5), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
     )
 )
 
