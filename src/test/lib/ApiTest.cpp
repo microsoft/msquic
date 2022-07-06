@@ -1158,7 +1158,7 @@ struct CloseFromCallbackContext {
     uint8_t RawBuffer[100];
     QUIC_BUFFER BufferToSend { sizeof(RawBuffer), RawBuffer };
 
-    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
         return QUIC_STATUS_SUCCESS;
     }
 
