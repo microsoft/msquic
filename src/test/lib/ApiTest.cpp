@@ -1159,7 +1159,6 @@ struct CloseFromCallbackContext {
     QUIC_BUFFER BufferToSend { sizeof(RawBuffer), RawBuffer };
 
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
-
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -1167,19 +1166,19 @@ struct CloseFromCallbackContext {
         auto Ctx = (CloseFromCallbackContext*)Context;
 
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            // This stream send shutdown by receiving FIN
             new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
         }
+
         if (IsServer) {
             if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
-                Conn->SendResumptionTicket();
+                (void)Conn->SendResumptionTicket();
 
                 QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-                MsQuicStream* Stream = new(std::nothrow) MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, StreamCallback, Context);
+                auto Stream = new(std::nothrow) MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, StreamCallback, Context);
                 if (QUIC_FAILED(Stream->GetInitStatus()) || QUIC_FAILED(Status = Stream->Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
-                    Stream->Close();
+                    delete Stream;
                 } else {
-                    Stream->Send(&Ctx->BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN);
+                    (void)Stream->Send(&Ctx->BufferToSend, 1, QUIC_SEND_FLAG_FIN);
                 }
             }
         }
@@ -1199,6 +1198,7 @@ struct CloseFromCallbackContext {
     static QUIC_STATUS CallbackC(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return Callback(Conn, Context, Event, false);
     }
+
     static QUIC_STATUS CallbackS(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return Callback(Conn, Context, Event, true);
     }
@@ -1237,18 +1237,18 @@ QuicTestConnectionCloseFromCallback() {
 
         MsQuicConnection Connection(Registration,  CleanUpManual, CloseFromCallbackContext::CallbackC, &Context);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+        //
+        // Start the stream **before** starting the connection so not to race with connection closure.
+        // Don't create it on the stack so we can leverage the "AutoDelete" clean up behavior on shutdown complete.
+        //
+        auto Stream = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, CloseFromCallbackContext::StreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream->GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream->Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
+        TEST_QUIC_SUCCEEDED(Stream->Send(&Context.BufferToSend, 1, QUIC_SEND_FLAG_FIN));
+
         TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-
-        // This is for Connection to be connected (or closed), or being aborted by stream operation.
-        CxPlatSleep(50);
-
-        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, CloseFromCallbackContext::StreamCallback, &Context);
-        if (QUIC_FAILED(Stream.GetInitStatus()) || QUIC_FAILED(Stream.Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
-            Stream.Close();
-        } else {
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Context.BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-        }
-
+    
         CxPlatSleep(50);
     }
 }
