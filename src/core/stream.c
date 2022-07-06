@@ -438,11 +438,17 @@ QuicStreamIndicateStartComplete(
     _In_ QUIC_STATUS Status
     )
 {
+    if (Stream->Flags.StartedIndicated) {
+        return;
+    }
+    Stream->Flags.StartedIndicated = TRUE;
+
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
     Event.START_COMPLETE.PeerAccepted =
+        QUIC_SUCCEEDED(Status) &&
         !(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,

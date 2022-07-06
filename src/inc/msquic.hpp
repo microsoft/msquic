@@ -1198,7 +1198,7 @@ struct MsQuicStream {
     MsQuicStream(
         _In_ HQUIC StreamHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
-        _In_ MsQuicStreamCallback* Callback,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
         ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         Handle = StreamHandle;

@@ -36,6 +36,7 @@ void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
+void QuicTestCloseConnBeforeStreamFlush();
 void QuicTestGlobalParam();
 void QuicTestCommonParam();
 void QuicTestRegistrationParam();
@@ -1059,4 +1060,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK \
     QUIC_CTL_CODE(98, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 98
+#define IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH \
+    QUIC_CTL_CODE(99, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 99

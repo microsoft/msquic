@@ -470,6 +470,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1247,6 +1248,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK:
         QuicTestCtlRun(QuicTestConnectionCloseFromCallback());
+        break;
+
+    case IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH:
+        QuicTestCtlRun(QuicTestCloseConnBeforeStreamFlush());
         break;
 
     default:
