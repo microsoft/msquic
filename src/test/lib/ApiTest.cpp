@@ -1160,9 +1160,6 @@ struct CloseFromCallbackContext {
 
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
 
-        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
-            Stream->Close(); // or abort
-        }
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -1179,11 +1176,10 @@ struct CloseFromCallbackContext {
 
                 QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
                 MsQuicStream* Stream = new(std::nothrow) MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete, StreamCallback, Context);
-                if (QUIC_FAILED(Status = Stream->Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
+                if (QUIC_FAILED(Stream->GetInitStatus()) || QUIC_FAILED(Status = Stream->Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
                     Stream->Close();
-                }
-                if (QUIC_FAILED(Status = Stream->Send(&Ctx->BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN))) {
-                    Stream->Close();
+                } else {
+                    Stream->Send(&Ctx->BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN);
                 }
             }
         }
@@ -1243,10 +1239,15 @@ QuicTestConnectionCloseFromCallback() {
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
+        // This is for Connection to be connected (or closed), or being aborted by stream operation.
+        CxPlatSleep(50);
+
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, CloseFromCallbackContext::StreamCallback, &Context);
-        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
-        TEST_QUIC_SUCCEEDED(Stream.Send(&Context.BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+        if (QUIC_FAILED(Stream.GetInitStatus()) || QUIC_FAILED(Stream.Start(QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL))) {
+            Stream.Close();
+        } else {
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Context.BufferToSend, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+        }
 
         CxPlatSleep(50);
     }
