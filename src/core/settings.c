@@ -130,7 +130,7 @@ QuicSettingsSetDefault(
         Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
     if(!Settings->IsSet.IdleSrcCidChangeMs) {
-        Settings->IdleSrcCidChangeMs = QUIC_DEFAULT_SEND_IDLE_CHANGE_SRC_CID_MS;
+        Settings->IdleSrcCidChangeMs = QUIC_DEFAULT_IDLE_CHANGE_SRC_CID_MS;
     }
 }
 
