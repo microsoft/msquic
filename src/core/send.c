@@ -1119,8 +1119,12 @@ QuicSendFlush(
         return TRUE;
     }
 
+    //
+    // Connection CID changes on idle state after an amount of time
+    //
     uint64_t TimeNow = CxPlatTimeUs64();
-    if (Send->LastFlushTimeValid &&
+    if (Connection->Settings.IdleSrcCidChangeMs != 0 &&
+        Send->LastFlushTimeValid &&
         CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >=
         MS_TO_US(Connection->Settings.IdleSrcCidChangeMs)) {
             QuicConnGenerateNewSourceCids(Connection, TRUE);
