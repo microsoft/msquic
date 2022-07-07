@@ -1838,6 +1838,59 @@ void QuicTestValidateStream(bool Connect)
     }
 }
 
+uint8_t RawNoopBuffer[100];
+QUIC_BUFFER NoopBuffer { sizeof(RawNoopBuffer), RawNoopBuffer };
+
+void QuicTestCloseConnBeforeStreamFlush()
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings()
+            .SetPeerUnidiStreamCount(1),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings(),
+        MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    struct TestContext {
+        static QUIC_STATUS ServerCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+            if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+                new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete);
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+        static QUIC_STATUS ClientCallback(_In_ MsQuicConnection* Conn, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+            if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                auto Stream = new(std::nothrow) MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete);
+                if (QUIC_FAILED(Stream->GetInitStatus()) ||
+                    QUIC_FAILED(Stream->Send(&NoopBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN))) {
+                    TEST_FAILURE("Stream creation or send failed.");
+                    delete Stream;
+                }
+                Conn->Close();
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+    };
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, TestContext::ServerCallback);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration,  CleanUpManual, TestContext::ClientCallback);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+    CxPlatSleep(50);
+}
+
 class SecConfigTestContext {
 public:
     CXPLAT_EVENT Event;
