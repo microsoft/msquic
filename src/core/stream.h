@@ -727,6 +727,9 @@ QuicStreamAddOutFlowBlockedReason(
     _In_ QUIC_FLOW_BLOCK_REASON Reason
     )
 {
+    CXPLAT_DBG_ASSERTMSG(
+        (Reason & (Reason - 1)) == 0,
+        "More than one reason is not allowed");
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         uint64_t Now = CxPlatTimeUs64();
         if (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) {

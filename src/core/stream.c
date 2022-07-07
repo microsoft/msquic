@@ -270,7 +270,7 @@ QuicStreamStart(
         QuicStreamRecvGetState(Stream));
 
     if (Stream->Flags.SendEnabled) {
-        OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
+        QuicStreamAddOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_APP);
     }
 
     if (Stream->SendFlags != 0) {
@@ -296,13 +296,9 @@ QuicStreamStart(
             QuicConnIsServer(Stream->Connection),
             &Stream->Connection->PeerTransportParams);
     if (Stream->MaxAllowedSendOffset == 0) {
-        OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
+        QuicStreamAddOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL);
     }
     Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
-
-    if (OutFlowBlockedReasons != 0) {
-        QuicStreamAddOutFlowBlockedReason(Stream, OutFlowBlockedReasons);
-    }
 
 Exit:
 
