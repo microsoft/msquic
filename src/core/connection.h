@@ -612,6 +612,9 @@ typedef struct QUIC_CONNECTION {
     //
     uint16_t KeepAlivePadding;
 
+    //
+    // Connection blocked timings.
+    //
     struct {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER Scheduling;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER Pacing;
