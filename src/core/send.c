@@ -1120,20 +1120,10 @@ QuicSendFlush(
     }
 
     uint64_t TimeNow = CxPlatTimeUs64();
-    if(Send->LastFlushTimeValid &&
-        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= Connection->Settings.IdleSrcCidChangeMs) {
-            QUIC_CID* DestCid = &Path->DestCid->CID;
-            QUIC_CID_HASH_ENTRY* SourceCid = QuicCidNewSource(Connection, DestCid->Length, DestCid->Data);
-            if(SourceCid == NULL) {
-                //TODO: Out of memory, but what to do ? just log and return or continue to flush it as-is.
-
-            }
-
-            /*QuicTraceEvent(ConnSourceCidChanged,
-                "[conn][%p] (SeqNum=%llu) Updated Source CID due to Idle: %!CID!",
-                Connection,
-                SourceCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));*/
+    if (Send->LastFlushTimeValid &&
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >=
+        MS_TO_US(Connection->Settings.IdleSrcCidChangeMs)) {
+            QuicConnGenerateNewSourceCids(Connection, TRUE);
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
