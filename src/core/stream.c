@@ -215,6 +215,7 @@ QuicStreamStart(
     QUIC_STATUS Status;
 
     BOOLEAN ClosedLocally = Stream->Connection->State.ClosedLocally;
+    uint8_t OutFlowBlockedReasons = 0;
     if ((ClosedLocally || Stream->Connection->State.ClosedRemotely) ||
         Stream->Flags.Started) {
         Status =
@@ -269,7 +270,7 @@ QuicStreamStart(
         QuicStreamRecvGetState(Stream));
 
     if (Stream->Flags.SendEnabled) {
-        Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
+        OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
     }
 
     if (Stream->SendFlags != 0) {
@@ -295,11 +296,21 @@ QuicStreamStart(
             QuicConnIsServer(Stream->Connection),
             &Stream->Connection->PeerTransportParams);
     if (Stream->MaxAllowedSendOffset == 0) {
-        Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
+        OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
     }
     Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
-    if (Stream->OutFlowBlockedReasons != 0) {
+    if (OutFlowBlockedReasons != 0) {
+        Stream->OutFlowBlockedReasons |= OutFlowBlockedReasons;
+        uint64_t Now = CxPlatTimeUs64();
+        if (Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) {
+            Stream->BlockedTimings.FlowControl.StartTime = Now;
+        }
+
+        if (Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_APP) {
+            Stream->BlockedTimings.App.StartTime = Now;
+        }
+
         QuicTraceEvent(
             StreamOutFlowBlocked,
             "[strm][%p] Send Blocked Flags: %hhu",
@@ -575,6 +586,7 @@ QuicStreamParamSet(
     case QUIC_PARAM_STREAM_ID:
     case QUIC_PARAM_STREAM_0RTT_LENGTH:
     case QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE:
+    case QUIC_PARAM_STREAM_BLOCKED_TIMINGS:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
 
@@ -713,7 +725,79 @@ QuicStreamParamGet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    case QUIC_PARAM_STREAM_BLOCKED_TIMINGS:
+        if (*BufferLength < sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT) {
+            *BufferLength = sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
 
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint64_t Now = CxPlatTimeUs64();
+        QUIC_FLOW_BLOCKED_TIMING* Timing = (QUIC_FLOW_BLOCKED_TIMING*)Buffer;
+        QUIC_CONNECTION* Connection = Stream->Connection;
+        Timing->Reason = QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
+        Timing->Time = Stream->BlockedTimings.StreamIdFlowControl.CumulativeTime;
+        if (Stream->BlockedTimings.StreamIdFlowControl.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Stream->BlockedTimings.StreamIdFlowControl.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
+        Timing->Time = Stream->BlockedTimings.FlowControl.CumulativeTime;
+        if (Stream->BlockedTimings.FlowControl.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Stream->BlockedTimings.FlowControl.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_APP;
+        Timing->Time = Stream->BlockedTimings.App.CumulativeTime;
+        if (Stream->BlockedTimings.App.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Stream->BlockedTimings.App.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_SCHEDULING;
+        Timing->Time = Connection->BlockedTimings.Scheduling.CumulativeTime;
+        if (Connection->BlockedTimings.Scheduling.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_PACING;
+        Timing->Time = Connection->BlockedTimings.Pacing.CumulativeTime;
+        if (Connection->BlockedTimings.Pacing.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT;
+        Timing->Time = Connection->BlockedTimings.AmplificationPort.CumulativeTime;
+        if (Connection->BlockedTimings.AmplificationPort.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
+        Timing->Time = Connection->BlockedTimings.CongestionControl.CumulativeTime;
+        if (Connection->BlockedTimings.CongestionControl.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.StartTime, Now);
+        }
+        ++Timing;
+        Timing->Reason = QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL;
+        Timing->Time = Connection->BlockedTimings.FlowControl.CumulativeTime;
+        if (Connection->BlockedTimings.FlowControl.StartTime != 0) {
+            Timing->Time +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.StartTime, Now);
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

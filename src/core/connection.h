@@ -612,6 +612,14 @@ typedef struct QUIC_CONNECTION {
     //
     uint16_t KeepAlivePadding;
 
+    struct {
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER Scheduling;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER Pacing;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER AmplificationPort;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
+    } BlockedTimings;
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
@@ -853,6 +861,23 @@ QuicConnAddOutFlowBlockedReason(
     )
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if (Reason & QUIC_FLOW_BLOCKED_PACING) {
+            Connection->BlockedTimings.Pacing.StartTime = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_SCHEDULING) {
+            Connection->BlockedTimings.Scheduling.StartTime = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
+            Connection->BlockedTimings.AmplificationPort.StartTime = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) {
+            Connection->BlockedTimings.CongestionControl.StartTime = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) {
+            Connection->BlockedTimings.FlowControl.StartTime = Now;
+        }
+
         Connection->OutFlowBlockedReasons |= Reason;
         QuicTraceEvent(
             ConnOutFlowBlocked,
@@ -872,6 +897,38 @@ QuicConnRemoveOutFlowBlockedReason(
     )
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_PACING) &&
+            (Reason & QUIC_FLOW_BLOCKED_PACING)) {
+            Connection->BlockedTimings.Pacing.CumulativeTime +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.StartTime, Now);
+            Connection->BlockedTimings.Pacing.StartTime = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_SCHEDULING) &&
+            (Reason & QUIC_FLOW_BLOCKED_SCHEDULING)) {
+            Connection->BlockedTimings.Scheduling.CumulativeTime +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.StartTime, Now);
+            Connection->BlockedTimings.Scheduling.StartTime = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) &&
+            (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
+            Connection->BlockedTimings.AmplificationPort.CumulativeTime +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.StartTime, Now);
+            Connection->BlockedTimings.AmplificationPort.StartTime = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL)) {
+            Connection->BlockedTimings.CongestionControl.CumulativeTime +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.StartTime, Now);
+            Connection->BlockedTimings.CongestionControl.StartTime = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
+            Connection->BlockedTimings.FlowControl.CumulativeTime +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.StartTime, Now);
+            Connection->BlockedTimings.FlowControl.StartTime = 0;
+        }
+
         Connection->OutFlowBlockedReasons &= ~Reason;
         QuicTraceEvent(
             ConnOutFlowBlocked,

@@ -661,6 +661,24 @@ typedef struct QUIC_TLS_SECRETS {
     uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
 } QUIC_TLS_SECRETS;
 
+typedef enum QUIC_FLOW_BLOCK_REASON {
+    QUIC_FLOW_BLOCKED_SCHEDULING            = 0x01,
+    QUIC_FLOW_BLOCKED_PACING                = 0x02,
+    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT    = 0x04,
+    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL    = 0x08,
+    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL     = 0x10,
+    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL= 0x20,
+    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL   = 0x40,
+    QUIC_FLOW_BLOCKED_APP                   = 0x80
+} QUIC_FLOW_BLOCK_REASON;
+
+#define QUIC_FLOW_BLOCK_REASON_COUNT 8
+
+typedef struct QUIC_FLOW_BLOCKED_TIMING {
+    QUIC_FLOW_BLOCK_REASON Reason;
+    uint64_t Time;
+} QUIC_FLOW_BLOCKED_TIMING;
+
 //
 // Functions for associating application contexts with QUIC handles. MsQuic
 // provides no explicit synchronization between parallel calls to these
@@ -817,6 +835,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+#define QUIC_PARAM_STREAM_BLOCKED_TIMINGS               0X08000004  // uint64_t[]
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

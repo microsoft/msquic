@@ -417,6 +417,14 @@ typedef struct QUIC_STREAM {
     //
     QUIC_OPERATION* ReceiveCompleteOperation;
 
+    //
+    // Stream blocked timings.
+    //
+    struct {
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER StreamIdFlowControl;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER App;
+    } BlockedTimings;
 } QUIC_STREAM;
 
 inline
@@ -720,6 +728,15 @@ QuicStreamAddOutFlowBlockedReason(
     )
 {
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) {
+            Stream->BlockedTimings.FlowControl.StartTime = Now;
+        }
+
+        if (Reason & QUIC_FLOW_BLOCKED_APP) {
+            Stream->BlockedTimings.App.StartTime = Now;
+        }
+
         Stream->OutFlowBlockedReasons |= Reason;
         QuicTraceEvent(
             StreamOutFlowBlocked,
@@ -739,6 +756,31 @@ QuicStreamRemoveOutFlowBlockedReason(
     )
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
+            Stream->BlockedTimings.FlowControl.CumulativeTime +=
+                CxPlatTimeDiff64(
+                    Stream->BlockedTimings.FlowControl.StartTime, Now);
+            Stream->BlockedTimings.FlowControl.StartTime = 0;
+        }
+
+        if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_APP) &&
+            (Reason & QUIC_FLOW_BLOCKED_APP)) {
+            Stream->BlockedTimings.App.CumulativeTime +=
+                CxPlatTimeDiff64(
+                    Stream->BlockedTimings.App.StartTime, Now);
+            Stream->BlockedTimings.App.StartTime = 0;
+        }
+
+        if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
+            Stream->BlockedTimings.StreamIdFlowControl.CumulativeTime +=
+                CxPlatTimeDiff64(
+                    Stream->BlockedTimings.StreamIdFlowControl.StartTime, Now);
+            Stream->BlockedTimings.StreamIdFlowControl.StartTime = 0;
+        }
+
         Stream->OutFlowBlockedReasons &= ~Reason;
         QuicTraceEvent(
             StreamOutFlowBlocked,
