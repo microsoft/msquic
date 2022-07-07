@@ -588,7 +588,7 @@ ThroughputClient::StreamCallback(
             MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_BLOCKED_TIMINGS, &BufferLength, Timings);
             WriteOutput("Flow blocked timing:\n");
             for (int i = 0; i < ARRAYSIZE(Timings); ++i) {
-                WriteOutput("Reason: %lu Time: %llu\n", Timings[i].Reason, Timings[i].Time);
+                WriteOutput("Reason: %d Time: %llu\n", Timings[i].Reason, Timings[i].Time);
             }
         }
         OnStreamShutdownComplete(StrmContext);
