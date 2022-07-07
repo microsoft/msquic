@@ -1695,6 +1695,26 @@ namespace Microsoft.Quic
         }
     }
 
+    internal enum QUIC_FLOW_BLOCK_REASON
+    {
+        QUIC_FLOW_BLOCKED_SCHEDULING = 0x01,
+        QUIC_FLOW_BLOCKED_PACING = 0x02,
+        QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT = 0x04,
+        QUIC_FLOW_BLOCKED_CONGESTION_CONTROL = 0x08,
+        QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL = 0x10,
+        QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL = 0x20,
+        QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL = 0x40,
+        QUIC_FLOW_BLOCKED_APP = 0x80,
+    }
+
+    internal partial struct QUIC_FLOW_BLOCKED_TIMING
+    {
+        internal QUIC_FLOW_BLOCK_REASON Reason;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong Time;
+    }
+
     internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -2547,6 +2567,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64")]
         internal const uint QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
 
+        [NativeTypeName("#define QUIC_FLOW_BLOCK_REASON_COUNT 8")]
+        internal const uint QUIC_FLOW_BLOCK_REASON_COUNT = 8;
+
         [NativeTypeName("#define QUIC_PARAM_PREFIX_GLOBAL 0x01000000")]
         internal const uint QUIC_PARAM_PREFIX_GLOBAL = 0x01000000;
 
@@ -2723,6 +2746,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
         internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_BLOCKED_TIMINGS 0X08000004")]
+        internal const uint QUIC_PARAM_STREAM_BLOCKED_TIMINGS = 0X08000004;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;
