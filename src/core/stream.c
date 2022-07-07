@@ -470,11 +470,17 @@ QuicStreamIndicateShutdownComplete(
             Stream->Connection->State.ClosedRemotely;
         Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
             Stream->Flags.HandleClosed;
+        Event.SHUTDOWN_COMPLETE.ConnectionShutdownByPeer =
+            Stream->Connection->State.AppClosed;
+        Event.SHUTDOWN_COMPLETE.ConnectionErrorCode =
+            Stream->Connection->CloseErrorCode;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
-            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByPeer=%hhu, ConnectionErrorCode=0x%llx]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdownByPeer,
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

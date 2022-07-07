@@ -2410,19 +2410,36 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("BOOLEAN : 7")]
-                internal byte RESERVED
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte ConnectionShutdownByPeer
                 {
                     get
                     {
-                        return (byte)((_bitfield >> 1) & 0x7Fu);
+                        return (byte)((_bitfield >> 1) & 0x1u);
                     }
 
                     set
                     {
-                        _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
                     }
                 }
+
+                [NativeTypeName("BOOLEAN : 6")]
+                internal byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 2) & 0x3Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x3Fu << 2)) | ((value & 0x3Fu) << 2));
+                    }
+                }
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ConnectionErrorCode;
             }
 
             internal partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct

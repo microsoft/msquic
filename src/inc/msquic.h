@@ -1254,8 +1254,10 @@ typedef struct QUIC_STREAM_EVENT {
         } SEND_SHUTDOWN_COMPLETE;
         struct {
             BOOLEAN ConnectionShutdown;
-            BOOLEAN AppCloseInProgress  : 1;
-            BOOLEAN RESERVED            : 7;
+            BOOLEAN AppCloseInProgress       : 1;
+            BOOLEAN ConnectionShutdownByPeer : 1;
+            BOOLEAN RESERVED                 : 6;
+            QUIC_UINT62 ConnectionErrorCode;
         } SHUTDOWN_COMPLETE;
         struct {
             uint64_t ByteCount;
