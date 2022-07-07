@@ -4672,7 +4672,6 @@ void QuicTestStreamParam()
             TEST_EQUAL(Length, sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT);
 
             QUIC_FLOW_BLOCKED_TIMING Timings[QUIC_FLOW_BLOCK_REASON_COUNT];
-            uint64_t IdealSendBufferSize = 65535;
             TEST_QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     Stream.Handle,

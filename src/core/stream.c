@@ -725,7 +725,8 @@ QuicStreamParamGet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-    case QUIC_PARAM_STREAM_BLOCKED_TIMINGS:
+    case QUIC_PARAM_STREAM_BLOCKED_TIMINGS: {
+
         if (*BufferLength < sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT) {
             *BufferLength = sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT;
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -798,6 +799,7 @@ QuicStreamParamGet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    }
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
