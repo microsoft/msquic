@@ -301,21 +301,7 @@ QuicStreamStart(
     Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (OutFlowBlockedReasons != 0) {
-        Stream->OutFlowBlockedReasons |= OutFlowBlockedReasons;
-        uint64_t Now = CxPlatTimeUs64();
-        if (Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) {
-            Stream->BlockedTimings.FlowControl.StartTime = Now;
-        }
-
-        if (Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_APP) {
-            Stream->BlockedTimings.App.StartTime = Now;
-        }
-
-        QuicTraceEvent(
-            StreamOutFlowBlocked,
-            "[strm][%p] Send Blocked Flags: %hhu",
-            Stream,
-            Stream->OutFlowBlockedReasons);
+        QuicStreamAddOutFlowBlockedReason(Stream, OutFlowBlockedReasons);
     }
 
 Exit:
