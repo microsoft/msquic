@@ -493,7 +493,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The default idle time to change source cid before flush
 //
-#define QUIC_DEFAULT_IDLE_CHANGE_SRC_CID_MS    20000
+#define QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS    20000
 
 /*************************************************************
                   TRANSPORT PARAMETERS
@@ -565,7 +565,7 @@ CXPLAT_STATIC_ASSERT(
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
-#define QUIC_SETTING_IDLE_CHANGE_SRC_CID_MS         "IdleChangeSrcCidMs"
+#define QUIC_SETTING_IDLE_SRC_CID_CHANGE_MS         "IdleChangeSrcCidMs"
 
 #define QUIC_SETTING_INITIAL_RTT                    "InitialRttMs"
 #define QUIC_SETTING_MAX_ACK_DELAY                  "MaxAckDelayMs"
