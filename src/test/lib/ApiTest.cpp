@@ -4640,6 +4640,47 @@ void QuicTestStreamParam()
             TEST_EQUAL(Priority, Expected);
         }
     }
+
+    //
+    // QUIC_PARAM_STREAM_BLOCKED_TIMINGS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_STREAM_BLOCKED_TIMINGS");
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        uint64_t Dummy = 123;
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_BLOCKED_TIMINGS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        {
+            TestScopeLogger LogScope1("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_BLOCKED_TIMINGS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT);
+
+            QUIC_FLOW_BLOCKED_TIMING Timings[QUIC_FLOW_BLOCK_REASON_COUNT];
+            uint64_t IdealSendBufferSize = 65535;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_BLOCKED_TIMINGS,
+                    &Length,
+                    &Timings));
+        }
+    }
 }
 
 void

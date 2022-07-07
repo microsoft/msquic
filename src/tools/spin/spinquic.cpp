@@ -461,7 +461,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 {
     SetParamHelper Helper;
 
-    switch (0x08000000 | (GetRandom(4))) {
+    switch (0x08000000 | (GetRandom(5))) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
         break; // Get Only
     case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
@@ -470,6 +470,8 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
         break; // Get Only
     case QUIC_PARAM_STREAM_PRIORITY:                                // uint16_t
         Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX));
+        break;
+    case QUIC_PARAM_STREAM_BLOCKED_TIMINGS:
         break;
     default:
         break;
@@ -490,7 +492,7 @@ const uint32_t ParamCounts[] = {
 #else
     0,
 #endif
-    QUIC_PARAM_STREAM_PRIORITY + 1
+    QUIC_PARAM_STREAM_BLOCKED_TIMINGS + 1
 };
 
 #define GET_PARAM_LOOP_COUNT 10
