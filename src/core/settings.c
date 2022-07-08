@@ -1403,7 +1403,6 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
 
-
     //
     // N.B. Anything after this needs to be size checked
     //
