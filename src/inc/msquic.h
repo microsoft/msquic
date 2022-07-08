@@ -835,7 +835,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
-#define QUIC_PARAM_STREAM_BLOCKED_TIMINGS               0X08000004  // uint64_t[]
+#define QUIC_PARAM_STREAM_BLOCKED_TIMINGS               0X08000004  // QUIC_FLOW_BLOCKED_TIMING[QUIC_FLOW_BLOCK_REASON_COUNT]
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
