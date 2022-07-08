@@ -1712,7 +1712,7 @@ namespace Microsoft.Quic
         internal QUIC_FLOW_BLOCK_REASON Reason;
 
         [NativeTypeName("uint64_t")]
-        internal ulong Time;
+        internal ulong TimeUs;
     }
 
     internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
