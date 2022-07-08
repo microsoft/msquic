@@ -1127,7 +1127,7 @@ QuicSendFlush(
     if (Connection->Settings.IdleSrcCidChangeMs != 0 &&
         Send->LastFlushTimeValid &&
         CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.IdleSrcCidChangeMs)) {
-            QuicConnGenerateNewSourceCids(Connection, TRUE);
+        QuicConnGenerateNewSourceCids(Connection, TRUE);
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
