@@ -9241,6 +9241,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingIdleSrcCidChangeMs": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] IdleSrcCidChangeMs     = %u",
+      "UniqueId": "SettingIdleSrcCidChangeMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpAcceptableVersions": {
       "ModuleProperites": {},
       "TraceString": "[sett] AcceptableVersions[%u]  = 0x%x",

@@ -491,7 +491,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT   QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC
 
 //
-// The default idle time to change source cid before flush
+// The default idle timeout period after which the source CID is updated before sending again.
 //
 #define QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS    20000
 

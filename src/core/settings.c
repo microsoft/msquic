@@ -261,6 +261,9 @@ QuicSettingsCopy(
     if (!Destination->IsSet.CongestionControlAlgorithm) {
         Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
     }
+    if (!Destination->IsSet.IdleSrcCidChangeMs) {
+        Destination->IdleSrcCidChangeMs = Source->IdleSrcCidChangeMs;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -547,6 +550,11 @@ QuicSettingApply(
     if (Source->IsSet.CongestionControlAlgorithm && (!Destination->IsSet.CongestionControlAlgorithm || OverWrite)) {
         Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
         Destination->IsSet.CongestionControlAlgorithm = TRUE;
+    }
+
+    if (Source->IsSet.IdleSrcCidChangeMs && (!Destination->IsSet.IdleSrcCidChangeMs || OverWrite)) {
+        Destination->IdleSrcCidChangeMs = Source->IdleSrcCidChangeMs;
+        Destination->IsSet.IdleSrcCidChangeMs = TRUE;
     }
 
     return TRUE;
@@ -954,6 +962,18 @@ QuicSettingsLoad(
             Settings->CongestionControlAlgorithm = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
         }
     }
+    if (!Settings->IsSet.IdleSrcCidChangeMs) {
+        Value = QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_IDLE_SRC_CID_CHANGE_MS,
+            (uint8_t*)&Value,
+            &ValueLen);
+        if (Value < UINT32_MAX) {
+            Settings->IdleSrcCidChangeMs = (uint32_t)Value;
+        }
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -997,6 +1017,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
+    QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,          "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1125,6 +1146,10 @@ QuicSettingsDumpNew(
 
     if (Settings->IsSet.CongestionControlAlgorithm) {
         QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
+    }
+
+    if (Settings->IsSet.IdleSrcCidChangeMs) {
+        QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,              "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
     }
 }
 
@@ -1285,6 +1310,7 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(IdleSrcCidChangeMs, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1370,6 +1396,8 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(IdleSrcCidChangeMs, Settings, InternalSettings);
+
 
     //
     // N.B. Anything after this needs to be size checked

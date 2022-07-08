@@ -1098,6 +1098,7 @@ QuicSendFlush(
         return TRUE;
     }
 #endif
+
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
@@ -1106,7 +1107,8 @@ QuicSendFlush(
         return TRUE;
     }
 
-    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, CxPlatTimeUs64());
+    uint64_t TimeNow = CxPlatTimeUs64();
+    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, TimeNow);
 
     //
     // If path is active without being peer validated, disable MTU flag if set.
@@ -1122,11 +1124,9 @@ QuicSendFlush(
     //
     // Connection CID changes on idle state after an amount of time
     //
-    uint64_t TimeNow = CxPlatTimeUs64();
     if (Connection->Settings.IdleSrcCidChangeMs != 0 &&
         Send->LastFlushTimeValid &&
-        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >=
-        MS_TO_US(Connection->Settings.IdleSrcCidChangeMs)) {
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.IdleSrcCidChangeMs)) {
             QuicConnGenerateNewSourceCids(Connection, TRUE);
     }
 
