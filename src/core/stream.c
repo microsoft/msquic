@@ -259,19 +259,19 @@ QuicStreamStart(
         Stream->Connection->BlockedTimings.Scheduling.CumulativeTimeUs +
         Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs != 0 ?
             CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now) : 0;
-    Stream->BlockedTimings.CachedConnPacing =
+    Stream->BlockedTimings.CachedConnPacingUs =
         Stream->Connection->BlockedTimings.Pacing.CumulativeTimeUs +
         Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs != 0 ?
         CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs, Now) : 0;
-    Stream->BlockedTimings.CachedConnAmplificationPort =
+    Stream->BlockedTimings.CachedConnAmplificationPortUs =
         Stream->Connection->BlockedTimings.AmplificationPort.CumulativeTimeUs +
         Stream->Connection->BlockedTimings.AmplificationPort.LastStartTimeUs != 0 ?
         CxPlatTimeDiff64(Stream->Connection->BlockedTimings.AmplificationPort.LastStartTimeUs, Now) : 0;
-    Stream->BlockedTimings.CachedConnCongestionControl =
+    Stream->BlockedTimings.CachedConnCongestionControlUs =
         Stream->Connection->BlockedTimings.CongestionControl.CumulativeTimeUs +
         Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0 ?
         CxPlatTimeDiff64(Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now) : 0;
-    Stream->BlockedTimings.CachedConnFlowControl =
+    Stream->BlockedTimings.CachedConnFlowControlUs =
         Stream->Connection->BlockedTimings.FlowControl.CumulativeTimeUs +
         Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0 ?
         CxPlatTimeDiff64(Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now) : 0;
@@ -782,7 +782,7 @@ QuicStreamParamGet(
             Timing->TimeUs +=
                 CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTimeUs, Now);
         }
-        Timing->TimeUs -= Stream->BlockedTimings.CachedConnPacing;
+        Timing->TimeUs -= Stream->BlockedTimings.CachedConnPacingUs;
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT;
         Timing->TimeUs = Connection->BlockedTimings.AmplificationPort.CumulativeTimeUs;
@@ -790,7 +790,7 @@ QuicStreamParamGet(
             Timing->TimeUs +=
                 CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.LastStartTimeUs, Now);
         }
-        Timing->TimeUs -= Stream->BlockedTimings.CachedConnAmplificationPort;
+        Timing->TimeUs -= Stream->BlockedTimings.CachedConnAmplificationPortUs;
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
         Timing->TimeUs = Connection->BlockedTimings.CongestionControl.CumulativeTimeUs;
@@ -798,7 +798,7 @@ QuicStreamParamGet(
             Timing->TimeUs +=
                 CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
         }
-        Timing->TimeUs -= Stream->BlockedTimings.CachedConnCongestionControl;
+        Timing->TimeUs -= Stream->BlockedTimings.CachedConnCongestionControlUs;
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL;
         Timing->TimeUs = Connection->BlockedTimings.FlowControl.CumulativeTimeUs;
@@ -806,7 +806,7 @@ QuicStreamParamGet(
             Timing->TimeUs +=
                 CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now);
         }
-        Timing->TimeUs -= Stream->BlockedTimings.CachedConnFlowControl;
+        Timing->TimeUs -= Stream->BlockedTimings.CachedConnFlowControlUs;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
