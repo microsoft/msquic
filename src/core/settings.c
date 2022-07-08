@@ -1310,7 +1310,6 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(IdleSrcCidChangeMs, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1325,6 +1324,13 @@ QuicSettingsSettingsToInternal(
     //     Settings,
     //     SettingsSize,
     //     InternalSettings);
+
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        IdleSrcCidChangeMs,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1396,7 +1402,6 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(IdleSrcCidChangeMs, Settings, InternalSettings);
 
 
     //
@@ -1414,6 +1419,13 @@ QuicSettingsGetSettings(
     //     InternalSettings);
 
     *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        IdleSrcCidChangeMs,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
 
     return QUIC_STATUS_SUCCESS;
 }
