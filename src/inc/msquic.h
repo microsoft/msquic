@@ -676,7 +676,7 @@ typedef enum QUIC_FLOW_BLOCK_REASON {
 
 typedef struct QUIC_FLOW_BLOCKED_TIMING {
     QUIC_FLOW_BLOCK_REASON Reason;
-    uint64_t Time;
+    uint64_t TimeUs;
 } QUIC_FLOW_BLOCKED_TIMING;
 
 //

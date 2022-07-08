@@ -306,8 +306,8 @@ typedef struct QUIC_SEND {
 // This structure defines flow blocked timing for a stream or connection.
 //
 typedef struct QUIC_FLOW_BLOCKED_TIMING_TRACKER {
-    uint64_t CumulativeTime;
-    uint64_t LastStartTime;
+    uint64_t CumulativeTimeUs;
+    uint64_t LastStartTimeUs;
 } QUIC_FLOW_BLOCKED_TIMING_TRACKER;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

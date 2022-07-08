@@ -581,19 +581,18 @@ ThroughputClient::StreamCallback(
         }
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         if (PrintBlockedTimings) {
             QUIC_FLOW_BLOCKED_TIMING Timings[QUIC_FLOW_BLOCK_REASON_COUNT];
             uint32_t BufferLength = sizeof(Timings);
             MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_BLOCKED_TIMINGS, &BufferLength, Timings);
             WriteOutput("Flow blocked timing:\n");
             for (size_t i = 0; i < ARRAYSIZE(Timings); ++i) {
-                WriteOutput("Reason: %d Time: %llu\n", Timings[i].Reason, (unsigned long long)Timings[i].Time);
+                WriteOutput("Reason: %d Time: %llu us\n", Timings[i].Reason, (unsigned long long)Timings[i].TimeUs);
             }
         }
         OnStreamShutdownComplete(StrmContext);
         break;
-    }
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (UploadLength &&
             !UseSendBuffer &&

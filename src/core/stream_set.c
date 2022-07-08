@@ -544,7 +544,7 @@ QuicStreamSetNewLocalStream(
         // after that.
         //
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
-        Stream->BlockedTimings.StreamIdFlowControl.LastStartTime = CxPlatTimeUs64();
+        Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs = CxPlatTimeUs64();
     }
 
     Info->CurrentStreamCount++;
