@@ -733,11 +733,11 @@ QuicStreamAddOutFlowBlockedReason(
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         uint64_t Now = CxPlatTimeUs64();
         if (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) {
-            Stream->BlockedTimings.FlowControl.StartTime = Now;
+            Stream->BlockedTimings.FlowControl.LastStartTime = Now;
         }
 
         if (Reason & QUIC_FLOW_BLOCKED_APP) {
-            Stream->BlockedTimings.App.StartTime = Now;
+            Stream->BlockedTimings.App.LastStartTime = Now;
         }
 
         Stream->OutFlowBlockedReasons |= Reason;
@@ -764,24 +764,24 @@ QuicStreamRemoveOutFlowBlockedReason(
             (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
             Stream->BlockedTimings.FlowControl.CumulativeTime +=
                 CxPlatTimeDiff64(
-                    Stream->BlockedTimings.FlowControl.StartTime, Now);
-            Stream->BlockedTimings.FlowControl.StartTime = 0;
+                    Stream->BlockedTimings.FlowControl.LastStartTime, Now);
+            Stream->BlockedTimings.FlowControl.LastStartTime = 0;
         }
 
         if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_APP) &&
             (Reason & QUIC_FLOW_BLOCKED_APP)) {
             Stream->BlockedTimings.App.CumulativeTime +=
                 CxPlatTimeDiff64(
-                    Stream->BlockedTimings.App.StartTime, Now);
-            Stream->BlockedTimings.App.StartTime = 0;
+                    Stream->BlockedTimings.App.LastStartTime, Now);
+            Stream->BlockedTimings.App.LastStartTime = 0;
         }
 
         if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) &&
             (Reason & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
             Stream->BlockedTimings.StreamIdFlowControl.CumulativeTime +=
                 CxPlatTimeDiff64(
-                    Stream->BlockedTimings.StreamIdFlowControl.StartTime, Now);
-            Stream->BlockedTimings.StreamIdFlowControl.StartTime = 0;
+                    Stream->BlockedTimings.StreamIdFlowControl.LastStartTime, Now);
+            Stream->BlockedTimings.StreamIdFlowControl.LastStartTime = 0;
         }
 
         Stream->OutFlowBlockedReasons &= ~Reason;

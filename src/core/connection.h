@@ -869,19 +869,19 @@ QuicConnAddOutFlowBlockedReason(
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         uint64_t Now = CxPlatTimeUs64();
         if (Reason & QUIC_FLOW_BLOCKED_PACING) {
-            Connection->BlockedTimings.Pacing.StartTime = Now;
+            Connection->BlockedTimings.Pacing.LastStartTime = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_SCHEDULING) {
-            Connection->BlockedTimings.Scheduling.StartTime = Now;
+            Connection->BlockedTimings.Scheduling.LastStartTime = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
-            Connection->BlockedTimings.AmplificationPort.StartTime = Now;
+            Connection->BlockedTimings.AmplificationPort.LastStartTime = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) {
-            Connection->BlockedTimings.CongestionControl.StartTime = Now;
+            Connection->BlockedTimings.CongestionControl.LastStartTime = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) {
-            Connection->BlockedTimings.FlowControl.StartTime = Now;
+            Connection->BlockedTimings.FlowControl.LastStartTime = Now;
         }
 
         Connection->OutFlowBlockedReasons |= Reason;
@@ -907,32 +907,32 @@ QuicConnRemoveOutFlowBlockedReason(
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_PACING) &&
             (Reason & QUIC_FLOW_BLOCKED_PACING)) {
             Connection->BlockedTimings.Pacing.CumulativeTime +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.StartTime, Now);
-            Connection->BlockedTimings.Pacing.StartTime = 0;
+                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTime, Now);
+            Connection->BlockedTimings.Pacing.LastStartTime = 0;
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_SCHEDULING) &&
             (Reason & QUIC_FLOW_BLOCKED_SCHEDULING)) {
             Connection->BlockedTimings.Scheduling.CumulativeTime +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.StartTime, Now);
-            Connection->BlockedTimings.Scheduling.StartTime = 0;
+                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTime, Now);
+            Connection->BlockedTimings.Scheduling.LastStartTime = 0;
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) &&
             (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
             Connection->BlockedTimings.AmplificationPort.CumulativeTime +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.StartTime, Now);
-            Connection->BlockedTimings.AmplificationPort.StartTime = 0;
+                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.LastStartTime, Now);
+            Connection->BlockedTimings.AmplificationPort.LastStartTime = 0;
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) &&
             (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL)) {
             Connection->BlockedTimings.CongestionControl.CumulativeTime +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.StartTime, Now);
-            Connection->BlockedTimings.CongestionControl.StartTime = 0;
+                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTime, Now);
+            Connection->BlockedTimings.CongestionControl.LastStartTime = 0;
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) &&
             (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
             Connection->BlockedTimings.FlowControl.CumulativeTime +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.StartTime, Now);
-            Connection->BlockedTimings.FlowControl.StartTime = 0;
+                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.LastStartTime, Now);
+            Connection->BlockedTimings.FlowControl.LastStartTime = 0;
         }
 
         Connection->OutFlowBlockedReasons &= ~Reason;

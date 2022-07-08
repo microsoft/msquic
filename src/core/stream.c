@@ -724,58 +724,58 @@ QuicStreamParamGet(
         QUIC_CONNECTION* Connection = Stream->Connection;
         Timing->Reason = QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
         Timing->Time = Stream->BlockedTimings.StreamIdFlowControl.CumulativeTime;
-        if (Stream->BlockedTimings.StreamIdFlowControl.StartTime != 0) {
+        if (Stream->BlockedTimings.StreamIdFlowControl.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Stream->BlockedTimings.StreamIdFlowControl.StartTime, Now);
+                CxPlatTimeDiff64(Stream->BlockedTimings.StreamIdFlowControl.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
         Timing->Time = Stream->BlockedTimings.FlowControl.CumulativeTime;
-        if (Stream->BlockedTimings.FlowControl.StartTime != 0) {
+        if (Stream->BlockedTimings.FlowControl.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Stream->BlockedTimings.FlowControl.StartTime, Now);
+                CxPlatTimeDiff64(Stream->BlockedTimings.FlowControl.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_APP;
         Timing->Time = Stream->BlockedTimings.App.CumulativeTime;
-        if (Stream->BlockedTimings.App.StartTime != 0) {
+        if (Stream->BlockedTimings.App.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Stream->BlockedTimings.App.StartTime, Now);
+                CxPlatTimeDiff64(Stream->BlockedTimings.App.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_SCHEDULING;
         Timing->Time = Connection->BlockedTimings.Scheduling.CumulativeTime;
-        if (Connection->BlockedTimings.Scheduling.StartTime != 0) {
+        if (Connection->BlockedTimings.Scheduling.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.StartTime, Now);
+                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_PACING;
         Timing->Time = Connection->BlockedTimings.Pacing.CumulativeTime;
-        if (Connection->BlockedTimings.Pacing.StartTime != 0) {
+        if (Connection->BlockedTimings.Pacing.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.StartTime, Now);
+                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT;
         Timing->Time = Connection->BlockedTimings.AmplificationPort.CumulativeTime;
-        if (Connection->BlockedTimings.AmplificationPort.StartTime != 0) {
+        if (Connection->BlockedTimings.AmplificationPort.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.StartTime, Now);
+                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
         Timing->Time = Connection->BlockedTimings.CongestionControl.CumulativeTime;
-        if (Connection->BlockedTimings.CongestionControl.StartTime != 0) {
+        if (Connection->BlockedTimings.CongestionControl.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.StartTime, Now);
+                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTime, Now);
         }
         ++Timing;
         Timing->Reason = QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL;
         Timing->Time = Connection->BlockedTimings.FlowControl.CumulativeTime;
-        if (Connection->BlockedTimings.FlowControl.StartTime != 0) {
+        if (Connection->BlockedTimings.FlowControl.LastStartTime != 0) {
             Timing->Time +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.StartTime, Now);
+                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.LastStartTime, Now);
         }
 
         Status = QUIC_STATUS_SUCCESS;

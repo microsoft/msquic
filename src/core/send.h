@@ -307,7 +307,7 @@ typedef struct QUIC_SEND {
 //
 typedef struct QUIC_FLOW_BLOCKED_TIMING_TRACKER {
     uint64_t CumulativeTime;
-    uint64_t StartTime;
+    uint64_t LastStartTime;
 } QUIC_FLOW_BLOCKED_TIMING_TRACKER;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
