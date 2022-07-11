@@ -618,7 +618,7 @@ typedef struct QUIC_CONNECTION {
     struct {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER Scheduling;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER Pacing;
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER AmplificationPort;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER AmplificationProt;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
@@ -875,7 +875,7 @@ QuicConnAddOutFlowBlockedReason(
             Connection->BlockedTimings.Scheduling.LastStartTimeUs = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
-            Connection->BlockedTimings.AmplificationPort.LastStartTimeUs = Now;
+            Connection->BlockedTimings.AmplificationProt.LastStartTimeUs = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) {
             Connection->BlockedTimings.CongestionControl.LastStartTimeUs = Now;
@@ -918,9 +918,9 @@ QuicConnRemoveOutFlowBlockedReason(
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) &&
             (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
-            Connection->BlockedTimings.AmplificationPort.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationPort.LastStartTimeUs, Now);
-            Connection->BlockedTimings.AmplificationPort.LastStartTimeUs = 0;
+            Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
+            Connection->BlockedTimings.AmplificationProt.LastStartTimeUs = 0;
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) &&
             (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL)) {

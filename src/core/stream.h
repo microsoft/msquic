@@ -426,7 +426,7 @@ typedef struct QUIC_STREAM {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER App;
         uint64_t CachedConnSchedulingUs;
         uint64_t CachedConnPacingUs;
-        uint64_t CachedConnAmplificationPortUs;
+        uint64_t CachedConnAmplificationProtUs;
         uint64_t CachedConnCongestionControlUs;
         uint64_t CachedConnFlowControlUs;
     } BlockedTimings;
