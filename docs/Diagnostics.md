@@ -134,7 +134,7 @@ To start collecting a trace, you can use the following commands:
 ```
 mkdir msquic_lttng
 lttng create msquic -o=./msquic_lttng
-lttng enable-event --userspace CLOG_*
+lttng enable-event --userspace "CLOG_*"
 lttng add-context --userspace --type=vpid --type=vtid
 lttng start
 ```
@@ -176,7 +176,7 @@ To convert the trace, you can use the following commands:
 
 ```
 babeltrace --names all ./msquic_lttng/* > quic.babel.txt
-clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
+~/.dotnet/tools/clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
 ```
 
 > **Note**
