@@ -2466,6 +2466,11 @@ QuicTestStreamPriorityInfiniteLoop(
 struct StreamDifferentAbortErrors {
     QUIC_UINT62 PeerSendAbortErrorCode {0};
     QUIC_UINT62 PeerRecvAbortErrorCode {0};
+    BOOLEAN ConnectionShutdown {FALSE};
+    BOOLEAN ConnectionShutdownByApp {FALSE};
+    BOOLEAN ConnectionClosedRemotely {FALSE};
+    QUIC_UINT62 ConnectionErrorCode {0};
+
     CxPlatEvent StreamShutdownComplete;
 
     static QUIC_STATUS StreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
@@ -2475,6 +2480,10 @@ struct StreamDifferentAbortErrors {
         } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
             TestContext->PeerSendAbortErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
         } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ConnectionShutdown = Event->SHUTDOWN_COMPLETE.ConnectionShutdown;
+            TestContext->ConnectionShutdownByApp = Event->SHUTDOWN_COMPLETE.ConnectionShutdownByApp;
+            TestContext->ConnectionClosedRemotely = Event->SHUTDOWN_COMPLETE.ConnectionClosedRemotely;
+            TestContext->ConnectionErrorCode = Event->SHUTDOWN_COMPLETE.ConnectionErrorCode;
             TestContext->StreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -2527,6 +2536,10 @@ QuicTestStreamDifferentAbortErrors(
     TEST_TRUE(Context.StreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.PeerRecvAbortErrorCode == RecvShutdownErrorCode);
     TEST_TRUE(Context.PeerSendAbortErrorCode == SendShutdownErrorCode);
+    TEST_FALSE(Context.ConnectionShutdown);
+    TEST_FALSE(Context.ConnectionShutdownByApp);
+    TEST_FALSE(Context.ConnectionClosedRemotely);
+    TEST_EQUAL(0, Context.ConnectionErrorCode);
 }
 
 struct StreamAbortRecvFinRace {
