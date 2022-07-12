@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "windowed_filter.h"
+
 typedef struct BBR_RTT_STATS {
 
     //
@@ -29,32 +31,6 @@ typedef struct BBR_RTT_STATS {
     uint64_t MinRttTimestamp; // microseconds
 
 } BBR_RTT_STATS;
-
-typedef struct WINDOWED_FILTER {
-
-    //
-    // Time length of window.
-    //
-    uint64_t WindowLength;
-
-    //
-    // Uninitialized value of Sample
-    //
-    uint64_t ZeroValue;
-
-    //
-    // Best estimate is element 0.
-    //
-    struct
-    {
-
-        uint64_t Sample;
-
-        uint64_t Time;
-
-    } Estimates[3];
-
-} WINDOWED_FILTER;
 
 typedef struct BBR_BANDWIDTH_FILTER {
 
@@ -108,9 +84,9 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     BOOLEAN ProbeRttRoundValid : 1;
 
     //
-    // If TRUE, EarliestTimeToExitProbeRtt is valid
+    // If TRUE, ProbeRttEndTime is valid
     //
-    BOOLEAN EarliestTimeToExitProbeRttValid : 1;
+    BOOLEAN ProbeRttEndTimeValid : 1;
     
     //
     // The size of the initial congestion window in packets
@@ -226,7 +202,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     //
     // Indicates the eariest time to exit ProbeRTT state
     //
-    uint64_t EarliestTimeToExitProbeRtt;
+    uint64_t ProbeRttEndTime;
 
     //
     // Tracks the maximum number of bytes acked faster than the sending rate
