@@ -594,12 +594,6 @@ CxPlatTimeUs64(
     void
     );
 
-void
-CxPlatGetAbsoluteTime(
-    _In_ unsigned long DeltaMs,
-    _Out_ struct timespec *Time
-    );
-
 #define CxPlatTimeUs32() (uint32_t)CxPlatTimeUs64()
 #define CxPlatTimeMs64()  (CxPlatTimeUs64() / CXPLAT_MICROSEC_PER_MS)
 #define CxPlatTimeMs32() (uint32_t)CxPlatTimeMs64()
@@ -834,15 +828,40 @@ CxPlatInternalEventWaitWithTimeout(
     //
     // Get absolute time.
     //
+#if defined(CX_PLATFORM_LINUX)
+    int ErrorCode = 0;
+    ErrorCode = clock_gettime(CLOCK_MONOTONIC, &Ts);
 
-    CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
+    Ts.tv_sec += (TimeoutMs / CXPLAT_MS_PER_SECOND);
+    Ts.tv_nsec += ((TimeoutMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
+
+    if (Ts.tv_nsec >= CXPLAT_NANOSEC_PER_SEC)
+    {
+        Ts.tv_sec += 1;
+        Ts.tv_nsec -= CXPLAT_NANOSEC_PER_SEC;
+    }
+
+    CXPLAT_DBG_ASSERT(ErrorCode == 0);
+    UNREFERENCED_PARAMETER(ErrorCode);
+#elif defined(CX_PLATFORM_DARWIN)
+    Ts.tv_sec = (TimeoutMs / CXPLAT_MS_PER_SECOND);
+    Ts.tv_nsec = ((TimeoutMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
+#endif // CX_PLATFORM_DARWIN
+
+    CXPLAT_DBG_ASSERT(Ts.tv_sec >= 0);
+    CXPLAT_DBG_ASSERT(Ts.tv_nsec >= 0);
+    CXPLAT_DBG_ASSERT(Ts.tv_nsec < CXPLAT_NANOSEC_PER_SEC);
 
     Result = pthread_mutex_lock(&Event->Mutex);
     CXPLAT_FRE_ASSERT(Result == 0);
 
     while (!Event->Signaled) {
 
+#if defined(CX_PLATFORM_DARWIN)
+        Result = pthread_cond_timedwait_relative_np(&Event->Cond, &Event->Mutex, &Ts);
+#else
         Result = pthread_cond_timedwait(&Event->Cond, &Event->Mutex, &Ts);
+#endif
 
         if (Result == ETIMEDOUT) {
             WaitSatisfied = FALSE;

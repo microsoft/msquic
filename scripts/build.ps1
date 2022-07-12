@@ -329,7 +329,7 @@ function CMake-Generate {
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
-        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DDEPLOYMENT_TARGET=""13.0"" -DENABLE_ARC=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=""13.0"""
+        $Arguments +=  " -DCMAKE_TOOLCHAIN_FILE=""$IosTCFile"" -DDEPLOYMENT_TARGET=""11.0"" -DENABLE_ARC=0 -DCMAKE_OSX_DEPLOYMENT_TARGET=""13.0"""
         switch ($Arch) {
             "x64"   { $Arguments += " -DPLATFORM=SIMULATOR64"}
             "arm64" { $Arguments += " -DPLATFORM=OS64"}
