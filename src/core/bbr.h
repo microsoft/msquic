@@ -7,7 +7,9 @@
 
 #pragma once
 
-#include "windowed_filter.h"
+#include "sliding_window_extremum.h"
+
+#define kBbrDefaultFilterCapacity 3
 
 typedef struct BBR_RTT_STATS {
 
@@ -45,9 +47,11 @@ typedef struct BBR_BANDWIDTH_FILTER {
     uint64_t AppLimitedExitTarget;
 
     //
-    // Max filter for bottleneck bandwidth
+    // Max filter for tracking the maximum recent delivery_rate sample, for estimating max bandwidth
     //
-    WINDOWED_FILTER WindowedFilter;
+    SLIDING_WINDOW_EXTREMUM WindowedMaxFilter;
+
+    SLIDING_WINDOW_EXTREMUM_ENTRY WindowedMaxFilterEntries[kBbrDefaultFilterCapacity];
 
 } BBR_BANDWIDTH_FILTER;
 
@@ -205,9 +209,11 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     uint64_t ProbeRttEndTime;
 
     //
-    // Tracks the maximum number of bytes acked faster than the sending rate
+    // The max filter tracking the recent maximum degree of aggregation in the path
     //
-    WINDOWED_FILTER MaxAckHeightFilter;
+    SLIDING_WINDOW_EXTREMUM MaxAckHeightFilter;
+
+    SLIDING_WINDOW_EXTREMUM_ENTRY MaxAckHeightFilterEntries[kBbrDefaultFilterCapacity];
 
     //
     // BBR estimates minimum RTT by the minimum recent RTT

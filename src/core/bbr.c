@@ -101,14 +101,13 @@ const uint32_t kPacingGain[GAIN_CYCLE_LENGTH] = {
 const uint32_t kProbeRttTimeInUs = 200 * 1000;
 
 //
-// Bandwidth WindowFilter length, in unit of RTT
-//
-const uint32_t kBandwidthFilterLength = 10;
-
-//
 // RTT Stats default expiration
 //
 const uint32_t kRttStatsExpirationInSecond = 10;
+
+const uint32_t kBbrMaxBandwidthFilterLen = 10;
+
+const uint32_t kBbrMaxAckHeightFilterLen = 10;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BBR_RTT_STATS
@@ -225,9 +224,16 @@ BbrBandwidthFilterOnPacketAcked(
 
         uint64_t DeliveryRate = CXPLAT_MIN(SendRate, AckRate);
 
-        if (DeliveryRate >= WindowedFilterGetBest(&b->WindowedFilter) ||
-                !AckedPacket->Flags.IsAppLimited) {
-            WindowedFilterUpdate(&b->WindowedFilter, DeliveryRate, RttCounter);
+        SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
+        QUIC_STATUS Status = SlidingWindowExtremumGet(&b->WindowedMaxFilter, &Entry);
+        
+        uint64_t PreviousMaxDeliveryRate = 0;
+        if (QUIC_SUCCEEDED(Status)) {
+            PreviousMaxDeliveryRate = Entry.Value;
+        }
+
+        if (DeliveryRate >= PreviousMaxDeliveryRate || !AckedPacket->Flags.IsAppLimited) {
+            SlidingWindowExtremumUpdateMax(&b->WindowedMaxFilter, DeliveryRate, RttCounter);
         }
     }
 }
@@ -247,7 +253,12 @@ BbrCongestionControlGetBandwidth(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return WindowedFilterGetBest(&Cc->Bbr.BandwidthFilter.WindowedFilter);
+    SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
+    QUIC_STATUS Status = SlidingWindowExtremumGet(&Cc->Bbr.BandwidthFilter.WindowedMaxFilter, &Entry);
+    if (QUIC_SUCCEEDED(Status)) {
+        return Entry.Value;
+    }
+    return 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -610,7 +621,7 @@ BbrCongestionControlUpdateAckAggregation(
 
     Bbr->AggregatedAckBytes += AckEvent->NumRetransmittableBytes;
 
-    WindowedFilterUpdate(&Bbr->MaxAckHeightFilter,
+    SlidingWindowExtremumUpdateMax(&Bbr->MaxAckHeightFilter,
         Bbr->AggregatedAckBytes - ExpectedAckBytes, Bbr->RoundTripCounter);
 
     return Bbr->AggregatedAckBytes - ExpectedAckBytes;
@@ -803,7 +814,11 @@ BbrCongestionControlUpdateCongestionWindow(
 
     uint64_t TargetCwnd = BbrCongestionControlGetTargetCwnd(Cc, Bbr->CwndGain);
     if (Bbr->BtlbwFound) {
-        TargetCwnd += WindowedFilterGetBest(&Bbr->MaxAckHeightFilter);
+        SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
+        QUIC_STATUS Status = SlidingWindowExtremumGet(&Bbr->MaxAckHeightFilter, &Entry);
+        if (QUIC_SUCCEEDED(Status)) {
+            TargetCwnd += Entry.Value;
+        }
     }
     
     uint32_t CongestionWindow = Bbr->CongestionWindow;
@@ -1063,13 +1078,11 @@ BbrCongestionControlReset(
 
     Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
-    Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0);
+    SlidingWindowExtremumReset(&Bbr->MaxAckHeightFilter);
 
-    Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
-        .WindowedFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0),
-        .AppLimited = FALSE,
-        .AppLimitedExitTarget = 0,
-    };
+    SlidingWindowExtremumReset(&Bbr->BandwidthFilter.WindowedMaxFilter);
+    Bbr->BandwidthFilter.AppLimited = FALSE;
+    Bbr->BandwidthFilter.AppLimitedExitTarget = 0;
 
     BbrCongestionControlLogOutFlowStatus(Cc);
     QuicConnLogBbr(Connection);
@@ -1153,10 +1166,12 @@ BbrCongestionControlInitialize(
 
     Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
-    Bbr->MaxAckHeightFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0);
+    Bbr->MaxAckHeightFilter = SlidingWindowExtremumInitialize(
+            kBbrMaxAckHeightFilterLen, kBbrDefaultFilterCapacity, Bbr->MaxAckHeightFilterEntries);
 
     Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
-        .WindowedFilter = NewWindowedFilter(kBandwidthFilterLength, 0, 0),
+        .WindowedMaxFilter = SlidingWindowExtremumInitialize(
+                kBbrMaxBandwidthFilterLen, kBbrDefaultFilterCapacity, Bbr->BandwidthFilter.WindowedMaxFilterEntries),
         .AppLimited = FALSE,
         .AppLimitedExitTarget = 0,
     };

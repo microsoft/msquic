@@ -94,6 +94,7 @@
     <ClInclude Include="timer_wheel.h" />
     <ClInclude Include="transport_params.h" />
     <ClInclude Include="version_neg.h" />
+    <ClInclude Include="sliding_window_extremum.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -46,6 +46,7 @@ set(SOURCES
     timer_wheel.c
     worker.c
     version_neg.c
+    sliding_window_extremum.c
     operation.h
     stream.h
     connection.h
