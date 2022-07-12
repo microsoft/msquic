@@ -540,6 +540,21 @@ tracepoint(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingIdleSrcCidChangeMs
+// [sett] IdleSrcCidChangeMs     = %u
+// QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,          "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
+// arg2 = arg2 = Settings->IdleSrcCidChangeMs = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingIdleSrcCidChangeMs
+#define _clog_3_ARGS_TRACE_SettingIdleSrcCidChangeMs(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingIdleSrcCidChangeMs , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpAcceptedVersionsLength
 // [sett] AcceptedVersionslength = %u
 // QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);

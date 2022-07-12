@@ -546,6 +546,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingIdleSrcCidChangeMs
+// [sett] IdleSrcCidChangeMs     = %u
+// QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,          "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
+// arg2 = arg2 = Settings->IdleSrcCidChangeMs = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingIdleSrcCidChangeMs,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpAcceptedVersionsLength
 // [sett] AcceptedVersionslength = %u
 // QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
