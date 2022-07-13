@@ -445,6 +445,23 @@ TestConnection::SetDisconnectTimeout(
     return SetSettings(Settings);
 }
 
+uint32_t
+TestConnection::GetIdleSrcCidChangeMs()
+{
+    return GetSettings().IdleSrcCidChangeMs;
+}
+
+QUIC_STATUS
+TestConnection::SetIdleSrcCidChangeMs(
+    uint32_t value
+    )
+{
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleSrcCidChangeMs = value;
+    Settings.IsSet.IdleSrcCidChangeMs = TRUE;
+    return SetSettings(Settings);
+}
+
 uint16_t
 TestConnection::GetPeerBidiStreamCount()
 {
@@ -897,4 +914,36 @@ TestConnection::HandleConnectionEvent(
     }
 
     return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+TestConnection::GetSrcCids(QUIC_CID_PRIVATE_PARAMETER** SrcCids, uint8_t Count) {
+    uint32_t SrcCidCount = Count * sizeof(QUIC_CID_PRIVATE_PARAMETER);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_SRC_CIDS,
+            &SrcCidCount,
+            SrcCids);
+
+    if(QUIC_FAILED(Status)) {
+        TEST_FAILURE("GetParam(QUIC_PARAM_CONN_SRC_CIDS) failed: 0x%x", Status);
+    }
+    return Status;
+}
+
+QUIC_STATUS
+TestConnection::GetSrcCidsCount(uint8_t* SrcCidsCount) {
+    uint32_t Size = sizeof(uint8_t);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_SRC_CIDS_COUNT,
+            &Size,
+            SrcCidsCount);
+
+    if(QUIC_FAILED(Status)) {
+        TEST_FAILURE("GetParam(QUIC_PARAM_CONN_SRC_CIDS) failed: 0x%x", Status);
+    }
+    return Status;
 }

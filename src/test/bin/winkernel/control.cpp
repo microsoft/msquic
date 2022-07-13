@@ -1249,6 +1249,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestConnectionCloseFromCallback());
         break;
 
+    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_SRC_CID_CHANGE:
+        QuicTestCtlRun(QuicTestConnectAndIdleForSrcCidChange());
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
