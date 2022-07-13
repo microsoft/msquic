@@ -791,9 +791,15 @@ QuicTestConnectAndIdleForSrcCidChange(
                     Stream->Context = Client.Context;
 
                     TEST_TRUE(Stream->IsValid());
-                    TEST_TRUE(Stream->StartPing(1, false));
+                    TEST_TRUE(Stream->StartPing(1)); // Send Fin
+
+                    delete Stream;
 
                     CxPlatSleep(4000); // Wait for the first idle period to send another ping to the stream.
+
+                    Stream = Client.NewStream(+[](TestStream*){},
+                                                            QUIC_STREAM_OPEN_FLAG_NONE,
+                                                            NEW_STREAM_START_SYNC);
 
                     TEST_TRUE(Stream->IsValid());
                     TEST_TRUE(Stream->StartPing(1, false));
@@ -806,7 +812,7 @@ QuicTestConnectAndIdleForSrcCidChange(
 
                     TEST_TRUE(OldSrcCidsCount == NewSrcCidsCount);
 
-                    for(int Index = 0;
+                    for (int Index = 0;
                             Index < OldSrcCidsCount;
                             ++Index) {
                                 TEST_TRUE(OldSrcCids[Index].Length == NewSrcCids[Index].Length);
