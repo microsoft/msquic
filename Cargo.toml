@@ -49,5 +49,5 @@ cmake = "0.1"
 [dependencies]
 bitfield = "0.13.2"
 libc = "0.2.0"
-c-types = "1.2.0"
+c-types = "2.0.2"
 serde = { version = "1.0.117", features = ["derive"] }

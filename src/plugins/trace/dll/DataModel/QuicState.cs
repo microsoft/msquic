@@ -18,6 +18,12 @@ namespace QuicTrace.DataModel
 
         public IReadOnlyList<QuicStream> Streams => StreamSet.GetObjects();
 
+        public IReadOnlyList<QuicPacketBatch> PacketBatches => PacketBatchSet.GetObjects();
+
+        public IReadOnlyList<QuicSendPacket> SendPackets => SendPacketSet.GetObjects();
+
+        public IReadOnlyList<QuicReceivePacket> ReceivePackets => ReceivePacketSet.GetObjects();
+
         public IReadOnlyList<QuicDatapath> Datapaths => DatapathSet.GetObjects();
 
         private QuicObjectSet<QuicWorker> WorkerSet { get; } =
@@ -28,6 +34,15 @@ namespace QuicTrace.DataModel
 
         private QuicObjectSet<QuicStream> StreamSet { get; } =
             new QuicObjectSet<QuicStream>(QuicStream.CreateEventId, QuicStream.DestroyedEventId, QuicStream.New);
+
+        internal QuicObjectSet<QuicPacketBatch> PacketBatchSet { get; } =
+            new QuicObjectSet<QuicPacketBatch>(QuicPacketBatch.CreateEventId, QuicPacketBatch.DestroyedEventId, QuicPacketBatch.New);
+
+        internal QuicObjectSet<QuicSendPacket> SendPacketSet { get; } =
+            new QuicObjectSet<QuicSendPacket>(QuicSendPacket.CreateEventId, QuicSendPacket.DestroyedEventId, QuicSendPacket.New);
+
+        internal QuicObjectSet<QuicReceivePacket> ReceivePacketSet { get; } =
+            new QuicObjectSet<QuicReceivePacket>(QuicReceivePacket.CreateEventId, QuicReceivePacket.DestroyedEventId, QuicReceivePacket.New);
 
         private QuicObjectSet<QuicDatapath> DatapathSet { get; } =
             new QuicObjectSet<QuicDatapath>(QuicDatapath.CreateEventId, QuicDatapath.DestroyedEventId, QuicDatapath.New);
@@ -45,6 +60,23 @@ namespace QuicTrace.DataModel
                         evt.EventId <= QuicEventId.ApiExitStatus)
                     {
                         DataAvailableFlags |= QuicDataAvailableFlags.Api;
+                    }
+                    else if (evt.EventId == QuicEventId.PacketBatchSent)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Packet;
+                        PacketBatchSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    }
+                    else if (evt.EventId >= QuicEventId.PacketCreated &&
+                        evt.EventId <= QuicEventId.PacketFinalize)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Packet;
+                        SendPacketSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    }
+                    else if (evt.EventId >= QuicEventId.PacketReceive &&
+                        evt.EventId <= QuicEventId.PacketDecrypt)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Packet;
+                        ReceivePacketSet.FindOrCreateActive(evt).AddEvent(evt, this);
                     }
                     break;
                 case QuicObjectType.Worker:

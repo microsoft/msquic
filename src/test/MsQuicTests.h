@@ -36,6 +36,15 @@ void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
+void QuicTestCloseConnBeforeStreamFlush();
+void QuicTestGlobalParam();
+void QuicTestCommonParam();
+void QuicTestRegistrationParam();
+void QuicTestConfigurationParam();
+void QuicTestListenerParam();
+void QuicTestConnectionParam();
+void QuicTestTlsParam();
+void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
@@ -75,6 +84,7 @@ void QuicTestStartListenerExplicit(_In_ int Family);
 void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
+void QuicTestConnectionCloseFromCallback();
 
 //
 // MTU tests
@@ -1023,4 +1033,34 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STORAGE \
     QUIC_CTL_CODE(89, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 89
+#define IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM \
+    QUIC_CTL_CODE(90, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM \
+    QUIC_CTL_CODE(91, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM \
+    QUIC_CTL_CODE(92, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM \
+    QUIC_CTL_CODE(93, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM \
+    QUIC_CTL_CODE(94, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM \
+    QUIC_CTL_CODE(95, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM \
+    QUIC_CTL_CODE(96, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM \
+    QUIC_CTL_CODE(97, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK \
+    QUIC_CTL_CODE(98, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH \
+    QUIC_CTL_CODE(99, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 99

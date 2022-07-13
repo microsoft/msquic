@@ -53,7 +53,8 @@ sudo apt-get install -y powershell
 pwsh
 ```
 
-**Note** - If you get this error trying to install PowerShell:
+> **Note**
+> If you get this error trying to install PowerShell:
 
 ```
 powershell : Depends: libicu55 but it is not installable

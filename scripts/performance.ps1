@@ -95,7 +95,7 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -115,6 +115,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SharedEC = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$XDP = $false,
@@ -151,6 +154,9 @@ if ($Kernel) {
     if ($PGO) {
         Write-Error "'-PGO' is not supported in kernel mode!"
     }
+    if ($SharedEC) {
+        Write-Error "'-SharedEC' is not supported in kernel mode!"
+    }
     if ($XDP) {
         Write-Error "'-XDP' is not supported in kernel mode!"
     }
@@ -166,6 +172,11 @@ if (!$IsWindows) {
 
 if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
     $Remote = "quic-server"
+}
+
+if ($PGO) {
+    # PGO makes things slower, so increase the timeout accordingly.
+    $Timeout = $Timeout * 5
 }
 
 # Root directory of the project.
@@ -241,6 +252,7 @@ Set-ScriptVariables -Local $Local `
                     -LocalArch $LocalArch `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
+                    -SharedEC $SharedEC `
                     -XDP $XDP `
                     -Config $Config `
                     -Publish $Publish `
@@ -279,7 +291,9 @@ $RemoteDirectorySMB = $null
 
 # Copy manifest and log script to local directory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
@@ -411,6 +425,11 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($XDP) {
+        $RemoteArguments += " -cpu:-1"
+        $LocalArguments += " -cpu:-1"
+    }
+
     if ($Kernel) {
         $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
         $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent
@@ -459,7 +478,7 @@ function Invoke-Test {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             Write-LogAndDebug $LocalResults
-            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts

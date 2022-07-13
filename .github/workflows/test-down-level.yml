@@ -36,7 +36,7 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@34cbc43f0b10c9dda284e663cf43c2ebaf83e956
+      uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -59,7 +59,7 @@ jobs:
       run: |
         chmod +x artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
         $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}"
-        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*
+        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
       run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*

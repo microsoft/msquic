@@ -19,7 +19,8 @@ body:
       options:
         - label: All
         - label: Windows Server 2022
-        - label: Windows 11
+        - label: Windows 11, version 22H2
+        - label: Windows 11, version 21H2
         - label: Windows Insider Preview (specify affected build below)
         - label: Ubuntu
         - label: Debian

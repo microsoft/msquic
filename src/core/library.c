@@ -1216,6 +1216,25 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_TLS_PROVIDER:
+
+        if (*BufferLength < sizeof(QUIC_TLS_PROVIDER)) {
+            *BufferLength = sizeof(QUIC_TLS_PROVIDER);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_TLS_PROVIDER);
+        *(QUIC_TLS_PROVIDER*)Buffer = CxPlatTlsGetProvider();
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 
         if (*BufferLength < sizeof(BOOLEAN)) {

@@ -123,9 +123,15 @@ ListenerAcceptConnection(
         (*AcceptContext->NewConnection)->SetExpectedTransportCloseStatus(
             AcceptContext->ExpectedTransportCloseStatus);
     }
-    if (AcceptContext->ExpectedClientCertValidationResult != QUIC_STATUS_SUCCESS) {
-        (*AcceptContext->NewConnection)->SetExpectedClientCertValidationResult(
-            AcceptContext->ExpectedClientCertValidationResult);
+    if (AcceptContext->ExpectedClientCertValidationResultCount > 0) {
+        for (unsigned i = 0; i < AcceptContext->ExpectedClientCertValidationResultCount; i++) {
+            (*AcceptContext->NewConnection)->AddExpectedClientCertValidationResult(
+                AcceptContext->ExpectedClientCertValidationResult[i]);
+        }
+    }
+    if (AcceptContext->PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {
+        (*AcceptContext->NewConnection)->SetPeerCertEventReturnStatus(
+            AcceptContext->PeerCertEventReturnStatus);
     }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
@@ -897,8 +903,7 @@ QuicTestVersionNegotiation(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings VersionSettings;
-    VersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings VersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -995,8 +1000,7 @@ QuicTestVersionNegotiationRetry(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings VersionSettings;
-    VersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings VersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -1071,14 +1075,12 @@ QuicTestCompatibleVersionNegotiation(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1172,14 +1174,12 @@ QuicTestCompatibleVersionNegotiationRetry(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1276,8 +1276,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
@@ -1374,8 +1373,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1468,14 +1466,12 @@ QuicTestIncompatibleVersionNegotiation(
     MsQuicSettings ClientSettings;
     ClientSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(3000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1559,15 +1555,13 @@ RunFailedVersionNegotiation(
     ClientSettings.SetIdleTimeoutMs(2000);
     ClientSettings.SetDisconnectTimeoutMs(1000);
 
-    MsQuicVersionSettings ClientVersionSettings;
-    ClientVersionSettings.SetAllVersionLists(ClientVersions, ClientVersionsLength);
+    MsQuicVersionSettings ClientVersionSettings(ClientVersions, ClientVersionsLength);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetIdleTimeoutMs(2000);
     ServerSettings.SetDisconnectTimeoutMs(1000);
 
-    MsQuicVersionSettings ServerVersionsSettings;
-    ServerVersionsSettings.SetAllVersionLists(ServerVersions, ServerVersionsLength);
+    MsQuicVersionSettings ServerVersionsSettings(ServerVersions, ServerVersionsLength);
 
     if (ServerVersions != NULL) {
         TEST_QUIC_SUCCEEDED(
@@ -2277,8 +2271,10 @@ QuicTestConnectClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_UNTRUSTED_ROOT);
             if (!UseClientCertificate) {
+                ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_NO_CERT);
+                ServerAcceptCtx.PeerCertEventReturnStatus = QUIC_STATUS_CONNECTION_REFUSED;
                 ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_REQUIRED_CERTIFICATE;
             }
             Listener.Context = &ServerAcceptCtx;
@@ -2572,7 +2568,7 @@ QuicTestConnectValidClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_SUCCESS;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS);
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2635,7 +2631,7 @@ QuicTestConnectExpiredClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_EXPIRED;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_EXPIRED);
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2767,11 +2763,13 @@ QuicTestLoadBalancedHandshake(
         TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, Listeners.PublicAddress.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(Listeners.PublicAddress.GetFamily()), Listeners.PublicAddress.GetPort()));
         TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
         if (!Connection.HandshakeComplete) {
-            //
-            // Sometimes the local port might be used already. Just ignore this
-            // failure and continue on.
-            //
+#ifdef WSAEACCES
+            TEST_TRUE(
+                Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE ||
+                Connection.TransportShutdownStatus == HRESULT_FROM_WIN32(WSAEACCES));
+#else
             TEST_TRUE(Connection.TransportShutdownStatus == QUIC_STATUS_ADDRESS_IN_USE);
+#endif
 
         } else {
             if (SchannelMode) {

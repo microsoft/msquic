@@ -771,6 +771,23 @@ RunInteropTest(
         CredConfig.AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256;
     }
 
+    if (Feature == Version2) {
+        uint32_t Versions[] = {QUIC_VERSION_1_H, QUIC_VERSION_2_H};
+        QUIC_VERSION_SETTINGS VersionSettings;
+        VersionSettings.AcceptableVersions =
+            VersionSettings.FullyDeployedVersions =
+            VersionSettings.OfferedVersions = Versions;
+        VersionSettings.AcceptableVersionsLength =
+            VersionSettings.FullyDeployedVersionsLength =
+            VersionSettings.OfferedVersionsLength = ARRAYSIZE(Versions);
+        VERIFY_QUIC_SUCCESS(
+            MsQuic->SetParam(
+                Configuration,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                sizeof(VersionSettings),
+                &VersionSettings));
+    }
+
     VERIFY_QUIC_SUCCESS(
         MsQuic->ConfigurationLoadCredential(
             Configuration,
@@ -800,7 +817,8 @@ RunInteropTest(
     case Resumption:
     case StatelessRetry:
     case PostQuantum:
-    case ChaCha20: {
+    case ChaCha20:
+    case Version2: {
         const uint8_t* ResumptionTicket = nullptr;
         uint32_t ResumptionTicketLength = 0;
         if (Feature == Resumption) {
@@ -827,6 +845,8 @@ RunInteropTest(
                 Success = Connection.Shutdown();
             } else if (Feature == Resumption) {
                 Success = Connection.Resumed;
+            } else if (Feature == Version2) {
+                Success = (QuicVersionUsed == QUIC_VERSION_2_H);
             } else {
                 Success = true;
             }

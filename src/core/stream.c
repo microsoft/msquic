@@ -438,11 +438,17 @@ QuicStreamIndicateStartComplete(
     _In_ QUIC_STATUS Status
     )
 {
+    if (Stream->Flags.StartedIndicated) {
+        return;
+    }
+    Stream->Flags.StartedIndicated = TRUE;
+
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
     Event.START_COMPLETE.PeerAccepted =
+        QUIC_SUCCEEDED(Status) &&
         !(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
@@ -470,11 +476,17 @@ QuicStreamIndicateShutdownComplete(
             Stream->Connection->State.ClosedRemotely;
         Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
             Stream->Flags.HandleClosed;
+        Event.SHUTDOWN_COMPLETE.ConnectionShutdownByPeer =
+            Stream->Connection->State.AppClosed;
+        Event.SHUTDOWN_COMPLETE.ConnectionErrorCode =
+            Stream->Connection->CloseErrorCode;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
-            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByPeer=%hhu, ConnectionErrorCode=0x%llx]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdownByPeer,
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

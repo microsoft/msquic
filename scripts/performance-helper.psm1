@@ -6,12 +6,13 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $SharedEC, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
     $script:RemoteTls = $RemoteTls
     $script:RemoteArch = $RemoteArch
+    $script:SharedEC = $SharedEC
     $script:XDP = $XDP
     $script:Config = $Config
     $script:Publish = $Publish
@@ -604,12 +605,17 @@ function Get-MedianTestResults($FullResults) {
     }
 }
 
-function Get-TestResult($Results, $Matcher) {
+function Get-TestResult($Results, $Matcher, $FailureDefault) {
     $Found = $Results -match $Matcher
     if ($Found) {
         return $Matches
     } else {
-        Write-Error "Error Processing Results:`n`n$Results"
+        if([string]::IsNullOrWhiteSpace($FailureDefault)) {
+            Write-Error "Error Processing Results:`n`n$Results"
+        } else {
+            $Found = $FailureDefault -match $Matcher
+            return $Matches
+        }
     }
 }
 
@@ -1176,6 +1182,8 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
+    [string]$FailureDefault;
+    [boolean]$SharedEC;
     [boolean]$XDP;
     [string[]]$Formats;
     [double]$RegressionThreshold;
@@ -1199,7 +1207,9 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
+        $this.FailureDefault = $existingDef.FailureDefault
     }
 
     TestRunDefinition (
@@ -1214,6 +1224,7 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.FailureDefault = $existingDef.FailureDefault
         $this.VariableValue = ""
         $this.VariableName = ""
 
@@ -1225,6 +1236,7 @@ class TestRunDefinition {
             $this.VariableName += ("_" + $Var.Name + "_" + $Var.Value)
         }
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $BaseArgs)
+        $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
     }
 
@@ -1245,7 +1257,9 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
+        $this.FailureDefault = $existingDef.FailureDefault
     }
 
     [string]ToString() {
@@ -1265,6 +1279,12 @@ class TestRunDefinition {
         $Platform = $this.Local.Platform
         if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
+        }
+        if ($script:SharedEC -and $this.Local.Platform -eq "Windows") {
+            $Platform = 'WinSharedEC'
+        }
+        if ($script:SharedEC -and $this.Local.Platform -eq "Linux") {
+            $Platform = 'LinuxSharedEC'
         }
         if ($script:XDP -and $this.Local.Platform -eq "Windows") {
             $Platform = 'WinXDP'
@@ -1468,6 +1488,7 @@ class ExecutableSpec {
 class TestDefinition {
     [string]$TestName;
     [boolean]$SkipKernel;
+    [string]$FailureDefault;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
     [int]$Iterations;
@@ -1535,6 +1556,9 @@ function Test-CanRunTest {
         return $false
     }
     if ($script:Kernel -and $Test.SkipKernel) {
+        return $false
+    }
+    if ($script:SharedEC -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     if ($script:XDP -and $Test.TestName.Contains("Tcp")) {

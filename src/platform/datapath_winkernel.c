@@ -2658,6 +2658,7 @@ CxPlatSendDataFinalizeSendBuffer(
 
     if (SendData->SegmentSize == 0) {
         SendData->TailBuf->Link.Buffer.Length = SendData->ClientBuffer.Length;
+        SendData->TotalSize += SendData->ClientBuffer.Length;
         SendData->ClientBuffer.Length = 0;
         return;
     }

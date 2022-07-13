@@ -18,6 +18,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } CONNECTED;
         struct {
             QUIC_STATUS Status;
+            QUIC_UINT62 ErrorCode; // Wire format error code.
         } SHUTDOWN_INITIATED_BY_TRANSPORT;
         struct {
             QUIC_UINT62 ErrorCode;
@@ -112,6 +113,10 @@ This event is delivered whenever the transport (e.g. QUIC layer) determines the 
 `Status`
 
 The platform status code that indicates the reason for the shutdown.
+
+`ErrorCode`
+
+The wire format error code that indicates the reason for the shutdown.
 
 ## QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER
 
