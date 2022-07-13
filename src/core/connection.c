@@ -7023,13 +7023,6 @@ QuicConnParamGet(
             break;
         }
 
-        *BufferLength = sizeof(QUIC_CID_PRIVATE_PARAMETER) * Count;
-        *(QUIC_CID_PRIVATE_PARAMETER**)Buffer = CxPlatAlloc(*BufferLength, 0);
-        if(*(QUIC_CID_PRIVATE_PARAMETER**)Buffer == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            break;
-        }
-
         int Index = 0;
         for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
             *Entry != NULL;
@@ -7040,10 +7033,10 @@ QuicConnParamGet(
                     QUIC_CID_HASH_ENTRY,
                     Link);
             QUIC_CID_PRIVATE_PARAMETER CidParam = {
-                SourceCid->CID.Length,
-                CxPlatAlloc(sizeof(uint8_t) * SourceCid->CID.Length, 0)
+                SourceCid->CID.Length
             };
-            (*(QUIC_CID_PRIVATE_PARAMETER**)Buffer)[Index++] = CidParam;
+            memcpy(CidParam.Data, SourceCid->CID.Data, SourceCid->CID.Length);
+            ((QUIC_CID_PRIVATE_PARAMETER*)Buffer)[Index++] = CidParam;
         }
 
         Status = QUIC_STATUS_SUCCESS;

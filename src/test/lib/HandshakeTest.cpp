@@ -783,8 +783,8 @@ QuicTestConnectAndIdleForSrcCidChange(
                     uint8_t OldSrcCidsCount = 0;
                     TEST_QUIC_SUCCEEDED(Client.GetSrcCidsCount(&OldSrcCidsCount));
                     TEST_TRUE(OldSrcCidsCount > 0);
-                    QUIC_CID_PRIVATE_PARAMETER* OldSrcCids = nullptr;
-                    TEST_QUIC_SUCCEEDED(Client.GetSrcCids(&OldSrcCids, OldSrcCidsCount));
+                    QUIC_CID_PRIVATE_PARAMETER* OldSrcCids = new QUIC_CID_PRIVATE_PARAMETER[OldSrcCidsCount];
+                    TEST_QUIC_SUCCEEDED(Client.GetSrcCids(OldSrcCids, OldSrcCidsCount));
                     TestStream* Stream = Client.NewStream(+[](TestStream*){},
                                                             QUIC_STREAM_OPEN_FLAG_NONE,
                                                             NEW_STREAM_START_SYNC);
@@ -801,8 +801,8 @@ QuicTestConnectAndIdleForSrcCidChange(
                     uint8_t NewSrcCidsCount = 0;
                     TEST_QUIC_SUCCEEDED(Client.GetSrcCidsCount(&NewSrcCidsCount));
                     TEST_TRUE(NewSrcCidsCount > 0);
-                    QUIC_CID_PRIVATE_PARAMETER* NewSrcCids = nullptr;
-                    TEST_QUIC_SUCCEEDED(Client.GetSrcCids(&NewSrcCids, NewSrcCidsCount));
+                    QUIC_CID_PRIVATE_PARAMETER* NewSrcCids = new QUIC_CID_PRIVATE_PARAMETER[NewSrcCidsCount];
+                    TEST_QUIC_SUCCEEDED(Client.GetSrcCids(NewSrcCids, NewSrcCidsCount));
 
                     TEST_TRUE(OldSrcCidsCount == NewSrcCidsCount);
 
@@ -817,6 +817,8 @@ QuicTestConnectAndIdleForSrcCidChange(
                     TEST_TRUE(Stream->IsValid());
                     TEST_TRUE(Stream->StartPing(1));
 
+                    delete[] OldSrcCids;
+                    delete[] NewSrcCids;
                     delete Stream; // Delete Stream after checks to avoid changes of CID count.
                 }
 

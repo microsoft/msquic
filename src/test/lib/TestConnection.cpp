@@ -917,7 +917,7 @@ TestConnection::HandleConnectionEvent(
 }
 
 QUIC_STATUS
-TestConnection::GetSrcCids(QUIC_CID_PRIVATE_PARAMETER** SrcCids, uint8_t Count) {
+TestConnection::GetSrcCids(QUIC_CID_PRIVATE_PARAMETER* SrcCids, uint8_t Count) {
     uint32_t SrcCidCount = Count * sizeof(QUIC_CID_PRIVATE_PARAMETER);
     QUIC_STATUS Status =
         MsQuic->GetParam(
