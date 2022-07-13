@@ -95,7 +95,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 
 typedef struct QUIC_CID_PRIVATE_PARAMETER {
     uint8_t Length;
-    const uint8_t* Data;
+    uint8_t Data[20];
 } QUIC_CID_PRIVATE_PARAMETER;
 
 #define QUIC_PARAM_PREFIX_PRIVATE                        0x80000000
