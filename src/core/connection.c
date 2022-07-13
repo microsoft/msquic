@@ -7004,6 +7004,75 @@ QuicConnParamGet(
         break;
     }
 
+    case QUIC_PARAM_CONN_SRC_CIDS: {
+        uint32_t Count = 0;
+        for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
+            *Entry != NULL;
+            Entry = &(*Entry)->Next) {
+            ++Count;
+        }
+
+        if (*BufferLength < sizeof(QUIC_CID_PRIVATE_PARAMETER) * Count) {
+            *BufferLength = sizeof(QUIC_CID_PRIVATE_PARAMETER) * Count;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_CID_PRIVATE_PARAMETER) * Count;
+        *(QUIC_CID_PRIVATE_PARAMETER**)Buffer = CxPlatAlloc(*BufferLength, 0);
+        if(*(QUIC_CID_PRIVATE_PARAMETER**)Buffer == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            break;
+        }
+
+        int Index = 0;
+        for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
+            *Entry != NULL;
+            Entry = &(*Entry)->Next) {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                CXPLAT_CONTAINING_RECORD(
+                    *Entry,
+                    QUIC_CID_HASH_ENTRY,
+                    Link);
+            QUIC_CID_PRIVATE_PARAMETER CidParam = {
+                SourceCid->CID.Length,
+                CxPlatAlloc(sizeof(uint8_t) * SourceCid->CID.Length, 0)
+            };
+            (*(QUIC_CID_PRIVATE_PARAMETER**)Buffer)[Index++] = CidParam;
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+    case QUIC_PARAM_CONN_SRC_CIDS_COUNT: {
+        if (*BufferLength < sizeof(uint8_t)) {
+            *BufferLength = sizeof(uint8_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        uint8_t Count = 0;
+        for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
+            *Entry != NULL;
+            Entry = &(*Entry)->Next) {
+            ++Count;
+        }
+
+        *BufferLength = sizeof(uint8_t);
+        *(uint8_t*)Buffer = Count;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

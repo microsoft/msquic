@@ -93,6 +93,11 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
+typedef struct QUIC_CID_PRIVATE_PARAMETER {
+    uint8_t Length;
+    const uint8_t* Data;
+} QUIC_CID_PRIVATE_PARAMETER;
+
 #define QUIC_PARAM_PREFIX_PRIVATE                        0x80000000
 
 //
@@ -122,6 +127,8 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x85000001  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x85000002  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 #define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x85000003  // uint16_t
+#define QUIC_PARAM_CONN_SRC_CIDS                        0x85000004  // QUIC_CID_PRIVATE_PARAMETER
+#define QUIC_PARAM_CONN_SRC_CIDS_COUNT                  0x85000005  // uint8_t
 
 #if defined(__cplusplus)
 }
