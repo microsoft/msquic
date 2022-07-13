@@ -333,6 +333,15 @@ TEST_P(WithBool, ValidateStream) {
     }
 }
 
+TEST(ParameterValidation, CloseConnBeforeStreamFlush) {
+    TestLogger Logger("QuicTestCloseConnBeforeStreamFlush");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH));
+    } else {
+        QuicTestCloseConnBeforeStreamFlush();
+    }
+}
+
 TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateConnectionEvents", GetParam());
     if (TestingKernelMode) {

@@ -1199,7 +1199,7 @@ struct MsQuicStream {
     MsQuicStream(
         _In_ HQUIC StreamHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
-        _In_ MsQuicStreamCallback* Callback,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
         ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         Handle = StreamHandle;
@@ -1208,9 +1208,7 @@ struct MsQuicStream {
     }
 
     ~MsQuicStream() noexcept {
-        if (Handle) {
-            MsQuic->StreamClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -1226,6 +1224,19 @@ struct MsQuicStream {
         _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags = QUIC_STREAM_SHUTDOWN_FLAG_ABORT
         ) noexcept {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        HQUIC HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->StreamClose(HandleToClose);
+        }
     }
 
     void

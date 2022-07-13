@@ -27,11 +27,12 @@ typedef enum QUIC_HANDLE_TYPE {
 } QUIC_HANDLE_TYPE;
 
 typedef union QUIC_STREAM_FLAGS {
-    uint32_t AllFlags;
+    uint64_t AllFlags;
     struct {
         BOOLEAN Allocated               : 1;    // Allocated by Connection. Used for Debugging.
         BOOLEAN Initialized             : 1;    // Initialized successfully. Used for Debugging.
         BOOLEAN Started                 : 1;    // The app has started the stream.
+        BOOLEAN StartedIndicated        : 1;    // The app received a start complete event.
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
         BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
@@ -59,6 +60,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
+        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
 
         BOOLEAN HandleSendShutdown      : 1;    // Send shutdown complete callback delivered.
@@ -592,7 +594,7 @@ struct Stream : Struct {
 
     QUIC_STREAM_FLAGS Flags() {
         QUIC_STREAM_FLAGS Flags;
-        Flags.AllFlags = ReadType<ULONG>("Flags");
+        Flags.AllFlags = ReadType<ULONG64>("Flags");
         return Flags;
     }
 

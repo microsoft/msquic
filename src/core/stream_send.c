@@ -378,6 +378,10 @@ QuicStreamCompleteSendRequest(
             !(Stream->SendBufferBookmark->Flags & QUIC_SEND_FLAG_BUFFERED));
     }
 
+    if (SendRequest->Flags & QUIC_SEND_FLAG_START && !Stream->Flags.Started) {
+        QuicStreamIndicateStartComplete(Stream, QUIC_STATUS_ABORTED);
+    }
+
     if (!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED)) {
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SEND_COMPLETE;
