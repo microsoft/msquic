@@ -189,7 +189,8 @@ public:
 
     bool
     StartPing(
-        _In_ uint64_t PayloadLength
+        _In_ uint64_t PayloadLength,
+        _In_ bool SendFin = true
         );
 
     bool WaitForSendShutdownComplete();

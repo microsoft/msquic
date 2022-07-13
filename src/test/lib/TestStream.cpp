@@ -118,7 +118,8 @@ TestStream::Start(
 
 bool
 TestStream::StartPing(
-    _In_ uint64_t PayloadLength
+    _In_ uint64_t PayloadLength,
+    _In_ bool SendFin
     )
 {
     BytesToSend = PayloadLength / MaxSendBuffers;
@@ -137,7 +138,7 @@ TestStream::StartPing(
         if (PayloadLength == 0) {
             Flags |= QUIC_SEND_FLAG_START;
         }
-        if (resultingBytesLeft == 0) {
+        if (SendFin && resultingBytesLeft == 0) {
             Flags |= QUIC_SEND_FLAG_FIN;
         }
 
