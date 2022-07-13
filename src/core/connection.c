@@ -7004,7 +7004,7 @@ QuicConnParamGet(
         break;
     }
 
-    case QUIC_PARAM_CONN_SRC_CIDS: {
+    case QUIC_PARAM_CONN_NON_RETIRED_SRC_CIDS: {
         uint32_t Count = 0;
         for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
             *Entry != NULL;
@@ -7050,7 +7050,7 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
-    case QUIC_PARAM_CONN_SRC_CIDS_COUNT: {
+    case QUIC_PARAM_CONN_NON_RETIRED_SRC_CIDS_COUNT: {
         if (*BufferLength < sizeof(uint8_t)) {
             *BufferLength = sizeof(uint8_t);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
