@@ -1707,12 +1707,31 @@ namespace Microsoft.Quic
         QUIC_FLOW_BLOCKED_APP = 0x80,
     }
 
-    internal partial struct QUIC_FLOW_BLOCKED_TIMING
+    internal partial struct QUIC_STREAM_STATISTICS
     {
-        internal QUIC_FLOW_BLOCK_REASON Reason;
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedBySchedulingUs;
 
         [NativeTypeName("uint64_t")]
-        internal ulong TimeUs;
+        internal ulong ConnBlockedByPacingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByAmplificationProtUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByCongestionControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByIdFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByAppUs;
     }
 
     internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
@@ -2567,9 +2586,6 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64")]
         internal const uint QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
 
-        [NativeTypeName("#define QUIC_FLOW_BLOCK_REASON_COUNT 8")]
-        internal const uint QUIC_FLOW_BLOCK_REASON_COUNT = 8;
-
         [NativeTypeName("#define QUIC_PARAM_PREFIX_GLOBAL 0x01000000")]
         internal const uint QUIC_PARAM_PREFIX_GLOBAL = 0x01000000;
 
@@ -2747,8 +2763,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
         internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_BLOCKED_TIMINGS 0X08000004")]
-        internal const uint QUIC_PARAM_STREAM_BLOCKED_TIMINGS = 0X08000004;
+        [NativeTypeName("#define QUIC_PARAM_STREAM_STATISTICS 0X08000004")]
+        internal const uint QUIC_PARAM_STREAM_STATISTICS = 0X08000004;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;

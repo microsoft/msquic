@@ -471,7 +471,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
     case QUIC_PARAM_STREAM_PRIORITY:                                // uint16_t
         Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX));
         break;
-    case QUIC_PARAM_STREAM_BLOCKED_TIMINGS:
+    case QUIC_PARAM_STREAM_STATISTICS:
         break;
     default:
         break;
@@ -492,7 +492,7 @@ const uint32_t ParamCounts[] = {
 #else
     0,
 #endif
-    QUIC_PARAM_STREAM_BLOCKED_TIMINGS + 1
+    QUIC_PARAM_STREAM_STATISTICS + 1
 };
 
 #define GET_PARAM_LOOP_COUNT 10

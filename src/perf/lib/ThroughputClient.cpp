@@ -583,13 +583,31 @@ ThroughputClient::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         if (PrintBlockedTimings) {
-            QUIC_FLOW_BLOCKED_TIMING Timings[QUIC_FLOW_BLOCK_REASON_COUNT];
-            uint32_t BufferLength = sizeof(Timings);
-            MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_BLOCKED_TIMINGS, &BufferLength, Timings);
+            QUIC_STREAM_STATISTICS Stats = {0};
+            uint32_t BufferLength = sizeof(Stats);
+            MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
             WriteOutput("Flow blocked timing:\n");
-            for (size_t i = 0; i < ARRAYSIZE(Timings); ++i) {
-                WriteOutput("Reason: %d Time: %llu us\n", Timings[i].Reason, (unsigned long long)Timings[i].TimeUs);
-            }
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_SCHEDULING Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedBySchedulingUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_PACING Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByPacingUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_APP Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByAppUs);
         }
         OnStreamShutdownComplete(StrmContext);
         break;

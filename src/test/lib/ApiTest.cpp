@@ -4642,10 +4642,10 @@ void QuicTestStreamParam()
     }
 
     //
-    // QUIC_PARAM_STREAM_BLOCKED_TIMINGS
+    // QUIC_PARAM_STREAM_STATISTICS
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_STREAM_BLOCKED_TIMINGS");
+        TestScopeLogger LogScope0("QUIC_PARAM_STREAM_STATISTICS");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         uint64_t Dummy = 123;
         {
@@ -4654,7 +4654,7 @@ void QuicTestStreamParam()
                 QUIC_STATUS_INVALID_PARAMETER,
                 MsQuic->SetParam(
                     Stream.Handle,
-                    QUIC_PARAM_STREAM_BLOCKED_TIMINGS,
+                    QUIC_PARAM_STREAM_STATISTICS,
                     sizeof(Dummy),
                     &Dummy));
         }
@@ -4666,18 +4666,18 @@ void QuicTestStreamParam()
                 QUIC_STATUS_BUFFER_TOO_SMALL,
                 MsQuic->GetParam(
                     Stream.Handle,
-                    QUIC_PARAM_STREAM_BLOCKED_TIMINGS,
+                    QUIC_PARAM_STREAM_STATISTICS,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(QUIC_FLOW_BLOCKED_TIMING) * QUIC_FLOW_BLOCK_REASON_COUNT);
+            TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
 
-            QUIC_FLOW_BLOCKED_TIMING Timings[QUIC_FLOW_BLOCK_REASON_COUNT];
+            QUIC_STREAM_STATISTICS Stats = {0};
             TEST_QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     Stream.Handle,
-                    QUIC_PARAM_STREAM_BLOCKED_TIMINGS,
+                    QUIC_PARAM_STREAM_STATISTICS,
                     &Length,
-                    &Timings));
+                    &Stats));
         }
     }
 }
