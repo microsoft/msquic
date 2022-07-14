@@ -157,6 +157,17 @@ PingStreamShutdown(
         }
     }
 
+    if (ConnState->Connection->GetIsShutdown()) {
+        TEST_TRUE(Stream->GetConnectionShutdown());
+        TEST_EQUAL(ConnState->Connection->GetPeerClosed(), Stream->GetShutdownByApp());
+        TEST_EQUAL(ConnState->Connection->GetPeerClosed(), Stream->GetClosedRemotely());
+        TEST_EQUAL(ConnState->Connection->GetTransportClosed(), !Stream->GetShutdownByApp());
+        TEST_EQUAL(ConnState->Connection->GetTransportClosed(), !Stream->GetClosedRemotely());
+        if (ConnState->Connection->GetPeerClosed()) {
+            TEST_EQUAL(ConnState->Connection->GetExpectedPeerCloseErrorCode(), Stream->GetConnectionErrorCode());
+        }
+    }
+
     ConnState->OnStreamComplete();
 
     delete Stream;
