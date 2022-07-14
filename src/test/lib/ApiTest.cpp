@@ -4679,6 +4679,13 @@ void QuicTestStreamParam()
                     &Length,
                     &Stats),
                     QUIC_STATUS_INVALID_STATE);
+            Stream.Start();
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_STATISTICS,
+                    &Length,
+                    &Stats));
         }
     }
 }
