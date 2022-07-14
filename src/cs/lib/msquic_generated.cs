@@ -1695,18 +1695,6 @@ namespace Microsoft.Quic
         }
     }
 
-    internal enum QUIC_FLOW_BLOCK_REASON
-    {
-        QUIC_FLOW_BLOCKED_SCHEDULING = 0x01,
-        QUIC_FLOW_BLOCKED_PACING = 0x02,
-        QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT = 0x04,
-        QUIC_FLOW_BLOCKED_CONGESTION_CONTROL = 0x08,
-        QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL = 0x10,
-        QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL = 0x20,
-        QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL = 0x40,
-        QUIC_FLOW_BLOCKED_APP = 0x80,
-    }
-
     internal partial struct QUIC_STREAM_STATISTICS
     {
         [NativeTypeName("uint64_t")]

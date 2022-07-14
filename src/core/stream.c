@@ -726,11 +726,6 @@ QuicStreamParamGet(
             break;
         }
 
-        if (!Stream->Flags.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
         *BufferLength = sizeof(Stream->SendPriority);
         *(uint16_t*)Buffer = Stream->SendPriority;
 
@@ -747,6 +742,11 @@ QuicStreamParamGet(
 
         if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (!Stream->Flags.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
@@ -799,6 +799,7 @@ QuicStreamParamGet(
         }
         Stats->ConnBlockedByFlowControlUs -= Stream->BlockedTimings.CachedConnFlowControlUs;
 
+        *BufferLength = sizeof(QUIC_STREAM_STATISTICS);
         Status = QUIC_STATUS_SUCCESS;
         break;
     }

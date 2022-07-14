@@ -41,7 +41,7 @@ PrintHelp(
         "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
         "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n"
-        "  -btime:<0/1>                 Indicates connection blocked timings at the end of the run. (def:0)\n"
+        "  -sstats:<0/1>                Indicates connection blocked timings at the end of the run. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_IO_SIZE
@@ -76,7 +76,7 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "upload", &UploadLength);
     TryGetValue(argc, argv, "download", &DownloadLength);
     TryGetValue(argc, argv, "stats", &PrintStats);
-    TryGetValue(argc, argv, "btime", &PrintBlockedTimings);
+    TryGetValue(argc, argv, "sstats", &PrintStreamStats);
 
     if (UploadLength && DownloadLength) {
         WriteOutput("Must specify only one of '-upload' or '-download' argument!\n");
@@ -582,7 +582,7 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        if (PrintBlockedTimings) {
+        if (PrintStreamStats) {
             QUIC_STREAM_STATISTICS Stats = {0};
             uint32_t BufferLength = sizeof(Stats);
             MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);

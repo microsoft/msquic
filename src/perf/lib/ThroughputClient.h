@@ -129,7 +129,7 @@ private:
     uint8_t UseEncryption {TRUE};
     uint8_t TimedTransfer {FALSE};
     uint8_t PrintStats {FALSE};
-    uint8_t PrintBlockedTimings {FALSE};
+    uint8_t PrintStreamStats {FALSE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};

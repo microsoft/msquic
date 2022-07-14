@@ -472,7 +472,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
         Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX));
         break;
     case QUIC_PARAM_STREAM_STATISTICS:
-        break;
+        break; // Get Only
     default:
         break;
     }
