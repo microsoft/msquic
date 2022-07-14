@@ -750,7 +750,6 @@ QuicStreamParamGet(
             break;
         }
 
-
         uint64_t Now = CxPlatTimeUs64();
         QUIC_STREAM_STATISTICS* Stats = (QUIC_STREAM_STATISTICS*)Buffer;
         QUIC_CONNECTION* Connection = Stream->Connection;
