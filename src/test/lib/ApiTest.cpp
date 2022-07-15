@@ -4693,6 +4693,56 @@ void QuicTestStreamParam()
             TEST_EQUAL(Priority, Expected);
         }
     }
+
+    //
+    // QUIC_PARAM_STREAM_STATISTICS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_STREAM_STATISTICS");
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        uint64_t Dummy = 123;
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_STATISTICS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        {
+            TestScopeLogger LogScope1("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_STATISTICS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
+
+            QUIC_STREAM_STATISTICS Stats = {0};
+            TEST_QUIC_STATUS(
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_STATISTICS,
+                    &Length,
+                    &Stats),
+                    QUIC_STATUS_INVALID_STATE);
+
+            Stream.Start();
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_STATISTICS,
+                    &Length,
+                    &Stats));
+            TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
+        }
+    }
 }
 
 void

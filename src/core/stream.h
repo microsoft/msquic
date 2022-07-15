@@ -418,6 +418,19 @@ typedef struct QUIC_STREAM {
     //
     QUIC_OPERATION* ReceiveCompleteOperation;
 
+    //
+    // Stream blocked timings.
+    //
+    struct {
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER StreamIdFlowControl;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER App;
+        uint64_t CachedConnSchedulingUs;
+        uint64_t CachedConnPacingUs;
+        uint64_t CachedConnAmplificationProtUs;
+        uint64_t CachedConnCongestionControlUs;
+        uint64_t CachedConnFlowControlUs;
+    } BlockedTimings;
 } QUIC_STREAM;
 
 inline
@@ -720,7 +733,20 @@ QuicStreamAddOutFlowBlockedReason(
     _In_ QUIC_FLOW_BLOCK_REASON Reason
     )
 {
+    CXPLAT_DBG_ASSERT((Reason & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) == 0);
+    CXPLAT_DBG_ASSERTMSG(
+        (Reason & (Reason - 1)) == 0,
+        "More than one reason is not allowed");
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) {
+            Stream->BlockedTimings.FlowControl.LastStartTimeUs = Now;
+        }
+
+        if (Reason & QUIC_FLOW_BLOCKED_APP) {
+            Stream->BlockedTimings.App.LastStartTimeUs = Now;
+        }
+
         Stream->OutFlowBlockedReasons |= Reason;
         QuicTraceEvent(
             StreamOutFlowBlocked,
@@ -740,6 +766,31 @@ QuicStreamRemoveOutFlowBlockedReason(
     )
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
+            Stream->BlockedTimings.FlowControl.CumulativeTimeUs +=
+                CxPlatTimeDiff64(
+                    Stream->BlockedTimings.FlowControl.LastStartTimeUs, Now);
+            Stream->BlockedTimings.FlowControl.LastStartTimeUs = 0;
+        }
+
+        if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_APP) &&
+            (Reason & QUIC_FLOW_BLOCKED_APP)) {
+            Stream->BlockedTimings.App.CumulativeTimeUs +=
+                CxPlatTimeDiff64(
+                    Stream->BlockedTimings.App.LastStartTimeUs, Now);
+            Stream->BlockedTimings.App.LastStartTimeUs = 0;
+        }
+
+        if ((Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
+            Stream->BlockedTimings.StreamIdFlowControl.CumulativeTimeUs +=
+                CxPlatTimeDiff64(
+                    Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs, Now);
+            Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs = 0;
+        }
+
         Stream->OutFlowBlockedReasons &= ~Reason;
         QuicTraceEvent(
             StreamOutFlowBlocked,

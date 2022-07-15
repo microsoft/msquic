@@ -244,29 +244,6 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRecvState,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamOutFlowBlocked
-// [strm][%p] Send Blocked Flags: %hhu
-// QuicTraceEvent(
-            StreamOutFlowBlocked,
-            "[strm][%p] Send Blocked Flags: %hhu",
-            Stream,
-            Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_C, StreamOutFlowBlocked,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned char, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned char, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for StreamRundown
 // [strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu
 // QuicTraceEvent(
@@ -292,5 +269,28 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRundown,
         ctf_integer_hex(uint64_t, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamOutFlowBlocked
+// [strm][%p] Send Blocked Flags: %hhu
+// QuicTraceEvent(
+        StreamOutFlowBlocked,
+        "[strm][%p] Send Blocked Flags: %hhu",
+        Stream,
+        Stream->OutFlowBlockedReasons);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, StreamOutFlowBlocked,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
     )
 )

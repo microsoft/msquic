@@ -240,26 +240,6 @@ tracepoint(CLOG_STREAM_C, StreamRecvState , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamOutFlowBlocked
-// [strm][%p] Send Blocked Flags: %hhu
-// QuicTraceEvent(
-            StreamOutFlowBlocked,
-            "[strm][%p] Send Blocked Flags: %hhu",
-            Stream,
-            Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
-#define _clog_4_ARGS_TRACE_StreamOutFlowBlocked(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_STREAM_C, StreamOutFlowBlocked , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for StreamRundown
 // [strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu
 // QuicTraceEvent(
@@ -277,6 +257,26 @@ tracepoint(CLOG_STREAM_C, StreamOutFlowBlocked , arg2, arg3);\
 #ifndef _clog_6_ARGS_TRACE_StreamRundown
 #define _clog_6_ARGS_TRACE_StreamRundown(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_STREAM_C, StreamRundown , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamOutFlowBlocked
+// [strm][%p] Send Blocked Flags: %hhu
+// QuicTraceEvent(
+        StreamOutFlowBlocked,
+        "[strm][%p] Send Blocked Flags: %hhu",
+        Stream,
+        Stream->OutFlowBlockedReasons);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
+#define _clog_4_ARGS_TRACE_StreamOutFlowBlocked(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_C, StreamOutFlowBlocked , arg2, arg3);\
 
 #endif
 

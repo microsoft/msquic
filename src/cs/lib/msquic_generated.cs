@@ -1695,6 +1695,33 @@ namespace Microsoft.Quic
         }
     }
 
+    internal partial struct QUIC_STREAM_STATISTICS
+    {
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedBySchedulingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByPacingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByAmplificationProtUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByCongestionControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByIdFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByAppUs;
+    }
+
     internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -2740,6 +2767,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
         internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_STATISTICS 0X08000004")]
+        internal const uint QUIC_PARAM_STREAM_STATISTICS = 0X08000004;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;
