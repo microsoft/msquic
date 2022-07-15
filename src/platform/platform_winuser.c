@@ -289,6 +289,20 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatProcessorInfoUnInit(
+    void
+    )
+{
+    CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
+    CxPlatNumaMasks = NULL;
+    CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+    CxPlatProcessorGroupOffsets = NULL;
+    CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+    CxPlatProcessorInfo = NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatInitialize(
     void
@@ -296,6 +310,7 @@ CxPlatInitialize(
 {
     QUIC_STATUS Status;
     BOOLEAN CryptoInitialized = FALSE;
+    BOOLEAN ProcInfoInitialized = FALSE;
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
@@ -313,6 +328,7 @@ CxPlatInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    ProcInfoInitialized = TRUE;
 
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
@@ -383,6 +399,9 @@ Error:
         if (CryptoInitialized) {
             CxPlatCryptUninitialize();
         }
+        if (ProcInfoInitialized) {
+            CxPlatProcessorInfoUnInit();
+        }
         if (CxPlatform.Heap) {
             HeapDestroy(CxPlatform.Heap);
             CxPlatform.Heap = NULL;
@@ -406,12 +425,7 @@ CxPlatUninitialize(
     timeEndPeriod(CxPlatTimerCapabilities.wPeriodMin);
 #endif
 #endif // TIMERR_NOERROR
-    CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
-    CxPlatNumaMasks = NULL;
-    CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-    CxPlatProcessorGroupOffsets = NULL;
-    CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
-    CxPlatProcessorInfo = NULL;
+    CxPlatProcessorInfoUnInit();
     HeapDestroy(CxPlatform.Heap);
     CxPlatform.Heap = NULL;
     QuicTraceLogInfo(
