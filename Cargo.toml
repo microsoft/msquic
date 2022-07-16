@@ -47,7 +47,7 @@ include = [
 cmake = "0.1"
 
 [dependencies]
-bitfield = "0.13.2"
+bitfield = "0.14.0"
 libc = "0.2.0"
 c-types = "2.0.2"
 serde = { version = "1.0.117", features = ["derive"] }
