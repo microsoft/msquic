@@ -40,10 +40,16 @@ typedef struct SLIDING_WINDOW_EXTREMUM {
     //
     uint32_t WindowHead;
 
+    //
+    // Rotated monotone deque maintains the extremum of sliding window
+    //
     SLIDING_WINDOW_EXTREMUM_ENTRY* Window;
 
 } SLIDING_WINDOW_EXTREMUM;
 
+//
+// Initializes the sliding window's internal structure
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 SLIDING_WINDOW_EXTREMUM
 SlidingWindowExtremumInitialize(
@@ -52,6 +58,18 @@ SlidingWindowExtremumInitialize(
     _In_ SLIDING_WINDOW_EXTREMUM_ENTRY* Window
     );
 
+//
+// Resets the sliding windows' internal structure
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+SlidingWindowExtremumReset(
+    _In_ SLIDING_WINDOW_EXTREMUM* w
+    );
+
+//
+// Gets the extremum element from sliding window
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 SlidingWindowExtremumGet(
@@ -59,12 +77,12 @@ SlidingWindowExtremumGet(
     _Inout_ SLIDING_WINDOW_EXTREMUM_ENTRY* Entry
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-SlidingWindowExtremumReset(
-    _In_ SLIDING_WINDOW_EXTREMUM* w
-    );
-
+//
+// Updates a new value to the sliding window and maintains the **minima** of the window  
+//
+// Do not mix SlidingWindowExtremumUpdateMin and SlidingWindowExtremumUpdateMax
+// function with same SlidingWindowExtremum instance.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 SlidingWindowExtremumUpdateMin(
@@ -73,6 +91,12 @@ SlidingWindowExtremumUpdateMin(
     _In_ uint64_t NewTime
     );
 
+//
+// Updates a new value to the sliding window and maintains the **maxima** of the window  
+//
+// Do not mix SlidingWindowExtremumUpdateMin and SlidingWindowExtremumUpdateMax
+// functions with same SlidingWindowExtremum instance.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 SlidingWindowExtremumUpdateMax(

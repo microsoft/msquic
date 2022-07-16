@@ -3,7 +3,21 @@
     Copyright (c) Microsoft Corporation.
     Licensed under the MIT License.
 
+Abstract:
+    The following functions implement a sliding window extremum (either maxima
+    or minima) algorithm for MsQuic. The design is based on a well-known data
+    structure called "monotone queue".
+
+    Since the queue is monotonic, we can easily access the extremum element by
+    looking at the first element. Adding new element will sweep out
+    older elements which value is greater/less than equal to the new element,
+    along with the elements which is expired.
+    
+    If there are more elements comparing to the capacity of queue, the
+    algorithm will still work but the accuracy will be compromised.
+
 --*/
+
 
 #include "precomp.h"
 
