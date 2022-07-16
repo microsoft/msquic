@@ -6612,6 +6612,7 @@ QuicConnGetV2Statistics(
     Stats->RecvDecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
     Stats->RecvValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
     Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
+    Stats->ChangeSrcCidCount = Connection->Stats.ChangeSrcCidCount;
 
     if (IsPlat) {
         Stats->TimingStart = CxPlatTimeUs64ToPlat(Stats->TimingStart); // cppcheck-suppress selfAssignment
@@ -6782,6 +6783,7 @@ QuicConnParamGet(
         Stats->Rtt = Path->SmoothedRtt;
         Stats->MinRtt = Path->MinRtt;
         Stats->MaxRtt = Path->MaxRtt;
+        Stats->ChangeSrcCidCount = Connection->Stats.ChangeSrcCidCount;
         Stats->Timing.Start = Connection->Stats.Timing.Start;
         Stats->Timing.InitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
         Stats->Timing.HandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
@@ -7001,82 +7003,6 @@ QuicConnParamGet(
                 Param == QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
                 BufferLength,
                 (QUIC_STATISTICS_V2*)Buffer);
-        break;
-    }
-
-    case QUIC_PARAM_CONN_NON_RETIRED_SRC_CIDS: {
-        uint32_t Count = 0;
-        for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
-            *Entry != NULL;
-            Entry = &(*Entry)->Next) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(
-                    *Entry,
-                    QUIC_CID_HASH_ENTRY,
-                    Link);
-            if (!SourceCid->CID.Retired)
-                ++Count;
-        }
-
-        if (*BufferLength < sizeof(QUIC_CID_PRIVATE_PARAMETER) * Count) {
-            *BufferLength = sizeof(QUIC_CID_PRIVATE_PARAMETER) * Count;
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        int Index = 0;
-        for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
-            *Entry != NULL;
-            Entry = &(*Entry)->Next) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(
-                    *Entry,
-                    QUIC_CID_HASH_ENTRY,
-                    Link);
-            if (!SourceCid->CID.Retired) {
-                QUIC_CID_PRIVATE_PARAMETER CidParam = {
-                    SourceCid->CID.Length
-                };
-                memcpy(CidParam.Data, SourceCid->CID.Data, SourceCid->CID.Length);
-                ((QUIC_CID_PRIVATE_PARAMETER*)Buffer)[Index++] = CidParam;
-            }
-        }
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-    case QUIC_PARAM_CONN_NON_RETIRED_SRC_CIDS_COUNT: {
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        uint8_t Count = 0;
-        for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
-            *Entry != NULL;
-            Entry = &(*Entry)->Next) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(
-                    *Entry,
-                    QUIC_CID_HASH_ENTRY,
-                    Link);
-            if (!SourceCid->CID.Retired)
-                ++Count;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = Count;
-        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 

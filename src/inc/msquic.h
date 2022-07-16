@@ -399,6 +399,7 @@ typedef struct QUIC_STATISTICS {
     uint32_t Rtt;                       // In microseconds
     uint32_t MinRtt;                    // In microseconds
     uint32_t MaxRtt;                    // In microseconds
+    uint32_t ChangeSrcCidCount;         // Number of times the source CID changed.
     struct {
         uint64_t Start;
         uint64_t InitialFlightEnd;      // Processed all peer's Initial packets
@@ -481,6 +482,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t KeyUpdateCount;
 
     uint32_t SendCongestionWindow;          // Congestion window size
+
+    uint32_t ChangeSrcCidCount;             // Number of times the source CID changed.
 
     // N.B. New fields must be appended to end
 

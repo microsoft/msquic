@@ -916,34 +916,19 @@ TestConnection::HandleConnectionEvent(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
-TestConnection::GetSrcCids(QUIC_CID_PRIVATE_PARAMETER* SrcCids, uint8_t Count) {
-    uint32_t SrcCidCount = Count * sizeof(QUIC_CID_PRIVATE_PARAMETER);
+uint32_t
+TestConnection::GetSrcCidChangeCountStatistic() {
+    QUIC_STATISTICS Stats;
+    uint32_t StatsSize = sizeof(Stats);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_CONN_NON_RETIRED_SRC_CIDS,
-            &SrcCidCount,
-            SrcCids);
+            QUIC_PARAM_CONN_STATISTICS,
+            &StatsSize,
+            &Stats);
 
     if(QUIC_FAILED(Status)) {
-        TEST_FAILURE("GetParam(QUIC_PARAM_NON_RETIRED_CONN_SRC_CIDS) failed: 0x%x", Status);
+        TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
     }
-    return Status;
-}
-
-QUIC_STATUS
-TestConnection::GetSrcCidsCount(uint8_t* SrcCidsCount) {
-    uint32_t Size = sizeof(uint8_t);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_CONN_NON_RETIRED_SRC_CIDS_COUNT,
-            &Size,
-            SrcCidsCount);
-
-    if(QUIC_FAILED(Status)) {
-        TEST_FAILURE("GetParam(QUIC_PARAM_NON_RETIRED_CONN_SRC_CIDS_COUNT) failed: 0x%x", Status);
-    }
-    return Status;
+    return Stats.ChangeSrcCidCount;
 }
