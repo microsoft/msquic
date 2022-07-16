@@ -2740,6 +2740,8 @@ QuicTestConnectAndIdleForSrcCidChange(
 
                     delete Stream;
 
+                    TEST_EQUAL(Client.GetSrcCidChangeCountStatistic(), 0);
+
                     CxPlatSleep(4000); // Wait for the first idle period to send another ping to the stream.
 
                     Stream = Client.NewStream(+[](TestStream*){},
