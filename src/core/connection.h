@@ -235,8 +235,6 @@ typedef struct QUIC_CONN_STATS {
     //
     uint32_t QuicVersion;
 
-    uint32_t ChangeSrcCidCount;         // Number of times the source CID changed.
-
     //
     // All timing values are in microseconds.
     //
@@ -286,6 +284,7 @@ typedef struct QUIC_CONN_STATS {
 
     struct {
         uint32_t KeyUpdateCount;        // Count of key updates completed.
+        uint32_t ChangeSrcCidCount;     // Number of times the source CID changed.
     } Misc;
 
 } QUIC_CONN_STATS;

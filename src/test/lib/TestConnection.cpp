@@ -918,12 +918,12 @@ TestConnection::HandleConnectionEvent(
 
 uint32_t
 TestConnection::GetSrcCidChangeCountStatistic() {
-    QUIC_STATISTICS Stats;
+    QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
-            QUIC_PARAM_CONN_STATISTICS,
+            QUIC_PARAM_CONN_STATISTICS_V2,
             &StatsSize,
             &Stats);
 

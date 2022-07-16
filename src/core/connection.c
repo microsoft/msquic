@@ -6612,7 +6612,7 @@ QuicConnGetV2Statistics(
     Stats->RecvDecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
     Stats->RecvValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
     Stats->KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
-    Stats->ChangeSrcCidCount = Connection->Stats.ChangeSrcCidCount;
+    Stats->ChangeSrcCidCount = Connection->Stats.Misc.ChangeSrcCidCount;
 
     if (IsPlat) {
         Stats->TimingStart = CxPlatTimeUs64ToPlat(Stats->TimingStart); // cppcheck-suppress selfAssignment
@@ -6783,7 +6783,6 @@ QuicConnParamGet(
         Stats->Rtt = Path->SmoothedRtt;
         Stats->MinRtt = Path->MinRtt;
         Stats->MaxRtt = Path->MaxRtt;
-        Stats->ChangeSrcCidCount = Connection->Stats.ChangeSrcCidCount;
         Stats->Timing.Start = Connection->Stats.Timing.Start;
         Stats->Timing.InitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
         Stats->Timing.HandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
