@@ -927,7 +927,7 @@ TestConnection::GetSrcCidChangeCountStatistic() {
             &StatsSize,
             &Stats);
 
-    if(QUIC_FAILED(Status)) {
+    if (QUIC_FAILED(Status)) {
         TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
     }
     return Stats.ChangeSrcCidCount;
