@@ -665,6 +665,17 @@ typedef struct QUIC_TLS_SECRETS {
     uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
 } QUIC_TLS_SECRETS;
 
+typedef struct QUIC_STREAM_STATISTICS {
+    uint64_t ConnBlockedBySchedulingUs;
+    uint64_t ConnBlockedByPacingUs;
+    uint64_t ConnBlockedByAmplificationProtUs;
+    uint64_t ConnBlockedByCongestionControlUs;
+    uint64_t ConnBlockedByFlowControlUs;
+    uint64_t StreamBlockedByIdFlowControlUs;
+    uint64_t StreamBlockedByFlowControlUs;
+    uint64_t StreamBlockedByAppUs;
+} QUIC_STREAM_STATISTICS;
+
 //
 // Functions for associating application contexts with QUIC handles. MsQuic
 // provides no explicit synchronization between parallel calls to these
@@ -821,6 +832,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+#define QUIC_PARAM_STREAM_STATISTICS                    0X08000004  // QUIC_STREAM_STATISTICS
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1259,8 +1271,9 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             BOOLEAN ConnectionShutdown;
             BOOLEAN AppCloseInProgress       : 1;
-            BOOLEAN ConnectionShutdownByPeer : 1;
-            BOOLEAN RESERVED                 : 6;
+            BOOLEAN ConnectionShutdownByApp  : 1;
+            BOOLEAN ConnectionClosedRemotely : 1;
+            BOOLEAN RESERVED                 : 5;
             QUIC_UINT62 ConnectionErrorCode;
         } SHUTDOWN_COMPLETE;
         struct {

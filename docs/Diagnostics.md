@@ -129,6 +129,14 @@ As already indicated, there are lots of ways to collect ETW traces. Feel free to
 
 ## Linux
 
+This script wraps steps bellows  
+**WARN**: This wrapper doesn't work with `./scripts/test.ps1` etc. as it is also creating lttng session internally.
+```
+./scripts/log_wrapper.sh ${Your binary}
+# e.g.
+./scripts/log_wrapper.sh ./artifacts/bin/linux/x64_Debug_openssl/msquictest --gtest_filter=Basic.*
+```
+
 To start collecting a trace, you can use the following commands:
 
 ```
