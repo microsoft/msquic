@@ -971,7 +971,7 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < UINT32_MAX) {
-            Settings->IdleSrcCidChangeMs = (uint32_t)Value;
+            Settings->IdleSrcCidChangeMs = Value;
         }
     }
 }
