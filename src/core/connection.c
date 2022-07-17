@@ -6633,7 +6633,7 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, SendCongestionWindow)) {
         Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl);
     }
-    if(STATISTICS_HAS_FIELD(*StatsLength, SrcCidUpdateCount)) {
+    if (STATISTICS_HAS_FIELD(*StatsLength, SrcCidUpdateCount)) {
         Stats->SrcCidUpdateCount = Connection->Stats.Misc.SrcCidUpdateCount;
     }
 
