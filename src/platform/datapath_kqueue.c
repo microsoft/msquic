@@ -2321,11 +2321,11 @@ CxPlatDataPathRunEC(
     if (ProcContext->Datapath->Shutdown) {
         *Context = NULL;
         CxPlatEventSet(ProcContext->CompletionEvent);
-        return;
+        return TRUE;
     }
 
     if (ReadyEventCount == 0) {
-        return; // Wake for timeout.
+        return TRUE; // Wake for timeout.
     }
 
     CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
@@ -2334,4 +2334,6 @@ CxPlatDataPathRunEC(
             CxPlatSocketContextProcessEvents(&EventList[i]);
         }
     }
+
+    return TRUE;
 }

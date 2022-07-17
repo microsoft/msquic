@@ -2733,7 +2733,7 @@ CxPlatDataPathWake(
     eventfd_write(ProcContext->EventFd, Value);
 }
 
-void
+BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
     _In_ CXPLAT_THREAD_ID CurThreadId,
@@ -2760,11 +2760,11 @@ CxPlatDataPathRunEC(
     if (ProcContext->Datapath->Shutdown) {
         *Context = NULL;
         CxPlatEventSet(ProcContext->CompletionEvent);
-        return;
+        return TRUE;
     }
 
     if (ReadyEventCount == 0) {
-        return; // Wake for timeout.
+        return TRUE; // Wake for timeout.
     }
 
     for (int i = 0; i < ReadyEventCount; i++) {
@@ -2774,4 +2774,6 @@ CxPlatDataPathRunEC(
                 EpollEvents[i].events);
         }
     }
+
+    return TRUE;
 }
