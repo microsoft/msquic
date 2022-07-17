@@ -988,7 +988,7 @@ namespace Microsoft.Quic
         internal uint KeepAliveIntervalMs;
 
         [NativeTypeName("uint32_t")]
-        internal uint IdleSrcCidChangeMs;
+        internal uint SrcCidUpdateIdleTimeoutMs;
 
         [NativeTypeName("uint16_t")]
         internal ushort CongestionControlAlgorithm;
@@ -1569,7 +1569,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong IdleSrcCidChangeMs
+                internal ulong SrcCidUpdateIdleTimeoutMs
                 {
                     get
                     {

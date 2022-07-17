@@ -129,8 +129,8 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.CongestionControlAlgorithm) {
         Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
-    if (!Settings->IsSet.IdleSrcCidChangeMs) {
-        Settings->IdleSrcCidChangeMs = QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS;
+    if (!Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
+        Settings->SrcCidUpdateIdleTimeoutMs = QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS;
     }
 }
 
@@ -261,8 +261,8 @@ QuicSettingsCopy(
     if (!Destination->IsSet.CongestionControlAlgorithm) {
         Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
     }
-    if (!Destination->IsSet.IdleSrcCidChangeMs) {
-        Destination->IdleSrcCidChangeMs = Source->IdleSrcCidChangeMs;
+    if (!Destination->IsSet.SrcCidUpdateIdleTimeoutMs) {
+        Destination->SrcCidUpdateIdleTimeoutMs = Source->SrcCidUpdateIdleTimeoutMs;
     }
 }
 
@@ -552,9 +552,9 @@ QuicSettingApply(
         Destination->IsSet.CongestionControlAlgorithm = TRUE;
     }
 
-    if (Source->IsSet.IdleSrcCidChangeMs && (!Destination->IsSet.IdleSrcCidChangeMs || OverWrite)) {
-        Destination->IdleSrcCidChangeMs = Source->IdleSrcCidChangeMs;
-        Destination->IsSet.IdleSrcCidChangeMs = TRUE;
+    if (Source->IsSet.SrcCidUpdateIdleTimeoutMs && (!Destination->IsSet.SrcCidUpdateIdleTimeoutMs || OverWrite)) {
+        Destination->SrcCidUpdateIdleTimeoutMs = Source->SrcCidUpdateIdleTimeoutMs;
+        Destination->IsSet.SrcCidUpdateIdleTimeoutMs = TRUE;
     }
 
     return TRUE;
@@ -962,7 +962,7 @@ QuicSettingsLoad(
             Settings->CongestionControlAlgorithm = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
         }
     }
-    if (!Settings->IsSet.IdleSrcCidChangeMs) {
+    if (!Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
         Value = QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS;
         ValueLen = sizeof(Value);
         CxPlatStorageReadValue(
@@ -971,7 +971,7 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < UINT32_MAX) {
-            Settings->IdleSrcCidChangeMs = Value;
+            Settings->SrcCidUpdateIdleTimeoutMs = Value;
         }
     }
 }
@@ -1017,7 +1017,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
-    QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,          "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
+    QuicTraceLogVerbose(SettingSrcCidUpdateIdleTimeoutMs,   "[sett] SrcCidUpdateIdleTimeoutMs = %u", Settings->SrcCidUpdateIdleTimeoutMs);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1143,8 +1143,8 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.CongestionControlAlgorithm) {
         QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     }
-    if (Settings->IsSet.IdleSrcCidChangeMs) {
-        QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,              "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
+    if (Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
+        QuicTraceLogVerbose(SettingSrcCidUpdateIdleTimeoutMs,       "[sett] SrcCidUpdateIdleTimeoutMs = %u", Settings->SrcCidUpdateIdleTimeoutMs);
     }
 }
 
@@ -1321,7 +1321,7 @@ QuicSettingsSettingsToInternal(
     //     InternalSettings);
 
     SETTING_COPY_TO_INTERNAL_SIZED(
-        IdleSrcCidChangeMs,
+        SrcCidUpdateIdleTimeoutMs,
         QUIC_SETTINGS,
         Settings,
         SettingsSize,
@@ -1413,7 +1413,7 @@ QuicSettingsGetSettings(
     //     InternalSettings);
 
     SETTING_COPY_FROM_INTERNAL_SIZED(
-        IdleSrcCidChangeMs,
+        SrcCidUpdateIdleTimeoutMs,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

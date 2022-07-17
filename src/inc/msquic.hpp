@@ -414,7 +414,7 @@ public:
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
     MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
     MsQuicSettings& SetConnFlowControlWindow(uint32_t Window) { ConnFlowControlWindow = Window; IsSet.ConnFlowControlWindow = TRUE; return *this; }
-    MsQuicSettings& SetIdleSrcCidChangeMs(uint32_t Value) { IdleSrcCidChangeMs = Value; IsSet.IdleSrcCidChangeMs = TRUE; return *this; }
+    MsQuicSettings& SetSrcCidUpdateIdleTimeoutMs(uint32_t Value) { SrcCidUpdateIdleTimeoutMs = Value; IsSet.SrcCidUpdateIdleTimeoutMs = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {

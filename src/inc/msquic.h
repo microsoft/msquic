@@ -600,7 +600,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerResumptionLevel                  : 1;
             uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t IdleSrcCidChangeMs                     : 1;
+            uint64_t SrcCidUpdateIdleTimeoutMs                     : 1;
             uint64_t RESERVED                               : 32;
         } IsSet;
     };
@@ -622,7 +622,7 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
-    uint32_t IdleSrcCidChangeMs;
+    uint32_t SrcCidUpdateIdleTimeoutMs;
     uint16_t CongestionControlAlgorithm; // QUIC_CONGESTION_CONTROL_ALGORITHM
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;

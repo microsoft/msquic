@@ -9721,18 +9721,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "SettingIdleSrcCidChangeMs": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] IdleSrcCidChangeMs     = %u",
-      "UniqueId": "SettingIdleSrcCidChangeMs",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
@@ -9780,6 +9768,18 @@
         }
       ],
       "macroName": "QuicTraceLogError"
+    },
+    "SettingSrcCidUpdateIdleTimeoutMs": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] SrcCidUpdateIdleTimeoutMs = %u",
+      "UniqueId": "SettingSrcCidUpdateIdleTimeoutMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
@@ -14511,11 +14511,6 @@
         "EncodingString": "[sett] Version Negotiation Ext Enabled = %hhu"
       },
       {
-        "UniquenessHash": "df47cc8c-dce1-888f-84ac-fa9c4c749572",
-        "TraceID": "SettingIdleSrcCidChangeMs",
-        "EncodingString": "[sett] IdleSrcCidChangeMs     = %u"
-      },
-      {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
         "TraceID": "SettingsInvalidAcceptableVersion",
         "EncodingString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d"
@@ -14529,6 +14524,11 @@
         "UniquenessHash": "dad8e0fd-193d-ff7c-1657-2f8eebc1d457",
         "TraceID": "SettingsInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "9fdbb465-b6b1-2271-c946-ed3ff6b7f6c5",
+        "TraceID": "SettingSrcCidUpdateIdleTimeoutMs",
+        "EncodingString": "[sett] SrcCidUpdateIdleTimeoutMs = %u"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",

@@ -254,8 +254,8 @@ public:
     uint32_t GetDisconnectTimeout();                    // milliseconds
     QUIC_STATUS SetDisconnectTimeout(uint32_t value);   // milliseconds
 
-    uint32_t GetIdleSrcCidChangeMs();                   // milliseconds
-    QUIC_STATUS SetIdleSrcCidChangeMs(uint32_t value);  // milliseconds
+    uint32_t GetSrcCidUpdateIdleTimeoutMs();                   // milliseconds
+    QUIC_STATUS SetSrcCidUpdateIdleTimeoutMs(uint32_t value);  // milliseconds
 
     uint16_t GetPeerBidiStreamCount();
     QUIC_STATUS SetPeerBidiStreamCount(uint16_t value);
@@ -291,5 +291,5 @@ public:
 
     QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
 
-    uint32_t GetSrcCidChangeCountStatistic();
+    uint32_t GetSrcCidUpdateCountStatistic();
 };
