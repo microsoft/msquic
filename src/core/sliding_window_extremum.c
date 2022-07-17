@@ -96,7 +96,14 @@ SlidingWindowExtremumUpdateMin(
     _In_ uint64_t NewTime
     )
 {
-    SlidingWindowExtremumExpire(w, NewTime);
+    if (w->WindowSize > 0) {
+        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
+        if (NewTime < w->Window[WindowRear].Time) {
+            return;
+        }
+
+        SlidingWindowExtremumExpire(w, NewTime);
+    }
 
     while (w->WindowSize > 0) {
         uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
@@ -112,10 +119,10 @@ SlidingWindowExtremumUpdateMin(
     }
 
     if (w->WindowSize < w->WindowCapacity) {
-        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
+        uint32_t NewRear = (w->WindowHead + w->WindowSize) % w->WindowCapacity;
 
-        w->Window[WindowRear].Value = NewValue;
-        w->Window[WindowRear].Time = NewTime;
+        w->Window[NewRear].Value = NewValue;
+        w->Window[NewRear].Time = NewTime;
 
         w->WindowSize++;
     }
@@ -129,7 +136,14 @@ SlidingWindowExtremumUpdateMax(
     _In_ uint64_t NewTime
     )
 {
-    SlidingWindowExtremumExpire(w, NewTime);
+    if (w->WindowSize > 0) {
+        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
+        if (NewTime < w->Window[WindowRear].Time) {
+            return;
+        }
+
+        SlidingWindowExtremumExpire(w, NewTime);
+    }
 
     while (w->WindowSize > 0) {
         uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
@@ -145,10 +159,10 @@ SlidingWindowExtremumUpdateMax(
     }
 
     if (w->WindowSize < w->WindowCapacity) {
-        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
+        uint32_t NewRear = (w->WindowHead + w->WindowSize) % w->WindowCapacity;
 
-        w->Window[WindowRear].Value = NewValue;
-        w->Window[WindowRear].Time = NewTime;
+        w->Window[NewRear].Value = NewValue;
+        w->Window[NewRear].Time = NewTime;
 
         w->WindowSize++;
     }

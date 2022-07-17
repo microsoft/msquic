@@ -7,7 +7,9 @@
 
 #pragma once
 
-// TODO[wizmann]: add some test for the data structure
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef struct SLIDING_WINDOW_EXTREMUM_ENTRY {
 
@@ -104,3 +106,7 @@ SlidingWindowExtremumUpdateMax(
     _In_ uint64_t NewValue,
     _In_ uint64_t NewTime
     );
+
+#if defined(__cplusplus)
+}
+#endif

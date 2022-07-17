@@ -46,10 +46,10 @@ set(SOURCES
     timer_wheel.c
     worker.c
     version_neg.c
-    sliding_window_extremum.c
     operation.h
     stream.h
     connection.h
+    sliding_window_extremum.c
 )
 
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
