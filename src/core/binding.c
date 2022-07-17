@@ -826,6 +826,8 @@ QuicBindingProcessStatelessOperation(
         goto Exit;
     }
 
+    CxPlatSendDataProcIndex(SendData, (uint16_t)CxPlatProcCurrentNumber());
+
     if (OperationType == QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
 
         CXPLAT_DBG_ASSERT(RecvPacket->DestCid != NULL);

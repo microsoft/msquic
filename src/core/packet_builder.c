@@ -226,6 +226,7 @@ QuicPacketBuilderPrepare(
                 Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
                 FlushDatagrams = TRUE;
             }
+            CxPlatSendDataProcIndex(Builder->SendData, (uint16_t)Proc);
             QuicPacketBuilderFinalize(Builder, FlushDatagrams);
         }
         if (Builder->SendData == NULL &&
@@ -265,6 +266,7 @@ QuicPacketBuilderPrepare(
                     0);
                 goto Error;
             }
+            CxPlatSendDataProcIndex(Builder->SendData, (uint16_t)Proc);
             SendDataAllocated = TRUE;
         }
 

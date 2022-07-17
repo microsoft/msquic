@@ -21,7 +21,7 @@ Abstract:
 #include <xdpapi.h>
 #include <stdio.h>
 
-#define RX_BATCH_SIZE 16
+#define RX_BATCH_SIZE 48
 #define MAX_ETH_FRAME_SIZE 1514
 
 #define ADAPTER_TAG   'ApdX' // XdpA
@@ -33,9 +33,11 @@ Abstract:
 #define PORT_SET_TAG  'PpdX' // XdpP
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
+typedef struct QUIC_CACHEALIGN XDP_WORKER XDP_WORKER;
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
+    const XDP_WORKER* Worker;
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
@@ -59,7 +61,7 @@ typedef struct XDP_QUEUE {
     // Move TX queue to its own cache line.
     DECLSPEC_CACHEALIGN
     CXPLAT_LOCK TxLock;
-    CXPLAT_LIST_ENTRY TxQueue;
+    CXPLAT_LIST_ENTRY TxQueue; // Packets from other threads
 } XDP_QUEUE;
 
 typedef struct XDP_INTERFACE {
@@ -85,6 +87,7 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     }
     *Tail = Queue;
     Queue->Next = NULL;
+    Queue->Worker = Worker;
 }
 
 typedef struct XDP_DATAPATH {
@@ -1245,7 +1248,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         } else {
             MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-            IpAddressSize = sizeof(IN6_ADDR);     
+            IpAddressSize = sizeof(IN6_ADDR);
         }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
@@ -1329,15 +1332,13 @@ static
 void
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
-    _In_ XDP_QUEUE* Queue,
-    _In_ uint16_t ProcIndex
+    _In_ XDP_QUEUE* Queue
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
     uint32_t RxIndex;
-    uint32_t FillIndex;
-    uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
+    const uint16_t ProcIndex = Queue->Worker->ProcIndex;
     const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
 
     for (uint32_t i = 0; i < BuffersCount; i++) {
@@ -1377,6 +1378,8 @@ CxPlatXdpRx(
         XskRingConsumerRelease(&Queue->RxRing, BuffersCount);
     }
 
+    uint32_t FillIndex;
+    uint32_t ProdCount = 0;
     uint32_t FillAvailable = XskRingProducerReserve(&Queue->RxFillRing, MAXUINT32, &FillIndex);
     while (FillAvailable-- > 0) {
         if (Queue->WorkerRxPool.Next == NULL) {
@@ -1402,11 +1405,12 @@ CxPlatXdpRx(
     }
 
     if (XskRingError(&Queue->RxRing) && !Queue->Error) {
+#if DEBUG
         XSK_ERROR ErrorStatus;
-        QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
+        QUIC_STATUS XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
         printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+#endif
         Queue->Error = TRUE;
     }
 }
@@ -1486,19 +1490,6 @@ CxPlatDpRawTxFree(
     InterlockedPushEntrySList(&Packet->Queue->TxPool, (PSLIST_ENTRY)Packet);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData
-    )
-{
-    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-
-    CxPlatLockAcquire(&Packet->Queue->TxLock);
-    CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
-    CxPlatLockRelease(&Packet->Queue->TxLock);
-}
-
 static
 void
 CxPlatXdpTx(
@@ -1510,13 +1501,6 @@ CxPlatXdpTx(
     uint32_t CompCount = 0;
     SLIST_ENTRY* TxCompleteHead = NULL;
     SLIST_ENTRY** TxCompleteTail = &TxCompleteHead;
-
-    if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
-        ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
-        CxPlatLockAcquire(&Queue->TxLock);
-        CxPlatListMoveItems(&Queue->TxQueue, &Queue->WorkerTxQueue);
-        CxPlatLockRelease(&Queue->TxLock);
-    }
 
     uint32_t CompIndex;
     uint32_t CompAvailable =
@@ -1561,12 +1545,62 @@ CxPlatXdpTx(
     }
 
     if (XskRingError(&Queue->TxRing) && !Queue->Error) {
+#if DEBUG
         XSK_ERROR ErrorStatus;
-        QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
+        QUIC_STATUS XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
         printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+#endif
         Queue->Error = TRUE;
+    }
+}
+
+static
+void
+CxPlatXdpFlushTxQueue(
+    _In_ XDP_QUEUE* Queue
+    )
+{
+    //
+    // Move packets from the TX queue (i.e. packets from other threads) to the
+    // worker TX queue (used to actually send packets), but only if we don't
+    // already have anything in the worker TX queue (why?).
+    //
+    if (CxPlatListIsEmpty(&Queue->WorkerTxQueue) &&
+        ReadPointerNoFence(&Queue->TxQueue.Flink) != &Queue->TxQueue) {
+        CxPlatLockAcquire(&Queue->TxLock);
+        CxPlatListMoveItems(&Queue->TxQueue, &Queue->WorkerTxQueue);
+        CxPlatLockRelease(&Queue->TxLock);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxEnqueue(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    XDP_QUEUE* Queue = Packet->Queue;
+    if (Queue->Worker->ProcIndex == SendData->ProcIndex) {
+        //
+        // Because we're sharing the thread with the XDP worker, we can directly
+        // insert the packet into the worker TX queue. If the caller wants to
+        // immediately send the packets, we can do so as well.
+        //
+        CxPlatListInsertTail(&Queue->WorkerTxQueue, &Packet->Link);
+        if (SendData->InlineHint) {
+            CxPlatXdpTx(Queue->Worker->Xdp, Queue);
+        }
+
+    } else {
+        //
+        // The caller is on a different thread, so the best we can do is queue
+        // this packet to be drained by the worker thread.
+        //
+        CxPlatLockAcquire(&Packet->Queue->TxLock);
+        CxPlatListInsertTail(&Queue->TxQueue, &Packet->Link);
+        CxPlatLockRelease(&Packet->Queue->TxLock);
     }
 }
 
@@ -1600,7 +1634,8 @@ CxPlatDataPathRunEC(
 
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        CxPlatXdpRx(Xdp, Queue);
+        CxPlatXdpFlushTxQueue(Queue);
         CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }

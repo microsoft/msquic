@@ -291,6 +291,25 @@ CxPlatRemoveSocket(
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSendDataSetInlineHint(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    SendData->InlineHint = TRUE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSendDataProcIndex(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t ProcIndex
+    )
+{
+    SendData->ProcIndex = ProcIndex;
+}
+
 void
 CxPlatResolveRouteComplete(
     _In_ QUIC_CONNECTION* Connection,
