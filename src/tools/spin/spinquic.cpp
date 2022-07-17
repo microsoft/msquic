@@ -461,7 +461,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 {
     SetParamHelper Helper;
 
-    switch (0x08000000 | (GetRandom(4))) {
+    switch (0x08000000 | (GetRandom(5))) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
         break; // Get Only
     case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
@@ -471,6 +471,8 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
     case QUIC_PARAM_STREAM_PRIORITY:                                // uint16_t
         Helper.SetUint16(QUIC_PARAM_STREAM_PRIORITY, (uint16_t)GetRandom(UINT16_MAX));
         break;
+    case QUIC_PARAM_STREAM_STATISTICS:
+        break; // Get Only
     default:
         break;
     }
@@ -481,16 +483,16 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream)
 const uint32_t ParamCounts[] = {
     QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH + 1,
     0,
-    QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS + 1,
+    QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W + 1,
     QUIC_PARAM_LISTENER_CIBIR_ID + 1,
     QUIC_PARAM_CONN_STATISTICS_V2_PLAT + 1,
     QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
 #ifdef WIN32 // Schannel specific TLS parameters
-    QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W + 1,
+    QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN + 1,
 #else
     0,
 #endif
-    QUIC_PARAM_STREAM_PRIORITY + 1
+    QUIC_PARAM_STREAM_STATISTICS + 1
 };
 
 #define GET_PARAM_LOOP_COUNT 10

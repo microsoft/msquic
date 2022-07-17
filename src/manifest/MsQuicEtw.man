@@ -3007,7 +3007,7 @@
               value="6147"
               />
           <event
-              keywords="ut:Stream ut:LowVolume"
+              keywords="ut:Stream ut:LowVolume ut:RPS"
               level="win:Informational"
               message="$(string.Etw.StreamSendState)"
               opcode="Stream"
@@ -3016,7 +3016,7 @@
               value="6148"
               />
           <event
-              keywords="ut:Stream ut:LowVolume"
+              keywords="ut:Stream ut:LowVolume ut:RPS"
               level="win:Informational"
               message="$(string.Etw.StreamRecvState)"
               opcode="Stream"
@@ -3131,6 +3131,24 @@
               symbol="QuicStreamAppSend"
               template="tid_STREAM_RECV"
               value="6161"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamReceiveFrameComplete)"
+              opcode="Stream"
+              symbol="QuicStreamReceiveFrameComplete"
+              template="tid_STREAM"
+              value="6162"
+              />
+          <event
+              keywords="ut:Stream ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.StreamAppReceiveCompleteCall)"
+              opcode="Stream"
+              symbol="QuicStreamAppReceiveCompleteCall"
+              template="tid_STREAM_U64"
+              value="6163"
               />
           <!-- 7168 - 8191 | Binding Events -->
           <event
@@ -3670,12 +3688,20 @@
             value="[strm][%1] Processing frame in packet %2"
             />
         <string
+            id="Etw.StreamReceiveFrameComplete"
+            value="[strm][%1] Done processing frame"
+            />
+        <string
             id="Etw.StreamAppReceive"
             value="[strm][%1] Indicating QUIC_STREAM_EVENT_RECEIVE [%2 bytes, %3 buffers, %4 flags]"
             />
         <string
             id="Etw.StreamAppReceiveComplete"
             value="[strm][%1] Receive complete [%2 bytes]"
+            />
+        <string
+            id="Etw.StreamAppReceiveCompleteCall"
+            value="[strm][%1] Receive complete call [%2 bytes]"
             />
         <string
             id="Etw.StreamAppSend"

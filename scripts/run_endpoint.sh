@@ -6,7 +6,7 @@
 if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
-    "versionnegotiation"|"handshake"|"resumption"|"zerortt"|"transfer"|"retry"|"multiconnect"|"keyupdate"|"chacha20")
+    "versionnegotiation"|"handshake"|"resumption"|"zerortt"|"transfer"|"retry"|"multiconnect"|"keyupdate"|"chacha20"|"v2")
         ;;
     *)
         exit 127
@@ -59,6 +59,9 @@ if [ "$ROLE" == "client" ]; then
         CLIENT_PARAMS="-test:U $CLIENT_PARAMS"
         ;;
     "chacha20")
+        CLIENT_PARAMS="-test:A $CLIENT_PARAMS"
+        ;;
+    "v2")
         CLIENT_PARAMS="-test:2 $CLIENT_PARAMS"
         ;;
     *)
@@ -92,6 +95,9 @@ elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
     "retry")
         SERVER_PARAMS="-retry:1 $SERVER_PARAMS"
+        ;;
+    "v2")
+        SERVER_PARAMS="-enablevne:1 $SERVER_PARAMS"
         ;;
     *)
         ;;

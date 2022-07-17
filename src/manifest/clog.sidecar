@@ -5517,7 +5517,7 @@
     },
     "IndicateStreamShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]",
       "UniqueId": "IndicateStreamShutdownComplete",
       "splitArgs": [
         {
@@ -5527,6 +5527,18 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llx",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -9901,6 +9913,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "StreamAppReceiveCompleteCall": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Receive complete call [%llu bytes]",
+      "UniqueId": "StreamAppReceiveCompleteCall",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "StreamAppSend": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
@@ -10005,6 +10033,18 @@
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "StreamReceiveFrameComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Done processing frame",
+      "UniqueId": "StreamReceiveFrameComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -13097,9 +13137,9 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]"
       },
       {
-        "UniquenessHash": "8340b390-8b79-ab44-6593-7e449f0ec748",
+        "UniquenessHash": "47bd1eb9-3f80-aeef-c849-a6f74ef5c04e",
         "TraceID": "IndicateStreamShutdownComplete",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]"
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]"
       },
       {
         "UniquenessHash": "e98e6411-dfab-d3a6-e7bd-d1782209846d",
@@ -14557,6 +14597,11 @@
         "EncodingString": "[strm][%p] Receive complete [%llu bytes]"
       },
       {
+        "UniquenessHash": "036b2f93-3b66-c911-8be9-d0861f6fee19",
+        "TraceID": "StreamAppReceiveCompleteCall",
+        "EncodingString": "[strm][%p] Receive complete call [%llu bytes]"
+      },
+      {
         "UniquenessHash": "a35cb953-343e-6914-a737-cd53044edb92",
         "TraceID": "StreamAppSend",
         "EncodingString": "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]"
@@ -14585,6 +14630,11 @@
         "UniquenessHash": "aaf00b3c-6719-7619-1362-6058d0d3be90",
         "TraceID": "StreamReceiveFrame",
         "EncodingString": "[strm][%p] Processing frame in packet %llu"
+      },
+      {
+        "UniquenessHash": "414a54bf-d265-ac2f-1931-2c3fef3bc18c",
+        "TraceID": "StreamReceiveFrameComplete",
+        "EncodingString": "[strm][%p] Done processing frame"
       },
       {
         "UniquenessHash": "89b5a6dc-7445-0b70-6a73-ff28d3f78246",

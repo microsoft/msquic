@@ -325,7 +325,7 @@ function CMake-Generate {
             $Arguments += " -G $Generator"
         }
     } else {
-        $Arguments += " $Generator"
+        $Arguments += "-G $Generator"
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake

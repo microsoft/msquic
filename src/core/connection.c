@@ -1401,6 +1401,7 @@ QuicConnIndicateShutdownBegin(
     } else {
         Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT;
         Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status = Connection->CloseStatus;
+        Event.SHUTDOWN_INITIATED_BY_TRANSPORT.ErrorCode = Connection->CloseErrorCode;
         QuicTraceLogConnVerbose(
             IndicateShutdownByTransport,
             Connection,
@@ -3030,8 +3031,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnPeerCertReceived(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_CERTIFICATE* Certificate,
-    _In_ QUIC_CERTIFICATE_CHAIN* Chain,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
+    _In_opt_ QUIC_CERTIFICATE_CHAIN* Chain,
     _In_ uint32_t DeferredErrorFlags,
     _In_ QUIC_STATUS DeferredStatus
     )
@@ -4027,10 +4028,6 @@ QuicConnRecvDecryptAndAuthenticate(
     }
 
     CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
-    QuicTraceEvent(
-        PacketDecrypt,
-        "[pack][%llu] Decrypting",
-        Packet->PacketId);
 
     uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(
@@ -4041,74 +4038,79 @@ QuicConnRecvDecryptAndAuthenticate(
     //
     // Decrypt the payload with the appropriate key.
     //
-    if (Packet->Encrypted &&
-        QUIC_FAILED(
-        CxPlatDecrypt(
-            Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
-            Iv,
-            Packet->HeaderLength,   // HeaderLength
-            Packet->Buffer,         // Header
-            Packet->PayloadLength,  // BufferLength
-            (uint8_t*)Payload))) {  // Buffer
+    if (Packet->Encrypted) {
+        QuicTraceEvent(
+            PacketDecrypt,
+            "[pack][%llu] Decrypting",
+            Packet->PacketId);
+        if (QUIC_FAILED(
+            CxPlatDecrypt(
+                Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
+                Iv,
+                Packet->HeaderLength,   // HeaderLength
+                Packet->Buffer,         // Header
+                Packet->PayloadLength,  // BufferLength
+                (uint8_t*)Payload))) {  // Buffer
 
-        //
-        // Check for a stateless reset packet.
-        //
-        if (CanCheckForStatelessReset) {
-            for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
-                    Entry != &Connection->DestCids;
-                    Entry = Entry->Flink) {
-                //
-                // Loop through all our stored stateless reset tokens to see if
-                // we have a match.
-                //
-                QUIC_CID_LIST_ENTRY* DestCid =
-                    CXPLAT_CONTAINING_RECORD(
-                        Entry,
-                        QUIC_CID_LIST_ENTRY,
-                        Link);
-                if (DestCid->CID.HasResetToken &&
-                    !DestCid->CID.Retired &&
-                    memcmp(
-                        DestCid->ResetToken,
-                        PacketResetToken,
-                        QUIC_STATELESS_RESET_TOKEN_LENGTH) == 0) {
-                    QuicTraceLogVerbose(
-                        PacketRxStatelessReset,
-                        "[S][RX][-] SR %s",
-                        QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-                    QuicTraceLogConnInfo(
-                        RecvStatelessReset,
-                        Connection,
-                        "Received stateless reset");
-                    QuicConnCloseLocally(
-                        Connection,
-                        QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-                        (uint64_t)QUIC_STATUS_ABORTED,
-                        NULL);
-                    return FALSE;
+            //
+            // Check for a stateless reset packet.
+            //
+            if (CanCheckForStatelessReset) {
+                for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+                        Entry != &Connection->DestCids;
+                        Entry = Entry->Flink) {
+                    //
+                    // Loop through all our stored stateless reset tokens to see if
+                    // we have a match.
+                    //
+                    QUIC_CID_LIST_ENTRY* DestCid =
+                        CXPLAT_CONTAINING_RECORD(
+                            Entry,
+                            QUIC_CID_LIST_ENTRY,
+                            Link);
+                    if (DestCid->CID.HasResetToken &&
+                        !DestCid->CID.Retired &&
+                        memcmp(
+                            DestCid->ResetToken,
+                            PacketResetToken,
+                            QUIC_STATELESS_RESET_TOKEN_LENGTH) == 0) {
+                        QuicTraceLogVerbose(
+                            PacketRxStatelessReset,
+                            "[S][RX][-] SR %s",
+                            QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+                        QuicTraceLogConnInfo(
+                            RecvStatelessReset,
+                            Connection,
+                            "Received stateless reset");
+                        QuicConnCloseLocally(
+                            Connection,
+                            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+                            (uint64_t)QUIC_STATUS_ABORTED,
+                            NULL);
+                        return FALSE;
+                    }
                 }
             }
-        }
 
-        if (QuicTraceLogVerboseEnabled()) {
-            QuicPacketLogHeader(
-                Connection,
-                TRUE,
-                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
-                Packet->PacketNumber,
-                Packet->HeaderLength,
-                Packet->Buffer,
-                Connection->Stats.QuicVersion);
-        }
-        Connection->Stats.Recv.DecryptionFailures++;
-        QuicPacketLogDrop(Connection, Packet, "Decryption failure");
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
-        if (Connection->Stats.Recv.DecryptionFailures >= CXPLAT_AEAD_INTEGRITY_LIMIT) {
-            QuicConnTransportError(Connection, QUIC_ERROR_AEAD_LIMIT_REACHED);
-        }
+            if (QuicTraceLogVerboseEnabled()) {
+                QuicPacketLogHeader(
+                    Connection,
+                    TRUE,
+                    Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
+                    Packet->PacketNumber,
+                    Packet->HeaderLength,
+                    Packet->Buffer,
+                    Connection->Stats.QuicVersion);
+            }
+            Connection->Stats.Recv.DecryptionFailures++;
+            QuicPacketLogDrop(Connection, Packet, "Decryption failure");
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
+            if (Connection->Stats.Recv.DecryptionFailures >= CXPLAT_AEAD_INTEGRITY_LIMIT) {
+                QuicConnTransportError(Connection, QUIC_ERROR_AEAD_LIMIT_REACHED);
+            }
 
-        return FALSE;
+            return FALSE;
+        }
     }
 
     Connection->Stats.Recv.ValidPackets++;
@@ -6546,11 +6548,8 @@ QuicConnParamSet(
     return Status;
 }
 
-#define STATISTICS_SIZE_THRU_FIELD(Field) \
-    (FIELD_OFFSET(QUIC_STATISTICS_V2, Field) + sizeof(((QUIC_STATISTICS_V2*)0)->Field))
-
 #define STATISTICS_HAS_FIELD(Size, Field) \
-    (Size >= STATISTICS_SIZE_THRU_FIELD(Field))
+    (Size >= QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, Field))
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static
@@ -6563,7 +6562,7 @@ QuicConnGetV2Statistics(
         QUIC_STATISTICS_V2* Stats
     )
 {
-    const uint32_t MinimumStatsSize = (uint32_t)STATISTICS_SIZE_THRU_FIELD(KeyUpdateCount);
+    const uint32_t MinimumStatsSize = QUIC_STATISTICS_V2_SIZE_1;
 
     if (*StatsLength == 0) {
         *StatsLength = sizeof(QUIC_STATISTICS_V2);

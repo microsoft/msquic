@@ -1,0 +1,65 @@
+name: Container Builds
+
+on:
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/build-containers.yml
+    - src/core/*
+    - src/platform/*
+    - src/bin/*
+    - src/inc/*
+    - src/perf/*
+    - src/tools/*
+    - src/test/*
+    - submodules/openssl/*
+  pull_request:
+    branches:
+    - main
+    paths:
+    - .github/workflows/build-containers.yml
+    - src/core/*
+    - src/platform/*
+    - src/bin/*
+    - src/inc/*
+    - src/perf/*
+    - src/tools/*
+    - src/test/*
+    - submodules/openssl/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: containers-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  build-arm:
+    runs-on: ubuntu-latest
+    container:
+      image: wpilib/raspbian-cross-ubuntu:10-18.04
+    name: Build Arm
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+      with:
+        fetch-depth: 2
+        submodules: 'recursive'
+    - name: Setup .NET
+      uses: actions/setup-dotnet@c0d4ad69d8bd405d234f1c9166d383b7a4f69ed8
+      with:
+        dotnet-version: 6.0.x
+    - run: |
+        sudo sh scripts/install-powershell.sh 18.04
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -ForBuild
+    - name: Build Debug
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -DisableLogs -ToolchainFile cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
+    - name: Build Release
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -DisableLogs -ToolchainFile cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake

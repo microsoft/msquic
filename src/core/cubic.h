@@ -78,9 +78,11 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint64_t TimeOfCongAvoidStart; // microseconds
     uint32_t KCubic; // millisec
     uint32_t PrevKCubic; // millisec
-    uint32_t WindowMax; // bytes
+    uint32_t WindowPrior; // bytes (prior_cwnd from rfc8312bis)
+    uint32_t PrevWindowPrior; // bytes
+    uint32_t WindowMax; // bytes (W_max from rfc8312bis)
     uint32_t PrevWindowMax; // bytes
-    uint32_t WindowLastMax; // bytes
+    uint32_t WindowLastMax; // bytes (W_last_max from rfc8312bis)
     uint32_t PrevWindowLastMax; // bytes
 
     //

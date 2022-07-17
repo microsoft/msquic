@@ -246,6 +246,7 @@ QuicTestDatagramSend(
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+                CxPlatSleep(100);
 #endif
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);

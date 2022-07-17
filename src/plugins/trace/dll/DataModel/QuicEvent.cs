@@ -173,6 +173,8 @@ namespace QuicTrace.DataModel
         StreamAppReceive,
         StreamAppReceiveComplete,
         StreamAppSend,
+        StreamReceiveFrameComplete,
+        StreamAppReceiveCompleteCall,
 
         BindingCreated = 7168,
         BindingRundown,

@@ -95,7 +95,7 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -172,6 +172,11 @@ if (!$IsWindows) {
 
 if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
     $Remote = "quic-server"
+}
+
+if ($PGO) {
+    # PGO makes things slower, so increase the timeout accordingly.
+    $Timeout = $Timeout * 5
 }
 
 # Root directory of the project.
@@ -286,7 +291,9 @@ $RemoteDirectorySMB = $null
 
 # Copy manifest and log script to local directory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
@@ -471,7 +478,7 @@ function Invoke-Test {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             Write-LogAndDebug $LocalResults
-            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts
