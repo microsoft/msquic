@@ -960,11 +960,6 @@ QuicConnGenerateNewSourceCids(
     }
 
     //
-    // Updating SrcCidUpdateCount statistic is done in the following statement.
-    //
-    Connection->Stats.Misc.SrcCidUpdateCount++;
-
-    //
     // If we're replacing existing ones, then generate all new CIDs (up to the
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
