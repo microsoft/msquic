@@ -772,7 +772,7 @@ namespace Microsoft.Quic
         internal uint SendCongestionWindow;
 
         [NativeTypeName("uint32_t")]
-        internal uint ChangeSrcCidCount;
+        internal uint SrcCidUpdateCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS

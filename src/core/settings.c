@@ -1105,7 +1105,6 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.ServerResumptionLevel) {
         QuicTraceLogVerbose(SettingDumpServerResumptionLevel,       "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     }
-
     if (Settings->IsSet.VersionSettings) {
         QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
         QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,       "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
@@ -1123,7 +1122,6 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.VersionNegotiationExtEnabled) {
         QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
     }
-
     if (Settings->IsSet.MinimumMtu) {
         QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
     }
@@ -1136,18 +1134,15 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
         QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     }
-
     if (Settings->IsSet.MaxBindingStatelessOperations) {
         QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper,     "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     }
     if (Settings->IsSet.StatelessOperationExpirationMs) {
         QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     }
-
     if (Settings->IsSet.CongestionControlAlgorithm) {
         QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     }
-
     if (Settings->IsSet.IdleSrcCidChangeMs) {
         QuicTraceLogVerbose(SettingIdleSrcCidChangeMs,              "[sett] IdleSrcCidChangeMs     = %u", Settings->IdleSrcCidChangeMs);
     }
@@ -1417,14 +1412,14 @@ QuicSettingsGetSettings(
     //     *SettingsLength,
     //     InternalSettings);
 
-    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
-
     SETTING_COPY_FROM_INTERNAL_SIZED(
         IdleSrcCidChangeMs,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,
         InternalSettings);
+
+    *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
 
     return QUIC_STATUS_SUCCESS;
 }

@@ -2726,8 +2726,6 @@ QuicTestConnectAndIdleForSrcCidChange(
 
                 TEST_QUIC_SUCCEEDED(Client.SetShareUdpBinding(true));
 
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS);
-
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
@@ -2742,8 +2740,6 @@ QuicTestConnectAndIdleForSrcCidChange(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-
-                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS);
 
                 if (!Server->WaitForConnectionComplete()) {
                     return;
