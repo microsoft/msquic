@@ -770,6 +770,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint SendCongestionWindow;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ChangeSrcCidCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS
@@ -983,6 +986,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint KeepAliveIntervalMs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint IdleSrcCidChangeMs;
 
         [NativeTypeName("uint16_t")]
         internal ushort CongestionControlAlgorithm;
@@ -1562,8 +1568,8 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 33")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong IdleSrcCidChangeMs
                 {
                     get
                     {
@@ -1573,6 +1579,20 @@ namespace Microsoft.Quic
                     set
                     {
                         _bitfield = (_bitfield & ~(0x1UL << 31)) | ((value & 0x1UL) << 31);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 32")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 32) & 0x0UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x0UL << 32)) | ((value & 0x0UL) << 32);
                     }
                 }
             }
