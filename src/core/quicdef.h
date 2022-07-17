@@ -565,7 +565,7 @@ CXPLAT_STATIC_ASSERT(
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
-#define QUIC_SETTING_SRC_CID_UPDATE_IDLE_TIMEOUT_MS "IdleChangeSrcCidMs"
+#define QUIC_SETTING_SRC_CID_UPDATE_IDLE_TIMEOUT_MS "SrcCidUpdateIdleTimeoutMs"
 
 #define QUIC_SETTING_INITIAL_RTT                    "InitialRttMs"
 #define QUIC_SETTING_MAX_ACK_DELAY                  "MaxAckDelayMs"
