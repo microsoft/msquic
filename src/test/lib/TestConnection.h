@@ -291,5 +291,5 @@ public:
 
     QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
 
-    uint32_t GetSrcCidUpdateCountStatistic();
+    uint32_t GetSrcCidUpdateCount();
 };

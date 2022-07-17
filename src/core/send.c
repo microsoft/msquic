@@ -1129,7 +1129,6 @@ QuicSendFlush(
         Send->LastFlushTimeValid &&
         CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.SrcCidUpdateIdleTimeoutMs)) {
         QuicConnGenerateNewSourceCids(Connection, TRUE);
-        Connection->Stats.Misc.SrcCidUpdateCount++;
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;

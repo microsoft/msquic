@@ -966,6 +966,7 @@ QuicConnGenerateNewSourceCids(
     //
     uint8_t NewCidCount;
     if (ReplaceExistingCids) {
+        Connection->Stats.Misc.SrcCidUpdateCount++;
         NewCidCount = Connection->SourceCidLimit;
         CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {

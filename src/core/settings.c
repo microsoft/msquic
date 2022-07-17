@@ -130,7 +130,7 @@ QuicSettingsSetDefault(
         Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
     if (!Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
-        Settings->SrcCidUpdateIdleTimeoutMs = QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS;
+        Settings->SrcCidUpdateIdleTimeoutMs = QUIC_DEFAULT_SRC_CID_UPDATE_IDLE_TIMEOUT_MS;
     }
 }
 
@@ -963,11 +963,11 @@ QuicSettingsLoad(
         }
     }
     if (!Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
-        Value = QUIC_DEFAULT_IDLE_SRC_CID_CHANGE_MS;
+        Value = QUIC_DEFAULT_SRC_CID_UPDATE_IDLE_TIMEOUT_MS;
         ValueLen = sizeof(Value);
         CxPlatStorageReadValue(
             Storage,
-            QUIC_SETTING_IDLE_SRC_CID_CHANGE_MS,
+            QUIC_SETTING_SRC_CID_UPDATE_IDLE_TIMEOUT_MS,
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < UINT32_MAX) {

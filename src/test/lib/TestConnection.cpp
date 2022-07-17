@@ -917,7 +917,7 @@ TestConnection::HandleConnectionEvent(
 }
 
 uint32_t
-TestConnection::GetSrcCidUpdateCountStatistic() {
+TestConnection::GetSrcCidUpdateCount() {
     QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     QUIC_STATUS Status =
