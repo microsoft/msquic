@@ -316,9 +316,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             NoWorkCount = 0;
         }
 
-        #if _WIN32
+        #ifdef _WIN32
         if (NoWorkCount > 10) {
             YieldProcessor();
+            NoWorkCount = 0;
         }
         #endif
     }

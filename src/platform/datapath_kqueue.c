@@ -2285,7 +2285,7 @@ CxPlatDataPathWake(
     kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
-void
+BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
     _In_ CXPLAT_THREAD_ID CurThreadId,
