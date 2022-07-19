@@ -619,6 +619,8 @@ CxPlatSleep(
     KeWaitForSingleObject(&SleepTimer, Executive, KernelMode, FALSE, NULL);
 }
 
+#define CxPlatSchedulerYield() // no-op
+
 //
 // Create Thread Interfaces
 //

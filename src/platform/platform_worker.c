@@ -269,6 +269,11 @@ CxPlatRunExecutionContexts(
 
 #endif
 
+//
+// The number of iterations to run before yielding our thread to the scheduler.
+//
+#define CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT 10
+
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
@@ -316,12 +321,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             NoWorkCount = 0;
         }
 
-        #ifdef _WIN32
-        if (NoWorkCount > 10) {
-            YieldProcessor();
+        if (NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
+            CxPlatSchedulerYield();
             NoWorkCount = 0;
         }
-        #endif
     }
 
     QuicTraceLogInfo(

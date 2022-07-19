@@ -717,6 +717,8 @@ CxPlatTimeAtOrBefore32(
 
 #define CxPlatSleep(ms) Sleep(ms)
 
+#define CxPlatSchedulerYield() Sleep(0)
+
 //
 // Processor Count and Index
 //

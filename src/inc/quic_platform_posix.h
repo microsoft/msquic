@@ -676,6 +676,8 @@ CxPlatSleep(
     _In_ uint32_t DurationMs
     );
 
+#define CxPlatSchedulerYield() sched_yield()
+
 //
 // Event Interfaces
 //
