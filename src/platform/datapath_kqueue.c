@@ -2285,7 +2285,7 @@ CxPlatDataPathWake(
     kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
-void
+BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
     _In_ CXPLAT_THREAD_ID CurThreadId,
@@ -2321,11 +2321,11 @@ CxPlatDataPathRunEC(
     if (ProcContext->Datapath->Shutdown) {
         *Context = NULL;
         CxPlatEventSet(ProcContext->CompletionEvent);
-        return;
+        return TRUE;
     }
 
     if (ReadyEventCount == 0) {
-        return; // Wake for timeout.
+        return TRUE; // Wake for timeout.
     }
 
     CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
@@ -2334,4 +2334,6 @@ CxPlatDataPathRunEC(
             CxPlatSocketContextProcessEvents(&EventList[i]);
         }
     }
+
+    return TRUE;
 }
