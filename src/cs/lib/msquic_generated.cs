@@ -823,13 +823,13 @@ namespace Microsoft.Quic
 
     internal unsafe partial struct QUIC_VERSION_SETTINGS
     {
-        [NativeTypeName("uint32_t *")]
+        [NativeTypeName("const uint32_t *")]
         internal uint* AcceptableVersions;
 
-        [NativeTypeName("uint32_t *")]
+        [NativeTypeName("const uint32_t *")]
         internal uint* OfferedVersions;
 
-        [NativeTypeName("uint32_t *")]
+        [NativeTypeName("const uint32_t *")]
         internal uint* FullyDeployedVersions;
 
         [NativeTypeName("uint32_t")]
@@ -1696,6 +1696,33 @@ namespace Microsoft.Quic
         }
     }
 
+    internal partial struct QUIC_STREAM_STATISTICS
+    {
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedBySchedulingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByPacingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByAmplificationProtUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByCongestionControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByIdFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByAppUs;
+    }
+
     internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -2036,6 +2063,9 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("HRESULT")]
                 internal int Status;
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
             }
 
             internal partial struct _SHUTDOWN_INITIATED_BY_PEER_e__Struct
@@ -2408,19 +2438,50 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("BOOLEAN : 7")]
-                internal byte RESERVED
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte ConnectionShutdownByApp
                 {
                     get
                     {
-                        return (byte)((_bitfield >> 1) & 0x7Fu);
+                        return (byte)((_bitfield >> 1) & 0x1u);
                     }
 
                     set
                     {
-                        _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
                     }
                 }
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte ConnectionClosedRemotely
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 2) & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 5")]
+                internal byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 3) & 0x1Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1Fu << 3)) | ((value & 0x1Fu) << 3));
+                    }
+                }
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ConnectionErrorCode;
             }
 
             internal partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct
@@ -2721,6 +2782,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
         internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_STATISTICS 0X08000004")]
+        internal const uint QUIC_PARAM_STREAM_STATISTICS = 0X08000004;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;

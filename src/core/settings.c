@@ -288,7 +288,7 @@ QuicSettingsCopyVersionSettings(
     Destination->AcceptableVersions = (uint32_t*)(Destination + 1);
     Destination->AcceptableVersionsLength = Source->AcceptableVersionsLength;
     CxPlatCopyMemory(
-        Destination->AcceptableVersions,
+        (uint32_t*)Destination->AcceptableVersions,
         Source->AcceptableVersions,
         Destination->AcceptableVersionsLength * sizeof(uint32_t));
 
@@ -296,7 +296,7 @@ QuicSettingsCopyVersionSettings(
         Destination->AcceptableVersions + Destination->AcceptableVersionsLength;
     Destination->OfferedVersionsLength = Source->OfferedVersionsLength;
     CxPlatCopyMemory(
-        Destination->OfferedVersions,
+        (uint32_t*)Destination->OfferedVersions,
         Source->OfferedVersions,
         Destination->OfferedVersionsLength * sizeof(uint32_t));
 
@@ -304,7 +304,7 @@ QuicSettingsCopyVersionSettings(
         Destination->OfferedVersions + Destination->OfferedVersionsLength;
     Destination->FullyDeployedVersionsLength = Source->FullyDeployedVersionsLength;
     CxPlatCopyMemory(
-        Destination->FullyDeployedVersions,
+        (uint32_t*)Destination->FullyDeployedVersions,
         Source->FullyDeployedVersions,
         Destination->FullyDeployedVersionsLength * sizeof(uint32_t));
 
@@ -313,13 +313,13 @@ QuicSettingsCopyVersionSettings(
         // This assumes the external is always in little-endian format
         //
         for (uint32_t i = 0; i < Destination->AcceptableVersionsLength; ++i) {
-            Destination->AcceptableVersions[i] = CxPlatByteSwapUint32(Destination->AcceptableVersions[i]);
+            ((uint32_t*)Destination->AcceptableVersions)[i] = CxPlatByteSwapUint32(Destination->AcceptableVersions[i]);
         }
         for (uint32_t i = 0; i < Destination->OfferedVersionsLength; ++i) {
-            Destination->OfferedVersions[i] = CxPlatByteSwapUint32(Destination->OfferedVersions[i]);
+            ((uint32_t*)Destination->OfferedVersions)[i] = CxPlatByteSwapUint32(Destination->OfferedVersions[i]);
         }
         for (uint32_t i = 0; i < Destination->FullyDeployedVersionsLength; ++i) {
-            Destination->FullyDeployedVersions[i] = CxPlatByteSwapUint32(Destination->FullyDeployedVersions[i]);
+            ((uint32_t*)Destination->FullyDeployedVersions)[i] = CxPlatByteSwapUint32(Destination->FullyDeployedVersions[i]);
         }
     }
 
@@ -1463,17 +1463,17 @@ QuicSettingsGetVersionSettings(
         Settings->FullyDeployedVersionsLength = InternalSettings->VersionSettings->FullyDeployedVersionsLength;
 
         CxPlatCopyMemory(
-            Settings->AcceptableVersions,
+            (uint32_t*)Settings->AcceptableVersions,
             InternalSettings->VersionSettings->AcceptableVersions,
             InternalSettings->VersionSettings->AcceptableVersionsLength * sizeof(uint32_t));
 
         CxPlatCopyMemory(
-            Settings->OfferedVersions,
+            (uint32_t*)Settings->OfferedVersions,
             InternalSettings->VersionSettings->OfferedVersions,
             InternalSettings->VersionSettings->OfferedVersionsLength * sizeof(uint32_t));
 
         CxPlatCopyMemory(
-            Settings->FullyDeployedVersions,
+            (uint32_t*)Settings->FullyDeployedVersions,
             InternalSettings->VersionSettings->FullyDeployedVersions,
             InternalSettings->VersionSettings->FullyDeployedVersionsLength * sizeof(uint32_t));
     } else {

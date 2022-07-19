@@ -436,6 +436,11 @@ typedef struct QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+//
+// N.B. Consumers of this struct depend on it being the same for 32-bit and
+// 64-bit systems. DO NOT include any fields that have different sizes on those
+// platforms, such as size_t or pointers.
+//
 typedef struct QUIC_STATISTICS_V2 {
 
     uint64_t CorrelationId;
@@ -481,6 +486,12 @@ typedef struct QUIC_STATISTICS_V2 {
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
+
+#define QUIC_STRUCT_SIZE_THRU_FIELD(Struct, Field) \
+    (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
+
+#define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)
+#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendCongestionWindow)
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
@@ -529,9 +540,9 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 typedef struct QUIC_VERSION_SETTINGS {
 
-    uint32_t* AcceptableVersions;
-    uint32_t* OfferedVersions;
-    uint32_t* FullyDeployedVersions;
+    const uint32_t* AcceptableVersions;
+    const uint32_t* OfferedVersions;
+    const uint32_t* FullyDeployedVersions;
     uint32_t AcceptableVersionsLength;
     uint32_t OfferedVersionsLength;
     uint32_t FullyDeployedVersionsLength;
@@ -650,6 +661,17 @@ typedef struct QUIC_TLS_SECRETS {
     uint8_t ClientTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
     uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
 } QUIC_TLS_SECRETS;
+
+typedef struct QUIC_STREAM_STATISTICS {
+    uint64_t ConnBlockedBySchedulingUs;
+    uint64_t ConnBlockedByPacingUs;
+    uint64_t ConnBlockedByAmplificationProtUs;
+    uint64_t ConnBlockedByCongestionControlUs;
+    uint64_t ConnBlockedByFlowControlUs;
+    uint64_t StreamBlockedByIdFlowControlUs;
+    uint64_t StreamBlockedByFlowControlUs;
+    uint64_t StreamBlockedByAppUs;
+} QUIC_STREAM_STATISTICS;
 
 //
 // Functions for associating application contexts with QUIC handles. MsQuic
@@ -807,6 +829,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_0RTT_LENGTH                   0x08000001  // uint64_t
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
+#define QUIC_PARAM_STREAM_STATISTICS                    0X08000004  // QUIC_STREAM_STATISTICS
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1041,6 +1064,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } CONNECTED;
         struct {
             QUIC_STATUS Status;
+            QUIC_UINT62 ErrorCode; // Wire format error code.
         } SHUTDOWN_INITIATED_BY_TRANSPORT;
         struct {
             QUIC_UINT62 ErrorCode;
@@ -1224,7 +1248,7 @@ typedef struct QUIC_STREAM_EVENT {
             /* inout */ uint64_t TotalBufferLength;
             _Field_size_(BufferCount)
             /* in */    const QUIC_BUFFER* Buffers;
-            _Field_range_(1, UINT32_MAX)
+            _Field_range_(0, UINT32_MAX)
             /* in */    uint32_t BufferCount;
             /* in */    QUIC_RECEIVE_FLAGS Flags;
         } RECEIVE;
@@ -1243,8 +1267,11 @@ typedef struct QUIC_STREAM_EVENT {
         } SEND_SHUTDOWN_COMPLETE;
         struct {
             BOOLEAN ConnectionShutdown;
-            BOOLEAN AppCloseInProgress  : 1;
-            BOOLEAN RESERVED            : 7;
+            BOOLEAN AppCloseInProgress       : 1;
+            BOOLEAN ConnectionShutdownByApp  : 1;
+            BOOLEAN ConnectionClosedRemotely : 1;
+            BOOLEAN RESERVED                 : 5;
+            QUIC_UINT62 ConnectionErrorCode;
         } SHUTDOWN_COMPLETE;
         struct {
             uint64_t ByteCount;

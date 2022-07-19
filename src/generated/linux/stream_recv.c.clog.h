@@ -163,9 +163,9 @@ tracepoint(CLOG_STREAM_RECV_C, TreatFinAsReset , arg1);\
 // Decoder Ring for QueueRecvFlush
 // [strm][%p] Queuing recv flush
 // QuicTraceLogStreamVerbose(
-            QueueRecvFlush,
-            Stream,
-            "Queuing recv flush");
+                QueueRecvFlush,
+                Stream,
+                "Queuing recv flush");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_QueueRecvFlush
@@ -419,10 +419,10 @@ tracepoint(CLOG_STREAM_RECV_C, StreamRecvState , arg2, arg3);\
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Stream Recv operation",
-                0);
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Flush Stream Recv operation",
+                    0);
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
 // arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
@@ -469,6 +469,24 @@ tracepoint(CLOG_STREAM_RECV_C, StreamError , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_StreamReceiveFrame
 #define _clog_4_ARGS_TRACE_StreamReceiveFrame(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrame , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReceiveFrameComplete
+// [strm][%p] Done processing frame
+// QuicTraceEvent(
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+// arg2 = arg2 = Stream = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReceiveFrameComplete
+#define _clog_3_ARGS_TRACE_StreamReceiveFrameComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrameComplete , arg2);\
 
 #endif
 

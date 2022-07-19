@@ -469,6 +469,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1212,36 +1214,44 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStorage());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_SET_PARAM:
-        QuicTestCtlRun(QuicTestGlobalSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM:
+        QuicTestCtlRun(QuicTestGlobalParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_COMMON_SET_PARAM:
-        QuicTestCtlRun(QuicTestCommonSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM:
+        QuicTestCtlRun(QuicTestCommonParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_SET_PARAM:
-        QuicTestCtlRun(QuicTestRegistrationSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM:
+        QuicTestCtlRun(QuicTestRegistrationParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_SET_PARAM:
-        QuicTestCtlRun(QuicTestConfigurationSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM:
+        QuicTestCtlRun(QuicTestConfigurationParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_LISTENER_SET_PARAM:
-        QuicTestCtlRun(QuicTestListenerSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM:
+        QuicTestCtlRun(QuicTestListenerParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_SET_PARAM:
-        QuicTestCtlRun(QuicTestConnectionSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM:
+        QuicTestCtlRun(QuicTestConnectionParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_TLS_SET_PARAM:
-        QuicTestCtlRun(QuicTestTlsSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM:
+        QuicTestCtlRun(QuicTestTlsParam());
         break;
 
-    case IOCTL_QUIC_RUN_VALIDATE_STREAM_SET_PARAM:
-        QuicTestCtlRun(QuicTestStreamSetParam());
+    case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
+        QuicTestCtlRun(QuicTestStreamParam());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK:
+        QuicTestCtlRun(QuicTestConnectionCloseFromCallback());
+        break;
+
+    case IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH:
+        QuicTestCtlRun(QuicTestCloseConnBeforeStreamFlush());
         break;
 
     default:

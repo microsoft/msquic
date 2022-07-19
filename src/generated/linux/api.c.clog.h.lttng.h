@@ -172,6 +172,29 @@ TRACEPOINT_EVENT(CLOG_API_C, ApiError,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamAppReceiveCompleteCall
+// [strm][%p] Receive complete call [%llu bytes]
+// QuicTraceEvent(
+        StreamAppReceiveCompleteCall,
+        "[strm][%p] Receive complete call [%llu bytes]",
+        Stream,
+        BufferLength);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = BufferLength = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_API_C, StreamAppReceiveCompleteCall,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

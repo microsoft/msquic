@@ -1472,6 +1472,10 @@ CxPlatTlsSecConfigSetTicketKeys(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
     SecPkgCred_SessionTicketKey Key[QUIC_MAX_TICKET_KEY_COUNT];
     for (uint8_t i = 0; i < KeyCount; ++i) {
         if (KeyConfig[i].MaterialLength > sizeof(Key[i].KeyingMaterial)) {
@@ -2898,6 +2902,12 @@ CxPlatTlsParamGet(
 {
     QUIC_STATUS Status;
 
+    // TODO:
+    // Need to check Connection->Crypto.TlsState.HandshakeComplete for
+    // QUIC_PARAM_TLS_HANDSHAKE_INFO and QUIC_PARAM_TLS_NEGOTIATED_ALPN
+    // It is difficult to access this flag because of dependency problem
+    // caused by including connection.h
+
     switch (Param) {
 
         case QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: {
@@ -3035,10 +3045,6 @@ CxPlatTlsParamGet(
             break;
         }
 
-        default:
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            break;
-
         case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
             if (Buffer == NULL) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -3082,6 +3088,10 @@ CxPlatTlsParamGet(
             CxPlatCopyMemory(Buffer, NegotiatedAlpn.ProtocolId, NegotiatedAlpn.ProtocolIdSize);
             break;
         }
+
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
     }
 
     return Status;

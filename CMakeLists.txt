@@ -474,7 +474,11 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
 
     # Find the right PGO file.
-    if(QUIC_SHARED_EC)
+    if(QUIC_USE_XDP)
+        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.xdp.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+    if(NOT EXISTS "${QUIC_PGO_FILE}" AND QUIC_SHARED_EC)
         set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.sharedec.pgd")
         set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
     endif()

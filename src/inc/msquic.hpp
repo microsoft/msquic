@@ -378,8 +378,12 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
+    MsQuicVersionSettings(const uint32_t* Versions, uint32_t Length) noexcept {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+    }
     MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
-        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
         AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
         return *this;
     }
@@ -614,12 +618,13 @@ struct MsQuicConfiguration {
     }
 
     QUIC_STATUS
-    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+    SetVersionNegotiationExtEnabled(_In_ const bool Value = true) noexcept {
+        BOOLEAN _Value = Value;
         return MsQuic->SetParam(
             Handle,
             QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
-            sizeof(Value),
-            &Value);
+            sizeof(_Value),
+            &_Value);
     }
 #endif
 };
@@ -786,9 +791,7 @@ struct MsQuicConnection {
     }
 
     ~MsQuicConnection() noexcept {
-        if (Handle) {
-            MsQuic->ConnectionClose(Handle);
-        }
+        Close();
         delete[] ResumptionTicket;
     }
 
@@ -798,6 +801,19 @@ struct MsQuicConnection {
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
         ) noexcept {
         MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        auto HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->ConnectionClose(HandleToClose);
+        }
     }
 
     QUIC_STATUS
@@ -1182,7 +1198,7 @@ struct MsQuicStream {
     MsQuicStream(
         _In_ HQUIC StreamHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
-        _In_ MsQuicStreamCallback* Callback,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
         ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         Handle = StreamHandle;
@@ -1191,9 +1207,7 @@ struct MsQuicStream {
     }
 
     ~MsQuicStream() noexcept {
-        if (Handle) {
-            MsQuic->StreamClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -1209,6 +1223,19 @@ struct MsQuicStream {
         _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags = QUIC_STREAM_SHUTDOWN_FLAG_ABORT
         ) noexcept {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        HQUIC HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->StreamClose(HandleToClose);
+        }
     }
 
     void

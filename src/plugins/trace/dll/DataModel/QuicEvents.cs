@@ -158,6 +158,26 @@ namespace QuicTrace.DataModel
         Max
     }
 
+    public enum QuicSendState
+    {
+        Disabled,
+        Started,
+        Reset,
+        ResetAcked,
+        Fin,
+        FinAcked
+    }
+
+    public enum QuicReceiveState
+    {
+        Disabled,
+        Started,
+        Paused,
+        Stopped,
+        Reset,
+        Fin
+    }
+
     #region Global Events
 
     public class QuicDataPathInitializedEvent : QuicEvent
@@ -917,6 +937,32 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicStreamSendStateEvent : QuicEvent
+    {
+        public byte State { get; }
+
+        public QuicSendState SendState { get { return (QuicSendState)State; } }
+
+        internal QuicStreamSendStateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, byte state) :
+            base(QuicEventId.StreamSendState, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            State = state;
+        }
+    }
+
+    public class QuicStreamRecvStateEvent : QuicEvent
+    {
+        public byte State { get; }
+
+        public QuicReceiveState ReceiveState { get { return (QuicReceiveState)State; } }
+
+        internal QuicStreamRecvStateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, byte state) :
+            base(QuicEventId.StreamRecvState, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            State = state;
+        }
+    }
+
     public class QuicStreamErrorEvent : QuicEvent
     {
         public string ErrorString { get; }
@@ -999,6 +1045,22 @@ namespace QuicTrace.DataModel
     {
         internal QuicStreamAppSendEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
             base(QuicEventId.StreamAppSend, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
+    public class QuicStreamReceiveFrameCompleteEvent : QuicEvent
+    {
+        internal QuicStreamReceiveFrameCompleteEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamReceiveFrameComplete, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
+    public class QuicStreamAppReceiveCompleteCallEvent : QuicEvent
+    {
+        internal QuicStreamAppReceiveCompleteCallEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamAppReceiveCompleteCall, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
         }
     }
