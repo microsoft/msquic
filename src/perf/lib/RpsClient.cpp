@@ -39,6 +39,7 @@ PrintHelp(
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
         "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:0)\n"
+        "  -stats:<0/1>                Indicates connection stats should be printed at the end of the run. (def:0)\n"
         "\n",
         RPS_MAX_CLIENT_PORT_COUNT,
         RPS_DEFAULT_RUN_TIME,
@@ -111,6 +112,7 @@ RpsClient::Init(
     TryGetValue(argc, argv, "requests", &RequestCount);
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
+    TryGetValue(argc, argv, "stats", &PrintStats);
 
     const char* CibirBytes = nullptr;
     if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
@@ -436,6 +438,9 @@ RpsConnectionContext::ConnectionCallback(
         //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        if (Client->PrintStats) {
+            QuicPrintConnectionStatistics(MsQuic, Handle);
+        }
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
         if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client->WorkerCount) {

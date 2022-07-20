@@ -2740,7 +2740,7 @@
               />
           <event
               keywords="ut:Connection ut:Packet"
-              level="win:Verbose"
+              level="win:Informational"
               message="$(string.Etw.ConnPacketLost)"
               opcode="Connection"
               symbol="QuicConnPacketLost"
