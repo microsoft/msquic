@@ -248,7 +248,8 @@ CxPlatRunExecutionContexts(
     while (*EC != NULL) {
         CXPLAT_EXECUTION_CONTEXT* Context =
             CXPLAT_CONTAINING_RECORD(*EC, CXPLAT_EXECUTION_CONTEXT, Entry);
-        if (Context->Ready || Context->NextTimeUs <= *TimeNow) {
+        BOOLEAN Ready = InterlockedFetchAndClearBoolean(&Context->Ready);
+        if (Ready || Context->NextTimeUs <= *TimeNow) {
             CXPLAT_SLIST_ENTRY* Next = Context->Entry.Next;
             DidWork = TRUE;
             if (!Context->Callback(Context->Context, TimeNow, Worker->ThreadId)) {

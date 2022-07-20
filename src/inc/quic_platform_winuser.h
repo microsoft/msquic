@@ -220,6 +220,15 @@ InterlockedFetchAndClearPointer(
     return InterlockedExchangePointer(Target, NULL);
 }
 
+inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
+}
+
 //
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //

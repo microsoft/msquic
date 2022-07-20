@@ -112,6 +112,15 @@ InterlockedFetchAndClearPointer(
     return InterlockedExchangePointer(Target, NULL);
 }
 
+inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
+}
+
 //
 // Static Analysis Interfaces
 //
