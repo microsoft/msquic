@@ -450,7 +450,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     void* CxPlatContext;
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
-    BOOLEAN Ready;
+    volatile BOOLEAN Ready;
 
 } CXPLAT_EXECUTION_CONTEXT;
 
