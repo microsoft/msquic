@@ -190,8 +190,9 @@ typedef struct _SCHANNEL_CERT_HASH_STORE
 #define SCH_MACHINE_CERT_HASH           0x00000001
 
 typedef struct _CRYPTOAPI_BLOB {
-                            DWORD   cbData;
-    _Field_size_bytes_(cbData)  BYTE    *pbData;
+    DWORD   cbData;
+    _Field_size_bytes_(cbData)
+        BYTE    *pbData;
 } CERT_BLOB, *PCERT_BLOB;
 
 //
@@ -1687,16 +1688,12 @@ CxPlatTlsIndicateCertificateReceived(
     } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CHAIN) {
 #ifndef _KERNEL_MODE
         CXPLAT_DBG_ASSERT(FALSE);
-        Certificate = NULL;
-        CertificateChain = NULL;
 #endif
         Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Chain;
         CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCertBlob->Chain;
     } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CONTEXT) {
 #ifdef _KERNEL_MODE
         CXPLAT_DBG_ASSERT(FALSE);
-        Certificate = NULL;
-        CertificateChain = NULL;
 #else
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
             QUIC_STATUS Status =
@@ -2214,7 +2211,7 @@ CxPlatTlsWriteDataToSchannel(
 
             QUIC_CERT_BLOB PeerCertBlob;
             CxPlatZeroMemory(&PeerCertBlob, sizeof(PeerCertBlob));
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_SCHANNEL_SERIALIZED_PEER_CERT) {
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT) {
                 PeerCertBlob.Type = QUIC_CERT_BLOB_SERIALIZED;
                 SecStatus =
                     QueryContextAttributesW(
@@ -2291,7 +2288,7 @@ CxPlatTlsWriteDataToSchannel(
                         &PeerCertBlob);
             }
 
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_SCHANNEL_SERIALIZED_PEER_CERT) {
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT) {
                 if (PeerCertBlob.Serialized.pbData != NULL) {
                     FreeContextBuffer(PeerCertBlob.Serialized.pbData);
                 }

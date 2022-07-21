@@ -1473,7 +1473,56 @@ TEST_F(TlsTest, PortableCertificateValidation)
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
+
+TEST_F(TlsTest, InProcPortableCertificateValidation)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT |
+        QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    }
+}
 #endif
+
+TEST_F(TlsTest, InProcCertificateValidation)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    }
+}
 
 TEST_P(TlsTest, One1RttKey)
 {
@@ -2048,7 +2097,7 @@ ValidateSecConfigStatusSchannel(
 TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 {
     for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS,
-        QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER, QUIC_CREDENTIAL_FLAG_SCHANNEL_SERIALIZED_PEER_CERT,
+        QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER, QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT,
 #ifndef _WIN32
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK, QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE,
