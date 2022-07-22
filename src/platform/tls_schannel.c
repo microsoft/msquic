@@ -1693,6 +1693,8 @@ CxPlatTlsIndicateCertificateReceived(
         CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCertBlob->Chain;
     } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CONTEXT) {
 #ifdef _KERNEL_MODE
+        Certificate = NULL;
+        CertificateChain = NULL;
         CXPLAT_DBG_ASSERT(FALSE);
 #else
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
