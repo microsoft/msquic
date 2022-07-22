@@ -819,7 +819,7 @@ CxPlatGetPortableCertificateFromSerialized(
         }
     }
 
-    if (CurrentCertContext == NULL) {
+    if (LeafCertContext == NULL) {
         // Schannel did not mark a leaf. This is bad.
         QuicTraceEvent(
             LibraryErrorStatus,
