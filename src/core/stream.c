@@ -180,8 +180,6 @@ QuicStreamFree(
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     CxPlatRefUninitialize(&Stream->RefCount);
 
-    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_ACK);
-
     if (Stream->ReceiveCompleteOperation) {
         QuicOperationFree(Worker, Stream->ReceiveCompleteOperation);
     }
@@ -488,6 +486,12 @@ QuicStreamIndicateShutdownComplete(
 {
     if (!Stream->Flags.HandleShutdown) {
         Stream->Flags.HandleShutdown = TRUE;
+
+        QUIC_CONNECTION* Connection = Stream->Connection;
+        QUIC_PACKET_SPACE* Packets = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+        if (Packets && Packets->AckTracker.AckElicitingPacketsToAcknowledge) {
+            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_ACK);
+        }
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
