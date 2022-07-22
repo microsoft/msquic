@@ -180,6 +180,8 @@ QuicStreamFree(
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     CxPlatRefUninitialize(&Stream->RefCount);
 
+    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_ACK);
+
     if (Stream->ReceiveCompleteOperation) {
         QuicOperationFree(Worker, Stream->ReceiveCompleteOperation);
     }
