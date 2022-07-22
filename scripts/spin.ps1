@@ -82,7 +82,7 @@ param (
     [switch]$InitialBreak = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuic.Warnings")]
+    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
