@@ -1088,14 +1088,14 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,   "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
     if (Settings->VersionSettings) {
-        QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
-        QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,       "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
-        QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] FullyDeployedVerlength = %u", Settings->VersionSettings->FullyDeployedVersionsLength);
+        QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,  "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
+        QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,   "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
+        QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,  "[sett] FullyDeployedVerlength = %u", Settings->VersionSettings->FullyDeployedVersionsLength);
         for (uint32_t i = 0; i < Settings->VersionSettings->AcceptableVersionsLength; ++i) {
-            QuicTraceLogVerbose(SettingDumpAcceptableVersions,      "[sett] AcceptableVersions[%u]  = 0x%x", i, Settings->VersionSettings->AcceptableVersions[i]);
+            QuicTraceLogVerbose(SettingDumpAcceptableVersions,  "[sett] AcceptableVersions[%u]  = 0x%x", i, Settings->VersionSettings->AcceptableVersions[i]);
         }
         for (uint32_t i = 0; i < Settings->VersionSettings->OfferedVersionsLength; ++i) {
-            QuicTraceLogVerbose(SettingDumpOfferedVersions,         "[sett] OfferedVersions[%u]     = 0x%x", i, Settings->VersionSettings->OfferedVersions[i]);
+            QuicTraceLogVerbose(SettingDumpOfferedVersions, "[sett] OfferedVersions[%u]     = 0x%x", i, Settings->VersionSettings->OfferedVersions[i]);
         }
         for (uint32_t i = 0; i < Settings->VersionSettings->FullyDeployedVersionsLength; ++i) {
             QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[%u]= 0x%x", i, Settings->VersionSettings->FullyDeployedVersions[i]);
