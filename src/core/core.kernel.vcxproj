@@ -49,6 +49,7 @@
     <ClCompile Include="send_buffer.c" />
     <ClCompile Include="sent_packet_metadata.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="sliding_window_extremum.c" />
     <ClCompile Include="stream.c" />
     <ClCompile Include="stream_recv.c" />
     <ClCompile Include="stream_send.c" />
@@ -89,12 +90,12 @@
     <ClInclude Include="send_buffer.h" />
     <ClInclude Include="sent_packet_metadata.h" />
     <ClInclude Include="settings.h" />
+    <ClInclude Include="sliding_window_extremum.h" />
     <ClInclude Include="stream.h" />
     <ClInclude Include="stream_set.h" />
     <ClInclude Include="timer_wheel.h" />
     <ClInclude Include="transport_params.h" />
     <ClInclude Include="version_neg.h" />
-    <ClInclude Include="sliding_window_extremum.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
