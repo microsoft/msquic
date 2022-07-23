@@ -11,7 +11,7 @@ Abstract:
 
 #include "main.h"
 #ifdef QUIC_CLOG
-#include "TestSlidingWindowExtremum.cpp.clog.h"
+#include "SlidingWindowExtremumTest.cpp.clog.h"
 #endif
 
 TEST(SlidingWindowExtremumTest, EmptyWindow)
