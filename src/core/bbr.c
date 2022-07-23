@@ -895,10 +895,10 @@ BbrCongestionControlOnDataAcknowledged(
 
     if (!Bbr->BtlbwFound && NewRoundTrip && !LastAckedPacketAppLimited) {
         uint64_t BandwidthTarget = (uint64_t)(Bbr->LastEstimatedStartupBandwidth * kStartupGrowthTarget / GAIN_UNIT);
-        uint64_t RealBandwidth = BbrCongestionControlGetBandwidth(Cc);
+        uint64_t CurrentBandwidth = BbrCongestionControlGetBandwidth(Cc);
 
-        if (RealBandwidth >= BandwidthTarget) {
-            Bbr->LastEstimatedStartupBandwidth = RealBandwidth;
+        if (CurrentBandwidth >= BandwidthTarget) {
+            Bbr->LastEstimatedStartupBandwidth = CurrentBandwidth;
             Bbr->SlowStartupRoundCounter = 0;
         } else if (++Bbr->SlowStartupRoundCounter >= kStartupSlowGrowRoundLimit) {
             Bbr->BtlbwFound = TRUE;
