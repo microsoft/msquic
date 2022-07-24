@@ -22,7 +22,6 @@ typedef struct QUIC_LOSS_DETECTION {
     //
     QUIC_ENCRYPT_LEVEL LargestAckEncryptLevel;
 
-
     //
     // Sent time of last sent packet
     //

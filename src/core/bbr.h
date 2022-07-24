@@ -49,9 +49,9 @@ typedef struct BBR_BANDWIDTH_FILTER {
     //
     // Max filter for tracking the maximum recent delivery_rate sample, for estimating max bandwidth
     //
-    SLIDING_WINDOW_EXTREMUM WindowedMaxFilter;
+    QUIC_SLIDING_WINDOW_EXTREMUM WindowedMaxFilter;
 
-    SLIDING_WINDOW_EXTREMUM_ENTRY WindowedMaxFilterEntries[kBbrDefaultFilterCapacity];
+    QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY WindowedMaxFilterEntries[kBbrDefaultFilterCapacity];
 
 } BBR_BANDWIDTH_FILTER;
 
@@ -211,9 +211,9 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     //
     // The max filter tracking the recent maximum degree of aggregation in the path
     //
-    SLIDING_WINDOW_EXTREMUM MaxAckHeightFilter;
+    QUIC_SLIDING_WINDOW_EXTREMUM MaxAckHeightFilter;
 
-    SLIDING_WINDOW_EXTREMUM_ENTRY MaxAckHeightFilterEntries[kBbrDefaultFilterCapacity];
+    QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY MaxAckHeightFilterEntries[kBbrDefaultFilterCapacity];
 
     //
     // BBR estimates minimum RTT by the minimum recent RTT

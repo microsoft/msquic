@@ -27,7 +27,7 @@ typedef struct QUIC_ACK_EVENT {
 
     uint32_t SmoothedRtt;
 
-    uint32_t MinRttSample;
+    uint32_t SmallestRttSample;
 
     //
     // Acked time minus ack delay.

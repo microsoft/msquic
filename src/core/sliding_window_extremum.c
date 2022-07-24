@@ -4,6 +4,7 @@
     Licensed under the MIT License.
 
 Abstract:
+
     The following functions implement a sliding window extremum (either maxima
     or minima) algorithm for MsQuic. The design is based on a well-known data
     structure called "monotone queue".
@@ -22,37 +23,37 @@ Abstract:
 #include "precomp.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-SLIDING_WINDOW_EXTREMUM
-SlidingWindowExtremumInitialize(
+QUIC_SLIDING_WINDOW_EXTREMUM
+QuicSlidingWindowExtremumInitialize(
     _In_ uint64_t EntryLifetime,
     _In_ uint32_t WindowCapacity,
-    _In_ SLIDING_WINDOW_EXTREMUM_ENTRY* Window
+    _In_ QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY* Entries
     )
 {
-    SLIDING_WINDOW_EXTREMUM w;
+    QUIC_SLIDING_WINDOW_EXTREMUM Window;
     
     CXPLAT_DBG_ASSERT(WindowCapacity > 0);
     CXPLAT_DBG_ASSERT(EntryLifetime > 0);
 
-    w.EntryLifetime = EntryLifetime;
-    w.WindowCapacity = WindowCapacity;
+    Window.EntryLifetime = EntryLifetime;
+    Window.WindowCapacity = WindowCapacity;
 
-    w.WindowSize = 0;
-    w.WindowHead = 0;
-    w.Window = Window;
+    Window.WindowSize = 0;
+    Window.WindowHead = 0;
+    Window.Extremums = Entries;
 
-    return w;
+    return Window;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-SlidingWindowExtremumGet(
-    _In_ const SLIDING_WINDOW_EXTREMUM* w,
-    _Inout_ SLIDING_WINDOW_EXTREMUM_ENTRY* Entry
+QuicSlidingWindowExtremumGet(
+    _In_ const QUIC_SLIDING_WINDOW_EXTREMUM* Window,
+    _Inout_ QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY* Entry
     )
 {
-    if (w->WindowSize != 0) {
-        *Entry = w->Window[w->WindowHead];
+    if (Window->WindowSize != 0) {
+        *Entry = Window->Extremums[Window->WindowHead];
         return QUIC_STATUS_SUCCESS;
     }
     
@@ -61,27 +62,27 @@ SlidingWindowExtremumGet(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-SlidingWindowExtremumReset(
-    _In_ SLIDING_WINDOW_EXTREMUM* w
+QuicSlidingWindowExtremumReset(
+    _In_ QUIC_SLIDING_WINDOW_EXTREMUM* Window
     )
 {
-    w->WindowSize = 0;
-    w->WindowHead = 0;
+    Window->WindowSize = 0;
+    Window->WindowHead = 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 SlidingWindowExtremumExpire(
-    _In_ SLIDING_WINDOW_EXTREMUM* w,
+    _In_ QUIC_SLIDING_WINDOW_EXTREMUM* Window,
     _In_ uint64_t NewTime
     )
 {
-    while (w->WindowSize > 0) {
-        CXPLAT_DBG_ASSERT(NewTime >= w->Window[w->WindowHead].Time);
+    while (Window->WindowSize > 0) {
+        CXPLAT_DBG_ASSERT(NewTime >= Window->Extremums[Window->WindowHead].Time);
 
-        if (NewTime - w->Window[w->WindowHead].Time > w->EntryLifetime) {
-            w->WindowHead = (w->WindowHead + 1) % w->WindowCapacity;
-            w->WindowSize--;
+        if (NewTime - Window->Extremums[Window->WindowHead].Time > Window->EntryLifetime) {
+            Window->WindowHead = (Window->WindowHead + 1) % Window->WindowCapacity;
+            Window->WindowSize--;
         } else {
             break;
         }
@@ -90,80 +91,80 @@ SlidingWindowExtremumExpire(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-SlidingWindowExtremumUpdateMin(
-    _In_ SLIDING_WINDOW_EXTREMUM* w,
+QuicSlidingWindowExtremumUpdateMin(
+    _In_ QUIC_SLIDING_WINDOW_EXTREMUM* Window,
     _In_ uint64_t NewValue,
     _In_ uint64_t NewTime
     )
 {
-    if (w->WindowSize > 0) {
-        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
-        if (NewTime < w->Window[WindowRear].Time) {
+    if (Window->WindowSize > 0) {
+        uint32_t WindowRear = (Window->WindowHead + Window->WindowSize - 1) % Window->WindowCapacity;
+        if (NewTime < Window->Extremums[WindowRear].Time) {
             return;
         }
 
-        SlidingWindowExtremumExpire(w, NewTime);
+        SlidingWindowExtremumExpire(Window, NewTime);
     }
 
-    while (w->WindowSize > 0) {
-        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
+    while (Window->WindowSize > 0) {
+        uint32_t WindowRear = (Window->WindowHead + Window->WindowSize - 1) % Window->WindowCapacity;
 
-        CXPLAT_DBG_ASSERT(NewTime >= w->Window[WindowRear].Time);
+        CXPLAT_DBG_ASSERT(NewTime >= Window->Extremums[WindowRear].Time);
 
-        if (NewTime - w->Window[WindowRear].Time > w->EntryLifetime ||
-            NewValue <= w->Window[WindowRear].Value) {
-            w->WindowSize--;
+        if (NewTime - Window->Extremums[WindowRear].Time > Window->EntryLifetime ||
+            NewValue <= Window->Extremums[WindowRear].Value) {
+            Window->WindowSize--;
         } else {
             break;
         }
     }
 
-    if (w->WindowSize < w->WindowCapacity) {
-        uint32_t NewRear = (w->WindowHead + w->WindowSize) % w->WindowCapacity;
+    if (Window->WindowSize < Window->WindowCapacity) {
+        uint32_t NewRear = (Window->WindowHead + Window->WindowSize) % Window->WindowCapacity;
 
-        w->Window[NewRear].Value = NewValue;
-        w->Window[NewRear].Time = NewTime;
+        Window->Extremums[NewRear].Value = NewValue;
+        Window->Extremums[NewRear].Time = NewTime;
 
-        w->WindowSize++;
+        Window->WindowSize++;
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-SlidingWindowExtremumUpdateMax(
-    _In_ SLIDING_WINDOW_EXTREMUM* w,
+QuicSlidingWindowExtremumUpdateMax(
+    _In_ QUIC_SLIDING_WINDOW_EXTREMUM* Window,
     _In_ uint64_t NewValue,
     _In_ uint64_t NewTime
     )
 {
-    if (w->WindowSize > 0) {
-        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
-        if (NewTime < w->Window[WindowRear].Time) {
+    if (Window->WindowSize > 0) {
+        uint32_t WindowRear = (Window->WindowHead + Window->WindowSize - 1) % Window->WindowCapacity;
+        if (NewTime < Window->Extremums[WindowRear].Time) {
             return;
         }
 
-        SlidingWindowExtremumExpire(w, NewTime);
+        SlidingWindowExtremumExpire(Window, NewTime);
     }
 
-    while (w->WindowSize > 0) {
-        uint32_t WindowRear = (w->WindowHead + w->WindowSize - 1) % w->WindowCapacity;
+    while (Window->WindowSize > 0) {
+        uint32_t WindowRear = (Window->WindowHead + Window->WindowSize - 1) % Window->WindowCapacity;
 
-        CXPLAT_DBG_ASSERT(NewTime >= w->Window[WindowRear].Time);
+        CXPLAT_DBG_ASSERT(NewTime >= Window->Extremums[WindowRear].Time);
 
-        if (NewTime - w->Window[WindowRear].Time > w->EntryLifetime ||
-            NewValue >= w->Window[WindowRear].Value) {
-            w->WindowSize--;
+        if (NewTime - Window->Extremums[WindowRear].Time > Window->EntryLifetime ||
+            NewValue >= Window->Extremums[WindowRear].Value) {
+            Window->WindowSize--;
         } else {
             break;
         }
     }
 
-    if (w->WindowSize < w->WindowCapacity) {
-        uint32_t NewRear = (w->WindowHead + w->WindowSize) % w->WindowCapacity;
+    if (Window->WindowSize < Window->WindowCapacity) {
+        uint32_t NewRear = (Window->WindowHead + Window->WindowSize) % Window->WindowCapacity;
 
-        w->Window[NewRear].Value = NewValue;
-        w->Window[NewRear].Time = NewTime;
+        Window->Extremums[NewRear].Value = NewValue;
+        Window->Extremums[NewRear].Time = NewTime;
 
-        w->WindowSize++;
+        Window->WindowSize++;
     }
 }

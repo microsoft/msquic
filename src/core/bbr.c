@@ -224,8 +224,8 @@ BbrBandwidthFilterOnPacketAcked(
 
         uint64_t DeliveryRate = CXPLAT_MIN(SendRate, AckRate);
 
-        SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
-        QUIC_STATUS Status = SlidingWindowExtremumGet(&b->WindowedMaxFilter, &Entry);
+        QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
+        QUIC_STATUS Status = QuicSlidingWindowExtremumGet(&b->WindowedMaxFilter, &Entry);
         
         uint64_t PreviousMaxDeliveryRate = 0;
         if (QUIC_SUCCEEDED(Status)) {
@@ -233,7 +233,7 @@ BbrBandwidthFilterOnPacketAcked(
         }
 
         if (DeliveryRate >= PreviousMaxDeliveryRate || !AckedPacket->Flags.IsAppLimited) {
-            SlidingWindowExtremumUpdateMax(&b->WindowedMaxFilter, DeliveryRate, RttCounter);
+            QuicSlidingWindowExtremumUpdateMax(&b->WindowedMaxFilter, DeliveryRate, RttCounter);
         }
     }
 }
@@ -253,8 +253,8 @@ BbrCongestionControlGetBandwidth(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
-    QUIC_STATUS Status = SlidingWindowExtremumGet(&Cc->Bbr.BandwidthFilter.WindowedMaxFilter, &Entry);
+    QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
+    QUIC_STATUS Status = QuicSlidingWindowExtremumGet(&Cc->Bbr.BandwidthFilter.WindowedMaxFilter, &Entry);
     if (QUIC_SUCCEEDED(Status)) {
         return Entry.Value;
     }
@@ -621,7 +621,7 @@ BbrCongestionControlUpdateAckAggregation(
 
     Bbr->AggregatedAckBytes += AckEvent->NumRetransmittableBytes;
 
-    SlidingWindowExtremumUpdateMax(&Bbr->MaxAckHeightFilter,
+    QuicSlidingWindowExtremumUpdateMax(&Bbr->MaxAckHeightFilter,
         Bbr->AggregatedAckBytes - ExpectedAckBytes, Bbr->RoundTripCounter);
 
     return Bbr->AggregatedAckBytes - ExpectedAckBytes;
@@ -814,8 +814,8 @@ BbrCongestionControlUpdateCongestionWindow(
 
     uint64_t TargetCwnd = BbrCongestionControlGetTargetCwnd(Cc, Bbr->CwndGain);
     if (Bbr->BtlbwFound) {
-        SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
-        QUIC_STATUS Status = SlidingWindowExtremumGet(&Bbr->MaxAckHeightFilter, &Entry);
+        QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
+        QUIC_STATUS Status = QuicSlidingWindowExtremumGet(&Bbr->MaxAckHeightFilter, &Entry);
         if (QUIC_SUCCEEDED(Status)) {
             TargetCwnd += Entry.Value;
         }
@@ -860,7 +860,7 @@ BbrCongestionControlOnDataAcknowledged(
     Bbr->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
     if (AckEvent->MinRttSampleValid) {
-        BbrRttStatsUpdate(&Bbr->MinRttStats, AckEvent->MinRttSample, AckEvent->TimeNow);
+        BbrRttStatsUpdate(&Bbr->MinRttStats, AckEvent->SmallestRttSample, AckEvent->TimeNow);
     }
 
     BOOLEAN NewRoundTrip = BbrCongestionControlUpdateRoundTripCounter(
@@ -1078,9 +1078,9 @@ BbrCongestionControlReset(
 
     Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
-    SlidingWindowExtremumReset(&Bbr->MaxAckHeightFilter);
+    QuicSlidingWindowExtremumReset(&Bbr->MaxAckHeightFilter);
 
-    SlidingWindowExtremumReset(&Bbr->BandwidthFilter.WindowedMaxFilter);
+    QuicSlidingWindowExtremumReset(&Bbr->BandwidthFilter.WindowedMaxFilter);
     Bbr->BandwidthFilter.AppLimited = FALSE;
     Bbr->BandwidthFilter.AppLimitedExitTarget = 0;
 
@@ -1166,11 +1166,11 @@ BbrCongestionControlInitialize(
 
     Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
 
-    Bbr->MaxAckHeightFilter = SlidingWindowExtremumInitialize(
+    Bbr->MaxAckHeightFilter = QuicSlidingWindowExtremumInitialize(
             kBbrMaxAckHeightFilterLen, kBbrDefaultFilterCapacity, Bbr->MaxAckHeightFilterEntries);
 
     Bbr->BandwidthFilter = (BBR_BANDWIDTH_FILTER) {
-        .WindowedMaxFilter = SlidingWindowExtremumInitialize(
+        .WindowedMaxFilter = QuicSlidingWindowExtremumInitialize(
                 kBbrMaxBandwidthFilterLen, kBbrDefaultFilterCapacity, Bbr->BandwidthFilter.WindowedMaxFilterEntries),
         .AppLimited = FALSE,
         .AppLimitedExitTarget = 0,
