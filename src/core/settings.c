@@ -948,12 +948,39 @@ QuicSettingsLoad(
             //
             for (uint32_t i = 0; i < VersionSettings->AcceptableVersionsLength; ++i) {
                 ((uint32_t*)VersionSettings->AcceptableVersions)[i] = CxPlatByteSwapUint32(VersionSettings->AcceptableVersions[i]);
+                if (!QuicIsVersionSupported(VersionSettings->AcceptableVersions[i]) &&
+                    !QuicIsVersionReserved(VersionSettings->AcceptableVersions[i])) {
+                    QuicTraceLogError(
+                        SettingsLoadInvalidAcceptableVersion,
+                        "Invalid AcceptableVersion loaded from storage! 0x%x at position %d",
+                        VersionSettings->AcceptableVersions[i],
+                        (int32_t)i);
+                    goto VersionSettingsFail;
+                }
             }
             for (uint32_t i = 0; i < VersionSettings->OfferedVersionsLength; ++i) {
                 ((uint32_t*)VersionSettings->OfferedVersions)[i] = CxPlatByteSwapUint32(VersionSettings->OfferedVersions[i]);
+                if (!QuicIsVersionSupported(VersionSettings->OfferedVersions[i]) &&
+                    !QuicIsVersionReserved(VersionSettings->OfferedVersions[i])) {
+                    QuicTraceLogError(
+                        SettingsLoadInvalidOfferedVersion,
+                        "Invalid OfferedVersion loaded from storage! 0x%x at position %d",
+                        VersionSettings->OfferedVersions[i],
+                        (int32_t)i);
+                    goto VersionSettingsFail;
+                }
             }
             for (uint32_t i = 0; i < VersionSettings->FullyDeployedVersionsLength; ++i) {
                 ((uint32_t*)VersionSettings->FullyDeployedVersions)[i] = CxPlatByteSwapUint32(VersionSettings->FullyDeployedVersions[i]);
+                if (!QuicIsVersionSupported(VersionSettings->FullyDeployedVersions[i]) &&
+                    !QuicIsVersionReserved(VersionSettings->FullyDeployedVersions[i])) {
+                    QuicTraceLogError(
+                        SettingsLoadInvalidFullyDeployedVersion,
+                        "Invalid FullyDeployedVersion loaded from storage! 0x%x at position %d",
+                        VersionSettings->FullyDeployedVersions[i],
+                        (int32_t)i);
+                    goto VersionSettingsFail;
+                }
             }
             if (Settings->VersionSettings) {
                 CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);

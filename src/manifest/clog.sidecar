@@ -9769,6 +9769,54 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "SettingsLoadInvalidAcceptableVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid AcceptableVersion loaded from storage! 0x%x at position %d",
+      "UniqueId": "SettingsLoadInvalidAcceptableVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "SettingsLoadInvalidFullyDeployedVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid FullyDeployedVersion loaded from storage! 0x%x at position %d",
+      "UniqueId": "SettingsLoadInvalidFullyDeployedVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "SettingsLoadInvalidOfferedVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d",
+      "UniqueId": "SettingsLoadInvalidOfferedVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Starting ACK_DELAY timer for %u ms",
@@ -14512,6 +14560,21 @@
         "UniquenessHash": "dad8e0fd-193d-ff7c-1657-2f8eebc1d457",
         "TraceID": "SettingsInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "95a76c49-1ba7-e5f5-8081-e1ce724f1c60",
+        "TraceID": "SettingsLoadInvalidAcceptableVersion",
+        "EncodingString": "Invalid AcceptableVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "dda4318e-62b1-887b-ca54-83d63cdaf2d1",
+        "TraceID": "SettingsLoadInvalidFullyDeployedVersion",
+        "EncodingString": "Invalid FullyDeployedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
+        "TraceID": "SettingsLoadInvalidOfferedVersion",
+        "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",
