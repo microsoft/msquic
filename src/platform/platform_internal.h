@@ -227,7 +227,7 @@ CxPlatDataPathWake(
     _In_ void* Context
     );
 
-void
+BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
     _In_ CXPLAT_THREAD_ID CurThreadId,

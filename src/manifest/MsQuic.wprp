@@ -274,7 +274,7 @@
     </Profile>
     <Profile Id="SpinQuic.Light.Memory" Base="SpinQuic.Light.File" Name="SpinQuic" Description="Used for SpinQuic Testing" LoggingMode="Memory" DetailLevel="Light"/>
 
-    <Profile Id="SpinQuic.Warnings.File" Name="SpinQuic" Description="Used for SpinQuic Testing" LoggingMode="File" DetailLevel="Light">
+    <Profile Id="SpinQuicWarnings.Light.File" Name="SpinQuicWarnings" Description="Used for SpinQuic Testing" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
@@ -283,7 +283,7 @@
         </EventCollectorId>
       </Collectors>
     </Profile>
-    <Profile Id="SpinQuic.Warnings.Memory" Base="SpinQuic.Warnings.File" Name="SpinQuic" Description="Used for SpinQuic Testing" LoggingMode="Memory" DetailLevel="Light"/>
+    <Profile Id="SpinQuicWarnings.Light.Memory" Base="SpinQuicWarnings.Light.File" Name="SpinQuicWarnings" Description="Used for SpinQuic Testing" LoggingMode="Memory" DetailLevel="Light"/>
 
   </Profiles>
 </WindowsPerformanceRecorder>

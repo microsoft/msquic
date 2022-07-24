@@ -4088,7 +4088,7 @@ CxPlatDataPathWake(
     PostQueuedCompletionStatus(DatapathProc->IOCP, 0, (ULONG_PTR)NULL, NULL);
 }
 
-void
+BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
     _In_ CXPLAT_THREAD_ID CurThreadId,
@@ -4121,7 +4121,7 @@ CxPlatDataPathRunEC(
             DatapathWakeupForShutdown,
             "[data][%p] Datapath wakeup for shutdown",
             DatapathProc);
-        return;
+        return TRUE;
     }
 
     if (SocketProc == NULL || Overlapped == NULL) {
@@ -4129,7 +4129,7 @@ CxPlatDataPathRunEC(
             DatapathWakeupForECTimeout,
             "[data][%p] Datapath wakeup for EC wake or timeout",
             DatapathProc);
-        return; // Wake for execution contexts.
+        return TRUE; // Wake for execution contexts.
     }
 
     ULONG IoResult = Result ? NO_ERROR : GetLastError();
@@ -4227,6 +4227,8 @@ CxPlatDataPathRunEC(
                 IoResult);
         }
     }
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

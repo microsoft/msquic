@@ -217,7 +217,7 @@ CxPlatWakeExecutionContext(
     CxPlatWorkerWake((CXPLAT_WORKER*)Context->CxPlatContext);
 }
 
-void
+BOOLEAN // Did work?
 CxPlatRunExecutionContexts(
     _In_ CXPLAT_WORKER* Worker,
     _Inout_ uint64_t* TimeNow
@@ -243,12 +243,15 @@ CxPlatRunExecutionContexts(
         Worker->ExecutionContexts = Head;
     }
 
+    BOOLEAN DidWork = FALSE;
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
     while (*EC != NULL) {
         CXPLAT_EXECUTION_CONTEXT* Context =
             CXPLAT_CONTAINING_RECORD(*EC, CXPLAT_EXECUTION_CONTEXT, Entry);
-        if (Context->Ready || Context->NextTimeUs <= *TimeNow) {
+        BOOLEAN Ready = InterlockedFetchAndClearBoolean(&Context->Ready);
+        if (Ready || Context->NextTimeUs <= *TimeNow) {
             CXPLAT_SLIST_ENTRY* Next = Context->Entry.Next;
+            DidWork = TRUE;
             if (!Context->Callback(Context->Context, TimeNow, Worker->ThreadId)) {
                 *EC = Next; // Remove Context from the list.
                 continue;
@@ -261,9 +264,16 @@ CxPlatRunExecutionContexts(
         }
         EC = &Context->Entry.Next;
     }
+
+    return DidWork;
 }
 
 #endif
+
+//
+// The number of iterations to run before yielding our thread to the scheduler.
+//
+#define CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT 10
 
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 {
@@ -277,13 +287,17 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
     Worker->ThreadId = CxPlatCurThreadID();
 
+    uint32_t NoWorkCount = 0;
     while (Worker->Running) {
 
         uint32_t WaitTime = UINT32_MAX;
+        ++NoWorkCount;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
         uint64_t TimeNow = CxPlatTimeUs64();
-        CxPlatRunExecutionContexts(Worker, &TimeNow);
+        if (CxPlatRunExecutionContexts(Worker, &TimeNow)) {
+            NoWorkCount = 0;
+        }
         if (Worker->ECsReady) {
             WaitTime = 0;
         } else if (Worker->ECsReadyTime != UINT64_MAX) {
@@ -300,9 +314,17 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 #endif
 
         if (Worker->DatapathEC) {
-            CxPlatDataPathRunEC(&Worker->DatapathEC, Worker->ThreadId, WaitTime);
+            if (CxPlatDataPathRunEC(&Worker->DatapathEC, Worker->ThreadId, WaitTime)) {
+                NoWorkCount = 0;
+            }
         } else if (WaitTime != 0) {
             CxPlatEventWaitWithTimeout(Worker->WakeEvent, WaitTime);
+            NoWorkCount = 0;
+        }
+
+        if (NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
+            CxPlatSchedulerYield();
+            NoWorkCount = 0;
         }
     }
 

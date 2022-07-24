@@ -1245,7 +1245,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         } else {
             MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
-            IpAddressSize = sizeof(IN6_ADDR);     
+            IpAddressSize = sizeof(IN6_ADDR);
         }
         for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
             XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
@@ -1326,7 +1326,7 @@ CxPlatDpRawGetInterfaceFromQueue(
 }
 
 static
-void
+BOOLEAN // Did work?
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
     _In_ XDP_QUEUE* Queue,
@@ -1409,6 +1409,8 @@ CxPlatXdpRx(
         printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
         Queue->Error = TRUE;
     }
+
+    return ProdCount > 0 || PacketCount > 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1500,7 +1502,7 @@ CxPlatDpRawTxEnqueue(
 }
 
 static
-void
+BOOLEAN // Did work?
 CxPlatXdpTx(
     _In_ const XDP_DATAPATH* Xdp,
     _In_ XDP_QUEUE* Queue
@@ -1568,6 +1570,8 @@ CxPlatXdpTx(
         printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
         Queue->Error = TRUE;
     }
+
+    return ProdCount > 0 || CompCount > 0;
 }
 
 void
@@ -1579,7 +1583,7 @@ CxPlatDataPathWake(
     UNREFERENCED_PARAMETER(Context);
 }
 
-void
+BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
     _In_ CXPLAT_THREAD_ID CurThreadId,
@@ -1595,13 +1599,16 @@ CxPlatDataPathRunEC(
     if (!Xdp->Running) {
         *Context = NULL;
         CxPlatEventSet(Worker->CompletionEvent);
-        return;
+        return TRUE;
     }
 
+    BOOLEAN DidWork = FALSE;
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
-        CxPlatXdpTx(Xdp, Queue);
+        DidWork |= CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        DidWork |= CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
+
+    return DidWork;
 }

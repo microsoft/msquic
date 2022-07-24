@@ -165,6 +165,11 @@ InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
     );
 
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    );
+
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend

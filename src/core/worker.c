@@ -644,8 +644,6 @@ QuicWorkerLoop(
             1);
     }
 
-    Context->Ready = FALSE;
-
     //
     // Opportunistically try to snap-shot performance counters and do some
     // validation.
@@ -733,7 +731,8 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 
     uint64_t TimeNow = CxPlatTimeUs64();
     while (QuicWorkerLoop(EC, &TimeNow, ThreadID)) {
-        if (!EC->Ready) {
+        BOOLEAN Ready = InterlockedFetchAndClearBoolean(&EC->Ready);
+        if (!Ready) {
             if (EC->NextTimeUs == UINT64_MAX) {
                 CxPlatEventWaitForever(Worker->Ready);
                 TimeNow = CxPlatTimeUs64();

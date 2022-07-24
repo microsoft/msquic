@@ -112,6 +112,15 @@ InterlockedFetchAndClearPointer(
     return InterlockedExchangePointer(Target, NULL);
 }
 
+inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
+}
+
 //
 // Static Analysis Interfaces
 //
@@ -618,6 +627,8 @@ CxPlatSleep(
 
     KeWaitForSingleObject(&SleepTimer, Executive, KernelMode, FALSE, NULL);
 }
+
+#define CxPlatSchedulerYield() // no-op
 
 //
 // Create Thread Interfaces

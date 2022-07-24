@@ -176,6 +176,15 @@ InterlockedCompareExchange64(
 }
 
 inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return __sync_fetch_and_and(Target, 0);
+}
+
+inline
 void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
@@ -675,6 +684,8 @@ void
 CxPlatSleep(
     _In_ uint32_t DurationMs
     );
+
+#define CxPlatSchedulerYield() sched_yield()
 
 //
 // Event Interfaces
