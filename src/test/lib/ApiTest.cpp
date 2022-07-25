@@ -5329,11 +5329,13 @@ QuicTestVersionStorage()
     const uint32_t VersionListLength = ARRAYSIZE(VersionList);
 
 #ifdef _KERNEL_MODE
+#define __WIDEN(quote) L##quote
+#define WIDEN(quote) __WIDEN(quote)
     DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
     DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, TEXT(QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, TEXT(QUIC_SETTING_OFFERED_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, TEXT(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, WIDEN(QUIC_SETTING_ACCEPTABLE_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, WIDEN(QUIC_SETTING_OFFERED_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, WIDEN(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
     HANDLE GlobalKey, AppKey;
     OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
     InitializeObjectAttributes(
