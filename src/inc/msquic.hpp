@@ -387,6 +387,27 @@ public:
         AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
         return *this;
     }
+    QUIC_STATUS
+    SetGlobal() const noexcept {
+        const QUIC_VERSION_SETTINGS* Settings = this;
+        return
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(*Settings),
+                Settings);
+    }
+    QUIC_STATUS
+    GetGlobal() noexcept {
+        QUIC_VERSION_SETTINGS* Settings = this;
+        uint32_t Size = sizeof(*Settings);
+        return
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                &Size,
+                Settings);
+    }
 };
 
 static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
@@ -615,6 +636,20 @@ struct MsQuicConfiguration {
                 QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
                 sizeof(*QSettings),
                 QSettings);
+    }
+
+    QUIC_STATUS
+    GetVersionSettings(
+        _Out_writes_bytes_(SettingsLength)
+            MsQuicVersionSettings& Settings,
+        _Inout_ uint32_t* SettingsLength) noexcept {
+        QUIC_VERSION_SETTINGS* VSettings = &Settings;
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                SettingsLength,
+                VSettings);
     }
 
     QUIC_STATUS

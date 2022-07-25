@@ -5321,3 +5321,369 @@ QuicTestStorage()
     TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
     TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 }
+
+void
+QuicTestVersionStorage()
+{
+    const uint32_t VersionList[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H};
+    const uint32_t VersionListLength = ARRAYSIZE(VersionList);
+
+#ifdef _KERNEL_MODE
+    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
+    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
+    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, TEXT(QUIC_SETTING_ACCEPTABLE_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, TEXT(QUIC_SETTING_OFFERED_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, TEXT(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+    HANDLE GlobalKey, AppKey;
+    OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
+    InitializeObjectAttributes(
+        &GlobalAttributes,
+        (PUNICODE_STRING)&GlobalStoragePath,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+    InitializeObjectAttributes(
+        &AppAttributes,
+        (PUNICODE_STRING)&AppStoragePath,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+    TEST_QUIC_SUCCEEDED(
+        ZwOpenKey(
+            &GlobalKey,
+            KEY_READ | KEY_NOTIFY,
+            &GlobalAttributes));
+    ZwDeleteValueKey(
+        GlobalKey,
+        (PUNICODE_STRING)&AcceptableVersionsValueName);
+    ZwDeleteValueKey(
+        GlobalKey,
+        (PUNICODE_STRING)&OfferedVersionsValueName);
+    ZwDeleteValueKey(
+        GlobalKey,
+        (PUNICODE_STRING)&FullyDeployedVersionsValueName);
+    if (QUIC_SUCCEEDED(
+        ZwOpenKey(
+            &AppKey,
+            KEY_READ | KEY_NOTIFY,
+            &AppAttributes))) {
+        ZwDeleteKey(AppKey);
+        ZwClose(AppKey);
+    }
+    TEST_QUIC_SUCCEEDED(
+        ZwCreateKey(
+            &AppKey,
+            KEY_READ | KEY_NOTIFY,
+            &AppAttributes,
+            0,
+            NULL,
+            REG_OPTION_NON_VOLATILE,
+            NULL));
+#elif _WIN32
+#define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
+#define MSQUIC_APP_PARAMETERS_PATH      "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest"
+    RegDeleteKeyValueA(
+        HKEY_LOCAL_MACHINE,
+        MSQUIC_GLOBAL_PARAMETERS_PATH,
+        QUIC_SETTING_ACCEPTABLE_VERSIONS);
+    RegDeleteKeyValueA(
+        HKEY_LOCAL_MACHINE,
+        MSQUIC_GLOBAL_PARAMETERS_PATH,
+        QUIC_SETTING_OFFERED_VERSIONS);
+    RegDeleteKeyValueA(
+        HKEY_LOCAL_MACHINE,
+        MSQUIC_GLOBAL_PARAMETERS_PATH,
+        QUIC_SETTING_FULLY_DEPLOYED_VERSIONS);
+    RegDeleteKeyA(
+        HKEY_LOCAL_MACHINE,
+        MSQUIC_APP_PARAMETERS_PATH);
+    HKEY Key;
+    RegCreateKeyA(
+        HKEY_LOCAL_MACHINE,
+        MSQUIC_APP_PARAMETERS_PATH,
+        &Key);
+    RegCloseKey(Key);
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    MsQuicVersionSettings Settings{};
+
+    //
+    // Global settings
+    //
+
+    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+    TEST_EQUAL(Settings.OfferedVersions, nullptr);
+    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            GlobalKey,
+            (PUNICODE_STRING)&AcceptableVersionsValueName,
+            0,
+            REG_BINARY,
+            (PVOID)&VersionList,
+            sizeof(VersionList)));
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            GlobalKey,
+            (PUNICODE_STRING)&OfferedVersionsValueName,
+            0,
+            REG_BINARY,
+            (PVOID)&VersionList,
+            sizeof(VersionList)));
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            GlobalKey,
+            (PUNICODE_STRING)&FullyDeployedVersionsValueName,
+            0,
+            REG_BINARY,
+            (PVOID)&VersionList,
+            sizeof(VersionList)));
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            QUIC_SETTING_ACCEPTABLE_VERSIONS,
+            REG_BINARY,
+            &VersionList,
+            sizeof(VersionList)));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            QUIC_SETTING_OFFERED_VERSIONS,
+            REG_BINARY,
+            &VersionList,
+            sizeof(VersionList)));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+            REG_BINARY,
+            &VersionList,
+            sizeof(VersionList)));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
+    MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
+    uint32_t ReadSize = sizeof(Scratch);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+            &ReadSize,
+            ReadSettings));
+    TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
+    TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
+    TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
+    for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
+        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+    }
+    for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
+        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
+    }
+    for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
+        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+    }
+
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            GlobalKey,
+            (PUNICODE_STRING)&AcceptableVersionsValueName));
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            GlobalKey,
+            (PUNICODE_STRING)&OfferedVersionsValueName));
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            GlobalKey,
+            (PUNICODE_STRING)&FullyDeployedVersionsValueName));
+    ZwClose(GlobalKey);
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            QUIC_SETTING_ACCEPTABLE_VERSIONS));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            QUIC_SETTING_OFFERED_VERSIONS));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+    TEST_EQUAL(Settings.OfferedVersions, nullptr);
+    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+
+    //
+    // App settings
+    //
+
+    MsQuicRegistration Registration("StorageTest");
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+    TEST_TRUE(Configuration.IsValid());
+
+    ReadSize = sizeof(Settings);
+    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
+    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+    TEST_EQUAL(Settings.OfferedVersions, nullptr);
+    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            AppKey,
+            (PUNICODE_STRING)&AcceptableVersionsValueName,
+            0,
+            REG_BINARY,
+            (PVOID)&VersionList,
+            sizeof(VersionList)));
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            AppKey,
+            (PUNICODE_STRING)&OfferedVersionsValueName,
+            0,
+            REG_BINARY,
+            (PVOID)&VersionList,
+            sizeof(VersionList)));
+    TEST_QUIC_SUCCEEDED(
+        ZwSetValueKey(
+            AppKey,
+            (PUNICODE_STRING)&FullyDeployedVersionsValueName,
+            0,
+            REG_BINARY,
+            (PVOID)&VersionList,
+            sizeof(VersionList)));
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_APP_PARAMETERS_PATH,
+            QUIC_SETTING_ACCEPTABLE_VERSIONS,
+            REG_BINARY,
+            &VersionList,
+            sizeof(VersionList)));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_APP_PARAMETERS_PATH,
+            QUIC_SETTING_OFFERED_VERSIONS,
+            REG_BINARY,
+            &VersionList,
+            sizeof(VersionList)));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegSetKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_APP_PARAMETERS_PATH,
+            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+            REG_BINARY,
+            &VersionList,
+            sizeof(VersionList)));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    ReadSize = sizeof(Scratch);
+    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(*ReadSettings, &ReadSize));
+    TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
+    TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
+    TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
+    for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
+        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+    }
+    for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
+        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
+    }
+    for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
+        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+    }
+
+#ifdef _KERNEL_MODE
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            AppKey,
+            (PUNICODE_STRING)&AcceptableVersionsValueName));
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            AppKey,
+            (PUNICODE_STRING)&OfferedVersionsValueName));
+    TEST_QUIC_SUCCEEDED(
+        ZwDeleteValueKey(
+            AppKey,
+            (PUNICODE_STRING)&FullyDeployedVersionsValueName));
+    ZwClose(AppKey);
+#elif _WIN32
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_APP_PARAMETERS_PATH,
+            QUIC_SETTING_ACCEPTABLE_VERSIONS));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_APP_PARAMETERS_PATH,
+            QUIC_SETTING_OFFERED_VERSIONS));
+    TEST_EQUAL(
+        NO_ERROR,
+        RegDeleteKeyValueA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_APP_PARAMETERS_PATH,
+            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+
+    CxPlatSleep(100);
+    ReadSize = sizeof(Settings);
+    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
+    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+    TEST_EQUAL(Settings.OfferedVersions, nullptr);
+    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+}

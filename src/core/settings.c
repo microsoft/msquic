@@ -870,23 +870,23 @@ QuicSettingsLoad(
     if (!Settings->IsSet.VersionSettings) {
         uint32_t OfferedVersionsSize = 0, AcceptableVersionsSize = 0, FullyDeployedVersionsSize = 0;
         if (QUIC_SUCCEEDED(
-                CxPlatStorageReadValue(
-                    Storage,
-                    QUIC_SETTING_OFFERED_VERSIONS,
-                    (uint8_t*)NULL,
-                    &OfferedVersionsSize)) &&
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                (uint8_t*)NULL,
+                &OfferedVersionsSize)) &&
             QUIC_SUCCEEDED(
-                CxPlatStorageReadValue(
-                    Storage,
-                    QUIC_SETTING_ACCEPTABLE_VERSIONS,
-                    (uint8_t*)NULL,
-                    &AcceptableVersionsSize)) &&
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                (uint8_t*)NULL,
+                &AcceptableVersionsSize)) &&
             QUIC_SUCCEEDED(
-                CxPlatStorageReadValue(
-                    Storage,
-                    QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
-                    (uint8_t*)NULL,
-                    &FullyDeployedVersionsSize)) &&
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                (uint8_t*)NULL,
+                &FullyDeployedVersionsSize)) &&
             OfferedVersionsSize && FullyDeployedVersionsSize && AcceptableVersionsSize) {
             QUIC_VERSION_SETTINGS* VersionSettings = NULL;
             size_t AllocSize =
@@ -910,11 +910,11 @@ QuicSettingsLoad(
             VersionSettings->AcceptableVersionsLength = AcceptableVersionsSize / sizeof(uint32_t);
             ValueLen = AcceptableVersionsSize;
             if (QUIC_FAILED(
-                    CxPlatStorageReadValue(
-                        Storage,
-                        QUIC_SETTING_ACCEPTABLE_VERSIONS,
-                        (uint8_t*)VersionSettings->AcceptableVersions,
-                        &ValueLen))) {
+                CxPlatStorageReadValue(
+                    Storage,
+                    QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                    (uint8_t*)VersionSettings->AcceptableVersions,
+                    &ValueLen))) {
                 goto VersionSettingsFail;
             }
 
@@ -923,11 +923,11 @@ QuicSettingsLoad(
             VersionSettings->OfferedVersionsLength = OfferedVersionsSize / sizeof(uint32_t);
             ValueLen = OfferedVersionsSize;
             if (QUIC_FAILED(
-                    CxPlatStorageReadValue(
-                        Storage,
-                        QUIC_SETTING_OFFERED_VERSIONS,
-                        (uint8_t*)VersionSettings->OfferedVersions,
-                        &ValueLen))) {
+                CxPlatStorageReadValue(
+                    Storage,
+                    QUIC_SETTING_OFFERED_VERSIONS,
+                    (uint8_t*)VersionSettings->OfferedVersions,
+                    &ValueLen))) {
                 goto VersionSettingsFail;
             }
 
@@ -936,11 +936,11 @@ QuicSettingsLoad(
             VersionSettings->FullyDeployedVersionsLength = FullyDeployedVersionsSize / sizeof(uint32_t);
             ValueLen = FullyDeployedVersionsSize;
             if (QUIC_FAILED(
-                    CxPlatStorageReadValue(
-                        Storage,
-                        QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
-                        (uint8_t*)VersionSettings->FullyDeployedVersions,
-                        &ValueLen))) {
+                CxPlatStorageReadValue(
+                    Storage,
+                    QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                    (uint8_t*)VersionSettings->FullyDeployedVersions,
+                    &ValueLen))) {
                 goto VersionSettingsFail;
             }
             //
@@ -984,6 +984,7 @@ QuicSettingsLoad(
             }
             if (Settings->VersionSettings) {
                 CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
+                Settings->VersionSettings = NULL;
             }
             Settings->VersionSettings = VersionSettings;
             VersionSettings = NULL;
@@ -991,6 +992,14 @@ VersionSettingsFail:
             if (VersionSettings != NULL) {
                 CXPLAT_FREE(VersionSettings, QUIC_POOL_VERSION_SETTINGS);
             }
+        } else if (Settings->VersionSettings != NULL) {
+            //
+            // Assume that the version settings were deleted from storage
+            // and free them from memory.
+            //
+            // REVIEW: This would delete versions from memory that are inherited, wouldn't it?
+            CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
+            Settings->VersionSettings = NULL;
         }
     }
 
@@ -1577,7 +1586,7 @@ QuicSettingsGetVersionSettings(
 {
     uint32_t MinimumSize =
         sizeof(QUIC_VERSION_SETTINGS);
-    if (InternalSettings->IsSet.VersionSettings) {
+    if (InternalSettings->VersionSettings != NULL) {
         MinimumSize +=
             (InternalSettings->VersionSettings->AcceptableVersionsLength * sizeof(uint32_t)) +
             (InternalSettings->VersionSettings->OfferedVersionsLength * sizeof(uint32_t)) +
@@ -1593,7 +1602,7 @@ QuicSettingsGetVersionSettings(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (InternalSettings->IsSet.VersionSettings) {
+    if (InternalSettings->VersionSettings != NULL) {
         Settings->AcceptableVersions = (uint32_t*)(Settings + 1);
         Settings->AcceptableVersionsLength = InternalSettings->VersionSettings->AcceptableVersionsLength;
 
