@@ -2229,12 +2229,14 @@ CxPlatTlsWriteDataToSchannel(
                         SECPKG_ATTR_REMOTE_CERTIFICATES,
                         (PVOID)&PeerCertBlob.Chain);
 #else
-                PeerCertBlob.Type = QUIC_CERT_BLOB_CONTEXT;
                 SecStatus =
                     QueryContextAttributesW(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_REMOTE_CERT_CONTEXT,
                         (PVOID)&PeerCertBlob.Context);
+                PeerCertBlob.Type =
+                    PeerCertBlob.Context ?
+                        QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
 #endif
             }
             if (SecStatus == SEC_E_NO_CREDENTIALS &&
