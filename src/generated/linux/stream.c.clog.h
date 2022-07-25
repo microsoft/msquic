@@ -115,24 +115,26 @@ tracepoint(CLOG_STREAM_C, IndicateStartComplete , arg1, arg3, arg4, arg5);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamShutdownComplete
-// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]
+// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]
 // QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]",
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
             Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
             Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp,
             Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely,
-            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode);
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode,
+            Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Event.SHUTDOWN_COMPLETE.ConnectionShutdown = arg3
 // arg4 = arg4 = Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp = arg4
 // arg5 = arg5 = Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely = arg5
 // arg6 = arg6 = Event.SHUTDOWN_COMPLETE.ConnectionErrorCode = arg6
+// arg7 = arg7 = Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus = arg7
 ----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_IndicateStreamShutdownComplete
-#define _clog_7_ARGS_TRACE_IndicateStreamShutdownComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
-tracepoint(CLOG_STREAM_C, IndicateStreamShutdownComplete , arg1, arg3, arg4, arg5, arg6);\
+#ifndef _clog_8_ARGS_TRACE_IndicateStreamShutdownComplete
+#define _clog_8_ARGS_TRACE_IndicateStreamShutdownComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7)\
+tracepoint(CLOG_STREAM_C, IndicateStreamShutdownComplete , arg1, arg3, arg4, arg5, arg6, arg7);\
 
 #endif
 

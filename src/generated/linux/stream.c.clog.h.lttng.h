@@ -95,20 +95,22 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStartComplete,
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamShutdownComplete
-// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]
+// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]
 // QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]",
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
             Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
             Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp,
             Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely,
-            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode);
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode,
+            Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Event.SHUTDOWN_COMPLETE.ConnectionShutdown = arg3
 // arg4 = arg4 = Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp = arg4
 // arg5 = arg5 = Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely = arg5
 // arg6 = arg6 = Event.SHUTDOWN_COMPLETE.ConnectionErrorCode = arg6
+// arg7 = arg7 = Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
     TP_ARGS(
@@ -116,13 +118,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
         unsigned char, arg3,
         unsigned char, arg4,
         unsigned char, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6,
+        unsigned int, arg7), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
         ctf_integer(uint64_t, arg6, arg6)
+        ctf_integer(unsigned int, arg7, arg7)
     )
 )
 
