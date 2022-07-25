@@ -758,7 +758,7 @@ CxPlatGetPortableCertificateFromSerialized(
             NULL);
     if (NULL == TempCertStore) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -782,7 +782,7 @@ CxPlatGetPortableCertificateFromSerialized(
                 LeafCertContext = CertDuplicateCertificateContext(CurrentCertContext);
                 if (LeafCertContext == NULL) {
                     LastError = GetLastError();
-                    Status = LastError;
+                    Status = HRESULT_FROM_WIN32(LastError);
                     QuicTraceEvent(
                         LibraryErrorStatus,
                         "[ lib] ERROR, %u, %s.",
@@ -797,7 +797,7 @@ CxPlatGetPortableCertificateFromSerialized(
                         CERT_STORE_ADD_ALWAYS,
                         NULL)) {
                     LastError = GetLastError();
-                    Status = LastError;
+                    Status = HRESULT_FROM_WIN32(LastError);
                     QuicTraceEvent(
                         LibraryErrorStatus,
                         "[ lib] ERROR, %u, %s.",
@@ -838,7 +838,7 @@ CxPlatGetPortableCertificateFromSerialized(
             &Blob,
             0)) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -866,7 +866,7 @@ CxPlatGetPortableCertificateFromSerialized(
             &Blob,
             0)) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -949,7 +949,7 @@ CxPlatGetPortableCertificate(
             NULL,
             &ChainContext)) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -967,7 +967,7 @@ CxPlatGetPortableCertificate(
             NULL);
     if (NULL == TempCertStore) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -987,7 +987,7 @@ CxPlatGetPortableCertificate(
                     CERT_STORE_ADD_ALWAYS,
                     NULL)) {
                 LastError = GetLastError();
-                Status = LastError;
+                Status = HRESULT_FROM_WIN32(LastError);
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -1006,7 +1006,7 @@ CxPlatGetPortableCertificate(
             &Blob,
             0)) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1034,7 +1034,7 @@ CxPlatGetPortableCertificate(
             &Blob,
             0)) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1046,7 +1046,7 @@ CxPlatGetPortableCertificate(
     DuplicateCtx = CertDuplicateCertificateContext(CertCtx);
     if (DuplicateCtx == NULL) {
         LastError = GetLastError();
-        Status = LastError;
+        Status = HRESULT_FROM_WIN32(LastError);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",

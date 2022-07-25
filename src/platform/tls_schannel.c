@@ -2213,7 +2213,7 @@ CxPlatTlsWriteDataToSchannel(
 
             QUIC_CERT_BLOB PeerCertBlob;
             CxPlatZeroMemory(&PeerCertBlob, sizeof(PeerCertBlob));
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT) {
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
                 PeerCertBlob.Type = QUIC_CERT_BLOB_SERIALIZED;
                 SecStatus =
                     QueryContextAttributesW(
@@ -2292,7 +2292,7 @@ CxPlatTlsWriteDataToSchannel(
                         &PeerCertBlob);
             }
 
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERT) {
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
                 if (PeerCertBlob.Serialized.pbData != NULL) {
                     FreeContextBuffer(PeerCertBlob.Serialized.pbData);
                 }
