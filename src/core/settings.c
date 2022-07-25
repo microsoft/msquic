@@ -872,27 +872,27 @@ QuicSettingsLoad(
         if (QUIC_SUCCEEDED(
             CxPlatStorageReadValue(
                 Storage,
-                QUIC_SETTING_OFFERED_VERSIONS,
-                (uint8_t*)NULL,
-                &OfferedVersionsSize)) &&
-            QUIC_SUCCEEDED(
-            CxPlatStorageReadValue(
-                Storage,
                 QUIC_SETTING_ACCEPTABLE_VERSIONS,
                 (uint8_t*)NULL,
                 &AcceptableVersionsSize)) &&
             QUIC_SUCCEEDED(
             CxPlatStorageReadValue(
                 Storage,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                (uint8_t*)NULL,
+                &OfferedVersionsSize)) &&
+            QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
                 QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
                 (uint8_t*)NULL,
                 &FullyDeployedVersionsSize)) &&
-            OfferedVersionsSize && FullyDeployedVersionsSize && AcceptableVersionsSize) {
+            AcceptableVersionsSize && OfferedVersionsSize && FullyDeployedVersionsSize) {
             QUIC_VERSION_SETTINGS* VersionSettings = NULL;
             size_t AllocSize =
                 sizeof(*VersionSettings) +
-                OfferedVersionsSize +
                 AcceptableVersionsSize +
+                OfferedVersionsSize +
                 FullyDeployedVersionsSize;
             VersionSettings =
                 CXPLAT_ALLOC_NONPAGED(
