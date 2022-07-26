@@ -1054,11 +1054,10 @@ CxPlatSocketContextInitialize(
 
     //
     // Windows: setsockopt IPPROTO_IP IP_DONTFRAGMENT TRUE.
-    // Linux: IP_DONTFRAGMENT option is not available. IPV6_MTU_DISCOVER is the
-    // apparent alternative.
-    // TODO: Verify this.
+    // Linux: IP_DONTFRAGMENT option is not available. IP_MTU_DISCOVER/IPV6_MTU_DISCOVER
+    // is the apparent alternative.
     //
-    Option = IP_PMTUDISC_DO;
+    Option = IP_PMTUDISC_PROBE;
     Result =
         setsockopt(
             SocketContext->SocketFd,
@@ -1074,6 +1073,23 @@ CxPlatSocketContextInitialize(
             Binding,
             Status,
             "setsockopt(IP_MTU_DISCOVER) failed");
+        goto Exit;
+    }
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IPV6,
+            IPV6_MTU_DISCOVER,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IPV6_MTU_DISCOVER) failed");
         goto Exit;
     }
 
