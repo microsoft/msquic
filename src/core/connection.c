@@ -264,7 +264,7 @@ QuicConnAlloc(
 
     QuicPathValidate(Path);
     if (Worker != NULL) {
-        QuicWorkerAssignConnection(Worker, NewConnection);
+        QuicWorkerAssignConnection(Worker, Connection);
     }
     if (!QuicConnRegister(Connection, Registration)) {
         Status = QUIC_STATUS_INVALID_STATE;
