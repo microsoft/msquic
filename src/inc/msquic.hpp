@@ -640,8 +640,7 @@ struct MsQuicConfiguration {
 
     QUIC_STATUS
     GetVersionSettings(
-        _Out_writes_bytes_(SettingsLength)
-            MsQuicVersionSettings& Settings,
+        _Out_ MsQuicVersionSettings& Settings,
         _Inout_ uint32_t* SettingsLength) noexcept {
         QUIC_VERSION_SETTINGS* VSettings = &Settings;
         return
