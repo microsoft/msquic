@@ -422,7 +422,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
-        $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
