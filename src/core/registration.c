@@ -381,7 +381,7 @@ QuicRegistrationSettingsChanged(
     CxPlatLockRelease(&Registration->ConfigLock);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,

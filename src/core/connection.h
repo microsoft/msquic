@@ -957,6 +957,7 @@ _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
+    _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
