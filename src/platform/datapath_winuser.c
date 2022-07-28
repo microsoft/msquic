@@ -4098,21 +4098,21 @@ CxPlatDataPathRunEC(
     CXPLAT_DATAPATH_PROC** EcProcContext = (CXPLAT_DATAPATH_PROC**)Context;
     CXPLAT_DATAPATH_PROC* DatapathProc = *EcProcContext;
 
-    DWORD NumberOfBytesTransferred;
-    CXPLAT_SOCKET_PROC* SocketProc;
-    LPOVERLAPPED Overlapped;
+    OVERLAPPED_ENTRY Entries[8];
+    ULONG EntryCount;
 
     if (DatapathProc->ThreadId != CurThreadId) {
         DatapathProc->ThreadId = CurThreadId;
     }
 
-    BOOL Result =
-        GetQueuedCompletionStatus(
+    //BOOL Result =
+        GetQueuedCompletionStatusEx(
             DatapathProc->IOCP,
-            &NumberOfBytesTransferred,
-            (PULONG_PTR)&SocketProc,
-            &Overlapped,
-            WaitTime);
+            Entries,
+            ARRAYSIZE(Entries),
+            &EntryCount,
+            (DWORD)WaitTime,
+            FALSE);
 
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
@@ -4124,7 +4124,7 @@ CxPlatDataPathRunEC(
         return TRUE;
     }
 
-    if (SocketProc == NULL || Overlapped == NULL) {
+    if (EntryCount == 0) {
         QuicTraceLogVerbose(
             DatapathWakeupForECTimeout,
             "[data][%p] Datapath wakeup for EC wake or timeout",
@@ -4132,99 +4132,104 @@ CxPlatDataPathRunEC(
         return TRUE; // Wake for execution contexts.
     }
 
-    ULONG IoResult = Result ? NO_ERROR : GetLastError();
+    for (uint32_t i = 0; i < EntryCount; ++i) {
 
-    //
-    // Overlapped either points to the socket's overlapped or a send
-    // overlapped struct.
-    //
-    if (Overlapped == &SocketProc->Overlapped) {
+        ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Entries[i].Internal);
+        CXPLAT_SOCKET_PROC* SocketProc = (CXPLAT_SOCKET_PROC*)Entries[i].lpCompletionKey;
+        DWORD NumberOfBytesTransferred = Entries[i].dwNumberOfBytesTransferred;
 
-        if (NumberOfBytesTransferred == UINT32_MAX) {
-            //
-            // The socket context is being shutdown. Run the clean up logic.
-            //
-            CxPlatDataPathSocketContextShutdown(SocketProc);
+        //
+        // Overlapped either points to the socket's overlapped or a send
+        // overlapped struct.
+        //
+        if (Entries[i].lpOverlapped == &SocketProc->Overlapped) {
 
-        } else if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-
-            if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
+            if (NumberOfBytesTransferred == UINT32_MAX) {
                 //
-                // We only allow for receiving UINT16 worth of bytes at a time,
-                // which should be plenty for an IPv4 or IPv6 UDP datagram.
+                // The socket context is being shutdown. Run the clean up logic.
                 //
-                CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= 0xFFFF); // TODO - Not true for TCP
-                if (NumberOfBytesTransferred > 0xFFFF &&
-                    IoResult == NO_ERROR) {
-                    IoResult = ERROR_INVALID_PARAMETER;
+                CxPlatDataPathSocketContextShutdown(SocketProc);
+
+            } else if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+
+                if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
+                    //
+                    // We only allow for receiving UINT16 worth of bytes at a time,
+                    // which should be plenty for an IPv4 or IPv6 UDP datagram.
+                    //
+                    CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= 0xFFFF); // TODO - Not true for TCP
+                    if (NumberOfBytesTransferred > 0xFFFF &&
+                        IoResult == NO_ERROR) {
+                        IoResult = ERROR_INVALID_PARAMETER;
+                    }
+
+                    //
+                    // Handle the receive indication and queue a new receive.
+                    //
+                    CxPlatDataPathUdpRecvComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult,
+                        (UINT16)NumberOfBytesTransferred);
+
+                } else if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
+                    //
+                    // Handle the accept indication and queue a new accept.
+                    //
+                    CxPlatDataPathAcceptComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult);
+
+                } else if (!SocketProc->Parent->ConnectComplete) {
+
+                    //
+                    // Handle the accept indication and queue a new accept.
+                    //
+                    CxPlatDataPathConnectComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult);
+                } else {
+
+                    //
+                    // Handle the receive indication and queue a new receive.
+                    //
+                    CxPlatDataPathTcpRecvComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult,
+                        (UINT16)NumberOfBytesTransferred);
                 }
 
-                //
-                // Handle the receive indication and queue a new receive.
-                //
-                CxPlatDataPathUdpRecvComplete(
-                    DatapathProc,
-                    SocketProc,
-                    IoResult,
-                    (UINT16)NumberOfBytesTransferred);
-
-            } else if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
-                //
-                // Handle the accept indication and queue a new accept.
-                //
-                CxPlatDataPathAcceptComplete(
-                    DatapathProc,
-                    SocketProc,
-                    IoResult);
-
-            } else if (!SocketProc->Parent->ConnectComplete) {
-
-                //
-                // Handle the accept indication and queue a new accept.
-                //
-                CxPlatDataPathConnectComplete(
-                    DatapathProc,
-                    SocketProc,
-                    IoResult);
-            } else {
-
-                //
-                // Handle the receive indication and queue a new receive.
-                //
-                CxPlatDataPathTcpRecvComplete(
-                    DatapathProc,
-                    SocketProc,
-                    IoResult,
-                    (UINT16)NumberOfBytesTransferred);
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);
             }
 
-            CxPlatRundownRelease(&SocketProc->UpcallRundown);
-        }
+        } else {
 
-    } else {
-
-        CXPLAT_SEND_DATA* SendData =
-            CONTAINING_RECORD(
-                Overlapped,
-                CXPLAT_SEND_DATA,
-                Overlapped);
+            CXPLAT_SEND_DATA* SendData =
+                CONTAINING_RECORD(
+                    Entries[i].lpOverlapped,
+                    CXPLAT_SEND_DATA,
+                    Overlapped);
 
 #ifdef CXPLAT_DATAPATH_QUEUE_SENDS
-        if (NumberOfBytesTransferred == UINT32_MAX &&
-            CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-            CxPlatSocketSendInline(
-                SocketProc,
-                &SendData->LocalAddress,
-                &SendData->RemoteAddress,
-                SendData);
-            CxPlatRundownRelease(&SocketProc->UpcallRundown);
-        } else
+            if (NumberOfBytesTransferred == UINT32_MAX &&
+                CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+                CxPlatSocketSendInline(
+                    SocketProc,
+                    &SendData->LocalAddress,
+                    &SendData->RemoteAddress,
+                    SendData);
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);
+            } else
 #endif // CXPLAT_DATAPATH_QUEUE_SENDS
-        {
-            CxPlatSendDataComplete(
-                SocketProc,
-                SendData,
-                IoResult);
+            {
+                CxPlatSendDataComplete(
+                    SocketProc,
+                    SendData,
+                    IoResult);
+            }
         }
     }
 
