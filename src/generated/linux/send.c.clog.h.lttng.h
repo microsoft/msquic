@@ -190,26 +190,6 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ConnQueueSendFlush,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCantGetNewDestCid
-// [conn][%p] Connection can't get new dest CID.
-// QuicTraceEvent(
-                ConnCantGetNewDestCid,
-                "[conn][%p] Connection can't get new dest CID.",
-                Connection
-            );
-// arg2 = arg2 = Connection = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SEND_C, ConnCantGetNewDestCid,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnFlushSend
 // [conn][%p] Flushing Send. Allowance=%u bytes
 // QuicTraceEvent(

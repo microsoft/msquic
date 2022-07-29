@@ -1015,18 +1015,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnCantGetNewDestCid": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Connection can't get new dest CID.",
-      "UniqueId": "ConnCantGetNewDestCid",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnCongestion": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Congestion event",
@@ -11899,11 +11887,6 @@
         "UniquenessHash": "3cb11d31-f785-9082-29ff-ca3a505762e4",
         "TraceID": "ConnCancelTimer",
         "EncodingString": "[conn][%p] Canceling %hhu"
-      },
-      {
-        "UniquenessHash": "1556abec-5bac-d8a3-df17-cff7ee8ad9a9",
-        "TraceID": "ConnCantGetNewDestCid",
-        "EncodingString": "[conn][%p] Connection can't get new dest CID."
       },
       {
         "UniquenessHash": "49757e31-cd50-7e77-6853-034e81817918",

@@ -192,25 +192,6 @@ tracepoint(CLOG_SEND_C, ConnQueueSendFlush , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCantGetNewDestCid
-// [conn][%p] Connection can't get new dest CID.
-// QuicTraceEvent(
-                ConnCantGetNewDestCid,
-                "[conn][%p] Connection can't get new dest CID.",
-                Connection
-            );
-// arg2 = arg2 = Connection = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnCantGetNewDestCid
-#define _clog_3_ARGS_TRACE_ConnCantGetNewDestCid(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_SEND_C, ConnCantGetNewDestCid , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnFlushSend
 // [conn][%p] Flushing Send. Allowance=%u bytes
 // QuicTraceEvent(

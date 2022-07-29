@@ -1861,12 +1861,6 @@
                 name="ID2"
                 />
           </template>
-          <template tid="tid_CONN_CANT_GET_NEW_DEST_CID">
-            <data
-                inType="win:Pointer"
-                name="Connection"
-                />
-          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -3362,15 +3356,6 @@
               template="tid_ID"
               value="11269"
               />
-          <event
-              keywords="ut:Connection ut:DataFlow"
-              level="win:Verbose"
-              message="$(string.Etw.ConnCantGetNewDestCid)"
-              opcode="Connection"
-              symbol="QuicConnCantGetNewDestCid"
-              template="tid_CONN_CANT_GET_NEW_DEST_CID"
-              value="11270"
-              />
         </events>
       </provider>
     </events>
@@ -4383,10 +4368,6 @@
         <string
             id="Etw.ConnExpiredTimer"
             value="[conn][%1] %2 expired"
-            />
-        <string
-            id="Etw.ConnCantGetNewDestCid"
-            value="[conn][%1] Connection can't get new dest CID."
             />
       </stringTable>
     </resources>
