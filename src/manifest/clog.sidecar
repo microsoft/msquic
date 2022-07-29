@@ -9781,18 +9781,6 @@
       ],
       "macroName": "QuicTraceLogError"
     },
-    "SettingSrcCidUpdateIdleTimeoutMs": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] SrcCidUpdateIdleTimeoutMs = %u",
-      "UniqueId": "SettingSrcCidUpdateIdleTimeoutMs",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Starting ACK_DELAY timer for %u ms",
@@ -14541,11 +14529,6 @@
         "UniquenessHash": "dad8e0fd-193d-ff7c-1657-2f8eebc1d457",
         "TraceID": "SettingsInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion supplied to settings! 0x%x at position %d"
-      },
-      {
-        "UniquenessHash": "9fdbb465-b6b1-2271-c946-ed3ff6b7f6c5",
-        "TraceID": "SettingSrcCidUpdateIdleTimeoutMs",
-        "EncodingString": "[sett] SrcCidUpdateIdleTimeoutMs = %u"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",
