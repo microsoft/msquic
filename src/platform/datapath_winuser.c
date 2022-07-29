@@ -4088,6 +4088,16 @@ CxPlatDataPathWake(
     PostQueuedCompletionStatus(DatapathProc->IOCP, 0, (ULONG_PTR)NULL, NULL);
 }
 
+#if defined(QUIC_RESTRICTED_BUILD)
+_When_(Status < 0, _Out_range_(>, 0))
+_When_(Status >= 0, _Out_range_(==, 0))
+ULONG
+NTAPI
+RtlNtStatusToDosError (
+   NTSTATUS Status
+   );
+#endif
+
 BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
@@ -4098,21 +4108,24 @@ CxPlatDataPathRunEC(
     CXPLAT_DATAPATH_PROC** EcProcContext = (CXPLAT_DATAPATH_PROC**)Context;
     CXPLAT_DATAPATH_PROC* DatapathProc = *EcProcContext;
 
-    OVERLAPPED_ENTRY Entries[8];
-    ULONG EntryCount;
+    DWORD NumberOfBytesTransferred;
+    CXPLAT_SOCKET_PROC* SocketProc;
+    LPOVERLAPPED Overlapped;
+    ULONG IoResult;
 
     if (DatapathProc->ThreadId != CurThreadId) {
         DatapathProc->ThreadId = CurThreadId;
     }
 
-    //BOOL Result =
-        GetQueuedCompletionStatusEx(
-            DatapathProc->IOCP,
-            Entries,
-            ARRAYSIZE(Entries),
-            &EntryCount,
-            (DWORD)WaitTime,
-            FALSE);
+    ULONG EntryCount;
+    OVERLAPPED_ENTRY Entries[8];
+    (void)GetQueuedCompletionStatusEx(
+        DatapathProc->IOCP,
+        Entries,
+        ARRAYSIZE(Entries),
+        &EntryCount,
+        (DWORD)WaitTime,
+        FALSE);
 
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
@@ -4134,15 +4147,16 @@ CxPlatDataPathRunEC(
 
     for (uint32_t i = 0; i < EntryCount; ++i) {
 
-        ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Entries[i].Internal);
-        CXPLAT_SOCKET_PROC* SocketProc = (CXPLAT_SOCKET_PROC*)Entries[i].lpCompletionKey;
-        DWORD NumberOfBytesTransferred = Entries[i].dwNumberOfBytesTransferred;
+        SocketProc = (CXPLAT_SOCKET_PROC*)Entries[i].lpCompletionKey;
+        Overlapped = Entries[i].lpOverlapped;
+        IoResult = RtlNtStatusToDosError((NTSTATUS)Entries[i].Internal);
+        NumberOfBytesTransferred = Entries[i].dwNumberOfBytesTransferred;
 
         //
         // Overlapped either points to the socket's overlapped or a send
         // overlapped struct.
         //
-        if (Entries[i].lpOverlapped == &SocketProc->Overlapped) {
+        if (Overlapped == &SocketProc->Overlapped) {
 
             if (NumberOfBytesTransferred == UINT32_MAX) {
                 //
@@ -4209,7 +4223,7 @@ CxPlatDataPathRunEC(
 
             CXPLAT_SEND_DATA* SendData =
                 CONTAINING_RECORD(
-                    Entries[i].lpOverlapped,
+                    Overlapped,
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
