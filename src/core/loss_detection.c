@@ -1063,7 +1063,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
 
             QUIC_LOSS_EVENT LossEvent = {
                 .LargestPacketNumberLost = LargestLostPacketNumber,
-                .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
+                .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
                 .NumRetransmittableBytes = LostRetransmittableBytes,
                 .PersistentCongestion =
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
@@ -1201,8 +1201,8 @@ QuicLossDetectionDiscardPackets(
         QUIC_ACK_EVENT AckEvent = {
             .IsImplicit = TRUE,
             .TimeNow = TimeNow,
-            .LargestPacketNumberAcked = LossDetection->LargestAck,
-            .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
+            .LargestAck = LossDetection->LargestAck,
+            .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
             .SmoothedRtt = Path->SmoothedRtt,
             .SmallestRttSample = 0,
@@ -1508,8 +1508,8 @@ QuicLossDetectionProcessAckBlocks(
         QUIC_ACK_EVENT AckEvent = {
             .IsImplicit = FALSE,
             .TimeNow = TimeNow,
-            .LargestPacketNumberAcked = LossDetection->LargestAck,
-            .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
+            .LargestAck = LossDetection->LargestAck,
+            .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
             .SmoothedRtt = Connection->Paths[0].SmoothedRtt,
             .SmallestRttSample = SmallestRtt,
