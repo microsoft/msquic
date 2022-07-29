@@ -586,6 +586,10 @@ CXPLAT_STATIC_ASSERT(
 
 #define QUIC_SETTING_VERSION_NEGOTIATION_EXT_ENABLE "VersionNegotiationExtEnabled"
 
+#define QUIC_SETTING_ACCEPTABLE_VERSIONS            "AcceptableVersions"
+#define QUIC_SETTING_OFFERED_VERSIONS               "OfferedVersions"
+#define QUIC_SETTING_FULLY_DEPLOYED_VERSIONS        "FullyDeployedVersions"
+
 #define QUIC_SETTING_MINIMUM_MTU                    "MinimumMtu"
 #define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"
 #define QUIC_SETTING_MTU_SEARCH_COMPLETE_TIMEOUT    "MtuDiscoverySearchCompleteTimeoutUs"

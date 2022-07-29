@@ -189,6 +189,12 @@ typedef struct _SCHANNEL_CERT_HASH_STORE
 // Values for SCHANNEL_CERT_HASH dwFlags field.
 #define SCH_MACHINE_CERT_HASH           0x00000001
 
+typedef struct _CRYPTOAPI_BLOB {
+    DWORD   cbData;
+    _Field_size_bytes_(cbData)
+        BYTE    *pbData;
+} CERT_BLOB, *PCERT_BLOB;
+
 //
 // Schannel credentials data structure.
 //
@@ -367,6 +373,10 @@ typedef struct _SecPkgCred_SessionTicketKeys
 
 #ifndef SECPKG_ATTR_CLIENT_CERT_POLICY
 #define SECPKG_ATTR_CLIENT_CERT_POLICY   0x60   // sets    SecPkgCred_ClientCertCtlPolicy
+#endif
+
+#ifndef SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC
+#define SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC 0x74 // returns CERT_BLOB, use only after SSPI handshake loop
 #endif
 
 //
@@ -604,6 +614,22 @@ typedef struct CXPLAT_TLS {
     QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS;
+
+typedef enum QUIC_CERT_BLOB_TYPE {
+    QUIC_CERT_BLOB_NONE,
+    QUIC_CERT_BLOB_CHAIN,
+    QUIC_CERT_BLOB_CONTEXT,
+    QUIC_CERT_BLOB_SERIALIZED
+} QUIC_CERT_BLOB_TYPE;
+
+typedef struct QUIC_CERT_BLOB {
+    QUIC_CERT_BLOB_TYPE Type;
+    union {
+        SecPkgContext_Certificates Chain;
+        PCCERT_CONTEXT Context;
+        CERT_BLOB Serialized;
+    };
+} QUIC_CERT_BLOB;
 
 _Success_(return==TRUE)
 BOOLEAN
@@ -1646,11 +1672,7 @@ CxPlatTlsIndicateCertificateReceived(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ CXPLAT_TLS_PROCESS_STATE* State,
     _In_ SecPkgContext_CertificateValidationResult* CertValidationResult,
-#ifdef _KERNEL_MODE
-    _In_ SecPkgContext_Certificates* PeerCert
-#else
-    _In_ PCCERT_CONTEXT PeerCert
-#endif
+    _In_ QUIC_CERT_BLOB* PeerCertBlob
     )
 {
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
@@ -1660,30 +1682,65 @@ CxPlatTlsIndicateCertificateReceived(
     QUIC_PORTABLE_CERTIFICATE PortableCertificate = {0};
 #endif
 
-#ifdef _KERNEL_MODE
-    Certificate = (QUIC_CERTIFICATE*)PeerCert;
-    CertificateChain = (QUIC_CERTIFICATE_CHAIN*)PeerCert;
-#else
-    if (PeerCert == NULL) {
+    if (PeerCertBlob->Type == QUIC_CERT_BLOB_NONE) {
         Certificate = NULL;
         CertificateChain = NULL;
-    } else if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
-        QUIC_STATUS Status =
-            CxPlatGetPortableCertificate(
-                (QUIC_CERTIFICATE*)PeerCert,
-                &PortableCertificate);
-        if (QUIC_FAILED(Status)) {
-            Result |= CXPLAT_TLS_RESULT_ERROR;
-            State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
-            goto Exit;
-        }
-        Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
-        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
-    } else {
-        Certificate = (QUIC_CERTIFICATE*)PeerCert;
-        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore);
-    }
+    } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CHAIN) {
+#ifndef _KERNEL_MODE
+        CXPLAT_DBG_ASSERT(FALSE);
 #endif
+        Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Chain;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCertBlob->Chain;
+    } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CONTEXT) {
+#ifdef _KERNEL_MODE
+        Certificate = NULL;
+        CertificateChain = NULL;
+        CXPLAT_DBG_ASSERT(FALSE);
+#else
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
+            QUIC_STATUS Status =
+                CxPlatGetPortableCertificate(
+                    (QUIC_CERTIFICATE*)PeerCertBlob->Context,
+                    &PortableCertificate);
+            if (QUIC_FAILED(Status)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                goto Exit;
+            }
+            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
+        } else {
+            Certificate = (QUIC_CERTIFICATE*)PeerCertBlob->Context;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCertBlob->Context->hCertStore);
+        }
+#endif
+    } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_SERIALIZED) {
+#ifndef _KERNEL_MODE
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
+            QUIC_STATUS Status =
+                CxPlatGetPortableCertificateFromSerialized(
+                    (QUIC_CERTIFICATE*)&PeerCertBlob->Serialized,
+                    &PortableCertificate);
+            if (QUIC_FAILED(Status)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                goto Exit;
+            }
+            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
+        } else {
+            Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Serialized;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(&PeerCertBlob->Serialized);
+        }
+#else
+        Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Serialized;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(&PeerCertBlob->Serialized);
+#endif
+    } else {
+        CXPLAT_DBG_ASSERTMSG(FALSE, "QUIC_CERT_BLOB_TYPE out of range!");
+        Certificate = NULL;
+        CertificateChain = NULL;
+    }
 
     if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
@@ -2150,32 +2207,44 @@ CxPlatTlsWriteDataToSchannel(
                 State->SessionResumed = TRUE;
             }
 
-        const BOOLEAN RequirePeerCert =
-            !TlsContext->IsServer ||
-            TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+            const BOOLEAN RequirePeerCert =
+                !TlsContext->IsServer ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
 
+            QUIC_CERT_BLOB PeerCertBlob;
+            CxPlatZeroMemory(&PeerCertBlob, sizeof(PeerCertBlob));
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+                PeerCertBlob.Type = QUIC_CERT_BLOB_SERIALIZED;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC,
+                        (PVOID)&(PeerCertBlob.Serialized));
+            } else {
 #ifdef _KERNEL_MODE
-            SecPkgContext_Certificates _PeerCert;
-            CxPlatZeroMemory(&_PeerCert, sizeof(_PeerCert));
-            SecPkgContext_Certificates* PeerCert = &_PeerCert;
-            SecStatus =
-                QueryContextAttributesW(
-                    &TlsContext->SchannelContext,
-                    SECPKG_ATTR_REMOTE_CERTIFICATES,
-                    (PVOID)PeerCert);
+                PeerCertBlob.Type = QUIC_CERT_BLOB_CHAIN;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERTIFICATES,
+                        (PVOID)&PeerCertBlob.Chain);
 #else
-            PCCERT_CONTEXT PeerCert = NULL;
-            SecStatus =
-                QueryContextAttributesW(
-                    &TlsContext->SchannelContext,
-                    SECPKG_ATTR_REMOTE_CERT_CONTEXT,
-                    (PVOID)&PeerCert);
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                        (PVOID)&PeerCertBlob.Context);
+                PeerCertBlob.Type =
+                    PeerCertBlob.Context ?
+                        QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
 #endif
+            }
             if (SecStatus == SEC_E_NO_CREDENTIALS &&
                 (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
                 //
                 // Ignore this case.
                 //
+                PeerCertBlob.Type = QUIC_CERT_BLOB_NONE;
                 CertValidationResult.hrVerifyChainStatus = SecStatus;
             } else if (SecStatus == SEC_E_OK &&
                 !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
@@ -2220,18 +2289,24 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext,
                         State,
                         &CertValidationResult,
-                        PeerCert);
+                        &PeerCertBlob);
             }
 
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+                if (PeerCertBlob.Serialized.pbData != NULL) {
+                    FreeContextBuffer(PeerCertBlob.Serialized.pbData);
+                }
+            } else {
 #ifdef _KERNEL_MODE
-            if (_PeerCert.pbCertificateChain != NULL) {
-                FreeContextBuffer(_PeerCert.pbCertificateChain);
-            }
+                if (PeerCertBlob.Chain.pbCertificateChain != NULL) {
+                    FreeContextBuffer(PeerCertBlob.Chain.pbCertificateChain);
+                }
 #else
-            if (PeerCert != NULL) {
-                CertFreeCertificateContext(PeerCert);
-            }
+                if (PeerCertBlob.Context != NULL) {
+                    CertFreeCertificateContext(PeerCertBlob.Context);
+                }
 #endif
+            }
 
             if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
                 break;

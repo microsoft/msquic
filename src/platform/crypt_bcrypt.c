@@ -27,20 +27,6 @@ typedef struct CXPLAT_HP_KEY {
 
 #define SecStatusToQuicStatus(x) (QUIC_STATUS)(x)
 
-#ifdef QUIC_RESTRICTED_BUILD
-#ifndef NT_SUCCESS
-#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
-#endif
-
-_When_(Status < 0, _Out_range_(>, 0))
-_When_(Status >= 0, _Out_range_(==, 0))
-ULONG
-NTAPI
-RtlNtStatusToDosError (
-   NTSTATUS Status
-   );
-#endif
-
 #ifdef _KERNEL_MODE
 #define NtStatusToQuicStatus(x) (x)
 #else

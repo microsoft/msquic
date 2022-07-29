@@ -76,6 +76,7 @@ namespace Microsoft.Quic
         USE_SYSTEM_MAPPER = 0x00010000,
         CACHE_ONLY_URL_RETRIEVAL = 0x00020000,
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
+        INPROC_PEER_CERTIFICATE = 0x00080000,
     }
 
     [System.Flags]

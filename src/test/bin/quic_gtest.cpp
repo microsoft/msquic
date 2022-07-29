@@ -1817,6 +1817,18 @@ TEST(Basic, TestStorage) {
         QuicTestStorage();
     }
 }
+TEST(Basic, TestVersionStorage) {
+    if (!CanRunStorageTests) {
+        return;
+    }
+
+    TestLogger Logger("QuicTestVersionStorage");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STORAGE));
+    } else {
+        QuicTestVersionStorage();
+    }
+}
 
 #endif // _WIN32
 

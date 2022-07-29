@@ -152,6 +152,10 @@ Only use certificates already cached when doing URL retrieval to build a certifi
 
 Only use cached revocation information when checking a certificate chain. Only valid on Windows.
 
+`QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE`
+
+Obtain the peer certificate using a faster in-process API call. Only available on Schannel in the latest Windows 11 builds.
+
 #### `CertificateHash`
 
 Must **only** use with `QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH` type.
