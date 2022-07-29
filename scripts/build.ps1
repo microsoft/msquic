@@ -431,6 +431,7 @@ function CMake-Generate {
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
         $NDK = $env:ANDROID_NDK_LATEST_HOME
+        $env:ANDROID_NDK_HOME = $env:ANDROID_NDK_LATEST_HOME
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
