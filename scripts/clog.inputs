@@ -33,6 +33,7 @@
 ../src/core/sent_packet_metadata.c
 ../src/core/datagram.c
 ../src/core/cubic.c
+../src/core/bbr.c
 ../src/core/packet_space.c
 ../src/core/registration.c
 ../src/core/send.c
@@ -106,6 +107,7 @@
 ../src/perf/lib/LatencyHelpers.h
 ../src/core/unittest/SettingsTest.cpp
 ../src/core/unittest/SpinFrame.cpp
+../src/core/unittest/SlidingWindowExtremumTest.cpp
 ../src/core/unittest/RangeTest.cpp
 ../src/core/unittest/VarIntTest.cpp
 ../src/core/unittest/CMakeLists.txt

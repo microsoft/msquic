@@ -5,6 +5,7 @@
 
 --*/
 
+#include "bbr.h"
 #include "cubic.h"
 
 typedef struct QUIC_ACK_EVENT {
@@ -13,9 +14,33 @@ typedef struct QUIC_ACK_EVENT {
 
     uint64_t LargestPacketNumberAcked;
 
+    uint64_t LargestPacketNumberSent;
+
+    //
+    // Number of retransmittable bytes acked during the connection's lifetime
+    //
+    uint64_t NumTotalAckedRetransmittableBytes;
+
+    QUIC_SENT_PACKET_METADATA* AckedPackets;
+
     uint32_t NumRetransmittableBytes;
 
     uint32_t SmoothedRtt;
+
+    uint32_t SmallestRttSample;
+
+    //
+    // Acked time minus ack delay.
+    //
+    uint32_t AdjustedAckTime;
+
+    BOOLEAN IsImplicit : 1;
+
+    BOOLEAN HasLoss : 1;
+
+    BOOLEAN IsLargestAckedPacketAppLimited : 1;
+
+    BOOLEAN MinRttSampleValid : 1;
 
 } QUIC_ACK_EVENT;
 
@@ -98,11 +123,20 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ const struct QUIC_CONGESTION_CONTROL* Cc
         );
 
+    BOOLEAN (*QuicCongestionControlIsAppLimited)(
+        _In_ const struct QUIC_CONGESTION_CONTROL* Cc
+        );
+
+    void (*QuicCongestionControlSetAppLimited)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc
+        );
+
     //
     // Algorithm specific state.
     //
     union {
         QUIC_CONGESTION_CONTROL_CUBIC Cubic;
+        QUIC_CONGESTION_CONTROL_BBR Bbr;
     };
 
 } QUIC_CONGESTION_CONTROL;
@@ -275,4 +309,24 @@ QuicCongestionControlGetCongestionWindow(
     )
 {
     return Cc->QuicCongestionControlGetCongestionWindow(Cc);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+QuicCongestionControlIsAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    return Cc->QuicCongestionControlIsAppLimited(Cc);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicCongestionControlSetAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    Cc->QuicCongestionControlSetAppLimited(Cc);
 }
