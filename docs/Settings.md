@@ -64,6 +64,20 @@ The types map to registry types as follows:
 
 While `REG_DWORD` can hold values larger than `uint16_t`, the administrator should ensure they do not exceed the maximum value of 65,535 when configuring a `uint16_t` setting via the Windows Registry.
 
+The following settings are available via registry as well as via [QUIC_VERSION_SETTINGS](./Versions.md):
+
+| Setting                           | Type       | Registry Name            | Default           | Description                                                                                                                   |
+|-----------------------------------|------------|--------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| Acceptable Versions List          | uint32_t[] | AcceptableVersions       | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
+| Offered Versions List             | uint32_t[] | OfferedVersions          | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
+| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the OtherVersions list in the Version Negotiation Extension Transport Parameter. |
+
+The `uint32_t[]` type is a `REG_BINARY` blob of the versions list, with each version in little-endian format.
+
+All restrictions and effects on the versions mentioned in [QUIC_VERSION_SETTINGS](./Versions.md) apply to the registry-set versions as well.
+
+Particularly, on server, these must be set **GLOBALLY** if you want them to take effect for servers.
+
 ## QUIC_SETTINGS
 
 A [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct is used to configure settings on a `Configuration` handle, `Connection` handle, or globally.

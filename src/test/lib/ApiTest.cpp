@@ -5476,8 +5476,6 @@ QuicTestVersionStorage()
             REG_BINARY,
             &VersionList,
             sizeof(VersionList)));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
 #endif
 
     CxPlatSleep(100);
@@ -5502,7 +5500,6 @@ QuicTestVersionStorage()
     for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
         TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
     }
-
 
 #ifdef _KERNEL_MODE
     TEST_QUIC_SUCCEEDED(
@@ -5537,8 +5534,6 @@ QuicTestVersionStorage()
             HKEY_LOCAL_MACHINE,
             MSQUIC_GLOBAL_PARAMETERS_PATH,
             QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
 #endif
 
     CxPlatSleep(100);
@@ -5622,8 +5617,6 @@ QuicTestVersionStorage()
             REG_BINARY,
             &VersionList,
             sizeof(VersionList)));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
 #endif
 
     CxPlatSleep(100);
@@ -5675,8 +5668,6 @@ QuicTestVersionStorage()
             HKEY_LOCAL_MACHINE,
             MSQUIC_APP_PARAMETERS_PATH,
             QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
 #endif
 
     CxPlatSleep(100);
