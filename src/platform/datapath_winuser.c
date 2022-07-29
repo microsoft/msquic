@@ -4088,16 +4088,6 @@ CxPlatDataPathWake(
     PostQueuedCompletionStatus(DatapathProc->IOCP, 0, (ULONG_PTR)NULL, NULL);
 }
 
-#if defined(QUIC_RESTRICTED_BUILD)
-_When_(Status < 0, _Out_range_(>, 0))
-_When_(Status >= 0, _Out_range_(==, 0))
-ULONG
-NTAPI
-RtlNtStatusToDosError (
-   NTSTATUS Status
-   );
-#endif
-
 BOOLEAN // Did work?
 CxPlatDataPathRunEC(
     _In_ void** Context,
