@@ -80,6 +80,20 @@ extern "C" {
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
+#ifdef QUIC_RESTRICTED_BUILD
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
+
+_When_(Status < 0, _Out_range_(>, 0))
+_When_(Status >= 0, _Out_range_(==, 0))
+ULONG
+NTAPI
+RtlNtStatusToDosError (
+   NTSTATUS Status
+   );
+#endif
+
 //
 // Static Analysis Interfaces
 //
