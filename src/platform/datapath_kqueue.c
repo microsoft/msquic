@@ -22,6 +22,19 @@ struct in_pktinfo {
 };
 #endif
 
+#define __APPLE_USE_RFC_3542 1
+// See netinet6/in6.h:46 for an explanation
+#include "platform_internal.h"
+#include <fcntl.h>
+#include <sys/event.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#ifdef QUIC_CLOG
+#include "datapath_kqueue.c.clog.h"
+#endif
+
 // For all *NIX
 #if defined(IP_RECVDSTADDR)
 #define DSTADDR_SOCKOPT IP_RECVDSTADDR
@@ -35,19 +48,6 @@ struct in_pktinfo {
         
 #endif
 
-
-#define __APPLE_USE_RFC_3542 1
-// See netinet6/in6.h:46 for an explanation
-#include "platform_internal.h"
-#include <fcntl.h>
-#include <sys/event.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#ifdef QUIC_CLOG
-#include "datapath_kqueue.c.clog.h"
-#endif
 
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
