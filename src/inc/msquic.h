@@ -32,7 +32,7 @@ Supported Platforms:
 #include "msquic_winkernel.h"
 #elif _WIN32
 #include "msquic_winuser.h"
-#elif __linux__ || __APPLE__
+#elif __linux__ || __APPLE__ || __FreeBSD__
 #include "msquic_posix.h"
 #else
 #error "Unsupported Platform"

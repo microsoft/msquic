@@ -13,6 +13,31 @@ Environment:
 
 --*/
 
+// For FreeBSD
+#if defined(__FreeBSD__)
+#include <netinet/in.h>
+struct in_pktinfo {
+	struct in_addr ipi_addr;        /* the source or destination address */
+	unsigned int ipi_ifindex;       /* the interface index */
+};
+#endif
+
+// For all *NIX
+#if defined IP_RECVDSTADDR
+#define DSTADDR_SOCKOPT IP_RECVDSTADDR
+#define DSTADDR_DATASIZE (CMSG_SPACE(sizeof(struct in_addr)))
+#define dstaddr(x) (CMSG_DATA(x))
+ 
+#elif defined IP_PKTINFO
+#define DSTADDR_SOCKOPT IP_PKTINFO
+#define DSTADDR_DATASIZE (CMSG_SPACE(sizeof(struct in_pktinfo)))
+#define dstaddr(x) (&(((struct in_pktinfo *)(CMSG_DATA(x)))->ipi_addr))
+        
+#else
+#error "can't determine socket option"
+#endif
+
+
 #define __APPLE_USE_RFC_3542 1
 // See netinet6/in6.h:46 for an explanation
 #include "platform_internal.h"
@@ -865,7 +890,11 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
+#if defined(IP_RECVPKTINFO)
             ForceIpv4 ? IP_RECVPKTINFO : IPV6_RECVPKTINFO,
+#else
+            ForceIpv4 ? DSTADDR_SOCKOPT : IPV6_RECVPKTINFO,
+#endif
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -1211,7 +1240,7 @@ CxPlatSocketContextRecvComplete(
                 FoundTOS = TRUE;
             }
         } else if (CMsg->cmsg_level == IPPROTO_IP) {
-            if (CMsg->cmsg_type == IP_PKTINFO) {
+            if (CMsg->cmsg_type == DSTADDR_SOCKOPT) {
                 struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
                 LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
                 LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
@@ -2140,7 +2169,7 @@ CxPlatSocketSendInternal(
         CXPLAT_DBG_ASSERT(CMsg != NULL);
         if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
-            CMsg->cmsg_type = IP_PKTINFO;
+            CMsg->cmsg_type = DSTADDR_SOCKOPT;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.
