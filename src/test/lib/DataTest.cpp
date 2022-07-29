@@ -2697,7 +2697,7 @@ QuicTestConnectAndIdleForDestCidChange(
     MsQuicAlpn Alpn("MsQuicTest");
 
     MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(6000);
+    Settings.SetIdleTimeoutMs(9000);
     Settings.SetDestCidUpdateIdleTimeoutMs(2000);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
@@ -2746,8 +2746,7 @@ QuicTestConnectAndIdleForDestCidChange(
                 }
                 TEST_TRUE(Server->GetIsConnected());
 
-                // We just created the connection, so it should be zero.
-                TEST_EQUAL(Client.GetDestCidUpdateCount(), 0);
+                auto DestCidUpdateCount = Client.GetDestCidUpdateCount();
 
                 {
                     TestStream* Stream = Client.NewStream(+[](TestStream*){},
@@ -2760,9 +2759,9 @@ QuicTestConnectAndIdleForDestCidChange(
 
                     delete Stream;
 
-                    TEST_EQUAL(Client.GetDestCidUpdateCount(), 0);
+                    TEST_EQUAL(Client.GetDestCidUpdateCount(), DestCidUpdateCount);
 
-                    CxPlatSleep(4000); // Wait for the first idle period to send another ping to the stream.
+                    CxPlatSleep(6000); // Wait for the first idle period to send another ping to the stream.
 
                     Stream = Client.NewStream(+[](TestStream*){},
                                                             QUIC_STREAM_OPEN_FLAG_NONE,
@@ -2774,7 +2773,7 @@ QuicTestConnectAndIdleForDestCidChange(
 
                     delete Stream;
 
-                    TEST_EQUAL(Client.GetDestCidUpdateCount(), 1);
+                    TEST_TRUE(Client.GetDestCidUpdateCount() >= DestCidUpdateCount + 1);
                 }
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);

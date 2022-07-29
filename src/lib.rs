@@ -574,6 +574,8 @@ pub struct QuicStatisticsV2 {
     pub recv_valid_ack_frames: u64,
 
     pub key_update_count: u32,
+    // Number of times the destionation CID changed.
+    pub dest_cid_update_count: u32
 }
 
 /// A helper struct for accessing listener statistics.
@@ -656,6 +658,7 @@ pub struct Settings {
     pub max_ack_delay_ms: u32,
     pub disconnect_timeout_ms: u32,
     pub keep_alive_interval_ms: u32,
+    pub dest_cid_update_idle_timeout_ms: u32,
     pub congestion_control_algorithm: u16,
     pub peer_bidi_stream_count: u16,
     pub peer_unidi_stream_count: u16,
@@ -1173,6 +1176,7 @@ impl Settings {
             max_ack_delay_ms: 0,
             disconnect_timeout_ms: 0,
             keep_alive_interval_ms: 0,
+            dest_cid_update_idle_timeout_ms: 0,
             congestion_control_algorithm: 0,
             peer_bidi_stream_count: 0,
             peer_unidi_stream_count: 0,
