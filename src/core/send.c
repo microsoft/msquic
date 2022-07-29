@@ -1124,8 +1124,7 @@ QuicSendFlush(
     //
     // Connection CID changes on idle state after an amount of time
     //
-    if (Connection->State.ShareBinding &&
-        Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
+    if (Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
         Send->LastFlushTimeValid &&
         CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
         // TODO: New implementation of destination CID update.
