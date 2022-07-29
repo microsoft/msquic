@@ -337,7 +337,7 @@ QuicTestConnectAndIdle(
     );
 
 void
-QuicTestConnectAndIdleForSrcCidChange(
+QuicTestConnectAndIdleForDestCidChange(
     void
     );
 
@@ -1067,8 +1067,8 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH \
     QUIC_CTL_CODE(99, METHOD_BUFFERED, FILE_WRITE_DATA)
-    
-#define IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_SRC_CID_CHANGE \
+
+#define IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE \
     QUIC_CTL_CODE(100, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 100

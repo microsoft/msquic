@@ -966,7 +966,6 @@ QuicConnGenerateNewSourceCids(
     //
     uint8_t NewCidCount;
     if (ReplaceExistingCids) {
-        Connection->Stats.Misc.SrcCidUpdateCount++;
         NewCidCount = Connection->SourceCidLimit;
         CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {
@@ -6634,8 +6633,8 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, SendCongestionWindow)) {
         Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl);
     }
-    if (STATISTICS_HAS_FIELD(*StatsLength, SrcCidUpdateCount)) {
-        Stats->SrcCidUpdateCount = Connection->Stats.Misc.SrcCidUpdateCount;
+    if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
+        Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));

@@ -1255,8 +1255,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestCloseConnBeforeStreamFlush());
         break;
 
-    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_SRC_CID_CHANGE:
-        QuicTestCtlRun(QuicTestConnectAndIdleForSrcCidChange());
+    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE:
+        QuicTestCtlRun(QuicTestConnectAndIdleForDestCidChange());
         break;
 
     default:

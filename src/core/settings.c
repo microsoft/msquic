@@ -129,8 +129,8 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.CongestionControlAlgorithm) {
         Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
-    if (!Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
-        Settings->SrcCidUpdateIdleTimeoutMs = QUIC_DEFAULT_SRC_CID_UPDATE_IDLE_TIMEOUT_MS;
+    if (!Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
+        Settings->DestCidUpdateIdleTimeoutMs = QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS;
     }
 }
 
@@ -261,8 +261,8 @@ QuicSettingsCopy(
     if (!Destination->IsSet.CongestionControlAlgorithm) {
         Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
     }
-    if (!Destination->IsSet.SrcCidUpdateIdleTimeoutMs) {
-        Destination->SrcCidUpdateIdleTimeoutMs = Source->SrcCidUpdateIdleTimeoutMs;
+    if (!Destination->IsSet.DestCidUpdateIdleTimeoutMs) {
+        Destination->DestCidUpdateIdleTimeoutMs = Source->DestCidUpdateIdleTimeoutMs;
     }
 }
 
@@ -552,9 +552,9 @@ QuicSettingApply(
         Destination->IsSet.CongestionControlAlgorithm = TRUE;
     }
 
-    if (Source->IsSet.SrcCidUpdateIdleTimeoutMs && (!Destination->IsSet.SrcCidUpdateIdleTimeoutMs || OverWrite)) {
-        Destination->SrcCidUpdateIdleTimeoutMs = Source->SrcCidUpdateIdleTimeoutMs;
-        Destination->IsSet.SrcCidUpdateIdleTimeoutMs = TRUE;
+    if (Source->IsSet.DestCidUpdateIdleTimeoutMs && (!Destination->IsSet.DestCidUpdateIdleTimeoutMs || OverWrite)) {
+        Destination->DestCidUpdateIdleTimeoutMs = Source->DestCidUpdateIdleTimeoutMs;
+        Destination->IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
     }
 
     return TRUE;
@@ -962,16 +962,16 @@ QuicSettingsLoad(
             Settings->CongestionControlAlgorithm = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
         }
     }
-    if (!Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
-        Value = QUIC_DEFAULT_SRC_CID_UPDATE_IDLE_TIMEOUT_MS;
+    if (!Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
+        Value = QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS;
         ValueLen = sizeof(Value);
         CxPlatStorageReadValue(
             Storage,
-            QUIC_SETTING_SRC_CID_UPDATE_IDLE_TIMEOUT_MS,
+            QUIC_SETTING_DEST_CID_UPDATE_IDLE_TIMEOUT_MS,
             (uint8_t*)&Value,
             &ValueLen);
         if (Value < UINT32_MAX) {
-            Settings->SrcCidUpdateIdleTimeoutMs = Value;
+            Settings->DestCidUpdateIdleTimeoutMs = Value;
         }
     }
 }
@@ -1017,7 +1017,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
-    QuicTraceLogVerbose(SettingSrcCidUpdateIdleTimeoutMs,   "[sett] SrcCidUpdateIdleTimeoutMs = %u", Settings->SrcCidUpdateIdleTimeoutMs);
+    QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1143,8 +1143,8 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.CongestionControlAlgorithm) {
         QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     }
-    if (Settings->IsSet.SrcCidUpdateIdleTimeoutMs) {
-        QuicTraceLogVerbose(SettingSrcCidUpdateIdleTimeoutMs,       "[sett] SrcCidUpdateIdleTimeoutMs = %u", Settings->SrcCidUpdateIdleTimeoutMs);
+    if (Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
+        QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,      "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
     }
 }
 
@@ -1321,7 +1321,7 @@ QuicSettingsSettingsToInternal(
     //     InternalSettings);
 
     SETTING_COPY_TO_INTERNAL_SIZED(
-        SrcCidUpdateIdleTimeoutMs,
+        DestCidUpdateIdleTimeoutMs,
         QUIC_SETTINGS,
         Settings,
         SettingsSize,
@@ -1413,7 +1413,7 @@ QuicSettingsGetSettings(
     //     InternalSettings);
 
     SETTING_COPY_FROM_INTERNAL_SIZED(
-        SrcCidUpdateIdleTimeoutMs,
+        DestCidUpdateIdleTimeoutMs,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

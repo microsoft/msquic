@@ -2687,7 +2687,7 @@ QuicTestStreamAbortConnFlowControl(
 }
 
 void
-QuicTestConnectAndIdleForSrcCidChange(
+QuicTestConnectAndIdleForDestCidChange(
     void
     )
 {
@@ -2698,7 +2698,7 @@ QuicTestConnectAndIdleForSrcCidChange(
 
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(6000);
-    Settings.SetSrcCidUpdateIdleTimeoutMs(2000);
+    Settings.SetDestCidUpdateIdleTimeoutMs(2000);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -2747,7 +2747,7 @@ QuicTestConnectAndIdleForSrcCidChange(
                 TEST_TRUE(Server->GetIsConnected());
 
                 // We just created the connection, so it should be zero.
-                TEST_EQUAL(Client.GetSrcCidUpdateCount(), 0);
+                TEST_EQUAL(Client.GetDestCidUpdateCount(), 0);
 
                 {
                     TestStream* Stream = Client.NewStream(+[](TestStream*){},
@@ -2760,7 +2760,7 @@ QuicTestConnectAndIdleForSrcCidChange(
 
                     delete Stream;
 
-                    TEST_EQUAL(Client.GetSrcCidUpdateCount(), 0);
+                    TEST_EQUAL(Client.GetDestCidUpdateCount(), 0);
 
                     CxPlatSleep(4000); // Wait for the first idle period to send another ping to the stream.
 
@@ -2774,7 +2774,7 @@ QuicTestConnectAndIdleForSrcCidChange(
 
                     delete Stream;
 
-                    TEST_EQUAL(Client.GetSrcCidUpdateCount(), 1);
+                    TEST_EQUAL(Client.GetDestCidUpdateCount(), 1);
                 }
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);

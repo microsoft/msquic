@@ -446,19 +446,19 @@ TestConnection::SetDisconnectTimeout(
 }
 
 uint32_t
-TestConnection::GetSrcCidUpdateIdleTimeoutMs()
+TestConnection::GetDestCidUpdateIdleTimeoutMs()
 {
-    return GetSettings().SrcCidUpdateIdleTimeoutMs;
+    return GetSettings().DestCidUpdateIdleTimeoutMs;
 }
 
 QUIC_STATUS
-TestConnection::SetSrcCidUpdateIdleTimeoutMs(
+TestConnection::SetDestCidUpdateIdleTimeoutMs(
     uint32_t value
     )
 {
     QUIC_SETTINGS Settings{0};
-    Settings.SrcCidUpdateIdleTimeoutMs = value;
-    Settings.IsSet.SrcCidUpdateIdleTimeoutMs = TRUE;
+    Settings.DestCidUpdateIdleTimeoutMs = value;
+    Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
     return SetSettings(Settings);
 }
 
@@ -917,7 +917,7 @@ TestConnection::HandleConnectionEvent(
 }
 
 uint32_t
-TestConnection::GetSrcCidUpdateCount() {
+TestConnection::GetDestCidUpdateCount() {
     QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     QUIC_STATUS Status =
@@ -930,5 +930,5 @@ TestConnection::GetSrcCidUpdateCount() {
     if (QUIC_FAILED(Status)) {
         TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
     }
-    return Stats.SrcCidUpdateCount;
+    return Stats.DestCidUpdateCount;
 }

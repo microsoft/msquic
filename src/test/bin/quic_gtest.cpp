@@ -1502,12 +1502,12 @@ TEST_P(WithBool, IdleTimeout) {
     }
 }
 
-TEST(Misc, IdleSrcCidChange) {
-    TestLogger Logger("QuicTestConnectAndIdleSrcCidChange");
+TEST(Misc, IdleDestCidChange) {
+    TestLogger Logger("QuicTestConnectAndIdleDestCidChange");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_SRC_CID_CHANGE));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE));
     } else {
-        QuicTestConnectAndIdleForSrcCidChange();
+        QuicTestConnectAndIdleForDestCidChange();
     }
 }
 

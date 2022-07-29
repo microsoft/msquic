@@ -42,7 +42,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerResumptionLevel                  : 1;
             uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t SrcCidUpdateIdleTimeoutMs                     : 1;
+            uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t RESERVED                               : 32;
         } IsSet;
     };
@@ -64,7 +64,7 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
-    uint32_t SrcCidUpdateIdleTimeoutMs;
+    uint32_t DestCidUpdateIdleTimeoutMs;
     uint16_t CongestionControlAlgorithm; // QUIC_CONGESTION_CONTROL_ALGORITHM
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
@@ -282,11 +282,11 @@ The time limit between operations for the same endpoint, in milliseconds.
 
 **Default value:** 100
 
-`SrcCidUpdateIdleTimeoutMs`
+`DestCidUpdateIdleTimeoutMs`
 
-Idle timeout period after which the source CID is updated before sending again.  
+Idle timeout period after which the destination CID is updated before sending again.  
 
-**Default value:** 20000
+**Default value:** 20,000
 
 # Remarks
 
