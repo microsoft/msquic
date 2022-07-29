@@ -509,6 +509,10 @@ void
 QuicTestStorage(
     );
 
+void
+QuicTestVersionStorage(
+    );
+
 //
 // Platform Specific Functions
 //
@@ -1063,4 +1067,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH \
     QUIC_CTL_CODE(99, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 99
+#define IOCTL_QUIC_RUN_VERSION_STORAGE \
+    QUIC_CTL_CODE(100, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 100
