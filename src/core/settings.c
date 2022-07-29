@@ -970,7 +970,7 @@ QuicSettingsLoad(
             QUIC_SETTING_DEST_CID_UPDATE_IDLE_TIMEOUT_MS,
             (uint8_t*)&Value,
             &ValueLen);
-        if (Value < UINT32_MAX) {
+        if (Value <= UINT32_MAX) {
             Settings->DestCidUpdateIdleTimeoutMs = Value;
         }
     }
