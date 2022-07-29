@@ -153,6 +153,7 @@ namespace QuicTrace.DataModel
         ConnTimerSet,
         ConnTimerCancel,
         ConnTimerExpire,
+        ConnCantGetNewDestCid,
 
         StreamCreated = 6144,
         StreamDestroyed,

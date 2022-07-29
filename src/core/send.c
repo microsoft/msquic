@@ -1128,7 +1128,13 @@ QuicSendFlush(
         Send->LastFlushTimeValid &&
         CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
         Connection->Stats.Misc.DestCidUpdateCount++;
-        // TODO: New implementation of destination CID update.
+        if (!QuicConnRetireCurrentDestCid(Connection, Path)) {
+            QuicTraceEvent(
+                ConnCantGetNewDestCid,
+                "[conn][%p] Connection can't get new dest CID.",
+                Connection
+            );
+        }
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
