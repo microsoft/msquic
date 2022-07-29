@@ -1127,9 +1127,7 @@ QuicSendFlush(
     if (Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
         Send->LastFlushTimeValid &&
         CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
-        if (QuicConnRetireCurrentDestCid(Connection, Path)) {
-            Connection->Stats.Misc.DestCidUpdateCount++;
-        }
+        (void)QuicConnRetireCurrentDestCid(Connection, Path);
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;

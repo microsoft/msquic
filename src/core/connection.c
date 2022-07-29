@@ -1070,6 +1070,7 @@ QuicConnRetireCurrentDestCid(
     QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
     QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
     Path->DestCid->CID.UsedLocally = TRUE;
+    Connection->Stats.Misc.DestCidUpdateCount++;
 
     return TRUE;
 }
