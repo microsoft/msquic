@@ -540,14 +540,14 @@ tracepoint(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingSrcCidUpdateIdleTimeoutMs
-// [sett] SrcCidUpdateIdleTimeoutMs = %u
-// QuicTraceLogVerbose(SettingSrcCidUpdateIdleTimeoutMs,   "[sett] SrcCidUpdateIdleTimeoutMs = %u", Settings->SrcCidUpdateIdleTimeoutMs);
-// arg2 = arg2 = Settings->SrcCidUpdateIdleTimeoutMs = arg2
+// Decoder Ring for SettingDestCidUpdateIdleTimeoutMs
+// [sett] DestCidUpdateIdleTimeoutMs = %u
+// QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+// arg2 = arg2 = Settings->DestCidUpdateIdleTimeoutMs = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_SettingSrcCidUpdateIdleTimeoutMs
-#define _clog_3_ARGS_TRACE_SettingSrcCidUpdateIdleTimeoutMs(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_SETTINGS_C, SettingSrcCidUpdateIdleTimeoutMs , arg2);\
+#ifndef _clog_3_ARGS_TRACE_SettingDestCidUpdateIdleTimeoutMs
+#define _clog_3_ARGS_TRACE_SettingDestCidUpdateIdleTimeoutMs(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingDestCidUpdateIdleTimeoutMs , arg2);\
 
 #endif
 

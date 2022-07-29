@@ -772,7 +772,7 @@ namespace Microsoft.Quic
         internal uint SendCongestionWindow;
 
         [NativeTypeName("uint32_t")]
-        internal uint SrcCidUpdateCount;
+        internal uint DestCidUpdateCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS
@@ -988,7 +988,7 @@ namespace Microsoft.Quic
         internal uint KeepAliveIntervalMs;
 
         [NativeTypeName("uint32_t")]
-        internal uint SrcCidUpdateIdleTimeoutMs;
+        internal uint DestCidUpdateIdleTimeoutMs;
 
         [NativeTypeName("uint16_t")]
         internal ushort CongestionControlAlgorithm;
@@ -1569,7 +1569,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong SrcCidUpdateIdleTimeoutMs
+                internal ulong DestCidUpdateIdleTimeoutMs
                 {
                     get
                     {

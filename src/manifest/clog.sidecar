@@ -9253,6 +9253,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDestCidUpdateIdleTimeoutMs": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] DestCidUpdateIdleTimeoutMs = %u",
+      "UniqueId": "SettingDestCidUpdateIdleTimeoutMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpAcceptableVersions": {
       "ModuleProperites": {},
       "TraceString": "[sett] AcceptableVersions[%u]  = 0x%x",
@@ -14319,6 +14331,11 @@
         "UniquenessHash": "8a9548eb-5ed9-abe8-6008-94b545f099d7",
         "TraceID": "SettingCongestionControlAlgorithm",
         "EncodingString": "[sett] CongestionControlAlgorithm = %hu"
+      },
+      {
+        "UniquenessHash": "7aef2287-3f2c-be15-9d32-4f26f16b46f1",
+        "TraceID": "SettingDestCidUpdateIdleTimeoutMs",
+        "EncodingString": "[sett] DestCidUpdateIdleTimeoutMs = %u"
       },
       {
         "UniquenessHash": "67e5d417-58c4-ed4f-c4c3-c3f0b171c9cf",
