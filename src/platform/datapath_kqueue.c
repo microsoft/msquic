@@ -23,18 +23,16 @@ struct in_pktinfo {
 #endif
 
 // For all *NIX
-#if defined IP_RECVDSTADDR
+#if defined(IP_RECVDSTADDR)
 #define DSTADDR_SOCKOPT IP_RECVDSTADDR
 #define DSTADDR_DATASIZE (CMSG_SPACE(sizeof(struct in_addr)))
 #define dstaddr(x) (CMSG_DATA(x))
  
-#elif defined IP_PKTINFO
+#elif defined(IP_PKTINFO)
 #define DSTADDR_SOCKOPT IP_PKTINFO
 #define DSTADDR_DATASIZE (CMSG_SPACE(sizeof(struct in_pktinfo)))
 #define dstaddr(x) (&(((struct in_pktinfo *)(CMSG_DATA(x)))->ipi_addr))
         
-#else
-#error "can't determine socket option"
 #endif
 
 
@@ -892,7 +890,7 @@ CxPlatSocketContextInitialize(
             ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
 #if defined(IP_RECVPKTINFO)
             ForceIpv4 ? IP_RECVPKTINFO : IPV6_RECVPKTINFO,
-#else
+#elif defined(DSTADDR_SOCKOPT)
             ForceIpv4 ? DSTADDR_SOCKOPT : IPV6_RECVPKTINFO,
 #endif
             (const void*)&Option,
@@ -1240,7 +1238,10 @@ CxPlatSocketContextRecvComplete(
                 FoundTOS = TRUE;
             }
         } else if (CMsg->cmsg_level == IPPROTO_IP) {
+#if defined(DSTADDR_SOCKOPT)
             if (CMsg->cmsg_type == DSTADDR_SOCKOPT) {
+#else
+#endif
                 struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
                 LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
                 LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
