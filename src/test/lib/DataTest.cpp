@@ -2746,8 +2746,6 @@ QuicTestConnectAndIdleForDestCidChange(
                 }
                 TEST_TRUE(Server->GetIsConnected());
 
-                auto DestCidUpdateCount = Client.GetDestCidUpdateCount();
-
                 {
                     TestStream* Stream = Client.NewStream(+[](TestStream*){},
                                                             QUIC_STREAM_OPEN_FLAG_NONE,
@@ -2759,7 +2757,7 @@ QuicTestConnectAndIdleForDestCidChange(
 
                     delete Stream;
 
-                    TEST_EQUAL(Client.GetDestCidUpdateCount(), DestCidUpdateCount);
+                    auto DestCidUpdateCount = Client.GetDestCidUpdateCount();
 
                     CxPlatSleep(6000); // Wait for the first idle period to send another ping to the stream.
 
