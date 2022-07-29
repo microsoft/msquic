@@ -1289,14 +1289,13 @@ QuicBindingCreateConnection(
     QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
+            Worker,
             Datagram,
             &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
-
-    QuicWorkerAssignConnection(Worker, NewConnection);
 
     BOOLEAN BindingRefAdded = FALSE;
     CXPLAT_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);

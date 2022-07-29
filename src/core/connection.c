@@ -57,6 +57,7 @@ _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
+    _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
@@ -262,6 +263,9 @@ QuicConnAlloc(
     }
 
     QuicPathValidate(Path);
+    if (Worker != NULL) {
+        QuicWorkerAssignConnection(Worker, Connection);
+    }
     if (!QuicConnRegister(Connection, Registration)) {
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
@@ -572,6 +576,9 @@ QuicConnRegister(
     CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
     RegistrationShuttingDown = Registration->ShuttingDown;
     if (!RegistrationShuttingDown) {
+        if (Connection->Worker == NULL) {
+            QuicRegistrationQueueNewConnection(Registration, Connection);
+        }
         CxPlatListInsertTail(&Registration->Connections, &Connection->RegistrationLink);
     }
     CxPlatDispatchLockRelease(&Registration->ConnectionLock);

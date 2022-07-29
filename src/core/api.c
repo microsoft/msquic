@@ -65,6 +65,7 @@ MsQuicConnectionOpen(
         QuicConnAlloc(
             Registration,
             NULL,
+            NULL,
             &Connection);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -72,8 +73,6 @@ MsQuicConnectionOpen(
 
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
-
-    QuicRegistrationQueueNewConnection(Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
     Status = QUIC_STATUS_SUCCESS;
