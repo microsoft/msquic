@@ -380,7 +380,7 @@ CubicCongestionControlOnDataAcknowledged(
     Cubic->BytesInFlight -= BytesAcked;
 
     if (Cubic->IsInRecovery) {
-        if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
+        if (AckEvent->LargestAck > Cubic->RecoverySentPacketNumber) {
             //
             // Done recovering. Note that completion of recovery is defined a
             // bit differently here than in TCP: we simply require an ACK for a
@@ -571,7 +571,7 @@ CubicCongestionControlOnDataLost(
     if (!Cubic->HasHadCongestionEvent ||
         LossEvent->LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
 
-        Cubic->RecoverySentPacketNumber = LossEvent->LargestPacketNumberSent;
+        Cubic->RecoverySentPacketNumber = LossEvent->LargestSentPacketNumber;
         CubicCongestionControlOnCongestionEvent(
             Cc,
             LossEvent->PersistentCongestion);
