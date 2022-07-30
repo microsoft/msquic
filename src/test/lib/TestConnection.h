@@ -70,6 +70,7 @@ class TestConnection
     QUIC_STATUS ExpectedClientCertValidationResult[2];
     uint32_t ExpectedClientCertValidationResultCount;
     bool ExpectedCustomValidationResult;
+    QUIC_STATUS PeerCertEventReturnStatus;
 
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
@@ -215,6 +216,8 @@ public:
             "Only two expected values supported.");
         ExpectedClientCertValidationResult[ExpectedClientCertValidationResultCount++] = Status;
     }
+
+    void SetPeerCertEventReturnStatus(QUIC_STATUS Value) { PeerCertEventReturnStatus = Value; }
 
     uint32_t GetDatagramsSent() const { return DatagramsSent; }
     uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }

@@ -118,6 +118,7 @@ typedef UINT64 uint64_t;
 
 #define QUIC_STATUS_CERT_EXPIRED            ((NTSTATUS)0x800B0101L)     // CERT_E_EXPIRED
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     ((NTSTATUS)0x800B0109L)     // CERT_E_UNTRUSTEDROOT
+#define QUIC_STATUS_CERT_NO_CERT            ((NTSTATUS)0x8009030EL)     // SEC_E_NO_CREDENTIALS
 
 //
 // Swaps byte orders between host and network endianness.
