@@ -110,45 +110,6 @@ const uint32_t kBbrMaxBandwidthFilterLen = 10;
 const uint32_t kBbrMaxAckHeightFilterLen = 10;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BBR_RTT_STATS
-NewBbrRttStats(
-    _In_ uint64_t Expiration
-    )
-{
-    BBR_RTT_STATS stats = {
-        .RttSampleExpired = TRUE,
-        .MinRttTimestampValid = FALSE,
-        .Expiration = Expiration,
-        .MinRtt = UINT32_MAX,
-        .MinRttTimestamp = 0
-    };
-
-    return stats;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-BbrRttStatsUpdate(
-    _In_ BBR_RTT_STATS* Stats,
-    _In_ uint32_t RttSample,
-    _In_ uint64_t SampledTime
-    )
-{
-    Stats->RttSampleExpired = Stats->MinRttTimestampValid ?
-       CxPlatTimeAtOrBefore64(Stats->MinRttTimestamp + Stats->Expiration, SampledTime) :
-       FALSE;
-
-    if (Stats->RttSampleExpired || Stats->MinRtt > RttSample) {
-        Stats->MinRtt = RttSample;
-        Stats->MinRttTimestamp = SampledTime;
-        Stats->MinRttTimestampValid = TRUE;
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrBandwidthFilterOnAppLimited(
     _In_ BBR_BANDWIDTH_FILTER* b,
@@ -236,15 +197,6 @@ BbrBandwidthFilterOnPacketAcked(
             QuicSlidingWindowExtremumUpdateMax(&b->WindowedMaxFilter, DeliveryRate, RttCounter);
         }
     }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint64_t
-BbrCongestionControlGetMinRtt(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    return Cc->Bbr.MinRttStats.MinRtt;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -354,7 +306,7 @@ QuicConnLogBbr(
             BbrCongestionControlGetCongestionWindow(Cc),
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
-            BbrCongestionControlGetMinRtt(Cc),
+            Cc->Bbr.MinRttStats.MinRtt,
             BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
             BbrCongestionControlIsAppLimited(Cc));
 }
@@ -494,25 +446,6 @@ BbrCongestionControlOnDataInvalidated(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-BbrCongestionControlUpdateRoundTripCounter(
-    _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t LargestAck,
-    _In_ uint64_t LargestSentPacketNumber
-    )
-{
-    QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-
-    if (!Bbr->EndOfRoundTripValid || Bbr->EndOfRoundTrip < LargestAck) {
-        Bbr->RoundTripCounter++;
-        Bbr->EndOfRoundTripValid = TRUE;
-        Bbr->EndOfRoundTrip = LargestSentPacketNumber;
-        return TRUE;
-    }
-    return FALSE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrCongestionControlUpdateRecoveryWindow(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -637,7 +570,7 @@ BbrCongestionControlGetTargetCwnd(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
-    uint64_t MinRttEst = BbrCongestionControlGetMinRtt(Cc);
+    uint64_t MinRttEst = Bbr->MinRttStats.MinRtt;
 
     if (!BandwidthEst || MinRttEst == UINT32_MAX) {
         return (uint64_t)(Gain) * Bbr->InitialCongestionWindow / GAIN_UNIT;
@@ -660,7 +593,7 @@ BbrCongestionControlGetSendAllowance(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
-    uint64_t MinRttEst = BbrCongestionControlGetMinRtt(Cc);
+    uint64_t MinRttEst = Bbr->MinRttStats.MinRtt;
     uint32_t CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
 
     uint32_t SendAllowance = 0;
@@ -718,7 +651,7 @@ BbrCongestionControlHandleAckInProbeBw(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     BOOLEAN ShouldAdvancePacingGainCycle =
-        CxPlatTimeDiff64(AckTime, Bbr->CycleStart) > BbrCongestionControlGetMinRtt(Cc);
+        CxPlatTimeDiff64(AckTime, Bbr->CycleStart) > Bbr->MinRttStats.MinRtt;
 
     if (Bbr->PacingGain > GAIN_UNIT && !HasLoss &&
         PrevInflightBytes < BbrCongestionControlGetTargetCwnd(Cc, Bbr->PacingGain)) {
@@ -859,12 +792,24 @@ BbrCongestionControlOnDataAcknowledged(
     CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= AckEvent->NumRetransmittableBytes);
     Bbr->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
-    if (AckEvent->MinRttSampleValid) {
-        BbrRttStatsUpdate(&Bbr->MinRttStats, AckEvent->SmallestRttSample, AckEvent->TimeNow);
+    if (AckEvent->MinRttValid) {
+        Bbr->MinRttStats.RttSampleExpired = Bbr->MinRttStats.MinRttTimestampValid ?
+           CxPlatTimeAtOrBefore64(Bbr->MinRttStats.MinRttTimestamp + Bbr->MinRttStats.Expiration, AckEvent->TimeNow) :
+           FALSE;
+        if (Bbr->MinRttStats.RttSampleExpired || Bbr->MinRttStats.MinRtt > AckEvent->MinRtt) {
+            Bbr->MinRttStats.MinRtt = AckEvent->MinRtt;
+            Bbr->MinRttStats.MinRttTimestamp = AckEvent->TimeNow;
+            Bbr->MinRttStats.MinRttTimestampValid = TRUE;
+        }
     }
 
-    BOOLEAN NewRoundTrip = BbrCongestionControlUpdateRoundTripCounter(
-        Cc, AckEvent->LargestAck, AckEvent->LargestSentPacketNumber);
+    BOOLEAN NewRoundTrip = FALSE;
+    if (!Bbr->EndOfRoundTripValid || Bbr->EndOfRoundTrip < AckEvent->LargestAck) {
+        Bbr->RoundTripCounter++;
+        Bbr->EndOfRoundTripValid = TRUE;
+        Bbr->EndOfRoundTrip = AckEvent->LargestSentPacketNumber;
+        NewRoundTrip = TRUE;
+    }
 
     BOOLEAN LastAckedPacketAppLimited =
         AckEvent->AckedPackets == NULL ? FALSE : AckEvent->IsLargestAckedPacketAppLimited;
@@ -1076,7 +1021,11 @@ BbrCongestionControlReset(
     Bbr->ProbeRttEndTimeValid = FALSE;
     Bbr->ProbeRttEndTime = CxPlatTimeUs64();
 
-    Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
+    Bbr->MinRttStats.RttSampleExpired = TRUE;
+    Bbr->MinRttStats.MinRttTimestampValid = FALSE;
+    Bbr->MinRttStats.Expiration = kRttStatsExpirationInSecond * kMicroSecsInSec;
+    Bbr->MinRttStats.MinRtt = UINT32_MAX;
+    Bbr->MinRttStats.MinRttTimestamp = 0;
 
     QuicSlidingWindowExtremumReset(&Bbr->MaxAckHeightFilter);
 
@@ -1164,7 +1113,11 @@ BbrCongestionControlInitialize(
     Bbr->ProbeRttEndTimeValid = FALSE;
     Bbr->ProbeRttEndTime = 0;
 
-    Bbr->MinRttStats = NewBbrRttStats(kRttStatsExpirationInSecond * kMicroSecsInSec);
+    Bbr->MinRttStats.RttSampleExpired = TRUE;
+    Bbr->MinRttStats.MinRttTimestampValid = FALSE;
+    Bbr->MinRttStats.Expiration = kRttStatsExpirationInSecond * kMicroSecsInSec;
+    Bbr->MinRttStats.MinRtt = UINT32_MAX;
+    Bbr->MinRttStats.MinRttTimestamp = 0;
 
     Bbr->MaxAckHeightFilter = QuicSlidingWindowExtremumInitialize(
             kBbrMaxAckHeightFilterLen, kBbrDefaultFilterCapacity, Bbr->MaxAckHeightFilterEntries);
