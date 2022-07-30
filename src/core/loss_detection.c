@@ -1205,13 +1205,13 @@ QuicLossDetectionDiscardPackets(
             .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
             .SmoothedRtt = Path->SmoothedRtt,
-            .SmallestRttSample = 0,
+            .MinRtt = 0,
             .HasLoss = FALSE,
             .AdjustedAckTime = 0,
             .AckedPackets = NULL,
             .NumTotalAckedRetransmittableBytes = 0,
             .IsLargestAckedPacketAppLimited = FALSE,
-            .MinRttSampleValid = FALSE
+            .MinRttValid = FALSE
         };
 
         if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
@@ -1308,7 +1308,7 @@ QuicLossDetectionProcessAckBlocks(
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint64_t TimeNow = CxPlatTimeUs64();
-    uint32_t SmallestRtt = (uint32_t)(-1);
+    uint32_t MinRtt = (uint32_t)(-1);
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
     BOOLEAN NewLargestAckDifferentPath = FALSE;
@@ -1468,7 +1468,7 @@ QuicLossDetectionProcessAckBlocks(
             Packet->PacketNumber,
             QuicPacketTraceType(Packet));
 
-        SmallestRtt = CXPLAT_MIN(SmallestRtt, PacketRtt);
+        MinRtt = CXPLAT_MIN(MinRtt, PacketRtt);
 
         if (LargestAckedPacketNum < Packet->PacketNumber) {
             LargestAckedPacketNum = Packet->PacketNumber;
@@ -1485,14 +1485,14 @@ QuicLossDetectionProcessAckBlocks(
         // Update the current RTT with the smallest RTT calculated, which
         // should be for the most acknowledged retransmittable packet.
         //
-        CXPLAT_DBG_ASSERT(SmallestRtt != (uint32_t)(-1));
-        if ((uint64_t)SmallestRtt >= AckDelay) {
+        CXPLAT_DBG_ASSERT(MinRtt != (uint32_t)(-1));
+        if ((uint64_t)MinRtt >= AckDelay) {
             //
             // The ACK delay looks reasonable.
             //
-            SmallestRtt -= (uint32_t)AckDelay;
+            MinRtt -= (uint32_t)AckDelay;
         }
-        QuicConnUpdateRtt(Connection, Path, SmallestRtt);
+        QuicConnUpdateRtt(Connection, Path, MinRtt);
     }
 
     if (NewLargestAck) {
@@ -1512,13 +1512,13 @@ QuicLossDetectionProcessAckBlocks(
             .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
             .SmoothedRtt = Connection->Paths[0].SmoothedRtt,
-            .SmallestRttSample = SmallestRtt,
+            .MinRtt = MinRtt,
             .HasLoss = (LossDetection->LostPackets != NULL),
             .AdjustedAckTime = (uint32_t)(TimeNow - AckDelay),
             .AckedPackets = AckedPackets,
             .NumTotalAckedRetransmittableBytes = LossDetection->TotalBytesAcked,
             .IsLargestAckedPacketAppLimited = IsLargestAckedPacketAppLimited,
-            .MinRttSampleValid = TRUE,
+            .MinRttValid = TRUE,
         };
 
         if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {

@@ -25,9 +25,15 @@ typedef struct QUIC_ACK_EVENT {
 
     uint32_t NumRetransmittableBytes;
 
+    //
+    // Connection's current SmoothedRtt.
+    //
     uint32_t SmoothedRtt;
 
-    uint32_t SmallestRttSample;
+    //
+    // The smallest calculated RTT of the packets that were just ACKed.
+    //
+    uint32_t MinRtt;
 
     //
     // Acked time minus ack delay.
@@ -40,7 +46,7 @@ typedef struct QUIC_ACK_EVENT {
 
     BOOLEAN IsLargestAckedPacketAppLimited : 1;
 
-    BOOLEAN MinRttSampleValid : 1;
+    BOOLEAN MinRttValid : 1;
 
 } QUIC_ACK_EVENT;
 
