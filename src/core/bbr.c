@@ -101,24 +101,13 @@ const uint32_t kPacingGain[GAIN_CYCLE_LENGTH] = {
 const uint32_t kProbeRttTimeInUs = 200 * 1000;
 
 //
-// RTT Stats default expiration
+// Time until a MinRtt measurement is expired.
 //
-const uint32_t kRttStatsExpirationInSecond = 10;
+const uint32_t kBbrMinRttExpirationInMicroSecs = 10 * 1000000;
 
 const uint32_t kBbrMaxBandwidthFilterLen = 10;
 
 const uint32_t kBbrMaxAckHeightFilterLen = 10;
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-BbrBandwidthFilterOnAppLimited(
-    _In_ BBR_BANDWIDTH_FILTER* b,
-    _In_ uint64_t LargestSentPacketNumber
-    )
-{
-    b->AppLimited = TRUE;
-    b->AppLimitedExitTarget = LargestSentPacketNumber;
-}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -306,7 +295,7 @@ QuicConnLogBbr(
             BbrCongestionControlGetCongestionWindow(Cc),
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
-            Cc->Bbr.MinRttStats.MinRtt,
+            Bbr->MinRtt,
             BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
             BbrCongestionControlIsAppLimited(Cc));
 }
@@ -478,12 +467,14 @@ BbrCongestionControlHandleAckInProbeRtt(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ BOOLEAN NewRoundTrip,
     _In_ uint64_t LargestSentPacketNumber,
-    _In_ uint64_t AckTime)
+    _In_ uint64_t AckTime
+    )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
 
-    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+    Bbr->BandwidthFilter.AppLimited = TRUE;
+    Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
@@ -507,8 +498,8 @@ BbrCongestionControlHandleAckInProbeRtt(
         }
 
         if (Bbr->ProbeRttRoundValid && CxPlatTimeAtOrBefore64(Bbr->ProbeRttEndTime, AckTime)) {
-            Bbr->MinRttStats.MinRttTimestamp = AckTime;
-            Bbr->MinRttStats.MinRttTimestampValid = TRUE;
+            Bbr->MinRttTimestamp = AckTime;
+            Bbr->MinRttTimestampValid = TRUE;
 
             if (Bbr->BtlbwFound) {
                 BbrCongestionControlTransitToProbeBw(Cc, AckTime);
@@ -570,13 +561,12 @@ BbrCongestionControlGetTargetCwnd(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
-    uint64_t MinRttEst = Bbr->MinRttStats.MinRtt;
 
-    if (!BandwidthEst || MinRttEst == UINT32_MAX) {
+    if (!BandwidthEst || Bbr->MinRtt == UINT32_MAX) {
         return (uint64_t)(Gain) * Bbr->InitialCongestionWindow / GAIN_UNIT;
     }
 
-    uint64_t Bdp = BandwidthEst * MinRttEst / kMicroSecsInSec / BW_UNIT;
+    uint64_t Bdp = BandwidthEst * Bbr->MinRtt / kMicroSecsInSec / BW_UNIT;
     uint64_t TargetCwnd = (Bdp * Gain / GAIN_UNIT) + (kQuantaFactor * Bbr->SendQuantum);
     return (uint32_t)TargetCwnd;
 }
@@ -593,7 +583,6 @@ BbrCongestionControlGetSendAllowance(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
-    uint64_t MinRttEst = Bbr->MinRttStats.MinRtt;
     uint32_t CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
 
     uint32_t SendAllowance = 0;
@@ -607,8 +596,8 @@ BbrCongestionControlGetSendAllowance(
     } else if (
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
-        MinRttEst == UINT32_MAX ||
-        MinRttEst < MS_TO_US(QUIC_SEND_PACING_INTERVAL)) {
+        Bbr->MinRtt == UINT32_MAX ||
+        Bbr->MinRtt < MS_TO_US(QUIC_SEND_PACING_INTERVAL)) {
         //
         // We're not in the necessary state to pace.
         //
@@ -641,39 +630,6 @@ BbrCongestionControlGetSendAllowance(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-BbrCongestionControlHandleAckInProbeBw(
-    _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t AckTime,
-    _In_ uint64_t PrevInflightBytes,
-    _In_ BOOLEAN HasLoss
-    )
-{
-    QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-
-    BOOLEAN ShouldAdvancePacingGainCycle =
-        CxPlatTimeDiff64(AckTime, Bbr->CycleStart) > Bbr->MinRttStats.MinRtt;
-
-    if (Bbr->PacingGain > GAIN_UNIT && !HasLoss &&
-        PrevInflightBytes < BbrCongestionControlGetTargetCwnd(Cc, Bbr->PacingGain)) {
-        ShouldAdvancePacingGainCycle = FALSE;
-    }
-
-    if (Bbr->PacingGain < GAIN_UNIT) {
-        uint64_t TargetCwnd = BbrCongestionControlGetTargetCwnd(Cc, GAIN_UNIT);
-        if (Bbr->BytesInFlight <= TargetCwnd) {
-            ShouldAdvancePacingGainCycle = TRUE;
-        }
-    }
-
-    if (ShouldAdvancePacingGainCycle) {
-        Bbr->PacingCycleIndex = (Bbr->PacingCycleIndex + 1) % GAIN_CYCLE_LENGTH;
-        Bbr->CycleStart = AckTime;
-        Bbr->PacingGain = kPacingGain[Bbr->PacingCycleIndex];
-    }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
 BbrCongestionControlTransitToProbeRtt(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t LargestSentPacketNumber
@@ -686,7 +642,8 @@ BbrCongestionControlTransitToProbeRtt(
     Bbr->ProbeRttEndTimeValid = FALSE;
     Bbr->ProbeRttRoundValid = FALSE;
 
-    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+    Bbr->BandwidthFilter.AppLimited = TRUE;
+    Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -793,13 +750,13 @@ BbrCongestionControlOnDataAcknowledged(
     Bbr->BytesInFlight -= AckEvent->NumRetransmittableBytes;
 
     if (AckEvent->MinRttValid) {
-        Bbr->MinRttStats.RttSampleExpired = Bbr->MinRttStats.MinRttTimestampValid ?
-           CxPlatTimeAtOrBefore64(Bbr->MinRttStats.MinRttTimestamp + Bbr->MinRttStats.Expiration, AckEvent->TimeNow) :
+        Bbr->RttSampleExpired = Bbr->MinRttTimestampValid ?
+           CxPlatTimeAtOrBefore64(Bbr->MinRttTimestamp + kBbrMinRttExpirationInMicroSecs, AckEvent->TimeNow) :
            FALSE;
-        if (Bbr->MinRttStats.RttSampleExpired || Bbr->MinRttStats.MinRtt > AckEvent->MinRtt) {
-            Bbr->MinRttStats.MinRtt = AckEvent->MinRtt;
-            Bbr->MinRttStats.MinRttTimestamp = AckEvent->TimeNow;
-            Bbr->MinRttStats.MinRttTimestampValid = TRUE;
+        if (Bbr->RttSampleExpired || Bbr->MinRtt > AckEvent->MinRtt) {
+            Bbr->MinRtt = AckEvent->MinRtt;
+            Bbr->MinRttTimestamp = AckEvent->TimeNow;
+            Bbr->MinRttTimestampValid = TRUE;
         }
     }
 
@@ -835,7 +792,25 @@ BbrCongestionControlOnDataAcknowledged(
     BbrCongestionControlUpdateAckAggregation(Cc, AckEvent);
 
     if (Bbr->BbrState == BBR_STATE_PROBE_BW) {
-        BbrCongestionControlHandleAckInProbeBw(Cc, AckEvent->TimeNow, PrevInflightBytes, AckEvent->HasLoss);
+        BOOLEAN ShouldAdvancePacingGainCycle = CxPlatTimeDiff64(AckEvent->TimeNow, Bbr->CycleStart) > Bbr->MinRtt;
+
+        if (Bbr->PacingGain > GAIN_UNIT && !AckEvent->HasLoss &&
+            PrevInflightBytes < BbrCongestionControlGetTargetCwnd(Cc, Bbr->PacingGain)) {
+            ShouldAdvancePacingGainCycle = FALSE;
+        }
+
+        if (Bbr->PacingGain < GAIN_UNIT) {
+            uint64_t TargetCwnd = BbrCongestionControlGetTargetCwnd(Cc, GAIN_UNIT);
+            if (Bbr->BytesInFlight <= TargetCwnd) {
+                ShouldAdvancePacingGainCycle = TRUE;
+            }
+        }
+
+        if (ShouldAdvancePacingGainCycle) {
+            Bbr->PacingCycleIndex = (Bbr->PacingCycleIndex + 1) % GAIN_CYCLE_LENGTH;
+            Bbr->CycleStart = AckEvent->TimeNow;
+            Bbr->PacingGain = kPacingGain[Bbr->PacingCycleIndex];
+        }
     }
 
     if (!Bbr->BtlbwFound && NewRoundTrip && !LastAckedPacketAppLimited) {
@@ -861,7 +836,7 @@ BbrCongestionControlOnDataAcknowledged(
 
     if (Bbr->BbrState != BBR_STATE_PROBE_RTT &&
         !Bbr->ExitingQuiescence &&
-        Bbr->MinRttStats.RttSampleExpired) {
+        Bbr->RttSampleExpired) {
         BbrCongestionControlTransitToProbeRtt(Cc, AckEvent->LargestSentPacketNumber);
     }
 
@@ -964,7 +939,8 @@ BbrCongestionControlSetAppLimited(
         return;
     }
 
-    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+    Bbr->BandwidthFilter.AppLimited = TRUE;
+    Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1021,11 +997,10 @@ BbrCongestionControlReset(
     Bbr->ProbeRttEndTimeValid = FALSE;
     Bbr->ProbeRttEndTime = CxPlatTimeUs64();
 
-    Bbr->MinRttStats.RttSampleExpired = TRUE;
-    Bbr->MinRttStats.MinRttTimestampValid = FALSE;
-    Bbr->MinRttStats.Expiration = kRttStatsExpirationInSecond * kMicroSecsInSec;
-    Bbr->MinRttStats.MinRtt = UINT32_MAX;
-    Bbr->MinRttStats.MinRttTimestamp = 0;
+    Bbr->RttSampleExpired = TRUE;
+    Bbr->MinRttTimestampValid = FALSE;
+    Bbr->MinRtt = UINT32_MAX;
+    Bbr->MinRttTimestamp = 0;
 
     QuicSlidingWindowExtremumReset(&Bbr->MaxAckHeightFilter);
 
@@ -1113,11 +1088,10 @@ BbrCongestionControlInitialize(
     Bbr->ProbeRttEndTimeValid = FALSE;
     Bbr->ProbeRttEndTime = 0;
 
-    Bbr->MinRttStats.RttSampleExpired = TRUE;
-    Bbr->MinRttStats.MinRttTimestampValid = FALSE;
-    Bbr->MinRttStats.Expiration = kRttStatsExpirationInSecond * kMicroSecsInSec;
-    Bbr->MinRttStats.MinRtt = UINT32_MAX;
-    Bbr->MinRttStats.MinRttTimestamp = 0;
+    Bbr->RttSampleExpired = TRUE;
+    Bbr->MinRttTimestampValid = FALSE;
+    Bbr->MinRtt = UINT32_MAX;
+    Bbr->MinRttTimestamp = 0;
 
     Bbr->MaxAckHeightFilter = QuicSlidingWindowExtremumInitialize(
             kBbrMaxAckHeightFilterLen, kBbrDefaultFilterCapacity, Bbr->MaxAckHeightFilterEntries);

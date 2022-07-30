@@ -11,29 +11,6 @@
 
 #define kBbrDefaultFilterCapacity 3
 
-typedef struct BBR_RTT_STATS {
-
-    //
-    // TRUE if current RTT sample is expired
-    //
-    BOOLEAN RttSampleExpired: 1;
-
-    //
-    // TRUE if there has been at least one MinRtt
-    //
-    BOOLEAN MinRttTimestampValid: 1;
-
-    //
-    // The expire duration of last MinRtt
-    //
-    uint64_t Expiration; // microseconds
-
-    uint32_t MinRtt; // microseconds
-
-    uint64_t MinRttTimestamp; // microseconds
-
-} BBR_RTT_STATS;
-
 typedef struct BBR_BANDWIDTH_FILTER {
 
     //
@@ -91,6 +68,16 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     // If TRUE, ProbeRttEndTime is valid
     //
     BOOLEAN ProbeRttEndTimeValid : 1;
+
+    //
+    // If TRUE, current RTT sample is expired
+    //
+    BOOLEAN RttSampleExpired: 1;
+
+    //
+    // If TRUE, there has been at least one MinRtt sample
+    //
+    BOOLEAN MinRttTimestampValid: 1;
     
     //
     // The size of the initial congestion window in packets
@@ -212,13 +199,14 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     // The max filter tracking the recent maximum degree of aggregation in the path
     //
     QUIC_SLIDING_WINDOW_EXTREMUM MaxAckHeightFilter;
-
     QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY MaxAckHeightFilterEntries[kBbrDefaultFilterCapacity];
 
+    uint32_t MinRtt; // microseconds
+
     //
-    // BBR estimates minimum RTT by the minimum recent RTT
+    // Time when MinRtt was sampled. Only valid if MinRttTimestampValid is set.
     //
-    BBR_RTT_STATS MinRttStats;
+    uint64_t MinRttTimestamp; // microseconds
 
     //
     // BBR estimates maximum bandwidth by the maximum recent bandwidth
