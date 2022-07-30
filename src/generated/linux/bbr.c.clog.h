@@ -33,7 +33,7 @@ extern "C" {
             BbrCongestionControlGetCongestionWindow(Cc),
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
-            BbrCongestionControlGetMinRtt(Cc),
+            Bbr->MinRtt,
             BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
             BbrCongestionControlIsAppLimited(Cc));
 // arg2 = arg2 = Connection = arg2
@@ -42,7 +42,7 @@ extern "C" {
 // arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5
 // arg6 = arg6 = Bbr->BytesInFlight = arg6
 // arg7 = arg7 = Bbr->BytesInFlightMax = arg7
-// arg8 = arg8 = BbrCongestionControlGetMinRtt(Cc) = arg8
+// arg8 = arg8 = Bbr->MinRtt = arg8
 // arg9 = arg9 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg9
 // arg10 = arg10 = BbrCongestionControlIsAppLimited(Cc) = arg10
 ----------------------------------------------------------*/
