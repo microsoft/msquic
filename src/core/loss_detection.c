@@ -1308,7 +1308,7 @@ QuicLossDetectionProcessAckBlocks(
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint64_t TimeNow = CxPlatTimeUs64();
-    uint32_t MinRtt = (uint32_t)(-1);
+    uint32_t MinRtt = UINT32_MAX;
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
     BOOLEAN NewLargestAckDifferentPath = FALSE;
@@ -1485,7 +1485,7 @@ QuicLossDetectionProcessAckBlocks(
         // Update the current RTT with the smallest RTT calculated, which
         // should be for the most acknowledged retransmittable packet.
         //
-        CXPLAT_DBG_ASSERT(MinRtt != (uint32_t)(-1));
+        CXPLAT_DBG_ASSERT(MinRtt != UINT32_MAX);
         if ((uint64_t)MinRtt >= AckDelay) {
             //
             // The ACK delay looks reasonable.
