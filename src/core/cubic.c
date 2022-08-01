@@ -380,7 +380,7 @@ CubicCongestionControlOnDataAcknowledged(
     Cubic->BytesInFlight -= BytesAcked;
 
     if (Cubic->IsInRecovery) {
-        if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
+        if (AckEvent->LargestAck > Cubic->RecoverySentPacketNumber) {
             //
             // Done recovering. Note that completion of recovery is defined a
             // bit differently here than in TCP: we simply require an ACK for a
@@ -571,7 +571,7 @@ CubicCongestionControlOnDataLost(
     if (!Cubic->HasHadCongestionEvent ||
         LossEvent->LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
 
-        Cubic->RecoverySentPacketNumber = LossEvent->LargestPacketNumberSent;
+        Cubic->RecoverySentPacketNumber = LossEvent->LargestSentPacketNumber;
         CubicCongestionControlOnCongestionEvent(
             Cc,
             LossEvent->PersistentCongestion);
@@ -672,6 +672,25 @@ CubicCongestionControlGetCongestionWindow(
     return Cc->Cubic.CongestionWindow;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CubicCongestionControlIsAppLimited(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    UNREFERENCED_PARAMETER(Cc);
+    return FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlSetAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    UNREFERENCED_PARAMETER(Cc);
+}
+
 static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .Name = "Cubic",
     .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
@@ -686,6 +705,8 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
     .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
+    .QuicCongestionControlIsAppLimited = CubicCongestionControlIsAppLimited,
+    .QuicCongestionControlSetAppLimited = CubicCongestionControlSetAppLimited,
     .QuicCongestionControlGetCongestionWindow = CubicCongestionControlGetCongestionWindow,
 };
 

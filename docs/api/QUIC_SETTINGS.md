@@ -80,7 +80,6 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 2;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
-
 } QUIC_SETTINGS;
 ```
 
