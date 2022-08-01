@@ -103,7 +103,7 @@ const uint32_t kProbeRttTimeInUs = 200 * 1000;
 //
 // Time until a MinRtt measurement is expired.
 //
-const uint32_t kBbrMinRttExpirationInMicroSecs = 10 * 1000000;
+const uint32_t kBbrMinRttExpirationInMicroSecs = S_TO_US(10);
 
 const uint32_t kBbrMaxBandwidthFilterLen = 10;
 
