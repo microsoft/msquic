@@ -1402,6 +1402,14 @@ CxPlatTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
         Status = CxPlatTlsSetClientCertPolicy(AchContext->SecConfig);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatTlsSetClientCertPolicy");
+            goto Error;
+        }
     }
 
     QuicTraceLogVerbose(
