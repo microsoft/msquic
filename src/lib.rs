@@ -574,6 +574,8 @@ pub struct QuicStatisticsV2 {
     pub recv_valid_ack_frames: u64,
 
     pub key_update_count: u32,
+
+    pub send_congestion_window: u32,
     // Number of times the destionation CID changed.
     pub dest_cid_update_count: u32
 }
