@@ -576,7 +576,7 @@ pub struct QuicStatisticsV2 {
     pub key_update_count: u32,
 
     pub send_congestion_window: u32,
-    // Number of times the destionation CID changed.
+    // Number of times the destination CID changed.
     pub dest_cid_update_count: u32
 }
 
