@@ -4109,13 +4109,14 @@ CxPlatDataPathRunEC(
 
     ULONG EntryCount;
     OVERLAPPED_ENTRY Entries[8];
-    (void)GetQueuedCompletionStatusEx(
-        DatapathProc->IOCP,
-        Entries,
-        ARRAYSIZE(Entries),
-        &EntryCount,
-        (DWORD)WaitTime,
-        FALSE);
+    BOOL Result =
+        GetQueuedCompletionStatusEx(
+            DatapathProc->IOCP,
+            Entries,
+            ARRAYSIZE(Entries),
+            &EntryCount,
+            (DWORD)WaitTime,
+            FALSE);
 
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
@@ -4127,7 +4128,7 @@ CxPlatDataPathRunEC(
         return TRUE;
     }
 
-    if (EntryCount == 0) {
+    if (!Result || EntryCount == 0) {
         QuicTraceLogVerbose(
             DatapathWakeupForECTimeout,
             "[data][%p] Datapath wakeup for EC wake or timeout",
