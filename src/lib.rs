@@ -1178,7 +1178,6 @@ impl Settings {
             max_ack_delay_ms: 0,
             disconnect_timeout_ms: 0,
             keep_alive_interval_ms: 0,
-            dest_cid_update_idle_timeout_ms: 0,
             congestion_control_algorithm: 0,
             peer_bidi_stream_count: 0,
             peer_unidi_stream_count: 0,
@@ -1189,6 +1188,7 @@ impl Settings {
             other_flags: 0,
             mtu_operations_per_drain: 0,
             mtu_discovery_missing_probe_count: 0,
+            dest_cid_update_idle_timeout_ms: 0,
         }
     }
     pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {
