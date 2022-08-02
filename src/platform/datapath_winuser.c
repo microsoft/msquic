@@ -4109,7 +4109,7 @@ CxPlatDataPathRunEC(
 
     ULONG EntryCount = 0;
     OVERLAPPED_ENTRY Entries[8];
-    GetQueuedCompletionStatusEx(
+    (void)GetQueuedCompletionStatusEx(
         DatapathProc->IOCP,
         Entries,
         ARRAYSIZE(Entries),
