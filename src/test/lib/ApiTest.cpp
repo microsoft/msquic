@@ -1248,7 +1248,7 @@ QuicTestConnectionCloseFromCallback() {
         TEST_QUIC_SUCCEEDED(Stream->Send(&Context.BufferToSend, 1, QUIC_SEND_FLAG_FIN));
 
         TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-    
+
         CxPlatSleep(50);
     }
 }
@@ -2318,13 +2318,15 @@ void QuicTestGlobalParam()
             //
             {
                 TestScopeLogger LogScope2("QuicSettingsSettingsToInternal fail");
+                uint32_t MinimumSettingsSize =
+                    FIELD_OFFSET(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount) + sizeof(((QUIC_SETTINGS*)0)->MtuDiscoveryMissingProbeCount);
                 QUIC_SETTINGS Settings{0};
                 TEST_QUIC_STATUS(
                     QUIC_STATUS_INVALID_PARAMETER,
                     MsQuic->SetParam(
                         nullptr,
                         QUIC_PARAM_GLOBAL_SETTINGS,
-                        sizeof(QUIC_SETTINGS)-8,
+                        MinimumSettingsSize-8,
                         &Settings));
             }
 
