@@ -4107,7 +4107,7 @@ CxPlatDataPathRunEC(
         DatapathProc->ThreadId = CurThreadId;
     }
 
-    ULONG EntryCount;
+    ULONG EntryCount = 0;
     OVERLAPPED_ENTRY Entries[8];
     (void)GetQueuedCompletionStatusEx(
         DatapathProc->IOCP,
@@ -4146,7 +4146,9 @@ CxPlatDataPathRunEC(
         // Overlapped either points to the socket's overlapped or a send
         // overlapped struct.
         //
-        if (Overlapped == &SocketProc->Overlapped) {
+        if (Overlapped == NULL) {
+            // No-op
+        } else if (Overlapped == &SocketProc->Overlapped) {
 
             if (NumberOfBytesTransferred == UINT32_MAX) {
                 //
