@@ -660,7 +660,6 @@ pub struct Settings {
     pub max_ack_delay_ms: u32,
     pub disconnect_timeout_ms: u32,
     pub keep_alive_interval_ms: u32,
-    pub dest_cid_update_idle_timeout_ms: u32,
     pub congestion_control_algorithm: u16,
     pub peer_bidi_stream_count: u16,
     pub peer_unidi_stream_count: u16,
@@ -671,6 +670,7 @@ pub struct Settings {
     pub other_flags: u8,
     pub mtu_operations_per_drain: u8,
     pub mtu_discovery_missing_probe_count: u8,
+    pub dest_cid_update_idle_timeout_ms: u32,
 }
 
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;

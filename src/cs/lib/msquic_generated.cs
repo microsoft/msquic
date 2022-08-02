@@ -989,9 +989,6 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint KeepAliveIntervalMs;
 
-        [NativeTypeName("uint32_t")]
-        internal uint DestCidUpdateIdleTimeoutMs;
-
         [NativeTypeName("uint16_t")]
         internal ushort CongestionControlAlgorithm;
 
@@ -1104,6 +1101,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint8_t")]
         internal byte MtuDiscoveryMissingProbeCount;
+
+        [NativeTypeName("uint32_t")]
+        internal uint DestCidUpdateIdleTimeoutMs;
 
         internal ref ulong IsSetFlags
         {
