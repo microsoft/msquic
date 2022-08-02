@@ -17,8 +17,8 @@ Environment:
 #if defined(__FreeBSD__)
 #include <netinet/in.h>
 struct in_pktinfo {
-	struct in_addr ipi_addr;        /* the source or destination address */
-	unsigned int ipi_ifindex;       /* the interface index */
+	struct in_addr ipi_addr;        // the source or destination address
+	unsigned int ipi_ifindex;       // the interface index
 };
 #endif
 
@@ -36,16 +36,16 @@ struct in_pktinfo {
 #endif
 
 // For all *NIX
-#if defined(IP_RECVDSTADDR)
-#define DSTADDR_SOCKOPT IP_RECVDSTADDR
-#define DSTADDR_DATASIZE (CMSG_SPACE(sizeof(struct in_addr)))
-#define dstaddr(x) (CMSG_DATA(x))
- 
-#elif defined(IP_PKTINFO)
-#define DSTADDR_SOCKOPT IP_PKTINFO
-#define DSTADDR_DATASIZE (CMSG_SPACE(sizeof(struct in_pktinfo)))
-#define dstaddr(x) (&(((struct in_pktinfo *)(CMSG_DATA(x)))->ipi_addr))
-        
+#if defined(IP_PKTINFO)
+#define DSTADDR_SOCKOPT		IP_PKTINFO
+#define DSTADDR_DATASIZE	(CMSG_SPACE(sizeof(struct in_pktinfo)))
+#define dstaddr(x)		(&(((struct in_pktinfo *)(CMSG_DATA(x)))->ipi_addr))
+#elif defined(IP_RECVDSTADDR)
+#define DSTADDR_SOCKOPT		IP_RECVDSTADDR
+#define DSTADDR_DATASIZE	(CMSG_SPACE(sizeof(struct in_addr)))
+#define dstaddr(x)		(CMSG_DATA(x))
+#else
+#error "No socket option specified"
 #endif
 
 

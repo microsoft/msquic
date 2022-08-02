@@ -25,6 +25,7 @@ else()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
+# message(STATUS "Sources: ${SOURCES}")
 endif()
 
 if (QUIC_TLS STREQUAL "schannel")
