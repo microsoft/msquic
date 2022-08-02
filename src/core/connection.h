@@ -284,6 +284,7 @@ typedef struct QUIC_CONN_STATS {
 
     struct {
         uint32_t KeyUpdateCount;        // Count of key updates completed.
+        uint32_t DestCidUpdateCount;    // Number of times the destination CID changed.
     } Misc;
 
 } QUIC_CONN_STATS;

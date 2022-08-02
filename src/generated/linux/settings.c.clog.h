@@ -618,6 +618,21 @@ tracepoint(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingDestCidUpdateIdleTimeoutMs
+// [sett] DestCidUpdateIdleTimeoutMs = %u
+// QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+// arg2 = arg2 = Settings->DestCidUpdateIdleTimeoutMs = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingDestCidUpdateIdleTimeoutMs
+#define _clog_3_ARGS_TRACE_SettingDestCidUpdateIdleTimeoutMs(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingDestCidUpdateIdleTimeoutMs , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(

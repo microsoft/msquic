@@ -574,6 +574,10 @@ pub struct QuicStatisticsV2 {
     pub recv_valid_ack_frames: u64,
 
     pub key_update_count: u32,
+
+    pub send_congestion_window: u32,
+    // Number of times the destination CID changed.
+    pub dest_cid_update_count: u32
 }
 
 /// A helper struct for accessing listener statistics.
@@ -666,6 +670,7 @@ pub struct Settings {
     pub other_flags: u8,
     pub mtu_operations_per_drain: u8,
     pub mtu_discovery_missing_probe_count: u8,
+    pub dest_cid_update_idle_timeout_ms: u32,
 }
 
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
@@ -1183,6 +1188,7 @@ impl Settings {
             other_flags: 0,
             mtu_operations_per_drain: 0,
             mtu_discovery_missing_probe_count: 0,
+            dest_cid_update_idle_timeout_ms: 0,
         }
     }
     pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {

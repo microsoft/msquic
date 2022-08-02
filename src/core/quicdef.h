@@ -490,6 +490,11 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT   QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC
 
+//
+// The default idle timeout period after which the source CID is updated before sending again.
+//
+#define QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS 20000
+
 /*************************************************************
                   TRANSPORT PARAMETERS
 *************************************************************/
@@ -560,6 +565,7 @@ CXPLAT_STATIC_ASSERT(
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
+#define QUIC_SETTING_DEST_CID_UPDATE_IDLE_TIMEOUT_MS "DestCidUpdateIdleTimeoutMs"
 
 #define QUIC_SETTING_INITIAL_RTT                    "InitialRttMs"
 #define QUIC_SETTING_MAX_ACK_DELAY                  "MaxAckDelayMs"

@@ -436,6 +436,7 @@ public:
     MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
     MsQuicSettings& SetConnFlowControlWindow(uint32_t Window) { ConnFlowControlWindow = Window; IsSet.ConnFlowControlWindow = TRUE; return *this; }
     MsQuicSettings& SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) { CongestionControlAlgorithm = (uint8_t)Cc; IsSet.CongestionControlAlgorithm = TRUE; return *this; }
+    MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {

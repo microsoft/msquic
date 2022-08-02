@@ -1070,6 +1070,7 @@ QuicConnRetireCurrentDestCid(
     QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
     QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
     Path->DestCid->CID.UsedLocally = TRUE;
+    Connection->Stats.Misc.DestCidUpdateCount++;
 
     return TRUE;
 }
@@ -6639,6 +6640,9 @@ QuicConnGetV2Statistics(
 
     if (STATISTICS_HAS_FIELD(*StatsLength, SendCongestionWindow)) {
         Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl);
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
+        Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));

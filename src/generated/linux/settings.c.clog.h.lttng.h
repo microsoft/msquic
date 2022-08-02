@@ -635,6 +635,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingCongestionControlAlgorithm,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingDestCidUpdateIdleTimeoutMs
+// [sett] DestCidUpdateIdleTimeoutMs = %u
+// QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+// arg2 = arg2 = Settings->DestCidUpdateIdleTimeoutMs = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDestCidUpdateIdleTimeoutMs,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(

@@ -2691,3 +2691,98 @@ QuicTestStreamAbortConnFlowControl(
 
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
 }
+
+void
+QuicTestConnectAndIdleForDestCidChange(
+    void
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(9000);
+    Settings.SetDestCidUpdateIdleTimeoutMs(2000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(Client.SetShareUdpBinding(true));
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QUIC_ADDRESS_FAMILY_UNSPEC,
+                        QUIC_TEST_LOOPBACK_FOR_AF(
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                {
+                    TestStream* Stream = Client.NewStream(+[](TestStream*){},
+                                                            QUIC_STREAM_OPEN_FLAG_NONE,
+                                                            NEW_STREAM_START_SYNC);
+                    Stream->Context = Client.Context;
+
+                    TEST_TRUE(Stream->IsValid());
+                    TEST_TRUE(Stream->StartPing(1)); // Send Fin
+
+                    delete Stream;
+
+                    auto DestCidUpdateCount = Client.GetDestCidUpdateCount();
+
+                    CxPlatSleep(6000); // Wait for the first idle period to send another ping to the stream.
+
+                    Stream = Client.NewStream(+[](TestStream*){},
+                                                            QUIC_STREAM_OPEN_FLAG_NONE,
+                                                            NEW_STREAM_START_SYNC);
+
+                    // Send Fin
+                    TEST_TRUE(Stream->IsValid());
+                    TEST_TRUE(Stream->StartPing(1));
+
+                    delete Stream;
+
+                    TEST_TRUE(Client.GetDestCidUpdateCount() >= DestCidUpdateCount + 1);
+                }
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+            }
+        }
+    }
+}

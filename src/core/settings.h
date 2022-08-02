@@ -49,7 +49,8 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t MaxBindingStatelessOperations          : 1;
             uint64_t StatelessOperationExpirationMs         : 1;
             uint64_t CongestionControlAlgorithm             : 1;
-            uint64_t RESERVED                               : 29;
+            uint64_t DestCidUpdateIdleTimeoutMs             : 1;
+            uint64_t RESERVED                               : 28;
         } IsSet;
     };
 
@@ -69,6 +70,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
+    uint32_t DestCidUpdateIdleTimeoutMs;
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
     uint16_t RetryMemoryLimit;              // Global only

@@ -445,6 +445,23 @@ TestConnection::SetDisconnectTimeout(
     return SetSettings(Settings);
 }
 
+uint32_t
+TestConnection::GetDestCidUpdateIdleTimeoutMs()
+{
+    return GetSettings().DestCidUpdateIdleTimeoutMs;
+}
+
+QUIC_STATUS
+TestConnection::SetDestCidUpdateIdleTimeoutMs(
+    uint32_t value
+    )
+{
+    QUIC_SETTINGS Settings{0};
+    Settings.DestCidUpdateIdleTimeoutMs = value;
+    Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+    return SetSettings(Settings);
+}
+
 uint16_t
 TestConnection::GetPeerBidiStreamCount()
 {
@@ -897,4 +914,21 @@ TestConnection::HandleConnectionEvent(
     }
 
     return QUIC_STATUS_SUCCESS;
+}
+
+uint32_t
+TestConnection::GetDestCidUpdateCount() {
+    QUIC_STATISTICS_V2 Stats;
+    uint32_t StatsSize = sizeof(Stats);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_STATISTICS_V2,
+            &StatsSize,
+            &Stats);
+
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
+    }
+    return Stats.DestCidUpdateCount;
 }

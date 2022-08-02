@@ -486,6 +486,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t SendCongestionWindow;          // Congestion window size
 
+    uint32_t DestCidUpdateCount;            // Number of times the destionation CID changed.
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -602,7 +604,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ServerResumptionLevel                  : 1;
             uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
-            uint64_t RESERVED                               : 33;
+            uint64_t DestCidUpdateIdleTimeoutMs             : 1;
+            uint64_t RESERVED                               : 32;
         } IsSet;
     };
 
@@ -638,6 +641,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t RESERVED                        : 2;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
+    uint32_t DestCidUpdateIdleTimeoutMs;
 
 } QUIC_SETTINGS;
 

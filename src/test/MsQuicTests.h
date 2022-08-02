@@ -337,6 +337,11 @@ QuicTestConnectAndIdle(
     );
 
 void
+QuicTestConnectAndIdleForDestCidChange(
+    void
+    );
+
+void
 QuicTestServerDisconnect(
     void
     );
@@ -1070,4 +1075,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VERSION_STORAGE \
     QUIC_CTL_CODE(100, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 100
+#define IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE \
+    QUIC_CTL_CODE(101, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 101
