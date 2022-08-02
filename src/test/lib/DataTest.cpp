@@ -163,6 +163,9 @@ PingStreamShutdown(
         TEST_EQUAL(ConnState->Connection->GetPeerClosed(), Stream->GetClosedRemotely());
         TEST_EQUAL(ConnState->Connection->GetTransportClosed(), !Stream->GetShutdownByApp());
         TEST_EQUAL(ConnState->Connection->GetTransportClosed(), !Stream->GetClosedRemotely());
+        if (ConnState->Connection->GetTransportClosed()) {
+            TEST_EQUAL(ConnState->Connection->GetTransportCloseStatus(), Stream->GetConnectionCloseStatus());
+        }
         if (ConnState->Connection->GetPeerClosed()) {
             TEST_EQUAL(ConnState->Connection->GetExpectedPeerCloseErrorCode(), Stream->GetConnectionErrorCode());
         }
@@ -2481,6 +2484,7 @@ struct StreamDifferentAbortErrors {
     BOOLEAN ConnectionShutdownByApp {FALSE};
     BOOLEAN ConnectionClosedRemotely {FALSE};
     QUIC_UINT62 ConnectionErrorCode {0};
+    QUIC_STATUS ConnectionCloseStatus {0};
 
     CxPlatEvent StreamShutdownComplete;
 
@@ -2495,6 +2499,7 @@ struct StreamDifferentAbortErrors {
             TestContext->ConnectionShutdownByApp = Event->SHUTDOWN_COMPLETE.ConnectionShutdownByApp;
             TestContext->ConnectionClosedRemotely = Event->SHUTDOWN_COMPLETE.ConnectionClosedRemotely;
             TestContext->ConnectionErrorCode = Event->SHUTDOWN_COMPLETE.ConnectionErrorCode;
+            TestContext->ConnectionCloseStatus = Event->SHUTDOWN_COMPLETE.ConnectionCloseStatus;
             TestContext->StreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -2551,6 +2556,7 @@ QuicTestStreamDifferentAbortErrors(
     TEST_FALSE(Context.ConnectionShutdownByApp);
     TEST_FALSE(Context.ConnectionClosedRemotely);
     TEST_EQUAL(0, Context.ConnectionErrorCode);
+    TEST_EQUAL(0, Context.ConnectionCloseStatus);
 }
 
 struct StreamAbortRecvFinRace {

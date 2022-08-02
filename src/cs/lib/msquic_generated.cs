@@ -2483,6 +2483,9 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("QUIC_UINT62")]
                 internal ulong ConnectionErrorCode;
+
+                [NativeTypeName("HRESULT")]
+                internal int ConnectionCloseStatus;
             }
 
             internal partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct

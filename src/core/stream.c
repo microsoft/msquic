@@ -500,14 +500,17 @@ QuicStreamIndicateShutdownComplete(
             Stream->Connection->State.ClosedRemotely;
         Event.SHUTDOWN_COMPLETE.ConnectionErrorCode =
             Stream->Connection->CloseErrorCode;
+        Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus =
+            Stream->Connection->CloseStatus;
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx]",
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
             Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
             Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp,
             Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely,
-            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode);
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode,
+            Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

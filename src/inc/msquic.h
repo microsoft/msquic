@@ -1275,6 +1275,7 @@ typedef struct QUIC_STREAM_EVENT {
             BOOLEAN ConnectionClosedRemotely : 1;
             BOOLEAN RESERVED                 : 5;
             QUIC_UINT62 ConnectionErrorCode;
+            QUIC_STATUS ConnectionCloseStatus;
         } SHUTDOWN_COMPLETE;
         struct {
             uint64_t ByteCount;

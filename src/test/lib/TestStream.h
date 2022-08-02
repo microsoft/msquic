@@ -108,6 +108,7 @@ class TestStream
     bool ConnectionShutdownByApp  : 1;
     bool ConnectionClosedRemotely : 1;
     QUIC_UINT62 ConnectionErrorCode;
+    QUIC_STATUS ConnectionCloseStatus;
 
     volatile int64_t BytesToSend;
     volatile long OutstandingSendRequestCount;
@@ -219,6 +220,7 @@ public:
     bool GetShutdownByApp() const { return ConnectionShutdownByApp; }
     bool GetClosedRemotely() const { return ConnectionClosedRemotely; }
     QUIC_UINT62 GetConnectionErrorCode() const { return ConnectionErrorCode; }
+    QUIC_STATUS GetConnectionCloseStatus() const { return ConnectionCloseStatus; }
 
     uint64_t GetBytesToSend() const { return (uint64_t)BytesToSend; }
     uint32_t GetOutstandingSendRequestCount() const { return OutstandingSendRequestCount; };
