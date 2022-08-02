@@ -772,8 +772,7 @@ CxPlatTlsSetClientCertPolicy(
             "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
     }
 
-    if (SecStatus == SEC_E_UNSUPPORTED_FUNCTION)
-    {
+    if (SecStatus == SEC_E_UNSUPPORTED_FUNCTION) {
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
