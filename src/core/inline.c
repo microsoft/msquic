@@ -388,6 +388,18 @@ QuicCongestionControlGetBytesInFlightMax(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicCongestionControlIsAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlSetAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    );
+
 QUIC_CONNECTION*
 QuicCongestionControlGetConnection(
     _In_ const QUIC_CONGESTION_CONTROL* Cc

@@ -23,6 +23,41 @@ typedef struct QUIC_LOSS_DETECTION {
     QUIC_ENCRYPT_LEVEL LargestAckEncryptLevel;
 
     //
+    // Sent time of last sent packet
+    //
+    uint32_t TimeOfLastPacketSent;
+
+    //
+    // Acked time of last acked packet
+    //
+    uint32_t TimeOfLastPacketAcked;
+
+    //
+    // Sent time of last acked packet
+    //
+    uint32_t TimeOfLastAckedPacketSent;
+
+    //
+    // Acked time minus ack delay.
+    //
+    uint32_t AdjustedLastAckedTime;
+
+    //
+    // Number of bytes sent so far
+    //
+    uint64_t TotalBytesSent;
+
+    //
+    // Number of bytes acked so far
+    //
+    uint64_t TotalBytesAcked;
+
+    //
+    // Number of bytes sent when last acked packet was sent
+    //
+    uint64_t TotalBytesSentAtLastAck;
+
+    //
     // N.B.: SentPackets and LostPackets are generally kept in ascending packet
     // number order, and packets in the LostPackets list generally have smaller
     // numbers than those in the SentPackets list. The only case this is not
@@ -37,8 +72,6 @@ typedef struct QUIC_LOSS_DETECTION {
     uint64_t LargestSentPacketNumber;
     QUIC_SENT_PACKET_METADATA* SentPackets;
     QUIC_SENT_PACKET_METADATA** SentPacketsTail;
-
-    uint32_t TimeOfLastPacketSent;
 
     //
     // Lost packets. The purpose of this list is to remember packets a little
