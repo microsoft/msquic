@@ -772,6 +772,10 @@ CxPlatTlsSetClientCertPolicy(
             "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
     }
 
+    if (SecStatus == SEC_E_UNSUPPORTED_FUNCTION) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
     return SecStatusToQuicStatus(SecStatus);
 }
 
@@ -1402,6 +1406,9 @@ CxPlatTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
         Status = CxPlatTlsSetClientCertPolicy(AchContext->SecConfig);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
     }
 
     QuicTraceLogVerbose(
