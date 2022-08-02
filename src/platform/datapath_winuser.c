@@ -4107,16 +4107,15 @@ CxPlatDataPathRunEC(
         DatapathProc->ThreadId = CurThreadId;
     }
 
-    ULONG EntryCount;
+    ULONG EntryCount = 0;
     OVERLAPPED_ENTRY Entries[8];
-    BOOL Result =
-        GetQueuedCompletionStatusEx(
-            DatapathProc->IOCP,
-            Entries,
-            ARRAYSIZE(Entries),
-            &EntryCount,
-            (DWORD)WaitTime,
-            FALSE);
+    GetQueuedCompletionStatusEx(
+        DatapathProc->IOCP,
+        Entries,
+        ARRAYSIZE(Entries),
+        &EntryCount,
+        (DWORD)WaitTime,
+        FALSE);
 
     if (DatapathProc->Datapath->Shutdown) {
         *Context = NULL;
@@ -4128,7 +4127,7 @@ CxPlatDataPathRunEC(
         return TRUE;
     }
 
-    if (!Result || EntryCount == 0) {
+    if (EntryCount == 0) {
         QuicTraceLogVerbose(
             DatapathWakeupForECTimeout,
             "[data][%p] Datapath wakeup for EC wake or timeout",
@@ -4147,7 +4146,9 @@ CxPlatDataPathRunEC(
         // Overlapped either points to the socket's overlapped or a send
         // overlapped struct.
         //
-        if (Overlapped == &SocketProc->Overlapped) {
+        if (Overlapped == NULL) {
+            // No-op
+        } else if (Overlapped == &SocketProc->Overlapped) {
 
             if (NumberOfBytesTransferred == UINT32_MAX) {
                 //
