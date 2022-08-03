@@ -88,11 +88,51 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     BOOLEAN IsMtuProbe              : 1;
     BOOLEAN KeyPhase                : 1;
     BOOLEAN SuspectedLost           : 1;
+
+    //
+    // TRUE if the packet is sent while the transmission rate is limited by application
+    //
+    BOOLEAN IsAppLimited            : 1;
+    BOOLEAN HasLastAckedPacketInfo  : 1;
 #if DEBUG
     BOOLEAN Freed                   : 1;
 #endif
 
 } QUIC_SEND_PACKET_FLAGS;
+
+//
+// Packet info of last acked packet on this connection
+// 
+typedef struct LAST_ACKED_PACKET_INFO {
+
+    //
+    // Total bytes sent when the last acked packet was acked
+    //
+    uint64_t TotalBytesSent;
+
+    //
+    // Total bytes acked when the last acked packet was acked
+    // (including the last acked packet)
+    //
+    uint64_t TotalBytesAcked;
+
+    //
+    // SentTime of last acked packet
+    //
+    uint32_t SentTime;
+
+    //
+    // AckTime of last acked packet
+    //
+    uint32_t AckTime;
+
+    //
+    // Packet acked time minus ack delay of last acked packet
+    //
+    uint32_t AdjustedAckTime;
+
+
+} LAST_ACKED_PACKET_INFO;
 
 //
 // Tracker for a sent packet.
@@ -103,9 +143,15 @@ typedef struct QUIC_SENT_PACKET_METADATA {
 
     uint64_t PacketId;
     uint64_t PacketNumber;
+    //
+    // Total bytes sent when the packet was sent (including this packet)
+    //
+    uint64_t TotalBytesSent;
     uint32_t SentTime; // In microseconds
     uint16_t PacketLength;
     uint8_t PathId;
+
+    LAST_ACKED_PACKET_INFO LastAckedPacketInfo;
 
     //
     // Hints about the QUIC packet and included frames.
