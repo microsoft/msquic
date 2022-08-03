@@ -335,14 +335,14 @@ MsQuicListenerStart(
     CxPlatEventReset(Listener->StopEvent);
     CxPlatRefInitialize(&Listener->RefCount);
 
-    if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
+    Status = QuicBindingRegisterListener(Listener->Binding, Listener);
+    if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerError,
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
         QuicListenerRelease(Listener, FALSE);
-        Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
 

@@ -125,6 +125,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_USER_CANCELED           ((QUIC_STATUS)EOWNERDEAD)       // 130  (105 on macOS)
 #define QUIC_STATUS_ALPN_NEG_FAILURE        ((QUIC_STATUS)ENOPROTOOPT)      // 92   (42 on macOS)
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ((QUIC_STATUS)ESTRPIPE)         // 86
+#define QUIC_STATUS_ALPN_IN_USE             ((QUIC_STATUS)EPROTOTYPE)       // 136  (91 on macOS)
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        ((QUIC_STATUS)(0xff & Alert) + TLS_ERROR_BASE)
 
