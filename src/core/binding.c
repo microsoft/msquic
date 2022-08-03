@@ -314,13 +314,13 @@ QuicBindingHasListenerRegistered(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+QUIC_STATUS
 QuicBindingRegisterListener(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_LISTENER* NewListener
     )
 {
-    BOOLEAN AddNewListener = TRUE;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN MaximizeLookup = FALSE;
 
     const QUIC_ADDR* NewAddr = &NewListener->LocalAddress;
@@ -373,12 +373,12 @@ QuicBindingRegisterListener(
                 BindingListenerAlreadyRegistered,
                 "[bind][%p] Listener (%p) already registered on ALPN",
                 Binding, ExistingListener);
-            AddNewListener = FALSE;
+            Status = QUIC_STATUS_ALPN_IN_USE;
             break;
         }
     }
 
-    if (AddNewListener) {
+    if (Status == QUIC_STATUS_SUCCESS) {
         MaximizeLookup = CxPlatListIsEmpty(&Binding->Listeners);
 
         //
@@ -402,10 +402,10 @@ QuicBindingRegisterListener(
     if (MaximizeLookup &&
         !QuicLookupMaximizePartitioning(&Binding->Lookup)) {
         QuicBindingUnregisterListener(Binding, NewListener);
-        AddNewListener = FALSE;
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    return AddNewListener;
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

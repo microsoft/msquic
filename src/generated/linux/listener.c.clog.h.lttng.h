@@ -248,29 +248,6 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerError
-// [list][%p] ERROR, %s.
-// QuicTraceEvent(
-            ListenerError,
-            "[list][%p] ERROR, %s.",
-            Listener,
-            "Register with binding");
-// arg2 = arg2 = Listener = arg2
-// arg3 = arg3 = "Register with binding" = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerError,
-    TP_ARGS(
-        const void *, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ListenerStarted
 // [list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!
 // QuicTraceEvent(

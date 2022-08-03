@@ -156,7 +156,7 @@ void QuicTestStartTwoListenersSameALPN()
         TestListener Listener2(Registration, ListenerDoNothingCallback, ServerConfiguration1);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+            QUIC_STATUS_ALPN_IN_USE,
             Listener2.Start(Alpn1, Alpn1.Length(), &LocalAddress.SockAddr));
     }
 
@@ -174,7 +174,7 @@ void QuicTestStartTwoListenersSameALPN()
         TestListener Listener2(Registration, ListenerDoNothingCallback, ServerConfiguration1);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+            QUIC_STATUS_ALPN_IN_USE,
             Listener2.Start(Alpn1, Alpn1.Length(), &LocalAddress.SockAddr));
     }
 
@@ -192,7 +192,7 @@ void QuicTestStartTwoListenersSameALPN()
         TestListener Listener2(Registration, ListenerDoNothingCallback, ServerConfiguration2);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+            QUIC_STATUS_ALPN_IN_USE,
             Listener2.Start(Alpn2, Alpn2.Length(), &LocalAddress.SockAddr));
     }
 }
