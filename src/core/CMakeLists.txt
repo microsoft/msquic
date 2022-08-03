@@ -19,7 +19,6 @@ set(SOURCES
     crypto.c
     crypto_tls.c
     cubic.c
-    bbr.c
     datagram.c
     frame.c
     library.c
@@ -49,7 +48,6 @@ set(SOURCES
     operation.h
     stream.h
     connection.h
-    sliding_window_extremum.c
 )
 
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

@@ -340,7 +340,6 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnVNEOtherVersionList,
     EventId_QuicConnClientReceivedVersionList,
     EventId_QuicConnServerSupportedVersionList,
-    EventId_QuicConnBbr,
 
     EventId_QuicConnCount
 } QUIC_EVENT_ID_CONNECTION;

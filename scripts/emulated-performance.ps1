@@ -52,9 +52,6 @@ be in the current directory.
 .PARAMETER NoDateLogDir
     Doesn't include the Date/Time in the log directory path.
 
-.PARAMETER CongestionControl
-    The congestion control algorithm used to test
-
 #>
 
 param (
@@ -117,10 +114,7 @@ param (
     [switch]$MergeDataFiles = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoDateLogDir = $false,
-
-    [Parameter(Mandatory = $false)]
-    [string[]]$CongestionControl = "cubic"
+    [switch]$NoDateLogDir = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -139,7 +133,6 @@ class FormattedResult {
     #[bool]$Pacing;
     [int]$RateKbps;
     [int]$PrevKbps;
-    [System.String]$CongestionControl;
     [int]$Tcp;
 
     FormattedResult (
@@ -153,8 +146,7 @@ class FormattedResult {
         [int]$DurationMs,
         [bool]$Pacing,
         [int]$RateKbps,
-        [int]$RemoteKbps,
-        [System.String]$CongestionControl
+        [int]$RemoteKbps
     ) {
         $this.Tcp = $Tcp;
         $this.RttMs = $RttMs;
@@ -170,7 +162,6 @@ class FormattedResult {
 
         $this.Usage = ($RateKbps / $BottleneckMbps) / 10;
         $this.DiffPrev = (($RateKbps - $RemoteKbps) / $BottleneckMbps) / 10;
-        $this.CongestionControl = $CongestionControl;
     }
 }
 
@@ -186,7 +177,6 @@ class TestResult {
     [bool]$Pacing;
     [int]$RateKbps;
     [System.Collections.Generic.List[int]]$RawRateKbps;
-    [System.String]$CongestionControl;
 
     TestResult (
         [int]$RttMs,
@@ -199,8 +189,7 @@ class TestResult {
         [int]$DurationMs,
         [bool]$Pacing,
         [int]$RateKbps,
-        [System.Collections.Generic.List[int]]$RawRateKbps,
-        [System.String]$CongestionControl
+        [System.Collections.Generic.List[int]]$RawRateKbps
     ) {
         $this.RttMs = $RttMs;
         $this.BottleneckMbps = $BottleneckMbps;
@@ -213,7 +202,6 @@ class TestResult {
         $this.Pacing = $Pacing;
         $this.RateKbps = $RateKbps;
         $this.RawRateKbps = $RawRateKbps;
-        $this.CongestionControl = $CongestionControl;
     }
 }
 
@@ -394,7 +382,7 @@ if ($MergeDataFiles) {
                 }
             }
 
-            $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate, $_.CongestionControl);
+            $Run = [FormattedResult]::new($_.RttMs, $_.BottleneckMbps, $_.BottleneckBufferPackets, $_.RandomLossDenominator, $_.RandomReorderDenominator, $_.ReorderDelayDeltaMs, $_.Tcp, $_.DurationMs, $_.Pacing, $_.RateKbps, $RemoteRate);
             $FormatResults.Add($Run)
         }
     }
@@ -442,7 +430,7 @@ if ($MergeDataFiles) {
 
     # Dump all data.
     Write-Host "All tests:"
-    $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs,CongestionControl | Format-Table -AutoSize *
+    $FormatResults | Sort-Object -Property Tcp,NetMbps,RttMs,QueuePkts,Loss,Reorder,DelayMs | Format-Table -AutoSize *
 
     # Write all data to CSV.
     $CsvFile = Join-Path $OutputDir "wan_data.csv"
@@ -511,7 +499,7 @@ New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 $UniqueId = New-Guid
 $OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
 # CSV header
-$Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, Tcp, CongestionControl, DurationMs, Pacing, RateKbps"
+$Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, Tcp, DurationMs, Pacing, RateKbps"
 for ($i = 0; $i -lt $NumIterations; $i++) {
     $Header += ", RawRateKbps$($i+1)"
 }
@@ -563,7 +551,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
     # Loop over all the test configurations.
     foreach ($ThisProtocol in $Protocol) {
-    foreach ($ThisCongestionControl in $CongestionControl) {
     foreach ($ThisDurationMs in $DurationMs) {
     foreach ($ThisPacing in $Pacing) {
 
@@ -576,7 +563,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
         # Run through all the iterations and keep track of the results.
         $Results = [System.Collections.Generic.List[int]]::new()
-        Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing, Cc=$ThisCongestionControl"
+        Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             $RandomSeed = $BaseRandomSeed + $i.ToString('x2').Substring(0,2)
@@ -616,7 +603,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             pktmon start --capture --counters-only
 
             $Rate = 0
-            $Command = "$SecNetPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing -cc:$ThisCongestionControl"
+            $Command = "$SecNetPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             Write-Debug $Command
             $Output = [string](Invoke-Expression $Command)
             Write-Debug $Output
@@ -639,7 +626,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug (Out-String -InputObject (Invoke-Expression "pktmon stop"))
 
             if ($LogProfile -ne "None") {
-                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisCongestionControl.$ThisDurationMs.$ThisPacing.$i.$Rate"
+                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
                 try {
                     & $LogScript -Stop -OutputPath $TestLogPath -RawLogOnly | Out-Null
                 } catch {
@@ -650,11 +637,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
         # Grab the average result and write the CSV output.
         $RateKbps = [int]($Results | Where-Object {$_ -ne 0} | Measure-Object -Average).Average # TODO - Convert to Median instead of Average
-        $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisCongestionControl, $ThisDurationMs, $ThisPacing, $RateKbps"
+        $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"
         }
-        $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results, $ThisCongestionControl);
+        $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
         $RunResults.Runs.Add($RunResult)
         Write-Host $Row
         if ($RemoteResults -ne "") {
@@ -675,7 +662,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         }
     }}}
 
-}}}}}}}
+}}}}}}
 
 # Delete pktmon filter.
 pktmon filter remove
