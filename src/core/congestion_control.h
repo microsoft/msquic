@@ -12,9 +12,9 @@ typedef struct QUIC_ACK_EVENT {
 
     uint64_t TimeNow; // microsecond
 
-    uint64_t LargestAck;
+    uint64_t LargestPacketNumberAcked;
 
-    uint64_t LargestSentPacketNumber;
+    uint64_t LargestPacketNumberSent;
 
     //
     // Number of retransmittable bytes acked during the connection's lifetime
@@ -48,7 +48,7 @@ typedef struct QUIC_LOSS_EVENT {
 
     uint64_t LargestPacketNumberLost;
 
-    uint64_t LargestSentPacketNumber;
+    uint64_t LargestPacketNumberSent;
 
     uint32_t NumRetransmittableBytes;
 

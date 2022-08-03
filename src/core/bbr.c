@@ -167,7 +167,7 @@ BbrBandwidthFilterOnPacketAcked(
     _In_ uint64_t RttCounter
     )
 {
-    if (b->AppLimited && b->AppLimitedExitTarget < AckEvent->LargestAck) {
+    if (b->AppLimited && b->AppLimitedExitTarget < AckEvent->LargestPacketNumberAcked) {
         b->AppLimited = FALSE;
     }
 
@@ -497,16 +497,16 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 BbrCongestionControlUpdateRoundTripCounter(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t LargestAck,
-    _In_ uint64_t LargestSentPacketNumber
+    _In_ uint64_t LargestPacketNumberAcked,
+    _In_ uint64_t LargestPacketNumberSent
     )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
-    if (!Bbr->EndOfRoundTripValid || Bbr->EndOfRoundTrip < LargestAck) {
+    if (!Bbr->EndOfRoundTripValid || Bbr->EndOfRoundTrip < LargestPacketNumberAcked) {
         Bbr->RoundTripCounter++;
         Bbr->EndOfRoundTripValid = TRUE;
-        Bbr->EndOfRoundTrip = LargestSentPacketNumber;
+        Bbr->EndOfRoundTrip = LargestPacketNumberSent;
         return TRUE;
     }
     return FALSE;
@@ -743,7 +743,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrCongestionControlTransitToProbeRtt(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ uint64_t LargestSentPacketNumber
+    _In_ uint64_t LargestPacketNumberSent
     )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
@@ -753,7 +753,7 @@ BbrCongestionControlTransitToProbeRtt(
     Bbr->ProbeRttEndTimeValid = FALSE;
     Bbr->ProbeRttRoundValid = FALSE;
 
-    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestSentPacketNumber);
+    BbrBandwidthFilterOnAppLimited(&Bbr->BandwidthFilter, LargestPacketNumberSent);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -864,7 +864,7 @@ BbrCongestionControlOnDataAcknowledged(
     }
 
     BOOLEAN NewRoundTrip = BbrCongestionControlUpdateRoundTripCounter(
-        Cc, AckEvent->LargestAck, AckEvent->LargestSentPacketNumber);
+        Cc, AckEvent->LargestPacketNumberAcked, AckEvent->LargestPacketNumberSent);
 
     BOOLEAN LastAckedPacketAppLimited =
         AckEvent->AckedPackets == NULL ? FALSE : AckEvent->IsLargestAckedPacketAppLimited;
@@ -876,7 +876,7 @@ BbrCongestionControlOnDataAcknowledged(
         if (NewRoundTrip && Bbr->RecoveryState != RECOVERY_STATE_GROWTH) {
             Bbr->RecoveryState = RECOVERY_STATE_GROWTH;
         }
-        if (!AckEvent->HasLoss && Bbr->EndOfRecovery < AckEvent->LargestAck) {
+        if (!AckEvent->HasLoss && Bbr->EndOfRecovery < AckEvent->LargestPacketNumberAcked) {
             Bbr->RecoveryState = RECOVERY_STATE_NOT_RECOVERY;
             QuicTraceEvent(
                 ConnRecoveryExit,
@@ -917,14 +917,14 @@ BbrCongestionControlOnDataAcknowledged(
     if (Bbr->BbrState != BBR_STATE_PROBE_RTT &&
         !Bbr->ExitingQuiescence &&
         Bbr->MinRttStats.RttSampleExpired) {
-        BbrCongestionControlTransitToProbeRtt(Cc, AckEvent->LargestSentPacketNumber);
+        BbrCongestionControlTransitToProbeRtt(Cc, AckEvent->LargestPacketNumberSent);
     }
 
     Bbr->ExitingQuiescence = FALSE;
 
     if (Bbr->BbrState == BBR_STATE_PROBE_RTT) {
         BbrCongestionControlHandleAckInProbeRtt(
-            Cc, NewRoundTrip, AckEvent->LargestSentPacketNumber, AckEvent->TimeNow);
+            Cc, NewRoundTrip, AckEvent->LargestPacketNumberSent, AckEvent->TimeNow);
     }
 
     BbrCongestionControlUpdateCongestionWindow(
@@ -957,7 +957,7 @@ BbrCongestionControlOnDataLost(
     CXPLAT_DBG_ASSERT(LossEvent->NumRetransmittableBytes > 0);
 
     Bbr->EndOfRecoveryValid = TRUE;
-    Bbr->EndOfRecovery = LossEvent->LargestSentPacketNumber;
+    Bbr->EndOfRecovery = LossEvent->LargestPacketNumberSent;
 
     CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumRetransmittableBytes);
     Bbr->BytesInFlight -= LossEvent->NumRetransmittableBytes;
@@ -972,7 +972,7 @@ BbrCongestionControlOnDataLost(
         RecoveryWindow = CXPLAT_MAX(RecoveryWindow, MinCongestionWindow);
 
         Bbr->EndOfRoundTripValid = TRUE;
-        Bbr->EndOfRoundTrip = LossEvent->LargestSentPacketNumber;
+        Bbr->EndOfRoundTrip = LossEvent->LargestPacketNumberSent;
     }
 
     if (LossEvent->PersistentCongestion) {
