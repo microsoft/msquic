@@ -283,7 +283,7 @@ The time limit between operations for the same endpoint, in milliseconds.
 
 `DestCidUpdateIdleTimeoutMs`
 
-Idle timeout period after which the destination CID is updated before sending again.  
+Idle timeout period after which the destination CID is updated before sending again.
 
 **Default value:** 20,000
 

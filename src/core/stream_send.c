@@ -239,6 +239,10 @@ Exit:
     }
 }
 
+//
+// Returns TRUE if the peer has indicated the stream ID is allowed to be used
+// yet.
+//
 BOOLEAN
 QuicStreamAllowedByPeer(
     _In_ const QUIC_STREAM* Stream

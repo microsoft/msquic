@@ -93,7 +93,6 @@ PrintHelp(
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
-        "  -cc:<algo>                  Congestion control algorithm to use.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
 #ifndef _KERNEL_MODE
@@ -273,27 +272,14 @@ QuicMainStart(
             WriteOutput("MsQuic Failed To Set DataPath Procs %d\n", Status);
             return Status;
         }
-}
-
+    }
 #endif // _KERNEL_MODE
 
-    QUIC_CONGESTION_CONTROL_ALGORITHM Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
-    const char* CcName = GetValue(argc, argv, "cc");
-    if (CcName != nullptr) {
-        if (IsValue(CcName, "cubic")) {
-            Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
-        } else if (IsValue(CcName, "bbr")) {
-            Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
-        } else {
-            WriteOutput("Failed to parse congestion control algorithm[%s], use cubic as default\n", CcName);
-        }
-    }
-
     if (ServerMode) {
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig, Cc);
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
     } else {
         if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
-            TestToRun = new(std::nothrow) ThroughputClient(Cc);
+            TestToRun = new(std::nothrow) ThroughputClient;
         } else if (IsValue(TestName, "RPS")) {
             TestToRun = new(std::nothrow) RpsClient;
         } else if (IsValue(TestName, "HPS")) {
