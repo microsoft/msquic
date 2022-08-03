@@ -1867,11 +1867,7 @@ void QuicTestCloseConnBeforeStreamFlush()
         static QUIC_STATUS ClientCallback(_In_ MsQuicConnection* Conn, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
             if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
                 auto Stream = new(std::nothrow) MsQuicStream(*Conn, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpAutoDelete);
-                if (QUIC_FAILED(Stream->GetInitStatus()) ||
-                    QUIC_FAILED(Stream->Send(&NoopBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN))) {
-                    TEST_FAILURE("Stream creation or send failed.");
-                    delete Stream;
-                }
+                (void)Stream->Send(&NoopBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN);
                 Conn->Close();
             }
             return QUIC_STATUS_SUCCESS;
