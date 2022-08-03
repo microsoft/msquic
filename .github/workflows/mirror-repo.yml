@@ -1,0 +1,30 @@
+name: Mirror
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+    - prerelease/*
+    tags:
+    - v*
+
+permissions: read-all
+
+jobs:
+  mirror:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+    name: Mirror
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+      with:
+        fetch-depth: 0
+    - name: Sync mirror
+      shell: pwsh
+      env:
+        AzDO_PAT: ${{ secrets.AZDO_PAT }}
+        Source: ${{ github.ref }} # refs/heads/<branch_name> or refs/tags/<tag_name>
+      run: scripts/sync-mirror.ps1 -Source $env:Source
