@@ -246,26 +246,6 @@ tracepoint(CLOG_LISTENER_C, ListenerErrorStatus , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerError
-// [list][%p] ERROR, %s.
-// QuicTraceEvent(
-            ListenerError,
-            "[list][%p] ERROR, %s.",
-            Listener,
-            "Register with binding");
-// arg2 = arg2 = Listener = arg2
-// arg3 = arg3 = "Register with binding" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ListenerError
-#define _clog_4_ARGS_TRACE_ListenerError(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LISTENER_C, ListenerError , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ListenerStarted
 // [list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!
 // QuicTraceEvent(
