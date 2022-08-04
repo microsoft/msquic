@@ -31,8 +31,16 @@ if [ "$OS" == 'Linux' ]; then
         ARCH='x64'
         LIBDIR="lib64"
     else
-        ARCH=x86
         LIBDIR="lib"
+        if [ "$ARCH" == "aarch64" ]; then
+            ARCH=arm64
+        else
+            if [ "$ARCH" == "armv7l" ]; then
+                ARCH=arm
+            else
+                ARCH=x86
+            fi
+        fi
     fi
 else
   if [ "$OS" == 'Darwin' ]; then
@@ -93,7 +101,7 @@ mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
   # Create symlink
-  ln -s "${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" "${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}"
+  ln -sf "${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" "${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}"
 
   # RedHat/CentOS
   FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
