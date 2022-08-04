@@ -43,7 +43,6 @@ struct in_pktinfo {
 #include <net/if_dl.h>
 #endif
 
-
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
@@ -1224,6 +1223,7 @@ CxPlatSocketContextRecvComplete(
 
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
+    BOOLEAN FoundIfIdx = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
     if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
         LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -1251,6 +1251,7 @@ CxPlatSocketContextRecvComplete(
 
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                 FoundLocalAddr = TRUE;
+                FoundIfIdx = TRUE;
             } else if (CMsg->cmsg_type == IPV6_TCLASS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
                 FoundTOS = TRUE;
@@ -1264,6 +1265,7 @@ CxPlatSocketContextRecvComplete(
                 LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                 FoundLocalAddr = TRUE;
+                FoundIfIdx = TRUE;
             }
 #elif defined(IP_RECVDSTADDR)
             if (CMsg->cmsg_type == IP_RECVDSTADDR) {
@@ -1280,6 +1282,7 @@ CxPlatSocketContextRecvComplete(
             else if (CMsg->cmsg_type == IP_RECVIF) {
                 struct sockaddr_dl *Info = (struct sockaddr_dl *)CMSG_DATA(CMsg);
                 LocalAddr->Ipv6.sin6_scope_id = Info->sdl_index;
+                FoundIfIdx = TRUE;
             }
 #endif
             else if (CMsg->cmsg_type == IP_TOS || CMsg->cmsg_type == IP_RECVTOS) {
@@ -1291,6 +1294,7 @@ CxPlatSocketContextRecvComplete(
 
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
     CXPLAT_FRE_ASSERT(FoundTOS);
+    CXPLAT_FRE_ASSERT(FoundIfIdx);
 
     QuicTraceEvent(
         DatapathRecv,
