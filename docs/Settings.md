@@ -58,7 +58,7 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | MTU Discovery Missing Probe Count  | uint8_t    | MtuDiscoveryMissingProbeCount  |              3 | The number of MTU probes to retry before exiting MTU probing.                                                                 |
 | Max Binding Stateless Operations   | uint16_t   | MaxBindingStatelessOperations  |            100 | The maximum number of stateless operations that may be queued on a binding at any one time.                                   |
 | Stateless Operation Expiration     | uint16_t   | StatelessOperationExpirationMs |            100 | The time limit between operations for the same endpoint, in milliseconds.                                                     |
-| Congestion Control Algorithm       | uint8_t    | CongestionControlAlgorithm  |         0 (Cubic) | The congestion control algorithm used for connection.                                                                         |
+| Congestion Control Algorithm       | uint16_t   | CongestionControlAlgorithm  |         0 (Cubic) | The congestion control algorithm used for the connection.                                                                     |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
