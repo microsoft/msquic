@@ -13,6 +13,11 @@ Environment:
 
 --*/
 
+// For FreeBSD
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_trace.h"
@@ -786,7 +791,11 @@ CxPlatCurThreadID(
     )
 {
 
-#if defined(CX_PLATFORM_LINUX)
+// For FreeBSD
+#if defined(__FreeBSD__)
+    return pthread_getthreadid_np();
+
+#elif defined(CX_PLATFORM_LINUX)
 
     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
     return syscall(SYS_gettid);

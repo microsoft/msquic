@@ -13,6 +13,15 @@ Environment:
 
 --*/
 
+// For FreeBSD
+#if defined(__FreeBSD__)
+#include <netinet/in.h>
+struct in_pktinfo {
+	struct in_addr ipi_addr;        // the source or destination address
+	unsigned int ipi_ifindex;       // the interface index
+};
+#endif
+
 #define __APPLE_USE_RFC_3542 1
 // See netinet6/in6.h:46 for an explanation
 #include "platform_internal.h"
@@ -24,6 +33,14 @@ Environment:
 #include <sys/types.h>
 #ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
+#endif
+
+// Check options
+#if !defined(IP_PKTINFO) && !defined(IP_RECVDSTADDR)
+#error "No socket option specified"
+#endif
+#if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
+#include <net/if_dl.h>
 #endif
 
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
@@ -865,7 +882,15 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
+#if defined(IP_RECVPKTINFO)
             ForceIpv4 ? IP_RECVPKTINFO : IPV6_RECVPKTINFO,
+#elif defined(IP_PKTINFO)
+            ForceIpv4 ? IP_PKTINFO : IPV6_RECVPKTINFO,
+#elif defined(IP_RECVDSTADDR)
+            ForceIpv4 ? IP_RECVDSTADDR : IPV6_RECVPKTINFO,
+#else
+#error "No socket option specified"
+#endif
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -878,6 +903,25 @@ CxPlatSocketContextInitialize(
             "setsockopt(IPV6_RECVPKTINFO) failed");
         goto Exit;
     }
+
+#if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
+    if (ForceIpv4) {
+        Result =
+            setsockopt(
+                SocketContext->SocketFd, IPPROTO_IP, IP_RECVIF,
+                (const void*)&Option, sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IP_RECVIF) failed");
+            goto Exit;
+        }
+    }
+#endif
 
     //
     // Set socket option to receive TOS (= DSCP + ECN) information from the
@@ -1179,6 +1223,7 @@ CxPlatSocketContextRecvComplete(
 
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
+    BOOLEAN FoundIfIdx = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
     if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
         LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -1206,11 +1251,13 @@ CxPlatSocketContextRecvComplete(
 
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                 FoundLocalAddr = TRUE;
+                FoundIfIdx = TRUE;
             } else if (CMsg->cmsg_type == IPV6_TCLASS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
                 FoundTOS = TRUE;
             }
         } else if (CMsg->cmsg_level == IPPROTO_IP) {
+#if defined(IP_PKTINFO)
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
                 LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
@@ -1218,7 +1265,27 @@ CxPlatSocketContextRecvComplete(
                 LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                 FoundLocalAddr = TRUE;
-            } else if (CMsg->cmsg_type == IP_TOS || CMsg->cmsg_type == IP_RECVTOS) {
+                FoundIfIdx = TRUE;
+            }
+#elif defined(IP_RECVDSTADDR)
+            if (CMsg->cmsg_type == IP_RECVDSTADDR) {
+                struct in_addr *Info = (struct in_addr *)CMSG_DATA(CMsg);
+                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
+                LocalAddr->Ipv4.sin_addr = *Info;
+                LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                FoundLocalAddr = TRUE;
+            }
+#else
+#error "No socket option specified"
+#endif
+#if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
+            else if (CMsg->cmsg_type == IP_RECVIF) {
+                struct sockaddr_dl *Info = (struct sockaddr_dl *)CMSG_DATA(CMsg);
+                LocalAddr->Ipv6.sin6_scope_id = Info->sdl_index;
+                FoundIfIdx = TRUE;
+            }
+#endif
+            else if (CMsg->cmsg_type == IP_TOS || CMsg->cmsg_type == IP_RECVTOS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
                 FoundTOS = TRUE;
             }
@@ -1227,6 +1294,7 @@ CxPlatSocketContextRecvComplete(
 
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
     CXPLAT_FRE_ASSERT(FoundTOS);
+    CXPLAT_FRE_ASSERT(FoundIfIdx);
 
     QuicTraceEvent(
         DatapathRecv,
@@ -2140,8 +2208,15 @@ CxPlatSocketSendInternal(
         CXPLAT_DBG_ASSERT(CMsg != NULL);
         if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
+#if defined(IP_PKTINFO)
             CMsg->cmsg_type = IP_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+#elif defined(IP_RECVDSTADDR)
+            CMsg->cmsg_type = IP_RECVDSTADDR;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
+#else
+#error "No socket option specified"
+#endif
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.
             PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
