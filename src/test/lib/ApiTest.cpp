@@ -2295,7 +2295,7 @@ void QuicTestGlobalParam()
                     &Length,
                     &ActualVersion));
             TEST_EQUAL(ActualVersion[0], 2);
-            TEST_EQUAL(ActualVersion[1], 1);
+            TEST_EQUAL(ActualVersion[1], 2);
             // value of idx 2 and 3 are decided at build time.
             // it is hard to verify the values at runtime.
         }
