@@ -61,6 +61,9 @@ while :; do
 
     lowerI="$(echo $1 | tr "[:upper:]" "[:lower:]")"
     case $lowerI in
+        -a|-arch|--arch)
+            ARCH=$1
+            ;;
         -d|-debug|--debug)
             CONFIG=Debug
             ;;
