@@ -127,9 +127,16 @@ if [ "$OS" == "linux" ]; then
     ${FILES}
 
   # Debian/Ubuntu
-  if [ "$LIBDIR" == 'lib64' ]; then
+  if [ "$ARCH" == 'x64' ]; then
       LIBDIR="lib/x86_64-linux-gnu"
   fi
+  if [ "$ARCH" == 'arm64' ];then
+    LIBDIR="lib/aarch64-linux-gnu"
+  fi
+  if [ "$ARCH" == 'arm' ];then
+    LIBDIR="lib/arm-linux-gnueabihf"
+  fi
+
   FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
   if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
