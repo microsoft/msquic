@@ -40,6 +40,7 @@ jobs:
             registry-1.docker.io:443
             archive.ubuntu.com:80
             security.ubuntu.com:80
+            packages.microsoft.com:443
       - name: Checkout repository
         uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
         with:
