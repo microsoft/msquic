@@ -3096,69 +3096,72 @@ QuicTestChangeAlpn(
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
+    const char* FirstAlpns[] = {"quic1", "quic1", "VerifyThisAsQuicALPN", "VerifyThisAsQuicALPN"};
+    const char* SecondAlpns[] = {"MsQuicTest", "MsQuicVerifyThisAsQuicALPN", "MsQuicTest", "MsQuicVerifyThisAsQuicALPN"};
+    for (int idx = 0; idx < 4; ++idx) {
+        MsQuicAlpn Alpn(FirstAlpns[idx], SecondAlpns[idx]);
 
-    MsQuicAlpn Alpn("quic1", "msquic2");
+        MsQuicAlpn NewAlpn(SecondAlpns[idx]);
 
-    MsQuicAlpn NewAlpn("msquic2");
+        MsQuicSettings Settings;
+        Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(3000);
+        MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+        TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+        TEST_TRUE(ClientConfiguration.IsValid());
 
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
-    TEST_TRUE(ClientConfiguration.IsValid());
-
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
-
-    {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration, &NewAlpn);
-        TEST_TRUE(Listener.IsValid());
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
 
         {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
+            TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration, &NewAlpn);
+            TEST_TRUE(Listener.IsValid());
+            QuicAddr ServerLocalAddr(QuicAddrFamily);
+            TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+
+            TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
             {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
+                UniquePtr<TestConnection> Server;
+                ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+                Listener.Context = &ServerAcceptCtx;
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_TEST_LOOPBACK_FOR_AF(
-                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        ServerLocalAddr.GetPort()));
+                {
+                    TestConnection Client(Registration);
+                    TEST_TRUE(Client.IsValid());
 
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
+                    TEST_QUIC_SUCCEEDED(
+                        Client.Start(
+                            ClientConfiguration,
+                            QuicAddrFamily,
+                            QUIC_TEST_LOOPBACK_FOR_AF(
+                                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                            ServerLocalAddr.GetPort()));
 
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
+                    if (!Client.WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_TRUE(Client.GetIsConnected());
 
-                auto AlpnBuffer = NewAlpn[0];
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_TRUE(Server->GetIsConnected());
 
-                TEST_EQUAL(Server->GetNegotiatedAlpnLength(), AlpnBuffer.Length);
-                for (uint32_t i = 0; i < AlpnBuffer.Length; i++) {
-                    TEST_EQUAL(Server->GetNegotiatedAlpn()[i], AlpnBuffer.Buffer[i]);
-                }
+                    auto AlpnBuffer = NewAlpn[0];
 
-                TEST_EQUAL(Client.GetNegotiatedAlpnLength(), AlpnBuffer.Length);
-                for (uint32_t i = 0; i < AlpnBuffer.Length; i++) {
-                    TEST_EQUAL(Client.GetNegotiatedAlpn()[i], AlpnBuffer.Buffer[i]);
+                    TEST_EQUAL(Server->GetNegotiatedAlpnLength(), AlpnBuffer.Length);
+                    for (uint32_t i = 0; i < AlpnBuffer.Length; i++) {
+                        TEST_EQUAL(Server->GetNegotiatedAlpn()[i], AlpnBuffer.Buffer[i]);
+                    }
+
+                    TEST_EQUAL(Client.GetNegotiatedAlpnLength(), AlpnBuffer.Length);
+                    for (uint32_t i = 0; i < AlpnBuffer.Length; i++) {
+                        TEST_EQUAL(Client.GetNegotiatedAlpn()[i], AlpnBuffer.Buffer[i]);
+                    }
                 }
             }
         }
