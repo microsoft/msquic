@@ -25,7 +25,7 @@ The valid handle to the listener object this event is for.
 
 `Context`
 
-The application callback context (optionally) supplied in [ListenerOpen](ListenerOpen.md), [SetCallbackHandler](SetCallbackHandler.md) or [SetContext](SetContext.md).
+The application callback context (optionally) supplied in [ListenerOpen](ListenerOpen.md).
 
 `Event`
 
