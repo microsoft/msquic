@@ -565,6 +565,15 @@ TEST(Alpn, InvalidAlpnLengths) {
     }
 }
 
+TEST(Alpn, ChangeAlpn) {
+    TestLogger Logger("QuicTestChangeAlpn");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CHANGE_ALPN));
+    } else {
+        QuicTestChangeAlpn();
+    }
+}
+
 
 TEST_P(WithFamilyArgs, BindConnectionImplicit) {
     TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());

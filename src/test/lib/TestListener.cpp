@@ -20,12 +20,14 @@ volatile int64_t NextConnID = 0x10000;
 TestListener::TestListener(
     _In_ HQUIC Registration,
     _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-    _In_opt_ HQUIC Configuration
+    _In_opt_ HQUIC Configuration,
+    _In_ const MsQuicAlpn* NewAlpnParam
     ) :
     QuicListener(nullptr),
     QuicConfiguration(Configuration),
     FilterConnections(false),
     NewConnectionCallback(NewConnectionCallbackHandler),
+    NewAlpn(NewAlpnParam),
     Context(nullptr)
 {
     QUIC_STATUS Status =
@@ -134,6 +136,13 @@ TestListener::HandleListenerEvent(
             TEST_FAILURE("Null Connection");
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
+        }
+
+        if (NewAlpn) {
+            auto& NewConn = Event->NEW_CONNECTION;
+            auto Buffer = static_cast<const QUIC_BUFFER*>(*NewAlpn);
+            NewConn.NewNegotiatedAlpn = Buffer[0].Buffer;
+            NewConn.NewNegotiatedAlpnLength = static_cast<uint8_t>(Buffer[0].Length);
         }
 
         if (FilterConnections ||

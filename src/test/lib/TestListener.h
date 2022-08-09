@@ -38,6 +38,8 @@ class TestListener
 
     NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallback;
 
+    const MsQuicAlpn *NewAlpn;
+
     QUIC_STATUS
     HandleListenerEvent(
         _Inout_ QUIC_LISTENER_EVENT* Event
@@ -63,7 +65,8 @@ public:
     TestListener(
         _In_ HQUIC Registration,
         _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-        _In_opt_ HQUIC Configuration
+        _In_opt_ HQUIC Configuration,
+        _In_ const MsQuicAlpn *NewAlpnParam = nullptr
         );
 
     ~TestListener();

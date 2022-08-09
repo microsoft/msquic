@@ -14,6 +14,8 @@ Abstract:
 #include "listener.c.clog.h"
 #endif
 
+#include <stdio.h>
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicListenerStopAsync(
@@ -613,6 +615,8 @@ QuicListenerClaimConnection(
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
     Event.NEW_CONNECTION.Info = Info;
     Event.NEW_CONNECTION.Connection = (HQUIC)Connection;
+    Event.NEW_CONNECTION.NewNegotiatedAlpn = NULL;
+    Event.NEW_CONNECTION.NewNegotiatedAlpnLength = 0;
 
     QuicListenerAttachSilo(Listener);
 
@@ -642,6 +646,33 @@ QuicListenerClaimConnection(
             QUIC_ERROR_CONNECTION_REFUSED);
         return FALSE;
     }
+
+    if (Event.NEW_CONNECTION.NewNegotiatedAlpn && Event.NEW_CONNECTION.NewNegotiatedAlpnLength > 0) {
+        uint8_t* NegotiatedAlpn = NULL;
+        uint8_t NegotiatedAlpnLength = Event.NEW_CONNECTION.NewNegotiatedAlpnLength;
+        if (NegotiatedAlpnLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
+            NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+            CxPlatZeroMemory(NegotiatedAlpn, TLS_SMALL_ALPN_BUFFER_SIZE);
+        } else {
+            NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength + sizeof(uint8_t), QUIC_POOL_ALPN);
+            if (NegotiatedAlpn == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "NegotiatedAlpn",
+                    NegotiatedAlpnLength);
+                QuicConnTransportError(
+                    Connection,
+                    QUIC_ERROR_INTERNAL_ERROR);
+                goto Error;
+            }
+        }
+        NegotiatedAlpn[0] = NegotiatedAlpnLength;
+        CxPlatCopyMemory(NegotiatedAlpn + 1, Event.NEW_CONNECTION.NewNegotiatedAlpn, NegotiatedAlpnLength);
+        Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
+    }
+
+Error:
 
     //
     // The application layer has accepted the connection.

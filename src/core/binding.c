@@ -549,6 +549,13 @@ QuicBindingAcceptConnection(
     //
     QuicListenerAcceptConnection(Listener, Connection, Info);
 
+    //
+    // Free the ALPN buffer if it's changed by the app with NewNegotiatedAlpn.
+    //
+    if (NegotiatedAlpn != Connection->Crypto.TlsState.NegotiatedAlpn) {
+        CXPLAT_FREE(NegotiatedAlpn, QUIC_POOL_ALPN);
+    }
+
 Error:
 
     QuicListenerRelease(Listener, TRUE);

@@ -751,6 +751,8 @@ TestConnection::HandleConnectionEvent(
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
         CxPlatEventSet(EventConnectionComplete);
+        NegotiatedAlpn = Event->CONNECTED.NegotiatedAlpn;
+        NegotiatedAlpnLength = Event->CONNECTED.NegotiatedAlpnLength;
         break;
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
@@ -931,4 +933,14 @@ TestConnection::GetDestCidUpdateCount() {
         TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
     }
     return Stats.DestCidUpdateCount;
+}
+
+const uint8_t*
+TestConnection::GetNegotiatedAlpn() const {
+    return NegotiatedAlpn;
+}
+
+uint8_t
+TestConnection::GetNegotiatedAlpnLength() const {
+    return NegotiatedAlpnLength;
 }
