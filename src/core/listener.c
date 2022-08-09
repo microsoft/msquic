@@ -643,14 +643,26 @@ QuicListenerClaimConnection(
             QUIC_ERROR_CONNECTION_REFUSED);
         return FALSE;
     }
+
     const uint8_t* NewNegotiatedAlpn = Event.NEW_CONNECTION.NewNegotiatedAlpn;
-    const uint8_t* ListStart = Info->ClientAlpnList;
-    const uint8_t* ListEnd = Info->ClientAlpnList + Info->ClientAlpnListLength;
-    if (NewNegotiatedAlpn &&
-        ListStart <= NewNegotiatedAlpn &&
-        ListEnd > NewNegotiatedAlpn &&
-        NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) <= ListEnd
-    ) {
+    if (NewNegotiatedAlpn) {
+        const uint8_t* ListStart = Info->ClientAlpnList;
+        const uint8_t* ListEnd = Info->ClientAlpnList + Info->ClientAlpnListLength;
+        if (!(ListStart <= NewNegotiatedAlpn &&
+            ListEnd > NewNegotiatedAlpn &&
+            NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) <= ListEnd)
+        ) {
+            QuicTraceEvent(
+                ListenerError,
+                "[list][%p] ERROR, %s.",
+                Listener,
+                "'NewNegotiatedAlpn' field is out of bounds of the 'ClientAlpnList' buffer.");
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            goto Error;
+        }
+
         //
         // Free current ALPN buffer if it's allocated on heap.
         //

@@ -325,6 +325,29 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerRundown,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ListenerError
+// [list][%p] ERROR, %s.
+// QuicTraceEvent(
+                ListenerError,
+                "[list][%p] ERROR, %s.",
+                Listener,
+                "'NewNegotiatedAlpn' field is out of bounds of the 'ClientAlpnList' buffer.");
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = "'NewNegotiatedAlpn' field is out of bounds of the 'ClientAlpnList' buffer." = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerError,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

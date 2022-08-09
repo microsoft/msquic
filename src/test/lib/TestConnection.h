@@ -92,8 +92,8 @@ class TestConnection
     uint32_t DatagramsLost;
     uint32_t DatagramsAcknowledged;
 
-    const uint8_t* NegotiatedAlpn{};
-    uint8_t NegotiatedAlpnLength{};
+    const uint8_t* NegotiatedAlpn;
+    uint8_t NegotiatedAlpnLength;
 
     QUIC_STATUS
     HandleConnectionEvent(

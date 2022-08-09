@@ -21,7 +21,7 @@ TestListener::TestListener(
     _In_ HQUIC Registration,
     _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
     _In_opt_ HQUIC Configuration,
-    _In_ const MsQuicAlpn* NewAlpnParam
+    _In_ const AlpnHelper* NewAlpnParam
     ) :
     QuicListener(nullptr),
     QuicConfiguration(Configuration),
@@ -139,19 +139,20 @@ TestListener::HandleListenerEvent(
         }
 
         if (NewAlpn) {
-            auto& NewConn = Event->NEW_CONNECTION;
-            auto Buffer = static_cast<const QUIC_BUFFER*>(*NewAlpn);
-            auto Length = Buffer[0].Length;
-            uint16_t AlpnListLength = NewConn.Info->ClientAlpnListLength;
-            const uint8_t* AlpnList = NewConn.Info->ClientAlpnList;
-            while (AlpnListLength != 0) {
-                if (AlpnList[0] == Length &&
-                    memcmp(AlpnList+1, Buffer[0].Buffer, Length) == 0) {
-                    NewConn.NewNegotiatedAlpn = AlpnList;
-                    break;
+            if (auto& NewConn = Event->NEW_CONNECTION; NewAlpn->SearchInList) {
+                uint16_t AlpnListLength = NewConn.Info->ClientAlpnListLength;
+                const uint8_t* AlpnList = NewConn.Info->ClientAlpnList;
+                while (AlpnListLength != 0) {
+                    if (AlpnList[0] == NewAlpn->Length &&
+                        memcmp(AlpnList+1, NewAlpn->Alpn, NewAlpn->Length) == 0) {
+                        NewConn.NewNegotiatedAlpn = AlpnList;
+                        break;
+                    }
+                    AlpnListLength -= AlpnList[0] + 1;
+                    AlpnList += (size_t)AlpnList[0] + (size_t)1;
                 }
-                AlpnListLength -= AlpnList[0] + 1;
-                AlpnList += (size_t)AlpnList[0] + (size_t)1;
+            } else {
+                NewConn.NewNegotiatedAlpn = NewAlpn->Alpn;
             }
         }
 
