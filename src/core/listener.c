@@ -643,13 +643,25 @@ QuicListenerClaimConnection(
             QUIC_ERROR_CONNECTION_REFUSED);
         return FALSE;
     }
+    const uint8_t* NewNegotiatedAlpn = Event.NEW_CONNECTION.NewNegotiatedAlpn;
+    const uint8_t* ListStart = Info->ClientAlpnList;
+    const uint8_t* ListEnd = Info->ClientAlpnList + Info->ClientAlpnListLength;
+    if (NewNegotiatedAlpn &&
+        ListStart <= NewNegotiatedAlpn &&
+        ListEnd > NewNegotiatedAlpn &&
+        NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) <= ListEnd
+    ) {
+        //
+        // Free current ALPN buffer if it's allocated on heap.
+        //
+        if (Connection->Crypto.TlsState.NegotiatedAlpn != Connection->Crypto.TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Connection->Crypto.TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+        }
 
-    if (Event.NEW_CONNECTION.NewNegotiatedAlpn) {
         uint8_t* NegotiatedAlpn = NULL;
         uint8_t NegotiatedAlpnLength = Event.NEW_CONNECTION.NewNegotiatedAlpn[0];
         if (NegotiatedAlpnLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
             NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
-            CxPlatZeroMemory(NegotiatedAlpn, TLS_SMALL_ALPN_BUFFER_SIZE);
         } else {
             NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength + sizeof(uint8_t), QUIC_POOL_ALPN);
             if (NegotiatedAlpn == NULL) {
