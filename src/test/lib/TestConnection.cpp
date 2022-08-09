@@ -752,9 +752,9 @@ TestConnection::HandleConnectionEvent(
         if (IsServer) {
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
-        CxPlatEventSet(EventConnectionComplete);
         NegotiatedAlpn = Event->CONNECTED.NegotiatedAlpn;
         NegotiatedAlpnLength = Event->CONNECTED.NegotiatedAlpnLength;
+        CxPlatEventSet(EventConnectionComplete);
         break;
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
