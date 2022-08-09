@@ -1824,7 +1824,7 @@ namespace Microsoft.Quic
                 [NativeTypeName("uint8_t")]
                 internal byte NewNegotiatedAlpnLength;
 
-                [NativeTypeName("uint8_t *")]
+                [NativeTypeName("const uint8_t *")]
                 internal byte* NewNegotiatedAlpn;
             }
 
