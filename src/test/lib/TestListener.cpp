@@ -141,8 +141,18 @@ TestListener::HandleListenerEvent(
         if (NewAlpn) {
             auto& NewConn = Event->NEW_CONNECTION;
             auto Buffer = static_cast<const QUIC_BUFFER*>(*NewAlpn);
-            NewConn.NewNegotiatedAlpn = Buffer[0].Buffer;
-            NewConn.NewNegotiatedAlpnLength = static_cast<uint8_t>(Buffer[0].Length);
+            auto Length = Buffer[0].Length;
+            uint16_t AlpnListLength = NewConn.Info->ClientAlpnListLength;
+            const uint8_t* AlpnList = NewConn.Info->ClientAlpnList;
+            while (AlpnListLength != 0) {
+                if (AlpnList[0] == Length &&
+                    memcmp(AlpnList+1, Buffer[0].Buffer, Length) == 0) {
+                    NewConn.NewNegotiatedAlpn = AlpnList;
+                    break;
+                }
+                AlpnListLength -= AlpnList[0] + 1;
+                AlpnList += (size_t)AlpnList[0] + (size_t)1;
+            }
         }
 
         if (FilterConnections ||

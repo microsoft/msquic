@@ -614,7 +614,6 @@ QuicListenerClaimConnection(
     Event.NEW_CONNECTION.Info = Info;
     Event.NEW_CONNECTION.Connection = (HQUIC)Connection;
     Event.NEW_CONNECTION.NewNegotiatedAlpn = NULL;
-    Event.NEW_CONNECTION.NewNegotiatedAlpnLength = 0;
 
     QuicListenerAttachSilo(Listener);
 
@@ -645,9 +644,9 @@ QuicListenerClaimConnection(
         return FALSE;
     }
 
-    if (Event.NEW_CONNECTION.NewNegotiatedAlpn && Event.NEW_CONNECTION.NewNegotiatedAlpnLength > 0) {
+    if (Event.NEW_CONNECTION.NewNegotiatedAlpn) {
         uint8_t* NegotiatedAlpn = NULL;
-        uint8_t NegotiatedAlpnLength = Event.NEW_CONNECTION.NewNegotiatedAlpnLength;
+        uint8_t NegotiatedAlpnLength = Event.NEW_CONNECTION.NewNegotiatedAlpn[0];
         if (NegotiatedAlpnLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
             NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
             CxPlatZeroMemory(NegotiatedAlpn, TLS_SMALL_ALPN_BUFFER_SIZE);
@@ -666,7 +665,7 @@ QuicListenerClaimConnection(
             }
         }
         NegotiatedAlpn[0] = NegotiatedAlpnLength;
-        CxPlatCopyMemory(NegotiatedAlpn + 1, Event.NEW_CONNECTION.NewNegotiatedAlpn, NegotiatedAlpnLength);
+        CxPlatCopyMemory(NegotiatedAlpn + 1, Event.NEW_CONNECTION.NewNegotiatedAlpn + 1, NegotiatedAlpnLength);
         Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
     }
 

@@ -964,9 +964,6 @@ typedef struct QUIC_LISTENER_EVENT {
         struct {
             const QUIC_NEW_CONNECTION_INFO* Info;
             HQUIC Connection;
-            _Field_range_(0, QUIC_MAX_ALPN_LENGTH)
-            uint8_t NewNegotiatedAlpnLength;
-            _Field_size_bytes_(NewNegotiatedAlpnLength)
             const uint8_t* NewNegotiatedAlpn;
         } NEW_CONNECTION;
         struct {
