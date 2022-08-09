@@ -45,7 +45,7 @@ This field indicates the valid handle to the new incoming connection.
 `NewNegotiatedAlpn`
 
 This field is optional to set. If you want to set, this field **must** indicate a valid address on the ClientAlpnList.
-If you do not set this field, server will use the first matching ALPN in the ClientAlpnList.
+If you do not set this field, server will use `NegotiatedAlpn` in the `QUIC_NEW_CONNECTION_INFO`.
 If you set this field, server will use the ALPN in this field.
 If you set this field incorrectly, server will **fail** the connection with `QUIC_STATUS_INTERNAL_ERROR`.
 

@@ -30,7 +30,7 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
 
 `QuicVersion`
 
-The QUIC version of the new incoming connection.
+The QUIC version negotiated for the new incoming connection.
 
 `LocalAddress`
 
