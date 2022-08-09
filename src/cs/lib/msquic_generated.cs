@@ -1821,9 +1821,6 @@ namespace Microsoft.Quic
                 [NativeTypeName("HQUIC")]
                 internal QUIC_HANDLE* Connection;
 
-                [NativeTypeName("uint8_t")]
-                internal byte NewNegotiatedAlpnLength;
-
                 [NativeTypeName("const uint8_t *")]
                 internal byte* NewNegotiatedAlpn;
             }
