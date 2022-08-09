@@ -648,9 +648,9 @@ QuicListenerClaimConnection(
     if (NewNegotiatedAlpn) {
         const uint8_t* ListStart = Info->ClientAlpnList;
         const uint8_t* ListEnd = Info->ClientAlpnList + Info->ClientAlpnListLength;
-        if (!(ListStart <= NewNegotiatedAlpn &&
-            ListEnd > NewNegotiatedAlpn &&
-            NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) <= ListEnd)
+        if (ListStart > NewNegotiatedAlpn ||
+            ListEnd <= NewNegotiatedAlpn ||
+            NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) > ListEnd
         ) {
             QuicTraceEvent(
                 ListenerError,
@@ -660,7 +660,7 @@ QuicListenerClaimConnection(
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
-            goto Error;
+            return FALSE;
         }
 
         //
@@ -685,15 +685,13 @@ QuicListenerClaimConnection(
                 QuicConnTransportError(
                     Connection,
                     QUIC_ERROR_INTERNAL_ERROR);
-                goto Error;
+                return FALSE;
             }
         }
         NegotiatedAlpn[0] = NegotiatedAlpnLength;
         CxPlatCopyMemory(NegotiatedAlpn + 1, Event.NEW_CONNECTION.NewNegotiatedAlpn + 1, NegotiatedAlpnLength);
         Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
     }
-
-Error:
 
     //
     // The application layer has accepted the connection.

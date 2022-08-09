@@ -139,7 +139,8 @@ TestListener::HandleListenerEvent(
         }
 
         if (NewAlpn) {
-            if (auto& NewConn = Event->NEW_CONNECTION; NewAlpn->SearchInList) {
+            auto& NewConn = Event->NEW_CONNECTION;
+            if (NewAlpn->SearchInList) {
                 uint16_t AlpnListLength = NewConn.Info->ClientAlpnListLength;
                 const uint8_t* AlpnList = NewConn.Info->ClientAlpnList;
                 while (AlpnListLength != 0) {
