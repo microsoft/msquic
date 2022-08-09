@@ -650,8 +650,7 @@ QuicListenerClaimConnection(
         const uint8_t* ListEnd = Info->ClientAlpnList + Info->ClientAlpnListLength;
         if (ListStart > NewNegotiatedAlpn ||
             ListEnd <= NewNegotiatedAlpn ||
-            NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) > ListEnd
-        ) {
+            NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) > ListEnd) {
             QuicTraceEvent(
                 ListenerError,
                 "[list][%p] ERROR, %s.",
@@ -668,6 +667,7 @@ QuicListenerClaimConnection(
         //
         if (Connection->Crypto.TlsState.NegotiatedAlpn != Connection->Crypto.TlsState.SmallAlpnBuffer) {
             CXPLAT_FREE(Connection->Crypto.TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+            Connection->Crypto.TlsState.NegotiatedAlpn = NULL;
         }
 
         uint8_t* NegotiatedAlpn = NULL;
