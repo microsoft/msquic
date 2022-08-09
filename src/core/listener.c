@@ -14,8 +14,6 @@ Abstract:
 #include "listener.c.clog.h"
 #endif
 
-#include <stdio.h>
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicListenerStopAsync(
