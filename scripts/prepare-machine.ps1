@@ -555,8 +555,6 @@ if ($IsLinux) {
 }
 
 if ($IsMacOS) {
-    brew update
-    brew install cmake
     if ($ForTest) {
         Write-Host "Setting core dump pattern"
         sudo sysctl -w kern.corefile=%N.%P.core
