@@ -347,7 +347,7 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
         }
     }
-    if ($IsLinux) {
+    if ($Platform -eq "Linux") {
         $Arguments += " $Generator"
         $HostArch = "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)".ToLower()
         if ($HostArch -ne $Arch) {
