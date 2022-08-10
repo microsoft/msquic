@@ -889,3 +889,19 @@ private:
         return PrivateAddresses[Key % PrivateAddressesCount];
     }
 };
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+BOOLEAN
+WaitForMsQuicInUse() {
+    int Count = 0;
+    BOOLEAN MsQuicInUse = FALSE;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t MsQuicInUseLen = sizeof(MsQuicInUse);
+    do {
+        CxPlatSleep(100);
+        Status = MsQuic->GetParam(nullptr, QUIC_PARAM_GLOBAL_IN_USE, &MsQuicInUseLen, &MsQuicInUse);
+    } while(!MsQuicInUse && Count++ < 100);
+
+    return MsQuicInUse && Status == QUIC_STATUS_SUCCESS;
+}
