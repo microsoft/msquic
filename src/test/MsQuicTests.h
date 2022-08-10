@@ -226,6 +226,11 @@ QuicTestCibirExtension(
 void
 QuicTestResumptionAcrossVersions();
 
+void
+QuicTestChangeAlpn(
+    void
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -1078,4 +1083,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE \
     QUIC_CTL_CODE(101, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 101
+#define IOCTL_QUIC_RUN_CHANGE_ALPN \
+    QUIC_CTL_CODE(102, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 102

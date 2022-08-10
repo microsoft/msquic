@@ -761,6 +761,7 @@ pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;
 pub struct ListenerEventNewConnection {
     pub info: *const NewConnectionInfo,
     pub connection: Handle,
+    pub new_negotiated_alpn: *const u8,
 }
 
 #[repr(C)]

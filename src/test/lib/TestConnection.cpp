@@ -29,7 +29,8 @@ TestConnection::TestConnection(
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
+    NegotiatedAlpnLength(0), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -58,7 +59,8 @@ TestConnection::TestConnection(
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
+    NegotiatedAlpnLength(0), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -750,6 +752,8 @@ TestConnection::HandleConnectionEvent(
         if (IsServer) {
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
+        NegotiatedAlpn = Event->CONNECTED.NegotiatedAlpn;
+        NegotiatedAlpnLength = Event->CONNECTED.NegotiatedAlpnLength;
         CxPlatEventSet(EventConnectionComplete);
         break;
 
@@ -931,4 +935,14 @@ TestConnection::GetDestCidUpdateCount() {
         TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
     }
     return Stats.DestCidUpdateCount;
+}
+
+const uint8_t*
+TestConnection::GetNegotiatedAlpn() const {
+    return NegotiatedAlpn;
+}
+
+uint8_t
+TestConnection::GetNegotiatedAlpnLength() const {
+    return NegotiatedAlpnLength;
 }

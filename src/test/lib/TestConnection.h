@@ -92,6 +92,9 @@ class TestConnection
     uint32_t DatagramsLost;
     uint32_t DatagramsAcknowledged;
 
+    const uint8_t* NegotiatedAlpn;
+    uint8_t NegotiatedAlpnLength;
+
     QUIC_STATUS
     HandleConnectionEvent(
         _Inout_ QUIC_CONNECTION_EVENT* Event
@@ -292,4 +295,7 @@ public:
     QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
 
     uint32_t GetDestCidUpdateCount();
+
+    const uint8_t* GetNegotiatedAlpn() const;
+    uint8_t GetNegotiatedAlpnLength() const;
 };
