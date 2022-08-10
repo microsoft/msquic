@@ -613,6 +613,7 @@ QuicListenerClaimConnection(
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
     Event.NEW_CONNECTION.Info = Info;
     Event.NEW_CONNECTION.Connection = (HQUIC)Connection;
+    Event.NEW_CONNECTION.NewNegotiatedAlpn = NULL;
 
     QuicListenerAttachSilo(Listener);
 
@@ -641,6 +642,55 @@ QuicListenerClaimConnection(
             Connection,
             QUIC_ERROR_CONNECTION_REFUSED);
         return FALSE;
+    }
+
+    const uint8_t* NewNegotiatedAlpn = Event.NEW_CONNECTION.NewNegotiatedAlpn;
+    if (NewNegotiatedAlpn) {
+        const uint8_t* ListStart = Info->ClientAlpnList;
+        const uint8_t* ListEnd = Info->ClientAlpnList + Info->ClientAlpnListLength;
+        if (ListStart > NewNegotiatedAlpn ||
+            ListEnd <= NewNegotiatedAlpn ||
+            NewNegotiatedAlpn + NewNegotiatedAlpn[0] + sizeof(uint8_t) > ListEnd) {
+            QuicTraceEvent(
+                ListenerError,
+                "[list][%p] ERROR, %s.",
+                Listener,
+                "'NewNegotiatedAlpn' field is out of bounds of the 'ClientAlpnList' buffer.");
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            return FALSE;
+        }
+
+        //
+        // Free current ALPN buffer if it's allocated on heap.
+        //
+        if (Connection->Crypto.TlsState.NegotiatedAlpn != Connection->Crypto.TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Connection->Crypto.TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+            Connection->Crypto.TlsState.NegotiatedAlpn = NULL;
+        }
+
+        uint8_t* NegotiatedAlpn = NULL;
+        uint8_t NegotiatedAlpnLength = Event.NEW_CONNECTION.NewNegotiatedAlpn[0];
+        if (NegotiatedAlpnLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
+            NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+        } else {
+            NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength + sizeof(uint8_t), QUIC_POOL_ALPN);
+            if (NegotiatedAlpn == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "NegotiatedAlpn",
+                    NegotiatedAlpnLength);
+                QuicConnTransportError(
+                    Connection,
+                    QUIC_ERROR_INTERNAL_ERROR);
+                return FALSE;
+            }
+        }
+        NegotiatedAlpn[0] = NegotiatedAlpnLength;
+        CxPlatCopyMemory(NegotiatedAlpn + 1, Event.NEW_CONNECTION.NewNegotiatedAlpn + 1, NegotiatedAlpnLength);
+        Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
     }
 
     //

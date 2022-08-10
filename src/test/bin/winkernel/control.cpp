@@ -473,6 +473,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1262,6 +1263,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE:
         QuicTestCtlRun(QuicTestConnectAndIdleForDestCidChange());
+        break;
+
+    case IOCTL_QUIC_RUN_CHANGE_ALPN:
+        QuicTestCtlRun(QuicTestChangeAlpn());
         break;
 
     default:
