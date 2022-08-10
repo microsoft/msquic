@@ -96,6 +96,9 @@ This script provides helpers for building msquic.
 .PARAMETER LibraryName
     Renames the library to whatever is passed in
 
+.PARAMETER SysRoot
+    Directory with cross-compilation tools
+
 .EXAMPLE
     build.ps1
 
@@ -197,7 +200,10 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$LibraryName = "msquic"
+    [string]$LibraryName = "msquic",
+
+    [Parameter(Mandatory = $false)]
+    [string]$SysRoot = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -337,8 +343,23 @@ function CMake-Generate {
     }
     if ($Platform -eq "macos") {
         switch ($Arch) {
-            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""12"""}
-            "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
+            "x64"   { $Arguments += " -DCMAKE_TARGET_ARCHITECTURE=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""12"""}
+            "arm64" { $Arguments += " -DCMAKE_TARGET_ARCHITECTURE=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
+        }
+    }
+    if ($IsLinux) {
+        $Arguments += " $Generator"
+        $HostArch = "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)".ToLower()
+        if ($HostArch -ne $Arch) {
+            # cross-compilation
+            if ($SysRoot -eq "") {
+                Write-Error "SysRoot must be set for cross-compilation."
+            }
+            $Arguments += " -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_CROSSCOMPILING=1 -DCMAKE_SYSROOT=$SysRoot "
+            switch ($Arch) {
+                "arm64" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_TARGET_ARCHITECTURE=arm64" }
+                "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=ar" }
+            }
         }
     }
     if($Static) {

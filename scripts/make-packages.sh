@@ -8,6 +8,7 @@ usage()
 
 OS=$(uname)
 ARCH=$(uname -m)
+PKGARCH=${ARCH}
 FPM=`which fpm` 2>/dev/null
 CONFIG=Release
 NAME=libmsquic
@@ -64,6 +65,12 @@ while :; do
         -a|-arch|--arch)
             shift
             ARCH=$1
+            if [ "$ARCH" == 'arm64' ]; then
+                PKGARCH=aarch64
+            fi
+            if [ "$ARCH" == 'arm' ]; then
+                PKGARCH=armv7l
+            fi
             ;;
         -d|-debug|--debug)
             CONFIG=Debug
@@ -117,6 +124,7 @@ if [ "$OS" == "linux" ]; then
     --force \
     --input-type dir \
     --output-type rpm \
+    --architecture ${PKGARCH} \
     --name ${NAME} \
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
@@ -150,6 +158,7 @@ if [ "$OS" == "linux" ]; then
     --force \
     --input-type dir \
     --output-type deb \
+    --architecture ${PKGARCH} \
     --name ${NAME} \
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
