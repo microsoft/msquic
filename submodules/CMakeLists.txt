@@ -217,11 +217,12 @@ else()
         endif()
     elseif(CX_PLATFORM STREQUAL "darwin")
         # need to build with Apple's compiler
-        if (CMAKE_TARGET_ARCHITECTURE STREQUAL arm64)
+        if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
             set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure darwin64-arm64-cc)
-        elseif(CMAKE_TARGET_ARCHITECTURE STREQUAL x86_64)
+        elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
             set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure darwin64-x86_64-cc)
         else()
+            message(ERROR "WTF ${CX_PLATFORM} ${CMAKE_TARGET_ARCHITECTURE}")
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/openssl/config)
         endif()
         list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
@@ -270,6 +271,7 @@ else()
     include(ProcessorCount)
     ProcessorCount(NPROCS)
 
+    message(STATUS "Configuring OpenSSL: ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}")
     # Compile/install commands for debug and release variants
     add_custom_command(
         OUTPUT ${LIBSSL_PATH}
