@@ -419,7 +419,7 @@ CxPlatEventQReturn(
     );
 
 #ifdef CXPLAT_SQE_INIT
-BOOL
+BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
     _Out_ CXPLAT_SQE* sqe,
@@ -429,7 +429,7 @@ CxPlatSqeInitialize(
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
+    _In_ CXPLAT_SQE* sqe
     );
 #endif // CXPLAT_SQE_INIT
 

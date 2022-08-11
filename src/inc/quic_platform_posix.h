@@ -1065,7 +1065,7 @@ inline
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
+    _In_ CXPLAT_SQE* sqe
     )
 {
     epoll_ctl(*queue, EPOLL_CTL_DEL, *sqe, NULL);
