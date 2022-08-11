@@ -17,14 +17,16 @@ Environment:
 #if defined(__FreeBSD__)
 #include <netinet/in.h>
 struct in_pktinfo {
-	struct in_addr ipi_addr;        // the source or destination address
-	unsigned int ipi_ifindex;       // the interface index
+    struct in_addr ipi_addr;        // the source or destination address
+    unsigned int ipi_ifindex;       // the interface index
 };
 #endif
 
 #define __APPLE_USE_RFC_3542 1
 // See netinet6/in6.h:46 for an explanation
 #include "platform_internal.h"
+#include <stdbool.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/event.h>
 #include <sys/socket.h>
@@ -327,6 +329,11 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
     //
     CXPLAT_POOL SendDataPool;
 
+    //
+    // Pipe to communicate between threads.
+    //
+    int PipeFd[2];
+
 } CXPLAT_DATAPATH_PROC_CONTEXT;
 
 //
@@ -379,6 +386,11 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+//
+// Message for PipeFd
+//
+typedef void* PIPE_MSG;
+
 void*
 CxPlatDataPathWorkerThread(
     _In_ void* Context
@@ -398,13 +410,23 @@ CxPlatProcessorContextUninitialize(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    struct kevent Event = {0};
-    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+    // Notify loop thread
+    PIPE_MSG pipe_msg = NULL;
+    if (write(ProcContext->PipeFd[1], &pipe_msg, sizeof(pipe_msg)) < 0) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data] ERROR, %u, %s.",
+            errno,
+            "write to PipeFd failed");
+        return;
+    }
+
     CxPlatEventWaitForever(ProcContext->CompletionEvent);
     CxPlatEventUninitialize(ProcContext->CompletionEvent);
 
     close(ProcContext->KqueueFd);
+    close(ProcContext->PipeFd[0]);
+    close(ProcContext->PipeFd[1]);
 
     CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
     CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
@@ -424,6 +446,9 @@ CxPlatProcessorContextInitialize(
     uint32_t RecvPacketLength = 0;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
+
+    // Initialize PipeFd
+    ProcContext->PipeFd[0] = ProcContext->PipeFd[1] = -1;
 
     RecvPacketLength =
         sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
@@ -450,6 +475,7 @@ CxPlatProcessorContextInitialize(
         QUIC_POOL_PLATFORM_SENDCTX,
         &ProcContext->SendDataPool);
 
+    // Open kqueue
     KqueueFd = kqueue();
     if (KqueueFd == INVALID_SOCKET) {
         Status = errno;
@@ -465,6 +491,30 @@ CxPlatProcessorContextInitialize(
     ProcContext->KqueueFd = KqueueFd;
     ProcContext->ThreadId = 0;
 
+    // Open pipe
+    if (pipe(ProcContext->PipeFd) < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pipe() failed");
+        goto Exit;
+    }
+
+    // Register PipeFd to KqueueFd
+    struct kevent KEvent = {0};
+    EV_SET(&KEvent, ProcContext->PipeFd[0], EVFILT_READ, EV_ADD, 0, 0, NULL);
+    if (kevent(KqueueFd, &KEvent, 1, NULL, 0, NULL) < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "kevent() failed");
+        goto Exit;
+    }
+
     //
     // Starting the thread must be done after the rest of the ProcContext
     // members have been initialized. Because the thread start routine accesses
@@ -479,6 +529,10 @@ Exit:
     if (QUIC_FAILED(Status)) {
         if (KqueueFd != INVALID_SOCKET) {
             close(KqueueFd);
+        }
+        if (ProcContext->PipeFd[0] > 0) {
+            close(ProcContext->PipeFd[0]);
+            close(ProcContext->PipeFd[1]);
         }
         CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
         CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
@@ -1113,12 +1167,37 @@ CxPlatSocketContextUninitialize(
 {
     struct kevent DeleteEvent = {0};
     EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void*)SocketContext);
-    kevent(SocketContext->ProcContext->KqueueFd, &DeleteEvent, 1, NULL, 0, NULL);
+    if (kevent(SocketContext->ProcContext->KqueueFd, &DeleteEvent, 1, NULL, 0, NULL) < 0) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data] ERROR, %u, %s.",
+            errno,
+            "kevent failed");
+        return;
+    }
+
+    // Notify loop thread
+    PIPE_MSG pipe_msg = NULL;
+    if (write(SocketContext->ProcContext->PipeFd[1], &pipe_msg, sizeof(pipe_msg)) < 0) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data] ERROR, %u, %s.",
+            errno,
+            "write to PipeFd failed");
+        return;
+    }
 
     if (CxPlatCurThreadID() != SocketContext->ProcContext->ThreadId) {
-        struct kevent Event = {0};
-        EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void*)SocketContext);
-        kevent(SocketContext->ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+        // Notify loop thread
+        PIPE_MSG pipe_msg = (PIPE_MSG)SocketContext;
+        if (write(SocketContext->ProcContext->PipeFd[1], &pipe_msg, sizeof(pipe_msg)) < 0) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data] ERROR, %u, %s.",
+                errno,
+                "write to PipeFd failed");
+            return;
+        }
     } else {
         CxPlatSocketContextUninitializeComplete(SocketContext);
     }
@@ -1201,6 +1280,17 @@ CxPlatSocketContextStartReceive(
             CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
         }
 
+        goto Error;
+    }
+
+    // Notify loop thread
+    PIPE_MSG pipe_msg = NULL;
+    if (write(SocketContext->ProcContext->PipeFd[1], &pipe_msg, sizeof(pipe_msg)) < 0) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data] ERROR, %u, %s.",
+            errno,
+            "write to PipeFd failed");
         goto Error;
     }
 
@@ -2265,6 +2355,20 @@ CxPlatSocketSendInternal(
                     "kevent failed");
                 goto Exit;
             }
+
+            // Notify loop thread
+            PIPE_MSG pipe_msg = NULL;
+            if (write(SocketContext->ProcContext->PipeFd[1], &pipe_msg, sizeof(pipe_msg)) < 0) {
+                Status = errno;
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    Status,
+                    "write to PipeFd failed");
+                goto Exit;
+            }
+
             Status = QUIC_STATUS_PENDING;
             goto Exit;
         } else {
@@ -2357,7 +2461,24 @@ CxPlatDataPathWake(
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
     struct kevent Event = {0};
     EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+    if (kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL) < 0) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data] ERROR, %u, %s.",
+            errno,
+            "kevent failed");
+        return;
+    }
+    // Notify loop thread
+    PIPE_MSG pipe_msg = NULL;
+    if (write(ProcContext->PipeFd[1], &pipe_msg, sizeof(pipe_msg)) < 0) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data] ERROR, %u, %s.",
+            errno,
+            "write to PipeFd failed");
+        return;
+    }
 }
 
 BOOLEAN // Did work?
@@ -2373,7 +2494,10 @@ CxPlatDataPathRunEC(
 
     int Kqueue = ProcContext->KqueueFd;
     const size_t EventListMax = 16; // TODO: Experiment.
-    struct kevent EventList[EventListMax];
+    struct kevent EventList[EventListMax], *event_list;
+    PIPE_MSG pipe_msg;
+    int PipeFdRead = ProcContext->PipeFd[0];
+    bool wait_event;
 
     ProcContext->ThreadId = CurThreadId;
 
@@ -2383,6 +2507,8 @@ CxPlatDataPathRunEC(
         Timeout.tv_nsec += ((WaitTime % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
     }
 
+WAIT_EVENT:
+    wait_event = false;
     int ReadyEventCount =
         TEMP_FAILURE_RETRY(
             kevent(
@@ -2405,9 +2531,23 @@ CxPlatDataPathRunEC(
 
     CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
     for (int i = 0; i < ReadyEventCount; i++) {
-        if (EventList[i].udata != NULL) {
+        event_list = &EventList[i];
+        if (event_list->ident == (uintptr_t)PipeFdRead) {
+            read(PipeFdRead, &pipe_msg, sizeof(pipe_msg));
+            if (pipe_msg == NULL)
+                wait_event = true;
+            else {
+                event_list->filter = EVFILT_USER;
+                event_list->udata = pipe_msg;
+                CxPlatSocketContextProcessEvents(event_list);
+            }
+        } else if (event_list->udata != NULL) {
             CxPlatSocketContextProcessEvents(&EventList[i]);
         }
+    }
+
+    if (wait_event) {
+        goto WAIT_EVENT;
     }
 
     return TRUE;
