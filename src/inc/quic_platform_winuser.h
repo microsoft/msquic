@@ -620,8 +620,7 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE); // TODO - How to handle errors?
-    return (uint32_t)out_count;
+    return GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE) ? (uint32_t)out_count : 0;
 }
 
 inline
