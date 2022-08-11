@@ -1048,7 +1048,7 @@ CxPlatEventQReturn(
 #define CXPLAT_SQE_INIT 1
 
 inline
-BOOL
+BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
     _Out_ CXPLAT_SQE* sqe,
