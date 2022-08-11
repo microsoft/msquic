@@ -378,7 +378,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
-        $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
+        $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
