@@ -498,7 +498,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The default value for enabling grease quic bit extension.
 //
-#define QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED         TRUE
+#define QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED         FALSE
 
 /*************************************************************
                   TRANSPORT PARAMETERS
