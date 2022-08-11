@@ -65,6 +65,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB        // Blob
 #define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF03DE1AULL   // varint
 #define QUIC_TP_ID_CIBIR_ENCODING                           0x1000          // {varint, varint}
+#define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -830,6 +831,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QuicVarIntSize(TransportParams->CibirLength) +
                 QuicVarIntSize(TransportParams->CibirOffset));
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_GREASE_QUIC_BIT,
+                0);
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1131,6 +1138,18 @@ QuicCryptoTlsEncodeTransportParameters(
             "TP: CIBIR Encoding (%llu length, %llu offset)",
             TransportParams->CibirLength,
             TransportParams->CibirOffset);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_GREASE_QUIC_BIT,
+                0,
+                NULL,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPGreaseQuicBit,
+            Connection,
+            "TP: Grease Quic Bit");
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1778,6 +1797,23 @@ QuicCryptoTlsDecodeTransportParameters(
                 Connection,
                 "TP: Min ACK Delay (%llu us)",
                 TransportParams->MinAckDelay);
+            break;
+
+        case QUIC_TP_ID_GREASE_QUIC_BIT:
+            if (Length != 0) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_GREASE_QUIC_BIT");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
+            QuicTraceLogConnVerbose(
+                DecodeTPGreaseQuicBit,
+                Connection,
+                "TP: Grease QUIC Bit");
             break;
 
         default:

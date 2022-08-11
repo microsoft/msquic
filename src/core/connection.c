@@ -2355,6 +2355,10 @@ QuicConnGenerateLocalTransportParameters(
         }
     }
 
+    if (Connection->Settings.GreaseQuicBitEnabled) {
+        LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
+    }
+
     if (QuicConnIsServer(Connection)) {
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {

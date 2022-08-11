@@ -132,6 +132,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
         Settings->DestCidUpdateIdleTimeoutMs = QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS;
     }
+    if (!Settings->IsSet.GreaseQuicBitEnabled) {
+        Settings->GreaseQuicBitEnabled = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -263,6 +266,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.DestCidUpdateIdleTimeoutMs) {
         Destination->DestCidUpdateIdleTimeoutMs = Source->DestCidUpdateIdleTimeoutMs;
+    }
+    if (!Destination->IsSet.GreaseQuicBitEnabled) {
+        Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
     }
 }
 
@@ -555,6 +561,11 @@ QuicSettingApply(
     if (Source->IsSet.DestCidUpdateIdleTimeoutMs && (!Destination->IsSet.DestCidUpdateIdleTimeoutMs || OverWrite)) {
         Destination->DestCidUpdateIdleTimeoutMs = Source->DestCidUpdateIdleTimeoutMs;
         Destination->IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+    }
+
+    if (Source->IsSet.GreaseQuicBitEnabled && (!Destination->IsSet.GreaseQuicBitEnabled || OverWrite)) {
+        Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
+        Destination->IsSet.GreaseQuicBitEnabled = TRUE;
     }
 
     return TRUE;
@@ -1108,6 +1119,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->DestCidUpdateIdleTimeoutMs = Value;
     }
+    if (!Settings->IsSet.GreaseQuicBitEnabled) {
+        Value = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_GREASE_QUIC_BIT_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->GreaseQuicBitEnabled = (uint8_t)Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1166,6 +1187,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+    QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1293,6 +1315,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
         QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,      "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+    }
+    if (Settings->IsSet.GreaseQuicBitEnabled) {
+        QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,            "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     }
 }
 
@@ -1453,6 +1478,7 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1545,6 +1571,7 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
 
     //
     // N.B. Anything after this needs to be size checked

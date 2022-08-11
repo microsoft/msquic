@@ -159,7 +159,7 @@ typedef struct QUIC_LONG_HEADER_V1 {
     uint8_t PnLength        : 2;
     uint8_t Reserved        : 2;    // Must be 0.
     uint8_t Type            : 2;    // QUIC_LONG_HEADER_TYPE_V1 or _V2
-    uint8_t FixedBit        : 1;    // Must be 1.
+    uint8_t FixedBit        : 1;    // Must be 1, unless grease_quic_bit tp has been sent.
     uint8_t IsLongHeader    : 1;
     uint32_t Version;
     uint8_t DestCidLength;
@@ -195,7 +195,7 @@ typedef struct QUIC_RETRY_PACKET_V1 {
 
     uint8_t UNUSED          : 4;
     uint8_t Type            : 2;
-    uint8_t FixedBit        : 1;    // Must be 1.
+    uint8_t FixedBit        : 1;    // Must be 1, unless grease_quic_bit tp has been sent.
     uint8_t IsLongHeader    : 1;
     uint32_t Version;
     uint8_t DestCidLength;
@@ -229,7 +229,7 @@ typedef struct QUIC_SHORT_HEADER_V1 {
     uint8_t KeyPhase        : 1;
     uint8_t Reserved        : 2;    // Must be 0.
     uint8_t SpinBit         : 1;
-    uint8_t FixedBit        : 1;    // Must be 1.
+    uint8_t FixedBit        : 1;    // Must be 1, unless grease_quic_bit tp has been sent.
     uint8_t IsLongHeader    : 1;
     uint8_t DestCid[0];             // Length depends on connection.
     //uint8_t PacketNumber[PnLength];

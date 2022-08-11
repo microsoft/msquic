@@ -495,6 +495,11 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS 20000
 
+//
+// The default value for enabling grease quic bit extension.
+//
+#define QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED         TRUE
+
 /*************************************************************
                   TRANSPORT PARAMETERS
 *************************************************************/
@@ -521,6 +526,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_VERSION_NEGOTIATION                    0x00080000
 #define QUIC_TP_FLAG_MIN_ACK_DELAY                          0x00100000
 #define QUIC_TP_FLAG_CIBIR_ENCODING                         0x00200000
+#define QUIC_TP_FLAG_GREASE_QUIC_BIT                        0x00400000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -562,6 +568,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_SEND_PACING_DEFAULT            "SendPacingDefault"
 #define QUIC_SETTING_MIGRATION_ENABLED              "MigrationEnabled"
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED       "DatagramReceiveEnabled"
+#define QUIC_SETTING_GREASE_QUIC_BIT_ENABLED        "GreaseQuicBitEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
