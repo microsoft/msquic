@@ -20,14 +20,12 @@ volatile int64_t NextConnID = 0x10000;
 TestListener::TestListener(
     _In_ HQUIC Registration,
     _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-    _In_opt_ HQUIC Configuration,
-    _In_ const AlpnHelper* NewAlpnParam
+    _In_opt_ HQUIC Configuration
     ) :
     QuicListener(nullptr),
     QuicConfiguration(Configuration),
     FilterConnections(false),
     NewConnectionCallback(NewConnectionCallbackHandler),
-    NewAlpn(NewAlpnParam),
     Context(nullptr)
 {
     QUIC_STATUS Status =
@@ -136,25 +134,6 @@ TestListener::HandleListenerEvent(
             TEST_FAILURE("Null Connection");
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
-        }
-
-        if (NewAlpn) {
-            auto& NewConn = Event->NEW_CONNECTION;
-            if (NewAlpn->SearchInList) {
-                uint16_t AlpnListLength = NewConn.Info->ClientAlpnListLength;
-                const uint8_t* AlpnList = NewConn.Info->ClientAlpnList;
-                while (AlpnListLength != 0) {
-                    if (AlpnList[0] == NewAlpn->Length &&
-                        memcmp(AlpnList+1, NewAlpn->Alpn, NewAlpn->Length) == 0) {
-                        //NewConn.NewNegotiatedAlpn = AlpnList;
-                        break;
-                    }
-                    AlpnListLength -= AlpnList[0] + 1;
-                    AlpnList += (size_t)AlpnList[0] + (size_t)1;
-                }
-            } else {
-                //NewConn.NewNegotiatedAlpn = NewAlpn->Alpn;
-            }
         }
 
         if (FilterConnections ||
