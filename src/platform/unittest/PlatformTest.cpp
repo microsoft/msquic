@@ -65,7 +65,7 @@ TEST(PlatformTest, EventQueue)
 #ifdef CXPLAT_SQE
     CXPLAT_SQE sqe;
 #ifdef CXPLAT_SQE_INIT
-    ASSERT_TRUE(CxPlatSqeInitialize(&queue, sqe, &user_data));
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe, &user_data));
 #endif // CXPLAT_SQE_INIT
 #endif // CXPLAT_SQE
 
