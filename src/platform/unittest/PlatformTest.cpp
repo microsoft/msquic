@@ -51,3 +51,34 @@ TEST(PlatformTest, QuicAddrParsing)
     }
 }
 
+TEST(PlatformTest, EventQueue)
+{
+    uint32_t user_data = 0x1234;
+
+    CXPLAT_EVENTQ queue;
+    ASSERT_TRUE(CxPlatEventQInitialize(&queue));
+
+    CXPLAT_CQE events[2];
+    ASSERT_EQ(0u, CxPlatEventQDequeue(&queue, events, 2, 0));
+    ASSERT_EQ(0u, CxPlatEventQDequeue(&queue, events, 2, 100));
+
+#ifdef CXPLAT_SQE
+    CXPLAT_SQE sqe;
+#ifdef CXPLAT_SQE_INIT
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, sqe, &user_data));
+#endif // CXPLAT_SQE_INIT
+#endif // CXPLAT_SQE
+
+#ifdef CXPLAT_SQE
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe, &user_data));
+#else
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &user_data));
+#endif
+    ASSERT_EQ(1u, CxPlatEventQDequeue(&queue, events, 2, 0));
+    ASSERT_EQ((void*)&user_data, CxPlatCqeUserData(&events[0]));
+
+#ifdef CXPLAT_SQE_INIT
+    CxPlatSqeCleanup(&queue, &sqe);
+#endif // CXPLAT_SQE_INIT
+    CxPlatEventQCleanup(&queue);
+}

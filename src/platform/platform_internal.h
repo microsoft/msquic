@@ -244,13 +244,17 @@ CxPlatWorkerRegisterDataPath(
 // Platform Execution Context Interface
 //
 
-typedef struct CXPLAT_EC CXPLAT_EC;
+typedef struct CXPLAT_EC {
+    CXPLAT_EVENTQ* EventQ;
+    uint16_t IdealProcessor;
+} CXPLAT_EC;
 
 //
 // Creates a new execution context using the given platform specific event queue.
 //
 CXPLAT_EC*
 CxPlatEcCreate(
+    _In_ uint16_t IdealProcessor,
     _In_ CXPLAT_EVENTQ* EventQ
     );
 

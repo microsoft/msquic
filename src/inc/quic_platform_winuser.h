@@ -573,6 +573,67 @@ typedef HANDLE CXPLAT_EVENT;
     (WAIT_OBJECT_0 == WaitForSingleObject(Event, timeoutMs))
 
 //
+// Event Queue Interfaces
+//
+
+typedef HANDLE CXPLAT_EVENTQ;
+#define CXPLAT_SQE OVERLAPPED
+typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+
+inline
+BOOLEAN
+CxPlatEventQInitialize(
+    _Out_ CXPLAT_EVENTQ* queue
+    )
+{
+    return (*queue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
+}
+
+inline
+void
+CxPlatEventQCleanup(
+    _In_ CXPLAT_EVENTQ* queue
+    )
+{
+    CloseHandle(*queue);
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_opt_ void* user_data
+    )
+{
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    return PostQueuedCompletionStatus(*queue, 0, (ULONG_PTR)user_data, sqe) != 0;
+}
+
+inline
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    ULONG out_count = 0;
+    GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE); // TODO - How to handle errors?
+    return (uint32_t)out_count;
+}
+
+inline
+void*
+CxPlatCqeUserData(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (void*)cqe->lpCompletionKey;
+}
+
+//
 // Time Measurement Interfaces
 //
 

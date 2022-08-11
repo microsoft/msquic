@@ -123,50 +123,6 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x85000002  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 #define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x85000003  // uint16_t
 
-//
-// Custom Execution Context Interface
-//
-
-#ifdef _KERNEL_MODE
-#elif _WIN32
-typedef HANDLE CXPLAT_EVENTQ;               // Event queue
-typedef OVERLAPPED_ENTRY CXPLAT_CQE;        // Completion queue event
-#define CxPlatCqeUserData(cqe) ((void*)(cqe)->lpCompletionKey)
-#elif __linux__
-#if CXPLAT_USE_IO_URING
-#include <liburing.h>
-typedef struct io_uring CXPLAT_EVENTQ;      // Event queue
-typedef struct io_uring_cqe* CXPLAT_CQE;    // Completion queue event
-#define CxPlatCqeUserData(cqe) ((void*)(uintptr_t)(cqe)->user_data)
-#else // !CXPLAT_USE_IO_URING
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
-typedef int CXPLAT_EVENTQ;                  // Event queue
-typedef struct epoll_event CXPLAT_CQE;      // Completion queue event
-#define CxPlatCqeUserData(cqe) ((void*)(cqe)->data.ptr)
-#endif // CXPLAT_USE_IO_URING
-#elif __APPLE__ || __FreeBSD__
-#include <sys/event.h>
-typedef int CXPLAT_EVENTQ;                  // Event queue
-typedef struct kevent CXPLAT_CQE;           // Completion queue event
-#define CxPlatCqeUserData(cqe) ((void*)(cqe)->udata)
-#else
-#endif
-
-//
-// The "type" of the completion queue event is stored as the first uint32_t of
-// the user data. Everything after that in the user data is type-specific.
-//
-#define CxPlatCqeType(cqe) (*(uint32_t*)CxPlatCqeUserData(cqe))
-
-//
-// All QUIC (and lower layer) completion queue events have a type starting with
-// 0x8000.
-//
-#define CXPLAT_CQE_TYPE_QUIC_BASE                 0x8000 // to 0xFFFF
-
-#define CxPlatCqeIsQuic(cqe) (CxPlatCqeType(cqe) >= CXPLAT_CQE_TYPE_QUIC_BASE)
-
 #if defined(__cplusplus)
 }
 #endif
