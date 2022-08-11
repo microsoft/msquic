@@ -2535,6 +2535,7 @@ QuicConnSetConfiguration(
             }
         }
 
+        const uint8_t* NewNegotiatedAlpn = NULL;
         while (AlpnListLength != 0) {
             const uint8_t* Result =
                 CxPlatTlsAlpnFindInList(
@@ -2543,44 +2544,56 @@ QuicConnSetConfiguration(
                     AlpnList[0],
                     AlpnList + 1);
             if (Result != NULL) {
+                NewNegotiatedAlpn = AlpnList;
                 break;
             }
             AlpnListLength -= AlpnList[0] + 1;
             AlpnList += AlpnList[0] + 1;
         }
-        const uint8_t* NewNegotiatedAlpn = AlpnList;
-        if (NewNegotiatedAlpn) {
-            //
-            // Free current ALPN buffer if it's allocated on heap.
-            //
-            if (Connection->Crypto.TlsState.NegotiatedAlpn != Connection->Crypto.TlsState.SmallAlpnBuffer) {
-                CXPLAT_FREE(Connection->Crypto.TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
-                Connection->Crypto.TlsState.NegotiatedAlpn = NULL;
-            }
 
-            uint8_t* NegotiatedAlpn = NULL;
-            uint8_t NegotiatedAlpnLength = NewNegotiatedAlpn[0];
-            if (NegotiatedAlpnLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
-                NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
-            } else {
-                NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength + sizeof(uint8_t), QUIC_POOL_ALPN);
-                if (NegotiatedAlpn == NULL) {
-                    QuicTraceEvent(
-                        AllocFailure,
-                        "Allocation of '%s' failed. (%llu bytes)",
-                        "NegotiatedAlpn",
-                        NegotiatedAlpnLength);
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_INTERNAL_ERROR);
-                    Status = QUIC_STATUS_OUT_OF_MEMORY;
-                    goto Error;
-                }
-            }
-            NegotiatedAlpn[0] = NegotiatedAlpnLength;
-            CxPlatCopyMemory(NegotiatedAlpn + 1, NewNegotiatedAlpn + 1, NegotiatedAlpnLength);
-            Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
+        if (NewNegotiatedAlpn == NULL) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "No ALPN match found");
+            QuicConnTransportError(
+                    Connection,
+                    QUIC_ERROR_INTERNAL_ERROR);
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
         }
+
+        //
+        // Free current ALPN buffer if it's allocated on heap.
+        //
+        if (Connection->Crypto.TlsState.NegotiatedAlpn != Connection->Crypto.TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Connection->Crypto.TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+            Connection->Crypto.TlsState.NegotiatedAlpn = NULL;
+        }
+
+        uint8_t* NegotiatedAlpn = NULL;
+        uint8_t NegotiatedAlpnLength = NewNegotiatedAlpn[0];
+        if (NegotiatedAlpnLength < TLS_SMALL_ALPN_BUFFER_SIZE) {
+            NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+        } else {
+            NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength + sizeof(uint8_t), QUIC_POOL_ALPN);
+            if (NegotiatedAlpn == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "NegotiatedAlpn",
+                    NegotiatedAlpnLength);
+                QuicConnTransportError(
+                    Connection,
+                    QUIC_ERROR_INTERNAL_ERROR);
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                goto Error;
+            }
+        }
+        NegotiatedAlpn[0] = NegotiatedAlpnLength;
+        CxPlatCopyMemory(NegotiatedAlpn + 1, NewNegotiatedAlpn + 1, NegotiatedAlpnLength);
+        Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
     }
 
 FastPath:
