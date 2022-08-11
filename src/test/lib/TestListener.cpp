@@ -146,14 +146,14 @@ TestListener::HandleListenerEvent(
                 while (AlpnListLength != 0) {
                     if (AlpnList[0] == NewAlpn->Length &&
                         memcmp(AlpnList+1, NewAlpn->Alpn, NewAlpn->Length) == 0) {
-                        NewConn.NewNegotiatedAlpn = AlpnList;
+                        //NewConn.NewNegotiatedAlpn = AlpnList;
                         break;
                     }
                     AlpnListLength -= AlpnList[0] + 1;
                     AlpnList += (size_t)AlpnList[0] + (size_t)1;
                 }
             } else {
-                NewConn.NewNegotiatedAlpn = NewAlpn->Alpn;
+                //NewConn.NewNegotiatedAlpn = NewAlpn->Alpn;
             }
         }
 
