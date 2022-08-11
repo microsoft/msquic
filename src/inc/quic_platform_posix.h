@@ -979,6 +979,9 @@ CxPlatCqeUserData(
 
 #else // epoll
 
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
 
@@ -1080,6 +1083,9 @@ CxPlatCqeUserData(
 #endif
 
 #elif __APPLE__ || __FreeBSD__ // kqueue
+
+#include <sys/event.h>
+#include <fcntl.h>
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
