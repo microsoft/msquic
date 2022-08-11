@@ -984,6 +984,7 @@ CxPlatCqeUserData(
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
+typedef struct epoll_event CXPLAT_CQE;
 
 inline
 BOOLEAN
@@ -1089,6 +1090,7 @@ CxPlatCqeUserData(
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
+typedef struct kevent CXPLAT_CQE;
 
 inline
 BOOLEAN
