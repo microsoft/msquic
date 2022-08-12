@@ -479,7 +479,7 @@ inline
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
-    )CxPlatEventQEnqueue
+    )
 {
     UNREFERENCED_PARAMETER(queue);
 }
