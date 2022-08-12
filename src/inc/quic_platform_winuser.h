@@ -620,7 +620,10 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    return GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE) ? (uint32_t)out_count : 0;
+    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
+    CXPLAT_DBG_ASSERT(out_count != 0);
+    CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
+    return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
 inline
