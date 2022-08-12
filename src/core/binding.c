@@ -1555,7 +1555,8 @@ QuicBindingDeliverDatagrams(
                 TRUE,
                 Packet,
                 &Token,
-                &TokenLength)) {
+                &TokenLength,
+                TRUE)) {
             return FALSE;
         }
 

@@ -290,7 +290,8 @@ QuicPacketValidateLongHeaderV1(
     _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
-    _Out_ uint16_t* TokenLength
+    _Out_ uint16_t* TokenLength,
+    _In_ BOOLEAN ExpectedFixedBit
     );
 
 //
@@ -322,7 +323,8 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _In_ BOOLEAN ExpectedFixedBit
     );
 
 inline
@@ -430,7 +432,8 @@ QuicPacketEncodeLongHeaderV1(
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer,
     _Out_ uint16_t* PayloadLengthOffset,
-    _Out_ uint8_t* PacketNumberLength
+    _Out_ uint8_t* PacketNumberLength,
+    _In_ BOOLEAN FixedBit
     )
 {
     const BOOLEAN IsInitial =
@@ -453,7 +456,7 @@ QuicPacketEncodeLongHeaderV1(
     QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = TRUE;
-    Header->FixedBit        = 1;
+    Header->FixedBit        = FixedBit;
     Header->Type            = PacketType;
     Header->Reserved        = 0;
     Header->PnLength        = sizeof(uint32_t) - 1;
@@ -544,6 +547,7 @@ QuicPacketEncodeShortHeaderV1(
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
+    _In_ BOOLEAN FixedBit
     )
 {
     CXPLAT_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
@@ -559,7 +563,7 @@ QuicPacketEncodeShortHeaderV1(
     QUIC_SHORT_HEADER_V1* Header = (QUIC_SHORT_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = FALSE;
-    Header->FixedBit        = 1;
+    Header->FixedBit        = FixedBit;
     Header->SpinBit         = SpinBit;
     Header->Reserved        = 0;
     Header->KeyPhase        = KeyPhase;

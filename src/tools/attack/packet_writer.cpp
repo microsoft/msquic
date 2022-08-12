@@ -280,7 +280,8 @@ PacketWriter::WriteClientInitialPacket(
             BufferLength,
             Buffer,
             &PayloadLengthOffset,
-            &PacketNumberLength);
+            &PacketNumberLength,
+            1); // Fixed bit must be 1 in this case
     if (*PacketLength + CryptoBufferLength > BufferLength) {
         printf("Crypto Too Big!\n");
         exit(0);

@@ -211,7 +211,8 @@ QuicPacketValidateLongHeaderV1(
     _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
-    _Out_ uint16_t* TokenLength
+    _Out_ uint16_t* TokenLength,
+    _In_ BOOLEAN ExpectedFixedBit
     )
 {
     //
@@ -565,7 +566,8 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _In_ BOOLEAN ExpectedFixedBit
     )
 {
     //
@@ -696,7 +698,7 @@ QuicPacketLogHeader(
                 }
                 Offset += (uint16_t)TokenLength;
 
-            } else if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V1) || 
+            } else if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V1) ||
                 (LongHdr->Version == QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V2)) {
 
                 QuicTraceLogVerbose(

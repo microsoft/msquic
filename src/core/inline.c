@@ -502,7 +502,8 @@ QuicPacketEncodeLongHeaderV1(
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer,
     _Out_ uint16_t* PayloadLengthOffset,
-    _Out_ uint8_t* PacketNumberLength
+    _Out_ uint8_t* PacketNumberLength,
+    _In_ BOOLEAN FixedBit
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -517,6 +518,7 @@ QuicPacketEncodeShortHeaderV1(
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_opt_(BufferLength)
         uint8_t* Buffer
+    _In_ BOOLEAN FixedBit
     );
 
 uint32_t

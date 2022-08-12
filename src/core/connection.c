@@ -3731,7 +3731,8 @@ QuicConnRecvHeader(
                 QuicConnIsServer(Connection),
                 Packet,
                 &TokenBuffer,
-                &TokenLength)) {
+                &TokenLength,
+                TRUE)) {
             return FALSE;
         }
 
@@ -3834,7 +3835,7 @@ QuicConnRecvHeader(
     } else {
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateShortHeaderV1(Connection, Packet)) {
+            !QuicPacketValidateShortHeaderV1(Connection, Packet, TRUE)) {
             return FALSE;
         }
 

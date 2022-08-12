@@ -197,6 +197,7 @@ QuicPacketBuilderPrepare(
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
+    BOOLEAN GreaseQuicBitTPReceived = (BOOLEAN)((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0);
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -402,7 +403,8 @@ QuicPacketBuilderPrepare(
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
                         BufferSpaceAvailable,
-                        Header);
+                        Header,
+                        !GreaseQuicBitTPReceived);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
                 break;
             default:
@@ -431,7 +433,8 @@ QuicPacketBuilderPrepare(
                         BufferSpaceAvailable,
                         Header,
                         &Builder->PayloadLengthOffset,
-                        &Builder->PacketNumberLength);
+                        &Builder->PacketNumberLength,
+                        !GreaseQuicBitTPReceived);
                 break;
             }
         }

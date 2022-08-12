@@ -26,6 +26,7 @@ protocol. It is cross-platform, written in C and designed to be a general purpos
 [![](https://img.shields.io/static/v1?label=Draft&message=Disable%20Encryption&color=blueviolet)](https://tools.ietf.org/html/draft-banks-quic-disable-encryption)
 [![](https://img.shields.io/static/v1?label=Draft&message=Performance&color=blueviolet)](https://tools.ietf.org/html/draft-banks-quic-performance)
 [![](https://img.shields.io/static/v1?label=Draft&message=CIBIR&color=blueviolet)](https://tools.ietf.org/html/draft-banks-quic-cibir)
+[![](https://img.shields.io/static/v1?label=Draft&message=Grease%20Quic%20Bit&color=blueviolet)](https://tools.ietf.org/html/draft-ietf-quic-bit-grease-04)
 
 QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
 
