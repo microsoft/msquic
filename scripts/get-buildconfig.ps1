@@ -77,6 +77,8 @@ if ("" -eq $Arch) {
         } else {
             Write-Error "Unknown architecture"
         }
+    } elseif ($IsLinux) {
+        $Arch = "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)".ToLower()
     } else {
         $Arch = "x64"
     }
