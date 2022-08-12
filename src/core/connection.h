@@ -624,12 +624,6 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
 
-    //
-    // (Server-Only) ClientAlpnList cache params (in TLS format)
-    //
-    const uint8_t* ClientAlpnList;
-    uint16_t ClientAlpnListLength;
-
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

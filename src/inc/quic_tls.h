@@ -326,6 +326,12 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     //
     QUIC_PACKET_KEY* WriteKeys[QUIC_PACKET_KEY_COUNT];
 
+    //
+    // (Server-Connection-Only) ClientAlpnList cache params (in TLS format)
+    //
+    const uint8_t* ClientAlpnList;
+    uint16_t ClientAlpnListLength;
+
 } CXPLAT_TLS_PROCESS_STATE;
 
 typedef

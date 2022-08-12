@@ -542,8 +542,8 @@ QuicBindingAcceptConnection(
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
-    Connection->ClientAlpnList = Info->ClientAlpnList;
-    Connection->ClientAlpnListLength = Info->ClientAlpnListLength;
+    Connection->Crypto.TlsState.ClientAlpnList = Info->ClientAlpnList;
+    Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
 
     //
     // Allow for the listener to decide if it wishes to accept the incoming

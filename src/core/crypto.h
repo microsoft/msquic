@@ -398,6 +398,17 @@ QuicCryptoDecodeClientTicket(
     _Out_ uint32_t* QuicVersion
     );
 
+//
+// Helper function to NegotiateAlpn.
+//
+QUIC_STATUS
+QuicCryptoReNegotiateAlpn(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t AlpnListLength,
+    _In_reads_bytes_(AlpnListLength)
+        const uint8_t* AlpnList
+    );
+
 #if defined(__cplusplus)
 }
 #endif
