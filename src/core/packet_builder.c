@@ -197,7 +197,7 @@ QuicPacketBuilderPrepare(
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
-    BOOLEAN GreaseQuicBitTPReceived = (BOOLEAN)((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0);
+    BOOLEAN NoGreaseQuicBit = !((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0);
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -401,10 +401,10 @@ QuicPacketBuilderPrepare(
                         Builder->Metadata->PacketNumber,
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
+                        NoGreaseQuicBit,
                         PacketSpace->CurrentKeyPhase,
                         BufferSpaceAvailable,
-                        Header,
-                        !GreaseQuicBitTPReceived);
+                        Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
                 break;
             default:
@@ -425,6 +425,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
+                        NoGreaseQuicBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,
@@ -433,8 +434,7 @@ QuicPacketBuilderPrepare(
                         BufferSpaceAvailable,
                         Header,
                         &Builder->PayloadLengthOffset,
-                        &Builder->PacketNumberLength,
-                        !GreaseQuicBitTPReceived);
+                        &Builder->PacketNumberLength);
                 break;
             }
         }

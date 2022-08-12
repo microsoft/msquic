@@ -272,6 +272,7 @@ PacketWriter::WriteClientInitialPacket(
         QuicPacketEncodeLongHeaderV1(
             QuicVersion,
             QUIC_INITIAL_V1,
+            1, // Fixed bit must be 1 in this case
             Cid,
             Cid,
             0,
@@ -280,8 +281,7 @@ PacketWriter::WriteClientInitialPacket(
             BufferLength,
             Buffer,
             &PayloadLengthOffset,
-            &PacketNumberLength,
-            1); // Fixed bit must be 1 in this case
+            &PacketNumberLength);
     if (*PacketLength + CryptoBufferLength > BufferLength) {
         printf("Crypto Too Big!\n");
         exit(0);

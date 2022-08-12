@@ -422,6 +422,7 @@ uint16_t
 QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ uint8_t PacketType,
+    _In_ BOOLEAN FixedBit,
     _In_ const QUIC_CID* const DestCid,
     _In_ const QUIC_CID* const SourceCid,
     _In_ uint16_t TokenLength,
@@ -432,8 +433,7 @@ QuicPacketEncodeLongHeaderV1(
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer,
     _Out_ uint16_t* PayloadLengthOffset,
-    _Out_ uint8_t* PacketNumberLength,
-    _In_ BOOLEAN FixedBit
+    _Out_ uint8_t* PacketNumberLength
     )
 {
     const BOOLEAN IsInitial =
@@ -544,10 +544,10 @@ QuicPacketEncodeShortHeaderV1(
     _In_ uint8_t PacketNumberLength,
     _In_ BOOLEAN SpinBit,
     _In_ BOOLEAN KeyPhase,
+    _In_ BOOLEAN FixedBit,
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
-    _In_ BOOLEAN FixedBit
     )
 {
     CXPLAT_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
