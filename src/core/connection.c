@@ -2517,11 +2517,12 @@ QuicConnSetConfiguration(
             goto Error;
         }
 
-        Status = QuicCryptoReNegotiateAlpn(
-            Connection,
-            Connection->Configuration->AlpnListLength,
-            Connection->Configuration->AlpnList);
-        if(QUIC_FAILED(Status)) {
+        Status =
+            QuicCryptoReNegotiateAlpn(
+                Connection,
+                Connection->Configuration->AlpnListLength,
+                Connection->Configuration->AlpnList);
+        if (QUIC_FAILED(Status)) {
             goto Error;
         }
     }
