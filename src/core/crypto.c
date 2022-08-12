@@ -2551,7 +2551,7 @@ QuicCryptoReNegotiateAlpn(
         const uint8_t* AlpnList
     )
 {
-    if(Connection == NULL) {
+    if (Connection == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
