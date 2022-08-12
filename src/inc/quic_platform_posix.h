@@ -23,15 +23,6 @@ Environment:
 #error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
 
-/*
-// For FreeBSD
-#if defined(__FreeBSD__)
-#include <sys/socket.h>
-#include <netinet/in.h>
-#define ETIME   ETIMEDOUT
-#endif
-*/
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
