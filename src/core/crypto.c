@@ -2551,14 +2551,9 @@ QuicCryptoReNegotiateAlpn(
         const uint8_t* AlpnList
     )
 {
-    if (Connection == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (AlpnList == NULL) {
-        return AlpnListLength == 0 ?
-            QUIC_STATUS_SUCCESS : QUIC_STATUS_INVALID_PARAMETER;
-    }
+    CXPLAT_DBG_ASSERT(Connection != NULL);
+    CXPLAT_DBG_ASSERT(AlpnList != NULL);
+    CXPLAT_DBG_ASSERT(AlpnListLength > 0);
 
     const uint8_t* PrevNegotiatedAlpn = Connection->Crypto.TlsState.NegotiatedAlpn;
     if (AlpnList[0] == PrevNegotiatedAlpn[0]) {
