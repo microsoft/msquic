@@ -3101,7 +3101,7 @@ QuicTestChangeAlpn(
     {
         const char* FirstAlpns[] = {"quic1", "quic1", "VerifyThisAsQuicALPN", "VerifyThisAsQuicALPN", "quic1"};
         const char* SecondAlpns[] = {"MsQuicTest", "MsQuicVerifyThisAsQuicALPN", "MsQuicTest", "MsQuicVerifyThisAsQuicALPN", "MsQuicTest"};
-        for (int idx = 0; idx < ARRAYSIZE(FirstAlpns); ++idx) {
+        for (uint32_t idx = 0; idx < ARRAYSIZE(FirstAlpns); ++idx) {
             MsQuicAlpn Alpn(FirstAlpns[idx], SecondAlpns[idx]);
 
             MsQuicAlpn NewAlpn(SecondAlpns[idx]);
