@@ -395,14 +395,20 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     );
 
+#ifdef CXPLAT_SQE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-#ifdef CXPLAT_SQE
     _In_ CXPLAT_SQE* sqe,
-#endif
     _In_opt_ void* user_data
     );
+#else
+BOOLEAN
+_CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_opt_ void* user_data
+    );
+#endif
 
 uint32_t
 CxPlatEventQDequeue(

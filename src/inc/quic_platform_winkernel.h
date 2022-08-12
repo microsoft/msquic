@@ -479,14 +479,14 @@ inline
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
-    )
+    )CxPlatEventQEnqueue
 {
     UNREFERENCED_PARAMETER(queue);
 }
 
 inline
 BOOLEAN
-CxPlatEventQEnqueue(
+_CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
     _In_opt_ void* user_data
     )
@@ -495,6 +495,8 @@ CxPlatEventQEnqueue(
     KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
     return TRUE;
 }
+
+#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
 
 inline
 uint32_t

@@ -923,7 +923,7 @@ CxPlatEventQCleanup(
 
 inline
 BOOLEAN
-CxPlatEventQEnqueue(
+_CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
     _In_opt_ void* user_data
     )
@@ -935,6 +935,8 @@ CxPlatEventQEnqueue(
     io_uring_submit(queue); // TODO - Extract to separate function?
     return TRUE;
 }
+
+#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
 
 inline
 uint32_t
