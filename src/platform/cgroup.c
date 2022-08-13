@@ -201,8 +201,10 @@ FindHierarchyMount(
         //
         // See man page of proc to get format for /proc/self/mountinfo file
         //
+        char Format[40];
+        sprintf(Format, "%%%zus %%*s %%%zus", LineLen, LineLen);
         int SscanfRet = sscanf(SeparatorChar,
-                                " - %s %*s %s",
+                                Format,
                                 FilesystemType,
                                 Options);
         if (SscanfRet != 2) {
@@ -229,10 +231,11 @@ FindHierarchyMount(
                     goto Done;
                 }
 
+                sprintf(Format, "%%*s %%*s %%*s %%%zus %%%zus", LineLen, LineLen);
                 SscanfRet =
                     sscanf(
                         Line,
-                        "%*s %*s %*s %s %s ",
+                        Format,
                         MountRoot,
                         MountPath);
                 if (SscanfRet != 2) {
@@ -298,12 +301,14 @@ FindCGroupPathForSubsystem(
             MaxLineLen = LineLen;
         }
 
+        char Format[40];
         if (CGroupVersion == 1) {
             //
             // See man page of proc to get format for /proc/self/cgroup file
             //
+            sprintf(Format, "%%*[^:]:%%%zu[^:]:%%%zus", LineLen, LineLen);
             int SscanfRet = sscanf(Line,
-                                    "%*[^:]:%[^:]:%s",
+                                    Format,
                                     SubsystemList,
                                     CGroupPath);
             if (SscanfRet != 2) {
@@ -324,7 +329,8 @@ FindCGroupPathForSubsystem(
             // See https://www.kernel.org/doc/Documentation/cgroup-v2.txt
             // Look for a "0::/some/path"
             //
-            int SscanfRet = sscanf(Line, "0::%s", CGroupPath);
+            sprintf(Format, "0::%%%zus", LineLen, LineLen);
+            int SscanfRet = sscanf(Line, Format, CGroupPath);
             if (SscanfRet == 1) {
                 Result = TRUE;
             }
