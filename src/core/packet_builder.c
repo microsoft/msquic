@@ -201,10 +201,6 @@ QuicPacketBuilderPrepare(
     if (QuicConnIsClient(Connection) && (NewPacketType == QUIC_INITIAL_V1 || NewPacketKeyType == QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
         NoGreaseQuicBit = TRUE;
     }
-    if (QuicConnIsClient(Connection)) {
-        printf("GREASE_QUIC_BIT Sent = %d\n", !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT));
-        printf("GreaseQuicBitEnabled = %d\n", (int)Connection->Settings.GreaseQuicBitEnabled);
-    }
 
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
