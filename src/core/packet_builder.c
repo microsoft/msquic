@@ -198,7 +198,7 @@ QuicPacketBuilderPrepare(
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
     BOOLEAN NoGreaseQuicBit = !(((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) && Connection->Settings.GreaseQuicBitEnabled) > 0);
-    if (QuicConnIsClient(Connection) && (NewPacketType == QUIC_INITIAL_V1 || NewPacketKeyType == QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
+    if (QuicConnIsClient(Connection) && (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
         NoGreaseQuicBit = TRUE;
     }
 
