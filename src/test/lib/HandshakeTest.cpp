@@ -3101,15 +3101,15 @@ QuicTestChangeAlpn(
     {
         const char* FirstAlpns[] = {"quic1", "quic1", "VerifyThisAsQuicALPN", "VerifyThisAsQuicALPN", "quic1"};
         const char* SecondAlpns[] = {"MsQuicTest", "MsQuicVerifyThisAsQuicALPN", "MsQuicTest", "MsQuicVerifyThisAsQuicALPN", "MsQuicTest"};
-        for (int idx = 0; idx < 4; ++idx) {
+        for (uint32_t idx = 0; idx < ARRAYSIZE(FirstAlpns); ++idx) {
             MsQuicAlpn Alpn(FirstAlpns[idx], SecondAlpns[idx]);
 
-            AlpnHelper NewAlpn(SecondAlpns[idx], true);
+            MsQuicAlpn NewAlpn(SecondAlpns[idx]);
 
             MsQuicSettings Settings;
             Settings.SetIdleTimeoutMs(3000);
 
-            MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+            MsQuicConfiguration ServerConfiguration(Registration, NewAlpn, Settings, ServerSelfSignedCredConfig);
             TEST_TRUE(ServerConfiguration.IsValid());
 
             MsQuicCredentialConfig ClientCredConfig;
@@ -3119,7 +3119,7 @@ QuicTestChangeAlpn(
             QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
 
             {
-                TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration, &NewAlpn);
+                TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
                 TEST_TRUE(Listener.IsValid());
                 QuicAddr ServerLocalAddr(QuicAddrFamily);
                 TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
@@ -3154,33 +3154,32 @@ QuicTestChangeAlpn(
                         }
                         TEST_TRUE(Server->GetIsConnected());
 
-                        auto& AlpnBuffer = NewAlpn;
+                        auto& AlpnBuffer = NewAlpn[0];
 
                         TEST_EQUAL(Server->GetNegotiatedAlpnLength(), AlpnBuffer.Length);
                         for (uint32_t i = 0; i < AlpnBuffer.Length; i++) {
-                            TEST_EQUAL(Server->GetNegotiatedAlpn()[i], AlpnBuffer.Alpn[i]);
+                            TEST_EQUAL(Server->GetNegotiatedAlpn()[i], AlpnBuffer.Buffer[i]);
                         }
 
                         TEST_EQUAL(Client.GetNegotiatedAlpnLength(), AlpnBuffer.Length);
                         for (uint32_t i = 0; i < AlpnBuffer.Length; i++) {
-                            TEST_EQUAL(Client.GetNegotiatedAlpn()[i], AlpnBuffer.Alpn[i]);
+                            TEST_EQUAL(Client.GetNegotiatedAlpn()[i], AlpnBuffer.Buffer[i]);
                         }
                     }
                 }
             }
         }
     }
-
     // Failure cases
     {
         MsQuicAlpn Alpn("quic1", "MsQuicTest");
 
-        AlpnHelper NewAlpn("MsQuicTest", false);
+        MsQuicAlpn NewAlpn("MsQuicTest23");
 
         MsQuicSettings Settings;
         Settings.SetIdleTimeoutMs(3000);
 
-        MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+        MsQuicConfiguration ServerConfiguration(Registration, NewAlpn, Settings, ServerSelfSignedCredConfig);
         TEST_TRUE(ServerConfiguration.IsValid());
 
         MsQuicCredentialConfig ClientCredConfig;
@@ -3190,7 +3189,7 @@ QuicTestChangeAlpn(
         QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
 
         {
-            TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration, &NewAlpn);
+            TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
             TEST_TRUE(Listener.IsValid());
             QuicAddr ServerLocalAddr(QuicAddrFamily);
             TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));

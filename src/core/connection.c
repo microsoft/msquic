@@ -2516,6 +2516,17 @@ QuicConnSetConfiguration(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
+
+        Status =
+            QuicCryptoReNegotiateAlpn(
+                Connection,
+                Connection->Configuration->AlpnListLength,
+                Connection->Configuration->AlpnList);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+        Connection->Crypto.TlsState.ClientAlpnList = NULL;
+        Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);

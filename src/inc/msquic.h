@@ -966,7 +966,6 @@ typedef struct QUIC_LISTENER_EVENT {
         struct {
             const QUIC_NEW_CONNECTION_INFO* Info;
             HQUIC Connection;
-            const uint8_t* NewNegotiatedAlpn;
         } NEW_CONNECTION;
         struct {
             BOOLEAN AppCloseInProgress  : 1;
