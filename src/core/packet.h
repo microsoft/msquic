@@ -291,7 +291,7 @@ QuicPacketValidateLongHeaderV1(
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength,
-    _In_ BOOLEAN ExpectedFixedBit
+    _In_ BOOLEAN IgnoreFixedBit
     );
 
 //
@@ -324,7 +324,7 @@ BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _Inout_ CXPLAT_RECV_PACKET* Packet,
-    _In_ BOOLEAN ExpectedFixedBit
+    _In_ BOOLEAN IgnoreFixedBit
     );
 
 inline
@@ -517,6 +517,7 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
+    _In_ BOOLEAN FixedBit,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,
     _In_reads_(SourceCidLength) const uint8_t* const SourceCid,

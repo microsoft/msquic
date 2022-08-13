@@ -212,7 +212,7 @@ QuicPacketValidateLongHeaderV1(
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength,
-    _In_ BOOLEAN ExpectedFixedBit
+    _In_ BOOLEAN IgnoreFixedBit
     )
 {
     //
@@ -242,9 +242,10 @@ QuicPacketValidateLongHeaderV1(
     }
 
     //
-    // Check the Fixed bit to ensure it is set to 1.
+    // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
     //
-    if (Packet->LH->FixedBit != ExpectedFixedBit) {
+    if (IgnoreFixedBit == FALSE && Packet->LH->FixedBit == 0) {
+        printf("Long Header FixedBit == 0\n");
         QuicPacketLogDrop(Owner, Packet, "Invalid LH FixedBit bits values");
         return FALSE;
     }
@@ -403,6 +404,7 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
+    _In_ BOOLEAN FixedBit,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,
     _In_reads_(SourceCidLength) const uint8_t* const SourceCid,
@@ -433,7 +435,7 @@ QuicPacketEncodeRetryV1(
     CxPlatRandom(sizeof(RandomBits), &RandomBits);
 
     Header->IsLongHeader    = TRUE;
-    Header->FixedBit        = 1;
+    Header->FixedBit        = FixedBit;
     Header->Type            = Version == QUIC_VERSION_2 ? QUIC_RETRY_V2 : QUIC_RETRY_V1;
     Header->UNUSED          = RandomBits;
     Header->Version         = Version;
@@ -567,7 +569,7 @@ BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _Inout_ CXPLAT_RECV_PACKET* Packet,
-    _In_ BOOLEAN ExpectedFixedBit
+    _In_ BOOLEAN IgnoreFixedBit
     )
 {
     //
@@ -579,9 +581,10 @@ QuicPacketValidateShortHeaderV1(
     CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
 
     //
-    // Check the Fixed bit to ensure it is set to 1.
+    // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
     //
-    if (Packet->SH->FixedBit != ExpectedFixedBit) {
+    if (IgnoreFixedBit == FALSE && Packet->SH->FixedBit == 0) {
+        printf("FixedBit == 0\n");
         QuicPacketLogDrop(Owner, Packet, "Invalid SH FixedBit bits values");
         return FALSE;
     }

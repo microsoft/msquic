@@ -143,6 +143,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
+    _In_ bool GreaseQuicBitEnabled,
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
@@ -158,6 +159,7 @@ QuicTestConnect(
 
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(4);
+    Settings.SetGreaseQuicBitEnabled(GreaseQuicBitEnabled);
     if (RandomLossPercentage != 0) {
         Settings.SetIdleTimeoutMs(30000);
         Settings.SetDisconnectTimeoutMs(30000);

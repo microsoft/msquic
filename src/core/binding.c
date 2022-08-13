@@ -955,7 +955,7 @@ QuicBindingProcessStatelessOperation(
             PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
             SendDatagram->Buffer);
         ResetPacket->IsLongHeader = FALSE;
-        ResetPacket->FixedBit = 1;
+        ResetPacket->FixedBit = 1; // TODO : Find a way to check connection settings and PeerTPs.
         ResetPacket->KeyPhase = RecvPacket->SH->KeyPhase;
         QuicLibraryGenerateStatelessResetToken(
             RecvPacket->DestCid,
@@ -1034,6 +1034,7 @@ QuicBindingProcessStatelessOperation(
         SendDatagram->Length =
             QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
+                TRUE, // TODO : Find a way to check connection settings and PeerTPs.
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
                 NewDestCid, MsQuicLib.CidTotalLength,
                 RecvPacket->DestCid, RecvPacket->DestCidLen,
@@ -1556,7 +1557,14 @@ QuicBindingDeliverDatagrams(
                 Packet,
                 &Token,
                 &TokenLength,
-                TRUE)) {
+                /*
+                    TODO : When NEW_TOKEN implementation is done, server should remember the NEW_TOKEN and when is sent to the client, if the NEW_TOKEN validated by server we can accept this bit as 0.
+                    A client MAY also set the QUIC Bit to 0 in Initial, Handshake, or 0-RTT packets that are sent prior to receiving transport parameters from the server.
+                    However, a client MUST NOT set the QUIC Bit to 0 unless the Initial packets it sends include a token provided by the server in a NEW_TOKEN frame (Section 19.7 of [QUIC]),
+                    received less than 604800 seconds (7 days) prior on a connection where the server also included the grease_quic_bit transport parameter.
+                    (see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html - 3.1 Clearing the QUIC Bit)
+                */
+                FALSE)) { // This parameter should be FALSE for now. We shouldn't ignore the fixed bit on inital packet from client.
             return FALSE;
         }
 

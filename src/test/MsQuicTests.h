@@ -128,6 +128,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
+    _In_ bool GreaseQuicBitExtension,
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
@@ -642,6 +643,7 @@ typedef struct {
     uint8_t ServerStatelessRetry;
     uint8_t ClientUsesOldVersion;
     uint8_t MultipleALPNs;
+    uint8_t GreaseQuicBitExtension;
     uint8_t AsyncConfiguration;
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;

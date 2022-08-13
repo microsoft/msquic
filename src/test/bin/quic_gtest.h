@@ -75,13 +75,15 @@ struct HandshakeArgs1 {
     bool ServerStatelessRetry;
     bool MultipleALPNs;
     bool MultiPacketClientInitial;
+    bool GreaseQuicBitExtension;
     static ::std::vector<HandshakeArgs1> Generate() {
         ::std::vector<HandshakeArgs1> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultipleALPNs : { false, true })
         for (bool MultiPacketClientInitial : { false, true })
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial });
+        for (bool GreaseQuicBitExtension : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial, GreaseQuicBitExtension });
         return list;
     }
 };
