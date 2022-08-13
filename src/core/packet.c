@@ -245,7 +245,6 @@ QuicPacketValidateLongHeaderV1(
     // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
     //
     if (IgnoreFixedBit == FALSE && Packet->LH->FixedBit == 0) {
-        printf("Long Header FixedBit == 0\n");
         QuicPacketLogDrop(Owner, Packet, "Invalid LH FixedBit bits values");
         return FALSE;
     }
@@ -584,7 +583,6 @@ QuicPacketValidateShortHeaderV1(
     // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
     //
     if (IgnoreFixedBit == FALSE && Packet->SH->FixedBit == 0) {
-        printf("FixedBit == 0\n");
         QuicPacketLogDrop(Owner, Packet, "Invalid SH FixedBit bits values");
         return FALSE;
     }
