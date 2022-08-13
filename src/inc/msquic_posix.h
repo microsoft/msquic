@@ -98,7 +98,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #endif // ENOKEY
 
 #ifndef ETIME // undefined on FreeBSD
-#define ETIME ETIMEDOUT
+#define ETIME 101 // same as macOS's: change this if 101 is added to errno.h
 #endif // ETIME
 
 #define ERROR_BASE                          200000000                       // 0xBEBC200
