@@ -198,8 +198,21 @@ QuicPacketBuilderPrepare(
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
 
+    if (Connection->State.FixedBit == TRUE &&
+        (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
+        //
+        // Endpoints can set the QUIC Bit to 0 on all packets that are sent after receiving and processing transport parameters.
+        // This could include Initial, Handshake, and Retry packets
+        //
+        Connection->State.FixedBit = FALSE;
+    }
+
+    //
+    // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
+    // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
+    //
     if (QuicConnIsClient(Connection) && (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
-        Connection->FixedBit = 1;
+        Connection->State.FixedBit = TRUE;
     }
 
     uint16_t DatagramSize = Builder->Path->Mtu;
@@ -406,7 +419,7 @@ QuicPacketBuilderPrepare(
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
-                        Connection->FixedBit,
+                        Connection->State.FixedBit,
                         BufferSpaceAvailable,
                         Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
@@ -429,7 +442,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
-                        Connection->FixedBit,
+                        Connection->State.FixedBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,

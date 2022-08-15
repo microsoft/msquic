@@ -115,6 +115,7 @@ QuicConnAlloc(
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.ShareBinding = IsServer;
+    Connection->State.FixedBit = TRUE;
     Connection->Stats.Timing.Start = CxPlatTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
@@ -1965,6 +1966,8 @@ QuicConnStart(
     Connection->RemoteServerName = ServerName;
     ServerName = NULL;
 
+    Connection->State.IgnoreFixedBit = Configuration->Settings.GreaseQuicBitEnabled;
+
     Status = QuicCryptoInitialize(&Connection->Crypto);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -2537,6 +2540,7 @@ QuicConnSetConfiguration(
     }
 
     Connection->State.Started = TRUE;
+    Connection->State.IgnoreFixedBit = Connection->Settings.GreaseQuicBitEnabled;
     Connection->Stats.Timing.Start = CxPlatTimeUs64();
     QuicTraceEvent(
         ConnHandshakeStart,
@@ -3732,7 +3736,7 @@ QuicConnRecvHeader(
                 Packet,
                 &TokenBuffer,
                 &TokenLength,
-                Connection->IgnoreFixedBit)) {
+                Connection->State.IgnoreFixedBit)) {
             return FALSE;
         }
 
@@ -3835,7 +3839,7 @@ QuicConnRecvHeader(
     } else {
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateShortHeaderV1(Connection, Packet, Connection->IgnoreFixedBit)) {
+            !QuicPacketValidateShortHeaderV1(Connection, Packet, Connection->State.IgnoreFixedBit)) {
             return FALSE;
         }
 

@@ -175,6 +175,16 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN LocalInterfaceSet : 1;
 
+        //
+        // This flag indicates that the connection should ignore the fixed bit on received packets.
+        //
+        BOOLEAN IgnoreFixedBit : 1;
+
+        //
+        // This value of the fixed bit on send packets.
+        //
+        BOOLEAN FixedBit : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -623,10 +633,6 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
-
-    uint8_t IgnoreFixedBit : 1;
-    uint8_t FixedBit : 1;
-    uint8_t RESERVED : 6;
 
 } QUIC_CONNECTION;
 
