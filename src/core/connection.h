@@ -624,6 +624,10 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
 
+    uint8_t IgnoreFixedBit : 1;
+    uint8_t FixedBit : 1;
+    uint8_t RESERVED : 6;
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

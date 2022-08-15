@@ -1150,6 +1150,12 @@ QuicCryptoTlsEncodeTransportParameters(
             EncodeTPGreaseQuicBit,
             Connection,
             "TP: Grease Quic Bit");
+
+        //
+        // An endpoint that advertises the grease_quic_bit transport parameter MUST accept packets
+        // with the QUIC Bit set to a value of 0.
+        //
+        Connection->IgnoreFixedBit = 1;
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1810,6 +1816,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
+            //
+            // Endpoints that receive the grease_quic_bit transport parameter from a peer SHOULD set the QUIC Bit to an unpredictable value
+            // unless another extension assigns specific meaning to the value of the bit.
+            //
+            Connection->FixedBit = 0;
             QuicTraceLogConnVerbose(
                 DecodeTPGreaseQuicBit,
                 Connection,

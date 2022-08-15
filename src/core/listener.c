@@ -748,6 +748,9 @@ QuicListenerAcceptConnection(
         return;
     }
 
+    Connection->FixedBit = 1;
+    Connection->IgnoreFixedBit = 0;
+
     if (!QuicListenerClaimConnection(Listener, Connection, Info)) {
         Listener->TotalRejectedConnections++;
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_APP_REJECT);

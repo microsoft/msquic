@@ -197,9 +197,9 @@ QuicPacketBuilderPrepare(
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
-    BOOLEAN NoGreaseQuicBit = !(((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) && Connection->Settings.GreaseQuicBitEnabled) > 0);
+
     if (QuicConnIsClient(Connection) && (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
-        NoGreaseQuicBit = TRUE;
+        Connection->FixedBit = 1;
     }
 
     uint16_t DatagramSize = Builder->Path->Mtu;
@@ -406,7 +406,7 @@ QuicPacketBuilderPrepare(
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
-                        NoGreaseQuicBit,
+                        Connection->FixedBit,
                         BufferSpaceAvailable,
                         Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
@@ -429,7 +429,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
-                        NoGreaseQuicBit,
+                        Connection->FixedBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,

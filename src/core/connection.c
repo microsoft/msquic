@@ -3702,10 +3702,6 @@ QuicConnRecvHeader(
 
     CXPLAT_FRE_ASSERT(QuicIsVersionSupported(Connection->Stats.QuicVersion));
 
-    const BOOLEAN IgnoreFixedBit = (Connection->Settings.GreaseQuicBitEnabled &&
-        (QuicConnIsClient(Connection) ||
-        Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT)) > 0;
-
     //
     // Begin non-version-independent logic. When future versions are supported,
     // there may be some switches based on packet version.
@@ -3736,7 +3732,7 @@ QuicConnRecvHeader(
                 Packet,
                 &TokenBuffer,
                 &TokenLength,
-                IgnoreFixedBit)) {
+                Connection->IgnoreFixedBit)) {
             return FALSE;
         }
 
@@ -3839,7 +3835,7 @@ QuicConnRecvHeader(
     } else {
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateShortHeaderV1(Connection, Packet, IgnoreFixedBit)) {
+            !QuicPacketValidateShortHeaderV1(Connection, Packet, Connection->IgnoreFixedBit)) {
             return FALSE;
         }
 

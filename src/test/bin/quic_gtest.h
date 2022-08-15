@@ -93,7 +93,8 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs1& args) {
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
-        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial");
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (args.GreaseQuicBitExtension ? "Grease" : "NoGrease");
 }
 
 class WithHandshakeArgs1 : public testing::Test,

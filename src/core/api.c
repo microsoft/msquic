@@ -73,6 +73,8 @@ MsQuicConnectionOpen(
 
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
+    Connection->IgnoreFixedBit = 0;
+    Connection->FixedBit = 1;
 
     *NewConnection = (HQUIC)Connection;
     Status = QUIC_STATUS_SUCCESS;

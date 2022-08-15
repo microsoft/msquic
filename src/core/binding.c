@@ -955,7 +955,7 @@ QuicBindingProcessStatelessOperation(
             PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
             SendDatagram->Buffer);
         ResetPacket->IsLongHeader = FALSE;
-        ResetPacket->FixedBit = 1; // TODO : Find a way to check connection settings and PeerTPs.
+        ResetPacket->FixedBit = 1;
         ResetPacket->KeyPhase = RecvPacket->SH->KeyPhase;
         QuicLibraryGenerateStatelessResetToken(
             RecvPacket->DestCid,
@@ -1564,7 +1564,7 @@ QuicBindingDeliverDatagrams(
                     received less than 604800 seconds (7 days) prior on a connection where the server also included the grease_quic_bit transport parameter.
                     (see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html - 3.1 Clearing the QUIC Bit)
                 */
-                FALSE)) { // This parameter should be FALSE for now. We shouldn't ignore the fixed bit on inital packet from client.
+                FALSE)) { // This parameter should be FALSE for now. We shouldn't ignore the fixed bit on initial packet from client.
             return FALSE;
         }
 
