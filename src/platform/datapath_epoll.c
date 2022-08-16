@@ -1646,7 +1646,7 @@ CxPlatSocketContextSendComplete(
 
 void
 CxPlatDataPathSocketProcessIoCompletion(
-    _In_ CXPLAT_SOCKET_PROC* SocketContext,
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_CQE* Cqe
     )
 {
@@ -1792,7 +1792,8 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
-        Binding->SocketContexts[i].CleanupFd = INVALID_SOCKET;
+        Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+        Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
         for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
             Binding->SocketContexts[i].RecvIov[j].iov_len =
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
@@ -2602,7 +2603,7 @@ CxPlatDataPathProcessCqe(
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
         CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
         CxPlatEventSet(ProcContext->CompletionEvent);
         QuicTraceLogVerbose(
             DatapathWakeupForShutdown,
@@ -2611,14 +2612,14 @@ CxPlatDataPathProcessCqe(
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
-        CXPLAT_SOCKET_PROC* SocketContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, ShutdownSqe);
+        CXPLAT_SOCKET_CONTEXT* SocketContext =
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
-        CXPLAT_SOCKET_PROC* SocketContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, IoSqe);
+        CXPLAT_SOCKET_CONTEXT* SocketContext =
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
         CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
         break;
     }
