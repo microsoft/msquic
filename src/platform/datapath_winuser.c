@@ -14,15 +14,6 @@ Abstract:
 #include "datapath_winuser.c.clog.h"
 #endif
 
-#define CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN   CXPLAT_CQE_TYPE_QUIC_BASE + 1
-#define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 2
-#define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 3
-
-typedef struct DATAPATH_SQE {
-    uint32_t CqeType;
-    CXPLAT_SQE Sqe;
-} DATAPATH_SQE;
-
 #ifdef QUIC_FUZZER
 
 int

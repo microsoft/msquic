@@ -292,24 +292,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForShutdown , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathWakeupForECTimeout
-// [data][%p] Datapath wakeup for EC wake or timeout
-// QuicTraceLogVerbose(
-            DatapathWakeupForECTimeout,
-            "[data][%p] Datapath wakeup for EC wake or timeout",
-            DatapathProc);
-// arg2 = arg2 = DatapathProc = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathWakeupForECTimeout
-#define _clog_3_ARGS_TRACE_DatapathWakeupForECTimeout(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForECTimeout , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(

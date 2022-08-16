@@ -25,12 +25,8 @@ struct in_pktinfo {
 #define __APPLE_USE_RFC_3542 1
 // See netinet6/in6.h:46 for an explanation
 #include "platform_internal.h"
-#include <fcntl.h>
-#include <sys/event.h>
-#include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/time.h>
-#include <sys/types.h>
+
 #ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif

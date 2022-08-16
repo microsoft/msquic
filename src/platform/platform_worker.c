@@ -382,6 +382,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
                     CxPlatDataPathProcessCqe(&Cqes[i]);
                 }
             }
+            CxPlatEventQReturnCqes(&Worker->EventQ, CqeCount);
 
         } else if (NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();

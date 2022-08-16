@@ -59,6 +59,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathWakeupForShutdown
+// [data][%p] Datapath wakeup for shutdown
+// QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathWakeupForShutdown,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
@@ -87,10 +106,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed,
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
-            "epoll_create1(EPOLL_CLOEXEC) failed");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "epoll_create1(EPOLL_CLOEXEC) failed" = arg3
+            errno,
+            "CxPlatSqeInitialize failed");
+// arg2 = arg2 = errno = arg2
+// arg3 = arg3 = "CxPlatSqeInitialize failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus,
     TP_ARGS(
