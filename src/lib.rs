@@ -1222,7 +1222,7 @@ impl Settings {
         self
     }
     pub fn set_datagram_receive_enabled(&mut self, value: bool) -> &mut Settings {
-        self.is_set_flags |= (value as u64) << 27;
+        self.is_set_flags |= 1 << 27;
         self.other_flags |= (value as u8) << 3;
         self
     }
