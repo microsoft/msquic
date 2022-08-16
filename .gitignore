@@ -373,5 +373,6 @@ target/
 
 # Cargo (Rust) lock file
 Cargo.lock
-.idea
-cmake-build-debug/
+
+# IntelliJ project files
+.idea/
