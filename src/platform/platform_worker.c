@@ -15,17 +15,22 @@ Abstract:
 #include "platform_worker.c.clog.h"
 #endif
 
+const uint32_t QuicEventPayload = CXPLAT_CQE_TYPE_QUIC_BASE;
+
 typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
     //
-    // Indicates if the worker is currently running.
+    // Flags to indicate what has been initialized.
     //
-    BOOLEAN Running;
-
-    //
-    // Event to wake the worker.
-    //
-    CXPLAT_EVENT WakeEvent;
+    BOOLEAN InitializedEventQ : 1;
+#ifdef CXPLAT_SQE
+    BOOLEAN InitializedShutdownSqe : 1;
+    BOOLEAN InitializedQueSqe : 1;
+#endif
+    BOOLEAN InitializedThread : 1;
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+    BOOLEAN InitializedECLock : 1;
+#endif
 
     //
     // Thread used to drive the worker.
@@ -38,9 +43,26 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_THREAD_ID ThreadId;
 
     //
+    // Event queue to drive execution.
+    //
+    CXPLAT_EVENTQ EventQ;
+
+#ifdef CXPLAT_SQE
+    //
+    // Submission queue entry for shutting down the worker thread.
+    //
+    CXPLAT_SQE ShutdownSqe;
+
+    //
+    // Submission queue entry for waking the thread to process QUIC work.
+    //
+    CXPLAT_SQE QuicSqe; // TODO - refactor to expose EventQ to QUIC
+#endif
+
+    //
     // The datapath execution context running on this worker.
     //
-    void* DatapathEC;
+    //void* DatapathEC;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
 
@@ -82,26 +104,15 @@ CxPlatWorkerWake(
     _In_ CXPLAT_WORKER* Worker
     )
 {
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-    Worker->ECsReady = TRUE;
-#endif // QUIC_USE_EXECUTION_CONTEXTS
-    if (Worker->DatapathEC) {
-        CxPlatDataPathWake(Worker->DatapathEC);
-    } else {
-        CxPlatEventSet(Worker->WakeEvent);
-    }
+    CxPlatEventQEnqueue(&Worker->EventQ, &Worker->QuicSqe, (void*)&QuicEventPayload);
 }
 
-void
-CxPlatWorkerRegisterDataPath(
-    _In_ uint16_t IdealProcessor,
-    _In_ void* Context
+CXPLAT_EVENTQ*
+CxPlatWorkerGetEventQ(
+    _In_ uint16_t IdealProcessor
     )
 {
-    CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
-    CXPLAT_FRE_ASSERTMSG(Worker->DatapathEC == NULL, "Only one datapath allowed!");
-    Worker->DatapathEC = Context;
-    CxPlatEventSet(Worker->WakeEvent);
+    return &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount].EventQ;
 }
 
 #pragma warning(push)
@@ -137,33 +148,70 @@ CxPlatWorkersInit(
 
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        CxPlatWorkers[i].Running = TRUE;
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
+        CxPlatWorkers[i].InitializedECLock = TRUE;
 #endif // QUIC_USE_EXECUTION_CONTEXTS
-        CxPlatEventInitialize(&CxPlatWorkers[i].WakeEvent, FALSE, FALSE);
         ThreadConfig.IdealProcessor = (uint16_t)i;
         ThreadConfig.Context = &CxPlatWorkers[i];
-        if (QUIC_FAILED(
-            CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
-            CxPlatWorkers[i].Running = FALSE;
+        if (!CxPlatEventQInitialize(&CxPlatWorkers[i].EventQ)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CxPlatEventQInitialize");
             goto Error;
         }
+        CxPlatWorkers[i].InitializedEventQ = TRUE;
+#ifdef CXPLAT_SQE_INIT
+        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe, NULL)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CxPlatSqeInitialize(shutdown)");
+            goto Error;
+        }
+        CxPlatWorkers[i].InitializedShutdownSqe = TRUE;
+        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].QuicSqe, NULL)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CxPlatSqeInitialize(quic)");
+            goto Error;
+        }
+        CxPlatWorkers[i].InitializedQuicSqe = TRUE;
+#endif
+        if (QUIC_FAILED(
+            CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
+            goto Error;
+        }
+        CxPlatWorkers[i].InitializedThread = TRUE;
     }
 
     return TRUE;
 
 Error:
 
-    for (uint32_t i = 0; i < CxPlatWorkerCount && CxPlatWorkers[i].Running; ++i) {
-        CxPlatWorkers[i].Running = FALSE;
-        CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
-        CxPlatThreadWait(&CxPlatWorkers[i].Thread);
-        CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
+        if (CxPlatWorkers[i].InitializedThread) {
+            CxPlatThreadWait(&CxPlatWorkers[i].Thread);
+            CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+        }
+#ifdef CXPLAT_SQE_INIT
+        if (CxPlatWorkers[i].InitializedQuicSqe) {
+            CxPlatSqeCleanup(&CxPlatWorkers[i].QuicSqe);
+        }
+        if (CxPlatWorkers[i].InitializedShutdownSqe) {
+            CxPlatSqeCleanup(&CxPlatWorkers[i].ShutdownSqe);
+        }
+#endif // CXPLAT_SQE_INIT
+        if (CxPlatWorkers[i].InitializedEventQ) {
+            CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
+        }
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
-        CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
+        if (CxPlatWorkers[i].InitializedECLock) {
+            CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
+        }
 #endif // QUIC_USE_EXECUTION_CONTEXTS
-        CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
     }
 
     CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
@@ -179,14 +227,20 @@ CxPlatWorkersUninit(
     )
 {
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        CxPlatWorkers[i].Running = FALSE;
-        CxPlatEventSet(CxPlatWorkers[i].WakeEvent);
+        CxPlatEventQEnqueue(
+            &CxPlatWorkers[i].EventQ,
+            &CxPlatWorkers[i].ShutdownSqe,
+            NULL);
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+#ifdef CXPLAT_SQE_INIT
+        CxPlatSqeCleanup(&CxPlatWorkers[i].QuicSqe);
+        CxPlatSqeCleanup(&CxPlatWorkers[i].ShutdownSqe);
+#endif // CXPLAT_SQE_INIT
+        CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
 #endif // QUIC_USE_EXECUTION_CONTEXTS
-        CxPlatEventUninitialize(CxPlatWorkers[i].WakeEvent);
     }
 
     CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
@@ -288,7 +342,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
     Worker->ThreadId = CxPlatCurThreadID();
 
     uint32_t NoWorkCount = 0;
-    while (Worker->Running) {
+    uint32_t CqeCount;
+    CXPLAT_CQE Cqes[16];
+
+    while (TRUE) {
 
         uint32_t WaitTime = UINT32_MAX;
         ++NoWorkCount;
@@ -313,20 +370,26 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         }
 #endif
 
-        if (Worker->DatapathEC) {
-            if (CxPlatDataPathRunEC(&Worker->DatapathEC, Worker->ThreadId, WaitTime)) {
-                NoWorkCount = 0;
-            }
-        } else if (WaitTime != 0) {
-            CxPlatEventWaitWithTimeout(Worker->WakeEvent, WaitTime);
-            NoWorkCount = 0;
-        }
+        CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), WaitTime);
 
-        if (NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
+        if (CqeCount != 0) {
+            NoWorkCount = 0;
+            for (uint32_t i = 0; i < CqeCount; ++i) {
+                if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
+                    goto Shutdown; // NULL user data means shutdown.
+                }
+                if (CxPlatCqeType(&Cqes[i]) != CXPLAT_CQE_TYPE_QUIC_BASE) {
+                    CxPlatDataPathProcessCqe(&Cqes[i]);
+                }
+            }
+
+        } else if (NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();
             NoWorkCount = 0;
         }
     }
+
+Shutdown:
 
     QuicTraceLogInfo(
         PlatformWorkerThreadStop,

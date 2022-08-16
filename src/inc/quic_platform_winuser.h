@@ -611,6 +611,19 @@ CxPlatEventQEnqueue(
 }
 
 inline
+BOOLEAN
+CxPlatEventQEnqueueEx( // Windows specific extension
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ uint32_t num_bytes,
+    _In_opt_ void* user_data
+    )
+{
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    return PostQueuedCompletionStatus(*queue, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
+}
+
+inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
