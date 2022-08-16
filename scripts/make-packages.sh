@@ -108,6 +108,8 @@ if [ -z ${OUTPUT} ]; then
     OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
 fi
 
+echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
+
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
