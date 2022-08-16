@@ -1307,8 +1307,8 @@ CxPlatSocketContextUninitializeComplete(
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
 
     if (CxPlatRefDecrement(&SocketContext->Binding->RefCount)) {
-        CxPlatRundownRelease(&Socket->Datapath->BindingsRundown);
-        CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+        CxPlatRundownRelease(&SocketContext->Binding->Datapath->BindingsRundown);
+        CXPLAT_FREE(SocketContext->Binding, QUIC_POOL_SOCKET);
     }
 }
 
@@ -1379,7 +1379,7 @@ CxPlatSocketContextStartReceive(
 
     int Ret =
         epoll_ctl(
-            SocketContext->ProcContext->EpollFd,
+            *SocketContext->ProcContext->EventQ,
             EPOLL_CTL_ADD,
             SocketContext->SocketFd,
             &SockFdEpEvt);
@@ -1588,7 +1588,7 @@ CxPlatSocketContextSendComplete(
 
     int Ret =
         epoll_ctl(
-            SocketContext->ProcContext->EpollFd,
+            *SocketContext->ProcContext->EventQ,
             EPOLL_CTL_MOD,
             SocketContext->SocketFd,
             &SockFdEpEvt);
@@ -2504,7 +2504,7 @@ CxPlatSocketSendInternal(
 
                 int Ret =
                     epoll_ctl(
-                        SocketContext->ProcContext->EpollFd,
+                        *SocketContext->ProcContext->EventQ,
                         EPOLL_CTL_MOD,
                         SocketContext->SocketFd,
                         &SockFdEpEvt);
@@ -2601,8 +2601,8 @@ CxPlatDataPathProcessCqe(
 {
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
-        CXPLAT_DATAPATH_PROC* ProcContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
+        CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
         CxPlatEventSet(ProcContext->CompletionEvent);
         QuicTraceLogVerbose(
             DatapathWakeupForShutdown,

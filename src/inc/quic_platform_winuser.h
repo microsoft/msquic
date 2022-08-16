@@ -640,6 +640,17 @@ CxPlatEventQDequeue(
 }
 
 inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+}
+
+inline
 void*
 CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
