@@ -774,6 +774,12 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateCount;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvGreaseBitPacketCount;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendGreaseBitPacketCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS

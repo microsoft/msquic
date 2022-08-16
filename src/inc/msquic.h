@@ -485,6 +485,9 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t DestCidUpdateCount;            // Number of times the destionation CID changed.
 
+    uint64_t RecvGreaseBitPacketCount;      // Count of received packets with the QUIC Bit set to 0.
+    uint64_t SendGreaseBitPacketCount;      // Count of sent packets with the QUIC Bit set to 0.
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;

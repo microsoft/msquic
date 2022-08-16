@@ -577,7 +577,11 @@ pub struct QuicStatisticsV2 {
 
     pub send_congestion_window: u32,
     // Number of times the destination CID changed.
-    pub dest_cid_update_count: u32
+    pub dest_cid_update_count: u32,
+    // Count of received packets with the QUIC Bit set to 0.
+    pub recv_grease_bit_packet_count: u64,
+    // Count of received packets with the QUIC Bit set to 0.
+    pub send_grease_bit_packet_count: u64
 }
 
 /// A helper struct for accessing listener statistics.

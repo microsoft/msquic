@@ -277,6 +277,7 @@ typedef struct QUIC_CONN_STATS {
 
         uint32_t CongestionCount;
         uint32_t PersistentCongestionCount;
+        uint64_t GreaseBitPacketCount;  // Count of sent packets with the QUIC Bit set to 0.
     } Send;
 
     struct {
@@ -290,6 +291,7 @@ typedef struct QUIC_CONN_STATS {
 
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
+        uint64_t GreaseBitPacketCount;  // Count of received packets with the QUIC Bit set to 0.
     } Recv;
 
     struct {
