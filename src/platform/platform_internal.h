@@ -232,6 +232,12 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     );
 
+BOOLEAN // Returns FALSE no work was done.
+CxPlatDataPathPoll(
+    _In_ void* Context,
+    _Out_ BOOLEAN* RemoveFromPolling
+    );
+
 typedef struct DATAPATH_SQE {
     uint32_t CqeType;
     CXPLAT_SQE Sqe;

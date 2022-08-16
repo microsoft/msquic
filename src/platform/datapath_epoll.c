@@ -246,6 +246,11 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     //
     CXPLAT_LOCK PendingSendDataLock;
 
+    //
+    // Rundown for synchronizing clean up with upcalls.
+    //
+    CXPLAT_RUNDOWN_REF UpcallRundown;
+
 } CXPLAT_SOCKET_CONTEXT;
 
 //
@@ -257,7 +262,7 @@ typedef struct CXPLAT_SOCKET {
     // Synchronization mechanism for cleanup.
     // Make sure events are in front for cache alignment.
     //
-    CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // A pointer to datapath object.
@@ -283,11 +288,6 @@ typedef struct CXPLAT_SOCKET {
     // Indicates the binding connected to a remote IP address.
     //
     BOOLEAN Connected : 1;
-
-    //
-    // Indicates the binding is shut down.
-    //
-    BOOLEAN Shutdown : 1;
 
     //
     // Flag indicates the socket has a default remote destination.
@@ -539,7 +539,7 @@ CxPlatProcessorContextUninitialize(
     // Must call CxPlatProcessorContextShutdown first!
     CxPlatEventWaitForever(ProcContext->CompletionEvent);
     CxPlatEventUninitialize(ProcContext->CompletionEvent);
-    CxPlatSqeCleanup(&ProcContext->ShutdownSqe.Sqe);
+    CxPlatSqeCleanup(ProcContext->EventQ, &ProcContext->ShutdownSqe.Sqe);
     CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
     CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
     CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
@@ -890,11 +890,14 @@ CxPlatSocketContextInitialize(
     int Option = 0;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
+    BOOLEAN ShutdownSqeInitialized = FALSE;
+    BOOLEAN IoSqeInitialized = FALSE;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
     SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
     SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
+    CxPlatRundownInitialize(&SocketContext->UpcallRundown);
 
     if (!CxPlatSqeInitialize(
             SocketContext->ProcContext->EventQ,
@@ -909,6 +912,22 @@ CxPlatSocketContextInitialize(
             "CxPlatSqeInitialize failed");
         goto Exit;
     }
+    ShutdownSqeInitialized = TRUE;
+
+    if (!CxPlatSqeInitialize(
+            SocketContext->ProcContext->EventQ,
+            &SocketContext->IoSqe.Sqe,
+            &SocketContext->IoSqe)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    IoSqeInitialized = TRUE;
 
     //
     // Create datagram socket.
@@ -1249,6 +1268,13 @@ Exit:
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
         SocketContext->SocketFd = INVALID_SOCKET;
+        if (ShutdownSqeInitialized) {
+            CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        }
+        if (IoSqeInitialized) {
+            CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
+        }
+        CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
     }
 
     return Status;
@@ -1273,11 +1299,17 @@ CxPlatSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
-    CxPlatSqeCleanup(
-        SocketContext->ProcContext->EventQ,
-        &SocketContext->ShutdownSqe.Sqe);
+    epoll_ctl(SocketContext->IoSqe.Sqe, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    close(SocketContext->SocketFd);
 
-    CxPlatRundownRelease(&SocketContext->Binding->Rundown);
+    CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->ShutdownSqe.Sqe);
+    CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
+    CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
+
+    if (CxPlatRefDecrement(&SocketContext->Binding->RefCount)) {
+        CxPlatRundownRelease(&Socket->Datapath->BindingsRundown);
+        CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+    }
 }
 
 void
@@ -1285,6 +1317,7 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
+    CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
     CxPlatEventQEnqueue(
         SocketContext->ProcContext->EventQ,
         &SocketContext->ShutdownSqe.Sqe,
@@ -1617,6 +1650,10 @@ CxPlatDataPathSocketProcessIoCompletion(
     _In_ CXPLAT_CQE* Cqe
     )
 {
+    if (!CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
+        return;
+    }
+
     if (EPOLLERR & Cqe->events) {
         int ErrNum = 0;
         socklen_t OptLen = sizeof(ErrNum);
@@ -1694,6 +1731,8 @@ CxPlatDataPathSocketProcessIoCompletion(
     if (EPOLLOUT & Cqe->events) {
         CxPlatSocketContextSendComplete(SocketContext);
     }
+
+    CxPlatRundownRelease(&SocketContext->UpcallRundown);
 }
 
 //
@@ -1744,7 +1783,7 @@ CxPlatSocketCreateUdp(
     Binding->ClientContext = Config->CallbackContext;
     Binding->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Binding->Mtu = CXPLAT_MAX_MTU;
-    CxPlatRundownInitialize(&Binding->Rundown);
+    CxPlatRefInitializeEx(&Binding->RefCount, SocketCount);
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
     } else {
@@ -1761,7 +1800,6 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
-        CxPlatRundownAcquire(&Binding->Rundown);
     }
 
     CxPlatRundownAcquire(&Datapath->BindingsRundown);
@@ -1828,48 +1866,17 @@ Exit:
                 "[data][%p] Destroyed",
                 Binding);
 
-            if (SuccessfulStartReceives >= 0) {
-                uint32_t CurrentSocket = 0;
-                Binding->Shutdown = TRUE;
-
-                //
-                // First shutdown any sockets that fully started
-                //
-                for (; CurrentSocket < (uint32_t)SuccessfulStartReceives; CurrentSocket++) {
-                    CxPlatSocketContextUninitialize(&Binding->SocketContexts[CurrentSocket]);
-                }
-                //
-                // Then shutdown any sockets that failed to start
-                //
-                for (; CurrentSocket < SocketCount; CurrentSocket++) {
-                    CxPlatSocketContextUninitializeComplete(&Binding->SocketContexts[CurrentSocket]);
-                }
-            } else {
-                //
-                // No sockets fully started. Only uninitialize static things
-                //
-                for (uint32_t i = 0; i < SocketCount; i++) {
-                    CXPLAT_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
-                    int EpollFd = SocketContext->ProcContext->EpollFd;
-                    if (SocketContext->CleanupFd != INVALID_SOCKET) {
-                        epoll_ctl(EpollFd, EPOLL_CTL_DEL, SocketContext->CleanupFd, NULL);
-                        close(SocketContext->CleanupFd);
-                    }
-                    if (SocketContext->SocketFd != INVALID_SOCKET) {
-                        epoll_ctl(EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-                        close(SocketContext->SocketFd);
-                    }
-                    CxPlatRundownRelease(&Binding->Rundown);
-                }
+            //
+            // First shutdown any sockets that fully started, then shutdown
+            // any sockets that failed to start.
+            //
+            uint32_t CurrentSocket = 0;
+            for (; CurrentSocket < (uint32_t)SuccessfulStartReceives; CurrentSocket++) {
+                CxPlatSocketContextUninitialize(&Binding->SocketContexts[CurrentSocket]);
             }
-            CxPlatRundownReleaseAndWait(&Binding->Rundown);
-            CxPlatRundownRelease(&Datapath->BindingsRundown);
-            CxPlatRundownUninitialize(&Binding->Rundown);
-            for (uint32_t i = 0; i < SocketCount; i++) {
-                CxPlatLockUninitialize(&Binding->SocketContexts[i].PendingSendDataLock);
+            for (; CurrentSocket < SocketCount; CurrentSocket++) {
+                CxPlatSocketContextUninitializeComplete(&Binding->SocketContexts[CurrentSocket]);
             }
-            CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
-            Binding = NULL;
         }
     }
 
@@ -1928,20 +1935,10 @@ CxPlatSocketDelete(
     // upcalls on different threads will be completed.
     //
 
-    Socket->Shutdown = TRUE;
     uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
     }
-
-    CxPlatRundownReleaseAndWait(&Socket->Rundown);
-    CxPlatRundownRelease(&Socket->Datapath->BindingsRundown);
-
-    CxPlatRundownUninitialize(&Socket->Rundown);
-    for (uint32_t i = 0; i < SocketCount; i++) {
-        CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendDataLock);
-    }
-    CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
 void

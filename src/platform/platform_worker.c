@@ -25,7 +25,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN InitializedEventQ : 1;
 #ifdef CXPLAT_SQE
     BOOLEAN InitializedShutdownSqe : 1;
-    BOOLEAN InitializedQueSqe : 1;
+    BOOLEAN InitializedQuicSqe : 1;
 #endif
     BOOLEAN InitializedThread : 1;
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
@@ -198,10 +198,10 @@ Error:
         }
 #ifdef CXPLAT_SQE_INIT
         if (CxPlatWorkers[i].InitializedQuicSqe) {
-            CxPlatSqeCleanup(&CxPlatWorkers[i].QuicSqe);
+            CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].QuicSqe);
         }
         if (CxPlatWorkers[i].InitializedShutdownSqe) {
-            CxPlatSqeCleanup(&CxPlatWorkers[i].ShutdownSqe);
+            CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
         }
 #endif // CXPLAT_SQE_INIT
         if (CxPlatWorkers[i].InitializedEventQ) {
@@ -234,8 +234,8 @@ CxPlatWorkersUninit(
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
 #ifdef CXPLAT_SQE_INIT
-        CxPlatSqeCleanup(&CxPlatWorkers[i].QuicSqe);
-        CxPlatSqeCleanup(&CxPlatWorkers[i].ShutdownSqe);
+        CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].QuicSqe);
+        CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
 #endif // CXPLAT_SQE_INIT
         CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
@@ -382,7 +382,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
                     CxPlatDataPathProcessCqe(&Cqes[i]);
                 }
             }
-            CxPlatEventQReturnCqes(&Worker->EventQ, CqeCount);
+            CxPlatEventQReturn(&Worker->EventQ, CqeCount);
 
         } else if (NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();

@@ -283,6 +283,15 @@ CxPlatRefInitialize(
 }
 
 void
+CxPlatRefInitializeEx(
+    _Inout_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    )
+{
+    *RefCount = (int64_t)Initial;
+}
+
+void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
     )

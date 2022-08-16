@@ -1420,19 +1420,19 @@ CxPlatSocketContextSendComplete(
 }
 
 void
-CxPlatSocketContextProcessEvents(
-    _In_ struct kevent* Event
+CxPlatDataPathSocketProcessIoCompletion(
+    _In_ CXPLAT_SOCKET_PROC* SocketContext,
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    CXPLAT_SOCKET_CONTEXT* SocketContext = (CXPLAT_SOCKET_CONTEXT*)Event->udata;
-    CXPLAT_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
-    if (Event->filter == EVFILT_USER) {
+    CXPLAT_DBG_ASSERT(Cqe->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
+    if (Cqe->filter == EVFILT_USER) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Shutdown);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         return;
     }
 
-    if (Event->filter == EVFILT_READ) {
+    if (Cqe->filter == EVFILT_READ) {
         //
         // Read up to 4 receives before moving to another event.
         //
@@ -1477,7 +1477,7 @@ CxPlatSocketContextProcessEvents(
         }
     }
 
-    if (Event->filter == EVFILT_WRITE) {
+    if (Cqe->filter == EVFILT_WRITE) {
         CxPlatSocketContextSendComplete(SocketContext);
     }
 }
@@ -2334,77 +2334,33 @@ CxPlatSocketGetLocalMtu(
     return Socket->Mtu;
 }
 
-#ifndef TEMP_FAILURE_RETRY
-#define TEMP_FAILURE_RETRY(expression)                              \
-    ({                                                              \
-        long int FailureRetryResult = 0;                            \
-        do {                                                        \
-            FailureRetryResult = (long int)(expression);            \
-        } while ((FailureRetryResult == -1L) && (errno == EINTR));  \
-        FailureRetryResult;                                         \
-    })
-#endif
-
 void
-CxPlatDataPathWake(
-    _In_ void* Context
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Context;
-    struct kevent Event = {0};
-    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
-}
-
-BOOLEAN // Did work?
-CxPlatDataPathRunEC(
-    _In_ void** Context,
-    _In_ CXPLAT_THREAD_ID CurThreadId,
-    _In_ uint32_t WaitTime
-    )
-{
-    CXPLAT_DATAPATH_PROC_CONTEXT** EcProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT**)Context;
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = *EcProcContext;
-    CXPLAT_DBG_ASSERT(ProcContext->Datapath != NULL);
-
-    int Kqueue = ProcContext->KqueueFd;
-    const size_t EventListMax = 16; // TODO: Experiment.
-    struct kevent EventList[EventListMax];
-
-    ProcContext->ThreadId = CurThreadId;
-
-    struct timespec Timeout = {0, 0};
-    if (WaitTime != UINT32_MAX) {
-        Timeout.tv_sec += (WaitTime / CXPLAT_MS_PER_SECOND);
-        Timeout.tv_nsec += ((WaitTime % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
-    }
-
-    int ReadyEventCount =
-        TEMP_FAILURE_RETRY(
-            kevent(
-                Kqueue,
-                NULL,
-                0,
-                EventList,
-                EventListMax,
-                WaitTime == UINT32_MAX ? NULL : &Timeout));
-
-    if (ProcContext->Datapath->Shutdown) {
-        *Context = NULL;
+    switch (CxPlatCqeType(Cqe)) {
+    case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
+        CXPLAT_DATAPATH_PROC* ProcContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
         CxPlatEventSet(ProcContext->CompletionEvent);
-        return TRUE;
+        QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            ProcContext);
+        break;
     }
-
-    if (ReadyEventCount == 0) {
-        return TRUE; // Wake for timeout.
+    case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
+        CXPLAT_SOCKET_PROC* SocketContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, ShutdownSqe);
+        CxPlatSocketContextUninitializeComplete(SocketContext);
+        break;
     }
-
-    CXPLAT_FRE_ASSERT(ReadyEventCount >= 0);
-    for (int i = 0; i < ReadyEventCount; i++) {
-        if (EventList[i].udata != NULL) {
-            CxPlatSocketContextProcessEvents(&EventList[i]);
-        }
+    case CXPLAT_CQE_TYPE_SOCKET_IO: {
+        CXPLAT_SOCKET_PROC* SocketContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, IoSqe);
+        CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
+        break;
     }
-
-    return TRUE;
+    }
 }
