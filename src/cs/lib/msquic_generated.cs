@@ -1854,9 +1854,6 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("HQUIC")]
                 internal QUIC_HANDLE* Connection;
-
-                [NativeTypeName("const uint8_t *")]
-                internal byte* NewNegotiatedAlpn;
             }
 
             internal partial struct _STOP_COMPLETE_e__Struct
