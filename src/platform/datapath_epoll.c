@@ -474,7 +474,7 @@ CxPlatProcessorContextInitialize(
     _Out_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    uint32_t RecvPacketLength =
+    const uint32_t RecvPacketLength =
         sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
@@ -568,7 +568,7 @@ CxPlatDataPathInitialize(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    size_t DatapathLength =
+    const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
             CxPlatProcMaxCount() * sizeof(CXPLAT_DATAPATH_PROC_CONTEXT);
 
@@ -1305,6 +1305,7 @@ CxPlatSocketContextUninitializeComplete(
     CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->ShutdownSqe.Sqe);
     CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
+    CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
     if (CxPlatRefDecrement(&SocketContext->Binding->RefCount)) {
         CxPlatRundownRelease(&SocketContext->Binding->Datapath->BindingsRundown);
@@ -1847,9 +1848,7 @@ CxPlatSocketCreateUdp(
 
     SuccessfulStartReceives = 0;
     for (uint32_t i = 0; i < SocketCount; i++) {
-        Status =
-            CxPlatSocketContextStartReceive(
-                &Binding->SocketContexts[i]);
+        Status = CxPlatSocketContextStartReceive(&Binding->SocketContexts[i]);
         if (QUIC_FAILED(Status)) {
             SuccessfulStartReceives = (int32_t)i;
             goto Exit;
@@ -1879,6 +1878,7 @@ Exit:
                 CxPlatSocketContextUninitializeComplete(&Binding->SocketContexts[CurrentSocket]);
             }
         }
+        *NewBinding = NULL;
     }
 
     return Status;

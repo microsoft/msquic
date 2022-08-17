@@ -976,7 +976,6 @@ CxPlatDataPathUninitialize(
     // sure the threads knows they are disabled.
     //
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-        // Should we do this? Datapath->Processors[i].Shutdown = TRUE;
         CxPlatEventQEnqueue(
             Datapath->Processors[i].EventQ,
             &Datapath->Processors[i].ShutdownSqe.Sqe,

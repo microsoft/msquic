@@ -240,7 +240,9 @@ CxPlatDataPathPoll(
 
 typedef struct DATAPATH_SQE {
     uint32_t CqeType;
+#ifdef CXPLAT_SQE
     CXPLAT_SQE Sqe;
+#endif
 } DATAPATH_SQE;
 
 #define CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN   CXPLAT_CQE_TYPE_QUIC_BASE + 1
