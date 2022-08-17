@@ -652,7 +652,7 @@ CxPlatThreadCreate(
 #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
     //
-    // If pthread_create fails eith ENOKEY, then try again without the attribute
+    // If pthread_create fails with ENOKEY, then try again without the attribute
     // because the CPU might be offline.
     //
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context) &&
