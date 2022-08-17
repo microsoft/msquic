@@ -14,6 +14,10 @@
 #include "datapath_kqueue.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogError
 #define _clog_MACRO_QuicTraceLogError  1
 #define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,24 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for DatapathWakeupForShutdown
+// [data][%p] Datapath wakeup for shutdown
+// QuicTraceLogVerbose(
+            DatapathWakeupForShutdown,
+            "[data][%p] Datapath wakeup for shutdown",
+            ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathWakeupForShutdown
+#define _clog_3_ARGS_TRACE_DatapathWakeupForShutdown(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathWakeupForShutdown , arg2);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
@@ -46,26 +68,6 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathResolveHostNameFailed , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "kqueue() failed");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "kqueue() failed" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -79,6 +81,26 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_KQUEUE_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+        LibraryErrorStatus,
+        "[ lib] ERROR, %u, %s.",
+        (uint32_t)Result,
+        "Resolving hostname to IP");
+// arg2 = arg2 = (uint32_t)Result = arg2
+// arg3 = arg3 = "Resolving hostname to IP" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
