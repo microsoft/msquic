@@ -658,6 +658,12 @@ CxPlatThreadCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "pthread_create failed");
+
+        // Try it again without attributes.
+        // pthread_create can fail with ENOKEY if we request affinity on CPU that is offline
+        if (Status == ENOKEY && pthread_create(Thread, NULL, Config->Callback, Config->Context) == 0) {
+            Status = QUIC_STATUS_SUCCESS;
+        }
     }
 
 #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
