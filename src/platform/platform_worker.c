@@ -171,7 +171,7 @@ CxPlatWorkersInit(
             goto Error;
         }
         CxPlatWorkers[i].InitializedShutdownSqe = TRUE;
-        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].QuicSqe, NULL)) {
+        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].QuicSqe, &QuicEventPayload)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
