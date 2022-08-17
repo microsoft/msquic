@@ -206,7 +206,7 @@ typedef struct CXPLAT_SEND_DATA {
 //
 // Per-processor socket state.
 //
-typedef struct CXPLAT_SOCKET_PROC {
+typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 
     //
     // Submission queue event for IO completion
@@ -277,6 +277,41 @@ typedef struct CXPLAT_SOCKET_PROC {
 typedef struct CXPLAT_SOCKET {
 
     //
+    // Parent datapath.
+    //
+    CXPLAT_DATAPATH* Datapath;
+
+    //
+    // Client context pointer.
+    //
+    void *ClientContext;
+
+    //
+    // The local address and port.
+    //
+    SOCKADDR_INET LocalAddress;
+
+    //
+    // The remote address and port.
+    //
+    SOCKADDR_INET RemoteAddress;
+
+    //
+    // The index of the affinitized receive processor for a connected socket.
+    //
+    uint16_t ProcessorAffinity;
+
+    //
+    // The local interface's MTU.
+    //
+    uint16_t Mtu;
+
+    //
+    // The number of per-processor socket contexts that still need to be cleaned up.
+    //
+    short volatile ProcsOutstanding;
+
+    //
     // Socket type.
     //
     uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
@@ -307,41 +342,6 @@ typedef struct CXPLAT_SOCKET {
     uint8_t PcpBinding : 1;
 
     //
-    // The index of the affinitized receive processor for a connected socket.
-    //
-    uint16_t ProcessorAffinity;
-
-    //
-    // Parent datapath.
-    //
-    CXPLAT_DATAPATH* Datapath;
-
-    //
-    // The local address and port.
-    //
-    SOCKADDR_INET LocalAddress;
-
-    //
-    // The remote address and port.
-    //
-    SOCKADDR_INET RemoteAddress;
-
-    //
-    // The local interface's MTU.
-    //
-    UINT16 Mtu;
-
-    //
-    // The number of per-processor socket contexts that still need to be cleaned up.
-    //
-    short volatile ProcsOutstanding;
-
-    //
-    // Client context pointer.
-    //
-    void *ClientContext;
-
-    //
     // Per-processor socket contexts.
     //
     CXPLAT_SOCKET_PROC Processors[0];
@@ -352,7 +352,7 @@ typedef struct CXPLAT_SOCKET {
 // Represents a single IO completion port and thread for processing work that
 // is completed on a single processor.
 //
-typedef struct CXPLAT_DATAPATH_PROC {
+typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
 
     //
     // Submission queue event for shutdown

@@ -189,7 +189,7 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
 //
 // Socket context.
 //
-typedef struct CXPLAT_SOCKET_CONTEXT {
+typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
 
     //
     // The datapath binding this socket context belongs to.
@@ -259,12 +259,6 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
 typedef struct CXPLAT_SOCKET {
 
     //
-    // Synchronization mechanism for cleanup.
-    // Make sure events are in front for cache alignment.
-    //
-    CXPLAT_REF_COUNT RefCount;
-
-    //
     // A pointer to datapath object.
     //
     CXPLAT_DATAPATH* Datapath;
@@ -285,6 +279,17 @@ typedef struct CXPLAT_SOCKET {
     QUIC_ADDR RemoteAddress;
 
     //
+    // Synchronization mechanism for cleanup.
+    // Make sure events are in front for cache alignment.
+    //
+    CXPLAT_REF_COUNT RefCount;
+
+    //
+    // The MTU for this binding.
+    //
+    uint16_t Mtu;
+
+    //
     // Indicates the binding connected to a remote IP address.
     //
     BOOLEAN Connected : 1;
@@ -300,11 +305,6 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN PcpBinding : 1;
 
     //
-    // The MTU for this binding.
-    //
-    uint16_t Mtu;
-
-    //
     // Set of socket contexts one per proc.
     //
     CXPLAT_SOCKET_CONTEXT SocketContexts[];
@@ -314,7 +314,7 @@ typedef struct CXPLAT_SOCKET {
 //
 // A per processor datapath context.
 //
-typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
+typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC_CONTEXT {
 
     //
     // A pointer to the datapath.
@@ -372,36 +372,25 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
 typedef struct CXPLAT_DATAPATH {
 
     //
+    // Set of supported features.
+    //
+    uint32_t Features;
+
+    //
+    // The proc count to create per proc datapath state.
+    //
+    uint32_t ProcCount;
+
+    //
     // A reference rundown on the datapath binding.
     // Make sure events are in front for cache alignment.
     //
     CXPLAT_RUNDOWN_REF BindingsRundown;
 
     //
-    // Set of supported features.
-    //
-    uint32_t Features;
-
-    //
-    // The max send batch size.
-    // TODO: See how send batching can be enabled.
-    //
-    uint8_t MaxSendBatchSize;
-
-    //
     // UDP handlers.
     //
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
-
-    //
-    // The length of recv context used by MsQuic.
-    //
-    size_t ClientRecvContextLength;
-
-    //
-    // The proc count to create per proc datapath state.
-    //
-    uint32_t ProcCount;
 
     //
     // The per proc datapath contexts.
@@ -471,11 +460,12 @@ QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t Index,
+    _In_ uint32_t ClientRecvContextLength,
     _Out_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
     const uint32_t RecvPacketLength =
-        sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
+        sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + ClientRecvContextLength;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     ProcContext->Datapath = Datapath;
@@ -587,9 +577,7 @@ CxPlatDataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
-    Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = CxPlatProcMaxCount();
-    Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
 
@@ -604,7 +592,7 @@ CxPlatDataPathInitialize(
     // Initialize the per processor contexts.
     //
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        Status = CxPlatProcessorContextInitialize(Datapath, i, &Datapath->ProcContexts[i]);
+        Status = CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->ProcContexts[i]);
         if (QUIC_FAILED(Status)) {
             for (uint32_t j = 0; j < i; j++) {
                 CxPlatProcessorContextShutdown(&Datapath->ProcContexts[j]);
@@ -2117,7 +2105,7 @@ CxPlatSendDataCanAllocSend(
     )
 {
     return
-        (SendData->BufferCount < SendData->Owner->Datapath->MaxSendBatchSize) ||
+        (SendData->BufferCount < CXPLAT_MAX_BATCH_SEND) ||
         ((SendData->SegmentSize > 0) &&
             CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength));
 }
@@ -2171,7 +2159,7 @@ CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_POOL* BufferPool
     )
 {
-    CXPLAT_DBG_ASSERT(SendData->BufferCount < SendData->Owner->Datapath->MaxSendBatchSize);
+    CXPLAT_DBG_ASSERT(SendData->BufferCount < CXPLAT_MAX_BATCH_SEND);
 
     QUIC_BUFFER* Buffer = &SendData->Buffers[SendData->BufferCount];
     Buffer->Buffer = CxPlatPoolAlloc(BufferPool);
