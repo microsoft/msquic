@@ -424,6 +424,13 @@ CxPlatGetAllocFailDenominator(
 
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
+typedef struct CXPLAT_EXECUTION_STATE {
+    uint64_t TimeNow;           // in microseconds.
+    uint32_t WaitTime;
+    uint32_t NoWorkCount;
+    CXPLAT_THREAD_ID ThreadID;
+} CXPLAT_EXECUTION_STATE;
+
 //
 // Returns FALSE when it's time to cleanup.
 //
@@ -431,9 +438,8 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (*CXPLAT_EXECUTION_FN)(
-    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _Inout_ uint64_t* TimeNowUs,    // The current time, in microseconds.
-    _In_ CXPLAT_THREAD_ID ThreadID  // The current thread ID.
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
 typedef
@@ -461,7 +467,8 @@ typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t IdealProcessor,
+    _In_ BOOLEAN RunImmediately
     );
 
 void

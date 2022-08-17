@@ -72,6 +72,7 @@ typedef struct XDP_INTERFACE {
 } XDP_INTERFACE;
 
 typedef struct QUIC_CACHEALIGN XDP_WORKER {
+    CXPLAT_EXECUTION_CONTEXT;
     const struct XDP_DATAPATH* Xdp;
     HANDLE CompletionEvent;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
@@ -120,6 +121,13 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatXdpExecute(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    );
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
@@ -1106,8 +1114,12 @@ CxPlatDpRawInitialize(
         }
         Xdp->Workers[i].Xdp = Xdp;
         Xdp->Workers[i].ProcIndex = ProcList[i];
+        Xdp->Workers[i].Ready = TRUE;
+        Xdp->Workers[i].Callback = CxPlatXdpExecute;
+        Xdp->Workers[i].Context = &Xdp->Workers[i];
         CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
-        CxPlatWorkerRegisterDataPath(ProcList[i], &Xdp->Workers[i]);
+        CxPlatAddExecutionContext(
+            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], ProcList[i], TRUE);
     }
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1574,32 +1586,21 @@ CxPlatXdpTx(
     return ProdCount > 0 || CompCount > 0;
 }
 
-void
-CxPlatDataPathWake(
-    _In_ void* Context
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatXdpExecute(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
     )
 {
-    // No-op - XDP never sleeps!
-    UNREFERENCED_PARAMETER(Context);
-}
-
-BOOLEAN // Did work?
-CxPlatDataPathRunEC(
-    _In_ void** Context,
-    _In_ CXPLAT_THREAD_ID CurThreadId,
-    _In_ uint32_t WaitTime
-    )
-{
-    XDP_WORKER* Worker = *(XDP_WORKER**)Context;
+    XDP_WORKER* Worker = (XDP_WORKER*)Context;
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
-    UNREFERENCED_PARAMETER(CurThreadId);
-    UNREFERENCED_PARAMETER(WaitTime);
+    UNREFERENCED_PARAMETER(State);
 
     if (!Xdp->Running) {
-        *Context = NULL;
         CxPlatEventSet(Worker->CompletionEvent);
-        return TRUE;
+        return FALSE;
     }
 
     BOOLEAN DidWork = FALSE;
@@ -1610,5 +1611,19 @@ CxPlatDataPathRunEC(
         Queue = Queue->Next;
     }
 
-    return DidWork;
+    Worker->Ready = TRUE;
+    if (DidWork) {
+        State->NoWorkCount = 0;
+    }
+
+    return TRUE;
+}
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    // No events (yet)
+    UNREFERENCED_PARAMETER(Cqe);
 }
