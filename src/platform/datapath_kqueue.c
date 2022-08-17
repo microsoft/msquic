@@ -1125,12 +1125,8 @@ CxPlatSocketContextStartReceive(
     }
 
     struct kevent Event = {0};
-    EV_SET(
-        &Event, SocketContext->SocketFd,
-        EVFILT_READ, EV_ADD | EV_ENABLE,
-        0,
-        0,
-        &SocketContext->IoSqe);
+    EV_SET(&Event, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &SocketContext->IoSqe);
+
     int Ret =
         kevent(
             *SocketContext->ProcContext->EventQ,
