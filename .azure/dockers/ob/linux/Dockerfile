@@ -12,6 +12,12 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     apt-add-repository ppa:lttng/stable-2.12 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
+    gcc-arm-linux-gnueabihf \
+    g++-arm-linux-gnueabihf \
+    binutils-arm-linux-gnueabihf \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    binutils-aarch64-linux-gnu \
     cmake \
     git \
     make \
@@ -20,7 +26,16 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     lttng-tools \
     perl \
     nasm \
+    ruby \
+    ruby-dev \
+    rpm \
+    libssl-dev \
+    cppcheck \
+    clang-tidy \
+    gdb \
   && rm -rf /var/lib/apt/lists/*
+
+RUN gem install fpm
 
 RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
     sudo dpkg -i packages-microsoft-prod.deb && \
@@ -30,3 +45,18 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
         # INSTALL POWERSHELl
         powershell \
   && rm -rf /var/lib/apt/lists/*
+
+RUN dpkg --add-architecture arm64
+RUN dpkg --add-architecture armhf
+
+RUN cat /etc/apt/sources.list | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list
+
+COPY arm-cross-compile-sources.list /etc/apt/sources.list.d/
+
+RUN apt-get update
+
+RUN apt-get install -y liblttng-ust-dev:arm64 \
+    liblttng-ust-dev:armhf \
+    libssl-dev:arm64 \
+    libssl-dev:armhf \
+    && rm -rf /var/lib/apt/lists/*
