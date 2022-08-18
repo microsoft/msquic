@@ -2889,6 +2889,18 @@ QuicConnProcessPeerTransportParameters(
         "Peer Transport Parameters Set");
     Connection->State.PeerTransportParameterValid = TRUE;
 
+    if (Connection->Stats.GreaseBitNegotiated == FALSE &&
+        (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
+        //
+        // Endpoints that receive the grease_quic_bit transport parameter from a peer SHOULD set the QUIC Bit to an unpredictable value
+        // unless another extension assigns specific meaning to the value of the bit.
+        //
+        uint8_t RandomValue;
+        (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
+        Connection->State.FixedBit = (RandomValue % 2);
+        Connection->Stats.GreaseBitNegotiated = TRUE;
+    }
+
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
         CXPLAT_DBG_ASSERT(Connection->PeerTransportParams.ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
         if (Connection->SourceCidLimit > Connection->PeerTransportParams.ActiveConnectionIdLimit) {

@@ -459,16 +459,14 @@ pub struct QuicStatisticsRecv {
     /// Includes DuplicatePackets.
     pub dropped_packets: u64,
     pub duplicate_packets: u64,
-    /// Count of packet decryption failures.
-    pub decryption_failures: u64,
-    /// Count of packets that successfully decrypted or had no encryption.
-    pub valid_packets: u64,
-    /// Count of receive ACK frames.
-    pub valid_ack_frames: u64,
     /// Sum of UDP payloads
     pub total_bytes: u64,
     /// Sum of stream payloads
     pub total_stream_bytes: u64,
+    /// Count of packet decryption failures.
+    pub decryption_failures: u64,
+    /// Count of receive ACK frames.
+    pub valid_ack_frames: u64,
 }
 
 #[repr(C)]

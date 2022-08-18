@@ -198,18 +198,6 @@ QuicPacketBuilderPrepare(
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
 
-    if (Connection->Stats.GreaseBitNegotiated == FALSE &&
-        (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
-        //
-        // Endpoints that receive the grease_quic_bit transport parameter from a peer SHOULD set the QUIC Bit to an unpredictable value
-        // unless another extension assigns specific meaning to the value of the bit.
-        //
-        uint8_t RandomValue;
-        (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
-        Connection->State.FixedBit = (RandomValue % 2);
-        Connection->Stats.GreaseBitNegotiated = TRUE;
-    }
-
     //
     // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
     // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
