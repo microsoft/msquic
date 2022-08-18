@@ -398,7 +398,6 @@ CxPlatProcessorContextInitialize(
     ProcContext->Datapath = Datapath;
     ProcContext->Index = Index;
     ProcContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN;
-    ProcContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_IO;
     ProcContext->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
     CxPlatEventInitialize(&ProcContext->CompletionEvent, TRUE, FALSE);
 
@@ -721,6 +720,7 @@ CxPlatSocketContextInitialize(
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
     SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_IO;
     CxPlatRundownInitialize(&SocketContext->UpcallRundown);
 
     //
@@ -1363,7 +1363,7 @@ CxPlatSocketContextSendComplete(
 
 void
 CxPlatDataPathSocketProcessIoCompletion(
-    _In_ CXPLAT_SOCKET_PROC* SocketContext,
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_CQE* Cqe
     )
 {
@@ -2250,8 +2250,8 @@ CxPlatDataPathProcessCqe(
 {
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
-        CXPLAT_DATAPATH_PROC* ProcContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
+        CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
         CxPlatEventSet(ProcContext->CompletionEvent);
         QuicTraceLogVerbose(
             DatapathWakeupForShutdown,
