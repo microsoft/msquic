@@ -702,6 +702,20 @@ namespace Microsoft.Quic
             }
         }
 
+        [NativeTypeName("uint32_t : 27")]
+        internal uint RESERVED
+        {
+            get
+            {
+                return (_bitfield >> 5) & 0x7FFFFFFu;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x7FFFFFFu << 5)) | ((value & 0x7FFFFFFu) << 5);
+            }
+        }
+
         [NativeTypeName("uint32_t")]
         internal uint Rtt;
 
