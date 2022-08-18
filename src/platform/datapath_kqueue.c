@@ -722,10 +722,6 @@ CxPlatSocketContextInitialize(
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
-    SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-    CxPlatRundownInitialize(&SocketContext->UpcallRundown);
-
     //
     // Create datagram socket. We will use dual-mode sockets everywhere when we can.
     // There is problem with receiving PKTINFO on dual-mode when binded and connect to IP4 endpoints.
@@ -1439,7 +1435,7 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    int32_t SuccessfulStartReceives = -1;
+    uint32_t SuccessfulStartReceives = 0;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1490,6 +1486,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
+        CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
     CxPlatRundownAcquire(&Datapath->BindingsRundown);
@@ -1523,13 +1520,12 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    SuccessfulStartReceives = 0;
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i]);
         if (QUIC_FAILED(Status)) {
-            SuccessfulStartReceives = (int32_t)i;
+            SuccessfulStartReceives = i;
             goto Exit;
         }
     }
@@ -1549,7 +1545,7 @@ Exit:
             // First shutdown any sockets that fully started
             //
             uint32_t CurrentSocket = 0;
-            for (; CurrentSocket < (uint32_t)SuccessfulStartReceives; CurrentSocket++) {
+            for (; CurrentSocket < SuccessfulStartReceives; CurrentSocket++) {
                 CxPlatSocketContextUninitialize(&Binding->SocketContexts[CurrentSocket]);
             }
             //
