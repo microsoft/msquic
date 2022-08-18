@@ -180,11 +180,6 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN FixedBit : 1;
 
-        //
-        // This value indicates that FixedBit is negotiated.
-        //
-        BOOLEAN FixedBitNegotiated : 1;
-
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -239,6 +234,7 @@ typedef struct QUIC_CONN_STATS {
     uint32_t StatelessRetry         : 1;
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
+    uint32_t GreaseBitNegotiated    : 1;
 
     //
     // QUIC protocol version used. Network byte order.
@@ -290,7 +286,6 @@ typedef struct QUIC_CONN_STATS {
 
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
-        uint64_t GreaseBitTpCount;      // Count of received grease transport parameter from peer.
     } Recv;
 
     struct {

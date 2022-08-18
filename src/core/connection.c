@@ -6610,6 +6610,7 @@ QuicConnGetV2Statistics(
     Stats->StatelessRetry = Connection->Stats.StatelessRetry;
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
+    Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
     Stats->MaxRtt = Path->MaxRtt;
@@ -6660,9 +6661,6 @@ QuicConnGetV2Statistics(
     }
     if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
         Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
-    }
-    if (STATISTICS_HAS_FIELD(*StatsLength, RecvGreaseBitTpCount)) {
-        Stats->RecvGreaseBitTpCount = Connection->Stats.Recv.GreaseBitTpCount;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));

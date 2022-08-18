@@ -469,8 +469,6 @@ pub struct QuicStatisticsRecv {
     pub total_bytes: u64,
     /// Sum of stream payloads
     pub total_stream_bytes: u64,
-    /// Count of received grease transport parameter from peer.
-    pub grease_bit_tp_count: u64,
 }
 
 #[repr(C)]
@@ -488,6 +486,7 @@ bitfield! {
     stateless_retry, _: 1, 1;
     resumption_attempted, _: 1, 2;
     resumption_succeeded, _: 1, 3;
+    grease_bit_negotiated, _: 1, 4;
 }
 
 /// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
@@ -582,8 +581,6 @@ pub struct QuicStatisticsV2 {
     pub send_congestion_window: u32,
     // Number of times the destination CID changed.
     pub dest_cid_update_count: u32,
-    // Count of received grease transport parameter from the peer.
-    pub recv_grease_bit_tp_count: u64
 }
 
 /// A helper struct for accessing listener statistics.

@@ -227,11 +227,6 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN FixedBit : 1;
 
-        //
-        // This value indicates that FixedBit is negotiated.
-        //
-        BOOLEAN FixedBitNegotiated : 1;
-
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

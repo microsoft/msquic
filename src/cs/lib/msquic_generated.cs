@@ -688,6 +688,20 @@ namespace Microsoft.Quic
             }
         }
 
+        [NativeTypeName("uint32_t : 1")]
+        internal uint GreaseBitNegotiated
+        {
+            get
+            {
+                return (_bitfield >> 4) & 0x1u;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x1u << 4)) | ((value & 0x1u) << 4);
+            }
+        }
+
         [NativeTypeName("uint32_t")]
         internal uint Rtt;
 
@@ -774,9 +788,6 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateCount;
-
-        [NativeTypeName("uint64_t")]
-        internal ulong RecvGreaseBitTpCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS
