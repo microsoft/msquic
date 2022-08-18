@@ -311,6 +311,11 @@ QuicTestConnect(
                     Server->GetPeerBidiStreamCount(),
                     Client.GetLocalBidiStreamCount());
 
+                if (GreaseQuicBitEnabled) {
+                    TEST_TRUE(Client.GetStatistics().GreaseBitNegotiated);
+                    TEST_TRUE(Server->GetStatistics().GreaseBitNegotiated);
+                }
+
                 if (RandomLossPercentage == 0) {
                     //
                     // Don't worry about graceful shutdown if we have random
