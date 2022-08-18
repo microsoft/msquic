@@ -16,6 +16,7 @@ Abstract:
 #endif
 
 const uint32_t WorkerWakeEventPayload = CXPLAT_CQE_TYPE_WORKER_WAKE;
+const uint32_t WorkerUpdatePollEventPayload = CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL;
 
 typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
@@ -26,6 +27,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 #ifdef CXPLAT_SQE
     BOOLEAN InitializedShutdownSqe : 1;
     BOOLEAN InitializedWakeSqe : 1;
+    BOOLEAN InitializedUpdatePollSqe : 1;
 #endif
     BOOLEAN InitializedThread : 1;
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
@@ -49,9 +51,14 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_SQE ShutdownSqe;
 
     //
-    // Submission queue entry for waking the thread to process QUIC work.
+    // Submission queue entry for waking the thread to poll.
     //
-    CXPLAT_SQE WakeSqe; // TODO - refactor to expose EventQ to QUIC
+    CXPLAT_SQE WakeSqe;
+
+    //
+    // Submission queue entry for update the polling set.
+    //
+    CXPLAT_SQE UpdatePollSqe;
 #endif
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
@@ -70,16 +77,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     // The set of actively registered execution contexts.
     //
     CXPLAT_SLIST_ENTRY* ExecutionContexts;
-
-    //
-    // Indicates if there are execution contexts ready to be executed.
-    //
-    BOOLEAN ECsReady;
-
-    //
-    // Indicates the next time that execution contexts should be executed.
-    //
-    uint64_t ECsReadyTime;
 
 #endif // QUIC_USE_EXECUTION_CONTEXTS
 
@@ -161,14 +158,22 @@ CxPlatWorkersInit(
             goto Error;
         }
         CxPlatWorkers[i].InitializedShutdownSqe = TRUE;
-        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe, &WorkerWakeEventPayload)) {
+        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe, (void*)&WorkerWakeEventPayload)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "CxPlatSqeInitialize(quic)");
+                "CxPlatSqeInitialize(wake)");
             goto Error;
         }
         CxPlatWorkers[i].InitializedWakeSqe = TRUE;
+        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe, (void*)&WorkerUpdatePollEventPayload)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CxPlatSqeInitialize(updatepoll)");
+            goto Error;
+        }
+        CxPlatWorkers[i].InitializedUpdatePollSqe = TRUE;
 #endif
         if (QUIC_FAILED(
             CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
@@ -187,6 +192,9 @@ Error:
             CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
         }
 #ifdef CXPLAT_SQE_INIT
+        if (CxPlatWorkers[i].InitializedUpdatePollSqe) {
+            CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe);
+        }
         if (CxPlatWorkers[i].InitializedWakeSqe) {
             CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe);
         }
@@ -224,6 +232,7 @@ CxPlatWorkersUninit(
         CxPlatThreadWait(&CxPlatWorkers[i].Thread);
         CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
 #ifdef CXPLAT_SQE_INIT
+        CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe);
         CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe);
         CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
 #endif // CXPLAT_SQE_INIT
@@ -242,8 +251,7 @@ CxPlatWorkersUninit(
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t IdealProcessor,
-    _In_ BOOLEAN RunImmediately
+    _In_ uint16_t IdealProcessor
     )
 {
     CXPLAT_WORKER* Worker = &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount];
@@ -252,9 +260,10 @@ CxPlatAddExecutionContext(
     Context->Entry.Next = Worker->PendingECs;
     Worker->PendingECs = &Context->Entry;
     CxPlatLockRelease(&Worker->ECLock);
-    if (RunImmediately) {
-        CxPlatWorkerWake(Worker);
-    }
+    CxPlatEventQEnqueue(
+        &Worker->EventQ,
+        &Worker->UpdatePollSqe,
+        (void*)&WorkerUpdatePollEventPayload);
 }
 
 void
@@ -266,23 +275,17 @@ CxPlatWakeExecutionContext(
 }
 
 void
-CxPlatRunExecutionContexts(
-    _In_ CXPLAT_WORKER* Worker,
-    _Inout_ CXPLAT_EXECUTION_STATE* State
+CxPlatUpdateExecutionContexts(
+    _In_ CXPLAT_WORKER* Worker
     )
 {
-    Worker->ECsReady = FALSE;
-    Worker->ECsReadyTime = UINT64_MAX;
-
     if (QuicReadPtrNoFence(&Worker->PendingECs)) {
-        CXPLAT_SLIST_ENTRY** Tail = NULL;
-        CXPLAT_SLIST_ENTRY* Head = NULL;
         CxPlatLockAcquire(&Worker->ECLock);
-        Head = Worker->PendingECs;
+        CXPLAT_SLIST_ENTRY* Head = Worker->PendingECs;
         Worker->PendingECs = NULL;
         CxPlatLockRelease(&Worker->ECLock);
 
-        Tail = &Head;
+        CXPLAT_SLIST_ENTRY** Tail = &Head;
         while (*Tail) {
             Tail = &(*Tail)->Next;
         }
@@ -290,9 +293,23 @@ CxPlatRunExecutionContexts(
         *Tail = Worker->ExecutionContexts;
         Worker->ExecutionContexts = Head;
     }
+}
 
+void
+CxPlatRunExecutionContexts(
+    _In_ CXPLAT_WORKER* Worker,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    if (Worker->ExecutionContexts == NULL) {
+        return;
+    }
+
+    State->TimeNow = CxPlatTimeUs64();
+
+    uint64_t NextTime = UINT64_MAX;
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
-    while (*EC != NULL) {
+    do {
         CXPLAT_EXECUTION_CONTEXT* Context =
             CXPLAT_CONTAINING_RECORD(*EC, CXPLAT_EXECUTION_CONTEXT, Entry);
         BOOLEAN Ready = InterlockedFetchAndClearBoolean(&Context->Ready);
@@ -302,13 +319,27 @@ CxPlatRunExecutionContexts(
                 *EC = Next; // Remove Context from the list.
                 continue;
             } else if (Context->Ready) {
-                Worker->ECsReady = TRUE;
+                NextTime = 0;
             }
         }
-        if (Context->NextTimeUs < Worker->ECsReadyTime) {
-            Worker->ECsReadyTime = Context->NextTimeUs;
+        if (Context->NextTimeUs < NextTime) {
+            NextTime = Context->NextTimeUs;
         }
         EC = &Context->Entry.Next;
+    } while (*EC != NULL);
+
+    if (NextTime == 0) {
+        State->WaitTime = 0;
+    } else if (NextTime != UINT64_MAX) {
+        uint64_t Diff = NextTime - State->TimeNow;
+        Diff = US_TO_MS(Diff);
+        if (Diff == 0) {
+            State->WaitTime = 1;
+        } else if (Diff < UINT32_MAX) {
+            State->WaitTime = (uint32_t)Diff;
+        } else {
+            State->WaitTime = UINT32_MAX-1;
+        }
     }
 }
 
@@ -329,15 +360,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         "[ lib][%p] Worker start",
         Worker);
 
-    CXPLAT_EXECUTION_STATE State = {
-        CxPlatTimeUs64(),
-        UINT32_MAX,
-        0,
-        CxPlatCurThreadID()
-    };
-
     uint32_t CqeCount;
     CXPLAT_CQE Cqes[16];
+    CXPLAT_EXECUTION_STATE State = { 0, UINT32_MAX, 0, CxPlatCurThreadID() };
 
     while (TRUE) {
 
@@ -345,21 +370,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         ++State.NoWorkCount;
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
-        State.TimeNow = CxPlatTimeUs64();
         CxPlatRunExecutionContexts(Worker, &State);
-        if (Worker->ECsReady) {
-            State.WaitTime = 0;
-        } else if (Worker->ECsReadyTime != UINT64_MAX) {
-            uint64_t Diff = Worker->ECsReadyTime - State.TimeNow;
-            Diff = US_TO_MS(Diff);
-            if (Diff == 0) {
-                State.WaitTime = 1;
-            } else if (Diff < UINT32_MAX) {
-                State.WaitTime = (uint32_t)Diff;
-            } else {
-                State.WaitTime = UINT32_MAX-1;
-            }
-        }
 #endif
 
         CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State.WaitTime);
@@ -370,8 +381,17 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
                 if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
                     goto Shutdown; // NULL user data means shutdown.
                 }
-                if (CxPlatCqeType(&Cqes[i]) != CXPLAT_CQE_TYPE_WORKER_WAKE) {
+                switch (CxPlatCqeType(&Cqes[i])) {
+                case CXPLAT_CQE_TYPE_WORKER_WAKE:
+                    break; // No-op, just wake up to do polling stuff.
+#ifdef QUIC_USE_EXECUTION_CONTEXTS
+                case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
+                    CxPlatUpdateExecutionContexts(Worker);
+                    break;
+#endif // QUIC_USE_EXECUTION_CONTEXTS
+                default: // Pass the rest to the datapath
                     CxPlatDataPathProcessCqe(&Cqes[i]);
+                    break;
                 }
             }
             CxPlatEventQReturn(&Worker->EventQ, CqeCount);

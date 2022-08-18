@@ -1115,11 +1115,12 @@ CxPlatDpRawInitialize(
         Xdp->Workers[i].Xdp = Xdp;
         Xdp->Workers[i].ProcIndex = ProcList[i];
         Xdp->Workers[i].Ready = TRUE;
+        Xdp->Workers[i].NextTimeUs = UINT64_MAX;
         Xdp->Workers[i].Callback = CxPlatXdpExecute;
         Xdp->Workers[i].Context = &Xdp->Workers[i];
         CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
         CxPlatAddExecutionContext(
-            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], ProcList[i], TRUE);
+            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], ProcList[i]);
     }
     Status = QUIC_STATUS_SUCCESS;
 

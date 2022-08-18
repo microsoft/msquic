@@ -467,8 +467,7 @@ typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t IdealProcessor,
-    _In_ BOOLEAN RunImmediately
+    _In_ uint16_t IdealProcessor
     );
 
 void
