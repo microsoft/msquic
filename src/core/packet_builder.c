@@ -198,23 +198,25 @@ QuicPacketBuilderPrepare(
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
 
-    if (Connection->State.FixedBit == TRUE &&
+    if (Connection->State.FixedBitNegotiated == FALSE &&
         (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
         //
-        // Endpoints can set the QUIC Bit to 0 on all packets that are sent after receiving and processing transport parameters.
-        // This could include Initial, Handshake, and Retry packets
+        // Endpoints that receive the grease_quic_bit transport parameter from a peer SHOULD set the QUIC Bit to an unpredictable value
+        // unless another extension assigns specific meaning to the value of the bit.
         //
-        Connection->State.FixedBit = FALSE;
+        uint8_t RandomValue;
+        (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
+        Connection->State.FixedBit = (RandomValue % 2);
+        Connection->State.FixedBitNegotiated = TRUE;
+        Connection->Stats.Recv.GreaseBitTpCount++;
     }
 
     //
     // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
     // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
     //
-    if (QuicConnIsClient(Connection) &&
-        (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
-        Connection->State.FixedBit = TRUE;
-    }
+    BOOLEAN FixedBit = (QuicConnIsClient(Connection) &&
+        (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) ? TRUE : Connection->State.FixedBit;
 
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
@@ -420,7 +422,7 @@ QuicPacketBuilderPrepare(
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
-                        Connection->State.FixedBit,
+                        FixedBit,
                         BufferSpaceAvailable,
                         Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
@@ -443,7 +445,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
-                        Connection->State.FixedBit,
+                        FixedBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,

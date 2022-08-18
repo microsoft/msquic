@@ -6661,11 +6661,8 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
         Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
     }
-    if(STATISTICS_HAS_FIELD(*StatsLength, RecvGreaseBitPacketCount)) {
-        Stats->RecvGreaseBitPacketCount = Connection->Stats.Recv.GreaseBitPacketCount;
-    }
-    if(STATISTICS_HAS_FIELD(*StatsLength, SendGreaseBitPacketCount)) {
-        Stats->SendGreaseBitPacketCount = Connection->Stats.Send.GreaseBitPacketCount;
+    if(STATISTICS_HAS_FIELD(*StatsLength, RecvGreaseBitTpCount)) {
+        Stats->RecvGreaseBitTpCount = Connection->Stats.Recv.GreaseBitTpCount;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));

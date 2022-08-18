@@ -459,14 +459,18 @@ pub struct QuicStatisticsRecv {
     /// Includes DuplicatePackets.
     pub dropped_packets: u64,
     pub duplicate_packets: u64,
+    /// Count of packet decryption failures.
+    pub decryption_failures: u64,
+    /// Count of packets that successfully decrypted or had no encryption.
+    pub valid_packets: u64,
+    /// Count of receive ACK frames.
+    pub valid_ack_frames: u64,
     /// Sum of UDP payloads
     pub total_bytes: u64,
     /// Sum of stream payloads
     pub total_stream_bytes: u64,
-    /// Count of packet decryption failures.
-    pub decryption_failures: u64,
-    /// Count of receive ACK frames.
-    pub valid_ack_frames: u64,
+    /// Count of received grease transport parameter from peer.
+    pub grease_bit_tp_count: u64,
 }
 
 #[repr(C)]
@@ -578,10 +582,8 @@ pub struct QuicStatisticsV2 {
     pub send_congestion_window: u32,
     // Number of times the destination CID changed.
     pub dest_cid_update_count: u32,
-    // Count of received packets with the QUIC Bit set to 0.
-    pub recv_grease_bit_packet_count: u64,
-    // Count of received packets with the QUIC Bit set to 0.
-    pub send_grease_bit_packet_count: u64
+    // Count of received grease transport parameter from the peer.
+    pub recv_grease_bit_tp_count: u64
 }
 
 /// A helper struct for accessing listener statistics.

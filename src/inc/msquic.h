@@ -485,8 +485,7 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t DestCidUpdateCount;            // Number of times the destionation CID changed.
 
-    uint64_t RecvGreaseBitPacketCount;      // Count of received packets with the QUIC Bit set to 0.
-    uint64_t SendGreaseBitPacketCount;      // Count of sent packets with the QUIC Bit set to 0.
+    uint64_t RecvGreaseBitTpCount;          // Count of received grease transport parameter from the peer.
 
     // N.B. New fields must be appended to end
 
@@ -496,7 +495,7 @@ typedef struct QUIC_STATISTICS_V2 {
     (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
 
 #define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)               // v2.0 final size
-#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendGreaseBitPacketCount)     // v2.1 final size
+#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, RecvGreaseBitTpCount)     // v2.1 final size
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
