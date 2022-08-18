@@ -517,7 +517,6 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
-    _In_ BOOLEAN FixedBit,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,
     _In_reads_(SourceCidLength) const uint8_t* const SourceCid,

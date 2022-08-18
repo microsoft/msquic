@@ -1966,8 +1966,6 @@ QuicConnStart(
     Connection->RemoteServerName = ServerName;
     ServerName = NULL;
 
-    Connection->State.IgnoreFixedBit = Configuration->Settings.GreaseQuicBitEnabled;
-
     Status = QuicCryptoInitialize(&Connection->Crypto);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -2551,7 +2549,6 @@ QuicConnSetConfiguration(
     }
 
     Connection->State.Started = TRUE;
-    Connection->State.IgnoreFixedBit = Connection->Settings.GreaseQuicBitEnabled;
     Connection->Stats.Timing.Start = CxPlatTimeUs64();
     QuicTraceEvent(
         ConnHandshakeStart,
@@ -3747,7 +3744,7 @@ QuicConnRecvHeader(
                 Packet,
                 &TokenBuffer,
                 &TokenLength,
-                Connection->State.IgnoreFixedBit)) {
+                Connection->Settings.GreaseQuicBitEnabled)) {
             return FALSE;
         }
 
@@ -3850,7 +3847,7 @@ QuicConnRecvHeader(
     } else {
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateShortHeaderV1(Connection, Packet, Connection->State.IgnoreFixedBit)) {
+            !QuicPacketValidateShortHeaderV1(Connection, Packet, Connection->Settings.GreaseQuicBitEnabled)) {
             return FALSE;
         }
 

@@ -176,11 +176,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN LocalInterfaceSet : 1;
 
         //
-        // This flag indicates that the connection should ignore the fixed bit on received packets.
-        //
-        BOOLEAN IgnoreFixedBit : 1;
-
-        //
         // This value of the fixed bit on send packets.
         //
         BOOLEAN FixedBit : 1;

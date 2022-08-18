@@ -1036,7 +1036,6 @@ QuicBindingProcessStatelessOperation(
         SendDatagram->Length =
             QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
-                TRUE, // TODO : Find a way to check connection settings and PeerTPs.
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
                 NewDestCid, MsQuicLib.CidTotalLength,
                 RecvPacket->DestCid, RecvPacket->DestCidLen,

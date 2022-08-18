@@ -403,7 +403,6 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
-    _In_ BOOLEAN FixedBit,
     _In_reads_(DestCidLength) const uint8_t* const DestCid,
     _In_ uint8_t DestCidLength,
     _In_reads_(SourceCidLength) const uint8_t* const SourceCid,
@@ -434,7 +433,7 @@ QuicPacketEncodeRetryV1(
     CxPlatRandom(sizeof(RandomBits), &RandomBits);
 
     Header->IsLongHeader    = TRUE;
-    Header->FixedBit        = FixedBit;
+    Header->FixedBit        = 1;
     Header->Type            = Version == QUIC_VERSION_2 ? QUIC_RETRY_V2 : QUIC_RETRY_V1;
     Header->UNUSED          = RandomBits;
     Header->Version         = Version;
