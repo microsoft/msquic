@@ -1258,7 +1258,6 @@ Exit:
         if (IoSqeInitialized) {
             CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
         }
-        CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
     }
 
     return Status;
@@ -1283,11 +1282,13 @@ CxPlatSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
-    epoll_ctl(SocketContext->IoSqe.Sqe, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-    close(SocketContext->SocketFd);
+    if (SocketContext->SocketFd != INVALID_SOCKET) {
+        epoll_ctl(SocketContext->IoSqe.Sqe, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+        close(SocketContext->SocketFd);
+        CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
+    }
 
-    CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->ShutdownSqe.Sqe);
-    CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 

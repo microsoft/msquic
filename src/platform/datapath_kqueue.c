@@ -1016,7 +1016,6 @@ Exit:
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
         SocketContext->SocketFd = INVALID_SOCKET;
-        CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
     }
 
     return Status;
@@ -1039,7 +1038,9 @@ CxPlatSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
-    close(SocketContext->SocketFd);
+    if (SocketContext->SocketFd != INVALID_SOCKET) {
+        close(SocketContext->SocketFd);
+    }
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
     if (CxPlatRefDecrement(&SocketContext->Binding->RefCount)) {
@@ -1366,11 +1367,11 @@ CxPlatDataPathSocketProcessIoCompletion(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    CXPLAT_DBG_ASSERT(Cqe->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
-    if (Cqe->filter == EVFILT_USER) {
-        CxPlatSocketContextUninitializeComplete(SocketContext);
+    if (!CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
         return;
     }
+
+    CXPLAT_DBG_ASSERT(Cqe->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
 
     if (Cqe->filter == EVFILT_READ) {
         //
@@ -1420,6 +1421,8 @@ CxPlatDataPathSocketProcessIoCompletion(
     if (Cqe->filter == EVFILT_WRITE) {
         CxPlatSocketContextSendComplete(SocketContext);
     }
+
+    CxPlatRundownRelease(&SocketContext->UpcallRundown);
 }
 
 //
