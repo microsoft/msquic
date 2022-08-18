@@ -211,7 +211,8 @@ QuicPacketBuilderPrepare(
     // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
     // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
     //
-    if (QuicConnIsClient(Connection) && (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
+    if (QuicConnIsClient(Connection) &&
+        (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) { // TODO : Will check if header contains NEW_TOKEN frame
         Connection->State.FixedBit = TRUE;
     }
 
