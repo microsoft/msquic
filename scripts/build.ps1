@@ -511,7 +511,13 @@ function CMake-Build {
                 Log "Failed to find VC Tools path!"
             }
         }
+    } elseif ($IsLinux -and $OneBranch) {
+        # archive the build artifacts for packaging to persist symlinks and permissons.
+        $ArtifactsParentDir = Split-Path $ArtifactsDir -Parent
+        $ArtifactsLeafDir = Split-Path $ArtifactsDir -Leaf
+        tar -cvf "$ArtifactsDir.tar" -C $ArtifactsParentDir "./$ArtifactsLeafDir"
     }
+
     # Package debug symbols on macos
     if ($Platform -eq "macos") {
         $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File
