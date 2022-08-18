@@ -89,6 +89,11 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
 
 typedef struct CXPLAT_SEND_DATA {
     //
+    // The proc context owning this send context.
+    //
+    struct CXPLAT_DATAPATH_PROC_CONTEXT *Owner;
+
+    //
     // Indicates if the send should be bound to a local address.
     //
     BOOLEAN Bind;
@@ -109,46 +114,44 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_LIST_ENTRY PendingSendLinkage;
 
     //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
-
-    //
-    // The proc context owning this send context.
-    //
-    struct CXPLAT_DATAPATH_PROC_CONTEXT *Owner;
-
-    //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    uint16_t SegmentSize;
-
-    //
     // The total buffer size for Buffers.
     //
     uint32_t TotalSize;
 
     //
-    // BufferCount - The buffer count in use.
+    // The type of ECN markings needed for send.
     //
-    // CurrentIndex - The current index of the Buffers to be sent.
+    CXPLAT_ECN_TYPE ECN;
+
     //
-    // Buffers - Send buffers.
-    //
-    // Iovs - IO vectors used for doing sends on the socket.
-    //
-    // TODO: Better way to reconcile layout difference
-    // between QUIC_BUFFER and struct iovec?
+    // Total number of Buffers currently in use.
     //
     size_t BufferCount;
+
+    //
+    // The current index of the Buffers to be sent.
+    //
     size_t CurrentIndex;
-    QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
-    struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
 
     //
     // The QUIC_BUFFER returned to the client for segmented sends.
     //
     QUIC_BUFFER ClientBuffer;
+
+    //
+    // Cache of send buffers.
+    //
+    QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
+
+    //
+    // IO vectors used for sends on the socket.
+    //
+    struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
+
+    //
+    // The send segmentation size; zero if segmentation is not performed.
+    //
+    uint16_t SegmentSize;
 
 } CXPLAT_SEND_DATA;
 
@@ -720,7 +723,7 @@ CxPlatSocketContextInitialize(
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
     SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_IO;
+    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
     CxPlatRundownInitialize(&SocketContext->UpcallRundown);
 
     //
@@ -1369,7 +1372,6 @@ CxPlatDataPathSocketProcessIoCompletion(
 {
     CXPLAT_DBG_ASSERT(Cqe->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
     if (Cqe->filter == EVFILT_USER) {
-        CXPLAT_DBG_ASSERT(SocketContext->Binding->Shutdown);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         return;
     }
@@ -2260,14 +2262,14 @@ CxPlatDataPathProcessCqe(
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
-        CXPLAT_SOCKET_PROC* SocketContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, ShutdownSqe);
+        CXPLAT_SOCKET_CONTEXT* SocketContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
-        CXPLAT_SOCKET_PROC* SocketContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, IoSqe);
+        CXPLAT_SOCKET_CONTEXT* SocketContext =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
         CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
         break;
     }
