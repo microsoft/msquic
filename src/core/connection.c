@@ -6661,7 +6661,7 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
         Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
     }
-    if(STATISTICS_HAS_FIELD(*StatsLength, RecvGreaseBitTpCount)) {
+    if (STATISTICS_HAS_FIELD(*StatsLength, RecvGreaseBitTpCount)) {
         Stats->RecvGreaseBitTpCount = Connection->Stats.Recv.GreaseBitTpCount;
     }
 
