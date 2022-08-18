@@ -2253,7 +2253,7 @@ CxPlatDataPathProcessCqe(
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
         CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
         CxPlatEventSet(ProcContext->CompletionEvent);
         QuicTraceLogVerbose(
             DatapathWakeupForShutdown,
@@ -2263,13 +2263,13 @@ CxPlatDataPathProcessCqe(
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
         CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
         CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
         CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
         break;
     }
