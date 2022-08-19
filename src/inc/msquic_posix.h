@@ -425,6 +425,9 @@ QuicAddr4FromString(
         }
     }
     Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
+#if defined(__FreeBSD__)
+    Addr->Ipv4.sin_len = sizeof(struct sockaddr_in);
+#endif
     return TRUE;
 }
 
@@ -459,6 +462,9 @@ QuicAddr6FromString(
         }
     }
     Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
+#if defined(__FreeBSD__)
+    Addr->Ipv6.sin6_len = sizeof(struct sockaddr_in6);
+#endif
     return TRUE;
 }
 
