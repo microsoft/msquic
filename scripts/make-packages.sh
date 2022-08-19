@@ -134,6 +134,7 @@ if [ "$OS" == "linux" ]; then
     --name ${NAME} \
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
+    --depends "libssl1.1" \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \
