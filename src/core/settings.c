@@ -1127,7 +1127,7 @@ VersionSettingsFail:
             QUIC_SETTING_GREASE_QUIC_BIT_ENABLED,
             (uint8_t*)&Value,
             &ValueLen);
-        Settings->GreaseQuicBitEnabled = (uint8_t)Value;
+        Settings->GreaseQuicBitEnabled = !!Value;
     }
 }
 
