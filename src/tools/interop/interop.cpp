@@ -957,6 +957,7 @@ RunInteropTest(
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             Success = true;
         }
+        break;
     }
     case GreaseQuicBit: {
         InteropConnection Connection(Configuration, false);
