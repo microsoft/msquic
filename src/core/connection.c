@@ -7115,7 +7115,7 @@ QuicConnApplyNewSettings(
         }
 
         if (QuicConnIsServer(Connection) &&
-            Connection->Configuration->Settings.GreaseQuicBitEnabled &&
+            Connection->Settings.GreaseQuicBitEnabled &&
             (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
             //
             // Endpoints that receive the grease_quic_bit transport parameter from
