@@ -37,7 +37,7 @@ enum QuicTestFeature {
     GreaseQuicBit       = 0x4000,
 };
 
-#define QuicTestFeatureCodes "VHDCRZSQUMBGA2A"
+#define QuicTestFeatureCodes "VHDCRZSQUMBGA2E"
 
 const uint32_t QuicTestFeatureCount = sizeof(QuicTestFeatureCodes) - 1;
 const uint32_t QuicTestFeatureAll = ((1 << QuicTestFeatureCount) - 1);

@@ -964,8 +964,8 @@ RunInteropTest(
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             QUIC_STATISTICS_V2 Stats;
             if (Connection.GetQuicVersion(QuicVersionUsed) &&
-            Connection.GetNegotiatedAlpn(NegotiatedAlpn) &&
-            Connection.GetStatistics(Stats)) {
+                Connection.GetNegotiatedAlpn(NegotiatedAlpn) &&
+                Connection.GetStatistics(Stats)) {
                 Success = Stats.GreaseBitNegotiated;
             }
         }
