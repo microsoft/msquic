@@ -612,6 +612,25 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPCibirEncoding,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPGreaseQuicBit
+// [conn][%p] TP: Grease Quic Bit
+// QuicTraceLogConnVerbose(
+            EncodeTPGreaseQuicBit,
+            Connection,
+            "TP: Grease Quic Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -1197,6 +1216,25 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPGreaseQuicBit
+// [conn][%p] TP: Grease QUIC Bit
+// QuicTraceLogConnVerbose(
+                DecodeTPGreaseQuicBit,
+                Connection,
+                "TP: Grease QUIC Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
     )
 )
 

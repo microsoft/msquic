@@ -159,7 +159,7 @@ typedef struct QUIC_LONG_HEADER_V1 {
     uint8_t PnLength        : 2;
     uint8_t Reserved        : 2;    // Must be 0.
     uint8_t Type            : 2;    // QUIC_LONG_HEADER_TYPE_V1 or _V2
-    uint8_t FixedBit        : 1;    // Must be 1.
+    uint8_t FixedBit        : 1;    // Must be 1, unless grease_quic_bit tp has been sent.
     uint8_t IsLongHeader    : 1;
     uint32_t Version;
     uint8_t DestCidLength;
@@ -229,7 +229,7 @@ typedef struct QUIC_SHORT_HEADER_V1 {
     uint8_t KeyPhase        : 1;
     uint8_t Reserved        : 2;    // Must be 0.
     uint8_t SpinBit         : 1;
-    uint8_t FixedBit        : 1;    // Must be 1.
+    uint8_t FixedBit        : 1;    // Must be 1, unless grease_quic_bit tp has been sent.
     uint8_t IsLongHeader    : 1;
     uint8_t DestCid[0];             // Length depends on connection.
     //uint8_t PacketNumber[PnLength];
@@ -290,7 +290,8 @@ QuicPacketValidateLongHeaderV1(
     _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
-    _Out_ uint16_t* TokenLength
+    _Out_ uint16_t* TokenLength,
+    _In_ BOOLEAN IgnoreFixedBit
     );
 
 //
@@ -322,7 +323,8 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _In_ BOOLEAN IgnoreFixedBit
     );
 
 inline
@@ -420,6 +422,7 @@ uint16_t
 QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ uint8_t PacketType,
+    _In_ BOOLEAN FixedBit,
     _In_ const QUIC_CID* const DestCid,
     _In_ const QUIC_CID* const SourceCid,
     _In_ uint16_t TokenLength,
@@ -453,7 +456,7 @@ QuicPacketEncodeLongHeaderV1(
     QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = TRUE;
-    Header->FixedBit        = 1;
+    Header->FixedBit        = FixedBit;
     Header->Type            = PacketType;
     Header->Reserved        = 0;
     Header->PnLength        = sizeof(uint32_t) - 1;
@@ -541,6 +544,7 @@ QuicPacketEncodeShortHeaderV1(
     _In_ uint8_t PacketNumberLength,
     _In_ BOOLEAN SpinBit,
     _In_ BOOLEAN KeyPhase,
+    _In_ BOOLEAN FixedBit,
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
@@ -559,7 +563,7 @@ QuicPacketEncodeShortHeaderV1(
     QUIC_SHORT_HEADER_V1* Header = (QUIC_SHORT_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = FALSE;
-    Header->FixedBit        = 1;
+    Header->FixedBit        = FixedBit;
     Header->SpinBit         = SpinBit;
     Header->Reserved        = 0;
     Header->KeyPhase        = KeyPhase;

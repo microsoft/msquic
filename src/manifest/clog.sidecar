@@ -2871,6 +2871,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPGreaseQuicBit": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Grease QUIC Bit",
+      "UniqueId": "DecodeTPGreaseQuicBit",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPIdleTimeout": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Idle Timeout (%llu ms)",
@@ -3379,6 +3391,18 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPGreaseQuicBit": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Grease Quic Bit",
+      "UniqueId": "EncodeTPGreaseQuicBit",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -9737,6 +9761,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingGreaseQuicBitEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] GreaseQuicBitEnabled   = %hhu",
+      "UniqueId": "SettingGreaseQuicBitEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
@@ -12448,6 +12484,11 @@
         "EncodingString": "[conn][%p] TP: Disable Active Migration"
       },
       {
+        "UniquenessHash": "9b45c8e4-1367-42b4-1f2d-5bb92d9ed204",
+        "TraceID": "DecodeTPGreaseQuicBit",
+        "EncodingString": "[conn][%p] TP: Grease QUIC Bit"
+      },
+      {
         "UniquenessHash": "17e21ccd-6314-9850-c892-6fc71b4e2339",
         "TraceID": "DecodeTPIdleTimeout",
         "EncodingString": "[conn][%p] TP: Idle Timeout (%llu ms)"
@@ -12606,6 +12647,11 @@
         "UniquenessHash": "413f5682-4110-fabc-1552-daf76011b827",
         "TraceID": "EncodeTPEnd",
         "EncodingString": "[conn][%p] Encoded %hu bytes for QUIC TP"
+      },
+      {
+        "UniquenessHash": "bc9b4165-8eeb-84ef-9091-ae5786d6237e",
+        "TraceID": "EncodeTPGreaseQuicBit",
+        "EncodingString": "[conn][%p] TP: Grease Quic Bit"
       },
       {
         "UniquenessHash": "a0423f9f-5528-282d-de58-b90aea239e3f",
@@ -14566,6 +14612,11 @@
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled",
         "EncodingString": "[sett] Version Negotiation Ext Enabled = %hhu"
+      },
+      {
+        "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",
+        "TraceID": "SettingGreaseQuicBitEnabled",
+        "EncodingString": "[sett] GreaseQuicBitEnabled   = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",

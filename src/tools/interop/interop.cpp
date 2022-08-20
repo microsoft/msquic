@@ -737,6 +737,9 @@ RunInteropTest(
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;
     }
+    if (Feature == GreaseQuicBit) {
+        Settings.GreaseQuicBitEnabled = true;
+    }
 
     const QUIC_BUFFER* Alpns;
     uint32_t AlpnCount;
@@ -953,6 +956,18 @@ RunInteropTest(
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             Success = true;
+        }
+        break;
+    }
+    case GreaseQuicBit: {
+        InteropConnection Connection(Configuration, false);
+        if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
+            QUIC_STATISTICS_V2 Stats;
+            if (Connection.GetQuicVersion(QuicVersionUsed) &&
+                Connection.GetNegotiatedAlpn(NegotiatedAlpn) &&
+                Connection.GetStatistics(Stats)) {
+                Success = Stats.GreaseBitNegotiated;
+            }
         }
     }
     }

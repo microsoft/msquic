@@ -651,6 +651,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDestCidUpdateIdleTimeoutMs,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingGreaseQuicBitEnabled
+// [sett] GreaseQuicBitEnabled   = %hhu
+// QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
+// arg2 = arg2 = Settings->GreaseQuicBitEnabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingGreaseQuicBitEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(
