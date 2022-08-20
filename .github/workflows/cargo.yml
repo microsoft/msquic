@@ -50,7 +50,7 @@ jobs:
         perl-version: '5.34'
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@10788e307d96af7013172d66126322c70b22efb9
+      uses: ilammy/setup-nasm@229bfed4a21b01237d340787ea51fd7c50a49c54
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
