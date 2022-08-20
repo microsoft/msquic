@@ -3216,11 +3216,6 @@ QuicTestChangeAlpn(
                                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                             ServerLocalAddr.GetPort()));
 
-                    // Make sure expected transport close status has been transferred to Server Conn
-                    if (!ServerAcceptCtx.WaitForNewConnection(3000)) {
-                        return;
-                    }
-
                     if (!Client.WaitForConnectionComplete()) {
                         return;
                     }

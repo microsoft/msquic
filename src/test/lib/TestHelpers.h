@@ -96,13 +96,6 @@ struct ServerAcceptContext {
             "Only two expected values supported.");
         ExpectedClientCertValidationResult[ExpectedClientCertValidationResultCount++] = Status;
     }
-    bool WaitForNewConnection(uint32_t TimeoutMs) {
-        if (!CxPlatEventWaitWithTimeout(NewConnectionReady, TimeoutMs)) {
-            TEST_FAILURE("WaitForNewConnection timed out after %u ms.", TimeoutMs);
-            return false;
-        }
-        return true;
-    }
 };
 
 struct ClearGlobalVersionListScope {
