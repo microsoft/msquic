@@ -3199,12 +3199,14 @@ QuicTestChangeAlpn(
             {
                 UniquePtr<TestConnection> Server;
                 ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-                Listener.Context = &ServerAcceptCtx;
                 ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
+                Listener.Context = &ServerAcceptCtx;
 
                 {
                     TestConnection Client(Registration);
                     TEST_TRUE(Client.IsValid());
+
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
 
                     TEST_QUIC_SUCCEEDED(
                         Client.Start(
@@ -3213,8 +3215,6 @@ QuicTestChangeAlpn(
                             QUIC_TEST_LOOPBACK_FOR_AF(
                                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                             ServerLocalAddr.GetPort()));
-
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
 
                     if (!Client.WaitForConnectionComplete()) {
                         return;
