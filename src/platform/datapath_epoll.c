@@ -280,7 +280,6 @@ typedef struct CXPLAT_SOCKET {
 
     //
     // Synchronization mechanism for cleanup.
-    // Make sure events are in front for cache alignment.
     //
     CXPLAT_REF_COUNT RefCount;
 
@@ -372,14 +371,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC_CONTEXT {
 typedef struct CXPLAT_DATAPATH {
 
     //
-    // Set of supported features.
+    // UDP handlers.
     //
-    uint32_t Features;
-
-    //
-    // The proc count to create per proc datapath state.
-    //
-    uint32_t ProcCount;
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
     // A reference rundown on the datapath binding.
@@ -388,9 +382,14 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_RUNDOWN_REF BindingsRundown;
 
     //
-    // UDP handlers.
+    // Set of supported features.
     //
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+    uint32_t Features;
+
+    //
+    // The proc count to create per proc datapath state.
+    //
+    uint32_t ProcCount;
 
     //
     // The per proc datapath contexts.
@@ -2590,10 +2589,6 @@ CxPlatDataPathProcessCqe(
         CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
         CxPlatEventSet(ProcContext->CompletionEvent);
-        QuicTraceLogVerbose(
-            DatapathWakeupForShutdown,
-            "[data][%p] Datapath wakeup for shutdown",
-            ProcContext);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {

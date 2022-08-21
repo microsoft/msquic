@@ -173,15 +173,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathSocketContextComplete
-// [data][%p] Socket context shutdown
+// Decoder Ring for DatapathShutDownComplete
+// [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
-        DatapathSocketContextComplete,
-        "[data][%p] Socket context shutdown",
-        SocketProc);
-// arg2 = arg2 = SocketProc = arg2
+            DatapathShutDownComplete,
+            "[data][%p] Shut down (complete)",
+            Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -192,15 +192,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownComplete
-// [data][%p] Shut down (complete)
+// Decoder Ring for DatapathSocketContextComplete
+// [data][%p] Socket context shutdown
 // QuicTraceLogVerbose(
-            DatapathShutDownComplete,
-            "[data][%p] Shut down (complete)",
-            SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent = arg2
+        DatapathSocketContextComplete,
+        "[data][%p] Socket context shutdown",
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -259,25 +259,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWakeupForShutdown
-// [data][%p] Datapath wakeup for shutdown
-// QuicTraceLogVerbose(
-            DatapathWakeupForShutdown,
-            "[data][%p] Datapath wakeup for shutdown",
-            DatapathProc);
-// arg2 = arg2 = DatapathProc = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForShutdown,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
 
@@ -433,9 +414,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                    DatapathDestroyed,
-                    "[data][%p] Destroyed",
-                    Socket);
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathDestroyed,

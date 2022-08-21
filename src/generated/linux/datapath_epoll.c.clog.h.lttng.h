@@ -59,25 +59,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathWakeupForShutdown
-// [data][%p] Datapath wakeup for shutdown
-// QuicTraceLogVerbose(
-            DatapathWakeupForShutdown,
-            "[data][%p] Datapath wakeup for shutdown",
-            ProcContext);
-// arg2 = arg2 = ProcContext = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathWakeupForShutdown,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
