@@ -175,6 +175,11 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN LocalInterfaceSet : 1;
 
+        //
+        // This value of the fixed bit on send packets.
+        //
+        BOOLEAN FixedBit : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -229,6 +234,7 @@ typedef struct QUIC_CONN_STATS {
     uint32_t StatelessRetry         : 1;
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
+    uint32_t GreaseBitNegotiated    : 1;
 
     //
     // QUIC protocol version used. Network byte order.

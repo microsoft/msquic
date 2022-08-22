@@ -203,3 +203,12 @@ TEST(TransportParamTest, CibirEncodingOverMax2)
     OriginalTP.CibirOffset = 1;
     EncodeDecodeAndCompare(&OriginalTP, false, false);
 }
+
+TEST(TransportParamTest, GreaseQuicBit)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_GREASE_QUIC_BIT;
+    EncodeDecodeAndCompare(&OriginalTP);
+    EncodeDecodeAndCompare(&OriginalTP, true);
+}

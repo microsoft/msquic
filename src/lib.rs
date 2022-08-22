@@ -484,6 +484,7 @@ bitfield! {
     stateless_retry, _: 1, 1;
     resumption_attempted, _: 1, 2;
     resumption_succeeded, _: 1, 3;
+    grease_bit_negotiated, _: 1, 4;
 }
 
 /// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
@@ -577,7 +578,7 @@ pub struct QuicStatisticsV2 {
 
     pub send_congestion_window: u32,
     // Number of times the destination CID changed.
-    pub dest_cid_update_count: u32
+    pub dest_cid_update_count: u32,
 }
 
 /// A helper struct for accessing listener statistics.
