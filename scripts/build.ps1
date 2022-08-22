@@ -96,6 +96,12 @@ This script provides helpers for building msquic.
 .PARAMETER LibraryName
     Renames the library to whatever is passed in
 
+.PARAMETER SysRoot
+    Directory with cross-compilation tools
+
+.PARAMETER OneBranch
+    Build is occuring from Onebranch pipeline.
+
 .EXAMPLE
     build.ps1
 
@@ -197,7 +203,13 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$LibraryName = "msquic"
+    [string]$LibraryName = "msquic",
+
+    [Parameter(Mandatory = $false)]
+    [string]$SysRoot = "/",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$OneBranch = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -341,6 +353,20 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
         }
     }
+    if ($Platform -eq "linux") {
+        $Arguments += " $Generator"
+        $HostArch = "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)".ToLower()
+        if ($HostArch -ne $Arch) {
+            if ($OneBranch) {
+                $Arguments += " -DONEBRANCH=1"
+            }
+            $Arguments += " -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_CROSSCOMPILING=1 -DCMAKE_SYSROOT=$SysRoot"
+            switch ($Arch) {
+                "arm64" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_TARGET_ARCHITECTURE=arm64" }
+                "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
+            }
+       }
+    }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
@@ -378,7 +404,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
-        $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
+        $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
@@ -436,9 +462,11 @@ function CMake-Generate {
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
     }
+
     $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
 
+    Write-Host "Executing: $Arguments"
     CMake-Execute $Arguments
 }
 
@@ -457,6 +485,7 @@ function CMake-Build {
         $Arguments += " -- VERBOSE=1"
     }
 
+    Write-Host "Running: $Arguments"
     CMake-Execute $Arguments
 
     if ($IsWindows) {
@@ -482,7 +511,13 @@ function CMake-Build {
                 Log "Failed to find VC Tools path!"
             }
         }
+    } elseif ($IsLinux -and $OneBranch) {
+        # archive the build artifacts for packaging to persist symlinks and permissons.
+        $ArtifactsParentDir = Split-Path $ArtifactsDir -Parent
+        $ArtifactsLeafDir = Split-Path $ArtifactsDir -Leaf
+        tar -cvf "$ArtifactsDir.tar" -C $ArtifactsParentDir "./$ArtifactsLeafDir"
     }
+
     # Package debug symbols on macos
     if ($Platform -eq "macos") {
         $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File

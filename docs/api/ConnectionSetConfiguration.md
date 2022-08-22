@@ -31,7 +31,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-`ConnectionSetConfiguration` can be called in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback, or outside of it if the connection was accepted. It's generally recommended to call `ConnectionSetConfiguration` in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback unless the server application needs to do asynchronous processing to decide which configuration to use on a connection.
+`ConnectionSetConfiguration` can be called in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback, or outside of it if the connection was accepted. It's generally recommended to call `ConnectionSetConfiguration` in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback unless the server application needs to do asynchronous processing to decide which configuration to use on a connection. You can use this function to set the ALPN list for the server connection.
 
 # See Also
 

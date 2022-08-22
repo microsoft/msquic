@@ -128,6 +128,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
+    _In_ bool GreaseQuicBitExtension,
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
@@ -225,6 +226,11 @@ QuicTestCibirExtension(
 
 void
 QuicTestResumptionAcrossVersions();
+
+void
+QuicTestChangeAlpn(
+    void
+    );
 
 //
 // Negative Handshake Tests
@@ -637,6 +643,7 @@ typedef struct {
     uint8_t ServerStatelessRetry;
     uint8_t ClientUsesOldVersion;
     uint8_t MultipleALPNs;
+    uint8_t GreaseQuicBitExtension;
     uint8_t AsyncConfiguration;
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;
@@ -1078,4 +1085,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE \
     QUIC_CTL_CODE(101, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 101
+#define IOCTL_QUIC_RUN_CHANGE_ALPN \
+    QUIC_CTL_CODE(102, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 102

@@ -50,7 +50,8 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t StatelessOperationExpirationMs         : 1;
             uint64_t CongestionControlAlgorithm             : 1;
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
-            uint64_t RESERVED                               : 28;
+            uint64_t GreaseQuicBitEnabled                   : 1;
+            uint64_t RESERVED                               : 27;
         } IsSet;
     };
 
@@ -82,7 +83,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t VersionNegotiationExtEnabled    : 1;
-    uint8_t RESERVED                        : 1;
+    uint8_t GreaseQuicBitEnabled            : 1;
     QUIC_VERSION_SETTINGS* VersionSettings;
     uint16_t MinimumMtu;
     uint16_t MaximumMtu;

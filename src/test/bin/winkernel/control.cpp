@@ -473,6 +473,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -695,6 +696,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.ServerStatelessRetry != 0,
                 Params->Params1.ClientUsesOldVersion != 0,
                 Params->Params1.MultipleALPNs != 0,
+                Params->Params1.GreaseQuicBitExtension != 0,
                 (QUIC_TEST_ASYNC_CONFIG_MODE)Params->Params1.AsyncConfiguration,
                 Params->Params1.MultiPacketClientInitial != 0,
                 (QUIC_TEST_RESUMPTION_MODE)Params->Params1.SessionResumption,
@@ -1262,6 +1264,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE:
         QuicTestCtlRun(QuicTestConnectAndIdleForDestCidChange());
+        break;
+
+    case IOCTL_QUIC_RUN_CHANGE_ALPN:
+        QuicTestCtlRun(QuicTestChangeAlpn());
         break;
 
     default:

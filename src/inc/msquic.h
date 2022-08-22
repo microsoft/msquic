@@ -32,7 +32,7 @@ Supported Platforms:
 #include "msquic_winkernel.h"
 #elif _WIN32
 #include "msquic_winuser.h"
-#elif __linux__ || __APPLE__
+#elif __linux__ || __APPLE__ || __FreeBSD__
 #include "msquic_posix.h"
 #else
 #error "Unsupported Platform"
@@ -451,6 +451,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t StatelessRetry         : 1;
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
+    uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
+    uint32_t RESERVED               : 27;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -495,8 +497,8 @@ typedef struct QUIC_STATISTICS_V2 {
 #define QUIC_STRUCT_SIZE_THRU_FIELD(Struct, Field) \
     (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
 
-#define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)
-#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendCongestionWindow)
+#define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)         // v2.0 final size
+#define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // v2.1 final size
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
@@ -605,7 +607,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxOperationsPerDrain                  : 1;
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
-            uint64_t RESERVED                               : 32;
+            uint64_t GreaseQuicBitEnabled                   : 1;
+            uint64_t RESERVED                               : 31;
         } IsSet;
     };
 
@@ -638,7 +641,8 @@ typedef struct QUIC_SETTINGS {
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t RESERVED                        : 2;
+    uint8_t GreaseQuicBitEnabled            : 1;
+    uint8_t RESERVED                        : 1;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
@@ -744,7 +748,9 @@ void
 #define QUIC_PARAM_GLOBAL_VERSION_SETTINGS              0x01000007  // QUIC_VERSION_SETTINGS
 #endif
 #define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH              0x01000008  // char[64]
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS           0x01000009  // uint16_t[]
+#endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 
 //

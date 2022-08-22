@@ -565,6 +565,15 @@ TEST(Alpn, InvalidAlpnLengths) {
     }
 }
 
+TEST(Alpn, ChangeAlpn) {
+    TestLogger Logger("QuicTestChangeAlpn");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CHANGE_ALPN));
+    } else {
+        QuicTestChangeAlpn();
+    }
+}
+
 
 TEST_P(WithFamilyArgs, BindConnectionImplicit) {
     TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());
@@ -592,6 +601,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             (uint8_t)GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_DISABLED,
@@ -604,6 +614,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_DISABLED,
@@ -620,6 +631,7 @@ TEST_P(WithHandshakeArgs1, Resume) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             (uint8_t)GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_ENABLED,
@@ -632,6 +644,7 @@ TEST_P(WithHandshakeArgs1, Resume) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_ENABLED,
@@ -647,6 +660,7 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             (uint8_t)GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_REJECTED,
@@ -659,6 +673,7 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_REJECTED,
@@ -695,6 +710,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             (uint8_t)GetParam().ServerStatelessRetry,
             1,  // ClientUsesOldVersion
             0,  // MultipleALPNs
+            0,  // GreaseQuicBitExtension
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             0,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
@@ -706,7 +722,8 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             GetParam().Family,
             GetParam().ServerStatelessRetry,
             true,  // ClientUsesOldVersion
-            false,  // MultipleALPNs
+            false, // MultipleALPNs
+            false, // GreaseQuicBitExtension
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             false,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
@@ -722,6 +739,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
+            0,  // GreaseQuicBitExtension
             GetParam().DelayedAsyncConfig ? (uint8_t)QUIC_TEST_ASYNC_CONFIG_DELAYED : (uint8_t)QUIC_TEST_ASYNC_CONFIG_ENABLED,
             0,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
@@ -734,6 +752,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
+            false,  // GreaseQuicBitExtension
             GetParam().DelayedAsyncConfig ? QUIC_TEST_ASYNC_CONFIG_DELAYED : QUIC_TEST_ASYNC_CONFIG_ENABLED,
             false,  // MultiPacketClientInitial
             QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
@@ -1094,6 +1113,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs,
+            false,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_DISABLED,
@@ -1121,6 +1141,7 @@ TEST_P(WithHandshakeArgs4, RandomLossResume) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs,
+            false,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_ENABLED,
@@ -1147,6 +1168,7 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs,
+            false,
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_REJECTED,

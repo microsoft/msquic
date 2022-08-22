@@ -197,6 +197,14 @@ QuicPacketBuilderPrepare(
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
+
+    //
+    // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
+    // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
+    //
+    BOOLEAN FixedBit = (QuicConnIsClient(Connection) &&
+        (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) ? TRUE : Connection->State.FixedBit;
+
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -401,6 +409,7 @@ QuicPacketBuilderPrepare(
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
+                        FixedBit,
                         BufferSpaceAvailable,
                         Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
@@ -423,6 +432,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
+                        FixedBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,

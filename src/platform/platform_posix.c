@@ -13,6 +13,11 @@ Environment:
 
 --*/
 
+// For FreeBSD
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_trace.h"
@@ -646,7 +651,12 @@ CxPlatThreadCreate(
 
 #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
-    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
+    //
+    // If pthread_create fails with ENOKEY or ENOENT, then try again without the attribute
+    // because the CPU might be offline.
+    //
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context) &&
+        ((errno != ENOKEY && errno != ENOENT) || pthread_create(Thread, NULL, Config->Callback, Config->Context))) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -786,7 +796,11 @@ CxPlatCurThreadID(
     )
 {
 
-#if defined(CX_PLATFORM_LINUX)
+// For FreeBSD
+#if defined(__FreeBSD__)
+    return pthread_getthreadid_np();
+
+#elif defined(CX_PLATFORM_LINUX)
 
     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
     return syscall(SYS_gettid);

@@ -37,19 +37,20 @@ A release branch will be created (forked) for each release of MsQuic. Official r
 
 This table describes all MsQuic releases, both officially supported (LTSC or SAC) and unsupported (PRE).
 
-| [Type](Release.md#release-support-policies) | Branch | Windows | Fork Date | Release Date | End of Support |
-| -- | -- | -- | -- | -- | -- |
-| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
-| SAC | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Windows 11 | Feb 10 2021 | Oct 5 2021 | Apr 5 2023 |
-| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A | N/A |
-| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A |
-| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A |
-| PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
-| PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
-| PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
-| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
-| PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
-| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Client | Mar 1 2022 | May 1 2022 | Nov 1 2023 |
+| [Type](Release.md#release-support-policies) | Branch | Consumer | Fork Date | Release Date | End of Support | Supported Platforms |
+| -- | -- | -- | -- | -- | -- | -- |
+| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 | Windows |
+| SAC | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Windows 11 | Feb 10 2021 | Oct 5 2021 | Apr 5 2023 | Windows |
+| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A | N/A |
+| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Windows 11 | Mar 1 2022 | May 1 2022 | Nov 1 2023 | Windows, Linux |
+| SAC | [release/2.1](https://github.com/microsoft/msquic/tree/release/2.1) | .NET 7 | Aug 5 2022 | Oct 5 2022 | Apr 5 2024 | Windows, Linux |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -300,3 +301,22 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 - Added scorecard and dependabot support (#2310)
 - Fix macOS datapath asserting in an initialization race (#2398)
 - Add QUIC_STATISTICS_V2 parameter (#2386)
+
+## MsQuic v2.1 (SAC)
+
+[MsQuic v2.1](https://github.com/microsoft/msquic/releases/tag/v2.1.0) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
+
+Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
+
+### Changes
+
+- Various bug fixes (#2451, #2608, #2612, #2695, #2694, #2696, #2738, #2746, #2870, #2685, #2929)
+- Various minor features and API improvements (#2702, #2724, #2729, #2730, #2740, #2852, #2872, #2883, #2907, #2785, #2932, #2876, #2936)
+- Block well-known reflection ports (#2613, #2675)
+- Update CUBIC to rfc8312bis (#2877)
+- Add Stream statistics (#2873)
+- Various infra and automation improvements (many)
+- Various documentation improvements (many)
+- Various test improvements (many)
+- CIBIR extension preview support (#2445)
+- Windows XDP preview support (many)

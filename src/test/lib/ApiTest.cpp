@@ -2099,7 +2099,7 @@ void QuicTestStatefulGlobalSetParam()
                 QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 4433));
-        CxPlatSleep(100); // bit slow to set MsQuicLib.InUse = TRUE
+        TEST_TRUE(WaitForMsQuicInUse()); // Waiting for to set MsQuicLib.InUse = TRUE
 
         uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
         TEST_QUIC_STATUS(
@@ -2295,7 +2295,6 @@ void QuicTestGlobalParam()
                     &Length,
                     &ActualVersion));
             TEST_EQUAL(ActualVersion[0], 2);
-            TEST_EQUAL(ActualVersion[1], 1);
             // value of idx 2 and 3 are decided at build time.
             // it is hard to verify the values at runtime.
         }
