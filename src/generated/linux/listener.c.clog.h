@@ -308,26 +308,6 @@ tracepoint(CLOG_LISTENER_C, ListenerRundown , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ListenerError
-// [list][%p] ERROR, %s.
-// QuicTraceEvent(
-                ListenerError,
-                "[list][%p] ERROR, %s.",
-                Listener,
-                "'NewNegotiatedAlpn' field is out of bounds of the 'ClientAlpnList' buffer.");
-// arg2 = arg2 = Listener = arg2
-// arg3 = arg3 = "'NewNegotiatedAlpn' field is out of bounds of the 'ClientAlpnList' buffer." = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ListenerError
-#define _clog_4_ARGS_TRACE_ListenerError(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LISTENER_C, ListenerError , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

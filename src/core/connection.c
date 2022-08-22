@@ -115,6 +115,7 @@ QuicConnAlloc(
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.ShareBinding = IsServer;
+    Connection->State.FixedBit = TRUE;
     Connection->Stats.Timing.Start = CxPlatTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
@@ -2355,6 +2356,10 @@ QuicConnGenerateLocalTransportParameters(
         }
     }
 
+    if (Connection->Settings.GreaseQuicBitEnabled) {
+        LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
+    }
+
     if (QuicConnIsServer(Connection)) {
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
@@ -2516,6 +2521,17 @@ QuicConnSetConfiguration(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
+
+        Status =
+            QuicCryptoReNegotiateAlpn(
+                Connection,
+                Connection->Configuration->AlpnListLength,
+                Connection->Configuration->AlpnList);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+        Connection->Crypto.TlsState.ClientAlpnList = NULL;
+        Connection->Crypto.TlsState.ClientAlpnListLength = 0;
     }
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
@@ -2931,6 +2947,19 @@ QuicConnProcessPeerTransportParameters(
             //
             // TODO - Implement preferred address feature.
             //
+        }
+
+        if (Connection->Settings.GreaseQuicBitEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
+            //
+            // Endpoints that receive the grease_quic_bit transport parameter from
+            // a peer SHOULD set the QUIC Bit to an unpredictable value extension
+            // assigns specific meaning to the value of the bit.
+            //
+            uint8_t RandomValue;
+            (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
+            Connection->State.FixedBit = (RandomValue % 2);
+            Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
         //
@@ -3727,7 +3756,8 @@ QuicConnRecvHeader(
                 QuicConnIsServer(Connection),
                 Packet,
                 &TokenBuffer,
-                &TokenLength)) {
+                &TokenLength,
+                Connection->Settings.GreaseQuicBitEnabled)) {
             return FALSE;
         }
 
@@ -3830,7 +3860,7 @@ QuicConnRecvHeader(
     } else {
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateShortHeaderV1(Connection, Packet)) {
+            !QuicPacketValidateShortHeaderV1(Connection, Packet, Connection->Settings.GreaseQuicBitEnabled)) {
             return FALSE;
         }
 
@@ -6593,6 +6623,7 @@ QuicConnGetV2Statistics(
     Stats->StatelessRetry = Connection->Stats.StatelessRetry;
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
+    Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
     Stats->MaxRtt = Path->MaxRtt;
@@ -7081,6 +7112,20 @@ QuicConnApplyNewSettings(
             if (QUIC_FAILED(QuicCryptoOnVersionChange(&Connection->Crypto))) {
                 return FALSE;
             }
+        }
+
+        if (QuicConnIsServer(Connection) &&
+            Connection->Settings.GreaseQuicBitEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_GREASE_QUIC_BIT) > 0) {
+            //
+            // Endpoints that receive the grease_quic_bit transport parameter from
+            // a peer SHOULD set the QUIC Bit to an unpredictable value extension
+            // assigns specific meaning to the value of the bit.
+            //
+            uint8_t RandomValue;
+            (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
+            Connection->State.FixedBit = (RandomValue % 2);
+            Connection->Stats.GreaseBitNegotiated = TRUE;
         }
     }
 

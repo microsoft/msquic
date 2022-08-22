@@ -484,6 +484,7 @@ bitfield! {
     stateless_retry, _: 1, 1;
     resumption_attempted, _: 1, 2;
     resumption_succeeded, _: 1, 3;
+    grease_bit_negotiated, _: 1, 4;
 }
 
 /// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
@@ -577,7 +578,7 @@ pub struct QuicStatisticsV2 {
 
     pub send_congestion_window: u32,
     // Number of times the destination CID changed.
-    pub dest_cid_update_count: u32
+    pub dest_cid_update_count: u32,
 }
 
 /// A helper struct for accessing listener statistics.
@@ -834,6 +835,20 @@ pub struct ConnectionEventPeerStreamStarted {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventDatagramReceived {
+    pub buffer: *const Buffer,
+    pub flags: ReceiveFlags,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventDatagramSendStateChanged {
+    pub client_context: *const c_void,
+    pub state: DatagramSendState,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct ConnectionEventResumptionTicketReceived {
     pub resumption_ticket_length: u32,
     pub resumption_ticket: *const u8,
@@ -852,8 +867,8 @@ pub union ConnectionEventPayload {
     //pub streams_available: ConnectionEventStreamsAvailable,
     //pub ideal_processor_changed: ConnectionEventIdealProcessorChanged,
     //pub datagram_state_changed: ConnectionEventDatagramStateChanged,
-    //pub datagram_received: ConnectionEventDatagramReceived,
-    //pub datagram_send_state_changed: ConnectionEventDatagramSendStateChanged,
+    pub datagram_received: ConnectionEventDatagramReceived,
+    pub datagram_send_state_changed: ConnectionEventDatagramSendStateChanged,
     //pub resumed: ConnectionEventResumed,
     pub resumption_ticket_received: ConnectionEventResumptionTicketReceived,
     //pub peer_certificated_received: ConnectionEventPeerCertificateReceived,
@@ -1207,6 +1222,11 @@ impl Settings {
         self.idle_timeout_ms = value;
         self
     }
+    pub fn set_datagram_receive_enabled(&mut self, value: bool) -> &mut Settings {
+        self.is_set_flags |= 1 << 27;
+        self.other_flags |= (value as u8) << 3;
+        self
+    }
 }
 
 impl CredentialConfig {
@@ -1310,7 +1330,7 @@ impl Drop for Registration {
 impl Configuration {
     pub fn new(
         registration: &Registration,
-        alpn: &Buffer,
+        alpn: &[Buffer],
         settings: *const Settings,
     ) -> Configuration {
         let context: *const c_void = ptr::null();
@@ -1322,8 +1342,8 @@ impl Configuration {
         let status = unsafe {
             ((*registration.table).configuration_open)(
                 registration.handle,
-                *&alpn,
-                1,
+                alpn.as_ptr(),
+                alpn.len() as u32,
                 settings,
                 settings_size,
                 context,
@@ -1390,7 +1410,7 @@ impl Connection {
                 self.handle,
                 configuration.handle,
                 0,
-                server_name_safe.as_ptr(),
+                server_name_safe.as_ptr() as *const i8,
                 server_port,
             )
         };
@@ -1478,6 +1498,27 @@ impl Connection {
             ((*self.table).set_callback_handler)(stream_handle, handler as *const c_void, context)
         };
     }
+
+    pub fn datagram_send(
+        &self,
+        buffer: &Buffer,
+        buffer_count: u32,
+        flags: SendFlags,
+        client_send_context: *const c_void,
+    ) {
+        let status = unsafe {
+            ((*self.table).datagram_send)(
+                self.handle,
+                *&buffer,
+                buffer_count,
+                flags,
+                client_send_context,
+            )
+        };
+        if Status::failed(status) {
+            panic!("DatagramSend failure 0x{:x}", status);
+        }
+    }
 }
 
 impl Drop for Connection {
@@ -1511,17 +1552,23 @@ impl Listener {
         }
     }
 
-    pub fn start(&self, alpn_buffers: &Buffer, alpn_buffer_count: u32, local_address: &Addr) {
+    pub fn start(&self, alpn: &[Buffer], local_address: &Addr) {
         let status = unsafe {
             ((*self.table).listener_start)(
                 self.handle,
-                *&alpn_buffers,
-                alpn_buffer_count,
+                alpn.as_ptr(),
+                alpn.len() as u32,
                 *&local_address,
             )
         };
         if Status::failed(status) {
             panic!("ListenerStart failed, {:x}!\n", status);
+        }
+    }
+
+    pub fn close(&self) {
+        unsafe {
+            ((*self.table).listener_close)(self.handle);
         }
     }
 }
@@ -1680,7 +1727,7 @@ fn test_module() {
     let api = Api::new();
     let registration = Registration::new(&api, ptr::null());
 
-    let alpn = Buffer::from("h3");
+    let alpn = [Buffer::from("h3")];
     let configuration = Configuration::new(
         &registration,
         &alpn,

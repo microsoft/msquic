@@ -890,17 +890,6 @@ private:
     }
 };
 
-struct AlpnHelper {
-    const uint8_t* Alpn;
-    uint8_t Length;
-    bool SearchInList;
-    AlpnHelper(const char* AlpnData, bool SearchInList) :
-        Alpn((const uint8_t*)AlpnData),
-        Length((uint8_t)strlen(AlpnData)),
-        SearchInList(SearchInList) {
-    }
-};
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN

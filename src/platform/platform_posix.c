@@ -660,7 +660,12 @@ CxPlatThreadCreate(
 
 #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
-    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
+    //
+    // If pthread_create fails with ENOKEY or ENOENT, then try again without the attribute
+    // because the CPU might be offline.
+    //
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context) &&
+        ((errno != ENOKEY && errno != ENOENT) || pthread_create(Thread, NULL, Config->Callback, Config->Context))) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
