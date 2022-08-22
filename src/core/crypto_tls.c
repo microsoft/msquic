@@ -1186,11 +1186,10 @@ QuicCryptoTlsEncodeTransportParameters(
     return TPBufBase;
 }
 
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
-BOOLEAN // NOLINT(readability-function-size)
-QuicCryptoTlsDecodeTransportParameters(
+BOOLEAN
+QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size)
     _In_opt_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsServerTP,
     _In_reads_(TPLen)
