@@ -1189,7 +1189,7 @@ QuicCryptoTlsEncodeTransportParameters(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicCryptoTlsDecodeTransportParameters( // NOLINT(*readability-function-size)
+QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, google-readability-function-size, hicpp-function-size)
     _In_opt_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsServerTP,
     _In_reads_(TPLen)
