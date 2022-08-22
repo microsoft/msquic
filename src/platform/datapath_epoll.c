@@ -1282,7 +1282,7 @@ CxPlatSocketContextUninitializeComplete(
     }
 
     if (SocketContext->SocketFd != INVALID_SOCKET) {
-        epoll_ctl(SocketContext->IoSqe.Sqe, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+        epoll_ctl(*SocketContext->ProcContext->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
         close(SocketContext->SocketFd);
         CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->ShutdownSqe.Sqe);
         CxPlatSqeCleanup(SocketContext->ProcContext->EventQ, &SocketContext->IoSqe.Sqe);
@@ -1303,7 +1303,7 @@ CxPlatSocketContextUninitialize(
     )
 {
     CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
-    epoll_ctl(SocketContext->IoSqe.Sqe, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    epoll_ctl(*SocketContext->ProcContext->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
     CxPlatEventQEnqueue(
         SocketContext->ProcContext->EventQ,
         &SocketContext->ShutdownSqe.Sqe,
