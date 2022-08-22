@@ -49,6 +49,10 @@ jobs:
       with:
         fetch-depth: 2
         submodules: 'recursive'
+    - name: Set ownership
+      run: |
+        # this is to fix GIT not liking owner of the checkout dir
+        chown -R $(id -u):$(id -g) $PWD
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules
