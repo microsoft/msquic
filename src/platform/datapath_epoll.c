@@ -331,14 +331,14 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC_CONTEXT {
     DATAPATH_SQE ShutdownSqe;
 
     //
+    // Synchronization mechanism for cleanup.
+    //
+    CXPLAT_REF_COUNT RefCount;
+
+    //
     // The index of the context in the datapath's array.
     //
     uint32_t Index;
-
-    //
-    // Completion event to indicate the worker has cleaned up.
-    //
-    CXPLAT_EVENT CompletionEvent;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
@@ -376,10 +376,9 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
-    // A reference rundown on the datapath binding.
-    // Make sure events are in front for cache alignment.
+    // Synchronization mechanism for cleanup.
     //
-    CXPLAT_RUNDOWN_REF BindingsRundown;
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // Set of supported features.
@@ -397,6 +396,12 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_PROC_CONTEXT ProcContexts[];
 
 } CXPLAT_DATAPATH;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatProcessorContextUninitializeComplete(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    );
 
 QUIC_STATUS
 CxPlatSocketSendInternal(
@@ -484,7 +489,6 @@ CxPlatProcessorContextInitialize(
         return errno;
     }
 
-    CxPlatEventInitialize(&ProcContext->CompletionEvent, TRUE, FALSE);
     CxPlatPoolInitialize(
         TRUE,
         RecvPacketLength,
@@ -507,32 +511,6 @@ CxPlatProcessorContextInitialize(
         &ProcContext->SendDataPool);
 
     return QUIC_STATUS_SUCCESS;
-}
-
-void
-CxPlatProcessorContextShutdown(
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
-    )
-{
-    CxPlatEventQEnqueue(
-        ProcContext->EventQ,
-        &ProcContext->ShutdownSqe.Sqe,
-        &ProcContext->ShutdownSqe);
-}
-
-void
-CxPlatProcessorContextUninitialize(
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
-    )
-{
-    // Must call CxPlatProcessorContextShutdown first!
-    CxPlatEventWaitForever(ProcContext->CompletionEvent);
-    CxPlatEventUninitialize(ProcContext->CompletionEvent);
-    CxPlatSqeCleanup(ProcContext->EventQ, &ProcContext->ShutdownSqe.Sqe);
-    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
-    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
 }
 
 QUIC_STATUS
@@ -578,7 +556,7 @@ CxPlatDataPathInitialize(
     }
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
-    CxPlatRundownInitialize(&Datapath->BindingsRundown);
+    CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
 
 #ifdef UDP_SEGMENT
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
@@ -594,8 +572,7 @@ CxPlatDataPathInitialize(
         Status = CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->ProcContexts[i]);
         if (QUIC_FAILED(Status)) {
             for (uint32_t j = 0; j < i; j++) {
-                CxPlatProcessorContextShutdown(&Datapath->ProcContexts[j]);
-                CxPlatProcessorContextUninitialize(&Datapath->ProcContexts[j]);
+                CxPlatProcessorContextUninitializeComplete(&Datapath->ProcContexts[j]);
             }
             goto Exit;
         }
@@ -607,11 +584,49 @@ CxPlatDataPathInitialize(
 Exit:
 
     if (Datapath != NULL) {
-        CxPlatRundownUninitialize(&Datapath->BindingsRundown);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRelease(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    if (CxPlatRefDecrement(&Datapath->RefCount)) {
+        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatProcessorContextUninitializeComplete(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    )
+{
+    CxPlatSqeCleanup(ProcContext->EventQ, &ProcContext->ShutdownSqe.Sqe);
+    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
+    CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
+    CxPlatPoolUninitialize(&ProcContext->RecvDatagramPool);
+    CxPlatDataPathRelease(ProcContext->Datapath);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatProcessorContextRelease(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    )
+{
+    if (CxPlatRefDecrement(&ProcContext->RefCount)) {
+        CxPlatEventQEnqueue(
+            ProcContext->EventQ,
+            &ProcContext->ShutdownSqe.Sqe,
+            &ProcContext->ShutdownSqe);
+    }
 }
 
 void
@@ -620,15 +635,9 @@ CxPlatDataPathUninitialize(
     )
 {
     if (Datapath != NULL) {
-        CxPlatRundownReleaseAndWait(&Datapath->BindingsRundown);
         for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-            CxPlatProcessorContextShutdown(&Datapath->ProcContexts[i]);
+            CxPlatProcessorContextRelease(&Datapath->ProcContexts[i]);
         }
-        for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-            CxPlatProcessorContextUninitialize(&Datapath->ProcContexts[i]);
-        }
-        CxPlatRundownUninitialize(&Datapath->BindingsRundown);
-        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
 
@@ -1262,6 +1271,21 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSocketRelease(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    if (CxPlatRefDecrement(&Socket->RefCount)) {
+        QuicTraceLogVerbose(
+            DatapathShutDownComplete,
+            "[data][%p] Shut down (complete)",
+            Socket);
+        CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+    }
+}
+
 void
 CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
@@ -1291,10 +1315,10 @@ CxPlatSocketContextUninitializeComplete(
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
-    if (CxPlatRefDecrement(&SocketContext->Binding->RefCount)) {
-        CxPlatRundownRelease(&SocketContext->Binding->Datapath->BindingsRundown);
-        CXPLAT_FREE(SocketContext->Binding, QUIC_POOL_SOCKET);
+    if (SocketProc->ProcContext) {
+        CxPlatProcessorContextRelease(SocketProc->ProcContext);
     }
+    CxPlatSocketRelease(SocketProc->Parent);
 }
 
 void
@@ -1785,12 +1809,12 @@ CxPlatSocketCreateUdp(
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         }
         Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
+        CxPlatRefIncrement(&Binding->SocketContexts[i].ProcContext.RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
         CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
-    CxPlatRundownAcquire(&Datapath->BindingsRundown);
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Binding->PcpBinding = TRUE;
     }
@@ -1914,14 +1938,9 @@ CxPlatSocketDelete(
         "[data][%p] Destroyed",
         Socket);
 
-    //
-    // The function is called by the upper layer when it is completely done
-    // with the UDP binding. It expects that after this call returns there will
-    // be no additional upcalls related to this binding, and all outstanding
-    // upcalls on different threads will be completed.
-    //
+    const uint32_t SocketCount =
+        Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
 
-    uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
     }
@@ -2559,7 +2578,7 @@ CxPlatDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
         CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC_CONTEXT, ShutdownSqe);
-        CxPlatEventSet(ProcContext->CompletionEvent);
+        CxPlatProcessorContextUninitializeComplete(ProcContext);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {

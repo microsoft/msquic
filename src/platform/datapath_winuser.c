@@ -2427,11 +2427,6 @@ CxPlatSocketDelete(
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->Processors[i]);
     }
-
-    QuicTraceLogVerbose(
-        DatapathShutDownReturn,
-        "[data][%p] Shut down (return)",
-        Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
