@@ -1186,6 +1186,7 @@ QuicCryptoTlsEncodeTransportParameters(
     return TPBufBase;
 }
 
+// NOLINTBEGIN(readability-function-size)
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
@@ -1854,6 +1855,7 @@ Exit:
 
     return Result;
 }
+// NOLINTEND(readability-function-size)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
