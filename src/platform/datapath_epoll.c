@@ -611,7 +611,7 @@ CxPlatProcessorContextUninitializeComplete(
     CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
     CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->RecvDatagramPool);
+    CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
     CxPlatDataPathRelease(ProcContext->Datapath);
 }
 
@@ -1315,10 +1315,10 @@ CxPlatSocketContextUninitializeComplete(
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
-    if (SocketProc->ProcContext) {
-        CxPlatProcessorContextRelease(SocketProc->ProcContext);
+    if (SocketContext->ProcContext) {
+        CxPlatProcessorContextRelease(SocketContext->ProcContext);
     }
-    CxPlatSocketRelease(SocketProc->Parent);
+    CxPlatSocketRelease(SocketContext->Parent);
 }
 
 void
@@ -1809,7 +1809,7 @@ CxPlatSocketCreateUdp(
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         }
         Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
-        CxPlatRefIncrement(&Binding->SocketContexts[i].ProcContext.RefCount);
+        CxPlatRefIncrement(&Binding->SocketContexts[i].ProcContext->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
         CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);

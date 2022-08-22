@@ -178,24 +178,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownReturn
-// [data][%p] Shut down (return)
-// QuicTraceLogVerbose(
-        DatapathShutDownReturn,
-        "[data][%p] Shut down (return)",
-        Socket);
-// arg2 = arg2 = Socket = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathShutDownReturn
-#define _clog_3_ARGS_TRACE_DatapathShutDownReturn(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathShutDownComplete
 // [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
