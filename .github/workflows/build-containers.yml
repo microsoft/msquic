@@ -1,6 +1,7 @@
 name: Cross Compile MsQuic
 
 on:
+  workflow_dispatch:
   push:
     branches:
     - main
