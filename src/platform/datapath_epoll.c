@@ -1318,7 +1318,7 @@ CxPlatSocketContextUninitializeComplete(
     if (SocketContext->ProcContext) {
         CxPlatProcessorContextRelease(SocketContext->ProcContext);
     }
-    CxPlatSocketRelease(SocketContext->Parent);
+    CxPlatSocketRelease(SocketContext->Binding);
 }
 
 void
