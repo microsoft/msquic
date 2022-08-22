@@ -475,6 +475,7 @@ CxPlatProcessorContextInitialize(
     ProcContext->Datapath = Datapath;
     ProcContext->Index = Index;
     ProcContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN;
+    CxPlatRefInitialize(&ProcContext->RefCount);
 
     ProcContext->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
     if (!CxPlatSqeInitialize(
