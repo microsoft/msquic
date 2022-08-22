@@ -1,11 +1,11 @@
-name: Container Builds
+name: Cross Compile MsQuic
 
 on:
   push:
     branches:
     - main
     paths:
-    - .github/workflows/build-containers.yml
+    - .github/workflows/cross-compile.yml
     - src/core/*
     - src/platform/*
     - src/bin/*
@@ -18,7 +18,7 @@ on:
     branches:
     - main
     paths:
-    - .github/workflows/build-containers.yml
+    - .github/workflows/cross-compile.yml
     - src/core/*
     - src/platform/*
     - src/bin/*
@@ -40,26 +40,26 @@ jobs:
   build-arm:
     runs-on: ubuntu-latest
     container:
-      image: wpilib/raspbian-cross-ubuntu:10-18.04
-    name: Build Arm
+      image: ghcr.io/microsoft/msquic/linux-build-xcomp
+    name: Build Arm/Arm64
     steps:
     - name: Checkout repository
       uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       with:
         fetch-depth: 2
         submodules: 'recursive'
-    - name: Setup .NET
-      uses: actions/setup-dotnet@c0d4ad69d8bd405d234f1c9166d383b7a4f69ed8
-      with:
-        dotnet-version: 6.0.x
-    - run: |
-        sudo sh scripts/install-powershell.sh 18.04
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild
-    - name: Build Debug
+      run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules
+    - name: Build Debug Arm
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -DisableLogs -ToolchainFile cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
-    - name: Build Release
+      run: scripts/build.ps1 -Config Debug -DisableLogs -Arch arm -ToolchainFile cmake/toolchains/arm-linux.cmake -OneBranch
+    - name: Build Release Arm
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -DisableLogs -ToolchainFile cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
+      run: scripts/build.ps1 -Config Release -DisableLogs -Arch arm -ToolchainFile cmake/toolchains/arm-linux.cmake -OneBranch
+    - name: Build Debug Arm64
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -DisableLogs -Arch arm64 -ToolchainFile cmake/toolchains/aarch64-linux.cmake -OneBranch
+    - name: Build Release Arm64
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -DisableLogs -Arch arm64 -ToolchainFile cmake/toolchains/aarch64-linux.cmake -OneBranch
