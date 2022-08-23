@@ -88,17 +88,179 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownComplete
-// [data][%p] Shut down (complete)
+// Decoder Ring for DatapathProcContextInitialize
+// [data][%p] Proc context initialize
 // QuicTraceLogVerbose(
-            DatapathShutDownComplete,
-            "[data][%p] Shut down (complete)",
+        DatapathProcContextInitialize,
+        "[data][%p] Proc context initialize",
+        ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathProcContextInitialize
+#define _clog_3_ARGS_TRACE_DatapathProcContextInitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathProcContextInitialize , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathInitialize
+// [data][%p] Datapath initialize
+// QuicTraceLogVerbose(
+        DatapathInitialize,
+        "[data][%p] Datapath initialize",
+        Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathInitialize
+#define _clog_3_ARGS_TRACE_DatapathInitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathInitialize , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathUninitializeComplete
+// [data][%p] Datapath uninitialize complete
+// QuicTraceLogVerbose(
+            DatapathUninitializeComplete,
+            "[data][%p] Datapath uninitialize complete",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathUninitializeComplete
+#define _clog_3_ARGS_TRACE_DatapathUninitializeComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathUninitializeComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathProcContextUninitializeComplete
+// [data][%p] Proc context uninitialize complete
+// QuicTraceLogVerbose(
+        DatapathProcContextUninitializeComplete,
+        "[data][%p] Proc context uninitialize complete",
+        ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathProcContextUninitializeComplete
+#define _clog_3_ARGS_TRACE_DatapathProcContextUninitializeComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathProcContextUninitializeComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathProcContextUninitialize
+// [data][%p] Proc context uninitialize
+// QuicTraceLogVerbose(
+            DatapathProcContextUninitialize,
+            "[data][%p] Proc context uninitialize",
+            ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathProcContextUninitialize
+#define _clog_3_ARGS_TRACE_DatapathProcContextUninitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathProcContextUninitialize , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathUninitialize
+// [data][%p] Datapath uninitialize
+// QuicTraceLogVerbose(
+            DatapathUninitialize,
+            "[data][%p] Datapath uninitialize",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathUninitialize
+#define _clog_3_ARGS_TRACE_DatapathUninitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathUninitialize , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextInitialize
+// [data][%p] Socket context initialize
+// QuicTraceLogVerbose(
+        DatapathSocketContextInitialize,
+        "[data][%p] Socket context initialize",
+        SocketContext);
+// arg2 = arg2 = SocketContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathSocketContextInitialize
+#define _clog_3_ARGS_TRACE_DatapathSocketContextInitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSocketContextInitialize , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketUninitializeComplete
+// [data][%p] Socket uninitialize complete
+// QuicTraceLogVerbose(
+            DatapathSocketUninitializeComplete,
+            "[data][%p] Socket uninitialize complete",
             Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathShutDownComplete
-#define _clog_3_ARGS_TRACE_DatapathShutDownComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathShutDownComplete , arg2);\
+#ifndef _clog_3_ARGS_TRACE_DatapathSocketUninitializeComplete
+#define _clog_3_ARGS_TRACE_DatapathSocketUninitializeComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSocketUninitializeComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextUninitializeComplete
+// [data][%p] Socket context uninitialize complete
+// QuicTraceLogVerbose(
+        DatapathSocketContextUninitializeComplete,
+        "[data][%p] Socket context uninitialize complete",
+        SocketContext);
+// arg2 = arg2 = SocketContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathSocketContextUninitializeComplete
+#define _clog_3_ARGS_TRACE_DatapathSocketContextUninitializeComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSocketContextUninitializeComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextUninitialize
+// [data][%p] Socket context uninitialize
+// QuicTraceLogVerbose(
+        DatapathSocketContextUninitialize,
+        "[data][%p] Socket context uninitialize",
+        SocketContext);
+// arg2 = arg2 = SocketContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathSocketContextUninitialize
+#define _clog_3_ARGS_TRACE_DatapathSocketContextUninitialize(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSocketContextUninitialize , arg2);\
 
 #endif
 
@@ -239,10 +401,10 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathCreated , arg2, arg3_len, arg3, arg4_l
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-// arg2 = arg2 = Binding = arg2
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
 #define _clog_3_ARGS_TRACE_DatapathDestroyed(uniqueId, encoded_arg_string, arg2)\

@@ -40,6 +40,25 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStop,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PlatformWorkerThreadShutdown
+// [ lib][%p] Worker shutdown
+// QuicTraceLogVerbose(
+            PlatformWorkerThreadShutdown,
+            "[ lib][%p] Worker shutdown",
+            &CxPlatWorkers[i]);
+// arg2 = arg2 = &CxPlatWorkers[i] = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadShutdown,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

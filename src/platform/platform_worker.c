@@ -225,6 +225,10 @@ CxPlatWorkersUninit(
     )
 {
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
+        QuicTraceLogVerbose(
+            PlatformWorkerThreadShutdown,
+            "[ lib][%p] Worker shutdown",
+            &CxPlatWorkers[i]);
         CxPlatEventQEnqueue(
             &CxPlatWorkers[i].EventQ,
             &CxPlatWorkers[i].ShutdownSqe,

@@ -59,15 +59,186 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownComplete
-// [data][%p] Shut down (complete)
+// Decoder Ring for DatapathProcContextInitialize
+// [data][%p] Proc context initialize
 // QuicTraceLogVerbose(
-            DatapathShutDownComplete,
-            "[data][%p] Shut down (complete)",
+        DatapathProcContextInitialize,
+        "[data][%p] Proc context initialize",
+        ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathProcContextInitialize,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathInitialize
+// [data][%p] Datapath initialize
+// QuicTraceLogVerbose(
+        DatapathInitialize,
+        "[data][%p] Datapath initialize",
+        Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathInitialize,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathUninitializeComplete
+// [data][%p] Datapath uninitialize complete
+// QuicTraceLogVerbose(
+            DatapathUninitializeComplete,
+            "[data][%p] Datapath uninitialize complete",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathUninitializeComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathProcContextUninitializeComplete
+// [data][%p] Proc context uninitialize complete
+// QuicTraceLogVerbose(
+        DatapathProcContextUninitializeComplete,
+        "[data][%p] Proc context uninitialize complete",
+        ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathProcContextUninitializeComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathProcContextUninitialize
+// [data][%p] Proc context uninitialize
+// QuicTraceLogVerbose(
+            DatapathProcContextUninitialize,
+            "[data][%p] Proc context uninitialize",
+            ProcContext);
+// arg2 = arg2 = ProcContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathProcContextUninitialize,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathUninitialize
+// [data][%p] Datapath uninitialize
+// QuicTraceLogVerbose(
+            DatapathUninitialize,
+            "[data][%p] Datapath uninitialize",
+            Datapath);
+// arg2 = arg2 = Datapath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathUninitialize,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextInitialize
+// [data][%p] Socket context initialize
+// QuicTraceLogVerbose(
+        DatapathSocketContextInitialize,
+        "[data][%p] Socket context initialize",
+        SocketContext);
+// arg2 = arg2 = SocketContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathSocketContextInitialize,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketUninitializeComplete
+// [data][%p] Socket uninitialize complete
+// QuicTraceLogVerbose(
+            DatapathSocketUninitializeComplete,
+            "[data][%p] Socket uninitialize complete",
             Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathShutDownComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathSocketUninitializeComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextUninitializeComplete
+// [data][%p] Socket context uninitialize complete
+// QuicTraceLogVerbose(
+        DatapathSocketContextUninitializeComplete,
+        "[data][%p] Socket context uninitialize complete",
+        SocketContext);
+// arg2 = arg2 = SocketContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathSocketContextUninitializeComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextUninitialize
+// [data][%p] Socket context uninitialize
+// QuicTraceLogVerbose(
+        DatapathSocketContextUninitialize,
+        "[data][%p] Socket context uninitialize",
+        SocketContext);
+// arg2 = arg2 = SocketContext = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathSocketContextUninitialize,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -247,10 +418,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathCreated,
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-// arg2 = arg2 = Binding = arg2
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed,
     TP_ARGS(
