@@ -1373,7 +1373,7 @@ CxPlatSocketContextUninitialize(
         "[data][%p] Socket context uninitialize",
         SocketContext);
 
-    if (!SoocketContext->IoStarted) {
+    if (!SocketContext->IoStarted) {
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {
         CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
