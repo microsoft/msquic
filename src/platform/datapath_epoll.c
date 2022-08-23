@@ -516,11 +516,6 @@ CxPlatProcessorContextInitialize(
         QUIC_POOL_PLATFORM_SENDCTX,
         &ProcContext->SendDataPool);
 
-    QuicTraceLogVerbose(
-        DatapathProcContextInitialize,
-        "[data][%p] Proc context initialize",
-        ProcContext);
-
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -576,11 +571,6 @@ CxPlatDataPathInitialize(
     }
 #endif
 
-    QuicTraceLogVerbose(
-        DatapathInitialize,
-        "[data][%p] Datapath initialize",
-        Datapath);
-
     //
     // Initialize the per processor contexts.
     //
@@ -594,6 +584,7 @@ CxPlatDataPathInitialize(
         }
     }
 
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = Datapath;
     Datapath = NULL;
 
@@ -613,11 +604,8 @@ CxPlatDataPathRelease(
     )
 {
     if (CxPlatRefDecrement(&Datapath->RefCount)) {
-        QuicTraceLogVerbose(
-            DatapathUninitializeComplete,
-            "[data][%p] Datapath uninitialize complete",
-            Datapath);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+        CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
 }
 
@@ -627,10 +615,6 @@ CxPlatProcessorContextUninitializeComplete(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    QuicTraceLogVerbose(
-        DatapathProcContextUninitializeComplete,
-        "[data][%p] Proc context uninitialize complete",
-        ProcContext);
     CxPlatSqeCleanup(ProcContext->EventQ, &ProcContext->ShutdownSqe.Sqe);
     CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
@@ -646,10 +630,6 @@ CxPlatProcessorContextRelease(
     )
 {
     if (CxPlatRefDecrement(&ProcContext->RefCount)) {
-        QuicTraceLogVerbose(
-            DatapathProcContextUninitialize,
-            "[data][%p] Proc context uninitialize",
-            ProcContext);
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(
                 ProcContext->EventQ,
@@ -664,10 +644,6 @@ CxPlatDataPathUninitialize(
     )
 {
     if (Datapath != NULL) {
-        QuicTraceLogVerbose(
-            DatapathUninitialize,
-            "[data][%p] Datapath uninitialize",
-            Datapath);
         for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
             CxPlatProcessorContextRelease(&Datapath->ProcContexts[i]);
         }
@@ -1288,11 +1264,6 @@ CxPlatSocketContextInitialize(
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
 
-    QuicTraceLogVerbose(
-        DatapathSocketContextInitialize,
-        "[data][%p] Socket context initialize",
-        SocketContext);
-
 Exit:
 
     if (QUIC_FAILED(Status)) {
@@ -1316,10 +1287,6 @@ CxPlatSocketRelease(
     )
 {
     if (CxPlatRefDecrement(&Socket->RefCount)) {
-        QuicTraceLogVerbose(
-            DatapathSocketUninitializeComplete,
-            "[data][%p] Socket uninitialize complete",
-            Socket);
         CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
     }
 }
@@ -1329,11 +1296,6 @@ CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    QuicTraceLogVerbose(
-        DatapathSocketContextUninitializeComplete,
-        "[data][%p] Socket context uninitialize complete",
-        SocketContext);
-
     for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
         if (SocketContext->CurrentRecvBlocks[i] != NULL) {
             CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlocks[i]->RecvPacket);
@@ -1369,11 +1331,6 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    QuicTraceLogVerbose(
-        DatapathSocketContextUninitialize,
-        "[data][%p] Socket context uninitialize",
-        SocketContext);
-
     if (!SocketContext->IoStarted) {
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {

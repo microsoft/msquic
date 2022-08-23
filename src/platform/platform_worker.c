@@ -15,6 +15,8 @@ Abstract:
 #include "platform_worker.c.clog.h"
 #endif
 
+CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
+
 const uint32_t WorkerWakeEventPayload = CXPLAT_CQE_TYPE_WORKER_WAKE;
 const uint32_t WorkerUpdatePollEventPayload = CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL;
 
@@ -182,6 +184,8 @@ CxPlatWorkersInit(
         CxPlatWorkers[i].InitializedThread = TRUE;
     }
 
+    CxPlatRundownInitialize(&CxPlatWorkerRundown);
+
     return TRUE;
 
 Error:
@@ -224,6 +228,8 @@ CxPlatWorkersUninit(
     void
     )
 {
+    CxPlatRundownReleaseAndWait(&CxPlatWorkerRundown);
+
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
         QuicTraceLogVerbose(
             PlatformWorkerThreadShutdown,
@@ -246,8 +252,15 @@ CxPlatWorkersUninit(
 #endif // QUIC_USE_EXECUTION_CONTEXTS
     }
 
+    CXPLAT_DBG_ASSERT(g_DatapathSocketProcCount == 0);
+    CXPLAT_DBG_ASSERT(g_DatapathSocketCount == 0);
+    CXPLAT_DBG_ASSERT(g_DatapathProcCount == 0);
+    CXPLAT_DBG_ASSERT(g_DatapathCount == 0);
+
     CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
     CxPlatWorkers = NULL;
+
+    CxPlatRundownUninitialize(&CxPlatWorkerRundown);
 }
 
 #ifdef QUIC_USE_EXECUTION_CONTEXTS
