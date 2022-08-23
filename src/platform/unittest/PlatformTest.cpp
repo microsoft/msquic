@@ -121,3 +121,78 @@ TEST(PlatformTest, EventQueue)
 
     CxPlatEventQCleanup(&queue);
 }
+
+TEST(PlatformTest, EventQueueWorker)
+{
+    struct EventQueueContext {
+        CXPLAT_EVENTQ* queue;
+        uint32_t counts[3];
+        static CXPLAT_THREAD_CALLBACK(EventQueueCallback, Context) {
+            auto ctx = (EventQueueContext*)Context;
+            CXPLAT_CQE events[4];
+            while (true) {
+                uint32_t count = CxPlatEventQDequeue(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
+                for (uint32_t i = 0; i < count; i++) {
+                    if (CxPlatCqeUserData(&events[i]) == NULL) goto Exit;
+                    ctx->counts[CxPlatCqeType(events + i)]++;
+                }
+            }
+        Exit:
+            CXPLAT_THREAD_RETURN(0);
+        }
+    };
+
+    uint32_t user_data1 = 0, user_data2 = 1, user_data3 = 2;
+
+    CXPLAT_EVENTQ queue;
+    ASSERT_TRUE(CxPlatEventQInitialize(&queue));
+
+    EventQueueContext context = { &queue, {0} };
+    CXPLAT_THREAD_CONFIG config = { 0, 0, NULL, EventQueueContext::EventQueueCallback, &context };
+    CXPLAT_THREAD thread;
+    ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatThreadCreate(&config, &thread)));
+
+#ifdef CXPLAT_SQE
+    CXPLAT_SQE shutdown, sqe1, sqe2, sqe3;
+#ifdef CXPLAT_SQE_INIT
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, &shutdown, nullptr));
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe1, &user_data1));
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe2, &user_data2));
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe3, &user_data3));
+#endif // CXPLAT_SQE_INIT
+#endif // CXPLAT_SQE
+
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe1, &user_data1));
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe2, &user_data2));
+    CxPlatSleep(100);
+    ASSERT_TRUE(context.counts[0] == 1u);
+    ASSERT_TRUE(context.counts[1] == 1u);
+    ASSERT_TRUE(context.counts[2] == 0u);
+
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe1, &user_data1));
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe2, &user_data2));
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe3, &user_data3));
+    CxPlatSleep(100);
+    ASSERT_TRUE(context.counts[0] == 2u);
+    ASSERT_TRUE(context.counts[1] == 2u);
+    ASSERT_TRUE(context.counts[2] == 1u);
+
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe3, &user_data3));
+    ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &shutdown, nullptr));
+
+    CxPlatThreadWait(&thread);
+    CxPlatThreadDelete(&thread);
+
+    ASSERT_TRUE(context.counts[0] == 2u);
+    ASSERT_TRUE(context.counts[1] == 2u);
+    ASSERT_TRUE(context.counts[2] == 2u);
+
+#ifdef CXPLAT_SQE_INIT
+    CxPlatSqeCleanup(&queue, &shutdown);
+    CxPlatSqeCleanup(&queue, &sqe1);
+    CxPlatSqeCleanup(&queue, &sqe2);
+    CxPlatSqeCleanup(&queue, &sqe3);
+#endif // CXPLAT_SQE_INIT
+
+    CxPlatEventQCleanup(&queue);
+}
