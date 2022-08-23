@@ -231,10 +231,6 @@ CxPlatWorkersUninit(
     CxPlatRundownReleaseAndWait(&CxPlatWorkerRundown);
 
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        QuicTraceLogVerbose(
-            PlatformWorkerThreadShutdown,
-            "[ lib][%p] Worker shutdown",
-            &CxPlatWorkers[i]);
         CxPlatEventQEnqueue(
             &CxPlatWorkers[i].EventQ,
             &CxPlatWorkers[i].ShutdownSqe,
@@ -251,11 +247,6 @@ CxPlatWorkersUninit(
         CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
 #endif // QUIC_USE_EXECUTION_CONTEXTS
     }
-
-    CXPLAT_DBG_ASSERT(g_DatapathSocketProcCount == 0);
-    CXPLAT_DBG_ASSERT(g_DatapathSocketCount == 0);
-    CXPLAT_DBG_ASSERT(g_DatapathProcCount == 0);
-    CXPLAT_DBG_ASSERT(g_DatapathCount == 0);
 
     CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
     CxPlatWorkers = NULL;
