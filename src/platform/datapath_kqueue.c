@@ -495,6 +495,7 @@ CxPlatDataPathInitialize(
         CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->ProcContexts[i]);
     }
 
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -515,6 +516,7 @@ CxPlatDataPathUninitialize(
         }
         CxPlatRundownUninitialize(&Datapath->BindingsRundown);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+        CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
 }
 

@@ -924,6 +924,7 @@ CxPlatDataPathInitialize(
             &Datapath->Processors[i].RecvDatagramPool);
     }
 
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -950,6 +951,7 @@ CxPlatDataPathRelease(
     if (CxPlatRefDecrement(&Datapath->RefCount)) {
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         WSACleanup();
+        CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
 }
 

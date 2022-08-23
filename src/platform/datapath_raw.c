@@ -168,6 +168,8 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+
 Error:
 
     if (QUIC_FAILED(Status)) {
@@ -211,6 +213,7 @@ CxPlatDataPathUninitialize(
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CxPlatRundownUninitialize(&Datapath->SocketsRundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    CxPlatRundownRelease(&CxPlatWorkerRundown);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
