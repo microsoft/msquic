@@ -650,10 +650,11 @@ CxPlatProcessorContextRelease(
             DatapathProcContextUninitialize,
             "[data][%p] Proc context uninitialize",
             ProcContext);
-        CxPlatEventQEnqueue(
-            ProcContext->EventQ,
-            &ProcContext->ShutdownSqe.Sqe,
-            &ProcContext->ShutdownSqe);
+        CXPLAT_FRE_ASSERT(
+            CxPlatEventQEnqueue(
+                ProcContext->EventQ,
+                &ProcContext->ShutdownSqe.Sqe,
+                &ProcContext->ShutdownSqe));
     }
 }
 
@@ -1377,10 +1378,11 @@ CxPlatSocketContextUninitialize(
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {
         CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
-        CxPlatEventQEnqueue(
-            SocketContext->ProcContext->EventQ,
-            &SocketContext->ShutdownSqe.Sqe,
-            &SocketContext->ShutdownSqe);
+        CXPLAT_FRE_ASSERT(
+            CxPlatEventQEnqueue(
+                SocketContext->ProcContext->EventQ,
+                &SocketContext->ShutdownSqe.Sqe,
+                &SocketContext->ShutdownSqe));
     }
 }
 
