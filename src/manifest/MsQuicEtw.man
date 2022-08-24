@@ -1229,6 +1229,10 @@
                 inType="win:UInt32"
                 name="CongestionWindow"
                 />
+            <data
+                inType="win:AnsiString"
+                name="Cc"
+                />
           </template>
           <template tid="tid_CONN_PACKET_STATISTICS">
             <data
@@ -1369,6 +1373,44 @@
             <data
                 inType="win:UInt64"
                 name="Delay"
+                />
+          </template>
+          <template tid="tid_CONN_BBR">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                name="BbrState"
+                />
+            <data
+                inType="win:UInt32"
+                name="RecoveryState"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:UInt32"
+                name="BytesInFlight"
+                />
+            <data
+                inType="win:UInt32"
+                name="BytesInFlightMax"
+                />
+            <data
+                inType="win:UInt64"
+                name="EstMinRtt"
+                />
+            <data
+                inType="win:UInt64"
+                name="EstBw"
+                />
+            <data
+                inType="win:UInt32"
+                name="IsAppLimited"
                 />
           </template>
           <template tid="tid_STREAM">
@@ -2918,6 +2960,15 @@
               template="tid_CONN_TIMER"
               value="5185"
               />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.Bbr)"
+              opcode="Connection"
+              symbol="QuicConnBbr"
+              template="tid_CONN_BBR"
+              value="5186"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -3534,7 +3585,7 @@
             />
         <string
             id="Etw.ConnStats"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8"
             />
         <string
             id="Etw.ConnPacketStats"
@@ -4368,6 +4419,10 @@
         <string
             id="Etw.ConnExpiredTimer"
             value="[conn][%1] %2 expired"
+            />
+        <string
+            id="Etw.Bbr"
+            value="[conn][%1] BBR: State=%2 RState=%3 CongestionWindow=%4 BytesInFlight=%5 BytesInFlightMax=%6 MinRttEst=%7 EstBw=%8 AppLimited=%9"
             />
       </stringTable>
     </resources>
