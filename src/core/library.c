@@ -473,8 +473,7 @@ MsQuicLibraryUninitialize(
     }
 
     //
-    // Wait for the final clean up of everything in the stateless registration
-    // and then free it.
+    // Clean up the stateless registration that might have any leftovers.
     //
     if (MsQuicLib.StatelessRegistration != NULL) {
         MsQuicRegistrationClose(
@@ -489,8 +488,9 @@ MsQuicLibraryUninitialize(
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&MsQuicLib.Registrations));
 
     //
-    // Clean up the data path first, which can continue to cause new connections
-    // to get created.
+    // Clean up the data path, which will start the final clean up of the
+    // socket layer. This is generally async and doesn't block until the
+    // call to CxPlatUninitialize below.
     //
     if (MsQuicLib.Datapath != NULL) {
 #if DEBUG

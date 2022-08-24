@@ -1163,6 +1163,32 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
+#define CXPLAT_SQE_INIT 1
+
+inline
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_SQE* sqe,
+    _In_ void* user_data
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    *sqe = user_data ? (int)*(uint32_t*)user_data : -1; // TODO - Better way for null user data?
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+}
+
 inline
 void*
 CxPlatCqeUserData(

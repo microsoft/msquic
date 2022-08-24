@@ -428,6 +428,11 @@ CxPlatProcessorContextInitialize(
     DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
     CxPlatRefInitialize(&DatapathProc->RefCount);
 
+    CxPlatSqeInitialize(
+        DatapathProc->EventQ,
+        &DatapathProc->ShutdownSqe.Sqe,
+        &DatapathProc->ShutdownSqe);
+
     CxPlatPoolInitialize(
         TRUE,
         RecvPacketLength,
@@ -772,6 +777,15 @@ CxPlatSocketContextInitialize(
     socklen_t AssignedLocalAddressLength = 0;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
+
+    CxPlatSqeInitialize(
+        SocketContext->DatapathProc->EventQ,
+        &SocketContext->ShutdownSqe.Sqe,
+        &SocketContext->ShutdownSqe);
+    CxPlatSqeInitialize(
+        SocketContext->DatapathProc->EventQ,
+        &SocketContext->IoSqe.Sqe,
+        &SocketContext->IoSqe);
 
     //
     // Create datagram socket. We will use dual-mode sockets everywhere when we can.
