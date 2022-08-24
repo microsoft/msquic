@@ -26,7 +26,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     // Flags to indicate what has been initialized.
     //
     BOOLEAN InitializedEventQ : 1;
-#ifdef CXPLAT_SQE
+#ifdef CXPLAT_SQE_INIT
     BOOLEAN InitializedShutdownSqe : 1;
     BOOLEAN InitializedWakeSqe : 1;
     BOOLEAN InitializedUpdatePollSqe : 1;

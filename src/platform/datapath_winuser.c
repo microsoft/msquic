@@ -241,6 +241,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     //
     BOOLEAN IoStarted : 1;
 
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
+
     //
     // The set of parameters/state passed to WsaRecvMsg for the IP stack to
     // populate to indicate the result of the receive.
@@ -334,6 +339,11 @@ typedef struct CXPLAT_SOCKET {
     //
     uint8_t PcpBinding : 1;
 
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
+
     //
     // Per-processor socket contexts.
     //
@@ -371,6 +381,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     // The index of the context in the datapath's array.
     //
     uint16_t Index;
+
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
 
     //
     // Pool of send contexts to be shared by all sockets on this core.
@@ -462,6 +477,11 @@ typedef struct CXPLAT_DATAPATH {
     // Maximum batch sizes supported for send.
     //
     uint8_t MaxSendBatchSize;
+
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
 
     //
     // Per-processor completion contexts.
@@ -949,6 +969,10 @@ CxPlatDataPathRelease(
     )
 {
     if (CxPlatRefDecrement(&Datapath->RefCount)) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!Datapath->Freed);
+        Datapath->Freed = TRUE;
+#endif
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         WSACleanup();
         CxPlatRundownRelease(&CxPlatWorkerRundown);
@@ -957,10 +981,14 @@ CxPlatDataPathRelease(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatProcContextUninitializeComplete(
+CxPlatProcessorContextUninitializeComplete(
     _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
 {
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!DatapathProc->Freed);
+    DatapathProc->Freed = TRUE;
+#endif
     CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
     CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
     CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
@@ -970,15 +998,20 @@ CxPlatProcContextUninitializeComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatProcContextRelease(
+CxPlatProcessorContextRelease(
     _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
 {
     if (CxPlatRefDecrement(&DatapathProc->RefCount)) {
-        CxPlatEventQEnqueue(
-            DatapathProc->EventQ,
-            &DatapathProc->ShutdownSqe.Sqe,
-            &DatapathProc->ShutdownSqe);
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
+        DatapathProc->Uninitialized = TRUE;
+#endif
+        CXPLAT_FRE_ASSERT(
+            CxPlatEventQEnqueue(
+                DatapathProc->EventQ,
+                &DatapathProc->ShutdownSqe.Sqe,
+                &DatapathProc->ShutdownSqe));
     }
 }
 
@@ -989,8 +1022,13 @@ CxPlatDataPathUninitialize(
     )
 {
     if (Datapath != NULL) {
-        for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-            CxPlatProcContextRelease(&Datapath->Processors[i]);
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!Datapath->Uninitialized);
+        Datapath->Uninitialized = TRUE;
+#endif
+        const uint16_t ProcCount = Datapath->ProcCount;
+        for (uint16_t i = 0; i < ProcCount; i++) {
+            CxPlatProcessorContextRelease(&Datapath->Processors[i]);
         }
     }
 }
@@ -2418,6 +2456,11 @@ CxPlatSocketDelete(
         "[data][%p] Destroyed",
         Socket);
 
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
+    Socket->Uninitialized = TRUE;
+#endif
+
     const uint16_t SocketCount =
         (Socket->Type == CXPLAT_SOCKET_UDP && !Socket->HasFixedRemoteAddress) ?
             Socket->Datapath->ProcCount : 1;
@@ -2438,6 +2481,10 @@ CxPlatSocketRelease(
             DatapathShutDownComplete,
             "[data][%p] Shut down (complete)",
             Socket);
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!Socket->Freed);
+        Socket->Freed = TRUE;
+#endif
         CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
     }
 }
@@ -2448,6 +2495,11 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
+    SocketProc->Uninitialized = TRUE;
+#endif
+
     if (!SocketProc->IoStarted) {
         //
         // IO never started for this socket, so just kill the socket and process
@@ -2511,10 +2563,11 @@ QUIC_DISABLED_BY_FUZZER_START;
 
 QUIC_DISABLED_BY_FUZZER_END;
 
-    CxPlatEventQEnqueue(
-        SocketProc->DatapathProc->EventQ,
-        &SocketProc->ShutdownSqe.Sqe,
-        &SocketProc->ShutdownSqe);
+    CXPLAT_FRE_ASSERT(
+        CxPlatEventQEnqueue(
+            SocketProc->DatapathProc->EventQ,
+            &SocketProc->ShutdownSqe.Sqe,
+            &SocketProc->ShutdownSqe));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2523,6 +2576,11 @@ CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Freed);
+    SocketProc->Freed = TRUE;
+#endif
+
     if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
         if (SocketProc->AcceptSocket != NULL) {
             CxPlatSocketDelete(SocketProc->AcceptSocket);
@@ -2544,7 +2602,7 @@ CxPlatSocketContextUninitializeComplete(
         SocketProc);
 
     if (SocketProc->DatapathProc) {
-        CxPlatProcContextRelease(SocketProc->DatapathProc);
+        CxPlatProcessorContextRelease(SocketProc->DatapathProc);
     }
     CxPlatSocketRelease(SocketProc->Parent);
 }
@@ -4015,7 +4073,7 @@ CxPlatDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
         CXPLAT_DATAPATH_PROC* DatapathProc =
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
-        CxPlatProcContextUninitializeComplete(DatapathProc);
+        CxPlatProcessorContextUninitializeComplete(DatapathProc);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
