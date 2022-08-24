@@ -495,6 +495,7 @@ MsQuicLibraryUninitialize(
     if (MsQuicLib.Datapath != NULL) {
 #if DEBUG
         CleanUpDatapath = MsQuicLib.Datapath;
+        UNREFERENCED_PARAMETER(CleanUpDatapath);
 #endif
         CxPlatDataPathUninitialize(MsQuicLib.Datapath);
         MsQuicLib.Datapath = NULL;

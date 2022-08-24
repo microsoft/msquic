@@ -1606,7 +1606,7 @@ CxPlatXdpExecute(
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     if (!Xdp->Running) {
-        CxPlatDpRawRelease(Xdp);
+        CxPlatDpRawRelease((XDP_DATAPATH*)Xdp);
         return FALSE;
     }
 
