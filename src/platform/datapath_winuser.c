@@ -1962,9 +1962,7 @@ CxPlatSocketCreateTcpInternal(
 
     SocketProc = &Socket->Processors[0];
     SocketProc->Parent = Socket;
-    SocketProc->DatapathProc = NULL;
     SocketProc->Socket = INVALID_SOCKET;
-    SocketProc->IoStarted = FALSE;
     SocketProc->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
     SocketProc->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
     SocketProc->RecvWsaBuf.len = MAX_URO_PAYLOAD_LENGTH;
@@ -2029,10 +2027,10 @@ CxPlatSocketCreateTcpInternal(
         goto Error;
     }
 
-    SocketProc->DatapathProc = &Datapath->Processors[AffinitizedProcessor];
-    CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
-
     if (Type != CXPLAT_SOCKET_TCP_SERVER) {
+
+        SocketProc->DatapathProc = &Datapath->Processors[AffinitizedProcessor];
+        CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (*SocketProc->DatapathProc->EventQ !=
             CreateIoCompletionPort(
@@ -2241,9 +2239,7 @@ CxPlatSocketCreateTcpListener(
 
     SocketProc = &Socket->Processors[0];
     SocketProc->Parent = Socket;
-    SocketProc->DatapathProc = NULL;
     SocketProc->Socket = INVALID_SOCKET;
-    SocketProc->IoStarted = FALSE;
     SocketProc->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
     SocketProc->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
     CxPlatRundownInitialize(&SocketProc->UpcallRundown);
