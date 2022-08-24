@@ -1115,6 +1115,7 @@ CxPlatSocketContextUninitializeComplete(
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
         close(SocketContext->SocketFd);
     }
+
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
     if (SocketContext->DatapathProc) {
@@ -1137,6 +1138,12 @@ CxPlatSocketContextUninitialize(
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {
         CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
+
+        struct kevent DeleteEvent = {0};
+        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoSqe);
+        (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
+        close(SocketContext->SocketFd);
+
         CxPlatEventQEnqueue(
             SocketContext->DatapathProc->EventQ,
             &SocketContext->ShutdownSqe.Sqe,

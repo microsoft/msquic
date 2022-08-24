@@ -255,6 +255,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
+    // Inidicates the SQEs have been initialized.
+    //
+    BOOLEAN SqeInitialized : 1;
+
+    //
     // Inidicates if the socket has started IO processing.
     //
     BOOLEAN IoStarted : 1;
@@ -1304,6 +1309,8 @@ CxPlatSocketContextInitialize(
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
 
+    SocketContext->SqeInitialized = TRUE;
+
 Exit:
 
     if (QUIC_FAILED(Status)) {
@@ -1366,6 +1373,11 @@ CxPlatSocketContextUninitializeComplete(
         CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
     }
 
+    if (SocketContext->SqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+    }
+
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
@@ -1389,6 +1401,9 @@ CxPlatSocketContextUninitialize(
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {
         CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
+        epoll_ctl(*SocketContext->DatapathProc->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+        close(SocketContext->SocketFd);
+        SocketContext->SocketFd = INVALID_SOCKET;
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(
                 SocketContext->DatapathProc->EventQ,
