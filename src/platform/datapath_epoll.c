@@ -1341,8 +1341,8 @@ CxPlatSocketContextUninitializeComplete(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(!SocketProc->Freed);
-    SocketProc->Freed = TRUE;
+    CXPLAT_DBG_ASSERT(!SocketContext->Freed);
+    SocketContext->Freed = TRUE;
 #endif
 
     for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
@@ -1381,8 +1381,8 @@ CxPlatSocketContextUninitialize(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
-    SocketProc->Uninitialized = TRUE;
+    CXPLAT_DBG_ASSERT(!SocketContext->Uninitialized);
+    SocketContext->Uninitialized = TRUE;
 #endif
 
     if (!SocketContext->IoStarted) {
@@ -2330,7 +2330,7 @@ CxPlatSendDataIsFull(
 
 void
 CxPlatSendDataComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketProc,
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint64_t IoResult
     )
@@ -2339,16 +2339,16 @@ CxPlatSendDataComplete(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            SocketProc->Binding,
+            SocketContext->Binding,
             IoResult,
             "sendmmsg completion");
     }
 
     // TODO to add TCP
-    // if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
-    //     SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
-    //         SocketProc->Parent,
-    //         SocketProc->Parent->ClientContext,
+    // if (SocketContext->Parent->Type != CXPLAT_SOCKET_UDP) {
+    //     SocketContext->Parent->Datapath->TcpHandlers.SendComplete(
+    //         SocketContext->Parent,
+    //         SocketContext->Parent->ClientContext,
     //         IoResult,
     //         SendData->TotalSize);
     // }

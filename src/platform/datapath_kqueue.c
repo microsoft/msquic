@@ -527,7 +527,6 @@ CxPlatProcessorContextUninitializeComplete(
     CXPLAT_DBG_ASSERT(!DatapathProc->Freed);
     DatapathProc->Freed = TRUE;
 #endif
-    CxPlatSqeCleanup(DatapathProc->EventQ, &DatapathProc->ShutdownSqe.Sqe);
     CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
     CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
     CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
@@ -1094,8 +1093,8 @@ CxPlatSocketContextUninitializeComplete(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(!SocketProc->Freed);
-    SocketProc->Freed = TRUE;
+    CXPLAT_DBG_ASSERT(!SocketContext->Freed);
+    SocketContext->Freed = TRUE;
 #endif
 
     if (SocketContext->CurrentRecvBlock != NULL) {
@@ -1130,8 +1129,8 @@ CxPlatSocketContextUninitialize(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
-    SocketProc->Uninitialized = TRUE;
+    CXPLAT_DBG_ASSERT(!SocketContext->Uninitialized);
+    SocketContext->Uninitialized = TRUE;
 #endif
 
     if (!SocketContext->IoStarted) {
@@ -2014,7 +2013,7 @@ CxPlatSendDataIsFull(
 
 void
 CxPlatSendDataComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketProc,
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint64_t IoResult
     )
@@ -2023,16 +2022,16 @@ CxPlatSendDataComplete(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            SocketProc->Binding,
+            SocketContext->Binding,
             IoResult,
             "sendmmsg completion");
     }
 
     // TODO to add TCP
-    // if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
-    //     SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
-    //         SocketProc->Parent,
-    //         SocketProc->Parent->ClientContext,
+    // if (SocketContext->Parent->Type != CXPLAT_SOCKET_UDP) {
+    //     SocketContext->Parent->Datapath->TcpHandlers.SendComplete(
+    //         SocketContext->Parent,
+    //         SocketContext->Parent->ClientContext,
     //         IoResult,
     //         SendData->TotalSize);
     // }
@@ -2280,7 +2279,7 @@ CxPlatDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
         CXPLAT_DATAPATH_PROC* DatapathProc =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
-        CxPlatEventSet(DatapathProc->CompletionEvent);
+        CxPlatProcessorContextUninitializeComplete(DatapathProc);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
