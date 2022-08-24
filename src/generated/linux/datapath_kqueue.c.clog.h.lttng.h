@@ -171,10 +171,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathCreated,
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-// arg2 = arg2 = Binding = arg2
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathDestroyed,
     TP_ARGS(

@@ -159,10 +159,10 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathCreated , arg2, arg3_len, arg3, arg4_
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-// arg2 = arg2 = Binding = arg2
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
 #define _clog_3_ARGS_TRACE_DatapathDestroyed(uniqueId, encoded_arg_string, arg2)\
