@@ -1139,6 +1139,9 @@ CxPlatSocketContextUninitialize(
     } else {
         CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
 
+        //
+        // Cancel and clean up any pending IO.
+        //
         struct kevent DeleteEvent = {0};
         EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoSqe);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
