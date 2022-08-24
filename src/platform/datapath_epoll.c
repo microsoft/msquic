@@ -1482,16 +1482,6 @@ CxPlatSocketContextStartReceive(
             SocketContext->Binding,
             Status,
             "epoll_ctl failed");
-
-        //
-        // Return any allocations
-        //
-        for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
-            if (SocketContext->CurrentRecvBlocks[i] != NULL) {
-                CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlocks[i]->RecvPacket);
-            }
-        }
-
         goto Error;
     }
 

@@ -1146,6 +1146,7 @@ CxPlatSocketContextUninitialize(
         EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoSqe);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
         close(SocketContext->SocketFd);
+        SocketContext->SocketFd = INVALID_SOCKET;
 
         CxPlatEventQEnqueue(
             SocketContext->DatapathProc->EventQ,
@@ -1173,6 +1174,7 @@ CxPlatSocketContextPrepareReceive(
     }
 
     SocketContext->RecvIov.iov_base = SocketContext->CurrentRecvBlock->RecvPacket.Buffer;
+    SocketContext->CurrentRecvBlock->RecvPacket.Next = NULL;
     SocketContext->CurrentRecvBlock->RecvPacket.BufferLength = SocketContext->RecvIov.iov_len;
     SocketContext->CurrentRecvBlock->RecvPacket.Route = &SocketContext->CurrentRecvBlock->Route;
 
@@ -1219,14 +1221,6 @@ CxPlatSocketContextStartReceive(
             SocketContext->Binding,
             Status,
             "kevent failed");
-
-        //
-        // Return any allocations
-        //
-        if (SocketContext->CurrentRecvBlock != NULL) {
-            CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
-        }
-
         goto Error;
     }
 
