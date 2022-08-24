@@ -176,14 +176,14 @@ Error:
         if (*NewDataPath != NULL) {
             if (DpRawInitialized) {
                 CxPlatDpRawUninitialize(*NewDataPath);
-            }
+            } else {
+                if (SockPoolInitialized) {
+                    CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
+                }
 
-            if (SockPoolInitialized) {
-                CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
+                CxPlatRundownUninitialize(&(*NewDataPath)->SocketsRundown);
+                CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
             }
-
-            CxPlatRundownUninitialize(&(*NewDataPath)->SocketsRundown);
-            CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
             *NewDataPath = NULL;
         }
     }
@@ -199,17 +199,18 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    if (Datapath == NULL) {
-        return;
+    if (Datapath != NULL) {
+        CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
+        CxPlatDpRawUninitialize(Datapath);
     }
+}
 
-    //
-    // Wait for all outstanding bindings to clean up.
-    //
-    CxPlatRundownReleaseAndWait(&Datapath->SocketsRundown);
-
-    CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
-    CxPlatDpRawUninitialize(Datapath);
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUninitializeComplete(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CxPlatRundownUninitialize(&Datapath->SocketsRundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);

@@ -63,11 +63,6 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_LIST_ENTRY Interfaces;
 
-    //
-    // Rundown for waiting on binding cleanup.
-    //
-    CXPLAT_RUNDOWN_REF SocketsRundown;
-
 } CXPLAT_DATAPATH;
 
 #define ETH_MAC_ADDR_LEN 6
@@ -126,6 +121,15 @@ CxPlatDpRawInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
+    _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
+// Called when the datapath is ready to be freed.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUninitializeComplete(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
