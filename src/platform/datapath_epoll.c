@@ -110,9 +110,9 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
 
 typedef struct CXPLAT_SEND_DATA {
     //
-    // Indicates if the send should be bound to a local address.
+    // The proc context owning this send context.
     //
-    BOOLEAN Bind;
+    struct CXPLAT_DATAPATH_PROC_CONTEXT *Owner;
 
     //
     // The local address to bind to.
@@ -130,19 +130,44 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_LIST_ENTRY PendingSendLinkage;
 
     //
+    // The total buffer size for Buffers.
+    //
+    uint32_t TotalSize;
+
+    //
     // The type of ECN markings needed for send.
     //
     CXPLAT_ECN_TYPE ECN;
 
     //
-    // The proc context owning this send context.
+    // Total number of Buffers currently in use.
     //
-    struct CXPLAT_DATAPATH_PROC_CONTEXT *Owner;
+    uint32_t BufferCount;
+
+    //
+    // The current index of the Buffers to be sent.
+    //
+    uint32_t CurrentIndex;
 
     //
     // The number of messages of this buffer that have been sent.
     //
-    size_t SentMessagesCount;
+    uint32_t SentMessagesCount;
+
+    //
+    // The QUIC_BUFFER returned to the client for segmented sends.
+    //
+    QUIC_BUFFER ClientBuffer;
+
+    //
+    // Cache of send buffers.
+    //
+    QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
+
+    //
+    // IO vectors used for sends on the socket.
+    //
+    struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
 
     //
     // The send segmentation size; zero if segmentation is not performed.
@@ -150,31 +175,9 @@ typedef struct CXPLAT_SEND_DATA {
     uint16_t SegmentSize;
 
     //
-    // The total buffer size for Buffers.
+    // Indicates if the send should be bound to a local address.
     //
-    uint32_t TotalSize;
-
-    //
-    // BufferCount - The buffer count in use.
-    //
-    // CurrentIndex - The current index of the Buffers to be sent.
-    //
-    // Buffers - Send buffers.
-    //
-    // Iovs - IO vectors used for doing sends on the socket.
-    //
-    // TODO: Better way to reconcile layout difference
-    // between QUIC_BUFFER and struct iovec?
-    //
-    size_t BufferCount;
-    size_t CurrentIndex;
-    QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
-    struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
-
-    //
-    // The QUIC_BUFFER returned to the client for segmented sends.
-    //
-    QUIC_BUFFER ClientBuffer;
+    BOOLEAN Bind;
 
 } CXPLAT_SEND_DATA;
 
