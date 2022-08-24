@@ -147,8 +147,6 @@ CxPlatDataPathInitialize(
         (*NewDataPath)->UdpHandlers = *UdpCallbacks;
     }
 
-    CxPlatRundownInitialize(&(*NewDataPath)->SocketsRundown);
-
     if (!CxPlatSockPoolInitialize(&(*NewDataPath)->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -180,8 +178,6 @@ Error:
                 if (SockPoolInitialized) {
                     CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
                 }
-
-                CxPlatRundownUninitialize(&(*NewDataPath)->SocketsRundown);
                 CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
             }
             *NewDataPath = NULL;
@@ -212,7 +208,6 @@ CxPlatDataPathUninitializeComplete(
     )
 {
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
-    CxPlatRundownUninitialize(&Datapath->SocketsRundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     CxPlatRundownRelease(&CxPlatWorkerRundown);
 }
@@ -430,8 +425,6 @@ CxPlatSocketCreateUdp(
     CXPLAT_FRE_ASSERT((*NewSocket)->Wildcard ^ (*NewSocket)->Connected); // Assumes either a pure wildcard listener or a
                                                                          // connected socket; not both.
 
-    CxPlatRundownAcquire(&Datapath->SocketsRundown);
-
     Status = CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -444,7 +437,6 @@ Error:
     if (QUIC_FAILED(Status)) {
         if (*NewSocket != NULL) {
             CxPlatRundownUninitialize(&(*NewSocket)->Rundown);
-            CxPlatRundownRelease(&Datapath->SocketsRundown);
             CXPLAT_FREE(*NewSocket, QUIC_POOL_SOCKET);
             *NewSocket = NULL;
         }
@@ -487,7 +479,6 @@ CxPlatSocketDelete(
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
-    CxPlatRundownRelease(&Socket->Datapath->SocketsRundown);
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
