@@ -1165,7 +1165,7 @@ CxPlatEventQReturn(
 
 #define CXPLAT_SQE_INIT 1
 
-extern long volatile CxPlatCurrentSqe;
+extern long CxPlatCurrentSqe;
 
 inline
 BOOLEAN
