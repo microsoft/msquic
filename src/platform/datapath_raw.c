@@ -121,66 +121,60 @@ CxPlatDataPathInitialize(
     UNREFERENCED_PARAMETER(TcpCallbacks);
 
     if (NewDataPath == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (UdpCallbacks != NULL) {
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Exit;
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
 
-    *NewDataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
-    if (*NewDataPath == NULL) {
+    CXPLAT_DATAPATH* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
+    if (DataPath == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathSize);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    CxPlatZeroMemory(*NewDataPath, DatapathSize);
+    CxPlatZeroMemory(DataPath, DatapathSize);
 
     if (UdpCallbacks) {
-        (*NewDataPath)->UdpHandlers = *UdpCallbacks;
+        DataPath->UdpHandlers = *UdpCallbacks;
     }
 
-    if (!CxPlatSockPoolInitialize(&(*NewDataPath)->SocketPool)) {
+    if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-
     SockPoolInitialized = TRUE;
 
-    Status = CxPlatDpRawInitialize(*NewDataPath, ClientRecvContextLength, Config);
+    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, Config);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-
     DpRawInitialized = TRUE;
 
-    Status = CxPlatDataPathRouteWorkerInitialize(*NewDataPath);
+    Status = CxPlatDataPathRouteWorkerInitialize(DataPath);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+    *NewDataPath = DataPath;
+    DataPath = NULL;
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
-        if (*NewDataPath != NULL) {
-            if (DpRawInitialized) {
-                CxPlatDpRawUninitialize(*NewDataPath);
-            } else {
-                if (SockPoolInitialized) {
-                    CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
-                }
-                CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
+    if (DataPath != NULL) {
+        if (DpRawInitialized) {
+            CxPlatDpRawUninitialize(DataPath);
+        } else {
+            if (SockPoolInitialized) {
+                CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
-            *NewDataPath = NULL;
+            CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
         }
     }
 
