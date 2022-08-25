@@ -225,6 +225,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
+    // Inidicates the SQEs have been initialized.
+    //
+    BOOLEAN SqeInitialized : 1;
+
+    //
     // Inidicates if the socket has started IO processing.
     //
     BOOLEAN IoStarted : 1;
@@ -410,7 +415,7 @@ CxPlatProcessorContextUninitializeComplete(
     _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     );
 
-void
+QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t Index,
@@ -428,10 +433,17 @@ CxPlatProcessorContextInitialize(
     DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
     CxPlatRefInitialize(&DatapathProc->RefCount);
 
-    CxPlatSqeInitialize(
-        DatapathProc->EventQ,
-        &DatapathProc->ShutdownSqe.Sqe,
-        &DatapathProc->ShutdownSqe);
+    if (!CxPlatSqeInitialize(
+            DatapathProc->EventQ,
+            &DatapathProc->ShutdownSqe.Sqe,
+            &DatapathProc->ShutdownSqe)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "CxPlatSqeInitialize failed");
+        return errno;
+    }
 
     CxPlatPoolInitialize(
         TRUE,
@@ -453,6 +465,8 @@ CxPlatProcessorContextInitialize(
         sizeof(CXPLAT_SEND_DATA),
         QUIC_POOL_PLATFORM_SENDCTX,
         &DatapathProc->SendDataPool);
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -474,6 +488,8 @@ CxPlatDataPathInitialize(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
@@ -497,13 +513,25 @@ CxPlatDataPathInitialize(
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
 
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->DatapathProcs[i]);
+        Status = CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->DatapathProcs[i]);
+        if (QUIC_FAILED(Status)) {
+            for (uint32_t j = 0; j < i; j++) {
+                CxPlatProcessorContextUninitializeComplete(&Datapath->DatapathProcs[j]);
+            }
+            goto Exit;
+        }
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = Datapath;
 
-    return QUIC_STATUS_SUCCESS;
+Exit:
+
+    if (Datapath != NULL) {
+        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -532,6 +560,7 @@ CxPlatProcessorContextUninitializeComplete(
     CXPLAT_DBG_ASSERT(!DatapathProc->Freed);
     DatapathProc->Freed = TRUE;
 #endif
+    CxPlatSqeCleanup(DatapathProc->EventQ, &DatapathProc->ShutdownSqe.Sqe);
     CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
     CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
     CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
@@ -775,17 +804,40 @@ CxPlatSocketContextInitialize(
     int ForceIpv4 = RemoteAddress && RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
+    BOOLEAN ShutdownSqeInitialized = FALSE;
+    BOOLEAN IoSqeInitialized = FALSE;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
-    CxPlatSqeInitialize(
-        SocketContext->DatapathProc->EventQ,
-        &SocketContext->ShutdownSqe.Sqe,
-        &SocketContext->ShutdownSqe);
-    CxPlatSqeInitialize(
-        SocketContext->DatapathProc->EventQ,
-        &SocketContext->IoSqe.Sqe,
-        &SocketContext->IoSqe);
+    if (!CxPlatSqeInitialize(
+            SocketContext->DatapathProc->EventQ,
+            &SocketContext->ShutdownSqe.Sqe,
+            &SocketContext->ShutdownSqe)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    ShutdownSqeInitialized = TRUE;
+
+    if (!CxPlatSqeInitialize(
+            SocketContext->DatapathProc->EventQ,
+            &SocketContext->IoSqe.Sqe,
+            &SocketContext->IoSqe)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    IoSqeInitialized = TRUE;
 
     //
     // Create datagram socket. We will use dual-mode sockets everywhere when we can.
@@ -1076,11 +1128,19 @@ CxPlatSocketContextInitialize(
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
 
+    SocketContext->SqeInitialized = TRUE;
+
 Exit:
 
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
         SocketContext->SocketFd = INVALID_SOCKET;
+        if (ShutdownSqeInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        }
+        if (IoSqeInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+        }
     }
 
     return Status;
@@ -1130,6 +1190,12 @@ CxPlatSocketContextUninitializeComplete(
         close(SocketContext->SocketFd);
     }
 
+    if (SocketContext->SqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+    }
+
+    CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
     if (SocketContext->DatapathProc) {

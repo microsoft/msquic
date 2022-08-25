@@ -1127,7 +1127,7 @@ CxPlatEventQEnqueue(
     )
 {
     struct kevent event = {0};
-    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, user_data);
+    EV_SET(&event, *sqe, EVFILT_USER, 0, NOTE_TRIGGER, 0, user_data);
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
@@ -1173,9 +1173,10 @@ CxPlatSqeInitialize(
     _In_ void* user_data
     )
 {
-    UNREFERENCED_PARAMETER(queue);
     *sqe = user_data ? (int)*(uint32_t*)user_data : -1; // TODO - Better way for null user data?
-    return TRUE;
+    struct kevent event = {0};
+    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD, 0, 0, user_data);
+    return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
 inline
@@ -1185,8 +1186,9 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(sqe);
+    struct kevent event = {0};
+    EV_SET(&event, *sqe, EVFILT_USER, EV_CLEAR, 0, 0, NULL);
+    (void)kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
 inline
