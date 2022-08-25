@@ -518,8 +518,6 @@ CxPlatProcessorContextInitialize(
         sizeof(CXPLAT_SEND_DATA),
         QUIC_POOL_PLATFORM_SENDCTX,
         &DatapathProc->SendDataPool);
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
