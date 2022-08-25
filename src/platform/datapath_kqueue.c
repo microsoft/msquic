@@ -178,14 +178,14 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     int SocketFd;
 
     //
-    // The submission queue event for shutdown.
+    // The user data for the shutdown event.
     //
-    DATAPATH_SQE ShutdownSqe;
+    uint32_t ShutdownCqeType;
 
     //
-    // The submission queue event for IO.
+    // The user data for the IO event.
     //
-    DATAPATH_SQE IoSqe;
+    uint32_t IoCqeType;
 
     //
     // The I/O vector for receive datagrams.
@@ -223,6 +223,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // Rundown for synchronizing clean up with upcalls.
     //
     CXPLAT_RUNDOWN_REF UpcallRundown;
+
+    //
+    // Inidicates the socket have been initialized.
+    //
+    BOOLEAN SocketInitialized : 1;
 
     //
     // Inidicates the SQEs have been initialized.
@@ -319,11 +324,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_EVENTQ* EventQ;
 
     //
-    // The submission queue event for shutdown.
-    //
-    DATAPATH_SQE ShutdownSqe;
-
-    //
     // Synchronization mechanism for cleanup.
     //
     CXPLAT_REF_COUNT RefCount;
@@ -409,13 +409,7 @@ CxPlatSocketSendInternal(
     _In_ BOOLEAN IsPendedSend
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatProcessorContextUninitializeComplete(
-    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
-    );
-
-QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t Index,
@@ -429,21 +423,8 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
     DatapathProc->Index = Index;
-    DatapathProc->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN;
     DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
     CxPlatRefInitialize(&DatapathProc->RefCount);
-
-    if (!CxPlatSqeInitialize(
-            DatapathProc->EventQ,
-            &DatapathProc->ShutdownSqe.Sqe,
-            &DatapathProc->ShutdownSqe)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            errno,
-            "CxPlatSqeInitialize failed");
-        return errno;
-    }
 
     CxPlatPoolInitialize(
         TRUE,
@@ -465,8 +446,6 @@ CxPlatProcessorContextInitialize(
         sizeof(CXPLAT_SEND_DATA),
         QUIC_POOL_PLATFORM_SENDCTX,
         &DatapathProc->SendDataPool);
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -488,8 +467,6 @@ CxPlatDataPathInitialize(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
@@ -513,25 +490,13 @@ CxPlatDataPathInitialize(
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
 
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        Status = CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->DatapathProcs[i]);
-        if (QUIC_FAILED(Status)) {
-            for (uint32_t j = 0; j < i; j++) {
-                CxPlatProcessorContextUninitializeComplete(&Datapath->DatapathProcs[j]);
-            }
-            goto Exit;
-        }
+        CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->DatapathProcs[i]);
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = Datapath;
 
-Exit:
-
-    if (Datapath != NULL) {
-        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -560,7 +525,6 @@ CxPlatProcessorContextUninitializeComplete(
     CXPLAT_DBG_ASSERT(!DatapathProc->Freed);
     DatapathProc->Freed = TRUE;
 #endif
-    CxPlatSqeCleanup(DatapathProc->EventQ, &DatapathProc->ShutdownSqe.Sqe);
     CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
     CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
     CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
@@ -579,11 +543,7 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
         DatapathProc->Uninitialized = TRUE;
 #endif
-        CXPLAT_FRE_ASSERT(
-            CxPlatEventQEnqueue(
-                DatapathProc->EventQ,
-                &DatapathProc->ShutdownSqe.Sqe,
-                &DatapathProc->ShutdownSqe));
+        CxPlatProcessorContextUninitializeComplete(DatapathProc);
     }
 }
 
@@ -804,40 +764,8 @@ CxPlatSocketContextInitialize(
     int ForceIpv4 = RemoteAddress && RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
-    BOOLEAN ShutdownSqeInitialized = FALSE;
-    BOOLEAN IoSqeInitialized = FALSE;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
-
-    if (!CxPlatSqeInitialize(
-            SocketContext->DatapathProc->EventQ,
-            &SocketContext->ShutdownSqe.Sqe,
-            &SocketContext->ShutdownSqe)) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "CxPlatSqeInitialize failed");
-        goto Exit;
-    }
-    ShutdownSqeInitialized = TRUE;
-
-    if (!CxPlatSqeInitialize(
-            SocketContext->DatapathProc->EventQ,
-            &SocketContext->IoSqe.Sqe,
-            &SocketContext->IoSqe)) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "CxPlatSqeInitialize failed");
-        goto Exit;
-    }
-    IoSqeInitialized = TRUE;
 
     //
     // Create datagram socket. We will use dual-mode sockets everywhere when we can.
@@ -859,6 +787,22 @@ CxPlatSocketContextInitialize(
             "socket() failed");
         goto Exit;
     }
+    SocketContext->SocketInitialized = TRUE;
+
+    if (!CxPlatSqeInitialize(
+            SocketContext->DatapathProc->EventQ,
+            &SocketContext->SocketFd,
+            &SocketContext->ShutdownCqeType)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    SocketContext->SqeInitialized = TRUE;
 
     //
     // Set dual (IPv4 & IPv6) socket mode unless we operate in pure IPv4 mode
@@ -1128,20 +1072,7 @@ CxPlatSocketContextInitialize(
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
 
-    SocketContext->SqeInitialized = TRUE;
-
 Exit:
-
-    if (QUIC_FAILED(Status)) {
-        close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET;
-        if (ShutdownSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
-        }
-        if (IoSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
-        }
-    }
 
     return Status;
 }
@@ -1183,16 +1114,15 @@ CxPlatSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
-    if (SocketContext->SocketFd != INVALID_SOCKET) {
+    if (SocketContext->SocketInitialized) {
         struct kevent DeleteEvent = {0};
-        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoSqe);
+        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
         close(SocketContext->SocketFd);
     }
 
     if (SocketContext->SqeInitialized) {
-        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
-        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->SocketFd);
     }
 
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
@@ -1223,15 +1153,15 @@ CxPlatSocketContextUninitialize(
         // Cancel and clean up any pending IO.
         //
         struct kevent DeleteEvent = {0};
-        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoSqe);
+        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
         close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET;
+        SocketContext->SocketInitialized = FALSE;
 
         CxPlatEventQEnqueue(
             SocketContext->DatapathProc->EventQ,
-            &SocketContext->ShutdownSqe.Sqe,
-            &SocketContext->ShutdownSqe);
+            &SocketContext->SocketFd,
+            &SocketContext->ShutdownCqeType);
     }
 }
 
@@ -1283,7 +1213,7 @@ CxPlatSocketContextStartReceive(
     }
 
     struct kevent Event = {0};
-    EV_SET(&Event, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &SocketContext->IoSqe);
+    EV_SET(&Event, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &SocketContext->IoCqeType);
 
     int Ret =
         kevent(
@@ -1643,8 +1573,8 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
-        Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-        Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
+        Binding->SocketContexts[i].ShutdownCqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+        Binding->SocketContexts[i].IoCqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         Binding->SocketContexts[i].DatapathProc = &Datapath->DatapathProcs[IsServerSocket ? i : CurrentProc];
@@ -2262,7 +2192,7 @@ CxPlatSocketSendInternal(
             }
             SendPending = TRUE;
             struct kevent Event = {0};
-            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, &SocketContext->IoSqe);
+            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, &SocketContext->IoCqeType);
             int Ret =
                 kevent(
                     *SocketContext->DatapathProc->EventQ,
@@ -2360,21 +2290,15 @@ CxPlatDataPathProcessCqe(
     )
 {
     switch (CxPlatCqeType(Cqe)) {
-    case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
-        CXPLAT_DATAPATH_PROC* DatapathProc =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
-        CxPlatProcessorContextUninitializeComplete(DatapathProc);
-        break;
-    }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
         CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownCqeType);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
         CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoCqeType);
         CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
         break;
     }

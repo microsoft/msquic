@@ -1169,11 +1169,10 @@ inline
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_SQE* sqe,
+    _In_ CXPLAT_SQE* sqe,
     _In_ void* user_data
     )
 {
-    *sqe = user_data ? (int)*(uint32_t*)user_data : -1; // TODO - Better way for null user data?
     struct kevent event = {0};
     EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, user_data);
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
