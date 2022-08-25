@@ -1175,7 +1175,7 @@ CxPlatSqeInitialize(
 {
     *sqe = user_data ? (int)*(uint32_t*)user_data : -1; // TODO - Better way for null user data?
     struct kevent event = {0};
-    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD, 0, 0, user_data);
+    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, user_data);
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
@@ -1187,7 +1187,7 @@ CxPlatSqeCleanup(
     )
 {
     struct kevent event = {0};
-    EV_SET(&event, *sqe, EVFILT_USER, EV_CLEAR, 0, 0, NULL);
+    EV_SET(&event, *sqe, EVFILT_USER, EV_DELETE, 0, 0, NULL);
     (void)kevent(*queue, &event, 1, NULL, 0, NULL);
 }
 
