@@ -1564,6 +1564,9 @@ function Test-CanRunTest {
     if ($script:XDP -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
+    if ($script:PGO -and $Test.TestName.Contains("Tcp")) {
+        return $false
+    }
     return $true
 }
 
