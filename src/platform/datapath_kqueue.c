@@ -508,28 +508,12 @@ CxPlatDataPathRelease(
     if (CxPlatRefDecrement(&Datapath->RefCount)) {
 #if DEBUG
         CXPLAT_DBG_ASSERT(!Datapath->Freed);
+        CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatProcessorContextUninitializeComplete(
-    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
-    )
-{
-#if DEBUG
-    CXPLAT_DBG_ASSERT(!DatapathProc->Freed);
-    DatapathProc->Freed = TRUE;
-#endif
-    CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
-    CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
-    CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&DatapathProc->RecvBlockPool);
-    CxPlatDataPathRelease(DatapathProc->Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -543,7 +527,11 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
         DatapathProc->Uninitialized = TRUE;
 #endif
-        CxPlatProcessorContextUninitializeComplete(DatapathProc);
+        CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
+        CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
+        CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
+        CxPlatPoolUninitialize(&DatapathProc->RecvBlockPool);
+        CxPlatDataPathRelease(DatapathProc->Datapath);
     }
 }
 
@@ -1086,6 +1074,7 @@ CxPlatSocketRelease(
     if (CxPlatRefDecrement(&Socket->RefCount)) {
 #if DEBUG
         CXPLAT_DBG_ASSERT(!Socket->Freed);
+        CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
 #endif
         CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);

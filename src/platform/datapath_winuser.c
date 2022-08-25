@@ -358,11 +358,6 @@ typedef struct CXPLAT_SOCKET {
 typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
 
     //
-    // Submission queue event for shutdown
-    //
-    DATAPATH_SQE ShutdownSqe;
-
-    //
     // Parent datapath.
     //
     CXPLAT_DATAPATH* Datapath;
@@ -384,7 +379,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
 
 #if DEBUG
     uint8_t Uninitialized : 1;
-    uint8_t Freed : 1;
 #endif
 
     //
@@ -916,7 +910,6 @@ CxPlatDataPathInitialize(
         Datapath->Processors[i].Datapath = Datapath;
         Datapath->Processors[i].EventQ = CxPlatWorkerGetEventQ(i);
         Datapath->Processors[i].Index = i;
-        Datapath->Processors[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN;
         CxPlatRefInitialize(&Datapath->Processors[i].RefCount);
 
         CxPlatPoolInitialize(
@@ -971,29 +964,13 @@ CxPlatDataPathRelease(
     if (CxPlatRefDecrement(&Datapath->RefCount)) {
 #if DEBUG
         CXPLAT_DBG_ASSERT(!Datapath->Freed);
+        CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         WSACleanup();
         CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatProcessorContextUninitializeComplete(
-    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
-    )
-{
-#if DEBUG
-    CXPLAT_DBG_ASSERT(!DatapathProc->Freed);
-    DatapathProc->Freed = TRUE;
-#endif
-    CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
-    CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
-    CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
-    CxPlatPoolUninitialize(&DatapathProc->RecvDatagramPool);
-    CxPlatDataPathRelease(DatapathProc->Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1007,11 +984,11 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
         DatapathProc->Uninitialized = TRUE;
 #endif
-        CXPLAT_FRE_ASSERT(
-            CxPlatEventQEnqueue(
-                DatapathProc->EventQ,
-                &DatapathProc->ShutdownSqe.Sqe,
-                &DatapathProc->ShutdownSqe));
+        CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
+        CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
+        CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
+        CxPlatPoolUninitialize(&DatapathProc->RecvDatagramPool);
+        CxPlatDataPathRelease(DatapathProc->Datapath);
     }
 }
 
@@ -2483,6 +2460,7 @@ CxPlatSocketRelease(
             Socket);
 #if DEBUG
         CXPLAT_DBG_ASSERT(!Socket->Freed);
+        CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
 #endif
         CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
@@ -4070,12 +4048,6 @@ CxPlatDataPathProcessCqe(
     )
 {
     switch (CxPlatCqeType(Cqe)) {
-    case CXPLAT_CQE_TYPE_DATAPATH_SHUTDOWN: {
-        CXPLAT_DATAPATH_PROC* DatapathProc =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_DATAPATH_PROC, ShutdownSqe);
-        CxPlatProcessorContextUninitializeComplete(DatapathProc);
-        break;
-    }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
         CXPLAT_SOCKET_PROC* SocketProc =
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_PROC, ShutdownSqe);
