@@ -1188,7 +1188,7 @@ CxPlatSqeCleanup(
 {
     struct kevent event = {0};
     EV_SET(&event, *sqe, EVFILT_USER, EV_CLEAR, 0, 0, NULL);
-    (void)kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
+    (void)kevent(*queue, &event, 1, NULL, 0, NULL);
 }
 
 inline

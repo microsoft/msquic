@@ -25,6 +25,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathResolveHostNameFailed,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "CxPlatSqeInitialize failed");
+// arg2 = arg2 = errno = arg2
+// arg3 = arg3 = "CxPlatSqeInitialize failed" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -48,29 +71,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, AllocFailure,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-        LibraryErrorStatus,
-        "[ lib] ERROR, %u, %s.",
-        (uint32_t)Result,
-        "Resolving hostname to IP");
-// arg2 = arg2 = (uint32_t)Result = arg2
-// arg3 = arg3 = "Resolving hostname to IP" = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus,
-    TP_ARGS(
-        unsigned int, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathErrorStatus
 // [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -78,10 +78,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "socket() failed");
+            "CxPlatSqeInitialize failed");
 // arg2 = arg2 = Binding = arg2
 // arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "socket() failed" = arg4
+// arg4 = arg4 = "CxPlatSqeInitialize failed" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathErrorStatus,
     TP_ARGS(
