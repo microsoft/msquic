@@ -178,8 +178,6 @@ Error:
         }
     }
 
-Exit:
-
     return Status;
 }
 
