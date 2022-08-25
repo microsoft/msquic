@@ -50,7 +50,7 @@ uint32_t CxPlatProcessorCount;
 uint64_t CxPlatTotalMemory;
 
 #if __APPLE__ || __FreeBSD__
-int long volatile = 0x80000000;
+long CxPlatCurrentSqe = 0x80000000;
 #endif
 
 #ifdef __clang__
