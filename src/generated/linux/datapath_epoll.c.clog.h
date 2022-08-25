@@ -104,26 +104,6 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            errno,
-            "CxPlatSqeInitialize failed");
-// arg2 = arg2 = errno = arg2
-// arg3 = arg3 = "CxPlatSqeInitialize failed" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -137,6 +117,26 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+        LibraryErrorStatus,
+        "[ lib] ERROR, %u, %s.",
+        (uint32_t)Result,
+        "Resolving hostname to IP");
+// arg2 = arg2 = (uint32_t)Result = arg2
+// arg3 = arg3 = "Resolving hostname to IP" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
