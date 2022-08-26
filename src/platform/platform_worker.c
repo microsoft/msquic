@@ -315,7 +315,8 @@ CxPlatRunExecutionContexts(
             if (!Context->Callback(Context->Context, State)) {
                 *EC = Next; // Remove Context from the list.
                 continue;
-            } else if (Context->Ready) {
+            }
+            if (Context->Ready) {
                 NextTime = 0;
             }
         }
