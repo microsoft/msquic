@@ -178,14 +178,14 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     int SocketFd;
 
     //
+    // The user data for the shutdown event.
+    //
+    uint32_t ShutdownCqeType;
+
+    //
     // The user data for the IO event.
     //
     uint32_t IoCqeType;
-
-    //
-    // The event for the shutdown event.
-    //
-    DATAPATH_SQE ShutdownSqe;
 
     //
     // The I/O vector for receive datagrams.
@@ -223,6 +223,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // Rundown for synchronizing clean up with upcalls.
     //
     CXPLAT_RUNDOWN_REF UpcallRundown;
+
+    //
+    // Inidicates the SQEs have been initialized.
+    //
+    BOOLEAN SqeInitialized : 1;
 
     //
     // Inidicates if the socket has started IO processing.
@@ -745,11 +750,6 @@ CxPlatSocketContextInitialize(
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
-    CxPlatSqeInitialize(
-        SocketContext->DatapathProc->EventQ,
-        &SocketContext->ShutdownSqe.Sqe,
-        &SocketContext->ShutdownSqe);
-
     //
     // Create datagram socket. We will use dual-mode sockets everywhere when we can.
     // There is problem with receiving PKTINFO on dual-mode when binded and connect to IP4 endpoints.
@@ -770,6 +770,21 @@ CxPlatSocketContextInitialize(
             "socket() failed");
         goto Exit;
     }
+
+    if (!CxPlatSqeInitialize(
+            SocketContext->DatapathProc->EventQ,
+            &SocketContext->SocketFd,
+            &SocketContext->ShutdownCqeType)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    SocketContext->SqeInitialized = TRUE;
 
     //
     // Set dual (IPv4 & IPv6) socket mode unless we operate in pure IPv4 mode
@@ -1089,6 +1104,10 @@ CxPlatSocketContextUninitializeComplete(
         close(SocketContext->SocketFd);
     }
 
+    if (SocketContext->SqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->SocketFd);
+    }
+
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
@@ -1122,8 +1141,8 @@ CxPlatSocketContextUninitialize(
 
         CxPlatEventQEnqueue(
             SocketContext->DatapathProc->EventQ,
-            &SocketContext->ShutdownSqe.Sqe,
-            &SocketContext->ShutdownSqe);
+            &SocketContext->SocketFd,
+            &SocketContext->ShutdownCqeType);
     }
 }
 
@@ -1535,8 +1554,8 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
+        Binding->SocketContexts[i].ShutdownCqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].IoCqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-        Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         Binding->SocketContexts[i].DatapathProc = &Datapath->DatapathProcs[IsServerSocket ? i : CurrentProc];
@@ -2254,7 +2273,7 @@ CxPlatDataPathProcessCqe(
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
         CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownCqeType);
         CxPlatSocketContextUninitializeComplete(SocketContext);
         break;
     }

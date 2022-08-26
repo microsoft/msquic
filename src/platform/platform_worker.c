@@ -152,6 +152,7 @@ CxPlatWorkersInit(
         }
         CxPlatWorkers[i].InitializedEventQ = TRUE;
 #ifdef CXPLAT_SQE_INIT
+        CxPlatWorkers[i].ShutdownSqe = (CXPLAT_SQE)CxPlatWorkers[i].EventQ;
         if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe, NULL)) {
             QuicTraceEvent(
                 LibraryError,
@@ -160,6 +161,7 @@ CxPlatWorkersInit(
             goto Error;
         }
         CxPlatWorkers[i].InitializedShutdownSqe = TRUE;
+        CxPlatWorkers[i].WakeSqe = (CXPLAT_SQE)WorkerWakeEventPayload;
         if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe, (void*)&WorkerWakeEventPayload)) {
             QuicTraceEvent(
                 LibraryError,
@@ -168,6 +170,7 @@ CxPlatWorkersInit(
             goto Error;
         }
         CxPlatWorkers[i].InitializedWakeSqe = TRUE;
+        CxPlatWorkers[i].UpdatePollSqe = (CXPLAT_SQE)WorkerUpdatePollEventPayload;
         if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe, (void*)&WorkerUpdatePollEventPayload)) {
             QuicTraceEvent(
                 LibraryError,
