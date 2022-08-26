@@ -24,8 +24,6 @@ param (
 $RootDir = Split-Path $PSScriptRoot -Parent
 Write-Debug "Rootdir is $($RootDir)"
 
-Set-Location (Join-Path $RootDir 'msquic')
-
 git config --global credential.helper store
 Set-Content -Path "$env:HOME\.git-credentials" -Value "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n" -NoNewLine
 
