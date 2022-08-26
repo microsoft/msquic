@@ -22,6 +22,7 @@ param (
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+Write-Debug "Rootdir is $($RootDir)"
 
 Set-Location (Join-Path $RootDir 'msquic')
 
@@ -32,6 +33,7 @@ Set-Content -Path "$env:HOME\.git-credentials" -Value "https://$($env:MAPPED_DEP
 git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev[bot]"
 
+Get-ChildItem -Recurse (Join-Path $RootDir '*.pgd')
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_schannel/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.schannel.pgd -Force
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_openssl/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.openssl.pgd -Force
 
@@ -55,7 +57,7 @@ $Body = @{
   'maintainer_can_modify' = $True
 }
 $Result = Invoke-RESTMethod -Uri $Uri -Headers $Headers -Body ($Body | ConvertTo-Json) -ContentType "application/json" -Method Post
-Write-Host $Result
+Write-Debug $Result
 $Number = ($Result | Select-Object -Property 'number')
 
 $Uri = "https://api.github.com/repos/microsoft/msquic/issues/$($Number.number)/labels"
