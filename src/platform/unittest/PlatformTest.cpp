@@ -66,7 +66,6 @@ TEST(PlatformTest, EventQueue)
 #ifdef CXPLAT_SQE
     CXPLAT_SQE sqe1, sqe2, sqe3;
 #ifdef CXPLAT_SQE_INIT
-    sqe1 = user_data1, sqe2 = user_data2, sqe3 = user_data3;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe1, &user_data1));
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe2, &user_data2));
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe3, &user_data3));
@@ -156,7 +155,6 @@ TEST(PlatformTest, EventQueueWorker)
 #ifdef CXPLAT_SQE
     CXPLAT_SQE shutdown, sqe1, sqe2, sqe3;
 #ifdef CXPLAT_SQE_INIT
-    shutdown = queue, sqe1 = user_data1, sqe2 = user_data2, sqe3 = user_data3;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, &shutdown, nullptr));
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe1, &user_data1));
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, &sqe2, &user_data2));
