@@ -320,8 +320,8 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
 
 # Run the script.
 if (!$Kernel -and !$SkipUnitTests) {
-    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
 }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 

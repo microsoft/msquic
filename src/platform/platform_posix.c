@@ -88,7 +88,7 @@ CxPlatSystemLoad(
     void
     )
 {
-    #if defined(CX_PLATFORM_DARWIN)
+#if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
     // Intel macOS can return incorrect values for CPUID, so treat as single core.
@@ -280,6 +280,15 @@ CxPlatRefInitialize(
     )
 {
     *RefCount = 1;
+}
+
+void
+CxPlatRefInitializeEx(
+    _Inout_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    )
+{
+    *RefCount = (int64_t)Initial;
 }
 
 void

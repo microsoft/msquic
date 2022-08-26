@@ -2439,6 +2439,18 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathInitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath initialize",
+      "UniqueId": "DatapathInitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DataPathInitialized": {
       "ModuleProperites": {},
       "TraceString": "[data] Initialized, DatapathFeatures=%u",
@@ -2510,6 +2522,42 @@
         }
       ],
       "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathProcContextInitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Proc context initialize",
+      "UniqueId": "DatapathProcContextInitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathProcContextUninitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Proc context uninitialize",
+      "UniqueId": "DatapathProcContextUninitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathProcContextUninitializeComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Proc context uninitialize complete",
+      "UniqueId": "DatapathProcContextUninitializeComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "DatapathQueryRecvMaxCoalescedSizeFailed": {
       "ModuleProperites": {},
@@ -2743,6 +2791,54 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "DatapathSocketContextInitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket context initialize",
+      "UniqueId": "DatapathSocketContextInitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathSocketContextUninitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket context uninitialize",
+      "UniqueId": "DatapathSocketContextUninitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathSocketContextUninitializeComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket context uninitialize complete",
+      "UniqueId": "DatapathSocketContextUninitializeComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathSocketUninitializeComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Socket uninitialize complete",
+      "UniqueId": "DatapathSocketUninitializeComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathTooLarge": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Received larger than expected datagram from %!ADDR!",
@@ -2755,6 +2851,30 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathUninitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath uninitialize",
+      "UniqueId": "DatapathUninitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathUninitializeComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Datapath uninitialize complete",
+      "UniqueId": "DatapathUninitializeComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -8075,6 +8195,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "PlatformWorkerThreadShutdown": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker shutdown",
+      "UniqueId": "PlatformWorkerThreadShutdown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "PlatformWorkerThreadStart": {
       "ModuleProperites": {},
       "TraceString": "[ lib][%p] Worker start",
@@ -12367,6 +12499,11 @@
         "EncodingString": "[%p] Dropping datagram with fragmented MDL."
       },
       {
+        "UniquenessHash": "b88fe9ef-f6ed-09b0-1711-28ec0fc2ab52",
+        "TraceID": "DatapathInitialize",
+        "EncodingString": "[data][%p] Datapath initialize"
+      },
+      {
         "UniquenessHash": "d68a3d43-333c-e62d-ec53-bb88a64aa2f4",
         "TraceID": "DataPathInitialized",
         "EncodingString": "[data] Initialized, DatapathFeatures=%u"
@@ -12395,6 +12532,21 @@
         "UniquenessHash": "b68b4500-98ad-8200-72d3-788a4f0af3d1",
         "TraceID": "DatapathOpenUdpSocketFailedAsync",
         "EncodingString": "[data] UDP send segmentation helper socket failed to open (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "b3dade23-d541-7915-0704-5eadc35da54a",
+        "TraceID": "DatapathProcContextInitialize",
+        "EncodingString": "[data][%p] Proc context initialize"
+      },
+      {
+        "UniquenessHash": "69554dc4-612c-f81a-69ed-96e8a2af3e6e",
+        "TraceID": "DatapathProcContextUninitialize",
+        "EncodingString": "[data][%p] Proc context uninitialize"
+      },
+      {
+        "UniquenessHash": "607ba1e4-fadf-ba1e-5973-58402f63d7f8",
+        "TraceID": "DatapathProcContextUninitializeComplete",
+        "EncodingString": "[data][%p] Proc context uninitialize complete"
       },
       {
         "UniquenessHash": "1ba702fe-3407-9bab-a2bf-4f694b478ac0",
@@ -12477,9 +12629,39 @@
         "EncodingString": "[data][%p] Socket context shutdown"
       },
       {
+        "UniquenessHash": "6f6dce93-1958-2d78-48bb-85ec608e7dd5",
+        "TraceID": "DatapathSocketContextInitialize",
+        "EncodingString": "[data][%p] Socket context initialize"
+      },
+      {
+        "UniquenessHash": "962231c6-69f1-b99d-0c1f-5b3965001bb6",
+        "TraceID": "DatapathSocketContextUninitialize",
+        "EncodingString": "[data][%p] Socket context uninitialize"
+      },
+      {
+        "UniquenessHash": "615cfda5-5955-cd8f-8459-42d55feec9cb",
+        "TraceID": "DatapathSocketContextUninitializeComplete",
+        "EncodingString": "[data][%p] Socket context uninitialize complete"
+      },
+      {
+        "UniquenessHash": "d9d68a37-2903-ee85-4a9b-80a652220455",
+        "TraceID": "DatapathSocketUninitializeComplete",
+        "EncodingString": "[data][%p] Socket uninitialize complete"
+      },
+      {
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
         "TraceID": "DatapathTooLarge",
         "EncodingString": "[data][%p] Received larger than expected datagram from %!ADDR!"
+      },
+      {
+        "UniquenessHash": "cb0364c1-2a73-8a23-8655-1ee367ab8b3c",
+        "TraceID": "DatapathUninitialize",
+        "EncodingString": "[data][%p] Datapath uninitialize"
+      },
+      {
+        "UniquenessHash": "0fb8caf8-28ee-7a18-34ea-52babe06d391",
+        "TraceID": "DatapathUninitializeComplete",
+        "EncodingString": "[data][%p] Datapath uninitialize complete"
       },
       {
         "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",
@@ -14080,6 +14262,11 @@
         "UniquenessHash": "68f39cf7-bcf8-8314-a151-2316d10bead4",
         "TraceID": "PerfTcpStartTls",
         "EncodingString": "[perf][tcp][%p] Start TLS"
+      },
+      {
+        "UniquenessHash": "a1966729-6907-53f2-9390-1d40ba5e9d4d",
+        "TraceID": "PlatformWorkerThreadShutdown",
+        "EncodingString": "[ lib][%p] Worker shutdown"
       },
       {
         "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",

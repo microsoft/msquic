@@ -572,6 +572,12 @@ CxPlatRefInitialize(
     );
 
 void
+CxPlatRefInitializeEx(
+    _Inout_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    );
+
+void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
     );
@@ -1155,6 +1161,33 @@ CxPlatEventQReturn(
 {
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(count);
+}
+
+#define CXPLAT_SQE_INIT 1
+
+inline
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ void* user_data
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+    UNREFERENCED_PARAMETER(user_data);
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
 }
 
 inline

@@ -72,8 +72,8 @@ typedef struct XDP_INTERFACE {
 } XDP_INTERFACE;
 
 typedef struct QUIC_CACHEALIGN XDP_WORKER {
+    CXPLAT_EXECUTION_CONTEXT;
     const struct XDP_DATAPATH* Xdp;
-    HANDLE CompletionEvent;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
     uint16_t ProcIndex;
 } XDP_WORKER;
@@ -93,6 +93,7 @@ typedef struct XDP_DATAPATH {
     //
     // Currently, all XDP interfaces share the same config.
     //
+    CXPLAT_REF_COUNT RefCount;
     uint32_t WorkerCount;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
@@ -120,6 +121,13 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatXdpExecute(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    );
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
@@ -1095,6 +1103,7 @@ CxPlatDpRawInitialize(
     }
 
     Xdp->Running = TRUE;
+    CxPlatRefInitialize(&Xdp->RefCount);
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
         if (Xdp->Workers->Queues == NULL) {
             //
@@ -1106,18 +1115,45 @@ CxPlatDpRawInitialize(
         }
         Xdp->Workers[i].Xdp = Xdp;
         Xdp->Workers[i].ProcIndex = ProcList[i];
-        CxPlatEventInitialize(&Xdp->Workers[i].CompletionEvent, TRUE, FALSE);
-        CxPlatWorkerRegisterDataPath(ProcList[i], &Xdp->Workers[i]);
+        Xdp->Workers[i].Ready = TRUE;
+        Xdp->Workers[i].NextTimeUs = UINT64_MAX;
+        Xdp->Workers[i].Callback = CxPlatXdpExecute;
+        Xdp->Workers[i].Context = &Xdp->Workers[i];
+        CxPlatRefIncrement(&Xdp->RefCount);
+        CxPlatAddExecutionContext(
+            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], ProcList[i]);
     }
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
     if (QUIC_FAILED(Status)) {
-        CxPlatDpRawUninitialize(Datapath);
+        while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
+            XDP_INTERFACE* Interface =
+                CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
+            CxPlatDpRawInterfaceUninitialize(Interface);
+            CxPlatFree(Interface, IF_TAG);
+        }
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawRelease(
+    _In_ XDP_DATAPATH* Xdp
+    )
+{
+    if (CxPlatRefDecrement(&Xdp->RefCount)) {
+        while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
+            XDP_INTERFACE* Interface =
+                CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
+            CxPlatDpRawInterfaceUninitialize(Interface);
+            CxPlatFree(Interface, IF_TAG);
+        }
+        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1127,21 +1163,8 @@ CxPlatDpRawUninitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-
-    if (Xdp->Running) {
-        Xdp->Running = FALSE;
-        for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
-            CxPlatEventWaitForever(Xdp->Workers[i].CompletionEvent);
-            CxPlatEventUninitialize(Xdp->Workers[i].CompletionEvent);
-        }
-    }
-
-    while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
-        XDP_INTERFACE* Interface =
-            CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
-        CxPlatDpRawInterfaceUninitialize(Interface);
-        CxPlatFree(Interface, IF_TAG);
-    }
+    Xdp->Running = FALSE;
+    CxPlatDpRawRelease(Xdp);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1574,32 +1597,19 @@ CxPlatXdpTx(
     return ProdCount > 0 || CompCount > 0;
 }
 
-void
-CxPlatDataPathWake(
-    _In_ void* Context
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatXdpExecute(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
     )
 {
-    // No-op - XDP never sleeps!
-    UNREFERENCED_PARAMETER(Context);
-}
-
-BOOLEAN // Did work?
-CxPlatDataPathRunEC(
-    _In_ void** Context,
-    _In_ CXPLAT_THREAD_ID CurThreadId,
-    _In_ uint32_t WaitTime
-    )
-{
-    XDP_WORKER* Worker = *(XDP_WORKER**)Context;
+    XDP_WORKER* Worker = (XDP_WORKER*)Context;
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
-    UNREFERENCED_PARAMETER(CurThreadId);
-    UNREFERENCED_PARAMETER(WaitTime);
-
     if (!Xdp->Running) {
-        *Context = NULL;
-        CxPlatEventSet(Worker->CompletionEvent);
-        return TRUE;
+        CxPlatDpRawRelease((XDP_DATAPATH*)Xdp);
+        return FALSE;
     }
 
     BOOLEAN DidWork = FALSE;
@@ -1610,5 +1620,19 @@ CxPlatDataPathRunEC(
         Queue = Queue->Next;
     }
 
-    return DidWork;
+    Worker->Ready = TRUE;
+    if (DidWork) {
+        State->NoWorkCount = 0;
+    }
+
+    return TRUE;
+}
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    // No events (yet)
+    UNREFERENCED_PARAMETER(Cqe);
 }

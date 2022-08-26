@@ -475,6 +475,16 @@ CxPlatRefInitialize(
     *RefCount = 1;
 }
 
+inline
+void
+CxPlatRefInitializeEx(
+    _Out_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    )
+{
+    *RefCount = (LONG_PTR)Initial;
+}
+
 #define CxPlatRefUninitialize(RefCount)
 
 inline
@@ -611,6 +621,19 @@ CxPlatEventQEnqueue(
 }
 
 inline
+BOOLEAN
+CxPlatEventQEnqueueEx( // Windows specific extension
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ uint32_t num_bytes,
+    _In_opt_ void* user_data
+    )
+{
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    return PostQueuedCompletionStatus(*queue, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
+}
+
+inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -624,6 +647,17 @@ CxPlatEventQDequeue(
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
+}
+
+inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
 }
 
 inline

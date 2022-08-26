@@ -178,17 +178,17 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownReturn
-// [data][%p] Shut down (return)
+// Decoder Ring for DatapathShutDownComplete
+// [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
-        DatapathShutDownReturn,
-        "[data][%p] Shut down (return)",
-        Socket);
+            DatapathShutDownComplete,
+            "[data][%p] Shut down (complete)",
+            Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathShutDownReturn
-#define _clog_3_ARGS_TRACE_DatapathShutDownReturn(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn , arg2);\
+#ifndef _clog_3_ARGS_TRACE_DatapathShutDownComplete
+#define _clog_3_ARGS_TRACE_DatapathShutDownComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete , arg2);\
 
 #endif
 
@@ -207,24 +207,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn , arg2);\
 #ifndef _clog_3_ARGS_TRACE_DatapathSocketContextComplete
 #define _clog_3_ARGS_TRACE_DatapathSocketContextComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownComplete
-// [data][%p] Shut down (complete)
-// QuicTraceLogVerbose(
-            DatapathShutDownComplete,
-            "[data][%p] Shut down (complete)",
-            SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathShutDownComplete
-#define _clog_3_ARGS_TRACE_DatapathShutDownComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete , arg2);\
 
 #endif
 
@@ -267,42 +249,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUnreachableWithError , arg2, arg3, a
 #ifndef _clog_5_ARGS_TRACE_DatapathTooLarge
 #define _clog_5_ARGS_TRACE_DatapathTooLarge(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge , arg2, arg3_len, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWakeupForShutdown
-// [data][%p] Datapath wakeup for shutdown
-// QuicTraceLogVerbose(
-            DatapathWakeupForShutdown,
-            "[data][%p] Datapath wakeup for shutdown",
-            DatapathProc);
-// arg2 = arg2 = DatapathProc = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathWakeupForShutdown
-#define _clog_3_ARGS_TRACE_DatapathWakeupForShutdown(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForShutdown , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWakeupForECTimeout
-// [data][%p] Datapath wakeup for EC wake or timeout
-// QuicTraceLogVerbose(
-            DatapathWakeupForECTimeout,
-            "[data][%p] Datapath wakeup for EC wake or timeout",
-            DatapathProc);
-// arg2 = arg2 = DatapathProc = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathWakeupForECTimeout
-#define _clog_3_ARGS_TRACE_DatapathWakeupForECTimeout(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathWakeupForECTimeout , arg2);\
 
 #endif
 
@@ -435,9 +381,9 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                    DatapathDestroyed,
-                    "[data][%p] Destroyed",
-                    Socket);
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
