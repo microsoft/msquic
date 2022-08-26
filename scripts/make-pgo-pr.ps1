@@ -17,7 +17,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64"
+    [string]$Arch = "x64",
+
+    [Parameter(Mandatory = $false)]
+    [string]$BuildNumber = "$(get-date -format 'yyyy-MM-dd')"
 )
 
 # Root directory of the project.
@@ -31,13 +34,14 @@ Set-Content -Path "$env:HOME\.git-credentials" -Value "https://$($env:MAPPED_DEP
 git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev[bot]"
 
-Get-ChildItem -Recurse (Join-Path $RootDir '*.pgd')
+# Make the branch.
+$BranchName = "merge-pgo-$($BranchName)"
+git checkout -b $BranchName main
+
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_schannel/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.schannel.pgd -Force
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_openssl/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.openssl.pgd -Force
 
-# Make the branch and commit.
-$BranchName = "merge-pgo-$(get-date -format 'yyyy-MM-dd')"
-git checkout -b $BranchName
+# Commit the new PGD files.
 git commit -am "Update PGO data"
 git push --set-upstream origin $BranchName
 
