@@ -1346,8 +1346,6 @@ CxPlatSocketContextUninitialize(
         // Cancel and clean up any pending IO.
         //
         epoll_ctl(*SocketContext->DatapathProc->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-        close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET;
 
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(

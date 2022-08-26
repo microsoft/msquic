@@ -1165,8 +1165,6 @@ CxPlatEventQReturn(
 
 #define CXPLAT_SQE_INIT 1
 
-extern long CxPlatCurrentSqe;
-
 inline
 BOOLEAN
 CxPlatSqeInitialize(
@@ -1176,8 +1174,8 @@ CxPlatSqeInitialize(
     )
 {
     UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
     UNREFERENCED_PARAMETER(user_data);
-    *sqe = (CXPLAT_SQE)InterlockedIncrement(&CxPlatCurrentSqe);
     return TRUE;
 }
 

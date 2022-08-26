@@ -225,11 +225,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
-    // Inidicates the socket have been initialized.
-    //
-    BOOLEAN SocketInitialized : 1;
-
-    //
     // Inidicates the SQEs have been initialized.
     //
     BOOLEAN SqeInitialized : 1;
@@ -775,7 +770,6 @@ CxPlatSocketContextInitialize(
             "socket() failed");
         goto Exit;
     }
-    SocketContext->SocketInitialized = TRUE;
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathProc->EventQ,
@@ -1103,7 +1097,7 @@ CxPlatSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
-    if (SocketContext->SocketInitialized) {
+    if (SocketContext->SocketFd != INVALID_SOCKET) {
         struct kevent DeleteEvent = {0};
         EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
@@ -1144,8 +1138,6 @@ CxPlatSocketContextUninitialize(
         struct kevent DeleteEvent = {0};
         EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
-        close(SocketContext->SocketFd);
-        SocketContext->SocketInitialized = FALSE;
 
         CxPlatEventQEnqueue(
             SocketContext->DatapathProc->EventQ,
