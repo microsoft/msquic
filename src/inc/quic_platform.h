@@ -460,10 +460,6 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-
-typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
-
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
@@ -474,8 +470,6 @@ void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
-
-#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 //
 // The "type" of the completion queue event is stored as the first uint32_t of
@@ -488,8 +482,6 @@ CxPlatWakeExecutionContext(
 // 0x8000.
 //
 #define CXPLAT_CQE_TYPE_QUIC_BASE                 0x8000 // to 0xFFFF
-
-#define CxPlatCqeIsQuic(cqe) (CxPlatCqeType(cqe) >= CXPLAT_CQE_TYPE_QUIC_BASE)
 
 //
 // Test Interface for loading a self-signed certificate.
