@@ -6,7 +6,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $SharedEC, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $SharedEC, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $PGO)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -14,6 +14,7 @@ function Set-ScriptVariables {
     $script:RemoteArch = $RemoteArch
     $script:SharedEC = $SharedEC
     $script:XDP = $XDP
+    $script:PGO = $PGO
     $script:Config = $Config
     $script:Publish = $Publish
     $script:Record = $Record
@@ -1562,6 +1563,9 @@ function Test-CanRunTest {
         return $false
     }
     if ($script:XDP -and $Test.TestName.Contains("Tcp")) {
+        return $false
+    }
+    if ($script:PGO -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     return $true
