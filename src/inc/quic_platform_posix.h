@@ -1127,7 +1127,7 @@ CxPlatEventQEnqueue(
     )
 {
     struct kevent event = {0};
-    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | ONESHOT, NOTE_TRIGGER, 0, user_data);
+    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | EV_ONESHOT, NOTE_TRIGGER, 0, user_data);
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
