@@ -358,7 +358,7 @@ function Start-TestCase([String]$Name) {
 
     # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 30000"
     if ($BreakOnFailure) {
         $Arguments += " --gtest_break_on_failure"
     }

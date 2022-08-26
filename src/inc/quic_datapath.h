@@ -642,30 +642,6 @@ CxPlatSocketSend(
     _In_ uint16_t PartitionId
     );
 
-//
-// Sets a parameter on the socket.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketSetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const uint8_t* Buffer
-    );
-
-//
-// Sets a parameter on the socket.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketGetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
-    );
-
 #ifdef QUIC_USE_RAW_DATAPATH
 //
 // Copies L2 address into route object and sets route state to resolved.

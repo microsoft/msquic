@@ -454,6 +454,9 @@ MsQuicLibraryUninitialize(
     void
     )
 {
+#if DEBUG
+    CXPLAT_DATAPATH* CleanUpDatapath = NULL;
+#endif
     //
     // The library's stateless registration may still have half-opened
     // connections that need to be cleaned up before all the bindings and
@@ -470,22 +473,7 @@ MsQuicLibraryUninitialize(
     }
 
     //
-    // Clean up the data path first, which can continue to cause new connections
-    // to get created.
-    //
-    if (MsQuicLib.Datapath != NULL) {
-        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
-        MsQuicLib.Datapath = NULL;
-        if (MsQuicLib.DataPathProcList != NULL) {
-            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-            MsQuicLib.DataPathProcList = NULL;
-            MsQuicLib.DataPathProcListLength = 0;
-        }
-    }
-
-    //
-    // Wait for the final clean up of everything in the stateless registration
-    // and then free it.
+    // Clean up the stateless registration that might have any leftovers.
     //
     if (MsQuicLib.StatelessRegistration != NULL) {
         MsQuicRegistrationClose(
@@ -498,6 +486,25 @@ MsQuicLibraryUninitialize(
     // first closing all registrations.
     //
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&MsQuicLib.Registrations));
+
+    //
+    // Clean up the data path, which will start the final clean up of the
+    // socket layer. This is generally async and doesn't block until the
+    // call to CxPlatUninitialize below.
+    //
+    if (MsQuicLib.Datapath != NULL) {
+#if DEBUG
+        CleanUpDatapath = MsQuicLib.Datapath;
+        UNREFERENCED_PARAMETER(CleanUpDatapath);
+#endif
+        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
+        MsQuicLib.Datapath = NULL;
+        if (MsQuicLib.DataPathProcList != NULL) {
+            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
+            MsQuicLib.DataPathProcList = NULL;
+            MsQuicLib.DataPathProcListLength = 0;
+        }
+    }
 
     if (MsQuicLib.Storage != NULL) {
         CxPlatStorageClose(MsQuicLib.Storage);

@@ -5,11 +5,12 @@
 
 Abstract:
 
-    This file contains linux platform implementation.
+    This file contains POSIX platform implementations of the
+    QUIC Platform Interfaces.
 
 Environment:
 
-    Linux user mode
+    POSIX user mode
 
 --*/
 
@@ -90,16 +91,9 @@ extern "C" {
 #define __fallthrough // fall through
 #endif /* __GNUC__ >= 7 */
 
-
 //
 // Interlocked implementations.
 //
-
-#ifdef CX_PLATFORM_DARWIN
-#define YieldProcessor()
-#else
-#define YieldProcessor() pthread_yield()
-#endif
 
 inline
 long
@@ -569,6 +563,12 @@ typedef int64_t CXPLAT_REF_COUNT;
 void
 CxPlatRefInitialize(
     _Inout_ CXPLAT_REF_COUNT* RefCount
+    );
+
+void
+CxPlatRefInitializeEx(
+    _Inout_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
     );
 
 void
@@ -1155,6 +1155,33 @@ CxPlatEventQReturn(
 {
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(count);
+}
+
+#define CXPLAT_SQE_INIT 1
+
+inline
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ void* user_data
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+    UNREFERENCED_PARAMETER(user_data);
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
 }
 
 inline

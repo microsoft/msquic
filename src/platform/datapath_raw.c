@@ -121,72 +121,62 @@ CxPlatDataPathInitialize(
     UNREFERENCED_PARAMETER(TcpCallbacks);
 
     if (NewDataPath == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (UdpCallbacks != NULL) {
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Exit;
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
 
-    *NewDataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
-    if (*NewDataPath == NULL) {
+    CXPLAT_DATAPATH* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
+    if (DataPath == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathSize);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    CxPlatZeroMemory(*NewDataPath, DatapathSize);
+    CxPlatZeroMemory(DataPath, DatapathSize);
 
     if (UdpCallbacks) {
-        (*NewDataPath)->UdpHandlers = *UdpCallbacks;
+        DataPath->UdpHandlers = *UdpCallbacks;
     }
 
-    CxPlatRundownInitialize(&(*NewDataPath)->SocketsRundown);
-
-    if (!CxPlatSockPoolInitialize(&(*NewDataPath)->SocketPool)) {
+    if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-
     SockPoolInitialized = TRUE;
 
-    Status = CxPlatDpRawInitialize(*NewDataPath, ClientRecvContextLength, Config);
+    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, Config);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-
     DpRawInitialized = TRUE;
 
-    Status = CxPlatDataPathRouteWorkerInitialize(*NewDataPath);
+    Status = CxPlatDataPathRouteWorkerInitialize(DataPath);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
+
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+    *NewDataPath = DataPath;
+    DataPath = NULL;
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
-        if (*NewDataPath != NULL) {
-            if (DpRawInitialized) {
-                CxPlatDpRawUninitialize(*NewDataPath);
-            }
-
+    if (DataPath != NULL) {
+        if (DpRawInitialized) {
+            CxPlatDpRawUninitialize(DataPath);
+        } else {
             if (SockPoolInitialized) {
-                CxPlatSockPoolUninitialize(&(*NewDataPath)->SocketPool);
+                CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
-
-            CxPlatRundownUninitialize(&(*NewDataPath)->SocketsRundown);
-            CXPLAT_FREE(*NewDataPath, QUIC_POOL_DATAPATH);
-            *NewDataPath = NULL;
+            CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
         }
     }
-
-Exit:
 
     return Status;
 }
@@ -197,20 +187,31 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    if (Datapath == NULL) {
-        return;
+    if (Datapath != NULL) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!Datapath->Freed);
+        CXPLAT_DBG_ASSERT(!Datapath->Uninitialized);
+        Datapath->Uninitialized = TRUE;
+#endif
+        CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
+        CxPlatDpRawUninitialize(Datapath);
     }
+}
 
-    //
-    // Wait for all outstanding bindings to clean up.
-    //
-    CxPlatRundownReleaseAndWait(&Datapath->SocketsRundown);
-
-    CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
-    CxPlatDpRawUninitialize(Datapath);
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUninitializeComplete(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!Datapath->Freed);
+    CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
+    Datapath->Freed = TRUE;
+#endif
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
-    CxPlatRundownUninitialize(&Datapath->SocketsRundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    CxPlatRundownRelease(&CxPlatWorkerRundown);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -426,8 +427,6 @@ CxPlatSocketCreateUdp(
     CXPLAT_FRE_ASSERT((*NewSocket)->Wildcard ^ (*NewSocket)->Connected); // Assumes either a pure wildcard listener or a
                                                                          // connected socket; not both.
 
-    CxPlatRundownAcquire(&Datapath->SocketsRundown);
-
     Status = CxPlatTryAddSocket(&Datapath->SocketPool, *NewSocket);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -440,7 +439,6 @@ Error:
     if (QUIC_FAILED(Status)) {
         if (*NewSocket != NULL) {
             CxPlatRundownUninitialize(&(*NewSocket)->Rundown);
-            CxPlatRundownRelease(&Datapath->SocketsRundown);
             CXPLAT_FREE(*NewSocket, QUIC_POOL_SOCKET);
             *NewSocket = NULL;
         }
@@ -483,7 +481,6 @@ CxPlatSocketDelete(
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
-    CxPlatRundownRelease(&Socket->Datapath->SocketsRundown);
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
@@ -657,38 +654,6 @@ CxPlatSocketSend(
         Interface->OffloadStatus.Transmit.TransportLayerXsum);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketSetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const UINT8 * Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketGetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _Inout_ PUINT32 BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
