@@ -5,11 +5,12 @@
 
 Abstract:
 
-    This file contains linux platform implementation.
+    This file contains POSIX platform implementations of the
+    QUIC Platform Interfaces.
 
 Environment:
 
-    Linux user mode
+    POSIX user mode
 
 --*/
 
