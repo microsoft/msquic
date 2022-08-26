@@ -36,6 +36,7 @@ git config user.name "QUIC Dev[bot]"
 
 # Make the branch.
 $BranchName = "merge-pgo-$($BranchName)"
+git fetch
 git checkout -b $BranchName main
 
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_schannel/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.schannel.pgd -Force
