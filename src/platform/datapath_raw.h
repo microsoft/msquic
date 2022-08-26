@@ -63,6 +63,11 @@ typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_LIST_ENTRY Interfaces;
 
+#if DEBUG
+    BOOLEAN Uninitialized : 1;
+    BOOLEAN Freed : 1;
+#endif
+
 } CXPLAT_DATAPATH;
 
 #define ETH_MAC_ADDR_LEN 6

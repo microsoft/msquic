@@ -188,6 +188,11 @@ CxPlatDataPathUninitialize(
     )
 {
     if (Datapath != NULL) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!Datapath->Freed);
+        CXPLAT_DBG_ASSERT(!Datapath->Uninitialized);
+        Datapath->Uninitialized = TRUE;
+#endif
         CxPlatDataPathRouteWorkerUninitialize(Datapath->RouteResolutionWorker);
         CxPlatDpRawUninitialize(Datapath);
     }
@@ -199,6 +204,11 @@ CxPlatDataPathUninitializeComplete(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!Datapath->Freed);
+    CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
+    Datapath->Freed = TRUE;
+#endif
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     CxPlatRundownRelease(&CxPlatWorkerRundown);

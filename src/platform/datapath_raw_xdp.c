@@ -1103,7 +1103,7 @@ CxPlatDpRawInitialize(
     }
 
     Xdp->Running = TRUE;
-    CxPlatRefInitializeEx(&Xdp->RefCount, Xdp->WorkerCount);
+    CxPlatRefInitialize(&Xdp->RefCount);
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
         if (Xdp->Workers->Queues == NULL) {
             //
@@ -1119,6 +1119,7 @@ CxPlatDpRawInitialize(
         Xdp->Workers[i].NextTimeUs = UINT64_MAX;
         Xdp->Workers[i].Callback = CxPlatXdpExecute;
         Xdp->Workers[i].Context = &Xdp->Workers[i];
+        CxPlatRefIncrement(&Xdp->RefCount);
         CxPlatAddExecutionContext(
             (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], ProcList[i]);
     }
@@ -1140,16 +1141,6 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
-    )
-{
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    Xdp->Running = FALSE;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
 CxPlatDpRawRelease(
     _In_ XDP_DATAPATH* Xdp
     )
@@ -1163,6 +1154,17 @@ CxPlatDpRawRelease(
         }
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUninitialize(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    Xdp->Running = FALSE;
+    CxPlatDpRawRelease(Xdp);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
