@@ -5,11 +5,12 @@
 
 Abstract:
 
-    This file contains linux platform implementation.
+    This file contains POSIX platform implementations of the
+    QUIC Platform Interfaces.
 
 Environment:
 
-    Linux user mode
+    POSIX user mode
 
 --*/
 
@@ -90,16 +91,9 @@ extern "C" {
 #define __fallthrough // fall through
 #endif /* __GNUC__ >= 7 */
 
-
 //
 // Interlocked implementations.
 //
-
-#ifdef CX_PLATFORM_DARWIN
-#define YieldProcessor()
-#else
-#define YieldProcessor() pthread_yield()
-#endif
 
 inline
 long

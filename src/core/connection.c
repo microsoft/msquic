@@ -2784,7 +2784,8 @@ QuicConnProcessPeerVersionNegotiationTP(
             //
             // Keep this logic up to date with the logic in QuicConnRecvVerNeg
             //
-            if (ClientChosenVersion == 0 &&
+            if (Connection->Stats.VersionNegotiation &&
+                ClientChosenVersion == 0 &&
                 QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.OtherVersions[i])) {
                 ClientChosenVersion = ServerVI.OtherVersions[i];
             }
