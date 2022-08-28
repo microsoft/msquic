@@ -32,9 +32,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN InitializedUpdatePollSqe : 1;
 #endif
     BOOLEAN InitializedThread : 1;
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
     BOOLEAN InitializedECLock : 1;
-#endif
 
     //
     // Thread used to drive the worker.
@@ -63,8 +61,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_SQE UpdatePollSqe;
 #endif
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-
     //
     // Serializes access to the execution contexts.
     //
@@ -79,8 +75,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     // The set of actively registered execution contexts.
     //
     CXPLAT_SLIST_ENTRY* ExecutionContexts;
-
-#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 } CXPLAT_WORKER;
 
@@ -137,10 +131,8 @@ CxPlatWorkersInit(
 
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
         CxPlatWorkers[i].InitializedECLock = TRUE;
-#endif // QUIC_USE_EXECUTION_CONTEXTS
         ThreadConfig.IdealProcessor = (uint16_t)i;
         ThreadConfig.Context = &CxPlatWorkers[i];
         if (!CxPlatEventQInitialize(&CxPlatWorkers[i].EventQ)) {
@@ -212,11 +204,9 @@ Error:
         if (CxPlatWorkers[i].InitializedEventQ) {
             CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
         }
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
         if (CxPlatWorkers[i].InitializedECLock) {
             CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
         }
-#endif // QUIC_USE_EXECUTION_CONTEXTS
     }
 
     CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
@@ -246,9 +236,7 @@ CxPlatWorkersUninit(
         CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
 #endif // CXPLAT_SQE_INIT
         CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
-#endif // QUIC_USE_EXECUTION_CONTEXTS
     }
 
     CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
@@ -256,8 +244,6 @@ CxPlatWorkersUninit(
 
     CxPlatRundownUninitialize(&CxPlatWorkerRundown);
 }
-
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
 
 void
 CxPlatAddExecutionContext(
@@ -329,7 +315,8 @@ CxPlatRunExecutionContexts(
             if (!Context->Callback(Context->Context, State)) {
                 *EC = Next; // Remove Context from the list.
                 continue;
-            } else if (Context->Ready) {
+            }
+            if (Context->Ready) {
                 NextTime = 0;
             }
         }
@@ -353,8 +340,6 @@ CxPlatRunExecutionContexts(
         }
     }
 }
-
-#endif
 
 //
 // The number of iterations to run before yielding our thread to the scheduler.
@@ -380,9 +365,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         State.WaitTime = UINT32_MAX;
         ++State.NoWorkCount;
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
         CxPlatRunExecutionContexts(Worker, &State);
-#endif
 
         CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State.WaitTime);
 
@@ -395,11 +378,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
                 switch (CxPlatCqeType(&Cqes[i])) {
                 case CXPLAT_CQE_TYPE_WORKER_WAKE:
                     break; // No-op, just wake up to do polling stuff.
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
                 case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
                     CxPlatUpdateExecutionContexts(Worker);
                     break;
-#endif // QUIC_USE_EXECUTION_CONTEXTS
                 default: // Pass the rest to the datapath
                     CxPlatDataPathProcessCqe(&Cqes[i]);
                     break;
