@@ -156,11 +156,6 @@ MsQuicRegistrationOpen(
         Registration->SplitPartitioning = (CxPlatIsHtEnabled && MsQuicLib.PartitionCount > CxPlatThreadPerCore);
     }
 
-    if (Registration->SplitPartitioning &&
-        MsQuicLib.PartitionCount <= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) {
-        Registration->SplitPartitioning = FALSE;
-    }
-
     Status =
         QuicWorkerPoolInitialize(
             Registration,
