@@ -15,12 +15,15 @@ Environment:
 
 #include "platform_internal.h"
 #include <timeapi.h>
+#include <hwloc.h>
 #ifdef QUIC_CLOG
 #include "platform_winuser.c.clog.h"
 #endif
 
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
+uint32_t CxPlatThreadPerCore;
+uint8_t CxPlatIsHtEnabled;
 CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 uint64_t* CxPlatNumaMasks;
@@ -39,6 +42,14 @@ CxPlatSystemLoad(
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
+
+    CxPlatThreadPerCore = 1;
+    uint32_t regs[4] = {};
+    CXPLAT_CPUID(1, regs[0], regs[1], regs[2], regs[3]);
+    if ((CxPlatIsHtEnabled = (regs[3] & (0b1 << 28)))) {
+        // at least 2
+        CxPlatThreadPerCore = 2;
+    }
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.Heap = NULL;
@@ -328,6 +339,17 @@ CxPlatInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+
+    int PhysicalProcessorCount = 0;
+    hwloc_topology_t Topo;
+    if (hwloc_topology_init(&Topo) == 0 && hwloc_topology_load(Topo) == 0) {
+        PhysicalProcessorCount = hwloc_get_nbobjs_by_type(Topo, HWLOC_OBJ_CORE);
+        hwloc_topology_destroy(Topo);
+    }
+    if (PhysicalProcessorCount >= 1) {
+        CxPlatThreadPerCore = CxPlatProcActiveCount() / PhysicalProcessorCount;
+    }
+
     ProcInfoInitialized = TRUE;
 
     if (!GlobalMemoryStatusEx(&memInfo)) {

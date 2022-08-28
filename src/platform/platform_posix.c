@@ -26,6 +26,7 @@ Environment:
 #include <limits.h>
 #include <sched.h>
 #include <syslog.h>
+#include <hwloc.h>
 #define QUIC_VERSION_ONLY 1
 #include "msquic.ver"
 #ifdef QUIC_CLOG
@@ -46,7 +47,8 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
 uint32_t CxPlatProcessorCount;
-
+uint32_t CxPlatThreadPerCore;
+uint8_t CxPlatIsHtEnabled;
 uint64_t CxPlatTotalMemory;
 
 #ifdef __clang__
@@ -88,15 +90,24 @@ CxPlatSystemLoad(
     void
     )
 {
-    #if defined(CX_PLATFORM_DARWIN)
+#if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
     // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     CxPlatProcessorCount = 1;
+    CxPlatThreadPerCore = 1;
 #else
     CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    CxPlatThreadPerCore = 1;
 #endif
+
+    uint32_t regs[4] = {};
+    CXPLAT_CPUID(1, regs[0], regs[1], regs[2], regs[3]);
+    if ((CxPlatIsHtEnabled = (regs[3] & (0b1 << 28)))) {
+        // at least 2
+        CxPlatThreadPerCore = 2;
+    }
 
 #ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
@@ -208,6 +219,16 @@ CxPlatInitialize(
             Status,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
         goto Exit;
+    }
+
+    int PhysicalProcessorCount = 0;
+    hwloc_topology_t Topo;
+    if (hwloc_topology_init(&Topo) == 0 && hwloc_topology_load(Topo) == 0) {
+        PhysicalProcessorCount = hwloc_get_nbobjs_by_type(Topo, HWLOC_OBJ_CORE);
+        hwloc_topology_destroy(Topo);
+    }
+    if (PhysicalProcessorCount >= 1) {
+        CxPlatThreadPerCore = CxPlatProcActiveCount() / PhysicalProcessorCount;
     }
 
     if (!CxPlatWorkersInit()) {

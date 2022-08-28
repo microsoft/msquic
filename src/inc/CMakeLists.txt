@@ -40,6 +40,7 @@ target_link_libraries(base_link INTERFACE Threads::Threads ${CMAKE_DL_LIBS})
 if (ATOMIC)
     target_link_libraries(base_link INTERFACE ${ATOMIC})
 endif()
+target_link_libraries(base_link INTERFACE "/usr/lib/x86_64-linux-gnu/libhwloc.so")
 
 if(WIN32)
     if(QUIC_UWP_BUILD)

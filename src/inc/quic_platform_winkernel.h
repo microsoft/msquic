@@ -705,6 +705,13 @@ CxPlatSleep(
 #define CxPlatSchedulerYield() // no-op
 
 //
+// Processor Count and Index
+//
+
+extern uint32_t CxPlatThreadPerCore;
+extern uint8_t CxPlatIsHtEnabled;
+
+//
 // Create Thread Interfaces
 //
 
@@ -1005,7 +1012,17 @@ CxPlatSetCurrentThreadGroupAffinity(
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     NdisSetThreadObjectCompartmentId(PsGetCurrentThread(), CompartmentId)
 
-#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
+#ifdef _M_X64
+#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, edx) \
+    int CpuInfo[4]; \
+    CpuInfo[0] = eax; \
+    CpuInfo[1] = ebx; \
+    CpuInfo[2] = ecx; \
+    CpuInfo[3] = edx; \
+    __cpuid(CpuInfo, FunctionId);
+#else
+#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, edx)
+#endif
 
 #if defined(__cplusplus)
 }

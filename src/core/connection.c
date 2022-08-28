@@ -5439,7 +5439,7 @@ QuicConnRecvDatagrams(
         RecvState.PartitionIndex =
             QuicPartitionIndexDecrement(
                 RecvState.PartitionIndex,
-                QUIC_MAX_THROUGHPUT_PARTITION_OFFSET);
+                CxPlatThreadPerCore);
     }
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
@@ -5699,7 +5699,7 @@ QuicConnRecvDatagrams(
             RecvState.PartitionIndex =
                 QuicPartitionIndexIncrement(
                     RecvState.PartitionIndex,
-                    QUIC_MAX_THROUGHPUT_PARTITION_OFFSET);
+                    CxPlatThreadPerCore);
         }
         CXPLAT_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);

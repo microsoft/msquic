@@ -147,15 +147,18 @@ MsQuicRegistrationOpen(
     }
 
     //
-    // TODO - Figure out how to check to see if hyper-threading was enabled
-    // first
     // When hyper-threading is enabled, better bulk throughput can sometimes
     // be gained by sharing the same physical core, but not the logical one.
     // The shared one is always one greater than the RSS core.
     //
+    if (Registration->SplitPartitioning) {
+        // Not enough partitions.
+        Registration->SplitPartitioning = (CxPlatIsHtEnabled && MsQuicLib.PartitionCount > CxPlatThreadPerCore);
+    }
+
     if (Registration->SplitPartitioning &&
         MsQuicLib.PartitionCount <= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) {
-        Registration->SplitPartitioning = FALSE; // Not enough partitions.
+        Registration->SplitPartitioning = FALSE;
     }
 
     Status =
@@ -392,7 +395,7 @@ QuicRegistrationAcceptConnection(
         //
         // TODO - Constrain PartitionID to the same NUMA node?
         //
-        Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+        Connection->PartitionID += CxPlatThreadPerCore;
     }
 
     uint16_t Index =

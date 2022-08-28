@@ -819,6 +819,8 @@ typedef struct {
 } CXPLAT_PROCESSOR_INFO;
 
 extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+extern uint32_t CxPlatThreadPerCore;
+extern uint8_t CxPlatIsHtEnabled;
 extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
@@ -1151,7 +1153,7 @@ CxPlatSetCurrentThreadGroupAffinity(
     CpuInfo[3] = edx; \
     __cpuid(CpuInfo, FunctionId);
 #else
-#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
+#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, edx)
 #endif
 
 #if defined(__cplusplus)

@@ -28,7 +28,7 @@ TEST(PartitionTest, SplitPartitioning)
     // unchanged value.
     //
 
-    const uint16_t Inc = QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+    const uint16_t Inc = CxPlatThreadPerCore;
 
     for (uint32_t i = 1; i <= QUIC_MAX_PARTITION_COUNT; ++i) {
         MsQuicLib.PartitionCount = (uint16_t)i;

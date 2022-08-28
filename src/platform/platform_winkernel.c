@@ -58,6 +58,8 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
+uint32_t CxPlatThreadPerCore;
+uint8_t CxPlatIsHtEnabled;
 CX_PLATFORM CxPlatform = { NULL };
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
@@ -73,6 +75,14 @@ CxPlatSystemLoad(
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
+
+    CxPlatThreadPerCore = 1;
+    uint32_t regs[4] = {};
+    CXPLAT_CPUID(1, regs[0], regs[1], regs[2], regs[3]);
+    if ((CxPlatIsHtEnabled = (regs[3] & (0b1 << 28)))) {
+        // at least 2
+        CxPlatThreadPerCore = 2;
+    }
 
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.RngAlgorithm = NULL;
@@ -131,6 +141,9 @@ CxPlatInitialize(
         goto Error;
     }
     CXPLAT_DBG_ASSERT(CxPlatform.RngAlgorithm != NULL);
+
+    // TODO: get the number of physical core to calculate appropriate thread per core
+    CxPlatThreadPerCore = CxPlatIsHtEnabled ? 2: 1;
 
     Status =
         ZwQuerySystemInformation(

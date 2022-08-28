@@ -1248,6 +1248,8 @@ CxPlatCurThreadID(
 //
 
 extern uint32_t CxPlatProcessorCount;
+extern uint32_t CxPlatThreadPerCore;
+extern uint8_t CxPlatIsHtEnabled;
 
 #define CxPlatProcMaxCount() CxPlatProcessorCount
 #define CxPlatProcActiveCount() CxPlatProcessorCount
@@ -1347,7 +1349,10 @@ CxPlatSetCurrentThreadProcessorAffinity(
 
 #define CxPlatSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
-#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
+#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, edx) \
+    asm volatile \
+      ("cpuid" : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) \
+       : "a" (FunctionId), "c" (0));
 
 #if defined(__cplusplus)
 }
