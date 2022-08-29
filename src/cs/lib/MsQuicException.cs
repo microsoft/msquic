@@ -57,6 +57,7 @@ namespace Microsoft.Quic
             else if (status == MsQuic.QUIC_STATUS_CERT_EXPIRED) return "QUIC_STATUS_CERT_EXPIRED";
             else if (status == MsQuic.QUIC_STATUS_CERT_UNTRUSTED_ROOT) return "QUIC_STATUS_CERT_UNTRUSTED_ROOT";
             else if (status == MsQuic.QUIC_STATUS_CERT_NO_CERT) return "QUIC_STATUS_CERT_NO_CERT";
+            else if (status == MsQuic.QUIC_STATUS_ADDRESS_NOT_AVAILABLE) return "QUIC_STATUS_ADDRESS_NOT_AVAILABLE";
             else return "Unknown status";
         }
 
