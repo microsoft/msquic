@@ -515,6 +515,7 @@ if ($IsLinux) {
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y libssl-dev
+        sudo apt-get install -y libhwloc-dev
         if ($InstallArm64Toolchain) {
             sudo apt-get install -y gcc-aarch64-linux-gnu
             sudo apt-get install -y binutils-aarch64-linux-gnu
