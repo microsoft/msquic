@@ -167,6 +167,7 @@ sudo apt-get install cmake
 sudo apt-get install build-essential
 sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
+sudo apt-get install libhwloc-dev
 ```
 
 On RHEL 8, you'll need to manually install CMake to get the latest version.
@@ -179,6 +180,7 @@ RHEL 8 also requires the following:
 ```
 sudo dnf install openssl-devel
 sudo dnf install libatomic
+sudo dnf install libhwloc-devel
 ```
 
 ### macOS
