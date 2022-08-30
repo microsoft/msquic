@@ -824,7 +824,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _In_opt_ CXPLAT_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH* *NewDataPath
     )
 {
