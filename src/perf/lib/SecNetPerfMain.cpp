@@ -95,6 +95,7 @@ PrintHelp(
         "Both:\n"
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
 #ifndef _KERNEL_MODE
+        "  -sharedec                   Configure shared execution mode.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
 #endif // _KERNEL_MODE
         "\n"
@@ -266,6 +267,11 @@ QuicMainStart(
 
     if (TryGetValue(argc, argv, "sleepthresh", &Config->SleepTimeoutUs)) {
         SetConfig = true;
+    }
+
+    if (GetFlag(argc, argv, "sharedec")) {
+        SetConfig = true;
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS;
     }
 
     if (SetConfig &&

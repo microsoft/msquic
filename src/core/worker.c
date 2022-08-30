@@ -766,16 +766,6 @@ QuicWorkerPoolInitialize(
     )
 {
     QUIC_STATUS Status;
-    const uint16_t* ProcessorList;
-    uint32_t ProcessorCount;
-
-    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
-        ProcessorCount = MsQuicLib.ExecutionConfig->ProcessorCount;
-        ProcessorList = MsQuicLib.ExecutionConfig->ProcessorList;
-    } else {
-        ProcessorCount = CxPlatProcMaxCount();
-        ProcessorList = NULL;
-    }
 
     QUIC_WORKER_POOL* WorkerPool =
         CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER), QUIC_POOL_WORKER);

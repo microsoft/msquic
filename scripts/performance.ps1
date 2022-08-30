@@ -431,6 +431,11 @@ function Invoke-Test {
         $LocalArguments += " -cpu:-1"
     }
 
+    if ($XDP -or $SharedEC) {
+        $RemoteArguments += " -sharedec"
+        $LocalArguments += " -sharedec"
+    }
+
     if ($Kernel) {
         $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
         $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent
