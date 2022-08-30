@@ -2112,17 +2112,17 @@ void QuicTestStatefulGlobalSetParam()
     }
 
     //
-    // Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL
+    // Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL
     //
     {
-        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS when MsQuicLib.Datapath != NULL");
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
-        uint16_t Data[4] = {};
+        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_EXECUTION_CONFIG);
+        uint16_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE] = {};
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
                 sizeof(Data),
                 &Data));
     }
@@ -2443,42 +2443,12 @@ void QuicTestGlobalParam()
     }
 
     //
-    // QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS
+    // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS");
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_EXECUTION_CONFIG");
         {
-            GlobalSettingScope ParamScope1(QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS);
-            //
-            // BufferLength is not divisible by sizeof(uint16_t)
-            //
-            {
-                TestScopeLogger LogScope2("BufferLength is not divisible by sizeof(uint16_t)");
-                uint16_t Data[4];
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-                        sizeof(Data) + 1,
-                        &Data));
-            }
-
-            //
-            // one of data is bigger than the number of its platform cpus
-            //
-            {
-                TestScopeLogger LogScope2("one of data is bigger than the number of its platform cpus");
-                uint16_t Data[4] = {};
-                Data[0] = UINT16_MAX;
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-                        sizeof(Data),
-                        &Data));
-            }
+            GlobalSettingScope ParamScope1(QUIC_PARAM_GLOBAL_EXECUTION_CONFIG);
 
             //
             // Good without data
@@ -2488,12 +2458,23 @@ void QuicTestGlobalParam()
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
-                        QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
                         0,
                         nullptr));
             }
 
-            uint16_t Data[4] = {};
+            uint8_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
+            uint32_t DataLength = sizeof(Data);
+            QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Data;
+            Config->ProcessorCount = 4;
+            if (CxPlatProcMaxCount() < Config->ProcessorCount) {
+                Config->ProcessorCount = CxPlatProcMaxCount();
+                DataLength = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
+            }
+            for (uint16_t i = 0; i < (uint16_t)Config->ProcessorCount; ++i) {
+                Config->ProcessorList[i] = i;
+            }
+
             //
             // Good with data
             //
@@ -2502,15 +2483,15 @@ void QuicTestGlobalParam()
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
-                        QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-                        sizeof(Data),
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                        DataLength,
                         &Data));
             }
 
             //
             // Good GetParam with data
             //
-            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS, sizeof(uint16_t) * 4, Data);
+            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
         //
@@ -2520,7 +2501,7 @@ void QuicTestGlobalParam()
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
                 &BufferLength,
                 nullptr));
     }

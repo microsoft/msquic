@@ -87,11 +87,11 @@ tracepoint(CLOG_WORKER_C, WorkerCreated , arg2, arg3, arg4);\
 // Decoder Ring for WorkerErrorStatus
 // [wrkr][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            WorkerErrorStatus,
-            "[wrkr][%p] ERROR, %u, %s.",
-            Worker,
-            Status,
-            "CxPlatThreadCreate");
+                WorkerErrorStatus,
+                "[wrkr][%p] ERROR, %u, %s.",
+                Worker,
+                Status,
+                "CxPlatThreadCreate");
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = Status = arg3
 // arg4 = arg4 = "CxPlatThreadCreate" = arg4

@@ -84,9 +84,6 @@ This script provides helpers for building msquic.
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
 
-.PARAMETER SharedEC
-    Uses shared execution contexts (threads) where possible.
-
 .PARAMETER UseXdp
     Use XDP for the datapath instead of system socket APIs.
 
@@ -192,9 +189,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableHighResolutionTimers = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$SharedEC = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$UseXdp = $false,
@@ -440,9 +434,6 @@ function CMake-Generate {
     }
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
-    }
-    if ($SharedEC) {
-        $Arguments += " -DQUIC_SHARED_EC=on"
     }
     if ($UseXdp) {
         $Arguments += " -DQUIC_USE_XDP=on"

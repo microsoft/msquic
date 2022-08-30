@@ -36,10 +36,6 @@ MsQuicRegistrationOpen(
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration = NULL;
     size_t AppNameLength = 0;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        QuicBindingReceive,
-        QuicBindingUnreachable,
-    };
     const BOOLEAN ExternalRegistration =
         Config == NULL || Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
 
@@ -58,38 +54,14 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    CXPLAT_DBG_ASSERT(ExternalRegistration || MsQuicLib.Datapath != NULL);
-
     if (ExternalRegistration) {
-        CxPlatLockAcquire(&MsQuicLib.Lock);
-        if (MsQuicLib.Datapath == NULL) {
-            CXPLAT_DATAPATH_CONFIG DataPathConfig = {
-                MsQuicLib.DataPathProcList,
-                MsQuicLib.DataPathProcListLength
-            };
-            Status =
-                CxPlatDataPathInitialize(
-                    sizeof(CXPLAT_RECV_PACKET),
-                    &DatapathCallbacks,
-                    NULL,                   // TcpCallbacks
-                    &DataPathConfig,
-                    &MsQuicLib.Datapath);
-            if (QUIC_FAILED(Status)) {
-                CxPlatLockRelease(&MsQuicLib.Lock);
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "CxPlatDataPathInitialize");
-                goto Error;
-            }
-            QuicTraceEvent(
-                DataPathInitialized,
-                "[data] Initialized, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        Status = QuicLibraryEnsureExecutionContext();
+        if (QUIC_FAILED(Status)) {
+            goto Error;
         }
-        CxPlatLockRelease(&MsQuicLib.Lock);
     }
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
     Registration =
         CXPLAT_ALLOC_NONPAGED(

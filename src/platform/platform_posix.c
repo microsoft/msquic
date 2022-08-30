@@ -197,23 +197,18 @@ CxPlatInitialize(
     void
     )
 {
-    QUIC_STATUS Status;
-
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         Status = (QUIC_STATUS)errno;
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            errno,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-        goto Exit;
+        return (QUIC_STATUS)errno;
     }
 
-    if (!CxPlatWorkersInit()) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
+    CxPlatWorkersInit();
 
     CxPlatTotalMemory = CGroupGetMemoryLimit();
 
@@ -224,15 +219,7 @@ CxPlatInitialize(
         "[ dso] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
 
-Exit:
-
-    if (QUIC_FAILED(Status)) {
-        if (RandomFd != -1) {
-            close(RandomFd);
-        }
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 void

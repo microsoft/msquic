@@ -153,11 +153,15 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
                 Param,
                 &Length,
                 nullptr));
-    TEST_EQUAL(ExpectedLength, Length);
+    if (ExpectedLength != Length) {
+        TEST_FAILURE("ExpectedLength (%u) != Length (%u)", ExpectedLength, Length);
+        return;
+    }
 
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
     if (Value == nullptr) {
         TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+        return;
     }
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
@@ -192,7 +196,7 @@ struct GlobalSettingScope {
                 &BufferLength,
                 nullptr);
         TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
-            (Parameter == QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS && Status == QUIC_STATUS_SUCCESS));
+            (Parameter == QUIC_PARAM_GLOBAL_EXECUTION_CONFIG && Status == QUIC_STATUS_SUCCESS));
 
         OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
         if (OriginalValue == nullptr) {

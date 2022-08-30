@@ -16,10 +16,6 @@ Abstract:
 #include "HpsClient.h"
 #include "Tcp.h"
 
-#ifndef _KERNEL_MODE
-#include <vector>
-#endif
-
 #ifdef QUIC_CLOG
 #include "SecNetPerfMain.cpp.clog.h"
 #endif
@@ -96,9 +92,9 @@ PrintHelp(
         "  -cc:<algo>                  Congestion control algorithm to use.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
-#ifndef _KERNEL_MODE
         "Both:\n"
-        "  -cpu:<cpu_index>            Specify the processor(s) for the datapath to use.\n"
+        "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
+#ifndef _KERNEL_MODE
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
 #endif // _KERNEL_MODE
         "\n"
@@ -247,35 +243,42 @@ QuicMainStart(
         return Status;
     }
 
-#ifndef _KERNEL_MODE
+    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
+    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    Config->SleepTimeoutUs = UINT32_MAX; // Default to no sleep.
+    bool SetConfig = false;
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
-        std::vector<uint16_t> ProcList;
+        SetConfig = true;
         if (strtol(CpuStr, nullptr, 10) == -1) {
-            // Use all procs for raw datapath except proc 0 so that the machine will be in a usable state.
-            for (uint16_t i = 1; i < CxPlatProcActiveCount(); ++i) {
-                ProcList.push_back(i);
+            for (uint16_t i = 0; i < CxPlatProcActiveCount() && Config->ProcessorCount < 256; ++i) {
+                Config->ProcessorList[Config->ProcessorCount++] = i;
             }
         } else {
             do {
                 if (*CpuStr == ',') CpuStr++;
-                ProcList.push_back((uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10));
-            } while (*CpuStr);
+                Config->ProcessorList[Config->ProcessorCount++] =
+                    (uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10);
+            } while (*CpuStr && Config->ProcessorCount < 256);
         }
+    }
 
-        if (QUIC_FAILED(
-            Status =
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-                (uint32_t)ProcList.size() * sizeof(uint16_t),
-                ProcList.data()))) {
-            WriteOutput("MsQuic Failed To Set DataPath Procs %d\n", Status);
-            return Status;
-        }
-}
+    if (TryGetValue(argc, argv, "sleepthresh", &Config->SleepTimeoutUs)) {
+        SetConfig = true;
+    }
 
-#endif // _KERNEL_MODE
+    if (SetConfig &&
+        QUIC_FAILED(
+        Status =
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+            (uint32_t)QUIC_EXECUTION_CONFIG_MIN_SIZE + Config->ProcessorCount * sizeof(uint16_t),
+            Config))) {
+        WriteOutput("Failed to set execution config %d\n", Status);
+        return Status;
+    }
 
     QUIC_CONGESTION_CONTROL_ALGORITHM Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
     const char* CcName = GetValue(argc, argv, "cc");

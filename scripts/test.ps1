@@ -34,6 +34,9 @@ This script runs the MsQuic tests.
 .PARAMETER GenerateXmlResults
     Generates an xml Test report for the run.
 
+.PARAMETER SharedEC
+    Runs in shared execution context mode.
+
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
@@ -118,6 +121,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$GenerateXmlResults = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SharedEC = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
@@ -279,6 +285,9 @@ if ($KeepOutputOnSuccess) {
 }
 if ($GenerateXmlResults) {
     $TestArguments += " -GenerateXmlResults"
+}
+if ($SharedEC) {
+    $TestArguments += " -SharedEC"
 }
 if ($Debugger) {
     $TestArguments += " -Debugger"

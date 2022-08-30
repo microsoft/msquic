@@ -374,10 +374,7 @@ CxPlatInitialize(
     }
     CryptoInitialized = TRUE;
 
-    if (!CxPlatWorkersInit()) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
+    CxPlatWorkersInit();
 
 #ifdef TIMERR_NOERROR
     QuicTraceLogInfo(

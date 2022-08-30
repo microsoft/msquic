@@ -30,12 +30,10 @@ QuicWorkerLoop(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
 //
 // Thread callback for processing the work queued for the worker.
 //
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context);
-#endif
 
 void
 QuicWorkerThreadWake(
@@ -43,11 +41,12 @@ QuicWorkerThreadWake(
     )
 {
     Worker->ExecutionContext.Ready = TRUE; // Run the execution context
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
-    CxPlatEventSet(Worker->Ready);
-#else
-    CxPlatWakeExecutionContext(&Worker->ExecutionContext);
-#endif
+    if (MsQuicLib.ExecutionConfig &&
+        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS) {
+        CxPlatWakeExecutionContext(&Worker->ExecutionContext);
+    } else {
+        CxPlatEventSet(Worker->Ready);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -78,9 +77,7 @@ QuicWorkerInitialize(
     Worker->IdealProcessor = IdealProcessor;
     CxPlatDispatchLockInitialize(&Worker->Lock);
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
-#endif
     CxPlatListInitializeHead(&Worker->Connections);
     CxPlatListInitializeHead(&Worker->Operations);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
@@ -101,29 +98,29 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
     Worker->ExecutionContext.Ready = TRUE;
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-    UNREFERENCED_PARAMETER(ThreadFlags);
-    CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
-#else
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        ThreadFlags,
-        IdealProcessor,
-        "quic_worker",
-        QuicWorkerThread,
-        Worker
-    };
+    if (MsQuicLib.ExecutionConfig &&
+        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS) {
+        CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
+    } else {
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            ThreadFlags,
+            IdealProcessor,
+            "quic_worker",
+            QuicWorkerThread,
+            Worker
+        };
 
-    Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            WorkerErrorStatus,
-            "[wrkr][%p] ERROR, %u, %s.",
-            Worker,
-            Status,
-            "CxPlatThreadCreate");
-        goto Error;
+        Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                WorkerErrorStatus,
+                "[wrkr][%p] ERROR, %u, %s.",
+                Worker,
+                Status,
+                "CxPlatThreadCreate");
+            goto Error;
+        }
     }
-#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 Error:
 
@@ -156,16 +153,17 @@ QuicWorkerUninitialize(
     }
     CxPlatEventUninitialize(Worker->Done);
 
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
-    //
-    // Wait for the thread to finish.
-    //
-    if (Worker->Thread) {
-        CxPlatThreadWait(&Worker->Thread);
-        CxPlatThreadDelete(&Worker->Thread);
+    if (!MsQuicLib.ExecutionConfig ||
+        !(MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS)) {
+        //
+        // Wait for the thread to finish.
+        //
+        if (Worker->Thread) {
+            CxPlatThreadWait(&Worker->Thread);
+            CxPlatThreadDelete(&Worker->Thread);
+        }
+        CxPlatEventUninitialize(Worker->Ready);
     }
-    CxPlatEventUninitialize(Worker->Ready);
-#endif // QUIC_USE_EXECUTION_CONTEXTS
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
@@ -718,7 +716,6 @@ QuicWorkerLoop(
     return TRUE;
 }
 
-#ifndef QUIC_USE_EXECUTION_CONTEXTS
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
@@ -758,7 +755,6 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
         Worker);
     CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
-#endif // QUIC_USE_EXECUTION_CONTEXTS
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -770,6 +766,16 @@ QuicWorkerPoolInitialize(
     )
 {
     QUIC_STATUS Status;
+    const uint16_t* ProcessorList;
+    uint32_t ProcessorCount;
+
+    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
+        ProcessorCount = MsQuicLib.ExecutionConfig->ProcessorCount;
+        ProcessorList = MsQuicLib.ExecutionConfig->ProcessorList;
+    } else {
+        ProcessorCount = CxPlatProcMaxCount();
+        ProcessorList = NULL;
+    }
 
     QUIC_WORKER_POOL* WorkerPool =
         CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER), QUIC_POOL_WORKER);

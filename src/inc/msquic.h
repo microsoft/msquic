@@ -232,6 +232,28 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
 #define QUIC_DATAGRAM_SEND_STATE_IS_FINAL(State) \
     ((State) >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
 
+typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
+    QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
+    QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS   = 0x0001,   // QUIC and datapath share the same threads. No-op in kernel mode.
+} QUIC_EXECUTION_CONFIG_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_EXECUTION_CONFIG_FLAGS)
+
+//
+// A custom configuration for thread execution in QUIC.
+//
+typedef struct QUIC_EXECUTION_CONFIG {
+
+    QUIC_EXECUTION_CONFIG_FLAGS Flags;
+    uint32_t SleepTimeoutUs;            // Number of microseconds of idleness before sleeping a datapath thread.
+    uint32_t ProcessorCount;
+    _Field_size_(ProcessorCount)
+    uint16_t ProcessorList[1];          // List of processors to use for threads.
+
+} QUIC_EXECUTION_CONFIG;
+
+#define QUIC_EXECUTION_CONFIG_MIN_SIZE \
+    (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
@@ -749,7 +771,7 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH              0x01000008  // char[64]
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS           0x01000009  // uint16_t[]
+#define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_EXECUTION_CONFIG
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 

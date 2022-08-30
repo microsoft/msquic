@@ -12,6 +12,7 @@
 
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
+bool SharedEC = false;
 bool UseDuoNic = false;
 const MsQuicApi* MsQuic;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
@@ -71,6 +72,15 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+            if (SharedEC) {
+                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS, 0, 0};
+                ASSERT_TRUE(QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        NULL,
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                        sizeof(Config),
+                        &Config)));
+            }
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -2038,6 +2048,8 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strcmp("--sharedEC", argv[i]) == 0) {
+            SharedEC = true;
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
