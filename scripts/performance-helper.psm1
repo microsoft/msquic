@@ -256,13 +256,13 @@ function Get-CurrentBranch {
 function Get-ExePath {
     param ($PathRoot, $Platform, $IsRemote, $ExtraArtifactDir)
     if ($IsRemote) {
-        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$ExtraArtifactDir"
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$($ExtraArtifactDir)"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr)
             Join-Path $PathRoot $Platform $ConfigStr
         } -ArgumentList $PathRoot, $Platform, $ConfigStr
     } else {
-        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)$ExtraArtifactDir"
+        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)$($ExtraArtifactDir)"
         return Join-Path $PathRoot $Platform $ConfigStr
     }
 }
@@ -275,13 +275,13 @@ function Get-ExeName {
     }
 
     if ($IsRemote) {
-        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$ExtraArtifactDir"
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)$($ExtraArtifactDir)"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr, $ExeName)
             Join-Path $PathRoot $Platform $ConfigStr $ExeName
         } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
-        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)$ExtraArtifactDir"
+        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)$($ExtraArtifactDir)"
         return Join-Path $PathRoot $Platform $ConfigStr $ExeName
     }
 }

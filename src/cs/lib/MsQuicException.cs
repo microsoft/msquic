@@ -46,6 +46,7 @@ namespace Microsoft.Quic
             else if (status == MsQuic.QUIC_STATUS_USER_CANCELED) return "QUIC_STATUS_USER_CANCELED";
             else if (status == MsQuic.QUIC_STATUS_ALPN_NEG_FAILURE) return "QUIC_STATUS_ALPN_NEG_FAILURE";
             else if (status == MsQuic.QUIC_STATUS_STREAM_LIMIT_REACHED) return "QUIC_STATUS_STREAM_LIMIT_REACHED";
+            else if (status == MsQuic.QUIC_STATUS_ALPN_IN_USE) return "QUIC_STATUS_ALPN_IN_USE";
             else if (status == MsQuic.QUIC_STATUS_CLOSE_NOTIFY) return "QUIC_STATUS_CLOSE_NOTIFY";
             else if (status == MsQuic.QUIC_STATUS_BAD_CERTIFICATE) return "QUIC_STATUS_BAD_CERTIFICATE";
             else if (status == MsQuic.QUIC_STATUS_UNSUPPORTED_CERTIFICATE) return "QUIC_STATUS_UNSUPPORTED_CERTIFICATE";
@@ -56,6 +57,7 @@ namespace Microsoft.Quic
             else if (status == MsQuic.QUIC_STATUS_CERT_EXPIRED) return "QUIC_STATUS_CERT_EXPIRED";
             else if (status == MsQuic.QUIC_STATUS_CERT_UNTRUSTED_ROOT) return "QUIC_STATUS_CERT_UNTRUSTED_ROOT";
             else if (status == MsQuic.QUIC_STATUS_CERT_NO_CERT) return "QUIC_STATUS_CERT_NO_CERT";
+            else if (status == MsQuic.QUIC_STATUS_ADDRESS_NOT_AVAILABLE) return "QUIC_STATUS_ADDRESS_NOT_AVAILABLE";
             else return "Unknown status";
         }
 

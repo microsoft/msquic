@@ -1,13 +1,14 @@
-﻿using Microsoft.VisualStudio.Services.WebApi;
-using Microsoft.VisualStudio.Services.DelegatedAuthorization.WebApi;
-using Microsoft.VisualStudio.Services.Client;
-using Newtonsoft.Json;
-using Microsoft.VisualStudio.Services.Common;
-using System.Threading.Tasks;
 using System;
-using System.Net.Http;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+using Microsoft.VisualStudio.Services.Client;
+using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.DelegatedAuthorization;
+using Microsoft.VisualStudio.Services.DelegatedAuthorization.WebApi;
+using Microsoft.VisualStudio.Services.WebApi;
 
 namespace GenerateVpackPat
 {
@@ -16,6 +17,7 @@ namespace GenerateVpackPat
         public string AccountName { get; set; }
         public Guid AccountId { get; set; }
     }
+
     public class Program
     {
         public static async Task Main()
@@ -29,7 +31,7 @@ namespace GenerateVpackPat
             var connection = new VssConnection(new Uri(accountsUrl), credentials);
             var client = new HttpClient(connection.InnerHandler);
             string result = await client.GetStringAsync($"{accountsUrl}/_apis/accounts");
-            var accounts = JsonConvert.DeserializeObject<Accounts[]>(result);
+            var accounts = JsonSerializer.Deserialize<Accounts[]>(result);
             var accountIds = accounts.Where(x => tokenAccounts.Contains(x.AccountName)).Select(x => x.AccountId).ToList();
             if (accountIds.Count != tokenAccounts.Length)
             {
