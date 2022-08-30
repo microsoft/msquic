@@ -203,7 +203,6 @@ CxPlatInitialize(
 {
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
-        Status = (QUIC_STATUS)errno;
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -215,8 +214,6 @@ CxPlatInitialize(
     CxPlatWorkersInit();
 
     CxPlatTotalMemory = CGroupGetMemoryLimit();
-
-    Status = QUIC_STATUS_SUCCESS;
 
     QuicTraceLogInfo(
         PosixInitialized,
