@@ -396,7 +396,7 @@ CxPlatDataPathGetProc(
     _In_ uint16_t Processor
     )
 {
-    for (uint16_t i = 0; i < Datapath->ProcCount; ++i) {
+    for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
         if (Datapath->Processors[i].IdealProcessor == Processor) {
             return &Datapath->Processors[i];
         }
