@@ -14,7 +14,11 @@ The platform abstraction layer (or PAL) supports the following platforms:
 - FreeBSD
 - macOS
 
+## Basic OS Interfaces
 
+## TLS
+
+## Data Path
 
 # QUIC
 
