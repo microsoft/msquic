@@ -981,7 +981,7 @@ CxPlatDpRawGetDatapathSize(
     )
 {
     const uint32_t WorkerCount =
-        (Config && Config->ProcessorCount) ? Config->ProcessorCount : 1;
+        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcMaxCount();
     return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
 }
 
