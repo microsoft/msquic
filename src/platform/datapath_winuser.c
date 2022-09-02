@@ -908,7 +908,7 @@ CxPlatDataPathInitialize(
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
 
         Datapath->Processors[i].Datapath = Datapath;
-        Datapath->Processors[i].EventQ = CxPlatWorkerGetEventQ(i);
+        Datapath->Processors[i].EventQ = CxPlatWorkerGetEventQ(i, NULL);
         Datapath->Processors[i].Index = i;
         CxPlatRefInitialize(&Datapath->Processors[i].RefCount);
 

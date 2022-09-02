@@ -413,7 +413,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
     DatapathProc->Index = Index;
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
+    DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index, NULL);
     CxPlatRefInitialize(&DatapathProc->RefCount);
 
     CxPlatPoolInitialize(

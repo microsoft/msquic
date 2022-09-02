@@ -250,11 +250,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_LOCK PendingSendDataLock;
 
     //
-    // Rundown for synchronizing clean up with upcalls.
-    //
-    CXPLAT_RUNDOWN_REF UpcallRundown;
-
-    //
     // Inidicates the SQEs have been initialized.
     //
     BOOLEAN SqeInitialized : 1;
@@ -302,6 +297,11 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_REF_COUNT RefCount;
 
     //
+    // Event for synchronizing clean up.
+    //
+    CXPLAT_EVENT CleanupEvent;
+
+    //
     // The MTU for this binding.
     //
     uint16_t Mtu;
@@ -347,6 +347,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     // The event queue for this proc context.
     //
     CXPLAT_EVENTQ* EventQ;
+
+    //
+    // Thread ID used for the event queue.
+    //
+    CXPLAT_THREAD_ID ThreadId;
 
     //
     // Synchronization mechanism for cleanup.
@@ -496,7 +501,7 @@ CxPlatProcessorContextInitialize(
     DatapathProc->Datapath = Datapath;
     DatapathProc->Index = Index;
     CxPlatRefInitialize(&DatapathProc->RefCount);
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
+    DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index, &DatapathProc->ThreadId);
 
     CxPlatPoolInitialize(
         TRUE,
@@ -1278,9 +1283,8 @@ CxPlatSocketRelease(
 #if DEBUG
         CXPLAT_DBG_ASSERT(!Socket->Freed);
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
-        Socket->Freed = TRUE;
 #endif
-        CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+        CxPlatEventSet(Socket->CleanupEvent);
     }
 }
 
@@ -1319,7 +1323,6 @@ CxPlatSocketContextUninitializeComplete(
     }
 
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
-    CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
     if (SocketContext->DatapathProc) {
         CxPlatProcessorContextRelease(SocketContext->DatapathProc);
@@ -1337,11 +1340,13 @@ CxPlatSocketContextUninitialize(
     SocketContext->Uninitialized = TRUE;
 #endif
 
-    if (!SocketContext->IoStarted) {
+    if (!SocketContext->IoStarted ||
+        CxPlatCurThreadID() == SocketContext->DatapathProc->ThreadID) {
+        //
+        // Run inline if we never started or are on the same thread.
+        //
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {
-        CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
-
         //
         // Cancel and clean up any pending IO.
         //
@@ -1671,10 +1676,6 @@ CxPlatDataPathSocketProcessIoCompletion(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    if (!CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
-        return;
-    }
-
     if (EPOLLERR & Cqe->events) {
         int ErrNum = 0;
         socklen_t OptLen = sizeof(ErrNum);
@@ -1752,8 +1753,6 @@ CxPlatDataPathSocketProcessIoCompletion(
     if (EPOLLOUT & Cqe->events) {
         CxPlatSocketContextSendComplete(SocketContext);
     }
-
-    CxPlatRundownRelease(&SocketContext->UpcallRundown);
 }
 
 //
@@ -1803,6 +1802,7 @@ CxPlatSocketCreateUdp(
     Binding->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Binding->Mtu = CXPLAT_MAX_MTU;
     CxPlatRefInitializeEx(&Binding->RefCount, SocketCount);
+    CxPlatEventInitialize(&Binding->CleanupEvent, FALSE, FALSE);
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
     } else {
@@ -1821,7 +1821,6 @@ CxPlatSocketCreateUdp(
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
-        CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
@@ -1940,6 +1939,13 @@ CxPlatSocketDelete(
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
     }
+
+    CxPlatEventWaitForever(Socket->CleanupEvent);
+    CxPlatEventUninitialize(Socket->CleanupEvent);
+#if DEBUG
+    Socket->Freed = TRUE;
+#endif
+    CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
 void

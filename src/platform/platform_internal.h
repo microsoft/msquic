@@ -224,7 +224,8 @@ CxPlatWorkersUninit(
 
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t IdealProcessor,
+    _Out_opt_ CXPLAT_THREAD_ID* ThreadId
     );
 
 void

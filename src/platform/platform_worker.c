@@ -40,6 +40,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_THREAD Thread;
 
     //
+    // The ID of the above Thread.
+    //
+    CXPLAT_THREAD_ID ThreadId;
+
+    //
     // Event queue to drive execution.
     //
     CXPLAT_EVENTQ EventQ;
@@ -92,9 +97,16 @@ CxPlatWorkerWake(
 
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t IdealProcessor,
+    _Out_opt_ CXPLAT_THREAD_ID* ThreadId
     )
 {
+    if (ThreadId) {
+        while (!CxPlatWorkers[IdealProcessor % CxPlatWorkerCount].ThreadId) {
+            CxPlatSchedulerYield();
+        }
+        *ThreadId = CxPlatWorkers[IdealProcessor % CxPlatWorkerCount].ThreadId;
+    }
     return &CxPlatWorkers[IdealProcessor % CxPlatWorkerCount].EventQ;
 }
 
@@ -350,6 +362,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
     CXPLAT_DBG_ASSERT(Worker != NULL);
+    Worker->ThreadId = CxPlatCurThreadID();
 
     QuicTraceLogInfo(
         PlatformWorkerThreadStart,
