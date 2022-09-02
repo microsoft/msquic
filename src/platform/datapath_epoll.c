@@ -1341,7 +1341,7 @@ CxPlatSocketContextUninitialize(
 #endif
 
     if (!SocketContext->IoStarted ||
-        CxPlatCurThreadID() == SocketContext->DatapathProc->ThreadID) {
+        CxPlatCurThreadID() == SocketContext->DatapathProc->ThreadId) {
         //
         // Run inline if we never started or are on the same thread.
         //
