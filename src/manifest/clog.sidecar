@@ -8195,6 +8195,13 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "PlatformThreadCreateFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] pthread_create failed, retrying without affinitization",
+      "UniqueId": "PlatformThreadCreateFailed",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
     "PlatformWorkerThreadShutdown": {
       "ModuleProperites": {},
       "TraceString": "[ lib][%p] Worker shutdown",
@@ -14262,6 +14269,11 @@
         "UniquenessHash": "68f39cf7-bcf8-8314-a151-2316d10bead4",
         "TraceID": "PerfTcpStartTls",
         "EncodingString": "[perf][tcp][%p] Start TLS"
+      },
+      {
+        "UniquenessHash": "c77e1439-2c2d-7baf-4509-bd2f7eeea771",
+        "TraceID": "PlatformThreadCreateFailed",
+        "EncodingString": "[ lib] pthread_create failed, retrying without affinitization"
       },
       {
         "UniquenessHash": "a1966729-6907-53f2-9390-1d40ba5e9d4d",
