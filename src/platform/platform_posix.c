@@ -669,11 +669,9 @@ CxPlatThreadCreate(
     // because the CPU might be offline.
     //
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] WARNING, %u, %s.",
-            errno,
-            "pthread_create failed, retrying without affinitization");
+        QuicTraceLogWarning(
+            PlatformThreadCreateFailed,
+            "[ lib] pthread_create failed, retrying without affinitization");
         if (pthread_create(Thread, NULL, Config->Callback, Config->Context)) {
             Status = errno;
             QuicTraceEvent(
