@@ -668,14 +668,20 @@ CxPlatThreadCreate(
     // If pthread_create fails with an error code, then try again without the attribute
     // because the CPU might be offline.
     //
-    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context) &&
-        pthread_create(Thread, NULL, Config->Callback, Config->Context)) {
-        Status = errno;
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "pthread_create failed");
+            "[ lib] WARNING, %u, %s.",
+            errno,
+            "pthread_create failed, retrying without affinitization");
+        if (pthread_create(Thread, NULL, Config->Callback, Config->Context)) {
+            Status = errno;
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "pthread_create failed");
+        }
     }
 
 #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
