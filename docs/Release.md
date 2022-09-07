@@ -372,3 +372,4 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
    - msquic_macos_universal_Release_openssl.zip
 8. From Linux (use GitHub Codespace) to publish the latest Rust Crate.
    - Run `cargo publish` from the `release/X.Y` branch.
+9. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
