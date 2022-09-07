@@ -304,7 +304,7 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 
 ## MsQuic v2.1 (SAC)
 
-[MsQuic v2.1](https://github.com/microsoft/msquic/releases/tag/v2.1.0) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
+[MsQuic v2.1](https://github.com/microsoft/msquic/releases/tag/v2.1.1) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
 
 Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
 
@@ -320,3 +320,55 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
 - Various test improvements (many)
 - CIBIR extension preview support (#2445)
 - Windows XDP preview support (many)
+
+# Publishing a Release
+
+## Create a New Release Branch
+
+1. Add (via PR) notes above for the new release.
+2. Fork `main` branch to `release/X.Y` where `X` is the major version and `Y` is the minor version.
+3. Update (via PR) the minor version for the `main` branch:
+   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relavent changes.
+
+## Servicing a Release Branch
+
+1. Changes first go into the `main` branch, and then are cherry-picked into the relavent `release/X.Y` branches.
+2. Update (via PR) the patch version for the release branches:
+   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relavent changes.
+
+## Publishing a Release Branch
+
+1. Create a [new GitHub release](https://github.com/microsoft/msquic/releases/new) along with the corresponding tag.
+   - Make sure to pick the correct `release/X.Y` branch
+   - The tag should be the full version number: `vX.Y.Z`
+   - The release title should be `MsQuic vX.Y.Z`
+   - Put relavent information in the notes of the release (see previous releases for examples)
+2. Wait for [msquic-Official](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738&_a=summary) pipeline to run for the newly created tag.
+3. Download the signed Linux packages (under `drop_package_linux_distribution), upload them to the GitHub release and publish them (via [MsQuic-Publish](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068)) to https://packages.microsoft.com:
+   - libmsquic-X.Y.Z-1-aarch64.rpm
+   - libmsquic-X.Y.Z-1-armv7l.rpm
+   - libmsquic-X.Y.Z-1-x86_64.rpm
+   - libmsquic-X.Y.Z-amd64.deb
+   - libmsquic-X.Y.Z-arm64.deb
+   - libmsquic-X.Y.Z-armv7l.deb
+4. Download the signed Windows NuGet packages (under `drop_package_windows_nuget`) and upload them to [NuGet](https://www.nuget.org/packages/manage/upload):
+   - Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z-ci.BUILD.nupkg
+   - Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z-ci.BUILD.nupkg
+5. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
+6. Download the distribution packages from the artifacts and upload them to the GitHub release:
+   - msquic_gamecore_console_x64_Release_schannel.zip
+   - msquic_linux_x64_Release_openssl.zip
+   - msquic_linux_x64_Release_openssl_test.zip
+   - msquic_windows_arm64_Release_openssl.zip
+   - msquic_windows_arm64_Release_schannel.zip
+   - msquic_windows_arm_Release_openssl.zip
+   - msquic_windows_arm_Release_schannel.zip
+   - msquic_windows_x64_Release_openssl.zip
+   - msquic_windows_x64_Release_schannel.zip
+   - msquic_windows_x64_Release_schannel_test.zip
+   - msquic_windows_x86_Release_openssl.zip
+   - msquic_windows_x86_Release_schannel.zip
+7. The macOS distribution package isn't generated from the internal pipelines. Grab it from the public [CI](https://dev.azure.com/ms/msquic/_build?definitionId=347&_a=summary) from the latest run of the release branch, and upload it to the GitHub release:
+   - msquic_macos_universal_Release_openssl.zip
+8. From Linux (use GitHub Codespace) to publish the latest Rust Crate.
+   - Run `cargo publish` from the `release/X.Y` branch.
