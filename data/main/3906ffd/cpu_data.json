@@ -1787,8 +1787,23 @@
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
+      "TestName": "HPS",
+      "MachineName": "25111:TK5-3WP09R0627",
+      "TputConfig": null,
+      "RpsConfig": null,
+      "HpsConfig": {},
+      "Results": [
+        10203.0,
+        9785.0,
+        8339.0,
+        9347.0,
+        8389.0
+      ]
+    },
+    {
+      "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 1,
@@ -1798,17 +1813,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        4886.0,
-        7043.0,
-        4836.0,
-        7061.0,
-        4875.0
+        4815.0,
+        4888.0,
+        4895.0,
+        4888.0,
+        4843.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 1000,
@@ -1818,17 +1833,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        25654.0,
-        105104.0,
-        26265.0,
-        26470.0,
-        62567.0
+        25521.0,
+        25717.0,
+        26153.0,
+        25849.0,
+        106988.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 40,
@@ -1838,17 +1853,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        104913.0,
-        108254.0,
-        109498.0,
-        106614.0,
-        103885.0
+        96756.0,
+        103267.0,
+        103514.0,
+        97535.0,
+        97358.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 250,
@@ -1858,17 +1873,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        294725.0,
-        344949.0,
-        300007.0,
-        306690.0,
-        292250.0
+        412829.0,
+        413393.0,
+        403683.0,
+        397740.0,
+        396523.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 250,
@@ -1878,17 +1893,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        497098.0,
-        508313.0,
-        489856.0,
-        412695.0,
-        526300.0
+        844390.0,
+        801922.0,
+        825006.0,
+        900395.0,
+        782727.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 250,
@@ -1898,17 +1913,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        210246.0,
-        223747.0,
-        209780.0,
-        207467.0,
-        225234.0
+        333225.0,
+        330036.0,
+        324980.0,
+        332366.0,
+        323802.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "RPS",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": null,
       "RpsConfig": {
         "ConnectionCount": 250,
@@ -1918,17 +1933,17 @@
       },
       "HpsConfig": null,
       "Results": [
-        422807.0,
-        603008.0,
-        406628.0,
-        416933.0,
-        406372.0
+        602915.0,
+        564876.0,
+        635501.0,
+        794308.0,
+        891948.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
         "Encryption": true,
@@ -1939,17 +1954,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        5316617.0,
-        5294641.0,
-        5308621.0,
-        5318504.0,
-        5350319.0
+        5831925.0,
+        5803143.0,
+        5772078.0,
+        5799511.0,
+        5732817.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": false,
         "Encryption": true,
@@ -1960,17 +1975,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        5162211.0,
-        5059586.0,
-        5277040.0,
-        5332935.0,
-        5301522.0
+        5301519.0,
+        5262328.0,
+        5277333.0,
+        5255404.0,
+        5214329.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
         "Encryption": false,
@@ -1981,17 +1996,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        10613528.0,
-        10511272.0,
-        10530505.0,
-        10626719.0,
-        10667102.0
+        13535469.0,
+        12923745.0,
+        12989177.0,
+        13393967.0,
+        13483581.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": false,
         "Encryption": false,
@@ -2002,17 +2017,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        9191583.0,
-        9306579.0,
-        9213628.0,
-        9278662.0,
-        9223609.0
+        9412737.0,
+        9362132.0,
+        9396685.0,
+        9404903.0,
+        9427614.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
         "Encryption": true,
@@ -2023,17 +2038,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        4070299.0,
-        4088298.0,
-        4079897.0,
-        4116968.0,
-        4086270.0
+        4604767.0,
+        4623788.0,
+        4613858.0,
+        4607311.0,
+        4546637.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": false,
         "Encryption": true,
@@ -2044,17 +2059,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        3876291.0,
-        3869545.0,
-        3873284.0,
-        3887396.0,
-        3941232.0
+        3880686.0,
+        3887271.0,
+        3920071.0,
+        3931467.0,
+        3917859.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
         "Encryption": false,
@@ -2065,17 +2080,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        5811834.0,
-        5828354.0,
-        5787970.0,
-        5786465.0,
-        5778651.0
+        6734233.0,
+        6616414.0,
+        6683622.0,
+        6652374.0,
+        6664735.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": false,
         "Encryption": false,
@@ -2086,17 +2101,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        6280737.0,
-        6075927.0,
-        3703835.0,
-        5011993.0,
-        7044060.0
+        4981406.0,
+        5222165.0,
+        5133576.0,
+        6255056.0,
+        5859404.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
         "Encryption": true,
@@ -2107,17 +2122,17 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        2747669.0,
-        2753618.0,
-        2743624.0,
-        2765264.0,
-        2754279.0
+        2969108.0,
+        2974149.0,
+        2982430.0,
+        2968035.0,
+        2985215.0
       ]
     },
     {
       "PlatformName": "WinSharedEC_x64_schannel",
       "TestName": "Throughput",
-      "MachineName": "25111:TK5-3WP09R0629",
+      "MachineName": "25111:TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": false,
         "Encryption": true,
@@ -2128,11 +2143,11 @@
       "RpsConfig": null,
       "HpsConfig": null,
       "Results": [
-        2337582.0,
-        2323777.0,
-        2330931.0,
-        2339859.0,
-        2327360.0
+        2289983.0,
+        2333372.0,
+        2312860.0,
+        2256894.0,
+        2387384.0
       ]
     },
     {
