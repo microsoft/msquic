@@ -346,11 +346,11 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
 2. Wait for [msquic-Official](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738&_a=summary) pipeline to run for the newly created tag.
 3. Download the signed Linux packages (under `drop_package_linux_distribution), upload them to the GitHub release and publish them (via [MsQuic-Publish](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068)) to https://packages.microsoft.com:
    - libmsquic-X.Y.Z-1-aarch64.rpm
-   - libmsquic-X.Y.Z-1-armv7l.rpm
+   - libmsquic-X.Y.Z-1-armhf.rpm
    - libmsquic-X.Y.Z-1-x86_64.rpm
    - libmsquic-X.Y.Z-amd64.deb
    - libmsquic-X.Y.Z-arm64.deb
-   - libmsquic-X.Y.Z-armv7l.deb
+   - libmsquic-X.Y.Z-armhf.deb
 4. Download the signed Windows NuGet packages (under `drop_package_windows_nuget`) and upload them to [NuGet](https://www.nuget.org/packages/manage/upload):
    - Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z-ci.BUILD.nupkg
    - Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z-ci.BUILD.nupkg
