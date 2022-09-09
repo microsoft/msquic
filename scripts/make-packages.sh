@@ -69,7 +69,7 @@ while :; do
                 PKGARCH=aarch64
             fi
             if [ "$ARCH" == 'arm' ]; then
-                PKGARCH=armv7l
+                PKGARCH=armhf
             fi
             ;;
         -d|-debug|--debug)
