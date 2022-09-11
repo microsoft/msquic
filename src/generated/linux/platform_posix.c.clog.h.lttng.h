@@ -2,6 +2,22 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PlatformThreadCreateFailed
+// [ lib] pthread_create failed, retrying without affinitization
+// QuicTraceLogWarning(
+            PlatformThreadCreateFailed,
+            "[ lib] pthread_create failed, retrying without affinitization");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PlatformThreadCreateFailed,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PosixLoaded
 // [ dso] Loaded
 // QuicTraceLogInfo(
