@@ -299,7 +299,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($Debugger) {
-            $pinfo.FileName = "windbg"
+            $pinfo.FileName = "windbgx"
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {

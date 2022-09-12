@@ -202,7 +202,7 @@ function Start-Executable {
             }
         }
         if ($Debugger) {
-            $pinfo.FileName = "windbg"
+            $pinfo.FileName = "windbgx"
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {
