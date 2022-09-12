@@ -63,8 +63,6 @@ QuicWorkerInitialize(
     _Inout_ QUIC_WORKER* Worker
     )
 {
-    QUIC_STATUS Status;
-
     QuicTraceEvent(
         WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
@@ -87,7 +85,7 @@ QuicWorkerInitialize(
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
 
-    Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
+    QUIC_STATUS Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -770,7 +768,7 @@ QuicWorkerPoolInitialize(
     )
 {
     const uint16_t WorkerCount =
-        ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER ? 0 : MsQuicLib.PartitionCount;
+        ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER ? 1 : MsQuicLib.PartitionCount;
     const size_t WorkerPoolSize =
         sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER);
 
