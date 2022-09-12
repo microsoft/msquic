@@ -117,9 +117,6 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SharedEC = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$XDP = $false,
 
     [Parameter(Mandatory = $false)]
@@ -153,9 +150,6 @@ if ($Kernel) {
     }
     if ($PGO) {
         Write-Error "'-PGO' is not supported in kernel mode!"
-    }
-    if ($SharedEC) {
-        Write-Error "'-SharedEC' is not supported in kernel mode!"
     }
     if ($XDP) {
         Write-Error "'-XDP' is not supported in kernel mode!"
@@ -252,7 +246,6 @@ Set-ScriptVariables -Local $Local `
                     -LocalArch $LocalArch `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
-                    -SharedEC $SharedEC `
                     -XDP $XDP `
                     -Config $Config `
                     -Publish $Publish `
@@ -429,11 +422,6 @@ function Invoke-Test {
     if ($XDP) {
         $RemoteArguments += " -cpu:-1"
         $LocalArguments += " -cpu:-1"
-    }
-
-    if ($XDP -or $SharedEC) {
-        $RemoteArguments += " -sharedec"
-        $LocalArguments += " -sharedec"
     }
 
     if ($Kernel) {

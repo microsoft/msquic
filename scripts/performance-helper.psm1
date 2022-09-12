@@ -6,13 +6,12 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $SharedEC, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $PGO)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $PGO)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
     $script:RemoteTls = $RemoteTls
     $script:RemoteArch = $RemoteArch
-    $script:SharedEC = $SharedEC
     $script:XDP = $XDP
     $script:PGO = $PGO
     $script:Config = $Config
@@ -1184,7 +1183,6 @@ class TestRunDefinition {
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
     [string]$FailureDefault;
-    [boolean]$SharedEC;
     [boolean]$XDP;
     [string[]]$Formats;
     [double]$RegressionThreshold;
@@ -1208,7 +1206,6 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
-        $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
         $this.FailureDefault = $existingDef.FailureDefault
     }
@@ -1237,7 +1234,6 @@ class TestRunDefinition {
             $this.VariableName += ("_" + $Var.Name + "_" + $Var.Value)
         }
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $BaseArgs)
-        $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
     }
 
@@ -1258,7 +1254,6 @@ class TestRunDefinition {
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
         $this.RegressionThreshold = $existingDef.RegressionThreshold
-        $this.SharedEC = $script:SharedEC
         $this.XDP = $script:XDP
         $this.FailureDefault = $existingDef.FailureDefault
     }
@@ -1280,12 +1275,6 @@ class TestRunDefinition {
         $Platform = $this.Local.Platform
         if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
-        }
-        if ($script:SharedEC -and $this.Local.Platform -eq "Windows") {
-            $Platform = 'WinSharedEC'
-        }
-        if ($script:SharedEC -and $this.Local.Platform -eq "Linux") {
-            $Platform = 'LinuxSharedEC'
         }
         if ($script:XDP -and $this.Local.Platform -eq "Windows") {
             $Platform = 'WinXDP'
@@ -1557,9 +1546,6 @@ function Test-CanRunTest {
         return $false
     }
     if ($script:Kernel -and $Test.SkipKernel) {
-        return $false
-    }
-    if ($script:SharedEC -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     if ($script:XDP -and $Test.TestName.Contains("Tcp")) {
