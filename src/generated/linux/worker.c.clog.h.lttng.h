@@ -47,10 +47,10 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
         IdealProcessor,
-        Owner);
+        Registration);
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = IdealProcessor = arg3
-// arg4 = arg4 = Owner = arg4
+// arg4 = arg4 = Registration = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCreated,
     TP_ARGS(
@@ -272,9 +272,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStop,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
-            sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
+            WorkerPoolSize);
 // arg2 = arg2 = "QUIC_WORKER_POOL" = arg2
-// arg3 = arg3 = sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER) = arg3
+// arg3 = arg3 = WorkerPoolSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, AllocFailure,
     TP_ARGS(

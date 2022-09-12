@@ -187,7 +187,6 @@ namespace Microsoft.Quic
     internal enum QUIC_EXECUTION_CONFIG_FLAGS
     {
         NONE = 0x0000,
-        SHARED_THREADS = 0x0001,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG
