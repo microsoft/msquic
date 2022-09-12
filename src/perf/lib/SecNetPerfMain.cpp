@@ -96,9 +96,9 @@ PrintHelp(
         "Both:\n"
         "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
-        "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -sleepthresh:<time_us>      Amount of time to poll before sleeping (default: 0).\n"
 #ifndef _KERNEL_MODE
+        "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
 #endif // _KERNEL_MODE
         "\n"
@@ -192,6 +192,7 @@ QuicMainStart(
     Config->SleepTimeoutUs = UINT32_MAX; // Default to no sleep.
     bool SetConfig = false;
 
+#ifndef _KERNEL_MODE
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
@@ -207,6 +208,7 @@ QuicMainStart(
             } while (*CpuStr && Config->ProcessorCount < 256);
         }
     }
+#endif // _KERNEL_MODE
 
     if (TryGetValue(argc, argv, "sleepthresh", &Config->SleepTimeoutUs)) {
         SetConfig = true;
