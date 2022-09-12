@@ -95,14 +95,15 @@ public:
     HpsWorkerContext Contexts[PERF_MAX_THREAD_COUNT];
     MsQuicRegistration Registration {
         "secnetperf-client-hps",
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        PerfDefaultExecutionProfile,
         false};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
-            .SetIdleTimeoutMs(HPS_DEFAULT_IDLE_TIMEOUT),
+            .SetIdleTimeoutMs(HPS_DEFAULT_IDLE_TIMEOUT)
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

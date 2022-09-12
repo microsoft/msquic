@@ -24,9 +24,6 @@ This script runs spinquic locally for a period of time.
 .PARAMETER GenerateXmlResults
     Generates an xml Test report for the run.
 
-.PARAMETER SharedEC
-    Runs in shared execution context mode.
-
 .PARAMETER Debugger
     Attaches the debugger to the process.
 
@@ -77,9 +74,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$GenerateXmlResults = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$SharedEC = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
@@ -155,9 +149,6 @@ if ($Seed -ne "") {
 }
 if ($Target -ne "") {
     $SpinQuicArgs += " -target:$($Target)"
-}
-if ($SharedEC) {
-    $SpinQuicArgs += " -sharedec"
 }
 
 $Arguments = "-Path $($SpinQuic) -Arguments '$($SpinQuicArgs)' -ShowOutput"

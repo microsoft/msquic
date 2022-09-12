@@ -25,6 +25,8 @@ volatile int BufferCurrent;
 char Buffer[BufferLength];
 
 PerfBase* TestToRun;
+QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 
 #include "quic_datapath.h"
 
@@ -89,14 +91,14 @@ PrintHelp(
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
-        "  -cc:<algo>                  Congestion control algorithm to use.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "Both:\n"
-#ifndef _KERNEL_MODE
+        "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
+        "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -sleepthresh:<time_us>      Amount of time to poll before sleeping (default: 0).\n"
-        "  -sharedec                   Configure shared execution mode.\n"
+#ifndef _KERNEL_MODE
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
 #endif // _KERNEL_MODE
         "\n"
@@ -185,7 +187,6 @@ QuicMainStart(
         return Status;
     }
 
-#ifndef _KERNEL_MODE
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
     Config->SleepTimeoutUs = UINT32_MAX; // Default to no sleep.
@@ -211,11 +212,6 @@ QuicMainStart(
         SetConfig = true;
     }
 
-    if (GetFlag(argc, argv, "sharedec")) {
-        SetConfig = true;
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS;
-    }
-
     if (SetConfig &&
         QUIC_FAILED(
         Status =
@@ -227,25 +223,38 @@ QuicMainStart(
         WriteOutput("Failed to set execution config %d\n", Status);
         return Status;
     }
-#endif // _KERNEL_MODE
 
-    QUIC_CONGESTION_CONTROL_ALGORITHM Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+    const char* ExecStr = GetValue(argc, argv, "exec");
+    if (ExecStr != nullptr) {
+        if (IsValue(ExecStr, "lowlat")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+        } else if (IsValue(ExecStr, "maxtput")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+        } else if (IsValue(ExecStr, "scavenger")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
+        } else if (IsValue(ExecStr, "realtime")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
+        } else {
+            WriteOutput("Failed to parse execution profile[%s], use lowlat as default\n", ExecStr);
+        }
+    }
+
     const char* CcName = GetValue(argc, argv, "cc");
     if (CcName != nullptr) {
         if (IsValue(CcName, "cubic")) {
-            Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+            PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
         } else if (IsValue(CcName, "bbr")) {
-            Cc = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+            PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
         } else {
             WriteOutput("Failed to parse congestion control algorithm[%s], use cubic as default\n", CcName);
         }
     }
 
     if (ServerMode) {
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig, Cc);
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
     } else {
         if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
-            TestToRun = new(std::nothrow) ThroughputClient(Cc);
+            TestToRun = new(std::nothrow) ThroughputClient;
         } else if (IsValue(TestName, "RPS")) {
             TestToRun = new(std::nothrow) RpsClient;
         } else if (IsValue(TestName, "HPS")) {

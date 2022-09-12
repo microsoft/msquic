@@ -26,9 +26,6 @@ as necessary.
 .PARAMETER GenerateXmlResults
     Generates an xml Test report for the run.
 
-.PARAMETER SharedEC
-    Runs in shared execution context mode.
-
 .PARAMETER Debugger
     Attaches the debugger to the process.
 
@@ -89,9 +86,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$GenerateXmlResults = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$SharedEC = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
@@ -371,9 +365,6 @@ function Start-TestCase([String]$Name) {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
-    if ($SharedEC) {
-        $Arguments += " --sharedEC"
-    }
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
@@ -413,9 +404,6 @@ function Start-AllTestCases {
     }
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
-    }
-    if ($SharedEC) {
-        $Arguments += " --sharedEC"
     }
     if ($DuoNic) {
         $Arguments += " --duoNic"

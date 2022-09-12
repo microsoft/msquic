@@ -967,16 +967,6 @@ QuicLibrarySetGlobalParam(
             }
         }
 
-#ifdef _KERNEL_MODE
-        //
-        // Kernel mode doesn't support shared threads, because the datapath runs
-        // on DPCs, not threads owned by MsQuic.
-        //
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-#endif
-
         if (MsQuicLib.Datapath != NULL) {
             QuicTraceEvent(
                 LibraryError,

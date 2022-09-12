@@ -19,17 +19,7 @@ Abstract:
 
 class ThroughputClient : public PerfBase {
 public:
-    ThroughputClient(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) :
-        Configuration {
-            Registration,
-            MsQuicAlpn(PERF_ALPN),
-            MsQuicSettings()
-                .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
-                .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT)
-                .SetCongestionControlAlgorithm(Cc),
-            MsQuicCredentialConfig(
-                QUIC_CREDENTIAL_FLAG_CLIENT |
-                QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)},
+    ThroughputClient() :
         Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
         CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
         CxPlatLockInitialize(&TcpLock);
@@ -119,9 +109,18 @@ private:
 
     MsQuicRegistration Registration {
         "secnetperf-client-tput",
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        PerfDefaultExecutionProfile,
         true};
-    MsQuicConfiguration Configuration;
+    MsQuicConfiguration Configuration {
+        Registration,
+        MsQuicAlpn(PERF_ALPN),
+        MsQuicSettings()
+            .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
+            .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT)
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
+        MsQuicCredentialConfig(
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     UniquePtr<char[]> TargetData;
     CXPLAT_EVENT* StopEvent {nullptr};

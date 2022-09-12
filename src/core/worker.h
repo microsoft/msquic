@@ -22,6 +22,11 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     CXPLAT_EVENT Done;
 
     //
+    // Indicates if this work is handled by an external (to QUIC) execution context.
+    //
+    BOOLEAN IsExternal;
+
+    //
     // TRUE if the worker is currently running.
     //
     BOOLEAN Enabled;
@@ -133,9 +138,8 @@ QuicWorkerIsOverloaded(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicWorkerPoolInitialize(
-    _In_opt_ const void* Owner,
-    _In_ uint16_t ThreadFlags,
-    _In_ uint16_t WorkerCount,
+    _In_ const QUIC_REGISTRATION* Registration,
+    _In_ QUIC_EXECUTION_PROFILE ExecProfile,
     _Out_ QUIC_WORKER_POOL** WorkerPool
     );
 

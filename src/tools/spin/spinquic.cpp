@@ -221,7 +221,6 @@ public:
 static struct {
     bool RunServer {false};
     bool RunClient {false};
-    bool SharedEC {false};
     uint32_t SessionCount {4};
     uint64_t RunTimeMs;
     uint64_t MaxOperationCount;
@@ -1087,7 +1086,6 @@ main(int argc, char **argv)
     Settings.MaxOperationCount = UINT64_MAX;
     Settings.LossPercent = 1;
     Settings.AllocFailDenominator = 0;
-    Settings.SharedEC = GetFlag(argc, argv, "sharedec");
 
     TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
     TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
@@ -1146,19 +1144,6 @@ main(int argc, char **argv)
                 sizeof(Value),
                 &Value))) {
             printf("Setting Datapath hooks failed.\n");
-        }
-    }
-
-    if (Settings.SharedEC) {
-        printf("Setting shared EC...\n");
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS, 0, 0};
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                NULL,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                sizeof(Config),
-                &Config))) {
-            printf("Setting shared EC failed.\n");
         }
     }
 

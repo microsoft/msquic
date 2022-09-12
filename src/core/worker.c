@@ -41,8 +41,7 @@ QuicWorkerThreadWake(
     )
 {
     Worker->ExecutionContext.Ready = TRUE; // Run the execution context
-    if (MsQuicLib.ExecutionConfig &&
-        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS) {
+    if (Worker->IsExternal) {
         CxPlatWakeExecutionContext(&Worker->ExecutionContext);
     } else {
         CxPlatEventSet(Worker->Ready);
@@ -58,8 +57,8 @@ QuicWorkerUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicWorkerInitialize(
-    _In_opt_ const void* Owner,
-    _In_ uint16_t ThreadFlags,
+    _In_ const QUIC_REGISTRATION* Registration,
+    _In_ QUIC_EXECUTION_PROFILE ExecProfile,
     _In_ uint16_t IdealProcessor,
     _Inout_ QUIC_WORKER* Worker
     )
@@ -71,7 +70,7 @@ QuicWorkerInitialize(
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
         IdealProcessor,
-        Owner);
+        Registration);
 
     Worker->Enabled = TRUE;
     Worker->IdealProcessor = IdealProcessor;
@@ -98,10 +97,17 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
     Worker->ExecutionContext.Ready = TRUE;
 
-    if (MsQuicLib.ExecutionConfig &&
-        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS) {
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+    if (ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
+        Worker->IsExternal = TRUE;
         CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
-    } else {
+    } else
+#endif // _KERNEL_MODE
+    {
+        const uint16_t ThreadFlags =
+            ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME ?
+                CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             ThreadFlags,
             IdealProcessor,
@@ -153,8 +159,7 @@ QuicWorkerUninitialize(
     }
     CxPlatEventUninitialize(Worker->Done);
 
-    if (!MsQuicLib.ExecutionConfig ||
-        !(MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_SHARED_THREADS)) {
+    if (!Worker->IsExternal) {
         //
         // Wait for the thread to finish.
         //
@@ -759,37 +764,37 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicWorkerPoolInitialize(
-    _In_opt_ const void* Owner,
-    _In_ uint16_t ThreadFlags,
-    _In_ uint16_t WorkerCount,
+    _In_ const QUIC_REGISTRATION* Registration,
+    _In_ QUIC_EXECUTION_PROFILE ExecProfile,
     _Out_ QUIC_WORKER_POOL** NewWorkerPool
     )
 {
-    QUIC_STATUS Status;
+    const uint16_t WorkerCount =
+        ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER ? 0 : MsQuicLib.PartitionCount;
+    const size_t WorkerPoolSize =
+        sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER);
 
-    QUIC_WORKER_POOL* WorkerPool =
-        CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER), QUIC_POOL_WORKER);
+    QUIC_WORKER_POOL* WorkerPool = CXPLAT_ALLOC_NONPAGED(WorkerPoolSize, QUIC_POOL_WORKER);
     if (WorkerPool == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
-            sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+            WorkerPoolSize);
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    CxPlatZeroMemory(WorkerPool, WorkerPoolSize);
     WorkerPool->WorkerCount = WorkerCount;
-    WorkerPool->LastWorker = 0;
-    CxPlatZeroMemory(WorkerPool->Workers, sizeof(QUIC_WORKER) * WorkerCount);
 
     //
     // Create the set of worker threads and soft affinitize them in order to
     // attempt to spread the connection workload out over multiple processors.
     //
 
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint16_t i = 0; i < WorkerCount; i++) {
-        Status = QuicWorkerInitialize(Owner, ThreadFlags, i, &WorkerPool->Workers[i]);
+        Status = QuicWorkerInitialize(Registration, ExecProfile, i, &WorkerPool->Workers[i]);
         if (QUIC_FAILED(Status)) {
             for (uint16_t j = 0; j < i; j++) {
                 QuicWorkerUninitialize(&WorkerPool->Workers[j]);
@@ -799,14 +804,11 @@ QuicWorkerPoolInitialize(
     }
 
     *NewWorkerPool = WorkerPool;
-    Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (WorkerPool != NULL) {
-            CXPLAT_FREE(WorkerPool, QUIC_POOL_WORKER);
-        }
+        CXPLAT_FREE(WorkerPool, QUIC_POOL_WORKER);
     }
 
     return Status;

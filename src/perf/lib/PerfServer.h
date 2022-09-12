@@ -18,19 +18,7 @@ Abstract:
 
 class PerfServer : public PerfBase {
 public:
-    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig, QUIC_CONGESTION_CONTROL_ALGORITHM Cc) :
-        Configuration {
-            Registration,
-            Alpn,
-            MsQuicSettings()
-                .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
-                .SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
-                .SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
-                .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
-                .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
-                .SetSendBufferingEnabled(false)
-                .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
-                .SetCongestionControlAlgorithm(Cc)},
+    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
         Server(&Engine, CredConfig, this) {
         CxPlatZeroMemory(&LocalAddr, sizeof(LocalAddr));
@@ -138,10 +126,21 @@ private:
     QUIC_STATUS InitStatus;
     MsQuicRegistration Registration {
         "secnetperf-server",
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        PerfDefaultExecutionProfile,
         true};
     MsQuicAlpn Alpn {PERF_ALPN};
-    MsQuicConfiguration Configuration;
+    MsQuicConfiguration Configuration {
+        Registration,
+        Alpn,
+        MsQuicSettings()
+            .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
+            .SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
+            .SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
+            .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
+            .SetSendBufferingEnabled(false)
+            .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)};
     MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
