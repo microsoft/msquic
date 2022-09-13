@@ -24,13 +24,6 @@ Environment:
 #error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
 
-// For FreeBSD
-#if defined(__FreeBSD__)
-#include <sys/socket.h>
-#include <netinet/in.h>
-#define ETIME   ETIMEDOUT
-#endif
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -42,10 +35,10 @@ Environment:
 #include <stddef.h>
 #include <stdalign.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include "msquic_posix.h"
 #include <stdbool.h>
 #include <pthread.h>
@@ -1100,7 +1093,15 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    return (*queue = kqueue()) != -1;
+    // Create kqueue
+    if ((*queue = kqueue()) == -1) {
+        return false;
+    }
+
+    // Add an event to wake up
+    struct kevent Event = {0};
+    EV_SET(&Event, *queue, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, NULL);
+    return kevent(*queue, &Event, 1, NULL, 0, NULL) != 1;
 }
 
 inline
@@ -1120,8 +1121,9 @@ CxPlatEventQEnqueue(
     _In_opt_ void* user_data
     )
 {
+    (void)sqe;
     struct kevent event = {0};
-    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | EV_ONESHOT, NOTE_TRIGGER, 0, user_data);
+    EV_SET(&event, *queue, EVFILT_USER, 0, NOTE_TRIGGER, 0, user_data);
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 

@@ -28,6 +28,7 @@ Environment:
 #include <inttypes.h>
 #include <stddef.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -96,6 +97,10 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #ifndef ENOKEY // undefined om macOS
 #define ENOKEY 126
 #endif // ENOKEY
+
+#ifndef ETIME // undefined on FreeBSD
+#define ETIME 101 // same as macOS's: change this if 101 is added to errno.h
+#endif // ETIME
 
 #define ERROR_BASE                          200000000                       // 0xBEBC200
 #define TLS_ERROR_BASE                      256 + ERROR_BASE                // 0xBEBC300
@@ -422,6 +427,10 @@ QuicAddr4FromString(
         }
     }
     Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
+#if defined(__FreeBSD__)
+    Addr->Ipv4.sin_len = sizeof(struct sockaddr_in);
+#endif
+
     return TRUE;
 }
 
@@ -456,6 +465,9 @@ QuicAddr6FromString(
         }
     }
     Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
+#if defined(__FreeBSD__)
+    Addr->Ipv6.sin6_len = sizeof(struct sockaddr_in6);
+#endif
     return TRUE;
 }
 

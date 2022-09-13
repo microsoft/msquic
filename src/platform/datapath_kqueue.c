@@ -390,6 +390,8 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+extern void CxPlatWorkerWake();
+
 QUIC_STATUS
 CxPlatSocketSendInternal(
     _In_ CXPLAT_SOCKET* Socket,
@@ -1095,7 +1097,10 @@ CxPlatSocketContextUninitializeComplete(
         struct kevent DeleteEvent = {0};
         EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
         (void)kevent(*SocketContext->DatapathProc->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
-        close(SocketContext->SocketFd);
+
+        // Wake up loop
+        CxPlatWorkerWake(*SocketContext->DatapathProc);
+        close(SocketContext->SocketFd); // Probably better to do after kevent received CXPLAT_CQE_TYPE_WORKER_WAKE
     }
 
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
@@ -2182,6 +2187,9 @@ CxPlatSocketSendInternal(
                     "kevent failed");
                 goto Exit;
             }
+
+            // Wake up loop
+            CxPlatWorkerWake(*SocketContext->DatapathProc);
             Status = QUIC_STATUS_PENDING;
             goto Exit;
         } else {
