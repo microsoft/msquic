@@ -640,6 +640,7 @@ if(QUIC_CODE_CHECK)
             -bugprone-sizeof-expression
             -cert-dcl37-c
             -cert-dcl51-cpp
+            -cert-err33-c
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
@@ -653,7 +654,9 @@ if(QUIC_CODE_CHECK)
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
+            -readability-duplicate-include
             -readability-function-cognitive-complexity
+            -readability-identifier-length
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
