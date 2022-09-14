@@ -2571,7 +2571,9 @@ CxPlatSocketSendInternal(
         *(int *)CMSG_DATA(CMsg) = SendData->ECN;
 
         if (!Socket->Connected) {
-            Mhdr->msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
+            Mhdr->msg_controllen += RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET
+                ? CMSG_SPACE(sizeof(struct in_pktinfo))
+                : CMSG_SPACE(sizeof(struct in6_pktinfo));
             CMsg = CMSG_NXTHDR(Mhdr, CMsg);
             CXPLAT_DBG_ASSERT(LocalAddress != NULL);
             CXPLAT_DBG_ASSERT(CMsg != NULL);
