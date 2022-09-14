@@ -1210,6 +1210,9 @@ CxPlatSocketContextStartReceive(
         goto Error;
     }
 
+    // Wake up loop
+    CxPlatWorkerWake(*SocketContext->DatapathProc);
+
 Error:
 
     return Status;
@@ -1439,7 +1442,7 @@ CxPlatDataPathSocketProcessIoCompletion(
         return;
     }
 
-    CXPLAT_DBG_ASSERT(Cqe->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
+    CXPLAT_DBG_ASSERT(Cqe->filter == EVFILT_READ || Cqe->filter == EVFILT_WRITE || Cqe->filter == EVFILT_USER);
 
     if (Cqe->filter == EVFILT_READ) {
         //
@@ -1484,9 +1487,7 @@ CxPlatDataPathSocketProcessIoCompletion(
             }
             CxPlatSocketContextRecvComplete(SocketContext, Ret);
         }
-    }
-
-    if (Cqe->filter == EVFILT_WRITE) {
+    } else if (Cqe->filter == EVFILT_WRITE) {
         CxPlatSocketContextSendComplete(SocketContext);
     }
 
