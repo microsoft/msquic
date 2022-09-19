@@ -235,6 +235,15 @@ function Uninstall-Xdp {
     rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
 }
 
+# Install demikernel prerequisites
+function Install-Demikernel-Sdk {
+    if (!$IsWindows) {
+        Write-Host "Installing demikernel prereqs"
+        sudo -H scripts/setup/debian.sh                                   # Install third party libraries.
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh    # Get Rust toolchain.
+    }
+}
+
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
     if (!$IsWindows) { return } # Windows only
@@ -506,6 +515,7 @@ if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
+if ($InstallDemikernelSdk) { Install-Demikernel-Sdk }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
