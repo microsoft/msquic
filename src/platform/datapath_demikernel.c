@@ -112,6 +112,39 @@ CxPlatDataPathGetGatewayAddresses(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+#ifdef _WIN32
+
+void
+CxPlatDataPathPopulateTargetAddress(
+    _In_ ADDRESS_FAMILY Family,
+    _In_ ADDRINFOW *Ai,
+    _Out_ SOCKADDR_INET* Address
+    )
+{
+    if (Ai->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+        //
+        // Is this a mapped ipv4 one?
+        //
+        PSOCKADDR_IN6 SockAddr6 = (PSOCKADDR_IN6)Ai->ai_addr;
+
+        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6ADDR_ISV4MAPPED(SockAddr6))
+        {
+            PSOCKADDR_IN SockAddr4 = &Address->Ipv4;
+            //
+            // Get the ipv4 address from the mapped address.
+            //
+            SockAddr4->sin_family = QUIC_ADDRESS_FAMILY_INET;
+            SockAddr4->sin_addr =
+                *(IN_ADDR UNALIGNED *)
+                    IN6_GET_ADDR_V4MAPPED(&SockAddr6->sin6_addr);
+            SockAddr4->sin_port = SockAddr6->sin6_port;
+            return;
+        }
+    }
+
+    CxPlatCopyMemory(Address, Ai->ai_addr, Ai->ai_addrlen);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathResolveAddress(
@@ -120,8 +153,137 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED; // TODO
+    QUIC_STATUS Status;
+    PWSTR HostNameW = NULL;
+    ADDRINFOW Hints = { 0 };
+    ADDRINFOW *Ai;
+
+    Status =
+        CxPlatUtf8ToWideChar(
+            HostName,
+            QUIC_POOL_PLATFORM_TMP_ALLOC,
+            &HostNameW);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert HostName to unicode");
+        goto Exit;
+    }
+
+    //
+    // Prepopulate hint with input family. It might be unspecified.
+    //
+    Hints.ai_family = Address->si_family;
+
+    //
+    // Try numeric name first.
+    //
+    Hints.ai_flags = AI_NUMERICHOST;
+    if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
+        CxPlatDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
+        FreeAddrInfoW(Ai);
+        Status = QUIC_STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    //
+    // Try canonical host name.
+    //
+    Hints.ai_flags = AI_CANONNAME;
+    if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
+        CxPlatDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
+        FreeAddrInfoW(Ai);
+        Status = QUIC_STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    QuicTraceEvent(
+        LibraryError,
+        "[ lib] ERROR, %s.",
+        "Resolving hostname to IP");
+    QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
+    Status = HRESULT_FROM_WIN32(WSAHOST_NOT_FOUND);
+
+Exit:
+
+    if (HostNameW != NULL) {
+        CXPLAT_FREE(HostNameW, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+
+    return Status;
 }
+
+#else
+
+QUIC_STATUS
+CxPlatDataPathResolveAddress(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_z_ const char* HostName,
+    _Inout_ QUIC_ADDR* Address
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    ADDRINFO Hints = {0};
+    ADDRINFO* AddrInfo = NULL;
+    int Result = 0;
+
+    //
+    // Prepopulate hint with input family. It might be unspecified.
+    //
+    Hints.ai_family = Address->Ip.sa_family;
+    if (Hints.ai_family == QUIC_ADDRESS_FAMILY_INET6) {
+        Hints.ai_family = AF_INET6;
+    }
+
+    //
+    // Try numeric name first.
+    //
+    Hints.ai_flags = AI_NUMERICHOST;
+    Result = getaddrinfo(HostName, NULL, &Hints, &AddrInfo);
+    if (Result == 0) {
+        CxPlatDataPathPopulateTargetAddress(Hints.ai_family, AddrInfo, Address);
+        freeaddrinfo(AddrInfo);
+        AddrInfo = NULL;
+        goto Exit;
+    }
+
+    //
+    // Try canonical host name.
+    //
+    Hints.ai_flags = AI_CANONNAME;
+    Result = getaddrinfo(HostName, NULL, &Hints, &AddrInfo);
+    if (Result == 0) {
+        CxPlatDataPathPopulateTargetAddress(Hints.ai_family, AddrInfo, Address);
+        freeaddrinfo(AddrInfo);
+        AddrInfo = NULL;
+        goto Exit;
+    }
+
+    QuicTraceEvent(
+        LibraryErrorStatus,
+        "[ lib] ERROR, %u, %s.",
+        (uint32_t)Result,
+        "Resolving hostname to IP");
+    QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
+    Status = (QUIC_STATUS)Result;
+
+Exit:
+
+    return Status;
+}
+
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

@@ -99,6 +99,10 @@ elseif(QUIC_TLS STREQUAL "schannel")
 endif()
 
 if(QUIC_USE_DEMIKERNEL)
-    add_dependencies(platform demikernel)
-    target_link_libraries(platform PUBLIC ${PROJECT_SOURCE_DIR}/submodules/demikernel/target/release/libdemikernel.so)
+    if("${CX_PLATFORM}" STREQUAL "windows")
+        # TODO - Windows library dependency
+    else()
+        add_dependencies(platform demikernel)
+        target_link_libraries(platform PUBLIC ${PROJECT_SOURCE_DIR}/submodules/demikernel/target/release/libdemikernel.so)
+    endif()
 endif()
