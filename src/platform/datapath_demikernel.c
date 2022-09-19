@@ -17,6 +17,22 @@ Abstract:
 
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+CXPLAT_RECV_DATA*
+CxPlatDataPathRecvPacketToRecvData(
+    _In_ const CXPLAT_RECV_PACKET* const Context
+    )
+{
+    return NULL;
+}
+
+CXPLAT_RECV_PACKET*
+CxPlatDataPathRecvDataToRecvPacket(
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    )
+{
+    return NULL;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -152,7 +168,7 @@ CxPlatSocketDelete(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
+uint16_t
 CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
@@ -260,4 +276,13 @@ CxPlatSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));*/
     return QUIC_STATUS_NOT_SUPPORTED; // TODO
+}
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    // No events (yet)
+    UNREFERENCED_PARAMETER(Cqe);
 }

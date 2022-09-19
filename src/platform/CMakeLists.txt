@@ -91,3 +91,8 @@ if(QUIC_TLS STREQUAL "openssl")
 elseif(QUIC_TLS STREQUAL "schannel")
     target_link_libraries(platform PUBLIC secur32 onecore)
 endif()
+
+if(QUIC_USE_DEMIKERNEL)
+    add_dependencies(platform demikernel)
+    target_link_libraries(platform PUBLIC ${PROJECT_SOURCE_DIR}/submodules/demikernel/target/release/libdemikernel.so)
+endif()

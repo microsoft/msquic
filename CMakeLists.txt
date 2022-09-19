@@ -301,6 +301,7 @@ else()
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
+        -Wno-unused-parameter # TODO - Remove
         CACHE INTERNAL "")
     if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
         list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
@@ -334,7 +335,12 @@ endif()
 
 if(QUIC_USE_DEMIKERNEL)
     list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1 QUIC_USE_RAW_DATAPATH=1)
-    # TODO - Build demikernel submodule
+    add_custom_command(
+        OUTPUT ${PROJECT_SOURCE_DIR}/submodules/demikernel/target/release/libdemikernel.so
+        COMMAND make all-libs
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/submodules/demikernel)
+    add_custom_target(demikernel
+        DEPENDS ${PROJECT_SOURCE_DIR}/submodules/demikernel/target/release/libdemikernel.so)
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")
