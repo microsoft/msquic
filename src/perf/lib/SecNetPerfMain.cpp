@@ -106,6 +106,7 @@ PrintHelp(
 }
 
 #ifdef QUIC_USE_RAW_DATAPATH
+#ifdef _WIN32
 CXPLAT_THREAD_CALLBACK(ControlThread, Context)
 {
     WSADATA WsaData;
@@ -146,6 +147,7 @@ Done:
     closesocket(Listener);
     CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
+#endif // _WIN32
 #endif
 
 QUIC_STATUS
@@ -180,6 +182,7 @@ QuicMainStart(
     QUIC_STATUS Status;
 
 #ifdef QUIC_USE_RAW_DATAPATH
+#ifdef _WIN32
     if (ServerMode) {
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             CXPLAT_THREAD_FLAG_NONE,
@@ -194,6 +197,7 @@ QuicMainStart(
             return Status;
         }
     }
+#endif // _WIN32
 #else
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         DatapathReceive,
@@ -355,10 +359,12 @@ QuicMainFree(
     }
 
 #ifdef QUIC_USE_RAW_DATAPATH
+#ifdef _WIN32
     if (ControlThreadHandle) {
         CxPlatThreadWait(&ControlThreadHandle);
         CxPlatThreadDelete(&ControlThreadHandle);
     }
+#endif // _WIN32
 #else
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
