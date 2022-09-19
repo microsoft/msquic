@@ -90,6 +90,9 @@ This script provides helpers for building msquic.
 .PARAMETER UseXdp
     Use XDP for the datapath instead of system socket APIs.
 
+.PARAMETER UseDemikernel
+    Use demikernel for the datapath instead of system socket APIs.
+
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -198,6 +201,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseDemikernel = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
@@ -446,6 +452,9 @@ function CMake-Generate {
     }
     if ($UseXdp) {
         $Arguments += " -DQUIC_USE_XDP=on"
+    }
+    if ($UseDemikernel) {
+        $Arguments += " -DQUIC_USE_DEMIKERNEL=on"
     }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"

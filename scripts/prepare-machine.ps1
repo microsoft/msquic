@@ -89,6 +89,9 @@ param (
     [switch]$UninstallXdp,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallDemikernelSdk,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallClog2Text,
 
     [Parameter(Mandatory = $false)]
@@ -489,6 +492,12 @@ if ($InitSubmodules) {
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
+        git submodule update
+    }
+
+    if ($InstallDemikernelSdk) {
+        Write-Host "Initializing demikernel submodule"
+        git submodule init submodules/demikernel
         git submodule update
     }
 }

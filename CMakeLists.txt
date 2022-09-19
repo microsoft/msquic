@@ -101,6 +101,7 @@ option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
 option(QUIC_SHARED_EC "Use shared execution contexts between QUIC and UDP" OFF)
 option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
+option(QUIC_USE_DEMIKERNEL "Uses demikernel instead of socket APIs" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
@@ -329,6 +330,11 @@ endif()
 
 if(QUIC_USE_XDP)
     list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1 QUIC_USE_RAW_DATAPATH=1)
+endif()
+
+if(QUIC_USE_DEMIKERNEL)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_EXECUTION_CONTEXTS=1 QUIC_USE_RAW_DATAPATH=1)
+    # TODO - Build demikernel submodule
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")
