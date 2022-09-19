@@ -2,6 +2,71 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathResolveHostNameFailed
+// [%p] Couldn't resolve hostname '%s' to an IP address
+// QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_DEMIKERNEL_C, DatapathResolveHostNameFailed,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert HostName to unicode");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Convert HostName to unicode" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_DEMIKERNEL_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+        LibraryError,
+        "[ lib] ERROR, %s.",
+        "Resolving hostname to IP");
+// arg2 = arg2 = "Resolving hostname to IP" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_DEMIKERNEL_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
