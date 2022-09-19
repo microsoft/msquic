@@ -262,7 +262,7 @@ CubicCongestionControlOnCongestionEvent(
             "[conn][%p] Persistent congestion event",
             Connection);
         Connection->Stats.Send.PersistentCongestionCount++;
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
         Connection->Paths[0].Route.State = RouteSuspected;
 #endif
         Cubic->IsInPersistentCongestion = TRUE;

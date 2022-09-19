@@ -473,7 +473,7 @@ ResolveRouteComplete(
         CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
+#endif // QUIC_USE_RAW_ROUTE
 
 struct CxPlatSocket {
     CXPLAT_SOCKET* Socket {nullptr};

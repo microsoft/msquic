@@ -156,7 +156,7 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
     void* Queue;
@@ -166,7 +166,7 @@ typedef struct CXPLAT_ROUTE {
     //
 
     CXPLAT_ROUTE_STATE State;
-#endif // QUIC_USE_RAW_DATAPATH
+#endif // QUIC_USE_RAW_ROUTE
 
 } CXPLAT_ROUTE;
 

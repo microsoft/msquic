@@ -15,7 +15,7 @@ Abstract:
 #include "datapath_demikernel.c.clog.h"
 #endif
 
-
+#pragma warning(disable:4100) // unreferenced formal parameter
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -39,7 +39,7 @@ CxPlatDataPathInitialize(
 
     // TODO
 
-    return QUCI_STATUS_NOT_SUPPORTED;
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -167,7 +167,7 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    *Address = Socket->LocalAddress;
+    // TODO
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -177,7 +177,7 @@ CxPlatSocketGetRemoteAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    *Address = Socket->RemoteAddress;
+    // TODO
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -199,7 +199,7 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED; // TODO
+    return NULL; // TODO
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -250,7 +250,7 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    QuicTraceEvent(
+    /*QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
@@ -258,6 +258,6 @@ CxPlatSocketSend(
         1,
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));*/
     return QUIC_STATUS_NOT_SUPPORTED; // TODO
 }
