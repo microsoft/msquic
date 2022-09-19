@@ -8,3 +8,7 @@
 [submodule "submodules/clog"]
 	path = submodules/clog
 	url = https://github.com/microsoft/CLOG.git
+[submodule "submodules/demikernel"]
+	path = submodules/demikernel
+	url = https://github.com/demikernel/demikernel.git
+	branch = wip-feature-msquic-integration
