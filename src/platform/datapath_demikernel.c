@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#include <demi/libos.h>
 
 #ifdef QUIC_CLOG
 #include "datapath_demikernel.c.clog.h"

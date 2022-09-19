@@ -75,6 +75,12 @@ if(QUIC_USE_XDP)
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
+elseif(QUIC_USE_DEMIKERNEL)
+    target_include_directories(
+        platform
+        PRIVATE
+        ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
+        ${PROJECT_SOURCE_DIR}/submodules/demikernel/include)
 else()
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
