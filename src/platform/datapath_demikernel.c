@@ -221,6 +221,56 @@ Exit:
 
 #else
 
+void
+CxPlatDataPathPopulateTargetAddress(
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_ ADDRINFO* AddrInfo,
+    _Out_ QUIC_ADDR* Address
+    )
+{
+    struct sockaddr_in6* SockAddrIn6 = NULL;
+    struct sockaddr_in* SockAddrIn = NULL;
+
+    CxPlatZeroMemory(Address, sizeof(QUIC_ADDR));
+
+    if (AddrInfo->ai_addr->sa_family == AF_INET6) {
+        CXPLAT_DBG_ASSERT(sizeof(struct sockaddr_in6) == AddrInfo->ai_addrlen);
+
+        //
+        // Is this a mapped ipv4 one?
+        //
+
+        SockAddrIn6 = (struct sockaddr_in6*)AddrInfo->ai_addr;
+
+        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
+            SockAddrIn = &Address->Ipv4;
+
+            //
+            // Get the ipv4 address from the mapped address.
+            //
+
+            SockAddrIn->sin_family = QUIC_ADDRESS_FAMILY_INET;
+            memcpy(&SockAddrIn->sin_addr.s_addr, &SockAddrIn6->sin6_addr.s6_addr[12], 4);
+            SockAddrIn->sin_port = SockAddrIn6->sin6_port;
+
+            return;
+        }
+        Address->Ipv6 = *SockAddrIn6;
+        Address->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+        return;
+    }
+
+    if (AddrInfo->ai_addr->sa_family == AF_INET) {
+        CXPLAT_DBG_ASSERT(sizeof(struct sockaddr_in) == AddrInfo->ai_addrlen);
+        SockAddrIn = (struct sockaddr_in*)AddrInfo->ai_addr;
+        Address->Ipv4 = *SockAddrIn;
+        Address->Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
+        return;
+    }
+
+    CXPLAT_FRE_ASSERT(FALSE);
+}
+
 QUIC_STATUS
 CxPlatDataPathResolveAddress(
     _In_ CXPLAT_DATAPATH* Datapath,
