@@ -11,12 +11,28 @@ Abstract:
 
 #include "platform_internal.h"
 #include <demi/libos.h>
+#include <demi/wait.h>
+#include <demi/sga.h>
 
 #ifdef QUIC_CLOG
 #include "datapath_demikernel.c.clog.h"
 #endif
 
 #pragma warning(disable:4100) // unreferenced formal parameter
+
+typedef struct CXPLAT_DATAPATH {
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks;
+} CXPLAT_DATAPATH;
+
+typedef struct CXPLAT_SOCKET {
+    int sockqd;
+    QUIC_ADDR LocalAddress;
+} CXPLAT_SOCKET;
+
+typedef struct CXPLAT_SEND_DATA {
+    demi_sgarray_t sga;
+    QUIC_BUFFER Buffer;
+} CXPLAT_SEND_DATA;
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
@@ -45,6 +61,11 @@ CxPlatDataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+
+    if (UdpCallbacks == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -54,9 +75,23 @@ CxPlatDataPathInitialize(
         }
     }
 
-    // TODO
+    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
+    if (Datapath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            sizeof(CXPLAT_DATAPATH));
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
 
-    return QUIC_STATUS_NOT_SUPPORTED;
+    char *argv[] = {"foobar"};
+    assert(demi_init(1, argv) == 0);
+
+    *NewDataPath = Datapath;
+    memcpy(&Datapath->UdpCallbacks, UdpCallbacks, sizeof(CXPLAT_UDP_DATAPATH_CALLBACKS));
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -66,6 +101,7 @@ CxPlatDataPathUninitialize(
     )
 {
     // TODO
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -343,7 +379,44 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED; // TODO
+    int sockqd = -1;
+    const size_t BindingLength = sizeof(CXPLAT_SOCKET);
+
+    CXPLAT_SOCKET* Binding =
+        (CXPLAT_SOCKET*)CXPLAT_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
+    if (Binding == NULL) {
+#ifdef QUIC_CLOG
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_SOCKET",
+            BindingLength);
+#endif
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    assert(demi_socket(&sockqd, AF_INET, SOCK_DGRAM, 0) != 0);
+
+    if (Config->LocalAddress) {
+        memcpy(&Binding->LocalAddress, Config->LocalAddress, sizeof(QUIC_ADDR));
+    }
+    else {
+        CxPlatZeroMemory(&Binding->LocalAddress, sizeof(QUIC_ADDR));
+    }
+
+    assert(demi_bind(sockqd, (const struct sockaddr *) &Binding->LocalAddress, sizeof(QUIC_ADDR)) == 0);
+
+#if _DEMIKERNEL_HAS_UDP_CONNECT_
+    if (Config->RemoteAddress) {
+        // TODO: support connect() for UDP
+        demi_qtoken_t qt = -1;
+        assert (demi_connect(&qt, Binding->sockqd, (const struct sockaddr *) &Config->RemoteAddress, sizeof(QUIC_ADDR)) == 0);
+    }
+#endif
+
+    Binding->sockqd = sockqd;
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -428,7 +501,16 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
-    return NULL; // TODO
+    CXPLAT_SEND_DATA *SendData = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEND_DATA), QUIC_POOL_PLATFORM_SENDCTX);
+    assert(SendData != NULL);
+
+    SendData->sga = demi_sgaalloc(MaxPacketSize);
+    assert(SendData->sga.sga_numsegs != 0);
+
+    SendData->Buffer.Buffer = SendData->sga.sga_segs[0].sgaseg_buf;
+    SendData->Buffer.Length = SendData->sga.sga_segs[0].sgaseg_len;
+
+    return SendData;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -439,7 +521,8 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    return NULL; // TODO
+    SendData->Buffer.Length = MaxBufferLength;
+    return &SendData->Buffer;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -448,7 +531,8 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    // TODO
+    assert(demi_sgafree(&SendData->sga) == 0);
+    CXPLAT_FREE(SendData, QUIC_POOL_PLATFORM_SENDCTX);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -458,7 +542,7 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    // No-op?
+    // Nothing to be done.
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -479,7 +563,10 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    /*QuicTraceEvent(
+    demi_qtoken_t qt = -1;
+    demi_qresult_t qr = {};
+
+    QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
@@ -487,8 +574,32 @@ CxPlatSocketSend(
         1,
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));*/
-    return QUIC_STATUS_NOT_SUPPORTED; // TODO
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+
+
+    // TODO: check the following code.
+    demi_sgarray_t sga = { };
+    memcpy(&sga, &SendData->sga, sizeof(demi_sgarray_t));
+    sga.sga_segs[0].sgaseg_len = SendData->Buffer.Length;
+
+    assert(demi_pushto(&qt, Socket->sockqd, &sga, (const struct sockaddr*) &Route->RemoteAddress, sizeof(QUIC_ADDR)) == 0);
+
+    memset(&qr, 0, sizeof(demi_qresult_t()));
+    assert(demi_wait(&qr, qt) == 0);
+
+    switch (qr.qr_opcode)
+    {
+    case DEMI_OPC_PUSH:
+        break;
+
+    default:
+        // TODO: log failure.
+        break;
+    }
+
+    CxPlatSendDataFree(SendData);
+
+    return QUIC_STATUS_SUCCESS; // TODO
 }
 
 void
