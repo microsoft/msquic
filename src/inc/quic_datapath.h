@@ -642,7 +642,7 @@ CxPlatSocketSend(
     _In_ uint16_t PartitionId
     );
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
 //
 // Copies L2 address into route object and sets route state to resolved.
 //
@@ -685,7 +685,7 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
 
-#endif // QUIC_USE_RAW_DATAPATH
+#endif // QUIC_USE_RAW_ROUTE
 
 #if defined(__cplusplus)
 }

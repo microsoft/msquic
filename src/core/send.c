@@ -1072,7 +1072,7 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
     //
     // Make sure the route is resolved before sending packets.
     //
@@ -1097,7 +1097,7 @@ QuicSendFlush(
         //
         return TRUE;
     }
-#endif
+#endif // QUIC_USE_RAW_ROUTE
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(

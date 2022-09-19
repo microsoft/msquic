@@ -454,7 +454,7 @@ struct CxPlatDataPath {
     uint32_t GetSupportedFeatures() const noexcept { return CxPlatDataPathGetSupportedFeatures(Datapath); }
 };
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
@@ -534,7 +534,7 @@ struct CxPlatSocket {
         if (QUIC_SUCCEEDED(InitStatus)) {
             CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
             CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
             if (!QuicAddrIsWildCard(&Route.RemoteAddress)) {
                 //
                 // This is a connected socket and its route must be resolved

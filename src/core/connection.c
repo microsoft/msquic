@@ -5854,7 +5854,7 @@ QuicConnProcessUdpUnreachable(
     }
 }
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_USE_RAW_ROUTE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessRouteCompletion(
@@ -5904,7 +5904,7 @@ QuicConnProcessRouteCompletion(
             NULL);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
+#endif // QUIC_USE_RAW_ROUTE
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
