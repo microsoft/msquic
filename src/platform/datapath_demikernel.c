@@ -150,6 +150,7 @@ CxPlatDataPathUninitialize(
     Datapath->IsRunning = FALSE;
     CxPlatThreadWait(&Datapath->Thread);
     CxPlatThreadDelete(&Datapath->Thread);
+    // TODO: Cleanup demikernel?
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
@@ -429,6 +430,8 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    assert(Datapath->Socket == NULL); // Don't support more than 1 right now
 
     CXPLAT_SOCKET* Socket =
         (CXPLAT_SOCKET*)CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SOCKET), QUIC_POOL_SOCKET);
