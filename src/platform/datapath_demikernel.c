@@ -468,9 +468,11 @@ CxPlatSocketCreateUdp(
         goto Exit0;
     }
 
+    if (Config->LocalAddress) {
     if (demi_bind(Socket->sockqd, (const struct sockaddr*)&Socket->LocalAddress, sizeof(QUIC_ADDR)) != 0) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit1;
+    }
     }
 
 // TODO: Enable the following block when Demikernel features connected UDP sockets.
