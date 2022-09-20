@@ -239,7 +239,7 @@ function Uninstall-Xdp {
 function Install-Demikernel-Sdk {
     if (!$IsWindows) {
         Write-Host "Installing demikernel prereqs"
-        sudo -H scripts/setup/debian.sh                                   # Install third party libraries.
+        sudo -H submodules/demikernel/scripts/setup/debian.sh		  # Install third party libraries.
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh    # Get Rust toolchain.
     }
 }
