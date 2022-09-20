@@ -495,6 +495,7 @@ CxPlatSocketCreateUdp(
     CxPlatLockRelease(&Datapath->Lock);
 
     Datapath->Socket = Socket;
+    *NewSocket = Socket;
 
     return QUIC_STATUS_SUCCESS;
 
