@@ -97,7 +97,7 @@ CxPlatDataPathInitialize(
     }
 
     // Initialize datapath's data structure.
-    memset(&Datapath, 0, sizeof(CXPLAT_DATAPATH));
+    CxPlatZeroMemory(Datapath, sizeof(*Datapath));
     Datapath->IsRunning = TRUE;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     memcpy(&Datapath->UdpCallbacks, UdpCallbacks, sizeof(CXPLAT_UDP_DATAPATH_CALLBACKS));
@@ -436,7 +436,7 @@ CxPlatSocketCreateUdp(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            sizeof(CXPLAT_SOCKET));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
