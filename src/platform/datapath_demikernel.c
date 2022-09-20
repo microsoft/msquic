@@ -86,7 +86,6 @@ CxPlatDataPathInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    fprintf(stderr, "CxPlatDataPathInitialize()\n");
 
     // Validate input args.
     UNREFERENCED_PARAMETER(TcpCallbacks);
@@ -155,7 +154,6 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    fprintf(stderr, "CxPlatDataPathUninitialize()\n");
     Datapath->IsRunning = FALSE;
     CxPlatThreadWait(&Datapath->Thread);
     CxPlatThreadDelete(&Datapath->Thread);
@@ -327,7 +325,6 @@ CxPlatDataPathPopulateTargetAddress(
     struct sockaddr_in6* SockAddrIn6 = NULL;
     struct sockaddr_in* SockAddrIn = NULL;
 
-    fprintf(stderr, "CxPlatDataPathPopulateTargetAddress()\n");
 
     CxPlatZeroMemory(Address, sizeof(QUIC_ADDR));
 
@@ -382,7 +379,6 @@ CxPlatDataPathResolveAddress(
     ADDRINFO* AddrInfo = NULL;
     int Result = 0;
 
-    fprintf(stderr, "CxPlatDataPathResolveAddress()\n");
 
     //
     // Prepopulate hint with input family. It might be unspecified.
@@ -445,7 +441,6 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    fprintf(stderr, "CxPlatSocketCreateUdp()\n");
 
     assert(Datapath->Socket == NULL); // Don't support more than 1 right now
 
@@ -538,7 +533,6 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    fprintf(stderr, "CxPlatSocketDelete()\n");
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     Datapath->Socket = NULL;
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
@@ -619,7 +613,6 @@ CxPlatRecvDataReturn(
     )
 {
 
-    fprintf(stderr, "CxPlatRecvDataReturn()\n");
     while (RecvDataChain != NULL) {
         DEMI_RECEIVE_DATA* DemiRecvData = (DEMI_RECEIVE_DATA*)RecvDataChain;
         CxPlatLockAcquire(&DemiRecvData->Datapath->Lock);
@@ -640,7 +633,6 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
-    fprintf(stderr, "CxPlatSendDataAlloc()\n");
     CXPLAT_SEND_DATA* SendData = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEND_DATA), QUIC_POOL_PLATFORM_SENDCTX);
     assert(SendData != NULL);
 
@@ -664,7 +656,6 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    fprintf(stderr, "CxPlatSendDataAllocBuffer()\n");
     SendData->Buffer.Length = MaxBufferLength;
     return &SendData->Buffer;
 }
@@ -712,7 +703,6 @@ CxPlatSocketSend(
     demi_qtoken_t qt = -1;
     demi_qresult_t qr = {};
 
-    fprintf(stderr, "CxPlatSocketSend()\n");
 
     QuicTraceEvent(
         DatapathSend,
