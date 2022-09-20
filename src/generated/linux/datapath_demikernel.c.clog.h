@@ -46,15 +46,35 @@ tracepoint(CLOG_DATAPATH_DEMIKERNEL_C, DatapathResolveHostNameFailed , arg2, arg
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            sizeof(CXPLAT_DATAPATH));
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = sizeof(CXPLAT_DATAPATH) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_DEMIKERNEL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "Convert HostName to unicode");
+            "CxPlatThreadCreate");
 // arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "Convert HostName to unicode" = arg3
+// arg3 = arg3 = "CxPlatThreadCreate" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -77,6 +97,32 @@ tracepoint(CLOG_DATAPATH_DEMIKERNEL_C, LibraryErrorStatus , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_DEMIKERNEL_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathRecv
+// [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
+// QuicTraceEvent(
+        DatapathRecv,
+        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+        Socket,
+        (uint32_t)DemiRecvData->RecvData.BufferLength,
+        (uint32_t)DemiRecvData->RecvData.BufferLength,
+        CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(qr->qr_value.sga.sga_addr), &qr->qr_value.sga.sga_addr));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = (uint32_t)DemiRecvData->RecvData.BufferLength = arg3
+// arg4 = arg4 = (uint32_t)DemiRecvData->RecvData.BufferLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(qr->qr_value.sga.sga_addr), &qr->qr_value.sga.sga_addr) = arg6
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_DatapathRecv
+#define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
+tracepoint(CLOG_DATAPATH_DEMIKERNEL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
 
 #endif
 
