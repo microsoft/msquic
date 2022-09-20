@@ -774,8 +774,6 @@ CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
             result = demi_wait_timeout(&qr, Socket->popqt, 0) == 0;
             CxPlatLockRelease(&Datapath->Lock);
 
-            fprintf(stderr, "receive work loop\n");
-
             if (result != ETIMEDOUT) {
                 switch (qr.qr_opcode) {
                 case DEMI_OPC_POP:
