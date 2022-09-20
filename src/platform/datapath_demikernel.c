@@ -730,7 +730,7 @@ CxPlatSocketSend(
     sga.sga_segs[0].sgaseg_len = SendData->Buffer.Length;
 
     CxPlatLockAcquire(&Socket->Datapath->Lock);
-    assert(demi_pushto(&qt, Socket->sockqd, &sga, (const struct sockaddr*)&Route->RemoteAddress, sizeof(QUIC_ADDR)) == 0);
+    assert(demi_pushto(&qt, Socket->sockqd, &sga, (const struct sockaddr*)&Route->RemoteAddress, sizeof(struct sockaddr_in)) == 0);
 
     memset(&qr, 0, sizeof(demi_qresult_t()));
     assert(demi_wait(&qr, qt) == 0);
