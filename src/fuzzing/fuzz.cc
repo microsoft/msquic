@@ -8,7 +8,6 @@
 #include "msquic.hpp"
 #include "quic_platform.h"
 
-const MsQuicApi *MsQuic;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -18,7 +17,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	}
 	memcpy(Buf, data, size);
 
-	MsQuic = new(std::nothrow) MsQuicApi();
+	const MsQuicApi* MsQuic = new(std::nothrow) MsQuicApi();
 
 	for (uint32_t Param = QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT;
 		Param <= QUIC_PARAM_GLOBAL_TLS_PROVIDER;
