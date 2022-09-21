@@ -761,7 +761,7 @@ CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
                 assert(demi_pop(&Socket->popqt, Socket->sockqd) == 0);
                 Socket->popqt_set = TRUE;
             }
-            result = demi_wait_timeout(&qr, Socket->popqt, 0) == 0;
+            result = demi_wait_timeout(&qr, Socket->popqt, 0);
             CxPlatLockRelease(&Datapath->Lock);
 
             if (result == 0) {
