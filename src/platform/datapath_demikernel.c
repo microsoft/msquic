@@ -751,7 +751,16 @@ CxPlatDataPathProcessCqe(
     UNREFERENCED_PARAMETER(Cqe);
 }
 
+void microsleep(long sec) {
+    struct timespec ts;
+    ts.tv_sec = sec / 1000000;
+    ts.tv_nsec = (sec % 1000000) * 1000;
+    fprintf(stderr, "sleep for %ld ns\n", ts.tv_nsec);
+    nanosleep(&ts,NULL);
+}
+
 CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
+    long delay = 1;
     CXPLAT_DATAPATH* Datapath = Context;
     while (Datapath->IsRunning) {
         CXPLAT_SOCKET* Socket = Datapath->Socket;
@@ -767,6 +776,7 @@ CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
             result = demi_wait_timeout(&qr, Socket->popqt, 0);
             CxPlatLockRelease(&Datapath->Lock);
 
+
             if (result == 0) {
                 switch (qr.qr_opcode) {
                 case DEMI_OPC_POP:
@@ -776,6 +786,11 @@ CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
                     break;
                 }
                 Socket->popqt_set = FALSE;
+                delay = 1;
+            }
+            else {
+                microsleep(delay);
+                delay *=2;
             }
             CxPlatRundownRelease(&Socket->Rundown);
         }
